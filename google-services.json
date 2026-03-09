@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1054357941651",
+    "project_id": "perix-504cd",
+    "storage_bucket": "perix-504cd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1054357941651:android:db3080521b6da20e78cc66",
+        "android_client_info": {
+          "package_name": "com.perix.citysocial"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWAhUtbW0csQsBqYOHYOSOZQ5u41St9rs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

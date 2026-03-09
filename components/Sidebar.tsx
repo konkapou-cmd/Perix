@@ -1,0 +1,370 @@
+/**
+ * Desktop Sidebar Navigation Component
+ * Replaces bottom tab bar on desktop screens
+ */
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  Platform,
+  Image,
+} from "react-native";
+import { useRouter, usePathname } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../context/AuthContext";
+import { useBadge } from "../context/BadgeContext";
+
+interface NavItem {
+  key: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconActive: keyof typeof Ionicons.glyphMap;
+  path: string;
+}
+
+export default function Sidebar() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const { unreadMessages, unreadNotifications } = useBadge();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
+  const navItems: NavItem[] = [
+    {
+      key: "home",
+      label: t("nav.home") || "Home",
+      icon: "home-outline",
+      iconActive: "home",
+      path: "/",
+    },
+    {
+      key: "explore",
+      label: t("nav.explore") || "Explore",
+      icon: "compass-outline",
+      iconActive: "compass",
+      path: "/explore",
+    },
+    {
+      key: "messages",
+      label: t("nav.messages") || "Messages",
+      icon: "chatbubble-outline",
+      iconActive: "chatbubble",
+      path: "/messages",
+    },
+    {
+      key: "notifications",
+      label: t("nav.notifications") || "Notifications",
+      icon: "notifications-outline",
+      iconActive: "notifications",
+      path: "/notifications",
+    },
+    {
+      key: "profile",
+      label: t("nav.profile") || "Profile",
+      icon: "person-outline",
+      iconActive: "person",
+      path: "/profile",
+    },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === "/") return pathname === "/" || pathname === "/index";
+    return pathname.startsWith(path);
+  };
+
+  const getBadgeCount = (key: string) => {
+    if (key === "messages") return unreadMessages;
+    if (key === "notifications") return unreadNotifications;
+    return 0;
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Logo */}
+      <Pressable 
+        style={styles.logoContainer}
+        onPress={() => router.push("/")}
+      >
+        <View style={styles.logoIcon}>
+          <Ionicons name="location" size={24} color="#fff" />
+        </View>
+        <Text style={styles.logoText}>Perix</Text>
+      </Pressable>
+
+      {/* Navigation Items */}
+      <View style={styles.navItems}>
+        {navItems.map((item) => {
+          const active = isActive(item.path);
+          const hovered = hoveredItem === item.key;
+          const badgeCount = getBadgeCount(item.key);
+
+          return (
+            <Pressable
+              key={item.key}
+              style={[
+                styles.navItem,
+                active && styles.navItemActive,
+                hovered && styles.navItemHover,
+              ]}
+              onPress={() => router.push(item.path as any)}
+              onHoverIn={() => setHoveredItem(item.key)}
+              onHoverOut={() => setHoveredItem(null)}
+              data-testid={`sidebar-nav-${item.key}`}
+            >
+              <View style={styles.iconContainer}>
+                <Ionicons
+                  name={active ? item.iconActive : item.icon}
+                  size={24}
+                  color={active ? "#4c6fff" : "#4b5563"}
+                />
+                {badgeCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {badgeCount > 99 ? "99+" : badgeCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={[
+                  styles.navLabel,
+                  active && styles.navLabelActive,
+                ]}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Create Post Button */}
+      <Pressable
+        style={[
+          styles.createButton,
+          hoveredItem === "create" && styles.createButtonHover,
+        ]}
+        onPress={() => router.push("/camera")}
+        onHoverIn={() => setHoveredItem("create")}
+        onHoverOut={() => setHoveredItem(null)}
+        data-testid="sidebar-create-post"
+      >
+        <Ionicons name="add" size={20} color="#fff" />
+        <Text style={styles.createButtonText}>
+          {t("nav.createPost") || "Create Post"}
+        </Text>
+      </Pressable>
+
+      {/* User Profile Card */}
+      {user && (
+        <Pressable
+          style={[
+            styles.userCard,
+            hoveredItem === "user" && styles.userCardHover,
+          ]}
+          onPress={() => router.push("/profile")}
+          onHoverIn={() => setHoveredItem("user")}
+          onHoverOut={() => setHoveredItem(null)}
+          data-testid="sidebar-user-card"
+        >
+          {user.profile_picture ? (
+            <Image
+              source={{ uri: user.profile_picture }}
+              style={styles.userAvatar}
+            />
+          ) : (
+            <View style={styles.userAvatarPlaceholder}>
+              <Text style={styles.userAvatarText}>
+                {(user.name || "U")[0].toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={styles.userInfo}>
+            <Text style={styles.userName} numberOfLines={1}>
+              {user.name}
+            </Text>
+            <Text style={styles.userHandle} numberOfLines={1}>
+              @{user.email?.split("@")[0]}
+            </Text>
+          </View>
+          <Ionicons name="ellipsis-horizontal" size={18} color="#9ca3af" />
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: 260,
+    height: "100%",
+    backgroundColor: "#fff",
+    borderRightWidth: 1,
+    borderRightColor: "#e5e7eb",
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    justifyContent: "flex-start",
+    ...Platform.select({
+      web: {
+        position: "fixed" as any,
+        left: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 100,
+      },
+    }),
+  },
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 24,
+  },
+  logoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#4c6fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#111827",
+    letterSpacing: -0.5,
+  },
+  navItems: {
+    flex: 1,
+    gap: 4,
+  },
+  navItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    ...Platform.select({
+      web: {
+        cursor: "pointer" as any,
+        transition: "all 0.15s ease" as any,
+      },
+    }),
+  },
+  navItemActive: {
+    backgroundColor: "#eff6ff",
+  },
+  navItemHover: {
+    backgroundColor: "#f3f4f6",
+  },
+  iconContainer: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -6,
+    right: -10,
+    backgroundColor: "#ef4444",
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  navLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#4b5563",
+  },
+  navLabelActive: {
+    color: "#4c6fff",
+    fontWeight: "600",
+  },
+  createButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#4c6fff",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 9999,
+    marginTop: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      web: {
+        cursor: "pointer" as any,
+        transition: "all 0.15s ease" as any,
+      },
+    }),
+  },
+  createButtonHover: {
+    backgroundColor: "#3b5bdb",
+    transform: [{ scale: 1.02 }],
+  },
+  createButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  userCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#f9fafb",
+    ...Platform.select({
+      web: {
+        cursor: "pointer" as any,
+        transition: "all 0.15s ease" as any,
+      },
+    }),
+  },
+  userCardHover: {
+    backgroundColor: "#f3f4f6",
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  userAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#4c6fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  userAvatarText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  userHandle: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+});
