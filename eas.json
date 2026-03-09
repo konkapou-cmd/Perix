@@ -1,0 +1,47 @@
+{
+  "cli": {
+    "version": ">= 3.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      }
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://api.perixapp.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyAMr1Se10FOuTAV7YMEpDvWaKunxRWMa-c",
+        "EXPO_PUBLIC_AGORA_APP_ID": "7793967d595046f08f88fed156f8be42"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      },
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://api.perixapp.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyAMr1Se10FOuTAV7YMEpDvWaKunxRWMa-c",
+        "EXPO_PUBLIC_AGORA_APP_ID": "7793967d595046f08f88fed156f8be42"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./play-store-key.json",
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
+  }
+}
