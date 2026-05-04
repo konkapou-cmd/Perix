@@ -1,0 +1,85 @@
+{
+  "summary": "Testing iteration 33 - Tested new features: Onboarding flow navigation, Voice message UI elements, Chat media support, Story editor features, Friend requests, and Social sharing. All 35 frontend tests pass. Backend API tests (28/28) continue to pass.",
+  "mode": "generate",
+  "baseline_commit": "531e6b8d669112429bcb148190283b3defff2406",
+  "head_commit": "0909352412ab4191dbc21e4c2dd187c3a608fc53",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Onboarding page",
+        "issue": "Missing translations - all onboarding text shows translation keys (e.g., 'onboarding.discoverTitle', 'onboarding.next', 'onboarding.skip') instead of actual translated text",
+        "selector": "N/A - text content issue",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "Chat input bar - Voice message button",
+        "issue": "Microphone button NOT showing when text input is empty - showing send button (blue arrow) instead. According to code logic, mic button should appear when text.trim() is falsy.",
+        "selector": "voiceButton style class",
+        "priority": "HIGH"
+      },
+      {
+        "component": "Profile page - Invite Friends button",
+        "issue": "data-testid='invite-friends-btn' button not found in DOM. May need scrolling or button may be missing.",
+        "selector": "[data-testid='invite-friends-btn']",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Onboarding",
+        "issues": [
+          "Translation keys showing instead of translated content for all onboarding screens"
+        ]
+      },
+      {
+        "screen": "Activities Page",
+        "issues": [
+          "Missing translations for 'activities.haveInvitation', 'activities.enterInvitationCode', 'activities.join' (reported in previous iteration)"
+        ]
+      }
+    ]
+  },
+  "regression_results": {
+    "total_specs": 3,
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0
+  },
+  "specs_created": [
+    "/app/tests/e2e/onboarding-voice-features.spec.ts"
+  ],
+  "specs_updated": [
+    "/app/tests/e2e/messages.spec.ts"
+  ],
+  "quarantined_tests": [],
+  "test_report_links": [
+    "/app/tests/e2e/core-flows.spec.ts",
+    "/app/tests/e2e/messages.spec.ts",
+    "/app/tests/e2e/onboarding-voice-features.spec.ts",
+    "/app/backend/tests/test_friend_messages_stories_api.py"
+  ],
+  "action_items": [
+    "CRITICAL: Add missing onboarding translations to i18n files - all onboarding.* keys are showing raw translation keys instead of translated text",
+    "HIGH: Fix voice message button logic in /app/frontend/app/(tabs)/messages/[id].tsx - mic button should show when text is empty, but send button is showing instead",
+    "MEDIUM: Add missing activities translations (activities.haveInvitation, activities.enterInvitationCode, activities.join)",
+    "LOW: Verify invite-friends-btn data-testid is present on profile page"
+  ],
+  "updated_files": [
+    "/app/tests/e2e/onboarding-voice-features.spec.ts",
+    "/app/tests/e2e/messages.spec.ts"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "No new seed data created. Used existing test user (test-user@test.com)",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Onboarding flow UI is functional but shows translation keys instead of actual text. Voice message recording button is NOT appearing when text input is empty - this is a UI bug where the send button shows instead of the mic button. Chat messaging, navigation, profile, and other core features work correctly. Story groups are not being displayed on home page (count: 0). Backend APIs all pass.",
+  "rca_of_issue": "1) Onboarding translations issue: The onboarding.tsx file correctly uses t('onboarding.welcomeTitle') etc., but the i18n translation files are missing the onboarding namespace keys. 2) Voice button issue: The code logic in messages/[id].tsx shows {text.trim() ? sendButton : voiceButton} which should work, but the voiceButton is not rendering. Possible React Native Web rendering issue with conditional components."
+}

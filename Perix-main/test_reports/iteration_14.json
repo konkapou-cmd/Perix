@@ -1,0 +1,118 @@
+{
+  "summary": "Frontend i18n testing completed. Login page translations work correctly in EN/DE/EL. Web login fails with 404 (backend API works via curl). Code review identified 50+ hardcoded English strings across home.tsx, profile.tsx, business-dashboard.tsx, and business/[id].tsx that should be translated.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "Web login from browser", "issue": "Web login shows 'Request failed' - 404 error in console. Backend API works via curl. Likely web-specific routing or CORS issue."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "translation_issues": [
+      {
+        "file": "home.tsx",
+        "hardcoded_strings": [
+          {"line": "535", "text": "Hi {user?.name}", "should_be": "t('home.greeting', {name: user?.name})"},
+          {"line": "536", "text": "Share what's happening today", "should_be": "t('home.sharePrompt')"},
+          {"line": "543", "text": "Open calendar", "should_be": "t('home.openCalendar')"},
+          {"line": "668", "text": "Create post", "should_be": "t('home.createPost')"},
+          {"line": "675", "text": "Posting as {name}", "should_be": "t('home.postingAs', {name})"},
+          {"line": "727", "text": "Photo", "should_be": "t('common.photo')"},
+          {"line": "731", "text": "Video", "should_be": "t('common.video')"},
+          {"line": "741", "text": "Post", "should_be": "t('common.post')"},
+          {"line": "748", "text": "Latest posts", "should_be": "t('home.latestPosts')"},
+          {"line": "752", "text": "No posts yet. Be the first to share.", "should_be": "t('home.noPosts')"},
+          {"line": "818", "text": "Likes", "should_be": "t('home.likes')"},
+          {"line": "825", "text": "Comments", "should_be": "t('home.comments')"},
+          {"line": "837", "text": "Events calendar", "should_be": "t('home.eventsCalendar')"},
+          {"line": "858", "text": "Events on {date} / Upcoming Events", "should_be": "t('home.eventsOn') / t('home.upcomingEvents')"},
+          {"line": "892", "text": "Comments (modal title)", "should_be": "t('home.comments')"},
+          {"line": "899", "text": "Posting as {name} (in comments)", "should_be": "t('home.postingAs')"},
+          {"line": "951", "text": "Add a comment placeholder", "should_be": "t('home.addComment')"},
+          {"line": "966", "text": "Edit post", "should_be": "t('home.editPost')"},
+          {"line": "995", "text": "Photo (in edit modal)", "should_be": "t('common.photo')"},
+          {"line": "999", "text": "Video (in edit modal)", "should_be": "t('common.video')"},
+          {"line": "1003", "text": "Save changes", "should_be": "t('common.saveChanges')"},
+          {"line": "1010", "text": "Delete post", "should_be": "t('home.deletePost')"}
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "file": "profile.tsx",
+        "hardcoded_strings": [
+          {"line": "519", "text": "Business (identity chip)", "should_be": "t('profile.business')"},
+          {"line": "537", "text": "Artist (identity chip)", "should_be": "t('profile.artist')"},
+          {"line": "542", "text": "This identity will be used for posting...", "should_be": "t('profile.identityHint')"},
+          {"line": "640", "text": "Gallery", "should_be": "t('profile.gallery')"},
+          {"line": "646", "text": "Add photo", "should_be": "t('profile.addPhoto')"},
+          {"line": "649", "text": "Add video", "should_be": "t('profile.addVideo')"},
+          {"line": "668", "text": "Account", "should_be": "t('profile.account')"},
+          {"line": "671", "text": "Voice calling (planned)", "should_be": "t('profile.voiceCalling')"},
+          {"line": "675", "text": "Video calling (planned)", "should_be": "t('profile.videoCalling')"},
+          {"line": "679", "text": "Notifications", "should_be": "t('profile.notifications')"},
+          {"line": "685", "text": "Log out", "should_be": "t('auth.logout')"},
+          {"line": "692", "text": "Create artist profile", "should_be": "t('profile.createArtistProfile')"},
+          {"line": "699-777", "text": "All artist modal placeholders (Artist name, Bio, Genres, etc.)", "should_be": "Use t() for all placeholders"},
+          {"line": "789", "text": "Create business", "should_be": "t('profile.createBusiness')"},
+          {"line": "795-870", "text": "All business modal placeholders", "should_be": "Use t() for all placeholders"}
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "file": "business-dashboard.tsx",
+        "hardcoded_strings": [
+          {"line": "741", "text": "Business Dashboard", "should_be": "t('business.dashboard')"},
+          {"line": "888", "text": "No contact info added yet.", "should_be": "t('business.noContactInfo')"},
+          {"line": "993-995", "text": "Day names (Mon, Tue, etc.) in opening hours", "should_be": "Use t('days.monday'), t('days.tuesday'), etc.", "critical": true}
+        ],
+        "priority": "CRITICAL - Opening hours day names always show in English"
+      },
+      {
+        "file": "business/[id].tsx",
+        "hardcoded_strings": [
+          {"line": "639", "text": "Back", "should_be": "t('common.back')"},
+          {"line": "646", "text": "Add cover image", "should_be": "t('businessProfile.addCoverImage')"},
+          {"line": "676", "text": "Favorites", "should_be": "t('businessProfile.favorites')"},
+          {"line": "689", "text": "Get directions", "should_be": "t('businessProfile.getDirections')"},
+          {"line": "694", "text": "Edit profile", "should_be": "t('businessProfile.editProfile')"},
+          {"line": "700", "text": "Connections", "should_be": "t('businessProfile.connections')"},
+          {"line": "703", "text": "Friends / Make friends", "should_be": "t('businessProfile.friends') / t('businessProfile.makeFriends')"},
+          {"line": "706", "text": "Common friends", "should_be": "t('businessProfile.commonFriends')"},
+          {"line": "708", "text": "No common friends yet.", "should_be": "t('businessProfile.noCommonFriends')"},
+          {"line": "760", "text": "Phone: Not provided", "should_be": "Use t() keys"}
+        ],
+        "priority": "HIGH"
+      }
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_14.json"],
+  "action_items": [
+    "CRITICAL: Fix day names in business-dashboard.tsx opening hours section (lines 993-995) to use translated day names",
+    "Add missing translation keys to en.json, de.json, el.json for all identified hardcoded strings",
+    "Update home.tsx to use t() for all UI strings (~22 hardcoded strings)",
+    "Update profile.tsx to use t() for all UI strings (~20 hardcoded strings)",
+    "Update business/[id].tsx to use t() for all UI strings (~12 hardcoded strings)",
+    "Update business-dashboard.tsx title and empty state messages"
+  ],
+  "critical_code_review_comments": [
+    "Opening hours day names always display in English regardless of selected language - needs immediate fix",
+    "Many UI strings are hardcoded despite i18n infrastructure being in place",
+    "Pattern inconsistency: Some t() calls use interpolation properly, others don't",
+    "Translation files have keys but corresponding UI code doesn't use them"
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (via curl)", "frontend": "Login page 100% translated, Inner pages have 50+ hardcoded strings"},
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Login page translations work correctly in all 3 languages. Web login fails but backend works via curl. Focus testing on opening hours day names and the identified hardcoded strings in home.tsx, profile.tsx, business-dashboard.tsx, and business/[id].tsx after fixes are applied.",
+  "verified_translations": {
+    "login_page": {
+      "english": ["Welcome back", "Email", "Password", "Sign in", "Continue with Google", "New here?", "Create account"],
+      "german": ["Willkommen zurück", "E-Mail", "Passwort", "Anmelden", "Mit Google fortfahren", "Neu hier?", "Konto erstellen"],
+      "greek": ["Καλώς ήρθατε πάλι", "Email", "Κωδικός", "Σύνδεση", "Συνέχεια με Google", "Νέος εδώ", "Δημιουργία λογαριασμού"]
+    }
+  }
+}

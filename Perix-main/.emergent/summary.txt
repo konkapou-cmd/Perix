@@ -1,0 +1,209 @@
+<analysis>**original_problem_statement:**
+The user's core mission is to launch Perix, a full-stack mobile social media app. The primary focus is on feature development and fixing critical bugs. Key tasks include implementing Business and Artist dashboards, fixing various UI/UX issues, implementing a robust translation system, and enabling large video uploads. A critical blocker is the failure of video uploads, with a user requirement to support files up to 300MB without size limits. The user also frequently requests UI improvements, translation additions across multiple languages, and new features like profile theme customization and an immediate-acting report function.
+
+**PRODUCT REQUIREMENTS:**
+*   **Fix Critical Video Upload Failure (P0):** Rebuild the video upload system to handle large files without crashing or pausing. The user has reported this issue multiple times, and the final solution should have no file size limit.
+*   **Implement Report Functionality (P0):** When a user is reported, their posts, stories, and profile must be immediately hidden from the reporting user's view, restorable only by an admin.
+*   **Implement Monetization/Subscription System (P1):** Create a subscription system for businesses with free and paid tiers. Paid tiers should support monthly/yearly billing, vouchers, and a promoter/affiliate revenue sharing model (70/30 split).
+*   **Implement Theme Customization (P1):** Allow users, artists, and businesses to customize their profile's background color and the color scheme for buttons and other UI elements.
+*   **Fix UI/UX Bugs & Implement Enhancements (P1):**
+    *   Fix the hardware back button on Android so it works reliably on all screens.
+    *   Improve the homepage post creation UI.
+    *   Ensure home feed videos autoplay only when visible.
+    *   Fix profile galleries to correctly display images.
+    *   Improve the story editor UI for business/artist profiles to be consistent with the main editor.
+*   **Implement Internationalization (P2):** Add missing translations for multiple languages (German, Spanish, French, Italian, etc.).
+
+**User's preferred language**: English. The user also provides translations in Greek (el) and requests translations for many other languages.
+
+**what currently exists?**
+The agent has completed a significant amount of feature development. A full subscription and monetization system using Stripe has been implemented, including backend routes for plans, vouchers, and promoter tracking, along with a revamped frontend subscription screen. The admin dashboard has been enhanced with new tabs to manage Promoters and view Transactions. The story creation module for both Artist and Business dashboards has been upgraded to use the full-featured , providing a consistent user experience. The inline theme editor was successfully added to both Artist and Business dashboards, and a Reset to Default button was added. Finally, comprehensive translations for all new features were added across all nine supported languages.
+
+**Last working item**:
+    - Last item agent was working: Adding translations for all the newly created features (Subscription System, Promoter Management, Privacy Policy, Admin Dashboard tabs) to all 9 of the app's language files.
+    - Status: NONE (COMPLETED)
+    - Agent Testing Done: Y
+    - Which testing method agent to use? NA
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**:
+  - Issue 1: Large Video Uploads Fail (P0)
+  - Issue 2: Hardware Back Button Doesn't Work on Android (P1)
+  - Issue 3: Profile Image Gallery Not Displaying Images (P2)
+  - Issue 4: Friend Request Notification Shows Incorrect Message (P2)
+
+  Issues Detail:
+  - Issue 1: 
+     - Attempted fixes: The  function was completely rewritten in a previous session to fix platform-specific bugs and handle a critical Expo SDK deprecation.
+     - Next debug checklist: The user has not yet tested this critical fix. The top priority is to instruct the user to build a new APK (An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username) and test uploading a large video file (>50MB).
+     - Why fix this issue and what will be achieved with the fix? This is a P0, core-functionality blocker for a social media app.
+     - Status:  USER VERIFICATION PENDING
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on other issue: None
+  - Issue 2: 
+     - Attempted fixes: The agent enhanced the  logic in  to better manage navigation states.
+     - Next debug checklist: The user needs to test this on an Android device across various screens to confirm the fix is comprehensive.
+     - Why fix this issue and what will be achieved with the fix? This is a core UX issue that makes the app feel broken on Android.
+     - Status:  USER VERIFICATION PENDING
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: None
+  - Issue 3: 
+     - Attempted fixes: The agent discovered the user's profile was marked as hidden, causing the API to return a 403 error. Un-hiding the user resolved the issue during testing.
+     - Next debug checklist: The user needs to verify on their end that profile galleries are now displaying correctly.
+     - Why fix this issue and what will be achieved with the fix? Fixes a core feature of a user's profile.
+     - Status:  USER VERIFICATION PENDING
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: None
+  - Issue 4: 
+     - Attempted fixes: The  component was refactored to handle translations on the client side instead of displaying a hardcoded English message from the backend.
+     - Next debug checklist: User needs to trigger a friend request and check if the notification is correctly translated into their selected language.
+     - Why fix this issue and what will be achieved with the fix? Fixes a jarring UI issue where untranslated text appears.
+     - Status:  USER VERIFICATION PENDING
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: None
+
+**In progress Task List**:
+- There are no tasks currently in progress.
+
+**Upcoming and Future Tasks**
+ Upcoming Tasks:
+    - **(P0) User Verification of All Recent Fixes & Features:** This is the highest priority. The user MUST build a new APK and test:
+        1. The P0 large video upload fix.
+        2. The Android hardware back button fix.
+        3. The profile image gallery fix.
+        4. The notification translation fix.
+        5. The new Stripe subscription flow (including using the MagdeburgPro voucher).
+        6. The promoter registration flow and visibility in the admin dashboard.
+        7. The enhanced story creation module on artist and business dashboards.
+    - **(P0) Implement Report Functionality:** When a user is reported, their posts, stories, and profile must be immediately hidden from the reporting user's view. This is a pending P0 requirement from the original problem statement.
+
+ Future Tasks:
+    - **Implement Automated Payouts:** Enhance the Stripe integration to use Stripe Connect for automatic 70/30 revenue-split payouts to promoters.
+    - **Implement Monetization/Subscription System:** User wants a free and a business subscription. The business appears on the map and all the extras like event creation etc.
+    - **Implement Offline Mode/Caching:** Allow the app to function with limited connectivity.
+
+**Completed work in this session**
+- **Monetization & Subscription System (Stripe):**
+  - Integrated Stripe for business subscriptions with monthly/yearly plans, discounts, and voucher support ().
+  - Implemented a promoter/affiliate system with backend tracking of a 70/30 revenue split ().
+  - Updated the subscription screen () to use the new Stripe system.
+- **Admin Dashboard Enhancements:**
+  - Added a Promoters tab to  to view promoter data and manually trigger payouts.
+  - Added a Transactions tab to  to view a history of all Stripe transactions.
+- **Theme Editor Integration:**
+  - Added the  component to both the artist () and business () dashboards.
+  - Added a Reset to Default button to the theme editor for easy reversion.
+- **Story Module Upgrade:**
+  - Replaced the basic story image picker in the artist and business dashboards with the full-featured , ensuring a consistent and rich content creation experience.
+- **New Pages and Navigation:**
+  - Created a  page.
+  - Created a  page.
+  - Added links to these new pages from the main user profile tab ().
+- **Comprehensive Internationalization (i18n):**
+  - Added complete translations for all new features (subscriptions, admin dashboard, promoters, etc.) to all 9 supported language files ().
+
+**Earlier issues found/mentioned but not fixed**
+   - The **(P0) Report Functionality**, a core requirement from the initial problem statement, has not yet been implemented.
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: Large Video Uploads Fail & App Instability.
+  - Recurrence count: High
+  - Status: USER VERIFICATION PENDING
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+- **Stripe Integration:** The app now uses Stripe for handling subscriptions, including creating products, prices, checkout sessions, and validating vouchers via a new backend service.
+- **Affiliate/Promoter System:** A system was built to track subscriptions originating from a promoter's code. The backend calculates the 70/30 revenue split, and the admin dashboard provides a UI for manual payouts.
+- **Feature Consistency:** The story creation experience was unified across the app by replacing bespoke implementations in the artist/business dashboards with the centralized  component.
+- **State Management & UI Composition:** The admin dashboard was extended with new tabs, modals, and data-fetching logic, demonstrating how to add significant functionality to an existing complex component.
+- **Bulk i18n Management:** All new user-facing strings were systematically added to all nine of the application's translation files.
+
+**key DB schema**
+  - **promoters** (Conceptual): { : ObjectId, : str, : float, : array }
+  - **subscriptions** (Conceptual): { : ObjectId, : str, : str, : str, : ObjectId }
+  - **transactions** (Conceptual): { : str, : float, : ObjectId, : ObjectId, : float, : float }
+
+**changes in tech stack**
+  - **Stripe:** Added as the primary payment processor for subscriptions.
+
+**All files of reference**
+- : Core backend logic for the new monetization system.
+- : Heavily modified to include promoter and transaction management.
+- : The primary user-facing screen for handling subscriptions.
+- , : Integration point for theme editor and the upgraded story module.
+- : New screen for users to become promoters.
+- : All 9  files in this directory were updated.
+
+**Areas that need refactoring**:
+- The subscription screen () still contains legacy code for PayPal. This should be reviewed and potentially removed or isolated if Stripe is now the sole payment provider.
+- The payout mechanism for promoters is currently manual via a button in the admin dashboard. This should be upgraded to use Stripe Connect for automated, scheduled payouts to be a scalable solution.
+
+**key api endpoints**
+- : Creates a Stripe checkout session for a subscription plan.
+- : Fetches available subscription plans.
+- : Checks if a voucher code is valid.
+- : Fetches all promoter data for the admin dashboard.
+- : Endpoint to mark a promoter as paid (manual process).
+- : Fetches all transaction history for the admin dashboard.
+
+**Critical Info for New Agent**
+- **USER VERIFICATION IS THE #1 PRIORITY:** A massive amount of work from this and the previous session remains unverified by the user. Your first action MUST be to present a clear, consolidated checklist for the user to test. This includes the P0 video upload fix, other bug fixes, and all the new monetization and UI features.
+- **APK REBUILD IS MANDATORY:** Remind the user they must build and install a new APK (An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username) to see any of the client-side changes from this or the previous session.
+- **STRIPE CONNECT IS THE NEXT STEP:** The current promoter payout system is manual. To fulfill the user's requirement of automated revenue sharing, the next step for the monetization feature is to implement Stripe Connect for automatic payouts.
+- **PENDING P0 REQUIREMENT:** The Report User functionality, where a reported user's content is hidden from the reporter, is a critical feature from the original request that has not been started. This should be prioritized after user verification is complete.
+
+**documents and test reports created in this job**
+- /app/memory/PRD.md (Updated)
+
+**Last 10 User Messages and any pending HUMAN messages** 
+1.  **make a check of what you have done and complete translations.**: User asked to review the work and add all missing translations. (Status: COMPLETED)
+2.  **COntinue with the future backlog**: User requested to work on the backlog items, which included the Privacy Policy and promoter features. (Status: COMPLETED)
+3.  **i want to see the promoters in the admin dashboard. so there is monetization**: User requested the ability to see and manage promoters in the admin dashboard. (Status: COMPLETED)
+4.  **add the correct the translations to all the new imports**: User requested translations for the new features. (Status: COMPLETED)
+5.  **lets continue with story module in business editor and lets continue with monetization -subsription system**: User approved moving forward with the story module and subscription system. (Status: COMPLETED)
+6.  **i want a 70-30...**: User provided detailed requirements for the subscription pricing, voucher, and revenue split. (Status: COMPLETED)
+7.  **how is this possible the easiest way**: User asked for the simplest way to implement the revenue sharing. (Status: ADDRESSED by creating a manual payout system, with Stripe Connect as the next step).
+8.  **at first i want a free and a business subscription...**: User outlined initial requirements for the monetization system. (Status: COMPLETED)
+9.  **yes,i would like to add this button.**: User approved adding the Reset to Default button to the theme editor. (Status: COMPLETED)
+10. **Continue ensuring the functionality of what we have implemented and continue to improvements**: User's initial message to continue work. (Status: ADDRESSED)
+
+**Project Health Check:**
+- **Broken:**
+    - **Large Video Upload (Potentially Fixed):** A fix was implemented but remains unverified. This is the highest-risk item and is considered broken until the user confirms it works.
+- **Mocked:**
+    - **Promoter Payouts:** The payout process is tracked, but the actual fund transfer is not automated. It relies on a manual action from the admin.
+
+**3rd Party Integrations**
+-   **Stripe (New):** Primary payment processor for subscriptions.
+-   **Cloudinary:** Media Storage
+-   **Expo:** Mobile App Build Service
+-   **Agora:** Voice/Video Calls
+-   **MongoDB Atlas:** Primary Database
+-   **Firebase:** Push Notifications
+-   **Jamendo:** Music API for stories
+
+**Testing status**
+  - Testing agent used after significant changes: NO
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: []
+  - Known regressions:
+    - A critical regression in  was fixed in the previous session, but this fix is still pending user verification via a new APK build.
+
+**Credentials to test flow:**
+-   **Test User:**  / 
+-   **Voucher Code:** 
+
+**What agent forgot to execute**
+- The agent successfully implemented all user requests from the session. However, the critical Report Functionality (a P0 task from the original problem statement) remains unaddressed.</analysis>

@@ -1,0 +1,58 @@
+{
+  "summary": "Testing iteration 34: Tested Business & Artist Dashboard Analytics feature. Backend analytics API endpoints fully working. Frontend login is blocked due to backend URL misconfiguration.",
+  "mode": "generate",
+  "baseline_commit": "0909352412ab4191dbc21e4c2dd187c3a608fc53",
+  "head_commit": "b3c9e98b748b661519ef1ee5596fa177e8aeeeea",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Login Flow",
+        "issue": "Frontend making API requests to wrong URL (perix-preview.preview.emergentagent.com) instead of crash-debug-build.preview.emergentagent.com. The Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL is returning a different value than expected from app.json. This blocks all authenticated frontend testing.",
+        "affected_selectors": ["[data-testid='login-submit']"],
+        "priority": "CRITICAL"
+      }
+    ],
+    "design_issues": []
+  },
+  "regression_results": {
+    "total_specs": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  "specs_created": [
+    "/app/tests/e2e/dashboard-analytics.spec.ts"
+  ],
+  "specs_updated": [],
+  "quarantined_tests": [],
+  "test_report_links": [
+    "/app/backend/tests/test_analytics_api.py",
+    "/app/test_reports/pytest/analytics_results.xml",
+    "/app/tests/e2e/dashboard-analytics.spec.ts"
+  ],
+  "action_items": [
+    "CRITICAL: Fix frontend backend URL configuration. The app.json has EXPO_PUBLIC_BACKEND_URL set to 'https://perix-fixes.preview.emergentagent.com' but the frontend is making requests to 'https://perix-fixes.preview.emergentagent.com'. The Constants.expoConfig?.extra lookup appears to be picking up a cached/bundled value. Need to clear Expo cache completely or fix the URL resolution in lib/api.ts, context/AuthContext.tsx, and context/NotificationContext.tsx.",
+    "Add data-testid attributes to dashboard analytics components for better testability (AnalyticsDashboard, AnalyticsCard, EngagementSection, AudienceInsights)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/conftest.py",
+    "/app/backend/tests/test_analytics_api.py",
+    "/app/frontend/app.json",
+    "/app/frontend/app/business-dashboard.tsx",
+    "/app/frontend/app/artist-dashboard.tsx"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "33% (login page tests pass, authenticated tests blocked)"
+  },
+  "seed_data_creation": "None - used existing test user",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend analytics API tests all pass (13 tests in test_analytics_api.py). Frontend tests pass for unauthenticated flows and API verification via Playwright request API. The main blocker is the frontend backend URL misconfiguration preventing login from working in Playwright. Added data-testid attributes to business and artist dashboard tabs.",
+  "rca_of_issue": "Frontend login fails with 'Request failed' because: 1) Frontend makes API request to perix-preview.preview.emergentagent.com, 2) This URL returns 404, 3) The actual backend is at crash-debug-build.preview.emergentagent.com. Root cause: The EXPO_PUBLIC_BACKEND_URL in Constants.expoConfig?.extra is returning a hardcoded/cached value rather than the value in app.json or .env. The frontend code in lib/api.ts, AuthContext.tsx, and NotificationContext.tsx all use this pattern: Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || fallback"
+}

@@ -1,0 +1,175 @@
+{
+  "identity": {
+    "name": "E1",
+    "role": "The Anti-AI Designer",
+    "mission": "Create a desktop-friendly, visually striking social media experience that breaks away from generic mobile ports.",
+    "principles": [
+      "Fusion over Imitation: Mix mobile fluidity with desktop power.",
+      "Emotion First: Design for connection, not just consumption.",
+      "Content is King: The feed is the stage; UI is the lighting.",
+      "Negative Space: Use the desktop real estate to let content breathe.",
+      "Contrast: Bold interactions against clean backgrounds."
+    ]
+  },
+  "typography": {
+    "font_stack": {
+      "ios": "System",
+      "android": "Roboto",
+      "web": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    },
+    "scales": {
+      "display": { "fontSize": 32, "fontWeight": "800", "letterSpacing": -0.5, "lineHeight": 40 },
+      "h1": { "fontSize": 28, "fontWeight": "700", "letterSpacing": -0.25, "lineHeight": 36 },
+      "h2": { "fontSize": 24, "fontWeight": "700", "letterSpacing": 0, "lineHeight": 32 },
+      "h3": { "fontSize": 20, "fontWeight": "600", "letterSpacing": 0.15, "lineHeight": 28 },
+      "body_lg": { "fontSize": 18, "fontWeight": "400", "lineHeight": 28 },
+      "body": { "fontSize": 16, "fontWeight": "400", "lineHeight": 24 },
+      "caption": { "fontSize": 14, "fontWeight": "500", "color": "#6b7280", "lineHeight": 20 },
+      "tiny": { "fontSize": 12, "fontWeight": "600", "textTransform": "uppercase", "letterSpacing": 0.5 }
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": "#4c6fff",
+      "primary_hover": "#3b5bdb",
+      "secondary": "#8b5cf6",
+      "success": "#10b981",
+      "danger": "#ef4444",
+      "warning": "#f59e0b",
+      "info": "#3b82f6"
+    },
+    "neutrals": {
+      "light": {
+        "bg_base": "#ffffff",
+        "bg_surface": "#f9fafb",
+        "bg_elevated": "#ffffff",
+        "text_primary": "#111827",
+        "text_secondary": "#4b5563",
+        "text_tertiary": "#9ca3af",
+        "border": "#e5e7eb",
+        "divider": "#f3f4f6"
+      },
+      "dark": {
+        "bg_base": "#0f172a",
+        "bg_surface": "#1e293b",
+        "bg_elevated": "#334155",
+        "text_primary": "#f9fafb",
+        "text_secondary": "#cbd5e1",
+        "text_tertiary": "#94a3b8",
+        "border": "#334155",
+        "divider": "#1e293b"
+      }
+    }
+  },
+  "layout_system": {
+    "breakpoints": {
+      "mobile": 0,
+      "tablet": 768,
+      "desktop": 1024,
+      "wide": 1280
+    },
+    "grid_structure": {
+      "desktop_3_col": {
+        "sidebar_left": { "width": 260, "position": "fixed", "type": "navigation" },
+        "main_feed": { "maxWidth": 640, "flex": 1, "type": "scrollable_content" },
+        "sidebar_right": { "width": 350, "position": "sticky", "type": "widgets" }
+      },
+      "mobile_stack": {
+        "width": "100%",
+        "type": "single_column",
+        "navigation": "bottom_tab_bar"
+      }
+    },
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 24,
+      "xl": 32,
+      "xxl": 48,
+      "xxxl": 64
+    }
+  },
+  "components": {
+    "cards": {
+      "base": {
+        "borderRadius": 16,
+        "padding": 20,
+        "backgroundColor": "theme.bg_elevated",
+        "shadowColor": "#000",
+        "shadowOffset": { "width": 0, "height": 4 },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 12,
+        "elevation": 2
+      },
+      "desktop_hover": {
+        "transform": [{ "scale": 1.01 }],
+        "shadowOpacity": 0.1
+      }
+    },
+    "buttons": {
+      "primary": {
+        "borderRadius": 9999,
+        "paddingVertical": 12,
+        "paddingHorizontal": 24,
+        "backgroundColor": "#4c6fff",
+        "alignItems": "center",
+        "justifyContent": "center"
+      },
+      "secondary": {
+        "borderRadius": 9999,
+        "paddingVertical": 12,
+        "paddingHorizontal": 24,
+        "backgroundColor": "transparent",
+        "borderWidth": 1,
+        "borderColor": "#e5e7eb"
+      }
+    },
+    "navigation": {
+      "sidebar_item": {
+        "flexDirection": "row",
+        "alignItems": "center",
+        "paddingVertical": 12,
+        "paddingHorizontal": 16,
+        "borderRadius": 12,
+        "gap": 12
+      },
+      "sidebar_item_active": {
+        "backgroundColor": "#eff6ff",
+        "color": "#4c6fff"
+      }
+    },
+    "modals": {
+      "desktop_dialog": {
+        "width": 500,
+        "maxHeight": "80vh",
+        "borderRadius": 24,
+        "alignSelf": "center"
+      }
+    }
+  },
+  "assets": {
+    "placeholders": {
+      "concert": "https://images.unsplash.com/photo-1761959146873-e61570dd8ee4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHw0fHxjb25jZXJ0JTIwY3Jvd2QlMjB5b3VuZyUyMHBlb3BsZSUyMGhhcHB5fGVufDB8fHx8MTc3Mjc0MzExM3ww&ixlib=rb-4.1.0&q=85",
+      "art_gallery": "https://images.unsplash.com/photo-1769117620273-c032f67c459b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzN8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBhcnQlMjBnYWxsZXJ5JTIwc29jaWFsJTIwZXZlbnR8ZW58MHx8fHwxNzcyNzQzMTEzfDA&ixlib=rb-4.1.0&q=85",
+      "cafe": "https://images.unsplash.com/photo-1766072850651-e08ae512943a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHw0fHxjb2ZmZWUlMjBzaG9wJTIwZnJpZW5kcyUyMGhhbmdpbmclMjBvdXQlMjBjaXR5fGVufDB8fHx8MTc3Mjc0MzExNnww&ixlib=rb-4.1.0&q=85",
+      "abstract_bg": "https://images.unsplash.com/photo-1770954098194-5521c9eb68a1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODR8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGJsdXJyeSUyMGdyYWRpZW50JTIwYmx1ZSUyMHB1cnBsZSUyMHdhbGxwYXBlcnxlbnwwfHx8fDE3NzI3NDMxMTZ8MA&ixlib=rb-4.1.0&q=85"
+    }
+  },
+  "instructions_to_main_agent": {
+    "core_task": "Transform the React Native mobile app into a responsive web app with a dedicated desktop layout.",
+    "layout_strategy": "Create a `ResponsiveLayout` wrapper component that conditionally renders the Sidebar (left) and Widgets (right) based on `useWindowDimensions().width > 1024`. On mobile, keep the current stack/tabs.",
+    "styling_engine": "Use `StyleSheet.create` combined with `Platform.select({ web: ... })` for web-specific touches (like hover states, cursor: pointer, box-shadows).",
+    "sidebar_implementation": "Create a new `Sidebar.tsx` component. It should replace the Bottom Tab Bar on desktop. Hide the Bottom Tabs on desktop (`display: 'none'`).",
+    "feed_adaptation": "Restrict the Feed width on desktop (`maxWidth: 600`, `alignSelf: 'center'`) to prevent lines from becoming too long and unreadable.",
+    "navigation_logic": "Ensure `router.push` works seamlessly between sidebar clicks and mobile tab taps.",
+    "visual_polish": "Add `hover` effects to buttons and list items on web. Use `Pressable` with `onHoverIn` / `onHoverOut` or CSS-in-JS solutions if available in the environment.",
+    "testing": "Add `data-testid` to all new interactive elements (Sidebar links, Desktop buttons)."
+  },
+  "universal_guidelines": [
+    "Do not use generic 'Material Design' shadows. Use soft, multi-layered shadows.",
+    "Avoid 'center-everything'. Use asymmetry for interest.",
+    "Ensure 60fps performance by using `NativeDriver` for animations where possible.",
+    "Respect the user's system theme (Light/Dark) but default to a polished Light theme for the social feed."
+  ]
+}
