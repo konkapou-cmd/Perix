@@ -43,14 +43,15 @@ export default function OpeningHoursModal({
   const { t } = useTranslation();
 
   const toggleDay = (day: string) => {
+    const current = openingHours[day] || { enabled: true, periods: [{ open: "09:00", close: "18:00" }] };
     onHoursChange({
       ...openingHours,
-      [day]: { ...openingHours[day], enabled: !openingHours[day].enabled },
+      [day]: { ...current, enabled: !current.enabled },
     });
   };
 
   const addPeriod = (day: string) => {
-    const current = openingHours[day];
+    const current = openingHours[day] || { enabled: true, periods: [{ open: "09:00", close: "18:00" }] };
     onHoursChange({
       ...openingHours,
       [day]: {
@@ -61,7 +62,7 @@ export default function OpeningHoursModal({
   };
 
   const removePeriod = (day: string, index: number) => {
-    const current = openingHours[day];
+    const current = openingHours[day] || { enabled: true, periods: [{ open: "09:00", close: "18:00" }] };
     if (current.periods.length <= 1) return;
     onHoursChange({
       ...openingHours,
@@ -73,7 +74,7 @@ export default function OpeningHoursModal({
   };
 
   const updatePeriod = (day: string, index: number, field: "open" | "close", value: string) => {
-    const current = openingHours[day];
+    const current = openingHours[day] || { enabled: true, periods: [{ open: "09:00", close: "18:00" }] };
     const updatedPeriods = current.periods.map((period, i) =>
       i === index ? { ...period, [field]: value } : period
     );
@@ -103,7 +104,7 @@ export default function OpeningHoursModal({
                   <Ionicons
                     name={openingHours[day]?.enabled ? "checkbox" : "square-outline"}
                     size={24}
-                    color={openingHours[day]?.enabled ? "#4c6fff" : "#9ca3af"}
+                    color={openingHours[day]?.enabled ? "#000000" : "#9ca3af"}
                   />
                   <Text style={styles.dayName}>{t(`business.days.${day.toLowerCase()}`)}</Text>
                 </Pressable>
@@ -112,7 +113,7 @@ export default function OpeningHoursModal({
                     style={styles.addPeriodButton}
                     onPress={() => addPeriod(day)}
                   >
-                    <Ionicons name="add-circle-outline" size={20} color="#4c6fff" />
+                    <Ionicons name="add-circle-outline" size={20} color="#000000" />
                   </Pressable>
                 )}
               </View>
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   primaryButton: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,

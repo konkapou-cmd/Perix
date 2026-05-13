@@ -74,15 +74,12 @@ export function useDeepLinking() {
         case "event":
           router.push(`/event/${id}`);
           break;
-        case "activity":
-          router.push(`/activity/${id}`);
-          break;
-        case "artist":
-          router.push(`/artist/${id}`);
-          break;
-        case "business":
-          router.push(`/business/${id}`);
-          break;
+      case "activity":
+        router.push(`/activity/${id}`);
+        break;
+      case "business":
+        router.push(`/business/${id}`);
+        break;
         case "post":
           router.push(`/post/${id}`);
           break;

@@ -11,9 +11,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from "expo-camera";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 
@@ -23,7 +22,7 @@ const MAX_VIDEO_DURATION = 30; // 30 seconds max like Instagram
 type CameraMode = "picture" | "video";
 
 export default function CameraScreen() {
-  const { safeGoBackToHome, router } = useSafeNavigation();
+  const router = useRouter();
   const { t } = useTranslation();
   const { mode: initialMode, returnTo } = useLocalSearchParams<{ mode?: string; returnTo?: string }>();
   
@@ -202,7 +201,7 @@ export default function CameraScreen() {
       quality: 0.8,
     });
 
-    if (!result.canceled && result.assets?.[0]?.uri) {
+    if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
       const asset = result.assets[0];
       const type = asset.type === "video" ? "video" : "image";
       router.push({
@@ -227,7 +226,7 @@ export default function CameraScreen() {
         }}>
           <Text style={styles.permissionButtonText}>{t("camera.grantPermission") || "Grant Permission"}</Text>
         </Pressable>
-        <Pressable style={styles.backButton} onPress={safeGoBackToHome}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>{t("common.back")}</Text>
         </Pressable>
       </SafeAreaView>
@@ -253,7 +252,7 @@ export default function CameraScreen() {
         {/* Top Controls */}
         <SafeAreaView style={styles.topControls} edges={["top"]}>
           {/* Close Button */}
-          <Pressable style={styles.controlButton} onPress={safeGoBackToHome}>
+          <Pressable style={styles.controlButton} onPress={() => router.back()}>
             <Ionicons name="close" size={28} color="#fff" />
           </Pressable>
 
@@ -381,7 +380,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   permissionButton: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 25,
@@ -396,7 +395,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   backButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 16,
   },
   topControls: {

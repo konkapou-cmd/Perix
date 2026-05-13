@@ -5,21 +5,24 @@ import { Job } from "../../lib/api";
 
 type Props = {
   jobs: Job[];
-  onAddJob: () => void;
-  onDeleteJob: (jobId: string) => void;
+  readOnly?: boolean;
+  onAddJob?: () => void;
+  onDeleteJob?: (jobId: string) => void;
 };
 
-export default function JobsSection({ jobs, onAddJob, onDeleteJob }: Props) {
+export default function JobsSection({ jobs, readOnly = false, onAddJob, onDeleteJob }: Props) {
   const { t } = useTranslation();
 
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{t("jobs.myJobs")}</Text>
-        <Pressable style={styles.addButton} onPress={onAddJob} data-testid="add-job-btn">
-          <Ionicons name="add" size={20} color="#fff" />
-          <Text style={styles.addButtonText}>{t("jobs.postJob")}</Text>
-        </Pressable>
+        {!readOnly && onAddJob && (
+          <Pressable style={styles.addButton} onPress={onAddJob} data-testid="add-job-btn">
+            <Ionicons name="add" size={20} color="#fff" />
+            <Text style={styles.addButtonText}>{t("jobs.postJob")}</Text>
+          </Pressable>
+        )}
       </View>
       {jobs.length === 0 ? (
         <Text style={styles.emptyText}>{t("jobs.noMyJobs")}</Text>
@@ -39,7 +42,7 @@ export default function JobsSection({ jobs, onAddJob, onDeleteJob }: Props) {
                 {job.expires_at ? `${t("jobs.expiresAt")}: ${job.expires_at.split("T")[0]}` : ""}
               </Text>
             </View>
-            <Pressable style={styles.iconButton} onPress={() => onDeleteJob(job.job_id)}>
+            <Pressable style={styles.iconButton} onPress={() => onDeleteJob?.(job.job_id)}>
               <Ionicons name="trash-outline" size={18} color="#ef4444" />
             </Pressable>
           </View>
@@ -69,7 +72,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,

@@ -21,8 +21,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const THUMBNAIL_SIZE = (SCREEN_WIDTH - 64) / 3;
 
 // No video size limit - streaming upload handles any size
-const MAX_VIDEO_SIZE_MB = 0; // Disabled
-const MAX_VIDEO_SIZE_BYTES = 0; // Disabled - no limit
+const MAX_VIDEO_SIZE_MB = 300;
+const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
 
 // Props can accept either simple string[] or GalleryItem[] with captions
 interface VideoGalleryProps {
@@ -41,14 +41,14 @@ interface VideoGalleryProps {
 const normalizeVideos = (videos: string[] | GalleryItem[]): GalleryItem[] => {
   if (!videos || videos.length === 0) return [];
   if (typeof videos[0] === 'string') {
-    return (videos as string[]).map(url => ({ url, caption: null }));
+    return (videos as string[]).map(url => ({ uri: url, type: "video" as const }));
   }
   return videos as GalleryItem[];
 };
 
 // Helper to get URLs array from normalized videos
 const getVideoUrls = (videos: GalleryItem[]): string[] => {
-  return videos.map(v => v.url);
+  return videos.map(v => v.uri);
 };
 
 export default function VideoGalleryUpload({
@@ -111,7 +111,7 @@ export default function VideoGalleryUpload({
         videoMaxDuration: 180,
       });
 
-      if (result.canceled || !result.assets?.[0]) {
+      if (result.canceled || !result.assets || result.assets.length === 0) {
         return;
       }
 
@@ -139,7 +139,7 @@ export default function VideoGalleryUpload({
       if (uploadedUrl) {
         // Check if we're working with GalleryItem[] or string[]
         if (enableCaptions || (videos.length > 0 && typeof videos[0] !== 'string')) {
-          const newVideos: GalleryItem[] = [...normalizedVideos, { url: uploadedUrl, caption: null }];
+          const newVideos: GalleryItem[] = [...normalizedVideos, { uri: uploadedUrl, type: "video" as const }];
           onVideosChange(newVideos);
         } else {
           const newUrls = [...videoUrls, uploadedUrl];
@@ -239,7 +239,7 @@ export default function VideoGalleryUpload({
       
       // Update local state
       const updatedVideos = normalizedVideos.map(v => 
-        v.url === editingVideoUrl ? { ...v, caption: editingCaption } : v
+        v.uri === editingVideoUrl ? { ...v, caption: editingCaption } : v
       );
       onVideosChange(updatedVideos);
       
@@ -296,10 +296,10 @@ export default function VideoGalleryUpload({
               disabled={uploading}
             >
               {uploading ? (
-                <ActivityIndicator size="small" color="#4c6fff" />
+                <ActivityIndicator size="small" color="#000000" />
               ) : (
                 <>
-                  <Ionicons name="add" size={18} color="#4c6fff" />
+                  <Ionicons name="add" size={18} color="#000000" />
                   <Text style={styles.addButtonText}>{t("gallery.addVideo") || "Add"}</Text>
                 </>
               )}
@@ -342,13 +342,13 @@ export default function VideoGalleryUpload({
           contentContainerStyle={styles.videoGrid}
         >
           {normalizedVideos.map((videoItem, index) => (
-            <View key={`${videoItem.url}-${index}`} style={styles.videoItem}>
+            <View key={`${videoItem.uri}-${index}`} style={styles.videoItem}>
               <Pressable
                 style={[styles.videoThumbnail, editMode && styles.videoThumbnailEditMode]}
-                onPress={() => handleVideoPress(videoItem.url, index)}
+                onPress={() => handleVideoPress(videoItem.uri, index)}
               >
                 <Video
-                  source={{ uri: videoItem.url }}
+                  source={{ uri: videoItem.uri }}
                   style={styles.videoPreview}
                   resizeMode={ResizeMode.COVER}
                   shouldPlay={false}
@@ -371,12 +371,12 @@ export default function VideoGalleryUpload({
               {enableCaptions && editable && !editMode && (
                 <Pressable 
                   style={styles.captionButton}
-                  onPress={() => handleEditCaption(videoItem.url, videoItem.caption)}
+                  onPress={() => handleEditCaption(videoItem.uri, videoItem.caption)}
                 >
                   <Ionicons 
                     name={videoItem.caption ? "text" : "text-outline"} 
                     size={14} 
-                    color={videoItem.caption ? "#4c6fff" : "#9ca3af"} 
+                    color={videoItem.caption ? "#000000" : "#9ca3af"} 
                   />
                   <Text 
                     style={[styles.captionText, !videoItem.caption && styles.captionTextEmpty]} 
@@ -395,7 +395,7 @@ export default function VideoGalleryUpload({
                     onPress={() => handleMoveLeft(index)}
                     disabled={index === 0}
                   >
-                    <Ionicons name="chevron-back" size={16} color={index === 0 ? "#d1d5db" : "#4c6fff"} />
+                    <Ionicons name="chevron-back" size={16} color={index === 0 ? "#d1d5db" : "#000000"} />
                   </Pressable>
                   <Pressable
                     style={styles.deleteButtonSmall}
@@ -408,7 +408,7 @@ export default function VideoGalleryUpload({
                     onPress={() => handleMoveRight(index)}
                     disabled={index === normalizedVideos.length - 1}
                   >
-                    <Ionicons name="chevron-forward" size={16} color={index === normalizedVideos.length - 1 ? "#d1d5db" : "#4c6fff"} />
+                    <Ionicons name="chevron-forward" size={16} color={index === normalizedVideos.length - 1 ? "#d1d5db" : "#000000"} />
                   </Pressable>
                 </View>
               )}
@@ -477,7 +477,7 @@ export default function VideoGalleryUpload({
                   onPress={() => {
                     if (selectedIndex > 0) {
                       setSelectedIndex(selectedIndex - 1);
-                      setSelectedVideo(normalizedVideos[selectedIndex - 1].url);
+                      setSelectedVideo(normalizedVideos[selectedIndex - 1].uri);
                     }
                   }}
                   disabled={selectedIndex === 0}
@@ -489,7 +489,7 @@ export default function VideoGalleryUpload({
                   onPress={() => {
                     if (selectedIndex < normalizedVideos.length - 1) {
                       setSelectedIndex(selectedIndex + 1);
-                      setSelectedVideo(normalizedVideos[selectedIndex + 1].url);
+                      setSelectedVideo(normalizedVideos[selectedIndex + 1].uri);
                     }
                   }}
                   disabled={selectedIndex === normalizedVideos.length - 1}
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   editModeButtonActive: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
   },
   editModeText: {
     fontSize: 12,
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#4c6fff",
+    color: "#000000",
   },
   progressContainer: {
     marginBottom: 12,
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     borderRadius: 2,
   },
   progressText: {
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     borderRadius: 20,
   },
   emptyAddButtonText: {
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
   },
   videoThumbnailEditMode: {
     borderWidth: 2,
-    borderColor: "#4c6fff",
+    borderColor: "#000000",
   },
   videoPreview: {
     width: "100%",
@@ -903,7 +903,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     alignItems: "center",
   },
   captionSaveButtonDisabled: {

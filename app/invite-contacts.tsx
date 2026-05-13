@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Contacts from "expo-contacts";
 import * as Clipboard from "expo-clipboard";
@@ -25,6 +25,7 @@ import {
   sendFriendRequest,
   MatchedContact,
   InvitableContact,
+  APP_URL,
 } from "../lib/api";
 
 type TabType = "onPerix" | "invite";
@@ -32,7 +33,7 @@ type TabType = "onPerix" | "invite";
 export default function InviteContactsScreen() {
   const { t } = useTranslation();
   const { sessionToken } = useAuth();
-  const { safeGoBack, router } = useSafeNavigation();
+  const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<TabType>("onPerix");
   const [loading, setLoading] = useState(false);
@@ -111,7 +112,7 @@ export default function InviteContactsScreen() {
     if (!sessionToken || addingFriendId) return;
     setAddingFriendId(userId);
     try {
-      await sendFriendRequest(sessionToken, userId);
+      await sendFriendRequest(sessionToken, "user", userId);
       // Update local state
       setMatchedUsers(prev =>
         prev.map(u =>
@@ -131,8 +132,8 @@ export default function InviteContactsScreen() {
   const handleInvite = async (contact: InvitableContact, method: "sms" | "whatsapp") => {
     if (!sessionToken) return;
 
-    const inviteMessage = t("contacts.inviteMessage") || 
-      `Hey ${contact.name}! Join me on Perix - the social app for discovering events and connecting with friends in your city. Use my referral code: ${referralCode}\n\nDownload: https://perixapp.com`;
+    const inviteMessage = t("contacts.inviteMessage") ||
+      `Hey ${contact.name}! Join me on Perix - the social app for discovering events and connecting with friends in your city. Use my referral code: ${referralCode}\n\nDownload: ${APP_URL}`;
 
     try {
       // Track the invite
@@ -176,7 +177,7 @@ export default function InviteContactsScreen() {
           <Image source={{ uri: item.profile_photo }} style={styles.avatar} />
         ) : (
           <LinearGradient
-            colors={["#6366f1", "#8b5cf6"]}
+            colors={["#FFD700", "#FF6B6B"]}
             style={styles.avatarPlaceholder}
           >
             <Text style={styles.avatarText}>
@@ -198,14 +199,14 @@ export default function InviteContactsScreen() {
           <Text style={styles.friendBadgeText}>{t("friends.friends") || "Friends"}</Text>
         </View>
       ) : addingFriendId === item.user_id ? (
-        <ActivityIndicator size="small" color="#4c6fff" />
+        <ActivityIndicator size="small" color="#000000" />
       ) : (
         <Pressable
           style={styles.addButton}
           onPress={() => handleAddFriend(item.user_id)}
         >
           <LinearGradient
-            colors={["#4c6fff", "#6366f1"]}
+            colors={["#000000", "#FFD700"]}
             style={styles.addButtonGradient}
           >
             <Ionicons name="person-add" size={16} color="#fff" />
@@ -241,7 +242,7 @@ export default function InviteContactsScreen() {
           style={styles.smsInviteBtn}
           onPress={() => handleInvite(item, "sms")}
         >
-          <Ionicons name="chatbubble" size={16} color="#4c6fff" />
+          <Ionicons name="chatbubble" size={16} color="#000000" />
         </Pressable>
       </View>
     </View>
@@ -252,7 +253,7 @@ export default function InviteContactsScreen() {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={safeGoBack}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={24} color="#111827" />
           </Pressable>
           <Text style={styles.title}>{t("contacts.inviteFriends") || "Invite Friends"}</Text>
@@ -262,7 +263,7 @@ export default function InviteContactsScreen() {
         <View style={styles.permissionView}>
           <View style={styles.permissionIcon}>
             <LinearGradient
-              colors={["#4c6fff", "#6366f1"]}
+              colors={["#000000", "#FFD700"]}
               style={styles.permissionIconGradient}
             >
               <Ionicons name="people" size={48} color="#fff" />
@@ -300,7 +301,7 @@ export default function InviteContactsScreen() {
               disabled={loading}
             >
               <LinearGradient
-                colors={["#4c6fff", "#6366f1"]}
+                colors={["#000000", "#FFD700"]}
                 style={styles.allowButtonGradient}
               >
                 {loading ? (
@@ -325,7 +326,7 @@ export default function InviteContactsScreen() {
               </Text>
               <Pressable style={styles.referralCodeBox} onPress={copyReferralCode}>
                 <Text style={styles.referralCode}>{referralCode}</Text>
-                <Ionicons name="copy-outline" size={20} color="#4c6fff" />
+                <Ionicons name="copy-outline" size={20} color="#000000" />
               </Pressable>
               <Text style={styles.referralHint}>
                 {t("contacts.referralHint") || "Share this code with friends when they sign up!"}
@@ -341,7 +342,7 @@ export default function InviteContactsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={safeGoBack}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#111827" />
         </Pressable>
         <Text style={styles.title}>{t("contacts.inviteFriends") || "Invite Friends"}</Text>
@@ -433,7 +434,7 @@ export default function InviteContactsScreen() {
             {t("contacts.yourCode") || "Your code:"} <Text style={styles.referralFooterCode}>{referralCode}</Text>
           </Text>
           <Pressable onPress={copyReferralCode}>
-            <Ionicons name="copy-outline" size={20} color="#4c6fff" />
+            <Ionicons name="copy-outline" size={20} color="#000000" />
           </Pressable>
         </View>
       )}
@@ -444,7 +445,7 @@ export default function InviteContactsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#f0fdf4",
   },
   header: {
     flexDirection: "row",
@@ -508,7 +509,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tabActive: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
   },
   tabText: {
     fontSize: 14,
@@ -718,7 +719,7 @@ const styles = StyleSheet.create({
   allowButton: {
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#4c6fff",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -773,14 +774,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#4c6fff",
+    borderColor: "#000000",
     borderStyle: "dashed",
     gap: 12,
   },
   referralCode: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#4c6fff",
+    color: "#000000",
     letterSpacing: 2,
   },
   referralHint: {
@@ -804,6 +805,6 @@ const styles = StyleSheet.create({
   },
   referralFooterCode: {
     fontWeight: "700",
-    color: "#4c6fff",
+    color: "#000000",
   },
 });

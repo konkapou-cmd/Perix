@@ -11,13 +11,12 @@ import {
   Pressable,
   SafeAreaView,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
 import { useTranslation } from "react-i18next";
 
 export default function CallScreenWeb() {
-  const { safeGoBack } = useSafeNavigation();
+  const router = useRouter();
   const { t } = useTranslation();
   const params = useLocalSearchParams();
   const { type, callId, userName } = params;
@@ -61,8 +60,8 @@ export default function CallScreenWeb() {
           </View>
         </View>
 
-        <Pressable style={styles.backButton} onPress={safeGoBack}>
-          <Ionicons name="arrow-back" size={20} color="#4c6fff" />
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={20} color="#000000" />
           <Text style={styles.backButtonText}>
             {t("common.goBack") || "Go Back"}
           </Text>
@@ -108,7 +107,7 @@ const styles = StyleSheet.create({
   },
   callerInfo: {
     fontSize: 14,
-    color: "#4c6fff",
+    color: "#000000",
     marginTop: 16,
     padding: 12,
     backgroundColor: "rgba(76, 111, 255, 0.1)",
@@ -151,7 +150,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   backButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 16,
     fontWeight: "600",
   },

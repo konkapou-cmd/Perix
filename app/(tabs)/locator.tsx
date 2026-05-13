@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   Image,
   Linking,
   Modal,
+  Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
@@ -14,14 +17,21 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BusinessMap from "../../components/BusinessMap";
+import { SkeletonBox } from "../../components/shared";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import LocatorCard from "../../components/locator/LocatorCard";
+import LocatorHeader from "../../components/locator/LocatorHeader";
+import LocatorCategoryChips from "../../components/locator/LocatorCategoryChips";
 import * as Location from "expo-location";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { CalendarList } from "react-native-calendars";
 import { useAuth } from "../../context/AuthContext";
 import { useMapBounds } from "../../context/MapBoundsContext";
+import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
 import {
   Business,
   createBusiness,
@@ -32,27 +42,71 @@ import {
   getSubscriptionPlans,
   getSubscriptionStatus,
   SubscriptionPlans,
-  searchNearby,
-  GeospatialSearchResponse,
-  ArtistSearchResult,
-  PostSearchResult,
+  EventItem,
+  getEvents,
+  ActivityItem,
+  getActivities,
+  Rental,
+  getRentals,
 } from "../../lib/api";
+import { apiRequest } from "../../lib/api/core";
+import { useLocation } from "../../context/LocationContext";
 import { translateCategory } from "../../lib/categoryTranslation";
+import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
+import { ACTIVITY_THEMES } from "../../lib/api";
 
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL;
 
+const CATEGORY_ICONS: Record<string, string> = {
+  food: "restaurant",
+  drinks: "wine",
+  music: "musical-notes",
+  nightlife: "moon",
+  sports: "fitness",
+  beauty: "cut",
+  health: "heart",
+  education: "school",
+  shopping: "bag-handle",
+  technology: "hardware-chip",
+  automotive: "car",
+  realestate: "home",
+  "rental-real-estate": "home",
+  professional: "briefcase",
+  pets: "paw",
+  travel: "airplane",
+  arts: "color-palette",
+  community: "people",
+  entertainment: "film",
+  fashion: "shirt",
+  home: "home-outline",
+  other: "grid",
+};
+
+const itemWidth = (Dimensions.get("window").width - 48) / 3;
+
+type TabType = "events" | "activities" | "businesses";
+
+interface DateFilter {
+  startDate: string | null;
+  endDate: string | null;
+}
+
 export default function LocatorScreen() {
   const { t } = useTranslation();
   const { sessionToken, user } = useAuth();
-  const { setMapBounds: setGlobalMapBounds, isMapInitialized } = useMapBounds();
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
+  const { location: contextLocation, setManualLocation, radiusKm } = useLocation();
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
   const [selectedSubcategory, setSelectedSubcategory] = useState("All");
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryModal, setCategoryModal] = useState(false);
   const [subcategoryModal, setSubcategoryModal] = useState(false);
@@ -75,19 +129,215 @@ export default function LocatorScreen() {
   const [suggesting, setSuggesting] = useState(false);
   const [subscriptionModal, setSubscriptionModal] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
-  const [mapBounds, setMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlans | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [subscriptionSession, setSubscriptionSession] = useState<
     { subscription_id: string; approval_url: string; status: string } | null
   >(null);
+
+  const [activeTab, setActiveTab] = useState<TabType>("businesses");
+  const [locationSearchQuery, setLocationSearchQuery] = useState("");
+  const [locationSearchSuggestions, setLocationSearchSuggestions] = useState<
+    { description: string; place_id: string; lat: number | null; lng: number | null }[]
+  >([]);
+  const [showLocationSearch, setShowLocationSearch] = useState(false);
   
-  // Artist/City Search State
-  const [citySearchQuery, setCitySearchQuery] = useState("");
-  const [citySearchResults, setCitySearchResults] = useState<GeospatialSearchResponse | null>(null);
-  const [citySearchLoading, setCitySearchLoading] = useState(false);
-  const [showArtistSearch, setShowArtistSearch] = useState(false);
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilter>({ startDate: null, endDate: null });
+  const [pendingDateFilter, setPendingDateFilter] = useState<DateFilter>({ startDate: null, endDate: null });
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  // Theme filters for events and activities
+  const [eventThemeFilter, setEventThemeFilter] = useState<string | null>(null);
+  const [pendingEventThemeFilter, setPendingEventThemeFilter] = useState<string | null>(null);
+  const [activityThemeFilter, setActivityThemeFilter] = useState<string | null>(null);
+  const [pendingActivityThemeFilter, setPendingActivityThemeFilter] = useState<string | null>(null);
+
+  // Tab-specific search queries
+  const [eventSearchQuery, setEventSearchQuery] = useState("");
+  const [activitySearchQuery, setActivitySearchQuery] = useState("");
+  const [businessSearchQuery, setBusinessSearchQuery] = useState("");
+
+  // Apply filter states
+  const [hasPendingFilters, setHasPendingFilters] = useState(false);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [sortBy, setSortBy] = useState<"nearest" | "date" | "name">("nearest");
+  const [locationName, setLocationName] = useState<string | null>(null);
+
+  const haversineDistance = (lat1: number, lon1: number, lat2?: number | null, lon2?: number | null): number | null => {
+    if (lat2 == null || lon2 == null) return null;
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const getDistance = (lat?: number | null, lng?: number | null): number | null => {
+    if (!contextLocation || lat == null || lng == null) return null;
+    return haversineDistance(contextLocation.latitude, contextLocation.longitude, lat, lng);
+  };
+
+  const formatDistance = (km: number): string => {
+    if (km < 1) return `${Math.round(km * 1000)}m`;
+    if (km < 100) return `${km.toFixed(1)} km`;
+    return `${Math.round(km)} km`;
+  };
+
+  const isBusinessOpen = (business: Business): boolean | null => {
+    const openingHours = business.opening_hours as { schedule?: Record<string, { enabled: boolean; periods: { open: string; close: string }[] }> } | undefined;
+    if (!openingHours?.schedule) return null;
+    const now = new Date();
+    const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const currentDay = days[now.getDay()];
+    const daySchedule = openingHours.schedule[currentDay];
+    if (!daySchedule || !daySchedule.enabled) return false;
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    for (const period of daySchedule.periods) {
+      const [openHour, openMin] = period.open.split(":").map(Number);
+      const [closeHour, closeMin] = period.close.split(":").map(Number);
+      if (currentTime >= openHour*60+openMin && currentTime <= closeHour*60+closeMin) return true;
+    }
+    return false;
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    if (sessionToken && mapBounds) {
+      const centerLat = mapBounds.centerLat;
+      const centerLng = mapBounds.centerLng;
+      try {
+        await loadBusinesses(centerLat, centerLng, mapBounds);
+        if (activeTab === "events") await loadEvents(mapBounds);
+        if (activeTab === "activities") await loadActivities(mapBounds);
+      } catch (e) { console.warn("Refresh failed:", e); }
+    }
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    if (params.tab && ["events", "activities", "businesses"].includes(params.tab)) {
+      setActiveTab(params.tab as TabType);
+    }
+  }, [params.tab]);
+   
+   // Helper: check if date is within filter range
+   const isDateInRange = (dateStr: string | null | undefined, range: DateFilter): boolean => {
+     if (!dateStr) return true;
+     if (!range.startDate && !range.endDate) return true;
+     const date = new Date(dateStr);
+     if (range.startDate && date < new Date(range.startDate)) return false;
+     if (range.endDate && date > new Date(range.endDate)) return false;
+     return true;
+   };
+
+   // Helper: calculate date range with +-2 days
+   const calculateDateRange = (selectedDateStr: string): { startDate: string; endDate: string } => {
+     const baseDate = new Date(selectedDateStr);
+     const startDate = new Date(baseDate);
+     startDate.setDate(startDate.getDate() - 2);
+     const endDate = new Date(baseDate);
+     endDate.setDate(endDate.getDate() + 2);
+     return {
+       startDate: startDate.toISOString().split("T")[0],
+       endDate: endDate.toISOString().split("T")[0],
+     };
+   };
+
+   // Helper: get "This Week" range
+   const getThisWeekRange = (): DateFilter => {
+     const now = new Date();
+     const weekFromNow = new Date(now);
+     weekFromNow.setDate(weekFromNow.getDate() + 7);
+     return {
+       startDate: now.toISOString().split("T")[0],
+       endDate: weekFromNow.toISOString().split("T")[0],
+     };
+   };
+
+   const visibleBusinesses = useMemo(() => {
+     let result = businesses;
+     // Filter by map bounds
+     if (mapBounds) {
+       result = result.filter(b => {
+         if (b.latitude == null || b.longitude == null) return true;
+         return b.latitude >= mapBounds.minLat && 
+                b.latitude <= mapBounds.maxLat && 
+                b.longitude >= mapBounds.minLng && 
+                b.longitude <= mapBounds.maxLng;
+       });
+     }
+     // Filter by search query
+     if (businessSearchQuery.trim()) {
+       const query = businessSearchQuery.toLowerCase();
+       result = result.filter(b => b.name.toLowerCase().includes(query));
+     }
+     return result;
+   }, [businesses, mapBounds, businessSearchQuery]);
+
+   const visibleEvents = useMemo(() => {
+     let result = events;
+     // Filter by map bounds
+     if (mapBounds) {
+       result = result.filter(e => {
+         if (e.latitude == null || e.longitude == null) return true;
+         return e.latitude >= mapBounds.minLat && 
+                e.latitude <= mapBounds.maxLat && 
+                e.longitude >= mapBounds.minLng && 
+                e.longitude <= mapBounds.maxLng;
+       });
+     }
+     // Filter by upcoming (default this week)
+     const effectiveDateFilter = dateFilter.startDate || dateFilter.endDate ? dateFilter : getThisWeekRange();
+     result = result.filter(e => {
+       const eventDate = e.start_time?.split("T")[0];
+       return isDateInRange(eventDate, effectiveDateFilter);
+     });
+     // Filter by theme
+     if (eventThemeFilter) {
+       result = result.filter(e => e.theme === eventThemeFilter);
+     }
+     // Filter by search query
+     if (eventSearchQuery.trim()) {
+       const query = eventSearchQuery.toLowerCase();
+       result = result.filter(e => e.title.toLowerCase().includes(query));
+     }
+     return result;
+   }, [events, mapBounds, dateFilter, eventThemeFilter, eventSearchQuery]);
+
+   const visibleActivities = useMemo(() => {
+     let result = activities;
+     // Filter by map bounds
+     if (mapBounds) {
+       result = result.filter(a => {
+         if (a.latitude == null || a.longitude == null) return true;
+         return a.latitude >= mapBounds.minLat && 
+                a.latitude <= mapBounds.maxLat && 
+                a.longitude >= mapBounds.minLng && 
+                a.longitude <= mapBounds.maxLng;
+       });
+     }
+     // Filter by upcoming (default this week)
+     const effectiveDateFilter = dateFilter.startDate || dateFilter.endDate ? dateFilter : getThisWeekRange();
+     result = result.filter(a => {
+       const activityDate = a.date;
+       return isDateInRange(activityDate, effectiveDateFilter);
+     });
+     // Filter by theme
+     if (activityThemeFilter) {
+       result = result.filter(a => a.theme === activityThemeFilter);
+     }
+     // Filter by search query
+     if (activitySearchQuery.trim()) {
+       const query = activitySearchQuery.toLowerCase();
+       result = result.filter(a => a.title.toLowerCase().includes(query));
+     }
+     return result;
+   }, [activities, mapBounds, dateFilter, activityThemeFilter, activitySearchQuery]);
   
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
@@ -129,83 +379,83 @@ export default function LocatorScreen() {
     setCategoryTree(data);
   }, [sessionToken]);
 
-  const loadBusinesses = useCallback(async () => {
-    if (!sessionToken || !location) return;
+  const loadBusinesses = useCallback(async (centerLat: number, centerLng: number, bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+    if (!sessionToken) return;
     const data = await getNearbyBusinesses(
       sessionToken,
-      location.latitude,
-      location.longitude,
+      centerLat,
+      centerLng,
       selectedRoot !== "All" ? selectedRoot : undefined,
       selectedSubcategory !== "All" ? selectedSubcategory : undefined,
-      mapBounds
+      bounds
     );
     setBusinesses(data);
-  }, [sessionToken, location, selectedRoot, selectedSubcategory, mapBounds]);
+  }, [sessionToken, selectedRoot, selectedSubcategory]);
+
+  const loadEvents = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+    if (!sessionToken) return;
+    const data = await getEvents(sessionToken, undefined, undefined, bounds, {
+      startAfter: dateFilter.startDate || undefined,
+      startBefore: dateFilter.endDate || undefined,
+      theme: eventThemeFilter || undefined,
+    });
+    setEvents(data);
+  }, [sessionToken, dateFilter, eventThemeFilter]);
+
+  const loadActivities = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+    if (!sessionToken) return;
+    const data = await getActivities(sessionToken, bounds, {
+      date: dateFilter.startDate || undefined,
+      theme: activityThemeFilter || undefined,
+    });
+    setActivities(data);
+  }, [sessionToken, dateFilter, activityThemeFilter]);
+
+  const loadRentals = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+    if (!sessionToken) return;
+    const data = await getRentals(sessionToken, bounds);
+    setRentals(data.rentals);
+  }, [sessionToken]);
 
   const handleMapRegionChange = useCallback((bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
-    setMapBounds(bounds);
-    // Update global map bounds for filtering content across the app
+    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+    const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+
     setGlobalMapBounds({
       minLat: bounds.minLat,
       maxLat: bounds.maxLat,
       minLng: bounds.minLng,
       maxLng: bounds.maxLng,
-      centerLat: (bounds.minLat + bounds.maxLat) / 2,
-      centerLng: (bounds.minLng + bounds.maxLng) / 2,
+      centerLat,
+      centerLng,
     });
-  }, [setGlobalMapBounds]);
+  }, [setGlobalMapBounds, sessionToken, radiusKm]);
 
-  // Search artists and posts by city (25km radius)
-  const handleCitySearch = useCallback(async () => {
-    if (!sessionToken || !citySearchQuery.trim()) return;
-    try {
-      setCitySearchLoading(true);
-      const results = await searchNearby(sessionToken, citySearchQuery.trim(), undefined, undefined, 25);
-      setCitySearchResults(results);
-    } catch (error) {
-      console.error("City search failed:", error);
-      setCitySearchResults(null);
-    } finally {
-      setCitySearchLoading(false);
-    }
-  }, [sessionToken, citySearchQuery]);
-
-  // Search artists near user's current GPS location
-  const handleNearMeSearch = useCallback(async () => {
-    if (!sessionToken || !location) return;
-    try {
-      setCitySearchLoading(true);
-      const results = await searchNearby(
-        sessionToken, 
-        undefined, 
-        location.latitude, 
-        location.longitude, 
-        25
-      );
-      setCitySearchResults(results);
-    } catch (error) {
-      console.error("Near me search failed:", error);
-      setCitySearchResults(null);
-    } finally {
-      setCitySearchLoading(false);
-    }
-  }, [sessionToken, location]);
-
-  // Auto-search when artist search tab is opened and location is available
   useEffect(() => {
-    if (showArtistSearch && location && sessionToken && !citySearchResults) {
-      handleNearMeSearch();
-    }
-  }, [showArtistSearch, location, sessionToken]);
-
-  // Debounced load businesses when map bounds change
-  useEffect(() => {
-    if (!mapBounds || !location || !sessionToken) return;
+    if (!mapBounds || !sessionToken) return;
     const timer = setTimeout(() => {
-      loadBusinesses();
-    }, 500); // Debounce 500ms
+      loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
+      if (activeTab === "businesses" && selectedRoot === "rental-real-estate") {
+        loadRentals(mapBounds);
+      }
+    }, 500);
     return () => clearTimeout(timer);
-  }, [mapBounds]);
+  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory]);
+
+  useEffect(() => {
+    if (!mapBounds || !sessionToken) return;
+    if (activeTab !== "events" && activeTab !== "activities") return;
+    const timer = setTimeout(() => {
+      if (activeTab === "events") {
+        loadEvents(mapBounds);
+      } else if (activeTab === "activities") {
+        loadActivities(mapBounds);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [mapBounds, sessionToken, activeTab, refreshKey, dateFilter, loadEvents, loadActivities]);
+
+
 
   useEffect(() => {
     if (!sessionToken) return;
@@ -213,35 +463,28 @@ export default function LocatorScreen() {
     loadCategories().finally(() => setLoading(false));
   }, [loadCategories, sessionToken]);
 
-  // Request location on mount
+  // Reverse geocode location name from coordinates
   useEffect(() => {
-    if (!sessionToken) return;
-    const setupLocation = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLoading(false);
-        return;
-      }
-      const current = await Location.getCurrentPositionAsync({});
-      const lat = current.coords.latitude;
-      const lng = current.coords.longitude;
-      setLocation({ latitude: lat, longitude: lng });
-      
-      // Set initial map bounds based on location with default zoom level
-      const defaultDelta = 0.02; // Matches BusinessMap's initial delta
-      setGlobalMapBounds({
-        minLat: lat - defaultDelta / 2,
-        maxLat: lat + defaultDelta / 2,
-        minLng: lng - defaultDelta / 2,
-        maxLng: lng + defaultDelta / 2,
-        centerLat: lat,
-        centerLng: lng,
-      });
-      
-      setLoading(false);
+    if (!contextLocation) return;
+    const reverseGeocode = async () => {
+      try {
+        const result = await Location.reverseGeocodeAsync({
+          latitude: contextLocation.latitude,
+          longitude: contextLocation.longitude,
+        });
+        if (result && result.length > 0) {
+          const place = result[0];
+          const name = place.city || place.subregion || place.region || place.country || null;
+          if (name) setLocationName(name);
+        }
+      } catch {}
     };
-    setupLocation();
-  }, [sessionToken, setGlobalMapBounds]);
+    reverseGeocode();
+  }, [contextLocation]);
+
+  // Don't auto-request location on mount - wait for user to tap the map
+  // Location will only be set when user explicitly taps the disabled map overlay
+  // This ensures content doesn't appear until user enables location manually
 
   const fetchSuggestions = async (query: string) => {
     if (!googleKey || query.length < 3) {
@@ -263,30 +506,46 @@ export default function LocatorScreen() {
     }
   };
 
+  const fetchLocationSearchSuggestions = async (query: string) => {
+    if (!sessionToken || query.length < 3) {
+      setLocationSearchSuggestions([]);
+      return;
+    }
+    try {
+      const data = await apiRequest<{ predictions: { place_id: string; description: string; lat: number | null; lng: number | null }[] }>(
+        `/places/autocomplete?input=${encodeURIComponent(query)}`, "GET", sessionToken
+      );
+      setLocationSearchSuggestions(data.predictions || []);
+    } catch (error) {
+      setLocationSearchSuggestions([]);
+    }
+  };
+
+  const handleLocationSearchSelect = (suggestion: {
+    description: string;
+    place_id: string;
+    lat: number | null;
+    lng: number | null;
+  }) => {
+    setLocationSearchQuery("");
+    setLocationSearchSuggestions([]);
+    setShowLocationSearch(false);
+    if (suggestion.lat != null && suggestion.lng != null) {
+      setManualLocation(suggestion.lat, suggestion.lng, suggestion.description.split(",")[0]);
+    }
+  };
+
   const loadSubscriptionPlans = useCallback(async () => {
     if (!sessionToken) return;
     const plans = await getSubscriptionPlans(sessionToken);
     setSubscriptionPlans(plans);
   }, [sessionToken]);
 
-  useEffect(() => {
-    if (location && sessionToken) {
-      loadBusinesses();
-    }
-  }, [location, loadBusinesses, sessionToken]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchSuggestions(addressQuery);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [addressQuery, googleKey]);
-
-  useEffect(() => {
-    if (subscriptionModal && sessionToken) {
-      loadSubscriptionPlans();
-    }
-  }, [subscriptionModal, sessionToken, loadSubscriptionPlans]);
+    useEffect(() => {
+      if (subscriptionModal && sessionToken) {
+        loadSubscriptionPlans();
+      }
+    }, [subscriptionModal, sessionToken, loadSubscriptionPlans]);
 
   // WhatsApp share for business
   const shareBusinessToWhatsApp = async (business: Business) => {
@@ -313,10 +572,10 @@ export default function LocatorScreen() {
   };
 
   const handleAddBusiness = async () => {
-    if (!sessionToken || !location) return;
-    if (!form.name || !form.root_category || !form.subcategory || !form.address) return;
-    const latitude = form.latitude ?? location.latitude;
-    const longitude = form.longitude ?? location.longitude;
+     if (!sessionToken || !contextLocation) return;
+     if (!form.name || !form.root_category || !form.subcategory || !form.address) return;
+     const latitude = form.latitude ?? contextLocation.latitude;
+     const longitude = form.longitude ?? contextLocation.longitude;
     const newBusiness = await createBusiness(sessionToken, {
       name: form.name,
       root_category: form.root_category,
@@ -389,340 +648,364 @@ export default function LocatorScreen() {
   const handleCheckSubscription = async () => {
     if (!sessionToken || !subscriptionSession) return;
     await getSubscriptionStatus(sessionToken, subscriptionSession.subscription_id);
-    await loadBusinesses();
+    await loadBusinesses(mapBounds!.centerLat, mapBounds!.centerLng);
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer} edges={['top']}>
-        <ActivityIndicator size="large" color="#4c6fff" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }} edges={['top']}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+          <SkeletonBox width="100%" height={40} style={{ marginHorizontal: 16, marginTop: 8 }} />
+          <SkeletonBox width="100%" height={44} borderRadius={12} style={{ marginHorizontal: 16, marginTop: 8 }} />
+          <SkeletonBox width="100%" height={200} borderRadius={12} style={{ marginHorizontal: 16, marginTop: 12 }} />
+          <SkeletonBox width={100} height={18} style={{ marginHorizontal: 16, marginTop: 16 }} />
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={{ backgroundColor: "#fff", borderRadius: 8, padding: 14, marginHorizontal: 16, marginBottom: 12 }}>
+              <View style={{ flexDirection: "row" }}>
+                <SkeletonBox width={56} height={56} borderRadius={12} />
+                <View style={{ marginLeft: 12, justifyContent: "center", gap: 6 }}>
+                  <SkeletonBox width={120} height={12} />
+                  <SkeletonBox width={100} height={12} />
+                  <SkeletonBox width={80} height={12} />
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('locator.title')}</Text>
-        <Text style={styles.subtitle}>{t('locator.subtitle')}</Text>
-      </View>
-
-      {/* Simple Location Header */}
-      <View style={styles.locationHeader}>
-        <View style={styles.locationIconContainer}>
-          <Ionicons name="navigate" size={20} color="#4c6fff" />
+      {/* Search Bar */}
+      <View style={styles.searchBarSection}>
+        <View style={styles.searchInputContainer}>
+          <Ionicons name="search" size={18} color={COLORS.textMuted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={activeTab === "businesses" ? t('business.searchBusinesses') : activeTab === "events" ? t('events.searchEvents') : t('activities.searchActivities')}
+            placeholderTextColor={COLORS.textDisabled}
+            value={activeTab === "businesses" ? businessSearchQuery : activeTab === "events" ? eventSearchQuery : activitySearchQuery}
+            onChangeText={activeTab === "businesses" ? setBusinessSearchQuery : activeTab === "events" ? setEventSearchQuery : setActivitySearchQuery}
+          />
+          {(businessSearchQuery || eventSearchQuery || activitySearchQuery) ? (
+            <Pressable onPress={() => { setBusinessSearchQuery(""); setEventSearchQuery(""); setActivitySearchQuery(""); }}>
+              <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+            </Pressable>
+          ) : null}
+          <Pressable
+            style={styles.locationSearchBtn}
+            onPress={() => setShowLocationSearch(true)}
+          >
+            <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+          </Pressable>
         </View>
-        <View style={styles.locationInfo}>
-          <Text style={styles.locationLabel}>{t('locator.yourLocation')}</Text>
-          <Text style={styles.locationName} numberOfLines={1}>
-            {location 
-              ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
-              : t('locator.loading')}
-          </Text>
-        </View>
-        <Pressable 
-          style={styles.refreshLocationButton}
-          onPress={async () => {
-            setLoading(true);
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status === "granted") {
-              const current = await Location.getCurrentPositionAsync({});
-              setLocation({
-                latitude: current.coords.latitude,
-                longitude: current.coords.longitude,
-              });
-            }
-            setLoading(false);
-          }}
-        >
-          <Ionicons name="refresh" size={18} color="#4c6fff" />
-        </Pressable>
-      </View>
-
-      {/* View Toggle: Map vs Artist Search */}
-      <View style={styles.viewToggle}>
-        <Pressable
-          style={[styles.toggleButton, !showArtistSearch && styles.toggleButtonActive]}
-          onPress={() => setShowArtistSearch(false)}
-        >
-          <Ionicons name="map-outline" size={16} color={!showArtistSearch ? "#fff" : "#4c6fff"} />
-          <Text style={[styles.toggleText, !showArtistSearch && styles.toggleTextActive]}>
-            {t('locator.mapView', 'Map')}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.toggleButton, showArtistSearch && styles.toggleButtonActive]}
-          onPress={() => setShowArtistSearch(true)}
-        >
-          <Ionicons name="people-outline" size={16} color={showArtistSearch ? "#fff" : "#4c6fff"} />
-          <Text style={[styles.toggleText, showArtistSearch && styles.toggleTextActive]}>
-            {t('locator.artistSearch', 'Find Artists')}
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Artist Search by City */}
-      {showArtistSearch ? (
-        <View style={styles.artistSearchContainer}>
-          <View style={styles.citySearchBox}>
-            <Ionicons name="search" size={20} color="#6b7280" />
-            <TextInput
-              style={styles.citySearchInput}
-              placeholder={t('locator.searchCityPlaceholder', 'Enter city name...')}
-              placeholderTextColor="#9ca3af"
-              value={citySearchQuery}
-              onChangeText={setCitySearchQuery}
-              onSubmitEditing={handleCitySearch}
-              returnKeyType="search"
-            />
-            {citySearchLoading ? (
-              <ActivityIndicator size="small" color="#4c6fff" />
-            ) : (
-              <Pressable onPress={handleCitySearch} style={styles.searchButton}>
-                <Ionicons name="arrow-forward-circle" size={28} color="#4c6fff" />
+        {/* Location search */}
+        {showLocationSearch && (
+          <View style={styles.locationSearchDropdown}>
+            <View style={styles.locationSearchBar}>
+              <Ionicons name="search" size={18} color={COLORS.textMuted} />
+              <TextInput
+                style={styles.locationSearchInput}
+                placeholder={t("locator.searchLocation") || "Search location..."}
+                placeholderTextColor={COLORS.textDisabled}
+                value={locationSearchQuery}
+                onChangeText={(text) => {
+                  setLocationSearchQuery(text);
+                  fetchLocationSearchSuggestions(text);
+                }}
+                autoFocus
+              />
+              <Pressable onPress={() => { setShowLocationSearch(false); setLocationSearchQuery(""); setLocationSearchSuggestions([]); }}>
+                <Ionicons name="close" size={20} color={COLORS.textMuted} />
               </Pressable>
+            </View>
+            {locationSearchSuggestions.length > 0 && (
+              <View style={styles.locationSearchResults}>
+                <ScrollView nestedScrollEnabled>
+                  {locationSearchSuggestions.map((s) => (
+                    <Pressable
+                      key={s.place_id}
+                      style={styles.locationSearchItem}
+                      onPress={() => handleLocationSearchSelect(s)}
+                    >
+                      <Ionicons name="location" size={16} color={COLORS.primary} />
+                      <Text style={styles.locationSearchItemText} numberOfLines={1}>{s.description}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
             )}
           </View>
-          
-          {/* Near Me Button */}
-          <Pressable 
-            style={styles.nearMeButton}
-            onPress={handleNearMeSearch}
-            disabled={!location || citySearchLoading}
-          >
-            <Ionicons name="locate" size={18} color="#fff" />
-            <Text style={styles.nearMeButtonText}>
-              {t('locator.nearMe', 'Near Me')}
-            </Text>
-          </Pressable>
-          
-          <Text style={styles.searchHint}>
-            {t('locator.searchHint', 'Search artists and their posts within 25km of a city')}
-          </Text>
-
-          {citySearchResults && (
-            <ScrollView style={styles.searchResultsContainer} contentContainerStyle={{ paddingBottom: 100 }}>
-              {/* Search Results Header */}
-              <View style={styles.searchResultsHeader}>
-                <Text style={styles.searchResultsTitle}>
-                  {citySearchResults.city}
-                </Text>
-                <Text style={styles.searchResultsSubtitle}>
-                  {citySearchResults.total_artists} {t('locator.artists', 'artists')} · {citySearchResults.total_posts} {t('locator.posts', 'posts')}
-                </Text>
-              </View>
-
-              {/* Artists Section */}
-              {citySearchResults.artists.length > 0 && (
-                <View style={styles.searchSection}>
-                  <Text style={styles.searchSectionTitle}>
-                    <Ionicons name="person" size={16} color="#4c6fff" /> {t('locator.artistsNearby', 'Artists Nearby')}
-                  </Text>
-                  {citySearchResults.artists.map((artist) => (
-                    <Pressable
-                      key={artist.artist_id}
-                      style={styles.artistCard}
-                      onPress={() => router.push(`/artist/${artist.artist_id}`)}
-                    >
-                      {artist.profile_photo ? (
-                        <Image source={{ uri: artist.profile_photo }} style={styles.artistPhoto} />
-                      ) : (
-                        <View style={styles.artistPhotoPlaceholder}>
-                          <Text style={styles.artistPhotoText}>{artist.name.charAt(0).toUpperCase()}</Text>
-                        </View>
-                      )}
-                      <View style={styles.artistInfo}>
-                        <Text style={styles.artistName}>{artist.name}</Text>
-                        {artist.town && (
-                          <Text style={styles.artistTown}>
-                            <Ionicons name="location-outline" size={12} color="#6b7280" /> {artist.town}
-                          </Text>
-                        )}
-                        {artist.genres && artist.genres.length > 0 && (
-                          <View style={styles.genresRow}>
-                            {artist.genres.slice(0, 3).map((genre, idx) => (
-                              <View key={idx} style={styles.genreChip}>
-                                <Text style={styles.genreChipText}>{genre}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        )}
-                      </View>
-                      {artist.distance_km !== null && artist.distance_km !== undefined && (
-                        <View style={styles.distanceBadge}>
-                          <Text style={styles.distanceText}>{artist.distance_km} km</Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-
-              {/* Posts Section */}
-              {citySearchResults.posts.length > 0 && (
-                <View style={styles.searchSection}>
-                  <Text style={styles.searchSectionTitle}>
-                    <Ionicons name="images" size={16} color="#4c6fff" /> {t('locator.postsFromArtists', 'Posts from Artists')}
-                  </Text>
-                  {citySearchResults.posts.map((post) => (
-                    <Pressable
-                      key={post.post_id}
-                      style={styles.postCard}
-                      onPress={() => router.push(`/post/${post.post_id}`)}
-                    >
-                      <View style={styles.postHeader}>
-                        {post.actor_avatar ? (
-                          <Image source={{ uri: post.actor_avatar }} style={styles.postAvatar} />
-                        ) : (
-                          <View style={styles.postAvatarPlaceholder}>
-                            <Ionicons name="person" size={16} color="#fff" />
-                          </View>
-                        )}
-                        <Text style={styles.postAuthor}>{post.actor_name || 'Artist'}</Text>
-                      </View>
-                      <Text style={styles.postText} numberOfLines={2}>{post.text}</Text>
-                      <View style={styles.postStats}>
-                        <Text style={styles.postStat}>
-                          <Ionicons name="heart" size={12} color="#ef4444" /> {post.likes_count}
-                        </Text>
-                        <Text style={styles.postStat}>
-                          <Ionicons name="chatbubble" size={12} color="#6b7280" /> {post.comments_count}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-
-              {/* No Results */}
-              {citySearchResults.artists.length === 0 && citySearchResults.posts.length === 0 && (
-                <View style={styles.noResults}>
-                  <Ionicons name="search-outline" size={48} color="#9ca3af" />
-                  <Text style={styles.noResultsText}>
-                    {t('locator.noArtistsFound', 'No artists found in this area')}
-                  </Text>
-                  <Text style={styles.noResultsHint}>
-                    {t('locator.tryAnotherCity', 'Try searching for another city')}
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-          )}
-        </View>
-      ) : (
-        <>
-          {/* Original Map View Content */}
-
-      <View style={styles.actions}>
-        <Pressable
-          style={styles.filterButton}
-          onPress={() => {
-            setCategoryTarget("filter");
-            setCategoryModal(true);
-          }}
-        >
-          <Text style={styles.filterText}>{t('locator.category')}: {selectedRootLabel}</Text>
-          <Ionicons name="chevron-down" size={16} color="#4c6fff" />
-        </Pressable>
-        <Pressable
-          style={styles.filterButton}
-          onPress={() => {
-            setSubcategoryTarget("filter");
-            setSubcategoryModal(true);
-          }}
-        >
-          <Text style={styles.filterText}>{t('locator.subcategory')}: {selectedSubLabel}</Text>
-          <Ionicons name="chevron-down" size={16} color="#4c6fff" />
-        </Pressable>
+        )}
       </View>
 
-      {location ? (
-        <BusinessMap 
-          location={location} 
-          businesses={businesses} 
+      {/* Map Section */}
+      <View style={styles.mapSection}>
+        <BusinessMap
+          location={contextLocation || { latitude: mapBounds?.centerLat || 52.52, longitude: mapBounds?.centerLng || 13.405 }}
+          businesses={activeTab === "businesses" ? businesses : []}
+          events={activeTab === "events" ? events : []}
+          activities={activeTab === "activities" ? activities : []}
+          rentals={activeTab === "businesses" ? rentals : []}
           showUserLocation
-          onRegionChange={handleMapRegionChange}
+          onRegionChangeComplete={handleMapRegionChange}
+          onMarkerPress={(id) => {
+            if (activeTab === "businesses") {
+              const rental = rentals.find(r => r.rental_id === id);
+              if (rental) { router.push(`/rental/${id}` as any); return; }
+              router.push(`/business/${id}` as any); return;
+            }
+            if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
+            if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
+          }}
+          disabled={!contextLocation}
+          disabledHint="Tap to enable location"
+          onMapPress={contextLocation ? undefined : (() => {
+            Location.requestForegroundPermissionsAsync().then(({ status }) => {
+              if (status === 'granted') {
+                Location.getCurrentPositionAsync({}).then((loc) => {
+                  setManualLocation(loc.coords.latitude, loc.coords.longitude);
+                });
+              }
+            });
+          }) as any}
         />
-      ) : (
+        {/* Recenter FAB */}
         <Pressable
-          style={styles.webNotice}
-          onPress={async () => {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status === "granted") {
-              const current = await Location.getCurrentPositionAsync({});
-              setLocation({
-                latitude: current.coords.latitude,
-                longitude: current.coords.longitude,
+          style={styles.recenterFab}
+          onPress={() => {
+            if (contextLocation) {
+              setManualLocation(contextLocation.latitude, contextLocation.longitude);
+            } else {
+              Location.requestForegroundPermissionsAsync().then(({ status }) => {
+                if (status === 'granted') {
+                  Location.getCurrentPositionAsync({}).then((loc) => {
+                    setManualLocation(loc.coords.latitude, loc.coords.longitude);
+                  });
+                }
               });
             }
           }}
         >
-          <Ionicons name="location" size={32} color="#4c6fff" />
-          <Text style={styles.webNoticeText}>{t('locator.tapToEnableLocation')}</Text>
-          <Text style={styles.webNoticeSubtext}>{t('locator.viewNearbyBusinesses')}</Text>
+          <Ionicons name="locate" size={22} color={COLORS.primary} />
         </Pressable>
+      </View>
+
+      {/* Segment Tabs */}
+      <LocatorHeader
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        locationName={locationName}
+        t={t}
+      />
+
+      {/* Category/Theme Chips */}
+      {activeTab === "businesses" && (
+        <LocatorCategoryChips
+          chips={categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t), icon: CATEGORY_ICONS[cat.slug] || "grid" }))}
+          selectedKey={selectedRoot === "All" ? null : selectedRoot}
+          onSelect={(key) => { setSelectedRoot(key || "All"); setSelectedSubcategory("All"); }}
+        />
+      )}
+      {activeTab === "events" && (
+        <LocatorCategoryChips
+          chips={Object.entries(EVENT_THEMES).map(([key, theme]: [string, any]) => ({ key, label: theme.label, color: theme.color }))}
+          selectedKey={eventThemeFilter}
+          onSelect={setEventThemeFilter}
+          variant="theme"
+        />
+      )}
+      {activeTab === "activities" && (
+        <LocatorCategoryChips
+          chips={Object.entries(ACTIVITY_THEMES).map(([key, theme]: [string, any]) => ({ key, label: theme.label, color: theme.color }))}
+          selectedKey={activityThemeFilter}
+          onSelect={setActivityThemeFilter}
+          variant="theme"
+        />
       )}
 
-      <ScrollView style={styles.list} contentContainerStyle={{ paddingBottom: 20 }}>
-        <Text style={styles.listTitle}>{t('locator.nearbyBusinesses')}</Text>
-        {businesses.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>{t('locator.noBusinesses')}</Text>
+      {/* Date filter row */}
+      {(activeTab === "events" || activeTab === "activities") && (
+        <View style={styles.filterRow}>
+          <Pressable
+            style={styles.dateFilterButton}
+            onPress={() => setShowCalendar(true)}
+          >
+            <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+            <Text style={styles.dateFilterButtonText}>
+              {dateFilter.startDate ? `${dateFilter.startDate} → ${dateFilter.endDate || "..."}` : t('common.thisWeek') || "This Week"}
+            </Text>
+            <Ionicons name="chevron-down" size={14} color={COLORS.textMuted} />
+          </Pressable>
+          {dateFilter.startDate && (
+            <Pressable style={styles.clearDateButton} onPress={() => { setDateFilter({ startDate: null, endDate: null }); }}>
+              <Ionicons name="close" size={14} color={COLORS.textMuted} />
+            </Pressable>
+          )}
+        </View>
+      )}
+
+      {/* Subcategory chips for businesses */}
+      {activeTab === "businesses" && selectedRoot !== "All" && selectedRootGroup && (
+        <LocatorCategoryChips
+          chips={selectedRootGroup.subcategories.map((sub) => ({ key: sub.slug, label: translateCategory(sub.slug, t) }))}
+          selectedKey={selectedSubcategory === "All" ? null : selectedSubcategory}
+          onSelect={(key) => setSelectedSubcategory(key || "All")}
+        />
+      )}
+
+      {/* Card List */}
+      <ScrollView
+        style={styles.cardScrollView}
+        contentContainerStyle={styles.cardScrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        {/* Sort Row */}
+        <View style={styles.sortRow}>
+          {["nearest", "date", "name"].map((sort) => (
+            <Pressable
+              key={sort}
+              style={[styles.sortChip, sortBy === sort && styles.sortChipActive]}
+              onPress={() => setSortBy(sort as "nearest" | "date" | "name")}
+            >
+              <Text style={[styles.sortChipText, sortBy === sort && styles.sortChipTextActive]}>
+                {sort === "nearest" ? (t('common.nearest') || "Nearest") : sort === "date" ? (t('common.date') || "Date") : (t('common.name') || "Name")}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* Business List */}
+        {activeTab === "businesses" && (
+          <View style={styles.list}>
+            <Text style={styles.listTitle}>{visibleBusinesses.length} {t('tabs.businesses')}</Text>
+            {visibleBusinesses.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>{t('business.noBusinesses')}</Text>
+              </View>
+            )}
+            {visibleBusinesses.map((business) => {
+              const isOpen = isBusinessOpen(business);
+              const dist = getDistance(business.latitude, business.longitude);
+              return (
+                <LocatorCard
+                  key={business.business_id}
+                  type="business"
+                  data={business}
+                  distance={dist !== null ? formatDistance(dist) : null}
+                  isOpen={isOpen}
+                  onPress={() => router.push(`/business/${business.business_id}`)}
+                />
+              );
+            })}
           </View>
-        ) : (
-          businesses.map((business) => (
-            <View key={business.business_id} style={styles.businessCard}>
-              <Pressable
-                style={styles.businessCardContent}
-                onPress={() => router.push(`/business/${business.business_id}`)}
-              >
-                {business.logo_image || business.profile_photo ? (
-                  <Image
-                    source={{ uri: (business.logo_image || business.profile_photo) as string }}
-                    style={styles.businessPhoto}
-                  />
-                ) : (
-                  <View style={styles.businessPhotoPlaceholder}>
-                    <Text style={styles.businessPhotoText}>
-                      {business.name.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.businessName}>{business.name}</Text>
-                  <Text style={styles.businessCategory}>
-                    {translateCategory(business.category, t)} · {translateCategory(business.root_category, t)}
-                  </Text>
-                  <Text style={styles.businessAddress}>{business.address}</Text>
-                </View>
-              </Pressable>
-              <View style={styles.businessActions}>
-                <Pressable
-                  style={styles.whatsappShareButton}
-                  onPress={() => shareBusinessToWhatsApp(business)}
-                >
-                  <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-                </Pressable>
-                {business.owner_id === user?.user_id ? (
-                  <Pressable
-                    style={styles.subscriptionButton}
-                    onPress={() => {
-                      setSelectedBusiness(business);
-                      setSubscriptionModal(true);
-                      setSubscriptionSession(null);
-                      setSelectedPlan("monthly");
-                    }}
-                  >
-                    <Text style={styles.subscriptionButtonText}>{t('locator.manage')}</Text>
-                  </Pressable>
-                ) : null}
+        )}
+
+        {/* Event List */}
+        {activeTab === "events" && (
+          <View style={styles.list}>
+            <Text style={styles.listTitle}>{visibleEvents.length} {t('tabs.events')}</Text>
+            {visibleEvents.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>{t('events.noEvents')}</Text>
+              </View>
+            )}
+            {visibleEvents.map((event) => {
+              const dist = getDistance(event.business?.latitude, event.business?.longitude);
+              return (
+                <LocatorCard
+                  key={event.event_id}
+                  type="event"
+                  data={event}
+                  distance={dist !== null ? formatDistance(dist) : null}
+                  onPress={() => router.push(`/event/${event.event_id}`)}
+                />
+              );
+            })}
+          </View>
+        )}
+
+        {/* Activity List */}
+        {activeTab === "activities" && (
+          <View style={styles.list}>
+            <Text style={styles.listTitle}>{visibleActivities.length} {t('tabs.activities')}</Text>
+            {visibleActivities.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>{t('activities.noActivities')}</Text>
+              </View>
+            )}
+            {visibleActivities.map((activity) => {
+              const dist = getDistance(activity.latitude, activity.longitude);
+              return (
+                <LocatorCard
+                  key={activity.activity_id}
+                  type="activity"
+                  data={activity}
+                  distance={dist !== null ? formatDistance(dist) : null}
+                  onPress={() => router.push(`/activity/${activity.activity_id}`)}
+                />
+              );
+            })}
+          </View>
+        )}
+
+        <View style={{ height: 80 }} />
+      </ScrollView>
+
+      {/* Calendar Modal */}
+      <Modal visible={showCalendar} animationType="slide">
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }}>
+          <View style={styles.calendarModalHeader}>
+            <View style={styles.calendarHeaderContent}>
+              <View style={styles.calendarHeaderIcon}>
+                <Ionicons name="calendar" size={24} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.calendarModalTitle}>{t('home.eventsCalendar') || 'Select Dates'}</Text>
+                <Text style={styles.calendarModalSubtitle}>
+                  {pendingDateFilter.startDate || t('common.selectDateRange') || 'Choose a date range'}
+                </Text>
               </View>
             </View>
-          ))
-        )}
-      </ScrollView>
-        </>
-      )}
+            <Pressable style={styles.calendarCloseButton} onPress={() => setShowCalendar(false)}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </Pressable>
+          </View>
+          <View style={styles.calendarBody}>
+            <CalendarList
+              onDayPress={(day: any) => {
+                if (!pendingDateFilter.startDate) {
+                  setPendingDateFilter({ startDate: day.dateString, endDate: null });
+                } else if (!pendingDateFilter.endDate) {
+                  const start = pendingDateFilter.startDate;
+                  const end = day.dateString;
+                  if (end < start) {
+                    setPendingDateFilter({ startDate: end, endDate: start });
+                  } else {
+                    setPendingDateFilter({ startDate: start, endDate: end });
+                  }
+                } else {
+                  setPendingDateFilter({ startDate: day.dateString, endDate: null });
+                }
+              }}
+              markedDates={{
+                ...(pendingDateFilter.startDate ? { [pendingDateFilter.startDate]: { selected: true, color: COLORS.primary } } : {}),
+                ...(pendingDateFilter.endDate ? { [pendingDateFilter.endDate]: { selected: true, color: COLORS.primary } } : {}),
+              }}
+            />
+          </View>
+          <View style={styles.calendarFooter}>
+            <Pressable style={[styles.calendarActionButton, styles.calendarApplyButton]} onPress={() => {
+              setDateFilter(pendingDateFilter);
+              setShowCalendar(false);
+            }}>
+              <Text style={[styles.calendarActionButtonText, styles.calendarApplyButtonText]}>Apply</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </Modal>
 
       <Modal visible={categoryModal} animationType="slide">
         <View style={styles.modalContainer}>
@@ -950,7 +1233,7 @@ export default function LocatorScreen() {
                 </Pressable>
               </View>
             ) : (
-              <ActivityIndicator color="#4c6fff" />
+              <ActivityIndicator color="#000000" />
             )}
             <Pressable
               style={[styles.primaryButton, subscriptionLoading && styles.buttonDisabled]}
@@ -976,13 +1259,284 @@ export default function LocatorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#ffffff",
+  },
+
+  // Tab Styles
+  tabContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    marginBottom: 8,
+  },
+  tabScroll: {
+    gap: 10,
+  },
+  tab: {
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+  },
+  tabActive: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  tabContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  tabTextActive: {
+    color: "#111827",
+  },
+  
+  // Search Styles
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  searchInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#111827",
+  },
+  
+  // Filter Row Styles
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
+  },
+  dateButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#fff",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  dateButtonText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#000000",
+  },
+  thisWeekButton: {
+    backgroundColor: "#f0fdf4",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#000000",
+  },
+  thisWeekButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#000000",
+  },
+  clearButton: {
+    padding: 4,
+  },
+  
+  // Theme Filter Styles
+  themeFilterContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  themeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  themeChipActive: {
+    backgroundColor: "#111827",
+    borderColor: "#111827",
+  },
+  themeChipEmoji: {
+    fontSize: 14,
+  },
+  themeChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  themeChipTextActive: {
+    color: "#ffffff",
+  },
+  
+  // Category Filter Styles
+  categoryFilterContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
+  },
+  categoryButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    backgroundColor: "#fff",
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  categoryButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  
+  // Marker Toggle Styles
+  markerToggles: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 16,
+  },
+  markerToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  markerToggleActive: {
+    borderColor: "#000000",
+    backgroundColor: "#f0fdf4",
+  },
+  markerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  markerToggleText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  markerToggleTextActive: {
+    color: "#000000",
+  },
+  
+  // Calendar Modal Styles
+  calendarModalContainer: {
+    flex: 1,
     backgroundColor: "#f5f6fb",
   },
-  loadingContainer: {
-    flex: 1,
+  calendarModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#000000",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  calendarHeaderContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  calendarHeaderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
   },
+  calendarModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  calendarModalSubtitle: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+  },
+  calendarCloseButton: {
+    padding: 4,
+  },
+  calendarBody: {
+    flex: 1,
+    backgroundColor: "#fff",
+    marginTop: 8,
+  },
+  calendarList: {
+    borderRadius: 12,
+  },
+  calendarFooter: {
+    flexDirection: "row",
+    padding: 16,
+    gap: 12,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+  },
+  calendarActionButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+  },
+  calendarApplyButton: {
+    backgroundColor: "#000000",
+  },
+  calendarActionButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  calendarApplyButtonText: {
+    color: "#fff",
+  },
+  
+  // Legacy styles (kept for compatibility)
   header: {
     padding: 20,
   },
@@ -994,6 +1548,55 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 6,
     color: "#6b7280",
+  },
+  dateFilterContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    gap: 8,
+  },
+  dateFilterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#eef2ff",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flex: 1,
+  },
+  dateFilterText: {
+    color: "#000000",
+    fontSize: 13,
+    fontWeight: "600",
+    flex: 1,
+  },
+  clearDateFilter: {
+    padding: 4,
+  },
+  datePickerRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 12,
+  },
+  dateInputContainer: {
+    flex: 1,
+  },
+  dateInputLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  dateInput: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
   },
   actions: {
     flexDirection: "column",
@@ -1012,14 +1615,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   filterText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   primaryButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
@@ -1037,7 +1640,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   helperText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
     marginLeft: 6,
   },
@@ -1081,7 +1684,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyBackButton: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1094,8 +1697,8 @@ const styles = StyleSheet.create({
   businessCard: {
     backgroundColor: "#fff",
     padding: 14,
-    borderRadius: 16,
     marginBottom: 12,
+    borderRadius: 8,
   },
   businessCardContent: {
     flexDirection: "row",
@@ -1105,14 +1708,12 @@ const styles = StyleSheet.create({
   businessPhoto: {
     width: 56,
     height: 56,
-    borderRadius: 28,
     marginRight: 12,
   },
   businessPhotoPlaceholder: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -1150,7 +1751,7 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   businessCategory: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 12,
   },
   businessAddress: {
@@ -1218,7 +1819,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef2ff",
   },
   subscriptionButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 12,
     fontWeight: "600",
   },
@@ -1258,7 +1859,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   planCardActive: {
-    borderColor: "#4c6fff",
+    borderColor: "#000000",
     backgroundColor: "#eef2ff",
   },
   planTitle: {
@@ -1279,7 +1880,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   input: {
@@ -1444,7 +2045,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 13,
-    color: "#4c6fff",
+    color: "#000000",
+  },
+  addressSearchContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   // View Toggle Styles
   viewToggle: {
@@ -1466,12 +2071,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   toggleButtonActive: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
   },
   toggleText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#4c6fff",
+    color: "#000000",
   },
   toggleTextActive: {
     color: "#fff",
@@ -1558,10 +2163,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     padding: 14,
-    borderRadius: 12,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   artistPhoto: {
     width: 52,
@@ -1572,7 +2174,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1605,18 +2207,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef2ff",
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
   },
   genreChipText: {
     fontSize: 11,
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "500",
   },
   distanceBadge: {
     backgroundColor: "#f0fdf4",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
   },
   distanceText: {
     fontSize: 12,
@@ -1645,7 +2245,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1683,5 +2283,368 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#9ca3af",
     marginTop: 4,
+  },
+  eventCard: {
+    backgroundColor: "#fff",
+    padding: 14,
+    marginBottom: 12,
+    borderRadius: 8,
+  },
+  eventCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  eventPhoto: {
+    width: 64,
+    height: 64,
+  },
+  eventPhotoPlaceholder: {
+    width: 64,
+    height: 64,
+    backgroundColor: "#FF6B6B",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  eventTitle: {
+    fontWeight: "600",
+    fontSize: 15,
+    color: "#111827",
+  },
+  eventDate: {
+    color: "#6b7280",
+    fontSize: 13,
+    marginTop: 2,
+  },
+  eventBusiness: {
+    color: "#000000",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  eventActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginTop: 10,
+  },
+  attendeesBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#eef2ff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  attendeesText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#000000",
+  },
+  activityCard: {
+    backgroundColor: "#fff",
+    padding: 14,
+    marginBottom: 12,
+    borderRadius: 8,
+  },
+  activityCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  activityPhoto: {
+    width: 64,
+    height: 64,
+  },
+  activityPhotoPlaceholder: {
+    width: 64,
+    height: 64,
+    backgroundColor: "#7c3aed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activityTitle: {
+    fontWeight: "600",
+    fontSize: 15,
+    color: "#111827",
+  },
+  activityDate: {
+    color: "#6b7280",
+    fontSize: 13,
+    marginTop: 2,
+  },
+  activityLocation: {
+    color: "#000000",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  activityActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginTop: 10,
+  },
+  rsvpBadge: {
+    backgroundColor: "#f0fdf4",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  rsvpText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#10b981",
+  },
+  artistCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  mapSection: {
+    height: "33%",
+    width: "100%",
+  },
+  recenterFab: {
+    position: "absolute",
+    right: SPACING.md,
+    bottom: SPACING.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOWS.medium,
+    zIndex: 10,
+  },
+  locationChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    backgroundColor: COLORS.backgroundPage,
+    alignSelf: "flex-start",
+  },
+  locationChipText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: "500",
+  },
+  tabScrollContent: {
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  sortRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  sortChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  sortChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  sortChipText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: COLORS.textMuted,
+  },
+  sortChipTextActive: {
+    color: COLORS.background,
+    fontWeight: "600",
+  },
+  clearDateButton: {
+    padding: 4,
+  },
+  dateFilterButtonText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: COLORS.primary,
+    flex: 1,
+  },
+  categoryChipSection: {
+    marginBottom: 12,
+  },
+  categoryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 16,
+    marginTop: 4,
+  },
+  categoryGridItem: {
+    width: itemWidth,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categoryGridItemSelected: {
+    borderColor: "#111827",
+    backgroundColor: "rgba(17,24,39,0.05)",
+  },
+  categoryGridIcon: {
+    marginBottom: 4,
+  },
+  categoryGridLabel: {
+    fontSize: 12,
+    color: "#374151",
+  },
+  categoryGridLabelSelected: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  categoryChipContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  categoryChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  categoryChipText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: COLORS.textMuted,
+  },
+  categoryChipTextActive: {
+    color: COLORS.background,
+    fontWeight: "600",
+  },
+  subChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.backgroundPage,
+  },
+  subChipActive: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
+  },
+  subChipText: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: COLORS.textMuted,
+  },
+  subChipTextActive: {
+    color: COLORS.primary,
+    fontWeight: "600",
+  },
+  businessMeta: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  businessInfo: {
+    flex: 1,
+  },
+  eventInfo: {
+    flex: 1,
+  },
+  eventLocation: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  eventMeta: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  activityInfo: {
+    flex: 1,
+  },
+  activityMeta: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  openBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  openBadgeOpen: {
+    backgroundColor: "#dcfce7",
+  },
+  openBadgeClosed: {
+    backgroundColor: "#fee2e2",
+  },
+  openBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  openBadgeTextOpen: {
+    color: "#166534",
+  },
+  openBadgeTextClosed: {
+    color: "#991b1b",
+  },
+  searchBarSection: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xs,
+    backgroundColor: COLORS.background,
+  },
+  locationSearchDropdown: {
+    marginTop: SPACING.xs,
+    backgroundColor: COLORS.background,
+    borderRadius: BORDER_RADIUS.lg,
+    ...SHADOWS.subtle,
+  },
+  locationSearchBtn: {
+    padding: SPACING.xs,
+    marginLeft: SPACING.xs,
+  },
+  locationSearchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    gap: SPACING.sm,
+  },
+  locationSearchResults: {
+    maxHeight: 200,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  locationSearchItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  locationSearchItemText: {
+    fontSize: FONT_SIZES.bodySmall,
+    color: COLORS.textPrimary,
+    flexShrink: 1,
+  },
+  cardScrollView: {
+    flex: 1,
+  },
+  cardScrollContent: {
+    paddingBottom: SPACING.md,
   },
 });

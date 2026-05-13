@@ -30,7 +30,7 @@ export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const { unreadMessages, unreadNotifications } = useBadge();
+  const { unreadMessageCount, activityCount } = useBadge();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const navItems: NavItem[] = [
@@ -39,21 +39,21 @@ export default function Sidebar() {
       label: t("nav.home") || "Home",
       icon: "home-outline",
       iconActive: "home",
-      path: "/",
+      path: "/(tabs)/home",
     },
     {
       key: "explore",
       label: t("nav.explore") || "Explore",
       icon: "compass-outline",
       iconActive: "compass",
-      path: "/explore",
+      path: "/(tabs)/locator",
     },
     {
       key: "messages",
       label: t("nav.messages") || "Messages",
       icon: "chatbubble-outline",
       iconActive: "chatbubble",
-      path: "/messages",
+      path: "/(tabs)/messages",
     },
     {
       key: "notifications",
@@ -67,18 +67,21 @@ export default function Sidebar() {
       label: t("nav.profile") || "Profile",
       icon: "person-outline",
       iconActive: "person",
-      path: "/profile",
+      path: "/(tabs)/profile",
     },
   ];
 
   const isActive = (path: string) => {
-    if (path === "/") return pathname === "/" || pathname === "/index";
+    if (path.includes("/home")) return pathname.includes("/home");
+    if (path.includes("/locator")) return pathname.includes("/locator");
+    if (path.includes("/messages")) return pathname.includes("/messages");
+    if (path.includes("/profile")) return pathname.includes("/profile");
     return pathname.startsWith(path);
   };
 
   const getBadgeCount = (key: string) => {
-    if (key === "messages") return unreadMessages;
-    if (key === "notifications") return unreadNotifications;
+    if (key === "messages") return unreadMessageCount;
+    if (key === "notifications") return activityCount;
     return 0;
   };
 
@@ -87,7 +90,7 @@ export default function Sidebar() {
       {/* Logo */}
       <Pressable 
         style={styles.logoContainer}
-        onPress={() => router.push("/")}
+        onPress={() => router.navigate("/(tabs)/home" as any)}
       >
         <View style={styles.logoIcon}>
           <Ionicons name="location" size={24} color="#fff" />
@@ -110,7 +113,7 @@ export default function Sidebar() {
                 active && styles.navItemActive,
                 hovered && styles.navItemHover,
               ]}
-              onPress={() => router.push(item.path as any)}
+              onPress={() => router.navigate(item.path as any)}
               onHoverIn={() => setHoveredItem(item.key)}
               onHoverOut={() => setHoveredItem(null)}
               data-testid={`sidebar-nav-${item.key}`}
@@ -119,7 +122,7 @@ export default function Sidebar() {
                 <Ionicons
                   name={active ? item.iconActive : item.icon}
                   size={24}
-                  color={active ? "#4c6fff" : "#4b5563"}
+                  color={active ? "#000000" : "#4b5563"}
                 />
                 {badgeCount > 0 && (
                   <View style={styles.badge}>
@@ -166,14 +169,14 @@ export default function Sidebar() {
             styles.userCard,
             hoveredItem === "user" && styles.userCardHover,
           ]}
-          onPress={() => router.push("/profile")}
+          onPress={() => router.navigate("/(tabs)/profile" as any)}
           onHoverIn={() => setHoveredItem("user")}
           onHoverOut={() => setHoveredItem(null)}
           data-testid="sidebar-user-card"
         >
-          {user.profile_picture ? (
+          {user.profile_photo ? (
             <Image
-              source={{ uri: user.profile_picture }}
+              source={{ uri: user.profile_photo }}
               style={styles.userAvatar}
             />
           ) : (
@@ -230,7 +233,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -290,7 +293,7 @@ const styles = StyleSheet.create({
     color: "#4b5563",
   },
   navLabelActive: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   createButton: {
@@ -298,7 +301,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 9999,
@@ -346,7 +349,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
   },

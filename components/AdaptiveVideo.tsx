@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Pressable, StyleProp, StyleSheet, View, ViewStyle, Platform, Linking, Text, Image as RNImage, Dimensions } from "react-native";
+import { Pressable, StyleProp, StyleSheet, View, ViewStyle, Platform, Linking, Text, Image as RNImage, Dimensions, ActivityIndicator } from "react-native";
 import { AVPlaybackStatus, Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 
 type AdaptiveVideoProps = {
   uri?: string;
@@ -13,31 +14,43 @@ type AdaptiveVideoProps = {
   showMuteButton?: boolean;
   initialMuted?: boolean;
   onMuteChange?: (muted: boolean) => void;
+  onPlay?: () => void;
   useNativeControls?: boolean;
   resizeMode?: ResizeMode | string;
-  pauseWhenNotVisible?: boolean; // New prop for visibility-based playback
+  pauseWhenNotVisible?: boolean;
+  videoStatus?: string | null;
+  muxThumbnailUrl?: string | null;
+  maxHeight?: number;
+  borderRadius?: number;
+  onPress?: () => void;
 };
 
-// Helper function to extract YouTube video ID from various URL formats
+const DEFAULT_MAX_HEIGHT = 470;
+
 function getYouTubeVideoId(url: string): string | null {
   if (!url) return null;
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([^&\s?#]+)/,
-    /^([a-zA-Z0-9_-]{11})$/, // Just the video ID
+    /^([a-zA-Z0-9_-]{11})$/,
   ];
   for (const pattern of patterns) {
     const match = url.match(pattern);
-    if (match && match[1]) {
-      return match[1];
-    }
+    if (match && match[1]) return match[1];
   }
   return null;
 }
 
-// Check if URL is a YouTube URL
 function isYouTubeUrl(url: string): boolean {
   if (!url) return false;
   return url.includes('youtube.com') || url.includes('youtu.be');
+}
+
+function isMuxUrl(url: string): boolean {
+  return !!url && (url.includes('stream.mux.com') || url.includes('mux.com'));
+}
+
+function isMuxProcessingPlaceholder(url: string): boolean {
+  return !!url && url.startsWith('mux://');
 }
 
 export default function AdaptiveVideo({
@@ -50,9 +63,15 @@ export default function AdaptiveVideo({
   showMuteButton = false,
   initialMuted = false,
   onMuteChange,
+  onPlay,
   useNativeControls = false,
   resizeMode,
   pauseWhenNotVisible = true,
+  videoStatus,
+  muxThumbnailUrl,
+  maxHeight = DEFAULT_MAX_HEIGHT,
+  borderRadius = 0,
+  onPress,
 }: AdaptiveVideoProps) {
   const videoUri = uri || source?.uri || "";
   const videoRef = useRef<Video>(null);
@@ -62,47 +81,34 @@ export default function AdaptiveVideo({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showYouTubePlayer, setShowYouTubePlayer] = useState(false);
+  const [hasPlaybackStarted, setHasPlaybackStarted] = useState(false);
 
-  // Check if this is a YouTube video
   const youtubeVideoId = getYouTubeVideoId(videoUri);
   const isYouTube = isYouTubeUrl(videoUri) || !!youtubeVideoId;
+  const isProcessing = videoStatus === "processing" || isMuxProcessingPlaceholder(videoUri);
 
-  // Handle visibility detection for autoplay/pause
   const checkVisibility = useCallback(() => {
     if (!containerRef.current || !pauseWhenNotVisible) return;
-    
     containerRef.current.measureInWindow((x, y, width, height) => {
       const screenHeight = Dimensions.get('window').height;
-      // Consider visible if at least 50% of video is on screen
       const visibleTop = Math.max(0, y);
       const visibleBottom = Math.min(screenHeight, y + height);
       const visibleHeight = visibleBottom - visibleTop;
-      const isNowVisible = visibleHeight > height * 0.5;
-      
-      setIsVisible(isNowVisible);
+      setIsVisible(visibleHeight > height * 0.5);
     });
   }, [pauseWhenNotVisible]);
 
-  // Control playback based on visibility
   useEffect(() => {
     if (!autoPlay || !pauseWhenNotVisible || isYouTube) return;
-    
-    if (isVisible && videoRef.current) {
+    if (isVisible && videoRef.current && hasPlaybackStarted) {
       videoRef.current.playAsync();
     } else if (!isVisible && videoRef.current) {
       videoRef.current.pauseAsync();
     }
-  }, [isVisible, autoPlay, pauseWhenNotVisible, isYouTube]);
+  }, [isVisible, autoPlay, pauseWhenNotVisible, isYouTube, hasPlaybackStarted]);
 
-  useEffect(() => {
-    if (ratio) {
-      setAspectRatio(ratio);
-    }
-  }, [ratio]);
-
-  useEffect(() => {
-    setIsMuted(initialMuted);
-  }, [initialMuted]);
+  useEffect(() => { if (ratio) setAspectRatio(ratio); }, [ratio]);
+  useEffect(() => { setIsMuted(initialMuted); }, [initialMuted]);
 
   const handleLoad = async (status: AVPlaybackStatus) => {
     if (!status.isLoaded) return;
@@ -112,21 +118,15 @@ export default function AdaptiveVideo({
       setAspectRatio(natural.width / natural.height);
     } else {
       const orientation = statusAny.naturalSize?.orientation;
-      if (orientation === "portrait") {
-        setAspectRatio(9 / 16);
-      }
+      if (orientation === "portrait") setAspectRatio(9 / 16);
     }
-    
-    // Explicitly set mute state on load to ensure audio plays correctly
-    if (videoRef.current) {
-      await videoRef.current.setIsMutedAsync(isMuted);
-    }
-    
-    // Auto-play if enabled
-    if (autoPlay && videoRef.current) {
+    if (videoRef.current) await videoRef.current.setIsMutedAsync(isMuted);
+    setHasPlaybackStarted(true);
+    if (autoPlay && isVisible && videoRef.current) {
       try {
         await videoRef.current.playAsync();
         setIsPlaying(true);
+        onPlay?.();
       } catch (error) {
         console.log("Auto-play failed:", error);
       }
@@ -135,7 +135,9 @@ export default function AdaptiveVideo({
 
   const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (status.isLoaded) {
+      const wasPlaying = isPlaying;
       setIsPlaying(status.isPlaying);
+      if (status.isPlaying && !wasPlaying) onPlay?.();
     }
   };
 
@@ -143,9 +145,7 @@ export default function AdaptiveVideo({
     const newMuted = !isMuted;
     setIsMuted(newMuted);
     onMuteChange?.(newMuted);
-    if (videoRef.current) {
-      await videoRef.current.setIsMutedAsync(newMuted);
-    }
+    if (videoRef.current) await videoRef.current.setIsMutedAsync(newMuted);
   };
 
   const togglePlayPause = async () => {
@@ -154,109 +154,132 @@ export default function AdaptiveVideo({
         await videoRef.current.pauseAsync();
       } else {
         await videoRef.current.playAsync();
+        setHasPlaybackStarted(true);
       }
     }
   };
 
-  // YouTube video rendering
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+      return;
+    }
+    if (autoPlay) {
+      togglePlayPause();
+    }
+  };
+
+  const effectiveResizeMode = (resizeMode as ResizeMode) || ResizeMode.COVER;
+
+  const containerStyle: ViewStyle = {
+    aspectRatio,
+    maxHeight,
+    borderRadius,
+    overflow: "hidden",
+    backgroundColor: "#111827",
+  };
+
+  if (isProcessing) {
+    const thumbUri = muxThumbnailUrl || null;
+    return (
+      <View
+        ref={containerRef}
+        style={[containerStyle, style]}
+        onLayout={checkVisibility}
+      >
+        {thumbUri ? (
+          <RNImage source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : null}
+        <View style={styles.processingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.processingText}>Processing video...</Text>
+        </View>
+      </View>
+    );
+  }
+
   if (isYouTube && youtubeVideoId) {
     const thumbnailUrl = `https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg`;
     const youtubeEmbedUrl = `https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&rel=0`;
     const youtubeAppUrl = `https://www.youtube.com/watch?v=${youtubeVideoId}`;
 
-    // For web, show embedded iframe player
     if (Platform.OS === 'web' && showYouTubePlayer) {
       return (
-        <View style={[styles.container, style, { aspectRatio: 16/9 }]}>
-          <iframe
-            src={youtubeEmbedUrl}
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-          <Pressable 
-            style={styles.closeButton} 
-            onPress={() => setShowYouTubePlayer(false)}
-          >
+        <View style={[containerStyle, style]}>
+          <iframe src={youtubeEmbedUrl} style={{ width: '100%', height: '100%', border: 'none' }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+          <Pressable style={styles.closeButton} onPress={() => setShowYouTubePlayer(false)}>
             <Ionicons name="close" size={20} color="#fff" />
           </Pressable>
         </View>
       );
     }
 
-    // Show thumbnail with play button
     return (
-      <View style={[styles.container, style, { aspectRatio: 16/9 }]}>
-        <RNImage
-          source={{ uri: thumbnailUrl }}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-        />
+      <Pressable
+        ref={containerRef}
+        style={[containerStyle, style]}
+        onLayout={checkVisibility}
+        onPress={() => {
+          if (Platform.OS === 'web') setShowYouTubePlayer(true);
+          else Linking.openURL(youtubeAppUrl);
+        }}
+      >
+        <RNImage source={{ uri: thumbnailUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         <View style={styles.youtubeOverlay}>
-          <Pressable 
-            style={styles.youtubePlayButton}
-            onPress={() => {
-              if (Platform.OS === 'web') {
-                setShowYouTubePlayer(true);
-              } else {
-                Linking.openURL(youtubeAppUrl);
-              }
-            }}
-          >
+          <View style={styles.youtubePlayButton}>
             <Ionicons name="logo-youtube" size={50} color="#ff0000" />
-          </Pressable>
+          </View>
           <Text style={styles.youtubeBadge}>YouTube</Text>
         </View>
-      </View>
+      </Pressable>
     );
   }
 
-  // Regular video rendering
-  return (
-    <View 
+  const videoContent = (
+    <View
       ref={containerRef}
-      style={[styles.container, style, { aspectRatio }]}
+      style={[containerStyle, style]}
       onLayout={checkVisibility}
-    > 
+    >
       <Video
         ref={videoRef}
         source={{ uri: videoUri }}
         style={StyleSheet.absoluteFill}
         useNativeControls={useNativeControls || !autoPlay}
-        resizeMode={(resizeMode as ResizeMode) || ResizeMode.CONTAIN}
+        resizeMode={effectiveResizeMode}
         isLooping={isLooping}
         isMuted={isMuted}
-        shouldPlay={autoPlay && isVisible}
+        shouldPlay={autoPlay && isVisible && hasPlaybackStarted}
         onLoad={handleLoad}
         onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
       />
       {showMuteButton && (
         <Pressable style={styles.muteButton} onPress={toggleMute}>
-          <Ionicons 
-            name={isMuted ? "volume-mute" : "volume-high"} 
-            size={20} 
-            color="#fff" 
-          />
+          <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
         </Pressable>
       )}
-      {autoPlay && (
-        <Pressable style={styles.playPauseOverlay} onPress={togglePlayPause}>
-          {!isPlaying && (
-            <View style={styles.playButton}>
-              <Ionicons name="play" size={40} color="#fff" />
-            </View>
-          )}
+      {!isPlaying && hasPlaybackStarted && autoPlay && (
+        <Pressable style={styles.playPauseOverlay} onPress={handlePress}>
+          <View style={styles.playButton}>
+            <Ionicons name="play" size={40} color="#fff" />
+          </View>
         </Pressable>
       )}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={handlePress} accessibilityRole="button" accessibilityLabel="Play video">
+        {videoContent}
+      </Pressable>
+    );
+  }
+
+  return videoContent;
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#111827",
-    overflow: "hidden",
-  },
   muteButton: {
     position: "absolute",
     bottom: 10,
@@ -312,5 +335,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 8,
     zIndex: 10,
+  },
+  processingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    gap: 8,
+  },
+  processingText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

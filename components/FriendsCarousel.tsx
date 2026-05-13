@@ -67,7 +67,7 @@ export default function FriendsCarousel({
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
             <LinearGradient
-              colors={["#6366f1", "#8b5cf6"]}
+              colors={["#000000", "#FFD700"]}
               style={styles.avatarPlaceholder}
             >
               <Text style={styles.avatarText}>{initials}</Text>
@@ -94,7 +94,7 @@ export default function FriendsCarousel({
       >
         <View style={styles.addButtonContainer}>
           <LinearGradient
-            colors={["#4c6fff", "#6366f1"]}
+            colors={["#000000", "#FFD700"]}
             style={styles.addButton}
           >
             <Ionicons name="share-social" size={22} color="#fff" />
@@ -116,10 +116,10 @@ export default function FriendsCarousel({
         {friends.length > 0 && (
           <Pressable 
             style={styles.seeAllButton}
-            onPress={() => router.push("/friends")}
+            onPress={() => router.navigate("/(tabs)/profile" as any)}
           >
             <Text style={styles.seeAllText}>{t("common.seeAll") || "See All"}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#4c6fff" />
+            <Ionicons name="chevron-forward" size={16} color="#000000" />
           </Pressable>
         )}
       </View>
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   listContent: {

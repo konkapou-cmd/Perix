@@ -22,9 +22,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
-import { Camera } from "expo-camera";
 import { useAuth } from "../context/AuthContext";
-import { updateProfile, uploadImageToCloudinary } from "../lib/api";
+import { updateProfileInfo, updateProfileMedia, uploadImageToCloudinary } from "../lib/api";
 
 const { width, height } = Dimensions.get("window");
 
@@ -53,7 +52,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { sessionToken, user, refreshUser } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("features");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("permissions");
   const [currentSlide, setCurrentSlide] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   
@@ -78,16 +77,16 @@ export default function OnboardingScreen() {
       icon: "sparkles",
       title: t("onboarding.welcomeTitle") || "Welcome to Perix",
       description: t("onboarding.welcomeDesc") || "Your city's social hub. Discover events, connect with friends, and share your experiences.",
-      color: "#4c6fff",
-      gradient: ["#4c6fff", "#6366f1"],
+      color: "#000000",
+      gradient: ["#000000", "#FFD700"],
     },
     {
       id: "discover",
       icon: "compass",
       title: t("onboarding.discoverTitle") || "Discover Your City",
       description: t("onboarding.discoverDesc") || "Find the best events, artists, and businesses near you. Explore what's happening in your neighborhood.",
-      color: "#8b5cf6",
-      gradient: ["#8b5cf6", "#a855f7"],
+      color: "#FF6B6B",
+      gradient: ["#FF6B6B", "#a855f7"],
     },
     {
       id: "connect",
@@ -104,14 +103,6 @@ export default function OnboardingScreen() {
       description: t("onboarding.eventsDesc") || "Create or join events, plan activities with friends, and RSVP to parties and concerts.",
       color: "#f59e0b",
       gradient: ["#f59e0b", "#fbbf24"],
-    },
-    {
-      id: "stories",
-      icon: "camera",
-      title: t("onboarding.storiesTitle") || "Share Your Story",
-      description: t("onboarding.storiesDesc") || "Post stories with music, filters, and movable text. Make your content stand out.",
-      color: "#10b981",
-      gradient: ["#10b981", "#34d399"],
     },
     {
       id: "calls",
@@ -157,7 +148,7 @@ export default function OnboardingScreen() {
     try {
       switch (permId) {
         case "camera":
-          const cameraResult = await Camera.requestCameraPermissionsAsync();
+          const cameraResult = await ImagePicker.requestCameraPermissionsAsync();
           granted = cameraResult.status === "granted";
           break;
         case "location":
@@ -183,7 +174,7 @@ export default function OnboardingScreen() {
   // Check all permissions
   const checkAllPermissions = async () => {
     try {
-      const cameraStatus = await Camera.getCameraPermissionsAsync();
+      const cameraStatus = await ImagePicker.getCameraPermissionsAsync();
       const locationStatus = await Location.getForegroundPermissionsAsync();
       const notifStatus = await Notifications.getPermissionsAsync();
       
@@ -214,7 +205,7 @@ export default function OnboardingScreen() {
         quality: 0.8,
       });
       
-      if (!result.canceled && result.assets?.[0]?.uri) {
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
         setUploadingPhoto(true);
         try {
           if (sessionToken) {
@@ -242,8 +233,10 @@ export default function OnboardingScreen() {
     
     setSavingProfile(true);
     try {
-      await updateProfile(sessionToken, {
-        profile_photo: profilePhoto || undefined,
+      if (profilePhoto) {
+        await updateProfileMedia(sessionToken, { profile_photo: profilePhoto });
+      }
+      await updateProfileInfo(sessionToken, {
         bio: bio.trim() || undefined,
         location: locationText.trim() || undefined,
       });
@@ -373,7 +366,7 @@ export default function OnboardingScreen() {
               <Ionicons 
                 name={perm.granted ? "checkmark" : perm.icon} 
                 size={24} 
-                color={perm.granted ? "#fff" : "#4c6fff"} 
+                color={perm.granted ? "#fff" : "#000000"} 
               />
             </View>
             <View style={styles.permissionInfo}>
@@ -384,7 +377,7 @@ export default function OnboardingScreen() {
               <Text style={styles.permissionDesc}>{perm.description}</Text>
             </View>
             {permissionLoading === perm.id ? (
-              <ActivityIndicator size="small" color="#4c6fff" />
+              <ActivityIndicator size="small" color="#000000" />
             ) : !perm.granted && (
               <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
             )}
@@ -393,15 +386,15 @@ export default function OnboardingScreen() {
       </ScrollView>
       
       <View style={styles.footer}>
-        <Pressable style={styles.prevButton} onPress={() => setCurrentStep("features")}>
-          <Ionicons name="chevron-back" size={24} color="#6b7280" />
+        <Pressable style={styles.skipButton} onPress={skipOnboarding}>
+          <Text style={styles.skipText}>{t("onboarding.skip") || "Skip"}</Text>
         </Pressable>
         <Pressable 
           style={[styles.nextButton, !requiredPermissionsGranted && styles.buttonDisabled]} 
           onPress={() => setCurrentStep("profile")}
         >
           <LinearGradient 
-            colors={requiredPermissionsGranted ? ["#4c6fff", "#6366f1"] : ["#9ca3af", "#9ca3af"]} 
+            colors={requiredPermissionsGranted ? ["#000000", "#FFD700"] : ["#9ca3af", "#9ca3af"]} 
             style={styles.nextButtonGradient}
           >
             <Text style={styles.nextButtonText}>{t("onboarding.continue") || "Continue"}</Text>
@@ -425,7 +418,7 @@ export default function OnboardingScreen() {
         <Pressable style={styles.photoPickerContainer} onPress={pickProfilePhoto} disabled={uploadingPhoto}>
           <View style={styles.photoPicker}>
             {uploadingPhoto ? (
-              <ActivityIndicator size="large" color="#4c6fff" />
+              <ActivityIndicator size="large" color="#000000" />
             ) : profilePhoto ? (
               <Image source={{ uri: profilePhoto }} style={styles.profilePhotoPreview} />
             ) : (
@@ -439,7 +432,7 @@ export default function OnboardingScreen() {
           </View>
           {profilePhoto && (
             <Pressable style={styles.changePhotoButton} onPress={pickProfilePhoto}>
-              <Ionicons name="pencil" size={16} color="#4c6fff" />
+              <Ionicons name="pencil" size={16} color="#000000" />
               <Text style={styles.changePhotoText}>{t("onboarding.changePhoto") || "Change"}</Text>
             </Pressable>
           )}
@@ -486,7 +479,7 @@ export default function OnboardingScreen() {
             <Text style={styles.skipProfileButtonText}>{t("onboarding.skipForNow") || "Skip for now"}</Text>
           </Pressable>
           <Pressable style={styles.nextButton} onPress={saveProfile} disabled={savingProfile}>
-            <LinearGradient colors={["#4c6fff", "#6366f1"]} style={styles.nextButtonGradient}>
+            <LinearGradient colors={["#000000", "#FFD700"]} style={styles.nextButtonGradient}>
               {savingProfile ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
@@ -505,24 +498,24 @@ export default function OnboardingScreen() {
   // Render Complete Step
   const renderCompleteStep = () => (
     <View style={styles.completeContainer}>
-      <LinearGradient colors={["#4c6fff", "#8b5cf6"]} style={styles.completeIconBg}>
+      <LinearGradient colors={["#000000", "#FFD700"]} style={styles.completeIconBg}>
         <Ionicons name="checkmark-circle" size={80} color="#fff" />
       </LinearGradient>
       
       <Text style={styles.completeTitle}>{t("onboarding.allSetTitle") || "You're All Set!"}</Text>
       <Text style={styles.completeDesc}>
-        {t("onboarding.allSetDesc") || "Welcome to Perix! Start exploring events, connecting with friends, and sharing your experiences."}
+        {t("onboarding.allSetDesc") || "Start exploring events, connecting with friends, and sharing your experiences."}
       </Text>
       
       <View style={styles.tipCard}>
         <Ionicons name="bulb" size={24} color="#f59e0b" />
         <Text style={styles.tipText}>
-          {t("onboarding.tip") || "Tip: Tap the + button on the home screen to create your first story!"}
+          {t("onboarding.tip") || "Tip: Tap the + button on the home screen to create your first post!"}
         </Text>
       </View>
       
       <Pressable style={styles.getStartedButton} onPress={completeOnboarding}>
-        <LinearGradient colors={["#4c6fff", "#6366f1"]} style={styles.getStartedGradient}>
+        <LinearGradient colors={["#000000", "#FFD700"]} style={styles.getStartedGradient}>
           <Text style={styles.getStartedText}>{t("onboarding.getStarted") || "Get Started"}</Text>
           <Ionicons name="arrow-forward" size={22} color="#fff" />
         </LinearGradient>
@@ -532,7 +525,6 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {currentStep === "features" && renderFeaturesStep()}
       {currentStep === "permissions" && renderPermissionsStep()}
       {currentStep === "profile" && renderProfileStep()}
       {currentStep === "complete" && renderCompleteStep()}
@@ -656,7 +648,7 @@ const styles = StyleSheet.create({
   nextButton: {
     borderRadius: 28,
     overflow: "hidden",
-    shadowColor: "#4c6fff",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -801,7 +793,7 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     fontSize: 14,
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   inputGroup: {
@@ -904,7 +896,7 @@ const styles = StyleSheet.create({
   getStartedButton: {
     borderRadius: 28,
     overflow: "hidden",
-    shadowColor: "#4c6fff",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,

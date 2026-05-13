@@ -25,7 +25,7 @@ const getWebUrl = () => {
   return BACKEND_URL.replace("/api", "").replace("api.", "app.");
 };
 
-export type ShareableContentType = "profile" | "event" | "activity" | "artist" | "business" | "post";
+export type ShareableContentType = "profile" | "event" | "activity" | "business" | "post" | "job";
 
 interface ShareContentProps {
   visible: boolean;
@@ -39,6 +39,8 @@ interface ShareContentProps {
     location?: string;
     date?: string;
     organizerName?: string;
+    businessName?: string;
+    salary?: string;
   };
 }
 
@@ -57,7 +59,7 @@ const SHARE_OPTIONS: ShareOption[] = [
   { id: "twitter", name: "X (Twitter)", icon: "logo-twitter", color: "#1DA1F2", gradient: ["#1DA1F2", "#0D8BD9"] },
   { id: "telegram", name: "Telegram", icon: "paper-plane", color: "#0088CC", gradient: ["#0088CC", "#006699"] },
   { id: "copy", name: "Copy Link", icon: "copy-outline", color: "#6b7280", gradient: ["#6b7280", "#4b5563"] },
-  { id: "more", name: "More", icon: "share-outline", color: "#4c6fff", gradient: ["#4c6fff", "#6366f1"] },
+  { id: "more", name: "More", icon: "share-outline", color: "#000000", gradient: ["#000000", "#FFD700"] },
 ];
 
 export default function ShareContent({
@@ -83,12 +85,12 @@ export default function ShareContent({
         return `${baseUrl}/event/${contentId}`;
       case "activity":
         return `${baseUrl}/activity/${contentId}`;
-      case "artist":
-        return `${baseUrl}/artist/${contentId}`;
       case "business":
         return `${baseUrl}/business/${contentId}`;
       case "post":
         return `${baseUrl}/post/${contentId}`;
+      case "job":
+        return `${baseUrl}/job/${contentId}`;
       default:
         return baseUrl;
     }
@@ -103,12 +105,12 @@ export default function ShareContent({
         return `perix://event/${contentId}`;
       case "activity":
         return `perix://activity/${contentId}`;
-      case "artist":
-        return `perix://artist/${contentId}`;
       case "business":
         return `perix://business/${contentId}`;
       case "post":
         return `perix://post/${contentId}`;
+      case "job":
+        return `perix://job/${contentId}`;
       default:
         return "perix://";
     }
@@ -133,10 +135,6 @@ export default function ShareContent({
         emoji = "🎯";
         typeLabel = t("share.joinActivity") || "Join this activity";
         break;
-      case "artist":
-        emoji = "🎤";
-        typeLabel = t("share.checkArtist") || "Check out this artist";
-        break;
       case "business":
         emoji = "🏪";
         typeLabel = t("share.checkBusiness") || "Check out this business";
@@ -144,6 +142,10 @@ export default function ShareContent({
       case "post":
         emoji = "📝";
         typeLabel = t("share.checkPost") || "Check out this post";
+        break;
+      case "job":
+        emoji = "💼";
+        typeLabel = t("share.checkJob") || "Check out this job";
         break;
     }
 
@@ -163,6 +165,14 @@ export default function ShareContent({
     
     if (extraData?.organizerName) {
       message += `\n👤 ${extraData.organizerName}`;
+    }
+    
+    if (extraData?.businessName) {
+      message += `\n🏢 ${extraData.businessName}`;
+    }
+    
+    if (extraData?.salary) {
+      message += `\n💰 ${extraData.salary}`;
     }
     
     message += `\n\n${typeLabel}:\n${url}`;
@@ -378,7 +388,7 @@ const styles = StyleSheet.create({
   },
   previewUrl: {
     fontSize: 12,
-    color: "#4c6fff",
+    color: "#000000",
     marginTop: 4,
   },
   optionsGrid: {

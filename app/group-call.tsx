@@ -20,9 +20,8 @@ import {
   FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
@@ -34,7 +33,7 @@ import {
   addParticipantToGroupCall,
   GroupCallResponse,
   GroupCallParticipant,
-  getFriends,
+  getMyFriends,
   UserPublic,
 } from "../lib/api";
 
@@ -42,7 +41,7 @@ const { width, height } = Dimensions.get("window");
 
 export default function GroupCallScreen() {
   const { t } = useTranslation();
-  const { safeGoBackToMessages, router } = useSafeNavigation();
+  const router = useRouter();
   const { sessionToken, user } = useAuth();
   const params = useLocalSearchParams<{ groupCallId: string; type?: string }>();
   const { groupCallId, type } = params;
@@ -76,7 +75,7 @@ export default function GroupCallScreen() {
           t("call.error") || "Error",
           t("call.callNotFound") || "Call not found or expired"
         );
-        safeGoBackToMessages();
+        router.back();
       } finally {
         setLoading(false);
       }
@@ -89,7 +88,7 @@ export default function GroupCallScreen() {
   const loadFriends = async () => {
     if (!sessionToken) return;
     try {
-      const data = await getFriends(sessionToken);
+      const data = await getMyFriends(sessionToken);
       // Filter out users already in the call
       const existingIds = callData?.participants.map(p => p.user_id) || [];
       existingIds.push(callData?.host_id || "");
@@ -132,10 +131,10 @@ export default function GroupCallScreen() {
     
     try {
       await leaveGroupCall(sessionToken, groupCallId);
-      safeGoBackToMessages();
+      router.back();
     } catch (e) {
       console.log("Failed to leave call:", e);
-      safeGoBackToMessages();
+      router.back();
     }
   };
 
@@ -154,10 +153,10 @@ export default function GroupCallScreen() {
           onPress: async () => {
             try {
               await endGroupCall(sessionToken, groupCallId);
-              safeGoBackToMessages();
+              router.back();
             } catch (e) {
               console.log("Failed to end call:", e);
-              safeGoBackToMessages();
+              router.back();
             }
           },
         },
@@ -200,7 +199,7 @@ export default function GroupCallScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4c6fff" />
+          <ActivityIndicator size="large" color="#000000" />
           <Text style={styles.loadingText}>{t("call.connecting") || "Connecting..."}</Text>
         </View>
       </SafeAreaView>
@@ -265,7 +264,7 @@ export default function GroupCallScreen() {
                 </Text>
                 {callData?.call_type === "voice" && (
                   <View style={styles.voiceCallIndicator}>
-                    <Ionicons name="mic" size={32} color="#4c6fff" />
+                    <Ionicons name="mic" size={32} color="#000000" />
                   </View>
                 )}
               </LinearGradient>
@@ -450,7 +449,7 @@ export default function GroupCallScreen() {
                       )}
                     </View>
                     <Text style={styles.friendName}>{item.name}</Text>
-                    <Ionicons name="add-circle" size={24} color="#4c6fff" />
+                    <Ionicons name="add-circle" size={24} color="#000000" />
                   </Pressable>
                 )}
               />
@@ -506,7 +505,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   viewModeBtnActive: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
   },
   videoArea: {
     flex: 1,

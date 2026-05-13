@@ -1,0 +1,3765 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
+import { CalendarList } from "react-native-calendars";
+import { useRouter } from "expo-router";
+import Constants from "expo-constants";
+import * as FileSystem from "expo-file-system/legacy";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
+import AdaptiveVideo from "../../components/AdaptiveVideo";
+import AdaptiveImage from "../../components/AdaptiveImage";
+import PostContent from "../../components/PostContent";
+import { useAuth } from "../../context/AuthContext";
+import { useLocation } from "../../context/LocationContext";
+import { useMapBounds } from "../../context/MapBoundsContext";
+import {
+  addPostComment,
+  ActivityItem,
+  Business,
+  createPost,
+  deletePostComment,
+  deletePost,
+  EventItem,
+  EventTheme,
+  getPostComments,
+  PostComment,
+  getEvents,
+  Job,
+  Post,
+  User,
+  UserPublic,
+  updatePostComment,
+  updatePost,
+  togglePostLike,
+  uploadMedia,
+  uploadImageToCloudinary,
+  uploadVideoMux,
+  searchUsers,
+  UploadProgress,
+  isUpcomingEvent,
+  isUpcomingActivity,
+  getHomeFeed,
+  getNearbyBusinesses,
+  getJobs,
+  getRentals,
+  Rental,
+  batchCheckSaved,
+  toggleSaved,
+  BACKEND_URL,
+  GroupedStory,
+  getStories,
+} from "../../lib/api";
+import { COLORS } from "../../lib/designTokens";
+import ShareContent from "../../components/ShareContent";
+import * as Location from "expo-location";
+import UploadProgressModal from "../../components/UploadProgressModal";
+import { translateCategory } from "../../lib/categoryTranslation";
+import { LinearGradient } from "expo-linear-gradient";
+import { getThemeColors, getThemeStyles, applyThemeToText, useThemeStyles } from "../../hooks/useThemeStyles";
+import BusinessMap from "../../components/BusinessMap";
+import { SkeletonBox } from "../../components/shared";
+import { StoryViewer } from "../../components/stories/StoryViewer";
+import { SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+
+function CarouselSkeleton() {
+  return (
+    <View style={{ marginBottom: SPACING.xxl }}>
+      <SkeletonBox width={120} height={20} style={{ marginBottom: SPACING.md }} />
+      <View style={{ flexDirection: "row" }}>
+        {[0, 1, 2, 3].map((i) => (
+          <SkeletonBox
+            key={i}
+            width={140}
+            height={160}
+            borderRadius={8}
+            style={{ marginRight: SPACING.lg }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function PostCardSkeleton() {
+  return (
+    <View style={{ marginBottom: SPACING.xl }}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: SPACING.md }}>
+        <SkeletonBox width={36} height={36} borderRadius={18} style={{ marginRight: SPACING.md }} />
+        <View style={{ flex: 1 }}>
+          <SkeletonBox width={120} height={12} style={{ marginBottom: SPACING.xs }} />
+          <SkeletonBox width={80} height={12} />
+        </View>
+      </View>
+      <SkeletonBox width="100%" height={14} style={{ marginBottom: SPACING.sm }} />
+      <SkeletonBox width="100%" height={200} borderRadius={8} />
+    </View>
+  );
+}
+
+function HomeSkeleton() {
+  return (
+    <ScrollView
+      contentContainerStyle={{ padding: SPACING.xl, paddingBottom: 40 }}
+      style={{ backgroundColor: COLORS.backgroundPage }}
+    >
+      <SkeletonBox width="100%" height={200} borderRadius={8} style={{ marginBottom: SPACING.xxl }} />
+      <CarouselSkeleton />
+      <CarouselSkeleton />
+      <CarouselSkeleton />
+      <CarouselSkeleton />
+      {[0, 1, 2].map((i) => (
+        <PostCardSkeleton key={i} />
+      ))}
+    </ScrollView>
+  );
+}
+
+export default function HomeScreen() {
+  const { t } = useTranslation();
+  const { user, sessionToken, activeIdentity } = useAuth();
+  const { location: globalLocation, radiusKm } = useLocation();
+  const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
+  const router = useRouter();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [rentals, setRentals] = useState<Rental[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [savedEventIds, setSavedEventIds] = useState<Set<string>>(new Set());
+  const [savedActivityIds, setSavedActivityIds] = useState<Set<string>>(new Set());
+  const [savedBusinessIds, setSavedBusinessIds] = useState<Set<string>>(new Set());
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
+  const [feedError, setFeedError] = useState(false);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [storyGroups, setStoryGroups] = useState<GroupedStory[]>([]);
+  const [storyViewerOpen, setStoryViewerOpen] = useState(false);
+  const [storyViewerIndex, setStoryViewerIndex] = useState(0);
+  const [showNoLocationMessage, setShowNoLocationMessage] = useState(false);
+  const [postText, setPostText] = useState("");
+  const [tagResults, setTagResults] = useState<User[]>([]);
+  const [taggedUserIds, setTaggedUserIds] = useState<string[]>([]);
+  const [taggedBusinessId, setTaggedBusinessId] = useState<string | null>(null);
+  const [taggedBusiness, setTaggedBusiness] = useState<Business | null>(null);
+  const [showBusinessTagModal, setShowBusinessTagModal] = useState(false);
+  const [businessSearchQuery, setBusinessSearchQuery] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState<string | null>(null);
+  const [soundcloudLink, setSoundcloudLink] = useState<string | null>(null);
+  const [postImage, setPostImage] = useState<string | null>(null);
+  const [postVideo, setPostVideo] = useState<string | null>(null);
+  const [postVideoMuxUploadId, setPostVideoMuxUploadId] = useState<string | null>(null);
+  const [postVideoPreview, setPostVideoPreview] = useState<string | null>(null);
+  const [postMediaRatio, setPostMediaRatio] = useState<number | null>(null);
+  const [posting, setPostPosting] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarDate, setCalendarDate] = useState<string | null>(null);
+  const [activitiesCalendarOpen, setActivitiesCalendarOpen] = useState(false);
+  const [activitiesCalendarDate, setActivitiesCalendarDate] = useState<string | null>(null);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [shareContentId, setShareContentId] = useState<string>("");
+  const [shareContentTitle, setShareContentTitle] = useState<string>("");
+  const [shareContentType, setShareContentType] = useState<"post">("post");
+  const [eventThemes, setEventThemes] = useState<EventTheme[]>([]);
+  const [selectedTheme, setSelectedTheme] = useState<string>("");
+  const [showThemeFilter, setShowThemeFilter] = useState(false);
+  const [activitiesFilter, setActivitiesFilter] = useState<"all" | "attending" | "mine">("all");
+  const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");
+  const [homeLayout, setHomeLayout] = useState<{
+    sections: Array<{
+      id: string;
+      title: string;
+      enabled: boolean;
+      order: number;
+      layout: string; // 'carousel', 'grid', 'list', 'featured'
+      customStyle: Record<string, any>;
+    }>;
+    featuredContent: {
+      enabled: boolean;
+      type: 'posts' | 'events' | 'activities' | 'businesses' | 'jobs' | 'none';
+      count: number;
+    };
+    sorting: {
+      posts: 'chronological' | 'engagement' | 'random' | 'custom';
+      events: 'chronological' | 'distance' | 'engagement' | 'random' | 'custom';
+      activities: 'chronological' | 'distance' | 'engagement' | 'random' | 'custom';
+      businesses: 'chronological' | 'distance' | 'engagement' | 'random' | 'custom';
+      jobs: 'chronological' | 'distance' | 'random' | 'custom';
+    };
+  }>({
+    sections: [
+      { id: 'map', title: 'Locator Map', enabled: true, order: 1, layout: 'map', customStyle: {} },
+      { id: 'events', title: 'Events', enabled: true, order: 2, layout: 'carousel', customStyle: {} },
+      { id: 'activities', title: 'Activities', enabled: true, order: 3, layout: 'carousel', customStyle: {} },
+      { id: 'businesses', title: 'Businesses', enabled: true, order: 4, layout: 'carousel', customStyle: {} },
+      { id: 'rentals', title: 'Rental & Real Estate', enabled: true, order: 5, layout: 'carousel', customStyle: {} },
+      { id: 'jobs', title: 'Jobs', enabled: true, order: 6, layout: 'carousel', customStyle: {} },
+      { id: 'posts', title: 'Latest Posts', enabled: true, order: 7, layout: 'list', customStyle: {} },
+    ],
+    featuredContent: {
+      enabled: false,
+      type: 'none',
+      count: 3,
+    },
+    sorting: {
+      posts: 'chronological',
+      events: 'chronological',
+      activities: 'chronological',
+      businesses: 'chronological',
+      jobs: 'distance',
+    },
+  });
+  const googleKey =
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const [commentModal, setCommentModal] = useState(false);
+  const [commentPost, setCommentPost] = useState<Post | null>(null);
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editModal, setEditModal] = useState(false);
+  const [editPost, setEditPost] = useState<Post | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editImage, setEditImage] = useState<string | null>(null);
+  const [editVideo, setEditVideo] = useState<string | null>(null);
+  const [editVideoPreview, setEditVideoPreview] = useState<string | null>(null);
+  const [editMediaRatio, setEditMediaRatio] = useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [showUploadProgress, setShowUploadProgress] = useState(false);
+  const [globalMuted, setGlobalMuted] = useState(false);
+  const [activeFeedVideo, setActiveFeedVideo] = useState<string | null>(null);
+  const [friends, setFriends] = useState<UserPublic[]>([]);
+  const getFriendName = (id: string) => friends.find(f => f.user_id === id)?.name || friends.find(f => f.user_id === id)?.user_id || id;
+  const getFriendAvatar = (id: string) => friends.find(f => f.user_id === id)?.profile_photo || friends.find(f => f.user_id === id)?.picture || null;
+  const getBizName = (id: string) => {
+    const biz = businesses.find(b => b.business_id === id);
+    return biz?.name || id;
+  };
+  const getBiz = (id: string) => businesses.find(b => b.business_id === id);
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '??';
+    return name.split(' ').map(part => part[0]).join('').toUpperCase().slice(0, 2);
+  };
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [showLayoutSettings, setShowLayoutSettings] = useState(false);
+  const layoutLoaded = React.useRef(false);
+
+  const loadMorePosts = async () => {
+    if (!sessionToken || loadingMorePosts || !hasMorePosts || !mapBounds) return;
+    setLoadingMorePosts(true);
+    try {
+      const feedData = await getHomeFeed(sessionToken, undefined, undefined, {
+        minLat: mapBounds.minLat,
+        maxLat: mapBounds.maxLat,
+        minLng: mapBounds.minLng,
+        maxLng: mapBounds.maxLng,
+      }, posts.length);
+      if (feedData.posts.length === 0) {
+        setHasMorePosts(false);
+      } else {
+        const sorted = feedData.posts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setPosts((prev) => {
+          const existingIds = new Set(prev.map(p => p.post_id));
+          const filtered = sorted.filter(p => !existingIds.has(p.post_id));
+          return [...prev, ...filtered];
+        });
+      }
+    } catch (e) {
+      console.log("Error loading more posts:", e);
+    } finally {
+      setLoadingMorePosts(false);
+    }
+  };
+
+  const handleScroll = ({ nativeEvent }: any) => {
+    const paddingToBottom = 1500;
+    const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+      nativeEvent.contentSize.height - paddingToBottom;
+    if (isCloseToBottom) {
+      loadMorePosts();
+    }
+  };
+
+  const shuffle = <T,>(items: T[] | undefined | null) =>
+    items ? [...items].sort(() => Math.random() - 0.5) : [];
+
+  const haversineDistance = (lat1: number, lon1: number, lat2: number | undefined, lon2: number | undefined) => {
+    if (lat2 == null || lon2 == null) return Infinity;
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const sortByDistance = <T extends { latitude?: number | null; longitude?: number | null; business?: { latitude: number; longitude: number } | null }>(
+    items: T[] | undefined | null,
+    userLat: number,
+    userLng: number
+  ): T[] => {
+    if (!items) return [];
+    return [...items].sort((a, b) => {
+      const aLat = a.latitude ?? a.business?.latitude;
+      const aLng = a.longitude ?? a.business?.longitude;
+      const bLat = b.latitude ?? b.business?.latitude;
+      const bLng = b.longitude ?? b.business?.longitude;
+      const distA = haversineDistance(userLat, userLng, aLat, aLng);
+      const distB = haversineDistance(userLat, userLng, bLat, bLng);
+      return distA - distB;
+    });
+  };
+
+  const sortEvents = useMemo(() => {
+    const userLat = userLocation?.latitude || mapBounds?.centerLat || 52.52;
+    const userLng = userLocation?.longitude || mapBounds?.centerLng || 13.405;
+    let upcoming = events.filter(isUpcomingEvent);
+    
+    if (eventsFilter === "attending") {
+      upcoming = upcoming.filter(e => e.is_attending);
+    } else if (eventsFilter === "mine") {
+      upcoming = upcoming.filter(e => (e as any).is_creator);
+    }
+    
+    switch (homeLayout.sorting.events) {
+      case 'distance':
+        return sortByDistance(upcoming as any[], userLat, userLng);
+      case 'chronological':
+        return [...upcoming].sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+      case 'engagement':
+        return [...upcoming].sort((a, b) => (b.attendees_count || 0) - (a.attendees_count || 0));
+      case 'random':
+      default:
+        return shuffle(upcoming);
+    }
+  }, [events, mapRefreshKey, homeLayout.sorting.events, userLocation, mapBounds, eventsFilter]);
+
+  const sortActivities = useMemo(() => {
+    const userLat = userLocation?.latitude || mapBounds?.centerLat || 52.52;
+    const userLng = userLocation?.longitude || mapBounds?.centerLng || 13.405;
+    let upcoming = activities.filter(isUpcomingActivity);
+    
+    if (activitiesFilter === "attending") {
+      upcoming = upcoming.filter(a => a.my_status === "accepted" || a.my_status === "going");
+    } else if (activitiesFilter === "mine") {
+      upcoming = upcoming.filter(a => a.is_creator);
+    }
+    
+    switch (homeLayout.sorting.activities) {
+      case 'distance':
+        return sortByDistance(upcoming as any[], userLat, userLng);
+      case 'chronological':
+        return [...upcoming].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      case 'engagement':
+        return [...upcoming].sort((a, b) => ((b as any).participants_count || 0) - ((a as any).participants_count || 0));
+      case 'random':
+      default:
+        return shuffle(upcoming);
+    }
+  }, [activities, mapRefreshKey, homeLayout.sorting.activities, userLocation, mapBounds, activitiesFilter]);
+
+  const sortBusinesses = useMemo(() => {
+    const userLat = userLocation?.latitude || mapBounds?.centerLat || 52.52;
+    const userLng = userLocation?.longitude || mapBounds?.centerLng || 13.405;
+    
+    switch (homeLayout.sorting.businesses) {
+      case 'distance':
+        return sortByDistance(businesses as any[], userLat, userLng);
+      case 'chronological':
+        return [...businesses].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      case 'engagement':
+        return [...businesses].sort((a, b) => ((b as any).followers_count || 0) - ((a as any).followers_count || 0));
+      case 'random':
+      default:
+        return shuffle(businesses);
+    }
+  }, [businesses, mapRefreshKey, homeLayout.sorting.businesses, userLocation, mapBounds]);
+
+  const sortJobs = useMemo(() => {
+    const userLat = userLocation?.latitude || mapBounds?.centerLat || 52.52;
+    const userLng = userLocation?.longitude || mapBounds?.centerLng || 13.405;
+    
+    switch (homeLayout.sorting.jobs) {
+      case 'distance':
+        return sortByDistance(jobs as any[], userLat, userLng);
+      case 'chronological':
+        return [...jobs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case 'random':
+      default:
+        return shuffle(jobs);
+    }
+  }, [jobs, mapRefreshKey, homeLayout.sorting.jobs, userLocation, mapBounds]);
+
+  const sortedPosts = useMemo(() => {
+    switch (homeLayout.sorting.posts) {
+      case 'chronological':
+        return [...posts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case 'engagement':
+        return [...posts].sort((a, b) => (b.likes_count + b.comments_count) - (a.likes_count + a.comments_count));
+      case 'random':
+      default:
+        return shuffle(posts);
+    }
+}, [posts, homeLayout.sorting.posts]);
+
+  useEffect(() => {
+    if (layoutLoaded.current) return;
+    layoutLoaded.current = true;
+    const loadSavedLayout = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('homeLayout');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setHomeLayout(prev => ({
+            ...prev,
+            ...parsed,
+            sections: prev.sections.map(s => {
+              const savedSection = parsed.sections?.find((ps: any) => ps.id === s.id);
+              return savedSection ? { ...s, ...savedSection } : s;
+            })
+          }));
+        }
+      } catch (e) {
+        console.log('Error loading layout preferences:', e);
+      }
+    };
+    loadSavedLayout();
+  }, []);
+
+  useEffect(() => {
+    if (!layoutLoaded.current) return;
+    const saveLayout = async () => {
+      try {
+        await AsyncStorage.setItem('homeLayout', JSON.stringify(homeLayout));
+      } catch (e) {
+        console.log('Error saving layout preferences:', e);
+      }
+    };
+    saveLayout();
+  }, [homeLayout]);
+
+  // Sync with global location from context
+  useEffect(() => {
+    if (globalLocation) {
+      setUserLocation({
+        latitude: globalLocation.latitude,
+        longitude: globalLocation.longitude,
+      });
+    }
+  }, [globalLocation]);
+
+  // Auto-initialize map bounds from user coordinates (from registration) or GPS
+  useEffect(() => {
+    if (isMapInitialized) return;
+
+    // Priority 1: User coordinates from registration/profile
+    if (user?.latitude && user?.longitude) {
+      const latDelta = 0.09;
+      const lngDelta = 0.09;
+      setMapBounds({
+        minLat: user.latitude - latDelta / 2,
+        maxLat: user.latitude + latDelta / 2,
+        minLng: user.longitude - lngDelta / 2,
+        maxLng: user.longitude + lngDelta / 2,
+        centerLat: user.latitude,
+        centerLng: user.longitude,
+      });
+      return;
+    }
+
+    // Priority 2: GPS location from LocationContext
+    if (globalLocation) {
+      const latDelta = 0.09;
+      const lngDelta = 0.09;
+      setMapBounds({
+        minLat: globalLocation.latitude - latDelta / 2,
+        maxLat: globalLocation.latitude + latDelta / 2,
+        minLng: globalLocation.longitude - lngDelta / 2,
+        maxLng: globalLocation.longitude + lngDelta / 2,
+        centerLat: globalLocation.latitude,
+        centerLng: globalLocation.longitude,
+      });
+    }
+  }, [user, globalLocation, isMapInitialized, setMapBounds]);
+
+  // Recenter on user location
+  const handleRecenterOnMe = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const location = await Location.getCurrentPositionAsync({});
+        const lat = location.coords.latitude;
+        const lng = location.coords.longitude;
+        const latDelta = 0.09; // ~10km
+        const lngDelta = 0.09;
+        setMapBounds({
+          minLat: lat - latDelta / 2,
+          maxLat: lat + latDelta / 2,
+          minLng: lng - lngDelta / 2,
+          maxLng: lng + lngDelta / 2,
+          centerLat: lat,
+          centerLng: lng,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to get location:", error);
+    }
+  };
+
+const loadContent = useCallback(async () => {
+    if (!sessionToken) return;
+
+    setFeedError(false);
+
+    let bounds = mapBounds;
+    if (!bounds) {
+      const lat = user?.latitude || userLocation?.latitude;
+      const lng = user?.longitude || userLocation?.longitude;
+      const latDelta = 0.09;
+      const lngDelta = 0.09;
+      if (lat && lng) {
+        bounds = {
+          minLat: lat - latDelta / 2,
+          maxLat: lat + latDelta / 2,
+          minLng: lng - lngDelta / 2,
+          maxLng: lng + lngDelta / 2,
+          centerLat: lat,
+          centerLng: lng,
+        };
+      } else {
+        bounds = {
+          minLat: 52.475,
+          maxLat: 52.565,
+          minLng: 13.360,
+          maxLng: 13.450,
+          centerLat: 52.52,
+          centerLng: 13.405,
+        };
+      }
+    }
+
+    try {
+      const feedData = await getHomeFeed(sessionToken, undefined, undefined, {
+        minLat: bounds.minLat,
+        maxLat: bounds.maxLat,
+        minLng: bounds.minLng,
+        maxLng: bounds.maxLng,
+      });
+      
+      setPosts(feedData.posts);
+      
+      const userLat = bounds.centerLat || userLocation?.latitude || 52.52;
+      const userLng = bounds.centerLng || userLocation?.longitude || 13.405;
+      setEvents(sortByDistance(feedData.events as any[], userLat, userLng) as EventItem[]);
+      setActivities(sortByDistance(feedData.activities as any[], userLat, userLng) as ActivityItem[]);
+
+      try {
+        if (feedData.events.length > 0) {
+          const evSaved = await batchCheckSaved(sessionToken, "event", feedData.events.map(e => e.event_id));
+          setSavedEventIds(new Set(evSaved.saved_ids));
+        }
+        if (feedData.activities.length > 0) {
+          const actSaved = await batchCheckSaved(sessionToken, "activity", feedData.activities.map(a => a.activity_id));
+          setSavedActivityIds(new Set(actSaved.saved_ids));
+        }
+        if (feedData.posts.length > 0) {
+          const postSaved = await batchCheckSaved(sessionToken, "post", feedData.posts.map(p => p.post_id));
+          setSavedPostIds(new Set(postSaved.saved_ids));
+        }
+      } catch (e) {
+        console.log("Failed to load saved statuses:", e);
+      }
+    } catch (error) {
+      console.log("Home feed error:", error);
+      setFeedError(true);
+    }
+
+    const userLat = bounds.centerLat || userLocation?.latitude || 52.52;
+    const userLng = bounds.centerLng || userLocation?.longitude || 13.405;
+
+    try {
+      const nearbyData = await getNearbyBusinesses(
+        sessionToken,
+        userLat,
+        userLng,
+        undefined,
+        undefined,
+        bounds || null
+      );
+      setBusinesses(sortByDistance(nearbyData as any[], userLat, userLng) as Business[]);
+      try {
+        if (nearbyData.length > 0) {
+          const bizSaved = await batchCheckSaved(sessionToken, "business", nearbyData.map(b => b.business_id));
+          setSavedBusinessIds(new Set(bizSaved.saved_ids));
+        }
+      } catch (e) {
+        console.log("Failed to load business saved statuses:", e);
+      }
+    } catch (error) {
+      console.log("Nearby businesses error:", error);
+    }
+
+    try {
+      const nearbyJobsData = await getJobs(sessionToken, bounds, {
+        latitude: bounds?.centerLat,
+        longitude: bounds?.centerLng,
+      });
+      setJobs(nearbyJobsData.jobs);
+      try {
+        if (nearbyJobsData.jobs.length > 0) {
+          const jobSaved = await batchCheckSaved(sessionToken, "job", nearbyJobsData.jobs.map((j: any) => j.job_id));
+          setSavedJobIds(new Set(jobSaved.saved_ids));
+        }
+      } catch (e) {
+        console.log("Failed to load job saved statuses:", e);
+      }
+    } catch (error) {
+      console.log("Nearby jobs error:", error);
+    }
+
+    try {
+      const nearbyRentalsData = await getRentals(sessionToken, bounds, {
+        latitude: bounds?.centerLat,
+        longitude: bounds?.centerLng,
+      });
+      setRentals(nearbyRentalsData.rentals);
+    } catch (error) {
+      console.log("Nearby rentals error:", error);
+    }
+
+    try {
+      const stories = await getStories(sessionToken, {
+        minLat: bounds.minLat,
+        maxLat: bounds.maxLat,
+        minLng: bounds.minLng,
+        maxLng: bounds.maxLng,
+      });
+      setStoryGroups(stories);
+    } catch (e) {
+      console.warn("getStories failed:", e);
+    }
+  }, [sessionToken, mapBounds, userLocation, user]);
+
+  useEffect(() => {
+    if (!sessionToken) return;
+    setLoading(true);
+    loadContent().finally(() => setLoading(false));
+  }, [loadContent, sessionToken]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setHasMorePosts(true);
+    await loadContent();
+    setRefreshing(false);
+  };
+
+  const pickImage = async () => {
+    // Request permission first
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        t('common.permissionRequired') || 'Permission Required',
+        t('home.mediaPermissionMessage') || 'Please allow access to your photo library to upload images.'
+      );
+      return;
+    }
+    
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.5,
+      base64: true,
+      allowsEditing: true,
+      aspect: [4, 5],
+      exif: false,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
+      const asset = result.assets[0];
+      const uri = `data:image/jpeg;base64,${asset.base64}`;
+      const ratio = asset.width && asset.height ? asset.width / asset.height : null;
+      setPostMediaRatio(ratio);
+      setPostImage(uri);
+      setPostVideo(null);
+      setPostVideoPreview(null);
+    }
+  };
+
+  const MAX_VIDEO_SIZE_MB = 300;
+  const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+
+  const pickVideo = async () => {
+    // Request permission first
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        t('common.permissionRequired') || 'Permission Required',
+        t('home.mediaPermissionMessage') || 'Please allow access to your photo library to upload videos.'
+      );
+      return;
+    }
+    
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      quality: 0.5,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
+      const asset = result.assets[0];
+      const uri = asset.uri;
+      
+      // Check file size
+      if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
+        Alert.alert(
+          t("common.error"),
+          t("home.videoTooLarge") || `Video must be under ${MAX_VIDEO_SIZE_MB}MB. Your video is ${Math.round(asset.fileSize / 1024 / 1024)}MB.`
+        );
+        return;
+      }
+      
+      const ratio = asset.width && asset.height ? asset.width / asset.height : null;
+      setPostMediaRatio(ratio);
+      setPostVideoPreview(uri);
+      setPostImage(null);
+      if (sessionToken) {
+        try {
+          setShowUploadProgress(true);
+          setUploadProgress({ phase: "preparing", progress: 0 });
+          const muxResult = await uploadVideoMux(sessionToken, uri, undefined, (progress) => {
+            setUploadProgress(progress);
+          });
+          const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+          if (!videoUrl && !muxResult.mux_upload_id) {
+            throw new Error("Video upload failed: no playback URL or upload ID received");
+          }
+          setPostVideo(videoUrl);
+          setPostVideoMuxUploadId(muxResult.mux_upload_id);
+          setTimeout(() => {
+            setShowUploadProgress(false);
+            setUploadProgress(null);
+          }, 1000);
+        } catch (error) {
+          setShowUploadProgress(false);
+          setUploadProgress(null);
+          Alert.alert(t("home.uploadFailed"), t("home.pleaseTryAgain"));
+          setPostVideo(null);
+        }
+      }
+    }
+  };
+
+  const handleCreatePost = async (eventOrText?: any) => {
+    // Check location before posting
+    if (!user?.latitude || !user?.longitude) {
+      Alert.alert(t('common.error') || 'Error', t('home.locationRequired') || 'Please set your location in your profile before posting');
+      return;
+    }
+    
+    const rawText = typeof eventOrText === 'string' ? eventOrText : postText;
+    
+    const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)?/gi;
+    const SOUNDCLOUD_REGEX = /(?:https?:\/\/)?(?:www\.)?soundcloud\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+(?:[^\s]*)?/gi;
+    
+    let finalText = rawText;
+    let extractedYoutube: string | null = youtubeLink;
+    let extractedSoundcloud: string | null = soundcloudLink;
+    
+    if (!extractedYoutube) {
+      YOUTUBE_REGEX.lastIndex = 0;
+      const ytMatch = YOUTUBE_REGEX.exec(rawText);
+      if (ytMatch) {
+        extractedYoutube = ytMatch[0];
+        finalText = rawText.replace(ytMatch[0], '').replace(/\n{2,}/g, '\n').trim();
+      }
+    }
+    if (!extractedSoundcloud) {
+      SOUNDCLOUD_REGEX.lastIndex = 0;
+      const scMatch = SOUNDCLOUD_REGEX.exec(rawText);
+      if (scMatch) {
+        extractedSoundcloud = scMatch[0];
+        finalText = rawText.replace(scMatch[0], '').replace(/\n{2,}/g, '\n').trim();
+      }
+    }
+    
+    if (!sessionToken || (!finalText.trim() && !postImage && !postVideo && !extractedYoutube && !extractedSoundcloud)) return;
+    try {
+      setPostPosting(true);
+      
+      let imageUrl: string | null = null;
+      let videoUrl: string | null = null;
+      
+      if (postImage) {
+        try {
+          console.log("[Post] Uploading image to Cloudinary...");
+          imageUrl = await uploadImageToCloudinary(sessionToken, postImage);
+          console.log("[Post] Image uploaded:", imageUrl?.substring(0, 50));
+        } catch (e) {
+          console.error("[Post] Image upload failed:", e);
+        }
+      }
+      
+      if (postVideo) {
+        console.log("[Post] Using pre-uploaded video URL:", postVideo?.substring(0, 50));
+        videoUrl = postVideo;
+      }
+      
+// Detect actor identity - fallback to user if activeIdentity is not set
+      let actor = activeIdentity
+        ? { type: activeIdentity.type, id: activeIdentity.id }
+        : undefined;
+      
+      // If no activeIdentity but we have user data, default to user identity
+      if (!actor && user) {
+        actor = {
+          type: "user",
+          id: user.user_id,
+        };
+      }
+      
+      const businessId =
+        activeIdentity?.type === "business" ? activeIdentity.id : undefined;
+      
+      const newPost = await createPost(
+        sessionToken,
+        finalText.trim() || t("home.sharedAnUpdate"),
+        imageUrl ? null : postImage,
+        null,
+        businessId,
+        actor,
+        postMediaRatio || undefined,
+        taggedUserIds,
+        taggedBusinessId,
+        null,
+        imageUrl,
+        videoUrl,
+        extractedYoutube,
+        extractedSoundcloud,
+        postVideoMuxUploadId
+      );
+      setPosts([newPost, ...posts]);
+      setPostText("");
+      setPostImage(null);
+      setPostVideo(null);
+      setPostVideoMuxUploadId(null);
+      setPostVideoPreview(null);
+      setPostMediaRatio(null);
+setTaggedUserIds([]);
+      setTagResults([]);
+      setTaggedBusinessId(null);
+      setTaggedBusiness(null);
+      setYoutubeLink(null);
+      setSoundcloudLink(null);
+    } catch (e) {
+      console.error("[Post] Create post failed:", e);
+      Alert.alert(t('common.error'), t('home.postFailed') || 'Failed to create post');
+    } finally {
+      setPostPosting(false);
+    }
+  };
+
+  const handleToggleLike = async (post: Post) => {
+    if (!sessionToken) return;
+    const actor = activeIdentity
+      ? { type: activeIdentity.type, id: activeIdentity.id }
+      : undefined;
+    const updated = await togglePostLike(sessionToken, post.post_id, actor);
+    setPosts((prev) =>
+      prev.map((item) => (item.post_id === updated.post_id ? updated : item))
+    );
+  };
+
+  const handleShare = async (post: Post) => {
+    setShareContentId(post.post_id);
+    setShareContentTitle(post.text?.substring(0, 100) || "Post");
+    setShareModalVisible(true);
+  };
+
+  const openComments = async (post: Post) => {
+    if (!sessionToken) return;
+    setCommentLoading(true);
+    setCommentPost(post);
+    setCommentModal(true);
+    const data = await getPostComments(sessionToken, post.post_id);
+    setComments(data);
+    setCommentLoading(false);
+  };
+
+  const handleAddComment = async () => {
+    if (!sessionToken || !commentPost || !commentText.trim()) return;
+    const actor = activeIdentity
+      ? { type: activeIdentity.type, id: activeIdentity.id }
+      : undefined;
+    let updated: Post;
+    if (editingCommentId) {
+      updated = await updatePostComment(
+        sessionToken,
+        commentPost.post_id,
+        editingCommentId,
+        commentText.trim()
+      );
+    } else {
+      updated = await addPostComment(
+        sessionToken,
+        commentPost.post_id,
+        commentText.trim(),
+        actor
+      );
+    }
+    setPosts((prev) =>
+      prev.map((item) => (item.post_id === updated.post_id ? updated : item))
+    );
+    const data = await getPostComments(sessionToken, commentPost.post_id);
+    setComments(data);
+    setCommentText("");
+    setEditingCommentId(null);
+  };
+
+  const handleEditComment = (comment: PostComment) => {
+    setEditingCommentId(comment.comment_id);
+    setCommentText(comment.text);
+  };
+
+  const handleDeleteComment = async (comment: PostComment) => {
+    if (!sessionToken || !commentPost) return;
+    const updated = await deletePostComment(
+      sessionToken,
+      commentPost.post_id,
+      comment.comment_id
+    );
+    setPosts((prev) =>
+      prev.map((item) => (item.post_id === updated.post_id ? updated : item))
+    );
+    const data = await getPostComments(sessionToken, commentPost.post_id);
+    setComments(data);
+  };
+
+  const readVideoAsDataUri = async (uri: string, mimeType: string) => {
+    const useWebReader =
+      Platform.OS === "web" || !FileSystem?.readAsStringAsync;
+    if (useWebReader) {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const dataUri = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      return dataUri;
+    }
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: "base64" as any,
+    });
+    return `data:${mimeType};base64,${base64}`;
+  };
+
+  const openEditPost = (post: Post) => {
+    setEditPost(post);
+    setEditText(post.text);
+    setEditImage(post.image_base64 || null);
+    setEditVideo(post.video_url || null);
+    setEditVideoPreview(post.video_url || null);
+    setEditMediaRatio(post.media_ratio || null);
+    setEditModal(true);
+  };
+
+  const pickEditImage = async () => {
+    // Request permission first
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        t('common.permissionRequired') || 'Permission Required',
+        t('home.mediaPermissionMessage') || 'Please allow access to your photo library.'
+      );
+      return;
+    }
+    
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.5,
+      base64: true,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
+      const asset = result.assets[0];
+      const uri = `data:image/jpeg;base64,${asset.base64}`;
+      const ratio = asset.width && asset.height ? asset.width / asset.height : null;
+      setEditMediaRatio(ratio);
+      setEditImage(uri);
+      setEditVideo(null);
+      setEditVideoPreview(null);
+    }
+  };
+
+  const handlePostTextChange = async (value: string) => {
+    setPostText(value);
+    if (!sessionToken) return;
+    const match = value.match(/@([\w\d_-]*)$/);
+    if (!match) {
+      setTagResults([]);
+      return;
+    }
+    const query = match[1];
+    if (!query) {
+      setTagResults([]);
+      return;
+    }
+    const friends = await searchUsers(sessionToken, query, true);
+    let merged = friends;
+    if (friends.length < 5) {
+      const all = await searchUsers(sessionToken, query, false);
+      merged = [...friends];
+      all.forEach((user) => {
+        if (!merged.find((item) => item.user_id === user.user_id)) {
+          merged.push(user);
+        }
+      });
+    }
+    setTagResults(merged.slice(0, 6));
+  };
+
+  const handleSelectTag = (user: User) => {
+    const updated = postText.replace(/@([\w\d_-]*)$/, `@${user.name} `);
+    setPostText(updated);
+    setTagResults([]);
+    setTaggedUserIds((prev) =>
+      prev.includes(user.user_id) ? prev : [...prev, user.user_id]
+    );
+  };
+
+  const pickEditVideo = async () => {
+    // Request permission first
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        t('common.permissionRequired') || 'Permission Required',
+        t('home.mediaPermissionMessage') || 'Please allow access to your photo library.'
+      );
+      return;
+    }
+    
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      quality: 0.5,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
+      const asset = result.assets[0];
+      const uri = asset.uri;
+      const ratio = asset.width && asset.height ? asset.width / asset.height : null;
+      setEditMediaRatio(ratio);
+      setEditVideoPreview(uri);
+      setEditImage(null);
+        if (sessionToken) {
+          try {
+            setShowUploadProgress(true);
+            setUploadProgress({ phase: "preparing", progress: 0 });
+const muxResult = await uploadVideoMux(sessionToken, uri, undefined, (progress) => {
+               setUploadProgress(progress);
+             });
+             const editVideoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+             setEditVideo(editVideoUrl);
+            setTimeout(() => {
+              setShowUploadProgress(false);
+              setUploadProgress(null);
+            }, 1000);
+        } catch (error) {
+          setShowUploadProgress(false);
+          setUploadProgress(null);
+          Alert.alert(t("home.uploadFailed"), t("home.pleaseTryAgain"));
+          setEditVideo(null);
+        }
+      }
+    }
+  };
+
+  const handleUpdatePost = async () => {
+    if (!sessionToken || !editPost) return;
+    
+    const YOUTUBE_REGEX_EDIT = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)?/gi;
+    const SOUNDCLOUD_REGEX_EDIT = /(?:https?:\/\/)?(?:www\.)?soundcloud\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+(?:[^\s]*)?/gi;
+    
+    let finalEditText = editText.trim();
+    let extractedYt: string | null = null;
+    let extractedSc: string | null = null;
+    
+    YOUTUBE_REGEX_EDIT.lastIndex = 0;
+    const ytMatch = YOUTUBE_REGEX_EDIT.exec(editText);
+    if (ytMatch) {
+      extractedYt = ytMatch[0];
+      finalEditText = editText.replace(ytMatch[0], '').replace(/\n{2,}/g, '\n').trim();
+    }
+    SOUNDCLOUD_REGEX_EDIT.lastIndex = 0;
+    const scMatch = SOUNDCLOUD_REGEX_EDIT.exec(editText);
+    if (scMatch) {
+      extractedSc = scMatch[0];
+      finalEditText = finalEditText.replace(scMatch[0], '').replace(/\n{2,}/g, '\n').trim();
+    }
+    
+    const updated = await updatePost(sessionToken, editPost.post_id, {
+      text: finalEditText || editPost.text,
+      image_base64: editImage || undefined,
+      video_base64: editVideo || undefined,
+      media_ratio: editMediaRatio || undefined,
+      youtube_link: extractedYt || null,
+      soundcloud_url: extractedSc || null,
+    });
+    setPosts((prev) =>
+      prev.map((item) => (item.post_id === updated.post_id ? updated : item))
+    );
+    setEditModal(false);
+    setEditMediaRatio(null);
+  };
+
+  const handleDeletePost = async (post: Post) => {
+    if (!sessionToken) return;
+    await deletePost(sessionToken, post.post_id);
+    setPosts((prev) => prev.filter((item) => item.post_id !== post.post_id));
+    setEditModal(false);
+  };
+
+
+  const markedDates = useMemo(() => {
+    const marks: Record<string, any> = {};
+    events.forEach((event) => {
+      const dateKey = event.start_time.split("T")[0];
+      marks[dateKey] = { marked: true, dotColor: "#000000" };
+    });
+    return marks;
+  }, [events]);
+
+  const eventsForDate = useMemo(() => {
+    let filtered = events;
+    if (calendarDate) {
+      filtered = filtered.filter((event) => event.start_time.startsWith(calendarDate));
+    }
+    if (selectedTheme) {
+      filtered = filtered.filter((event) => event.theme === selectedTheme);
+    }
+    return filtered;
+  }, [calendarDate, events, selectedTheme]);
+
+  const activitiesMarkedDates = useMemo(() => {
+    const marks: Record<string, any> = {};
+    activities.forEach((activity) => {
+      const dateKey = activity.date?.split(" ")[0] || activity.date;
+      if (dateKey) marks[dateKey] = { marked: true, dotColor: "#000000" };
+    });
+    return marks;
+  }, [activities]);
+
+  const activitiesForDate = useMemo(() => {
+    let filtered = activities;
+    if (activitiesCalendarDate) {
+      filtered = filtered.filter((activity) => activity.date?.startsWith(activitiesCalendarDate));
+    }
+    return filtered;
+  }, [activitiesCalendarDate, activities]);
+
+  const getThemeLabel = (slug: string) => {
+    // Try to get translated theme label, fallback to API label or slug
+    const translationKey = `events.themes.${slug}`;
+    const translated = t(translationKey);
+    // If translation exists and is not the key itself, use it
+    if (translated && translated !== translationKey) {
+      return translated;
+    }
+    // Fallback to API label or slug
+    return eventThemes.find(t => t.slug === slug)?.label || slug;
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }} edges={['top']}>
+        <HomeSkeleton />
+      </SafeAreaView>
+    );
+  }
+
+  // Show prompt to interact with map first if map is not initialized
+  if (!isMapInitialized) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('home.greeting', { name: user?.name?.split(" ")[0] || "there" })}</Text>
+          <Text style={styles.headerSubtitle}>{t('home.sharePrompt')}</Text>
+        </View>
+        <View style={styles.mapPromptContainer}>
+          <View style={styles.mapPromptCard}>
+            <View style={styles.mapPromptIconContainer}>
+              <Ionicons name="map" size={48} color="#000000" />
+            </View>
+            <Text style={styles.mapPromptTitle}>{t('home.setLocationTitle', { defaultValue: 'Set Your Area' })}</Text>
+            <Text style={styles.mapPromptText}>
+              {t('home.setLocationDescription', { defaultValue: 'To see content from nearby businesses, please first set your location area on the map.' })}
+            </Text>
+            <Pressable 
+              style={styles.mapPromptButton}
+              onPress={handleRecenterOnMe}
+              data-testid="recenter-btn"
+            >
+              <Ionicons name="locate" size={20} color="#fff" />
+              <Text style={styles.mapPromptButtonText}>{t('home.useMyLocation', { defaultValue: 'Use My Location' })}</Text>
+            </Pressable>
+            <Pressable 
+              style={[styles.mapPromptButton, styles.mapPromptButtonSecondary]}
+              onPress={() => router.push('/(tabs)/locator')}
+              data-testid="go-to-map-btn"
+            >
+              <Ionicons name="navigate" size={20} color="#000000" />
+              <Text style={[styles.mapPromptButtonText, styles.mapPromptButtonTextSecondary]}>{t('home.goToMap', { defaultValue: 'Go to Map' })}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.stickyHeader}>
+        <View style={styles.stickyHeaderLeft}>
+          <Text style={styles.stickyHeaderBrand}>Perix</Text>
+          <Text style={styles.stickyHeaderSub}>{t("home.discoverNearby", "Discover nearby")}</Text>
+        </View>
+        <View style={styles.stickyHeaderRight}>
+          <Pressable style={styles.stickyHeaderIcon} onPress={() => router.push('/(tabs)/locator')}>
+            <Ionicons name="search" size={22} color={COLORS.primary} />
+          </Pressable>
+          <Pressable style={styles.stickyHeaderIcon} onPress={() => { setShowLayoutSettings(true); }}>
+            <Ionicons name="options-outline" size={22} color={COLORS.primary} />
+          </Pressable>
+        </View>
+      </View>
+      <ScrollView 
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={400}
+      >
+
+      {feedError && posts.length === 0 && (
+        <View style={{ margin: SPACING.xl, padding: SPACING.lg, backgroundColor: "#FEF2F2", borderRadius: BORDER_RADIUS.lg, alignItems: "center" }}>
+          <Ionicons name="alert-circle" size={32} color="#DC2626" style={{ marginBottom: SPACING.sm }} />
+          <Text style={{ fontSize: FONT_SIZES.md, fontWeight: FONT_WEIGHTS.semibold, color: "#991B1B", marginBottom: SPACING.xs }}>
+            {t("home.feedErrorTitle") || "Unable to load feed"}
+          </Text>
+          <Text style={{ fontSize: FONT_SIZES.sm, color: "#B91C1C", textAlign: "center", marginBottom: SPACING.md }}>
+            {t("home.feedErrorMessage") || "There was a problem loading posts and activities. Please try again."}
+          </Text>
+          <Pressable
+            style={{ paddingHorizontal: SPACING.xl, paddingVertical: SPACING.sm, backgroundColor: "#DC2626", borderRadius: BORDER_RADIUS.md }}
+            onPress={onRefresh}
+          >
+            <Text style={{ color: "#fff", fontWeight: FONT_WEIGHTS.semibold, fontSize: FONT_SIZES.sm }}>
+              {t("common.retry") || "Retry"}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Story Circles */}
+      {user && (
+        <View style={styles.storyCirclesContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <Pressable style={styles.storyCircleItem} onPress={() => router.push("/camera")}>
+              <View style={styles.storyCircleRingOwn}>
+                <View style={styles.storyCircleAvatarWrap}>
+                  {user.profile_photo || user.picture ? (
+                    <Image source={{ uri: user.profile_photo || user.picture || "" }} style={styles.storyCircleAvatar} />
+                  ) : (
+                    <View style={styles.storyCircleAvatarFallback}>
+                      <Text style={styles.storyCircleAvatarText}>{(user.name || "U").charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={styles.storyCirclePlus}>
+                    <Ionicons name="add" size={10} color="#fff" />
+                  </View>
+                </View>
+              </View>
+              <Text style={styles.storyCircleName} numberOfLines={1}>{t("stories.yourStory") || "Your Story"}</Text>
+            </Pressable>
+            {storyGroups.map((group, idx) => (
+              <Pressable
+                key={group.actor_id}
+                style={styles.storyCircleItem}
+                onPress={() => {
+                  setStoryViewerIndex(idx);
+                  setStoryViewerOpen(true);
+                }}
+              >
+                <View style={[styles.storyCircleRing, { borderColor: group.has_unseen ? "#3b82f6" : "#6b7280" }]}>
+                  <View style={styles.storyCircleAvatarWrap}>
+                    {group.author_avatar ? (
+                      <Image source={{ uri: group.author_avatar }} style={styles.storyCircleAvatar} />
+                    ) : (
+                      <View style={styles.storyCircleAvatarFallback}>
+                        <Text style={styles.storyCircleAvatarText}>{(group.author_name || "?").charAt(0).toUpperCase()}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <Text style={styles.storyCircleName} numberOfLines={1}>{group.author_name || "User"}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+       )}
+
+      {/* Locator Map */}
+      {mapBounds && homeLayout.sections.find(s => s.id === 'map')?.enabled !== false && (
+        <View style={styles.mapContainer}>
+
+         <View style={styles.mapWrapper}>
+            <BusinessMap
+              location={{ latitude: mapBounds.centerLat, longitude: mapBounds.centerLng }}
+              businesses={businesses}
+              events={events}
+              activities={activities}
+              rentals={rentals}
+              onRegionChangeComplete={(bounds) => {
+                const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+                const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+                setMapBounds({
+                  ...bounds,
+                  centerLat,
+                  centerLng,
+                });
+              }}
+              onMarkerPress={(id) => {
+                const biz = businesses.find(b => b.business_id === id);
+                if (biz) { router.push(`/business/${id}` as any); return; }
+                const ev = events.find(e => e.event_id === id);
+                if (ev) { router.push(`/event/${id}` as any); return; }
+                const act = activities.find(a => a.activity_id === id);
+                if (act) { router.push(`/activity/${id}` as any); return; }
+                const rental = rentals.find(r => r.rental_id === id);
+                if (rental) { router.push(`/rental/${id}` as any); return; }
+              }}
+              disabled={false}
+            />
+         </View>
+       </View>
+     )}
+
+{/* Events Section */}
+      {homeLayout.sections.find(s => s.id === 'events')?.enabled !== false && (
+        <View style={styles.card}>
+         <View style={styles.sectionHeader}>
+           <View style={styles.activitiesSectionTitle}>
+             <View style={[styles.activitiesIconContainer, { backgroundColor: "#000000" }]}>
+               <Ionicons name="calendar" size={18} color="#ffffff" />
+             </View>
+             <Text style={styles.cardTitle}>{t('home.events')}</Text>
+           </View>
+            <View style={styles.sectionHeaderRight}>
+             <Pressable 
+               style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]}
+               onPress={() => router.push({ pathname: "/(tabs)/locator", params: { tab: "events" } })}
+             >
+               <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t('common.seeAll')}</Text>
+               <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+             </Pressable>
+            </View>
+          </View>
+          <View style={styles.filterChipRow}>
+            {[{ key: "all", label: t("common.all", "All") }, { key: "attending", label: t("home.attending", "Attending") }, { key: "mine", label: t("home.mine", "Mine") }].map(opt => (
+              <Pressable
+                key={opt.key}
+                style={[styles.filterChip, eventsFilter === opt.key && styles.filterChipActive]}
+                onPress={() => setEventsFilter(opt.key as "all" | "attending" | "mine")}
+              >
+                <Text style={[styles.filterChipText, eventsFilter === opt.key && styles.filterChipTextActive]}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+            {sortEvents.length === 0 ? (
+            <View style={styles.storyEmpty}>
+              <Text style={styles.storyEmptyText}>{t('home.noEvents')}</Text>
+            </View>
+          ) : (
+            sortEvents.map((event) => {
+              const eventTheme = (event as any).profile_theme;
+              const themeColors = getThemeColors(eventTheme);
+              const themeStyles = getThemeStyles(eventTheme);
+              const textColor = themeColors.textColor;
+              
+              return (
+                <Pressable
+                  key={`${event.event_id}-${mapRefreshKey}`}
+                  style={[styles.artistCard, { backgroundColor: "#ffffff" }]}
+                  onPress={() => router.push(`/event/${event.event_id}`)}
+                  data-testid={`event-card-${event.event_id}`}
+                >
+                  <View style={styles.artistAvatar}>
+                    {event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0] ? (
+                      <Image source={{ uri: event.cover_image_url ?? event.image_urls?.[0] ?? event.gallery_images?.[0] ?? "" }} style={styles.artistAvatarImage} resizeMode="cover" />
+                    ) : (
+                      <Ionicons name="calendar" size={20} color="#000000" />
+                    )}
+                    {savedEventIds.has(event.event_id) && (
+                      <View style={styles.savedBadge}>
+                        <Ionicons name="bookmark" size={10} color={COLORS.gold} />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={applyThemeToText(styles.artistName, themeStyles, textColor)} numberOfLines={1}>{event.title}</Text>
+                  <Text style={applyThemeToText(styles.artistMeta, themeStyles, textColor)} numberOfLines={1}>{event.creator?.name || event.business?.name || event.artist?.name || ""}</Text>
+                  <Text style={applyThemeToText(styles.artistMeta, themeStyles, textColor)}>{event.start_time.split("T")[0]}</Text>
+                </Pressable>
+              );
+            })
+          )}
+         </ScrollView>
+       </View>
+      )}
+
+{/* Activities Carousel */}
+      {homeLayout.sections.find(s => s.id === 'activities')?.enabled !== false && (
+        <View style={styles.card}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.activitiesSectionTitle}>
+            <View style={[styles.activitiesIconContainer, { backgroundColor: "#000000" }]}>
+              <Ionicons name="people" size={18} color="#ffffff" />
+            </View>
+            <Text style={styles.cardTitle}>{t('tabs.activities')}</Text>
+          </View>
+          <View style={styles.sectionHeaderRight}>
+            <Pressable 
+              style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]}
+              onPress={() => router.push({ pathname: "/(tabs)/locator", params: { tab: "activities" } })}
+            >
+              <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t('common.seeAll')}</Text>
+              <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+            </Pressable>
+          </View>
+           </View>
+          <View style={styles.filterChipRow}>
+            {[{ key: "all", label: t("common.all", "All") }, { key: "attending", label: t("home.going", "Going") }, { key: "mine", label: t("home.mine", "Mine") }].map(opt => (
+              <Pressable
+                key={opt.key}
+                style={[styles.filterChip, activitiesFilter === opt.key && styles.filterChipActive]}
+                onPress={() => setActivitiesFilter(opt.key as "all" | "attending" | "mine")}
+              >
+                <Text style={[styles.filterChipText, activitiesFilter === opt.key && styles.filterChipTextActive]}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+         <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+           {sortActivities.length === 0 ? (
+            <View style={styles.storyEmpty}>
+              <Text style={styles.storyEmptyText}>{t('activities.noActivities')}</Text>
+            </View>
+          ) : (
+            sortActivities.map((activity) => {
+              const activityTheme = (activity as any).profile_theme;
+              const themeColors = getThemeColors(activityTheme);
+              const themeStyles = getThemeStyles(activityTheme);
+              const cardBgColor = themeColors.cardColor;
+              const textColor = themeColors.textColor;
+              const primaryColor = themeColors.primaryColor;
+              
+              return (
+                <Pressable
+                  key={`${activity.activity_id}-${mapRefreshKey}`}
+                  style={[styles.artistCard, { backgroundColor: "#ffffff" }]}
+                  onPress={() => router.push(`/activity/${activity.activity_id}`)}
+                  data-testid={`activity-card-${activity.activity_id}`}
+                >
+                  <View style={styles.artistAvatar}>
+                    {activity.cover_image_url || activity.image_urls?.[0] || activity.gallery_images?.[0] ? (
+                      <Image source={{ uri: activity.cover_image_url ?? activity.image_urls?.[0] ?? activity.gallery_images?.[0] ?? "" }} style={styles.artistAvatarImage} resizeMode="cover" />
+                    ) : (
+                      <Ionicons name="people" size={20} color="#000000" />
+                    )}
+                    {savedActivityIds.has(activity.activity_id) && (
+                      <View style={styles.savedBadge}>
+                        <Ionicons name="bookmark" size={10} color={COLORS.gold} />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={applyThemeToText(styles.artistName, themeStyles, textColor)} numberOfLines={1}>{activity.title}</Text>
+                  <Text style={applyThemeToText(styles.artistMeta, themeStyles, textColor)} numberOfLines={1}>{activity.creator?.name || ""}</Text>
+                  <Text style={applyThemeToText(styles.artistMeta, themeStyles, textColor)}>{activity.date}</Text>
+                </Pressable>
+              );
+            })
+          )}
+        </ScrollView>
+</View>
+      )}
+
+      {/* Businesses Carousel */}
+      {homeLayout.sections.find(s => s.id === 'businesses')?.enabled !== false && (
+        <View style={styles.card}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.activitiesSectionTitle}>
+            <View style={[styles.activitiesIconContainer, { backgroundColor: "#000000" }]}>
+              <Ionicons name="business" size={18} color="#ffffff" />
+            </View>
+            <Text style={styles.cardTitle}>{t('home.businesses')}</Text>
+          </View>
+          <Pressable 
+            style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]}
+            onPress={() => router.push({ pathname: "/(tabs)/locator", params: { tab: "businesses" } })}
+          >
+            <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t('common.seeAll')}</Text>
+            <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+          </Pressable>
+         </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+            {sortBusinesses.map((business) => {
+             const businessTheme = business.theme;
+             const themeColors = getThemeColors(businessTheme);
+             const themeStyles = getThemeStyles(businessTheme);
+             const cardBgColor = themeColors.cardColor;
+             const textColor = themeColors.textColor;
+             const primaryColor = themeColors.primaryColor;
+             
+             return (
+               <Pressable
+                 key={`${business.business_id}-${mapRefreshKey}`}
+                 style={[styles.artistCard, { backgroundColor: "#ffffff" }]}
+                 onPress={() => router.push(`/business/${business.business_id}`)}
+               >
+                   <View style={styles.artistAvatar}>
+                     {business.logo_image ? (
+                      <Image source={{ uri: business.logo_image }} style={styles.artistAvatarImage} resizeMode="cover" />
+                     ) : business.profile_photo ? (
+                      <Image source={{ uri: business.profile_photo }} style={styles.artistAvatarImage} resizeMode="cover" />
+                     ) : business.cover_image ? (
+                      <Image source={{ uri: business.cover_image }} style={styles.artistAvatarImage} resizeMode="cover" />
+                    ) : (
+                      <Ionicons name="business" size={20} color="#000000" />
+                    )}
+                    {savedBusinessIds.has(business.business_id) && (
+                      <View style={styles.savedBadge}>
+                        <Ionicons name="bookmark" size={10} color={COLORS.gold} />
+                      </View>
+                    )}
+                  </View>
+                 <Text style={applyThemeToText(styles.artistName, themeStyles, primaryColor)} numberOfLines={1}>{business.name}</Text>
+                 <Text style={applyThemeToText(styles.artistMeta, themeStyles, primaryColor)} numberOfLines={1}>{translateCategory(business.subcategory, t)}</Text>
+               </Pressable>
+             );
+})}
+           </ScrollView>
+         </View>
+        )}
+
+{/* Rentals Carousel */}
+      {homeLayout.sections.find(s => s.id === 'rentals')?.enabled !== false && (
+        <View style={styles.card}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.activitiesSectionTitle}>
+            <View style={[styles.activitiesIconContainer, { backgroundColor: "#000000" }]}>
+              <Ionicons name="home" size={18} color="#ffffff" />
+            </View>
+            <Text style={styles.cardTitle}>{t('rentals.rentals') || 'Rentals'}</Text>
+          </View>
+          <Pressable
+            style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]}
+            onPress={() => router.push({ pathname: "/(tabs)/locator", params: { tab: "businesses", category: "rental-real-estate" } })}
+          >
+            <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t('common.seeAll')}</Text>
+            <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+          </Pressable>
+         </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+           {rentals.length === 0 ? (
+            <View style={styles.storyEmpty}>
+              <Text style={styles.storyEmptyText}>{t('rentals.noRentals') || 'No rentals nearby'}</Text>
+            </View>
+          ) : (
+            rentals.map((rental) => (
+              <Pressable
+                key={rental.rental_id}
+                style={[styles.artistCard, { backgroundColor: "#ffffff" }]}
+                onPress={() => router.push(`/rental/${rental.rental_id}` as any)}
+              >
+                <View style={styles.artistAvatar}>
+                  {rental.cover_image ? (
+                    <Image source={{ uri: rental.cover_image }} style={styles.artistAvatarImage} resizeMode="cover" />
+                  ) : rental.gallery_images && rental.gallery_images.length > 0 ? (
+                    <Image source={{ uri: rental.gallery_images[0] }} style={styles.artistAvatarImage} resizeMode="cover" />
+                  ) : (
+                    <Ionicons name="home" size={20} color="#000000" />
+                  )}
+                </View>
+                <Text style={styles.artistName} numberOfLines={1}>{rental.title}</Text>
+                <Text style={styles.artistMeta} numberOfLines={1}>{rental.rent_price || rental.rooms_size || ""}</Text>
+                <Text style={styles.artistMeta} numberOfLines={1}>{rental.address || ""}</Text>
+              </Pressable>
+            ))
+          )}
+         </ScrollView>
+        </View>
+       )}
+
+{/* Jobs Carousel */}
+      {homeLayout.sections.find(s => s.id === 'jobs')?.enabled !== false && (
+        <View style={styles.card}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.activitiesSectionTitle}>
+            <View style={[styles.activitiesIconContainer, { backgroundColor: "#000000" }]}>
+              <Ionicons name="briefcase" size={18} color="#ffffff" />
+            </View>
+            <Text style={styles.cardTitle}>{t('home.jobs') || 'Jobs'}</Text>
+          </View>
+          <Pressable 
+            style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]}
+            onPress={() => router.push("/(tabs)/jobs")}
+          >
+            <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t('common.seeAll')}</Text>
+            <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+          </Pressable>
+         </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+           {sortJobs.length === 0 ? (
+            <View style={styles.storyEmpty}>
+              <Text style={styles.storyEmptyText}>{t('jobs.noJobs') || 'No jobs nearby'}</Text>
+            </View>
+          ) : (
+            sortJobs.map((job) => (
+              <Pressable
+                key={job.job_id}
+                style={[styles.artistCard, { backgroundColor: "#ffffff" }]}
+                onPress={() => router.push(`/job/${job.job_id}`)}
+              >
+                <View style={styles.artistAvatar}>
+                  {job.business_logo ? (
+                    <Image source={{ uri: job.business_logo }} style={styles.artistAvatarImage} resizeMode="cover" />
+                  ) : job.cover_image ? (
+                    <Image source={{ uri: job.cover_image }} style={styles.artistAvatarImage} resizeMode="cover" />
+                  ) : (
+                    <Ionicons name="briefcase" size={20} color="#000000" />
+                  )}
+                  {savedJobIds.has(job.job_id) && (
+                    <View style={styles.savedBadge}>
+                      <Ionicons name="bookmark" size={10} color={COLORS.gold} />
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.artistName} numberOfLines={1}>{job.title}</Text>
+                <Text style={styles.artistMeta} numberOfLines={1}>{job.business_name || job.location || ""}</Text>
+              </Pressable>
+            ))
+          )}
+         </ScrollView>
+        </View>
+       )}
+
+{/* Posts Feed */}
+      {homeLayout.sections.find(s => s.id === 'posts')?.enabled !== false && (
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.activitiesSectionTitle}>
+              <View style={[styles.activitiesIconContainer, { backgroundColor: "#000000" }]}>
+                <Ionicons name="newspaper" size={18} color="#ffffff" />
+              </View>
+              <Text style={styles.cardTitle}>{t('home.posts') || 'Posts'}</Text>
+            </View>
+          </View>
+          {sortedPosts.length === 0 ? (
+            <View style={styles.storyEmpty}>
+              <Text style={styles.storyEmptyText}>{t('home.noPosts') || 'No posts yet'}</Text>
+            </View>
+          ) : (
+            sortedPosts.map((post) => {
+              const displayName = post.actor_name || post.author?.name || "User";
+              const displayAvatar = post.actor_avatar || post.author?.profile_photo || post.author?.picture;
+
+              return (
+                <Pressable
+                  key={post.post_id}
+                  style={styles.postCard}
+                  onPress={() => router.push(`/post/${post.post_id}`)}
+                >
+                  <View style={styles.postHeader}>
+                    <Pressable onPress={() => {
+                      if (post.actor_type === 'business' && post.actor_id) {
+                        router.push(`/business/${post.actor_id}`);
+                      } else if (post.actor_type === 'artist' && post.actor_id) {
+                        router.push(`/user/${post.actor_id}`);
+                      } else {
+                        router.push(`/user/${post.user_id}`);
+                      }
+                    }}>
+                      {displayAvatar ? (
+                        <Image source={{ uri: displayAvatar }} style={styles.postAvatar} />
+                      ) : (
+                        <View style={styles.postAvatarFallback}>
+                          <Text style={styles.postAvatarText}>{displayName.charAt(0).toUpperCase()}</Text>
+                        </View>
+                      )}
+                    </Pressable>
+                    <View style={styles.postAuthorInfo}>
+                      <Text style={styles.postAuthorName}>{displayName}</Text>
+                      <Text style={styles.postTimeText}>{new Date(post.created_at).toLocaleDateString()}</Text>
+                    </View>
+                  </View>
+                  {post.text && <Text style={styles.postTextContent} numberOfLines={3}>{post.text}</Text>}
+                  {post.image_url && (
+                    <Image source={{ uri: post.image_url }} style={styles.postImagePreview} />
+                  )}
+                  {savedPostIds.has(post.post_id) && (
+                    <View style={styles.savedBadge}>
+                      <Ionicons name="bookmark" size={10} color={COLORS.gold} />
+                    </View>
+                  )}
+                  <View style={styles.postStats}>
+                    <Pressable 
+                      style={styles.postStatItem}
+                      onPress={() => {
+                        if (!sessionToken) {
+                          Alert.alert(t("common.loginRequired") || "Login Required", t("common.loginToLike") || "Please log in to like posts", [
+                            { text: t("common.cancel") || "Cancel", style: "cancel" },
+                            { text: t("auth.login") || "Login", onPress: () => router.push("/login") },
+                          ]);
+                          return;
+                        }
+                        togglePostLike(sessionToken, post.post_id).then(result => {
+                          setPosts(prev => prev.map(p => p.post_id === post.post_id ? {...p, likes_count: result.likes_count, liked_by_me: result.liked_by_me} : p));
+                        }).catch((e) => console.warn("togglePostLike failed:", e));
+                      }}
+                    >
+                      <Ionicons name={post.liked_by_me ? "heart" : "heart-outline"} size={18} color={post.liked_by_me ? COLORS.error : COLORS.textMuted} />
+                      <Text style={[styles.postStatText, post.liked_by_me && { color: COLORS.error }]}>{post.likes_count || 0}</Text>
+                    </Pressable>
+                    <Pressable style={styles.postStatItem} onPress={() => router.push(`/post/${post.post_id}`)}>
+                      <Ionicons name="chatbubble-outline" size={18} color={COLORS.textMuted} />
+                      <Text style={styles.postStatText}>{post.comments_count || 0}</Text>
+                    </Pressable>
+                    <Pressable style={styles.postStatItem} onPress={async () => {
+                      const message = `Check out ${displayName}'s post on Perix!`;
+                      const url = `${BACKEND_URL?.replace('/api', '')}/share/post/${post.post_id}`;
+                      await Share.share({ message: `${message}\n\n${url}` });
+                    }}>
+                      <Ionicons name="share-outline" size={18} color={COLORS.textMuted} />
+                    </Pressable>
+                    <Pressable style={styles.postStatItem} onPress={async () => {
+                      if (!sessionToken) {
+                        Alert.alert(t("common.loginRequired") || "Login Required", t("common.loginToSave") || "Please log in to save items", [
+                          { text: t("common.cancel") || "Cancel", style: "cancel" },
+                          { text: t("auth.login") || "Login", onPress: () => router.push("/login") },
+                        ]);
+                        return;
+                      }
+                      try {
+                        const { is_saved } = await toggleSaved(sessionToken, "post", post.post_id);
+                        setSavedPostIds(prev => {
+                          const next = new Set(prev);
+                          is_saved ? next.add(post.post_id) : next.delete(post.post_id);
+                          return next;
+                        });
+                      } catch (e) { console.warn("toggleSaved failed:", e); }
+                    }}>
+                      <Ionicons name={savedPostIds.has(post.post_id) ? "bookmark" : "bookmark-outline"} size={18} color={savedPostIds.has(post.post_id) ? COLORS.gold : COLORS.textMuted} />
+                    </Pressable>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+{loadingMorePosts && (
+  <View style={{ paddingVertical: 20, alignItems: "center", justifyContent: "center" }}>
+    <ActivityIndicator size="small" color={COLORS.primary} />
+    <Text style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 8 }}>Loading more...</Text>
+  </View>
+)}
+        </View>
+      )}
+
+{/* No Location Message */}
+      {showNoLocationMessage && (
+        <View style={[styles.emptyState, { marginHorizontal: 16, marginVertical: 20 }]}>
+          <Text style={styles.emptyText}>
+            {t('home.noLocationSet') || "Please set your location in your profile to see nearby content"}
+          </Text>
+        </View>
+      )}
+
+      <View style={{ height: 100 }} />
+      </ScrollView>
+
+<Modal visible={calendarOpen} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.calendarModalHeader}>
+            <View style={styles.calendarHeaderContent}>
+              <View style={styles.calendarHeaderIcon}>
+                <Ionicons name="calendar" size={24} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.calendarModalTitle}>{t('home.eventsCalendar')}</Text>
+                <Text style={styles.calendarModalSubtitle}>
+                  {calendarDate ? calendarDate : t('home.upcomingEvents')}
+                </Text>
+              </View>
+            </View>
+            <Pressable style={styles.calendarCloseButton} onPress={() => setCalendarOpen(false)}>
+              <Ionicons name="close-circle" size={32} color="#9ca3af" />
+            </Pressable>
+          </View>
+          
+          <View style={{ flex: 1, backgroundColor: "#fafafa" }}>
+            <CalendarList
+              onDayPress={(day) => setCalendarDate(day.dateString)}
+              markedDates={{
+                ...markedDates,
+                ...(calendarDate
+                  ? { [calendarDate]: { selected: true, selectedColor: "#000000", selectedTextColor: "#fff" } }
+                  : {}),
+              }}
+              pastScrollRange={3}
+              futureScrollRange={6}
+              style={styles.calendarList}
+              theme={{
+                backgroundColor: "#ffffff",
+                calendarBackground: "#ffffff",
+                textSectionTitleColor: "#6b7280",
+                selectedDayBackgroundColor: "#000000",
+                selectedDayTextColor: "#ffffff",
+                todayTextColor: "#000000",
+                dayTextColor: "#374151",
+                textDisabledColor: "#d1d5db",
+                dotColor: "#000000",
+                selectedDotColor: "#ffffff",
+                arrowColor: "#000000",
+                monthTextColor: "#111827",
+                textDayFontWeight: "500",
+                textMonthFontWeight: "700",
+                textDayFontSize: 14,
+              }}
+            />
+          </View>
+          
+          {/* Theme Filter */}
+          <View style={styles.themeFilterContainer}>
+            <Pressable 
+              style={styles.themeFilterButton}
+              onPress={() => setShowThemeFilter(true)}
+              data-testid="calendar-theme-filter"
+            >
+              <Ionicons name="musical-notes" size={18} color="#000000" />
+              <Text style={styles.themeFilterText}>
+                {selectedTheme ? getThemeLabel(selectedTheme) : t('events.allThemes')}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color="#6b7280" />
+            </Pressable>
+          </View>
+          
+          <View style={styles.calendarEventsSection}>
+            <Text style={styles.calendarEventsTitle}>
+              {calendarDate ? t('home.eventsOn', { date: calendarDate }) : t('home.upcomingEvents')}
+            </Text>
+            <ScrollView style={{ maxHeight: 180 }}>
+              {eventsForDate.length === 0 ? (
+                <View style={styles.emptyEventState}>
+                  <Ionicons name="calendar-outline" size={40} color="#d1d5db" />
+                  <Text style={styles.emptyText}>{t('common.noEventsDate')}</Text>
+                </View>
+              ) : (
+                eventsForDate.map((event) => (
+                  <Pressable
+                    key={event.event_id}
+                    style={styles.calendarEventCard}
+                    onPress={() => {
+                      setCalendarOpen(false);
+                      router.push(`/event/${event.event_id}`);
+                    }}
+                  >
+                    <View style={styles.eventThumbContainer}>
+                      {(event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0]) ? (
+                        <AdaptiveImage uri={event.cover_image_url ?? event.image_urls?.[0] ?? event.gallery_images?.[0] ?? ""} style={styles.eventThumbCard} fallbackColor="#000000" />
+                      ) : (
+                        <View style={[styles.eventThumbCard, styles.eventThumbPlaceholder]}>
+                          <Ionicons name="musical-note" size={18} color="#000000" />
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.eventInfo}>
+                      <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                      <View style={styles.eventMetaRow}>
+                        <Ionicons name="business" size={12} color="#6b7280" />
+                        <Text style={styles.eventMeta}>
+                          {event.business?.name || event.artist?.name || "Event"}
+                        </Text>
+                      </View>
+                      <View style={styles.eventMetaRow}>
+                        <Ionicons name="calendar-outline" size={12} color="#000000" />
+                        <Text style={[styles.eventMeta, { color: "#000000" }]}>
+                          {event.start_time.split("T")[0]}
+                        </Text>
+                        {event.theme && (
+                          <View style={styles.eventThemeBadge}>
+                            <Text style={styles.eventThemeText}>
+                              {getThemeLabel(event.theme)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Theme Filter Modal */}
+      <Modal visible={showThemeFilter} animationType="slide" transparent>
+        <View style={styles.themeModalOverlay}>
+          <View style={styles.themeModalContainer}>
+            <View style={styles.themeModalHeader}>
+              <Text style={styles.themeModalTitle}>{t('events.filterByTheme')}</Text>
+              <Pressable onPress={() => setShowThemeFilter(false)}>
+                <Ionicons name="close" size={24} color="#111827" />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.themeModalList}>
+              <Pressable
+                style={styles.themeModalItem}
+                onPress={() => {
+                  setSelectedTheme("");
+                  setShowThemeFilter(false);
+                }}
+              >
+                <Text style={styles.themeModalItemText}>{t('events.allThemes')}</Text>
+                {!selectedTheme && <Ionicons name="checkmark" size={20} color="#000000" />}
+              </Pressable>
+              {eventThemes.map((theme) => (
+                <Pressable
+                  key={theme.slug}
+                  style={styles.themeModalItem}
+                  onPress={() => {
+                    setSelectedTheme(theme.slug);
+                    setShowThemeFilter(false);
+                  }}
+                >
+                  <Text style={styles.themeModalItemText}>{getThemeLabel(theme.slug)}</Text>
+                  {selectedTheme === theme.slug && <Ionicons name="checkmark" size={20} color="#000000" />}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+{/* Activities Calendar Modal */}
+      <Modal visible={activitiesCalendarOpen} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.activitiesCalendarModalHeader}>
+            <View style={styles.calendarHeaderContent}>
+              <View style={styles.activitiesCalendarHeaderIcon}>
+                <Ionicons name="people" size={24} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.calendarModalTitle}>{t('home.activitiesCalendar')}</Text>
+                <Text style={styles.activitiesCalendarModalSubtitle}>
+                  {activitiesCalendarDate ? activitiesCalendarDate : t('home.upcomingActivities')}
+                </Text>
+              </View>
+            </View>
+            <Pressable style={styles.calendarCloseButton} onPress={() => setActivitiesCalendarOpen(false)}>
+              <Ionicons name="close-circle" size={32} color="#c4b5fd" />
+            </Pressable>
+          </View>
+          
+          <View style={{ flex: 1, backgroundColor: "#fafafa" }}>
+            <CalendarList
+              onDayPress={(day) => setActivitiesCalendarDate(day.dateString)}
+              markedDates={{
+                ...activitiesMarkedDates,
+                ...(activitiesCalendarDate
+                  ? { [activitiesCalendarDate]: { selected: true, selectedColor: "#000000", selectedTextColor: "#fff" } }
+                  : {}),
+              }}
+              pastScrollRange={3}
+              futureScrollRange={6}
+              style={styles.calendarList}
+              theme={{
+                backgroundColor: "#ffffff",
+                calendarBackground: "#ffffff",
+                textSectionTitleColor: "#6b7280",
+                selectedDayBackgroundColor: "#000000",
+                selectedDayTextColor: "#ffffff",
+                todayTextColor: "#000000",
+                dayTextColor: "#374151",
+                textDisabledColor: "#d1d5db",
+                dotColor: "#000000",
+                selectedDotColor: "#ffffff",
+                arrowColor: "#000000",
+                monthTextColor: "#111827",
+                textDayFontWeight: "500",
+                textMonthFontWeight: "700",
+                textDayFontSize: 14,
+              }}
+            />
+          </View>
+          
+          <View style={[styles.calendarEventsSection, { backgroundColor: "#f5f3ff" }]}>
+            <Text style={[styles.calendarEventsTitle, { color: "#000000" }]}>
+              {activitiesCalendarDate ? t('home.activitiesOn', { date: activitiesCalendarDate }) : t('home.upcomingActivities')}
+            </Text>
+            <ScrollView style={{ maxHeight: 180 }}>
+              {activitiesForDate.length === 0 ? (
+                <View style={styles.emptyEventState}>
+                  <Ionicons name="people-outline" size={40} color="#c4b5fd" />
+                  <Text style={styles.emptyText}>{t('common.noActivitiesDate')}</Text>
+                </View>
+              ) : (
+                activitiesForDate.map((activity) => (
+                  <Pressable
+                    key={activity.activity_id}
+                    style={[styles.calendarEventCard, { borderColor: "#e9d5ff" }]}
+                    onPress={() => {
+                      setActivitiesCalendarOpen(false);
+                      router.push(`/activity/${activity.activity_id}`);
+                    }}
+                  >
+                    <View style={styles.eventThumbContainer}>
+                      {(activity.cover_image_url || activity.image_urls?.[0] || activity.gallery_images?.[0]) ? (
+                        <AdaptiveImage uri={activity.cover_image_url ?? activity.image_urls?.[0] ?? activity.gallery_images?.[0] ?? ""} style={styles.eventThumbCard} fallbackColor="#000000" />
+                      ) : (
+                        <View style={[styles.eventThumbCard, { backgroundColor: "#f3e8ff" }]}>
+                          <Ionicons name="people" size={20} color="#000000" />
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.eventInfo}>
+                      <Text style={styles.eventTitle} numberOfLines={1}>{activity.title}</Text>
+                      <View style={styles.eventMetaRow}>
+                        <Ionicons name="time-outline" size={12} color="#6b7280" />
+                        <Text style={styles.eventMeta}>{activity.date}</Text>
+                      </View>
+                      {activity.is_private && (
+                        <View style={styles.eventThemeBadge}>
+                          <Ionicons name="lock-closed" size={10} color="#d97706" />
+                          <Text style={[styles.eventThemeText, { color: "#d97706" }]}>
+                            {t('activities.private')}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#c4b5fd" />
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal visible={commentModal} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('common.comments')}</Text>
+            <Pressable onPress={() => setCommentModal(false)}>
+              <Ionicons name="close" size={22} color="#111827" />
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalBody}>
+            <Text style={styles.commentHint}>
+              {t('home.postingAs', { name: activeIdentity?.name || user?.name || "User" })}
+            </Text>
+            {commentLoading ? (
+              <ActivityIndicator color="#000000" />
+            ) : (
+              comments.map((comment) => (
+                <View key={comment.comment_id} style={styles.commentRow}>
+                  <Pressable 
+                    style={styles.commentAvatar}
+                    onPress={() => {
+                      if (comment.user_id) {
+                        setCommentModal(false);
+                        router.push(`/user/${comment.user_id}`);
+                      }
+                    }}
+                  >
+{comment.actor_avatar || comment.author?.profile_photo || comment.author?.picture ? (
+                      <Image
+                        source={{
+                          uri: (comment.actor_avatar || comment.author?.profile_photo || comment.author?.picture) as string,
+                        }}
+                        style={styles.commentAvatarImage}
+                      />
+                    ) : (
+                      <Text style={styles.commentAvatarText}>
+                        {(comment.actor_name || comment.author?.name || "U")
+                          .charAt(0)
+                          .toUpperCase()}
+                      </Text>
+                    )}
+                  </Pressable>
+                  <View style={styles.commentBody}>
+                    <Pressable
+                      onPress={() => {
+                        if (comment.user_id) {
+                          setCommentModal(false);
+                          router.push(`/user/${comment.user_id}`);
+                        }
+                      }}
+                    >
+                      <Text style={[styles.commentAuthor, { color: '#000000' }]}>
+                        {comment.actor_name || comment.author?.name}
+                      </Text>
+                    </Pressable>
+                    <Text style={styles.commentText}>{comment.text}</Text>
+                    {comment.user_id === user?.user_id ? (
+                      <View style={styles.commentActions}>
+                        <Pressable
+                          onPress={() => handleEditComment(comment)}
+                          style={styles.commentActionButton}
+                        >
+                          <Text style={styles.commentActionText}>{t('common.edit')}</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleDeleteComment(comment)}
+                          style={styles.commentActionButton}
+                        >
+                          <Text style={styles.commentActionText}>{t('common.delete')}</Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+              ))
+            )}
+          </ScrollView>
+          <View style={styles.commentInputRow}>
+            <TextInput
+              placeholder={t('home.addComment')}
+              value={commentText}
+              onChangeText={setCommentText}
+              style={styles.commentInput}
+            />
+            <Pressable style={styles.commentButton} onPress={handleAddComment}>
+              <Ionicons name="send" size={18} color="#fff" />
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal visible={editModal} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('home.editPost')}</Text>
+            <Pressable onPress={() => setEditModal(false)}>
+              <Ionicons name="close" size={22} color="#111827" />
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalBody}>
+            <TextInput
+              value={editText}
+              onChangeText={setEditText}
+              style={[styles.modalInput, styles.modalTextarea]}
+              multiline
+            />
+            {editImage ? (
+              <AdaptiveImage
+                uri={editImage}
+                style={styles.postImagePreview}
+                ratio={editMediaRatio || undefined}
+              />
+            ) : null}
+            {editVideoPreview ? (
+              <AdaptiveVideo
+                uri={editVideoPreview}
+                style={styles.videoPreview}
+                ratio={editMediaRatio || undefined}
+              />
+            ) : null}
+            <View style={styles.postActions}>
+              <Pressable style={styles.iconButton} onPress={pickEditImage}>
+                <Ionicons name="image-outline" size={18} color="#000000" />
+                <Text style={styles.iconButtonText}>{t('common.photo')}</Text>
+              </Pressable>
+              <Pressable style={styles.iconButton} onPress={pickEditVideo}>
+                <Ionicons name="videocam-outline" size={18} color="#000000" />
+                <Text style={styles.iconButtonText}>{t('common.video')}</Text>
+              </Pressable>
+            </View>
+            <Pressable style={styles.primaryButton} onPress={handleUpdatePost}>
+              <Text style={styles.primaryButtonText}>{t('home.saveChanges')}</Text>
+            </Pressable>
+            {editPost ? (
+              <Pressable
+                style={[styles.secondaryButton, styles.deleteButton]}
+                onPress={() => handleDeletePost(editPost)}
+              >
+                <Text style={styles.deleteButtonText}>{t('home.deletePost')}</Text>
+              </Pressable>
+            ) : null}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal visible={showBusinessTagModal} transparent animationType="fade">
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.tagBusinessModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('home.selectBusiness')}</Text>
+              <Pressable onPress={() => setShowBusinessTagModal(false)}>
+                <Ionicons name="close" size={24} color="#111827" />
+              </Pressable>
+            </View>
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('home.searchBusiness')}
+              value={businessSearchQuery}
+              onChangeText={setBusinessSearchQuery}
+            />
+            <ScrollView style={styles.businessList} keyboardShouldPersistTaps="handled">
+              {businesses
+                .filter((b) => b.name.toLowerCase().includes(businessSearchQuery.toLowerCase()))
+                .map((business) => (
+                  <Pressable
+                    key={business.business_id}
+                    style={styles.businessListItem}
+                    onPress={() => {
+                      setTaggedBusinessId(business.business_id);
+                      setTaggedBusiness(business);
+                      setShowBusinessTagModal(false);
+                      setBusinessSearchQuery("");
+                    }}
+                  >
+                    <View style={styles.businessItemAvatar}>
+                      {business.logo_image ? (
+                        <Image source={{ uri: business.logo_image }} style={styles.businessItemImage} />
+                      ) : (
+                        <Text style={styles.businessItemInitial}>
+                          {business.name.charAt(0).toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.businessItemInfo}>
+                      <Text style={styles.businessItemName}>{business.name}</Text>
+                      <Text style={styles.businessItemCategory}>{business.address}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+            </ScrollView>
+</View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <UploadProgressModal visible={showUploadProgress} progress={uploadProgress} />
+
+      <ShareContent
+        visible={shareModalVisible}
+        onClose={() => setShareModalVisible(false)}
+        contentType="post"
+        contentId={shareContentId}
+        title={shareContentTitle}
+        description=""
+      />
+
+      <Modal visible={storyViewerOpen} animationType="fade" onRequestClose={() => setStoryViewerOpen(false)}>
+        {storyViewerOpen && storyGroups.length > 0 && (
+          <StoryViewer
+            groups={storyGroups}
+            initialGroupIndex={storyViewerIndex}
+            onClose={() => setStoryViewerOpen(false)}
+            onDelete={(storyId: string) => {
+              setStoryGroups(prev =>
+                prev.map(g => ({
+                  ...g,
+                  stories: g.stories.filter(s => s.story_id !== storyId),
+                })).filter(g => g.stories.length > 0)
+              );
+              if (storyGroups.filter(g => g.stories.length > 0).length === 0) {
+                setStoryViewerOpen(false);
+              }
+            }}
+          />
+        )}
+      </Modal>
+
+      <Modal visible={showLayoutSettings} animationType="slide" transparent>
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.layoutModalContent}>
+            <View style={styles.layoutModalHeader}>
+              <Text style={styles.layoutModalTitle}>{t('home.layoutSettings')}</Text>
+              <Pressable onPress={() => setShowLayoutSettings(false)}>
+                <Ionicons name="close-circle" size={32} color="#9ca3af" />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.layoutModalScroll}>
+              <Text style={styles.layoutSectionLabel}>{t('home.sortContent')}</Text>
+              {['posts', 'events', 'activities', 'businesses'].map((type) => (
+                <View key={type} style={styles.layoutSettingRow}>
+                  <Text style={styles.layoutSettingLabel}>{t(`home.${type}`)}</Text>
+                  <View style={styles.layoutSortButtons}>
+                    {['engagement', 'distance', 'chronological', 'random'].map((sort) => (
+                      <Pressable
+                        key={sort}
+                        style={[
+                          styles.layoutSortButton,
+                          homeLayout.sorting[type as keyof typeof homeLayout.sorting] === sort && styles.layoutSortButtonActive,
+                        ]}
+                        onPress={() => setHomeLayout(prev => ({
+                          ...prev,
+                          sorting: { ...prev.sorting, [type]: sort }
+                        }))}
+                      >
+                        <Text style={[
+                          styles.layoutSortButtonText,
+                          homeLayout.sorting[type as keyof typeof homeLayout.sorting] === sort && styles.layoutSortButtonTextActive,
+                        ]}>
+                          {t(`home.sort${sort.charAt(0).toUpperCase() + sort.slice(1)}`)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ))}
+              <Text style={styles.layoutSectionLabel}>{t('home.showSections')}</Text>
+              {homeLayout.sections.filter(s => s.id !== 'map').map((section) => (
+                <View key={section.id} style={styles.layoutSettingRow}>
+                  <Text style={styles.layoutSettingLabel}>{t(`home.${section.id}`) || section.title}</Text>
+                  <Pressable
+                    style={[styles.layoutToggleButton, section.enabled !== false && styles.layoutToggleButtonActive]}
+                    onPress={() => setHomeLayout(prev => ({
+                      ...prev,
+                      sections: prev.sections.map(s => s.id === section.id ? { ...s, enabled: s.enabled === false ? true : false } : s)
+                    }))}
+                  >
+                    <Text style={[styles.layoutToggleButtonText, section.enabled !== false && styles.layoutToggleButtonTextActive]}>
+                      {section.enabled !== false ? t('common.show') : t('common.hide')}
+                    </Text>
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Map prompt styles for when map is not initialized
+  mapPromptContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    alignItems: "center",
+  },
+  mapPromptCard: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 32,
+    alignItems: "center",
+    width: "100%",
+    shadowColor: "#000000",
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  mapPromptIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "#eef2ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  mapPromptTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  mapPromptText: {
+    fontSize: 15,
+    color: "#6b7280",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  mapPromptButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#000000",
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 24,
+    gap: 10,
+    shadowColor: "#000000",
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  mapPromptButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  mapPromptButtonSecondary: {
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#000000",
+    marginTop: 10,
+  },
+  mapPromptButtonTextSecondary: {
+    color: "#000000",
+  },
+  header: {
+    padding: 20,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  headerSubtitle: {
+    marginTop: 6,
+    color: "#6b7280",
+  },
+  card: {
+    backgroundColor: "#fff",
+    marginHorizontal: 0,
+    marginBottom: 10,
+    padding: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 8,
+  },
+sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  sectionHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  createButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#111827",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  seeAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  seeAllButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  addButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  link: {
+    color: "#000000",
+    fontWeight: "600",
+  },
+  eventRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  calendarEventsSection: {
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  calendarEventsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 12,
+  },
+  calendarEventRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    backgroundColor: "#f9fafb",
+    padding: 12,
+    borderRadius: 12,
+  },
+  eventThumb: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  eventDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#000000",
+    marginRight: 10,
+  },
+  eventTitle: {
+    fontWeight: "600",
+    color: "#111827",
+  },
+  eventMeta: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  // Vertical events/activities list styles
+  eventsList: {
+    gap: 8,
+  },
+  eventListItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderRadius: 12,
+    padding: 10,
+    gap: 10,
+  },
+  eventListThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  eventListThumbImage: {
+    width: "100%",
+    height: "100%",
+  },
+  eventListContent: {
+    flex: 1,
+  },
+  eventListTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 2,
+  },
+  eventListMeta: {
+    fontSize: 11,
+    color: "#6b7280",
+  },
+artistCard: {
+    width: 140,
+    padding: 12,
+    backgroundColor: "#f3f5ff",
+    marginRight: 12,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  artistAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  savedBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#111827",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
+  artistAvatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+seeAllLink: {
+    color: "#000000",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  postInput: {
+    minHeight: 90,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    padding: 12,
+    textAlignVertical: "top",
+    fontSize: 14,
+    color: "#111827",
+  },
+  tagDropdown: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    padding: 8,
+    marginTop: 8,
+  },
+  tagItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  tagAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#e0e7ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  tagAvatarImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  tagAvatarText: {
+    color: "#000000",
+    fontWeight: "600",
+  },
+  tagName: {
+    color: "#111827",
+    fontWeight: "600",
+  },
+  postActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    marginTop: 12,
+    gap: 8,
+  },
+  postActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 12,
+    gap: 12,
+  },
+  actionGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 10,
+    padding: 4,
+    gap: 2,
+  },
+  iconButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  iconButtonText: {
+    color: "#000000",
+    fontWeight: "600",
+    marginLeft: 4,
+    fontSize: 13,
+  },
+  primaryButton: {
+    backgroundColor: "#000000",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: "auto",
+  },
+  postButton: {
+    flexDirection: "row",
+    backgroundColor: "#000000",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+    gap: 8,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  postButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  primaryButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  mediaPreviewContainer: {
+    position: "relative",
+    width: "100%",
+    marginBottom: 12,
+  },
+  removeMediaButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 14,
+  },
+taggedBusinessRow: {
+    marginBottom: 8,
+  },
+  taggedUserRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  taggedUserChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: "#e0e7ff",
+    paddingLeft: 4,
+    paddingRight: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+    gap: 4,
+  },
+  taggedUserAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+  },
+  taggedUserAvatarPlaceholder: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#6366f1",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  taggedUserAvatarText: {
+    fontSize: 8,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+  taggedUserLinkText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#374151",
+  },
+  taggedUserMoreText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#6b7280",
+    alignSelf: 'center',
+  },
+  taggedBusinessBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eff6ff",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    alignSelf: "flex-start",
+    gap: 6,
+  },
+  taggedBusinessText: {
+    color: "#000000",
+    fontSize: 13,
+    fontWeight: "500",
+    maxWidth: 150,
+  },
+  taggedBusinessLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eff6ff",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    alignSelf: "flex-start",
+    marginTop: 8,
+    marginBottom: 8,
+    gap: 6,
+  },
+  taggedBusinessLinkText: {
+    color: "#000000",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  identityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eef2ff",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignSelf: "flex-start",
+    marginBottom: 10,
+  },
+  identityBadgeText: {
+    color: "#000000",
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  deleteButton: {
+    borderColor: "#fecaca",
+  },
+  deleteButtonText: {
+    color: "#ef4444",
+    fontWeight: "600",
+  },
+  secondaryButtonText: {
+    color: "#000000",
+    fontWeight: "600",
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  modalTextarea: {
+    minHeight: 90,
+    textAlignVertical: "top",
+  },
+  sectionLabel: {
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  optionText: {
+marginLeft: 8,
+    color: "#111827",
+  },
+  commentRow: {
+    flexDirection: "row",
+    marginBottom: 12,
+  },
+  commentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#e0e7ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  commentAvatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  commentAvatarText: {
+    color: "#000000",
+    fontWeight: "600",
+  },
+  commentBody: {
+    flex: 1,
+  },
+  commentActions: {
+    flexDirection: "row",
+    marginTop: 6,
+  },
+  commentActionButton: {
+    marginRight: 12,
+  },
+  commentActionText: {
+    color: "#000000",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  commentAuthor: {
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  commentText: {
+    color: "#374151",
+  },
+  commentHint: {
+    color: "#6b7280",
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  commentInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    backgroundColor: "#fff",
+  },
+  commentInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 10,
+  },
+  commentButton: {
+    backgroundColor: "#000000",
+    padding: 10,
+    borderRadius: 10,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  feedHeader: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  welcomeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  welcomeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#166534',
+    flex: 1,
+  },
+  welcomeProfileLink: {
+    fontSize: 14,
+    color: '#000000',
+    fontWeight: '500',
+  },
+  emptyState: {
+    marginHorizontal: 16,
+    backgroundColor: "#fff",
+    padding: 24,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "#9ca3af",
+  },
+  postAuthorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 10,
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    backgroundColor: "#e0e7ff",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderRadius: 14,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarText: {
+    fontWeight: "600",
+    color: "#000000",
+  },
+  postAuthor: {
+    fontWeight: "600",
+    fontSize: 16,
+    color: "#111827",
+  },
+  postTime: {
+    fontSize: 13,
+    color: "#9ca3af",
+  },
+  postBody: {
+    fontSize: 16,
+    color: "#374151",
+    marginBottom: 8,
+  },
+  postImage: {
+    width: "100%",
+    borderRadius: 14,
+    marginBottom: 8,
+  },
+  videoPreview: {
+    width: "100%",
+    borderRadius: 14,
+    marginBottom: 8,
+  },
+  videoPost: {
+    width: "100%",
+    borderRadius: 14,
+    marginBottom: 8,
+  },
+  postFooter: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  footerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  footerText: {
+    color: "#6b7280",
+    fontSize: 12,
+},
+  filterRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  filterButton: {
+    flex: 1,
+    flexDirection: "row",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  filterButtonActive: {
+    backgroundColor: "#dcfce7",
+    borderColor: "#000000",
+  },
+  filterButtonInactive: {
+    backgroundColor: "#f9fafb",
+    borderColor: "#e5e7eb",
+  },
+  filterButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  filterButtonTextActive: {
+    color: "#000000",
+  },
+  filterButtonTextInactive: {
+    color: "#9ca3af",
+  },
+  activitiesSectionTitle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  activitiesIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  calendarPillButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3e8ff",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  calendarPillButtonText: {
+    color: "#000000",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  // Theme filter styles
+  themeFilterContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+  },
+  themeFilterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  themeFilterText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#374151",
+  },
+  themeModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  themeModalContainer: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "60%",
+  },
+  themeModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  themeModalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  themeModalList: {
+    padding: 8,
+  },
+  themeModalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  themeModalItemText: {
+    fontSize: 16,
+    color: "#374151",
+  },
+  // Business tagging styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tagBusinessModal: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    width: "90%",
+    maxHeight: "70%",
+    overflow: "hidden",
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  businessList: {
+    maxHeight: 350,
+    paddingHorizontal: 16,
+  },
+  businessListItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    gap: 12,
+  },
+  businessItemAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  businessItemImage: {
+    width: 44,
+    height: 44,
+  },
+  businessItemInitial: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000000",
+  },
+  businessItemInfo: {
+    flex: 1,
+  },
+  businessItemName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+  },
+businessItemCategory: {
+    fontSize: 13,
+    color: "#6b7280",
+  },
+  calendarModalHeader: {
+    backgroundColor: "#000000",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  activitiesCalendarModalHeader: {
+    backgroundColor: "#000000",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  calendarHeaderContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  calendarHeaderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activitiesCalendarHeaderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  calendarModalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  calendarModalSubtitle: {
+    fontSize: 13,
+    color: "#d1fae5",
+    marginTop: 2,
+  },
+  activitiesCalendarModalSubtitle: {
+    fontSize: 13,
+    color: "#ede9fe",
+    marginTop: 2,
+  },
+  calendarCloseButton: {
+    position: "absolute",
+    top: 16,
+    right: 20,
+  },
+  calendarList: {
+    maxHeight: 350,
+    backgroundColor: "#fff",
+  },
+  emptyEventState: {
+    alignItems: "center",
+    paddingVertical: 24,
+    gap: 8,
+  },
+  calendarEventCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 10,
+    shadowColor: "#111827",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  eventThumbContainer: {
+    marginRight: 12,
+  },
+  eventThumbCard: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+  },
+  eventThumbPlaceholder: {
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  eventInfo: {
+    flex: 1,
+  },
+  eventMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  eventThemeBadge: {
+    backgroundColor: "#fef3c7",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 4,
+  },
+  eventThemeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#d97706",
+  },
+  actorTypeBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Locator Map styles
+  mapContainer: {
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    paddingTop: 0,
+    paddingHorizontal: 0,
+    paddingBottom: 12,
+  },
+  mapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginBottom: 10,
+  },
+  mapTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  mapPerixLabel: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#111827',
+    letterSpacing: -0.5,
+  },
+  artistName: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  artistMeta: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  settingsButton: {
+    padding: 8,
+  },
+  layoutModalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  layoutModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  layoutModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  layoutModalScroll: {
+    padding: 16,
+  },
+  layoutSectionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  layoutSettingRow: {
+    marginBottom: 16,
+  },
+  layoutSettingLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  layoutSortButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  layoutSortButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
+  },
+  layoutSortButtonActive: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  layoutSortButtonText: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  layoutSortButtonTextActive: {
+    color: '#ffffff',
+  },
+  layoutToggleButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
+  },
+  layoutToggleButtonActive: {
+    backgroundColor: '#10b981',
+    borderColor: '#10b981',
+  },
+  layoutToggleButtonText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  layoutToggleButtonTextActive: {
+    color: '#ffffff',
+  },
+  mapSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  mapWrapper: {
+    paddingHorizontal: 0,
+  },
+  storyEmpty: {
+    width: 120,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  storyEmptyText: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  postCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  postAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  postAvatarFallback: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#e0e7ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  postAvatarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  postAuthorInfo: {
+    marginLeft: 10,
+  },
+  postAuthorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  postTimeText: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  postTextContent: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  postImagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  postStats: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  postStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  postStatText: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  filterChipRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  filterChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: COLORS.textMuted,
+  },
+  filterChipTextActive: {
+    color: COLORS.background,
+    fontWeight: "600",
+  },
+  stickyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
+    zIndex: 10,
+  },
+  stickyHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+  },
+  stickyHeaderBrand: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
+  },
+  stickyHeaderSub: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
+  stickyHeaderRight: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  stickyHeaderIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.backgroundPage,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storyCirclesContainer: {
+    paddingVertical: 12,
+    paddingLeft: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  storyCircleItem: {
+    alignItems: "center",
+    marginRight: 14,
+    width: 68,
+  },
+  storyCircleRing: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    borderWidth: 2.5,
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storyCircleRingOwn: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storyCircleAvatarWrap: {
+    position: "relative",
+  },
+  storyCircleAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  storyCircleAvatarFallback: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storyCircleAvatarText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: FONT_WEIGHTS.bold as any,
+  },
+  storyCirclePlus: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#3b82f6",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  storyCircleName: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+    textAlign: "center",
+  },
+});
+

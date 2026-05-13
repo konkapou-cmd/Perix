@@ -3,7 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,34 +14,52 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../../context/AuthContext";
 import { useNotifications } from "../../../context/NotificationContext";
+import { useSocket, useSocketEvent } from "../../../context/SocketContext";
 import {
   Conversation,
   ExtendedConversation,
   getConversations,
   getAllConversations,
   sendMessage,
-  deleteConversation,
   getMyFriends,
   User,
+  getMyFriendRequests,
+  acceptFriendRequest,
+  declineFriendRequest,
+  FriendRequest,
+  Message,
+  markGroupRead,
 } from "../../../lib/api";
 import NotificationBar from "../../../components/NotificationBar";
+import { SkeletonBox, Avatar } from "../../../components/shared";
+import {
+  COLORS,
+  SPACING,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  BORDER_RADIUS,
+  SHADOWS,
+  ICON_SIZES,
+} from "../../../lib/designTokens";
 
 export default function MessagesScreen() {
   const { t } = useTranslation();
   const { sessionToken } = useAuth();
   const { showLocalNotification } = useNotifications();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allConversations, setAllConversations] = useState<ExtendedConversation[]>([]);
-  const [showGroupChats, setShowGroupChats] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState<User[]>([]);
   const [friendSearchQuery, setFriendSearchQuery] = useState("");
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
@@ -49,26 +69,44 @@ export default function MessagesScreen() {
   const [errorMessage, setErrorMessage] = useState("");
   const lastUnreadMapRef = useRef<Record<string, number>>({});
 
-  const confirmDeleteConversation = (otherUserId: string, otherUserName: string) => {
-    Alert.alert(
-      t("messages.deleteConversation"),
-      t("messages.deleteConfirm", { name: otherUserName }),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t("common.delete"), style: "destructive", onPress: () => handleDeleteConversation(otherUserId) },
-      ]
-    );
-  };
+  const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
+  const [friendRequestsExpanded, setFriendRequestsExpanded] = useState(true);
+  const [requestActionLoading, setRequestActionLoading] = useState<string | null>(null);
 
-  const handleDeleteConversation = async (otherUserId: string) => {
-    if (!sessionToken) return;
-    try {
-      await deleteConversation(sessionToken, otherUserId);
-      setConversations(prev => prev.filter(c => c.other_user.user_id !== otherUserId));
-    } catch (error) {
-      console.error("Failed to delete conversation:", error);
+  const formatChatTime = (dateStr: string | undefined | null): string => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) {
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } else if (diffDays === 1) {
+      return t("messages.yesterday", "Yesterday");
+    } else if (diffDays < 7) {
+      return date.toLocaleDateString([], { weekday: "short" });
+    } else {
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
     }
   };
+
+  const filteredConversations = conversations.filter((conv) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    const name = conv.other_user?.name?.toLowerCase() || "";
+    const msg = typeof conv.last_message === "string"
+      ? conv.last_message.toLowerCase()
+      : (conv.last_message as Message)?.text?.toLowerCase() || "";
+    return name.includes(q) || msg.includes(q);
+  });
+
+  const filteredGroupConversations = allConversations.filter(c => {
+    if (c.type === "direct") return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return c.name?.toLowerCase().includes(q) || c.last_message?.toLowerCase().includes(q);
+  });
 
   const loadConversations = useCallback(async () => {
     if (!sessionToken) return;
@@ -77,6 +115,7 @@ export default function MessagesScreen() {
     // Check for new unread messages and trigger notifications
     const newUnreadMap: Record<string, number> = {};
     data.forEach((conv: Conversation) => {
+      if (!conv.other_user) return;
       newUnreadMap[conv.other_user.user_id] = conv.unread_count || 0;
       
       // If unread count increased, show notification
@@ -116,24 +155,74 @@ export default function MessagesScreen() {
     }
   }, [sessionToken]);
 
+  const loadFriendRequests = useCallback(async () => {
+    if (!sessionToken) return;
+    try {
+      const data = await getMyFriendRequests(sessionToken);
+      setIncomingRequests(data.incoming || []);
+      setOutgoingRequests(data.outgoing || []);
+    } catch (error) {
+      console.error("Failed to load friend requests:", error);
+    }
+  }, [sessionToken]);
+
+  const handleAcceptRequest = async (requestId: string) => {
+    if (!sessionToken) return;
+    setRequestActionLoading(requestId);
+    try {
+      await acceptFriendRequest(sessionToken, requestId);
+      await loadFriendRequests();
+    } catch (error) {
+      console.error("Failed to accept request:", error);
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
+
+  const handleDeclineRequest = async (requestId: string) => {
+    if (!sessionToken) return;
+    setRequestActionLoading(requestId);
+    try {
+      await declineFriendRequest(sessionToken, requestId);
+      await loadFriendRequests();
+    } catch (error) {
+      console.error("Failed to decline request:", error);
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
+
   useEffect(() => {
     if (!sessionToken) return;
     setLoading(true);
-    Promise.all([loadConversations(), loadFriends()]).finally(() => setLoading(false));
-  }, [loadConversations, loadFriends, sessionToken]);
+    Promise.all([loadConversations(), loadFriends(), loadFriendRequests()]).finally(() => setLoading(false));
+  }, [loadConversations, loadFriends, loadFriendRequests, sessionToken]);
 
-  // Poll for new messages every 10 seconds when on the messages list
+  // Use WebSocket for real-time conversation updates, fallback to polling
+  const { connected: wsConnected } = useSocket();
+
+  useSocketEvent("conversation_update", useCallback(() => {
+    loadConversations();
+  }, [loadConversations]));
+
+  useSocketEvent("new_message", useCallback(() => {
+    loadConversations();
+  }, [loadConversations]));
+
   useEffect(() => {
     if (!sessionToken) return;
-    const interval = setInterval(() => {
-      loadConversations();
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [sessionToken, loadConversations]);
+    if (!wsConnected) {
+      const interval = setInterval(() => {
+        loadConversations();
+        loadFriendRequests();
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [sessionToken, wsConnected, loadConversations, loadFriendRequests]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadConversations(), loadFriends()]);
+    await Promise.all([loadConversations(), loadFriends(), loadFriendRequests()]);
     setRefreshing(false);
   };
 
@@ -161,14 +250,29 @@ export default function MessagesScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer} edges={['top']}>
-        <ActivityIndicator size="large" color="#4c6fff" />
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <View
+            key={i}
+            style={styles.skeletonRow}
+          >
+            <SkeletonBox width={42} height={42} borderRadius={21} />
+            <View style={{ flex: 1, gap: SPACING.sm }}>
+              <SkeletonBox width={140} height={12} borderRadius={4} />
+              <SkeletonBox width={100} height={12} borderRadius={4} />
+            </View>
+          </View>
+        ))}
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
@@ -178,226 +282,209 @@ export default function MessagesScreen() {
             </View>
             <View style={styles.headerButtons}>
               <Pressable 
-                style={styles.groupCallButton}
+                style={styles.headerIconButton}
                 onPress={() => router.push("/start-group-call")}
-                data-testid="start-group-call-btn"
               >
                 <Ionicons name="people" size={16} color="#fff" />
-                <Text style={styles.groupCallButtonText}>Group</Text>
               </Pressable>
               <Pressable 
-                style={styles.callHistoryButton}
+                style={styles.headerIconButtonOutline}
                 onPress={() => router.push("/call-history")}
               >
-                <Ionicons name="call" size={20} color="#4c6fff" />
+                <Ionicons name="call" size={18} color={COLORS.textPrimary} />
               </Pressable>
             </View>
           </View>
         </View>
 
-        {/* Activity Notifications Bar */}
         <NotificationBar />
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t("messages.newMessage")}</Text>
-          
-          {/* Friend Selector */}
-          <Pressable 
-            style={styles.friendSelector}
-            onPress={() => setShowFriendPicker(true)}
-          >
-            {selectedFriend ? (
-              <View style={styles.selectedFriendRow}>
-                <View style={styles.friendAvatarSmall}>
-                  {selectedFriend.profile_photo || selectedFriend.picture ? (
-                    <Image 
-                      source={{ uri: selectedFriend.profile_photo || selectedFriend.picture || undefined }} 
-                      style={styles.friendAvatarImage}
-                    />
-                  ) : (
-                    <Text style={styles.friendAvatarText}>
-                      {selectedFriend.name.charAt(0).toUpperCase()}
-                    </Text>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={16} color={COLORS.textMuted} />
+            <TextInput
+              placeholder={t("messages.searchConversations", "Search conversations")}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchInput}
+              placeholderTextColor={COLORS.textDisabled}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery("")}>
+                <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+              </Pressable>
+            )}
+          </View>
+        </View>
+
+        {/* Friend Requests Section */}
+        {incomingRequests.length > 0 && (
+          <View style={styles.card}>
+            <Pressable
+              style={styles.sectionHeaderRow}
+              onPress={() => setFriendRequestsExpanded(!friendRequestsExpanded)}
+            >
+              <Text style={styles.cardTitle}>{t("messages.friendRequests", "Friend Requests")}</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{incomingRequests.length}</Text>
+              </View>
+              <Ionicons
+                name={friendRequestsExpanded ? "chevron-up" : "chevron-down"}
+                size={18}
+                color={COLORS.textMuted}
+              />
+            </Pressable>
+
+            {friendRequestsExpanded && incomingRequests.map((request) => (
+              <View key={request.request_id} style={styles.friendRequestItem}>
+                <Avatar
+                  uri={request.from_user?.profile_photo || request.from_user?.picture}
+                  name={request.from_user?.name}
+                  size="sm"
+                />
+                <View style={styles.friendRequestInfo}>
+                  <Text style={styles.friendRequestName}>
+                    {request.from_user?.name || request.from_user_id}
+                  </Text>
+                  <Text style={styles.friendRequestMeta}>
+                    {request.entity_type === "business" ? t("common.business", "Business") :
+                     request.entity_type === "artist" ? t("common.artist", "Artist") :
+                     t("messages.friendRequestReceived", "Friend request")}
+                  </Text>
+                </View>
+                <View style={styles.friendRequestActions}>
+                  <Pressable
+                    style={[styles.acceptButton, requestActionLoading === request.request_id && styles.buttonDisabled]}
+                    onPress={() => handleAcceptRequest(request.request_id)}
+                    disabled={requestActionLoading === request.request_id}
+                  >
+                    {requestActionLoading === request.request_id ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.acceptButtonText}>{t("messages.accept", "Accept")}</Text>
+                    )}
+                  </Pressable>
+                  <Pressable
+                    style={styles.declineButton}
+                    onPress={() => handleDeclineRequest(request.request_id)}
+                    disabled={requestActionLoading === request.request_id}
+                  >
+                    <Ionicons name="close" size={16} color={COLORS.danger} />
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Unified Conversation List */}
+        {(() => {
+          const unified = [
+            ...filteredConversations.map(c => ({
+              id: c.other_user?.user_id || c.conversation_id || "",
+              type: "direct" as const,
+              name: c.other_user?.name || c.other_user?.display_name || "",
+              image: c.other_user?.profile_photo || c.other_user?.picture || null,
+              lastMessage: typeof c.last_message === "string" ? c.last_message : (c.last_message as any)?.text || "",
+              lastMessageTime: typeof c.last_message === "object" && c.last_message ? (c.last_message as any)?.created_at || "" : "",
+              unreadCount: c.unread_count || 0,
+              conv: c,
+            })),
+            ...filteredGroupConversations.map(c => ({
+              id: c.conversation_id || "",
+              type: c.type as "activity" | "event",
+              name: c.name || "",
+              image: c.image || null,
+              lastMessage: c.last_message || "",
+              lastMessageTime: c.last_message_time || "",
+              unreadCount: c.unread_count || 0,
+              conv: c,
+            })),
+          ].sort((a, b) => {
+            const tA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
+            const tB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+            return tB - tA;
+          });
+
+          if (unified.length === 0) {
+            return (
+              <View style={styles.emptyState}>
+                <Ionicons name="chatbubbles-outline" size={48} color={COLORS.border} />
+                <Text style={styles.emptyText}>{t("messages.noConversations") || "No conversations yet"}</Text>
+              </View>
+            );
+          }
+
+          return unified.map(item => (
+            <Pressable
+              key={`${item.type}-${item.id}`}
+              style={styles.chatCard}
+              onPress={() => {
+                if (item.type === "direct") {
+                  router.push(`/messages/${item.id}` as any);
+                } else if (item.type === "activity") {
+                  if (sessionToken) markGroupRead(sessionToken, item.id, "activity").catch(() => {});
+                  router.push(`/group-chat/activity/${item.id}` as any);
+                } else if (item.type === "event") {
+                  if (sessionToken) markGroupRead(sessionToken, item.id, "event").catch(() => {});
+                  router.push(`/group-chat/event/${item.id}` as any);
+                }
+              }}
+            >
+              <View style={[styles.groupAvatar, item.type === "activity" ? styles.activityAvatar : item.type === "event" ? styles.eventAvatar : styles.directAvatar]}>
+                {item.image ? (
+                  <Image source={{ uri: item.image }} style={styles.avatarImage} />
+                ) : (
+                  <Ionicons
+                    name={item.type === "activity" ? "people" : item.type === "event" ? "calendar" : "person"}
+                    size={ICON_SIZES.interactive}
+                    color="#fff"
+                  />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.chatHeaderRow}>
+                  <Text style={styles.chatName} numberOfLines={1}>{item.name}</Text>
+                  {item.lastMessageTime && (
+                    <Text style={styles.chatTime}>{formatChatTime(item.lastMessageTime)}</Text>
                   )}
                 </View>
-                <Text style={styles.selectedFriendName}>{selectedFriend.name}</Text>
-                <Pressable onPress={() => setSelectedFriend(null)}>
-                  <Ionicons name="close-circle" size={20} color="#9ca3af" />
-                </Pressable>
-              </View>
-            ) : (
-              <View style={styles.placeholderRow}>
-                <Ionicons name="person-add-outline" size={18} color="#9ca3af" />
-                <Text style={styles.placeholderText}>{t("messages.selectFriend")}</Text>
-                <Ionicons name="chevron-down" size={18} color="#9ca3af" />
-              </View>
-            )}
-          </Pressable>
-
-          <TextInput
-            placeholder={t("messages.typeMessage")}
-            value={message}
-            onChangeText={(value) => {
-              setMessage(value);
-              setErrorMessage("");
-            }}
-            style={[styles.input, styles.messageInput]}
-            multiline
-          />
-          <Pressable
-            style={[styles.primaryButton, (sending || !selectedFriend) && styles.buttonDisabled]}
-            onPress={handleStartConversation}
-            disabled={sending || !selectedFriend}
-          >
-            {sending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>{t("messages.send")}</Text>
-            )}
-          </Pressable>
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-        </View>
-
-        {/* Tabs for DMs vs Group Chats */}
-        <View style={styles.tabContainer}>
-          <Pressable 
-            style={[styles.tab, !showGroupChats && styles.tabActive]}
-            onPress={() => setShowGroupChats(false)}
-          >
-            <Ionicons name="chatbubble" size={16} color={!showGroupChats ? "#4c6fff" : "#6b7280"} />
-            <Text style={[styles.tabText, !showGroupChats && styles.tabTextActive]}>{t("messages.directMessages") || "Direct"}</Text>
-          </Pressable>
-          <Pressable 
-            style={[styles.tab, showGroupChats && styles.tabActive]}
-            onPress={() => setShowGroupChats(true)}
-          >
-            <Ionicons name="people" size={16} color={showGroupChats ? "#4c6fff" : "#6b7280"} />
-            <Text style={[styles.tabText, showGroupChats && styles.tabTextActive]}>{t("messages.groupChats") || "Groups"}</Text>
-          </Pressable>
-        </View>
-
-        {/* Group Chats Section */}
-        {showGroupChats ? (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.cardTitle}>{t("messages.groupChats") || "Group Chats"}</Text>
-            </View>
-            {allConversations.filter(c => c.type !== "direct").length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="people-outline" size={48} color="#d1d5db" />
-                <Text style={styles.emptyText}>{t("messages.noGroupChats") || "No group chats yet"}</Text>
-                <Text style={styles.emptySubtext}>{t("messages.joinActivityEvent") || "Join an activity or event to chat with the group"}</Text>
-              </View>
-            ) : (
-              allConversations.filter(c => c.type !== "direct").map((conv) => (
-                <Pressable
-                  key={`${conv.type}-${conv.conversation_id}`}
-                  style={styles.chatCard}
-                  onPress={() => {
-                    if (conv.type === "activity") {
-                      router.push(`/activity/${conv.conversation_id}`);
-                    } else if (conv.type === "event") {
-                      router.push(`/event/${conv.conversation_id}`);
-                    }
-                  }}
-                >
-                  <View style={[styles.avatar, conv.type === "activity" ? styles.activityAvatar : styles.eventAvatar]}>
-                    {conv.image ? (
-                      <Image source={{ uri: conv.image }} style={styles.avatarImage} />
-                    ) : (
-                      <Ionicons 
-                        name={conv.type === "activity" ? "people" : "calendar"} 
-                        size={24} 
-                        color="#fff" 
-                      />
-                    )}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.groupChatHeader}>
-                      <Text style={styles.chatName}>{conv.name}</Text>
-                      <View style={[styles.typeBadge, conv.type === "activity" ? styles.activityBadge : styles.eventBadge]}>
-                        <Text style={styles.typeBadgeText}>
-                          {conv.type === "activity" ? t("common.activity") || "Activity" : t("common.event") || "Event"}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.chatMessage} numberOfLines={1}>
-                      {conv.last_message || t("messages.noMessagesYet") || "No messages yet"}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                </Pressable>
-              ))
-            )}
-          </>
-        ) : (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.cardTitle}>{t("messages.recentChats")}</Text>
-            </View>
-            {conversations.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="chatbubbles-outline" size={48} color="#d1d5db" />
-                <Text style={styles.emptyText}>{t("messages.noMessages")}</Text>
-              </View>
-            ) : (
-              conversations.map((conversation) => (
-                <Pressable
-                  key={conversation.other_user.user_id}
-                  style={styles.chatCard}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/messages/[id]",
-                      params: {
-                        id: conversation.other_user.user_id,
-                        name: conversation.other_user.name,
-                      },
-                    })
-                  }
-                >
-                  <View style={styles.avatar}>
-                    {conversation.other_user.profile_photo || conversation.other_user.picture ? (
-                      <Image 
-                        source={{ uri: conversation.other_user.profile_photo || conversation.other_user.picture || undefined }} 
-                        style={styles.avatarImage}
-                      />
-                    ) : (
-                      <Text style={styles.avatarText}>
-                        {conversation.other_user.name.charAt(0)}
+                <View style={styles.chatMessageRow}>
+                  <Text style={styles.chatMessage} numberOfLines={1}>
+                    {item.lastMessage || t("messages.noMessagesYet") || "No messages yet"}
+                  </Text>
+                  {item.type !== "direct" && (
+                    <View style={[styles.typeBadge, item.type === "activity" ? styles.activityBadge : styles.eventBadge]}>
+                      <Text style={styles.typeBadgeText}>
+                        {item.type === "activity" ? t("common.activity") || "Activity" : t("common.event") || "Event"}
                       </Text>
-                    )}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.chatName}>{conversation.other_user.name}</Text>
-                    <Text style={styles.chatMessage} numberOfLines={1}>
-                      {typeof conversation.last_message === 'string' 
-                        ? conversation.last_message 
-                        : conversation.last_message?.text || ""}
-                    </Text>
-                  </View>
-                  {conversation.unread_count && conversation.unread_count > 0 ? (
-                    <View style={styles.unreadBadge}>
-                      <Text style={styles.unreadText}>{conversation.unread_count}</Text>
                     </View>
-                  ) : null}
-                  <Pressable
-                    style={styles.deleteButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      confirmDeleteConversation(conversation.other_user.user_id, conversation.other_user.name);
-                    }}
-                  >
-                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                  </Pressable>
-                </Pressable>
-              ))
-            )}
-          </>
-        )}
-        <View style={{ height: 24 }} />
+                  )}
+                </View>
+              </View>
+              {item.unreadCount > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                </View>
+              )}
+            </Pressable>
+          ));
+        })()}
+        <View style={{ height: 80 }} />
       </ScrollView>
 
-      {/* Friend Picker Modal */}
+      {/* New Message FAB */}
+      {(
+        <Pressable
+          style={styles.fab}
+          onPress={() => setShowFriendPicker(true)}
+        >
+          <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
+        </Pressable>
+      )}
+
+      {/* Friend Picker Modal (with message input) */}
       <Modal
         visible={showFriendPicker}
         animationType="slide"
@@ -405,11 +492,11 @@ export default function MessagesScreen() {
         onRequestClose={() => setShowFriendPicker(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { paddingBottom: SPACING.xxxl + insets.bottom }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t("messages.selectFriend")}</Text>
-              <Pressable onPress={() => setShowFriendPicker(false)}>
-                <Ionicons name="close" size={24} color="#111827" />
+              <Text style={styles.modalTitle}>{t("messages.newMessage")}</Text>
+              <Pressable onPress={() => { setShowFriendPicker(false); setSelectedFriend(null); setMessage(""); setErrorMessage(""); }}>
+                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
               </Pressable>
             </View>
             
@@ -417,13 +504,14 @@ export default function MessagesScreen() {
               placeholder={t("messages.searchFriends")}
               value={friendSearchQuery}
               onChangeText={setFriendSearchQuery}
-              style={styles.searchInput}
+              style={styles.searchInputModal}
+              placeholderTextColor={COLORS.textDisabled}
             />
 
             <ScrollView style={styles.friendList}>
               {filteredFriends.length === 0 ? (
                 <View style={styles.emptyFriendsState}>
-                  <Ionicons name="people-outline" size={40} color="#d1d5db" />
+                  <Ionicons name="people-outline" size={40} color={COLORS.border} />
                   <Text style={styles.emptyFriendsText}>
                     {friends.length === 0 
                       ? t("messages.noFriendsYet")
@@ -434,37 +522,60 @@ export default function MessagesScreen() {
                 filteredFriends.map((friend) => (
                   <Pressable
                     key={friend.user_id}
-                    style={styles.friendItem}
+                    style={[styles.friendItem, selectedFriend?.user_id === friend.user_id && styles.friendItemSelected]}
                     onPress={() => {
                       setSelectedFriend(friend);
-                      setShowFriendPicker(false);
                       setFriendSearchQuery("");
                     }}
                   >
-                    <View style={styles.friendAvatar}>
-                      {friend.profile_photo || friend.picture ? (
-                        <Image 
-                          source={{ uri: friend.profile_photo || friend.picture || undefined }} 
-                          style={styles.friendAvatarImage}
-                        />
-                      ) : (
-                        <Text style={styles.friendAvatarText}>
-                          {friend.name.charAt(0).toUpperCase()}
-                        </Text>
-                      )}
-                    </View>
+                    <Avatar
+                      uri={friend.profile_photo || friend.picture}
+                      name={friend.name}
+                      size="md"
+                    />
                     <View style={styles.friendInfo}>
                       <Text style={styles.friendName}>{friend.name}</Text>
                       <Text style={styles.friendEmail}>{friend.email}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+                    {selectedFriend?.user_id === friend.user_id && (
+                      <Ionicons name="checkmark-circle" size={22} color={COLORS.success} />
+                    )}
                   </Pressable>
                 ))
               )}
             </ScrollView>
+
+            {selectedFriend && (
+              <View style={styles.composeSection}>
+                <TextInput
+                  placeholder={t("messages.typeMessage")}
+                  value={message}
+                  onChangeText={(value) => {
+                    setMessage(value);
+                    setErrorMessage("");
+                  }}
+                  style={styles.composeInput}
+                  multiline
+                  placeholderTextColor={COLORS.textDisabled}
+                />
+                <Pressable
+                  style={[styles.sendButton, (sending || !message.trim()) && styles.buttonDisabled]}
+                  onPress={handleStartConversation}
+                  disabled={sending || !message.trim()}
+                >
+                  {sending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Ionicons name="send" size={18} color="#fff" />
+                  )}
+                </Pressable>
+              </View>
+            )}
+            {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
           </View>
         </View>
       </Modal>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -472,16 +583,22 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.background,
   },
-  loadingContainer: {
-    flex: 1,
+  skeletonRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f5f6fb",
+    gap: SPACING.xl,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.xl,
+    padding: 14,
+    backgroundColor: COLORS.background,
+    borderRadius: BORDER_RADIUS.lg,
   },
   header: {
-    padding: 20,
+    paddingHorizontal: SPACING.xxl,
+    paddingTop: SPACING.xxl,
+    paddingBottom: SPACING.md,
   },
   headerRow: {
     flexDirection: "row",
@@ -491,342 +608,232 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: SPACING.mdLg,
   },
-  groupCallButton: {
-    flexDirection: "row",
+  headerIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 12,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#4c6fff",
-    gap: 6,
   },
-  groupCallButtonText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  groupCallIcon: {
-    marginLeft: -4,
-  },
-  callHistoryButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#f0f4ff",
-    justifyContent: "center",
+  headerIconButtonOutline: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#e0e7ff",
+    borderColor: COLORS.border,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: FONT_SIZES.h1,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    color: COLORS.textPrimary,
   },
   subtitle: {
-    marginTop: 6,
-    color: "#6b7280",
+    marginTop: SPACING.xs,
+    color: COLORS.textMuted,
+    fontSize: FONT_SIZES.caption,
+  },
+  searchContainer: {
+    paddingHorizontal: SPACING.xxl,
+    marginBottom: SPACING.md,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.backgroundPage,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    height: 40,
+    gap: SPACING.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: FONT_SIZES.bodySmall,
+    color: COLORS.textPrimary,
+    paddingVertical: 0,
   },
   card: {
-    marginHorizontal: 16,
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#111827",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
+    marginHorizontal: SPACING.xl,
+    backgroundColor: COLORS.background,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
+    marginBottom: SPACING.xl,
+    ...SHADOWS.subtle,
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 12,
+    fontSize: FONT_SIZES.h4,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
   },
-  friendSelector: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    backgroundColor: "#f9fafb",
-  },
-  selectedFriendRow: {
+  sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    marginBottom: SPACING.md,
   },
-  selectedFriendName: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  placeholderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  placeholderText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#9ca3af",
-  },
-  friendAvatarSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#e0e7ff",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 14,
-    color: "#111827",
-  },
-  messageInput: {
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  primaryButton: {
-    backgroundColor: "#4c6fff",
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  sectionHeader: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-  },
-  emptyState: {
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    padding: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    gap: 12,
-  },
-  emptyText: {
-    color: "#9ca3af",
-    fontSize: 14,
-  },
-  errorText: {
-    color: "#ef4444",
-    textAlign: "center",
-    marginTop: 8,
-  },
-  chatCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 14,
-    borderRadius: 16,
-    shadowColor: "#111827",
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#e0e7ff",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  avatarImage: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-  },
-  avatarText: {
-    fontWeight: "600",
-    color: "#4c6fff",
-  },
-  chatName: {
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 2,
-  },
-  chatMessage: {
-    color: "#6b7280",
-    fontSize: 13,
-  },
-  unreadBadge: {
-    backgroundColor: "#4c6fff",
+  badge: {
+    backgroundColor: COLORS.primary,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 6,
+    paddingHorizontal: SPACING.md,
+    marginLeft: SPACING.sm,
   },
-  unreadText: {
+  badgeText: {
     color: "#fff",
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.bold as any,
   },
-  deleteButton: {
-    padding: 8,
-    marginLeft: 4,
+  friendRequestItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    gap: SPACING.md,
   },
-  // Modal Styles
-  modalOverlay: {
+  friendRequestInfo: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
   },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "80%",
-    paddingBottom: 24,
+  friendRequestName: {
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.textPrimary,
+    fontSize: FONT_SIZES.bodySmall,
   },
-  modalHeader: {
+  friendRequestMeta: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  friendRequestActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+  },
+  acceptButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  acceptButtonText: {
+    color: "#fff",
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    fontSize: FONT_SIZES.caption,
+  },
+  declineButton: {
+    padding: SPACING.md,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  chatCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+    backgroundColor: COLORS.background,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.md,
+    padding: 14,
+    borderRadius: BORDER_RADIUS.lg,
+    ...SHADOWS.subtle,
+  },
+  groupAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+  },
+  activityAvatar: {
+    backgroundColor: COLORS.activityAccent,
+  },
+  eventAvatar: {
+    backgroundColor: COLORS.eventAccent,
+  },
+  directAvatar: {
+    backgroundColor: COLORS.primary,
+  },
+  chatHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  searchInput: {
-    margin: 16,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 14,
-    backgroundColor: "#f9fafb",
-  },
-  friendList: {
-    paddingHorizontal: 16,
-  },
-  friendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: "#f9fafb",
-  },
-  friendAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#e0e7ff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-    overflow: "hidden",
-  },
-  friendAvatarImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 22,
-  },
-  friendAvatarText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#4c6fff",
-  },
-  friendInfo: {
-    flex: 1,
-  },
-  friendName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  friendEmail: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  emptyFriendsState: {
-    alignItems: "center",
-    paddingVertical: 40,
-    gap: 12,
-  },
-  emptyFriendsText: {
-    fontSize: 14,
-    color: "#9ca3af",
-    textAlign: "center",
-  },
-  // Tab styles
-  tabContainer: {
-    flexDirection: "row",
-    marginHorizontal: 16,
-    marginLeft: 20,
-    marginBottom: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
-  },
-  tabActive: {
-    backgroundColor: "#f0f4ff",
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#6b7280",
-  },
-  tabTextActive: {
-    color: "#4c6fff",
-    fontWeight: "600",
-  },
-  // Group chat styles
-  activityAvatar: {
-    backgroundColor: "#8b5cf6",
-  },
-  eventAvatar: {
-    backgroundColor: "#ec4899",
-  },
-  groupChatHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
     marginBottom: 2,
   },
+  chatName: {
+    flex: 1,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.textPrimary,
+    fontSize: FONT_SIZES.bodySmall,
+  },
+  chatTime: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textMuted,
+    marginLeft: SPACING.sm,
+  },
+  chatMessageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+  chatMessage: {
+    flex: 1,
+    color: COLORS.textMuted,
+    fontSize: FONT_SIZES.caption,
+  },
+  unreadBadge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: SPACING.md,
+  },
+  unreadText: {
+    color: "#fff",
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.bold as any,
+  },
+  emptyState: {
+    backgroundColor: COLORS.background,
+    marginHorizontal: SPACING.xl,
+    padding: SPACING.huge,
+    borderRadius: BORDER_RADIUS.lg,
+    alignItems: "center",
+    gap: SPACING.md,
+  },
+  emptyText: {
+    color: COLORS.textDisabled,
+    fontSize: FONT_SIZES.bodySmall,
+  },
+  emptySubtext: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textDisabled,
+    textAlign: "center",
+    marginTop: SPACING.xs,
+  },
+  errorText: {
+    color: COLORS.danger,
+    textAlign: "center",
+    marginTop: SPACING.sm,
+    fontSize: FONT_SIZES.caption,
+  },
   typeBadge: {
-    paddingHorizontal: 6,
+    paddingHorizontal: SPACING.md,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -837,14 +844,124 @@ const styles = StyleSheet.create({
     backgroundColor: "#fce7f3",
   },
   typeBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#7c3aed",
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.activityAccent,
   },
-  emptySubtext: {
-    fontSize: 12,
-    color: "#9ca3af",
+  fab: {
+    position: "absolute",
+    right: SPACING.xxl,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOWS.medium,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: BORDER_RADIUS.xxl,
+    borderTopRightRadius: BORDER_RADIUS.xxl,
+    maxHeight: "85%",
+    paddingBottom: SPACING.xxxl,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: SPACING.xxl,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: FONT_SIZES.h3,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    color: COLORS.textPrimary,
+  },
+  searchInputModal: {
+    margin: SPACING.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    fontSize: FONT_SIZES.bodySmall,
+    backgroundColor: COLORS.backgroundPage,
+    color: COLORS.textPrimary,
+  },
+  friendList: {
+    paddingHorizontal: SPACING.xl,
+  },
+  friendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    marginBottom: SPACING.sm,
+    backgroundColor: COLORS.backgroundPage,
+  },
+  friendItemSelected: {
+    backgroundColor: "#f0fdf4",
+    borderWidth: 1,
+    borderColor: COLORS.success,
+  },
+  friendInfo: {
+    flex: 1,
+    marginLeft: SPACING.md,
+  },
+  friendName: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.textPrimary,
+  },
+  friendEmail: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  emptyFriendsState: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: SPACING.md,
+  },
+  emptyFriendsText: {
+    fontSize: FONT_SIZES.bodySmall,
+    color: COLORS.textDisabled,
     textAlign: "center",
-    marginTop: 4,
+  },
+  composeSection: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  composeInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    fontSize: FONT_SIZES.bodySmall,
+    color: COLORS.textPrimary,
+    maxHeight: 80,
+    textAlignVertical: "top",
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

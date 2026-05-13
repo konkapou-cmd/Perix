@@ -17,15 +17,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
-import { getFriends, createGroupCall, UserPublic } from "../lib/api";
+import { getMyFriends, createGroupCall, UserPublic } from "../lib/api";
 
 export default function StartGroupCallScreen() {
   const { t } = useTranslation();
-  const { safeGoBackToMessages, router } = useSafeNavigation();
+  const router = useRouter();
   const { sessionToken, user } = useAuth();
 
   const [friends, setFriends] = useState<UserPublic[]>([]);
@@ -41,7 +41,7 @@ export default function StartGroupCallScreen() {
 
     const loadFriends = async () => {
       try {
-        const data = await getFriends(sessionToken);
+        const data = await getMyFriends(sessionToken);
         setFriends(data);
       } catch (e) {
         console.log("Failed to load friends:", e);
@@ -81,7 +81,7 @@ export default function StartGroupCallScreen() {
       );
       
       // Navigate to group call screen
-      router.replace({
+      router.push({
         pathname: "/group-call",
         params: { groupCallId: result.group_call_id, type: callType },
       });
@@ -106,7 +106,7 @@ export default function StartGroupCallScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4c6fff" />
+          <ActivityIndicator size="large" color="#000000" />
         </View>
       </SafeAreaView>
     );
@@ -116,8 +116,8 @@ export default function StartGroupCallScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={safeGoBackToMessages}>
-          <Ionicons name="chevron-back" size={24} color="#4c6fff" />
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color="#000000" />
         </Pressable>
         <Text style={styles.headerTitle}>{t("call.startGroupCall") || "Start Group Call"}</Text>
         <View style={{ width: 40 }} />
@@ -287,7 +287,7 @@ export default function StartGroupCallScreen() {
           disabled={selectedFriends.length === 0 || starting}
         >
           <LinearGradient
-            colors={selectedFriends.length > 0 ? ["#4c6fff", "#6366f1"] : ["#9ca3af", "#9ca3af"]}
+            colors={selectedFriends.length > 0 ? ["#000000", "#FFD700"] : ["#9ca3af", "#9ca3af"]}
             style={styles.startButtonGradient}
           >
             {starting ? (
@@ -372,8 +372,8 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   callTypeBtnActive: {
-    backgroundColor: "#4c6fff",
-    borderColor: "#4c6fff",
+    backgroundColor: "#000000",
+    borderColor: "#000000",
   },
   callTypeText: {
     fontSize: 16,
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -527,8 +527,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkboxSelected: {
-    backgroundColor: "#4c6fff",
-    borderColor: "#4c6fff",
+    backgroundColor: "#000000",
+    borderColor: "#000000",
   },
   footer: {
     padding: 16,

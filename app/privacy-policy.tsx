@@ -10,11 +10,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
+import { useRouter } from "expo-router";
 
 export default function PrivacyPolicyScreen() {
   const { t } = useTranslation();
-  const { safeGoBack } = useSafeNavigation();
+  const router = useRouter();
 
   const sections = [
     {
@@ -68,7 +68,7 @@ export default function PrivacyPolicyScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={safeGoBack}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>{t("privacy.title") || "Privacy Policy"}</Text>
@@ -97,7 +97,7 @@ export default function PrivacyPolicyScreen() {
 
         {/* GDPR Notice */}
         <View style={styles.gdprNotice}>
-          <Ionicons name="shield-checkmark" size={24} color="#4c6fff" />
+          <Ionicons name="shield-checkmark" size={24} color="#000000" />
           <View style={styles.gdprText}>
             <Text style={styles.gdprTitle}>
               {t("privacy.gdprTitle") || "GDPR Compliance"}
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gdprTitle: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 4,

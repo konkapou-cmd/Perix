@@ -1,12 +1,16 @@
-import { useEffect, useRef, useCallback } from "react";
-import { Slot, useRouter, usePathname, useSegments, router } from "expo-router";
+import { useEffect, useRef } from "react";
+import { Stack, usePathname, useSegments, router } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { I18nextProvider } from "react-i18next";
 import { Platform, BackHandler, ToastAndroid, View, Text, LogBox } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StatusBar } from "expo-status-bar";
+import "../lib/suppressExpoNotifError";
 import * as Notifications from "expo-notifications";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { NotificationProvider } from "../context/NotificationContext";
 import { BadgeProvider } from "../context/BadgeContext";
+import { SocketProvider } from "../context/SocketContext";
 import { LocationProvider } from "../context/LocationContext";
 import { MapBoundsProvider } from "../context/MapBoundsContext";
 import { 
@@ -24,182 +28,66 @@ LogBox.ignoreLogs([
   'Require cycle:',
 ]);
 
-// Component that handles Android hardware back button - Improved Global Handler
+function AuthGuard() {
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (loading) return;
+    const inAuthGroup = segments[0] === "(auth)" || segments[0] === "onboarding";
+    if (!user && !inAuthGroup) {
+      router.replace("/login");
+    } else if (user && inAuthGroup) {
+      router.replace("/(tabs)/home");
+    }
+  }, [user, loading]);
+
+  return null;
+}
+
+// Component that handles Android hardware back button
+// With root <Stack>: React Navigation handles back for pushed screens.
+// This only handles edge cases when the Stack can't go back further.
 function BackButtonHandler() {
-  const routerNav = useRouter();
   const pathname = usePathname();
   const segments = useSegments();
   const lastBackPress = useRef(0);
-  
-  // Memoized handler to prevent unnecessary re-renders
-  const handleBackPress = useCallback(() => {
-    console.log('[BackHandler] Path:', pathname, 'Segments:', segments);
     
-    // Get current path for analysis
-    const currentPath = pathname || '';
-    
-    // Define main tab routes (where double-tap to exit should work)
-    const mainTabRoutes = [
-      '/(tabs)/home',
-      '/home',
-      '/(tabs)/profile',
-      '/profile', 
-      '/(tabs)/messages',
-      '/messages',
-      '/(tabs)/locator',
-      '/locator',
-      '/search',
-      '/(tabs)/activities',
-      '/activities'
-    ];
-    
-    // Check if we're on the home tab specifically
-    const isOnHomeTab = currentPath === '/(tabs)/home' || 
-                        currentPath === '/home' || 
-                        currentPath.endsWith('/home') ||
-                        (segments.length === 2 && segments[0] === '(tabs)' && segments[1] === 'home');
-    
-    // Check if we're on locator/search tab (should go to home on back)
-    const isOnLocatorTab = currentPath === '/(tabs)/locator' ||
-                           currentPath === '/locator' ||
-                           currentPath === '/search' ||
-                           currentPath.includes('locator') ||
-                           (segments.length === 2 && segments[0] === '(tabs)' && segments[1] === 'locator');
-    
-    // Check if we're on any main tab (not a nested screen)
-    const isOnMainTab = mainTabRoutes.some(route => 
-      currentPath === route || currentPath.endsWith(route.split('/').pop() || '')
-    ) || (segments.length === 2 && segments[0] === '(tabs)');
-    
-    // Check if we're in a modal or editor screen (should close/go back)
-    const isModalScreen = 
-      currentPath.includes('/media-editor') ||
-      currentPath.includes('/camera') ||
-      currentPath.includes('/story-') ||
-      currentPath.includes('/create-') ||
-      currentPath.includes('/edit-') ||
-      currentPath.includes('/new-');
-    
-    // Check if we're on a nested/detail screen
-    const isNestedScreen = 
-      currentPath.includes('/business/') ||
-      currentPath.includes('/artist/') ||
-      currentPath.includes('/user/') ||
-      currentPath.includes('/post/') ||
-      currentPath.includes('/event/') ||
-      currentPath.includes('/activity/') ||
-      currentPath.includes('/messages/') ||
-      currentPath.includes('/camera') ||
-      currentPath.includes('/media-editor') ||
-      currentPath.includes('/call') ||
-      currentPath.includes('/incoming-call') ||
-      currentPath.includes('-dashboard') ||
-      currentPath.includes('/subscription') ||
-      currentPath.includes('/jobs') ||
-      currentPath.includes('/call-history') ||
-      currentPath.includes('/profile/') ||
-      currentPath.includes('/invite') ||
-      currentPath.includes('/friend') ||
-      currentPath.includes('/settings') ||
-      currentPath.includes('/notifications') ||
-      currentPath.includes('/onboarding');
-    
-    console.log('[BackHandler] isOnHomeTab:', isOnHomeTab, 'isOnMainTab:', isOnMainTab, 'isNestedScreen:', isNestedScreen, 'isModalScreen:', isModalScreen, 'isOnLocatorTab:', isOnLocatorTab);
-    
-    // MODAL/EDITOR SCREENS: Always try to go back first
-    if (isModalScreen) {
-      console.log('[BackHandler] Modal/Editor screen - going back');
-      if (routerNav.canGoBack()) {
-        routerNav.back();
-      } else {
-        routerNav.replace('/(tabs)/home');
-      }
-      return true;
-    }
-    
-    // HOME TAB: Double-tap to exit
-    if (isOnHomeTab) {
-      const now = Date.now();
-      if (now - lastBackPress.current < 2000) {
-        console.log('[BackHandler] Double tap - allowing exit');
-        return false; // Allow default behavior (exit app)
-      }
-      lastBackPress.current = now;
-      ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
-      return true; // Prevent exit, show toast
-    }
-    
-    // LOCATOR/SEARCH TAB: Navigate to home
-    if (isOnLocatorTab) {
-      console.log('[BackHandler] Locator/Search tab - navigating to home');
-      routerNav.replace('/(tabs)/home');
-      return true;
-    }
-    
-    // OTHER MAIN TABS: Navigate to home
-    if (isOnMainTab && !isNestedScreen) {
-      console.log('[BackHandler] Main tab - navigating to home');
-      routerNav.replace('/(tabs)/home');
-      return true;
-    }
-    
-    // NESTED SCREENS: Try to go back naturally first, fallback to smart navigation
-    if (isNestedScreen) {
-      // Check if router can go back
-      if (routerNav.canGoBack()) {
-        console.log('[BackHandler] Nested screen - using router.back()');
-        routerNav.back();
-        return true;
-      }
-      
-      // Fallback: Navigate based on screen type
-      if (currentPath.includes('/messages/')) {
-        console.log('[BackHandler] Messages chat - going to messages list');
-        routerNav.replace('/(tabs)/messages');
-        return true;
-      }
-      
-      if (currentPath.includes('-dashboard') || 
-          currentPath.includes('/subscription') || 
-          currentPath.includes('/jobs') ||
-          currentPath.includes('/settings')) {
-        console.log('[BackHandler] Profile sub-screen - going to profile');
-        routerNav.replace('/(tabs)/profile');
-        return true;
-      }
-      
-      // Default fallback for nested screens: go to home
-      console.log('[BackHandler] Nested screen fallback - going to home');
-      routerNav.replace('/(tabs)/home');
-      return true;
-    }
-    
-    // AUTH SCREENS: Allow default behavior or go to login
-    if (currentPath.includes('/login') || currentPath.includes('/register')) {
-      console.log('[BackHandler] Auth screen - allowing default');
-      return false;
-    }
-    
-    // CATCH-ALL: Try router.back() first, then fallback to home
-    if (routerNav.canGoBack()) {
-      console.log('[BackHandler] Catch-all - using router.back()');
-      routerNav.back();
-      return true;
-    }
-    
-    console.log('[BackHandler] Catch-all fallback - going to home');
-    routerNav.replace('/(tabs)/home');
-    return true;
-  }, [pathname, segments, routerNav]);
-  
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // If the Stack has screens to pop, let React Navigation handle it
+      if (router.canGoBack()) {
+        return false;
+      }
+      
+      // We're at the root of the Stack — check which tab we're on
+      const currentPath = pathname || '';
+      const isOnHomeTab = 
+        currentPath === '/(tabs)/home' || 
+        currentPath === '/home' || 
+        currentPath.endsWith('/home') ||
+        (segments.length === 2 && segments[0] === '(tabs)' && segments[1] === 'home');
+      
+      if (isOnHomeTab) {
+        const now = Date.now();
+        if (now - lastBackPress.current < 2000) {
+          return false;
+        }
+        lastBackPress.current = now;
+        ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
+        return true;
+      }
+      
+      // On a non-home tab at the root — navigate to home tab first
+      router.navigate('/(tabs)/home' as any);
+      return true;
+    });
     
-    return () => backHandler.remove();
-  }, [handleBackPress]);
-  
+    return () => handler.remove();
+  }, [pathname, segments]);
+    
   return null;
 }
 
@@ -288,15 +176,30 @@ function PushNotificationManager() {
             break;
 
           case "new_message":
-            router.push({
-              pathname: "/(tabs)/messages",
-            });
+            router.navigate("/(tabs)/messages" as any);
             break;
 
           case "activity":
             router.push({
-              pathname: "/(tabs)/messages",
+              pathname: "/activities",
             });
+            break;
+
+          case "event":
+            if (data.eventId) {
+              router.push(`/event/${data.eventId}`);
+            }
+            break;
+
+          case "like":
+          case "comment":
+            if (data.postId) {
+              router.push(`/post/${data.postId}`);
+            }
+            break;
+
+          case "friend_request":
+            router.push("/friend-requests");
             break;
         }
       }
@@ -328,20 +231,30 @@ export default function RootLayout() {
   return (
     <I18nextProvider i18n={i18n}>
       <SafeAreaProvider>
-        <AuthProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <AuthProvider>
           <LocationProvider>
             <MapBoundsProvider>
               <BadgeProvider>
-                <NotificationProvider>
-                  <BackButtonHandler />
-                  <DeepLinkHandler />
-                  <PushNotificationManager />
-                  <Slot />
-                </NotificationProvider>
+                <SocketProvider>
+                  <NotificationProvider>
+                    <StatusBar style="dark" />
+                    <AuthGuard />
+                    <BackButtonHandler />
+                    <DeepLinkHandler />
+                    <PushNotificationManager />
+                    <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+                      <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+                      <Stack.Screen name="call" options={{ gestureEnabled: false }} />
+                      <Stack.Screen name="incoming-call" options={{ gestureEnabled: false }} />
+                    </Stack>
+                  </NotificationProvider>
+                </SocketProvider>
               </BadgeProvider>
             </MapBoundsProvider>
           </LocationProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </GestureHandlerRootView>
       </SafeAreaProvider>
     </I18nextProvider>
   );

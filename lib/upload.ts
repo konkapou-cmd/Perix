@@ -4,7 +4,7 @@
  */
 import * as ImagePicker from "expo-image-picker";
 import { Alert, Platform } from "react-native";
-import { uploadMedia, uploadImageToCloudinary } from "./api";
+import { uploadMedia, uploadImageToCloudinary, uploadVideoMux } from "./api";
 
 export interface UploadResult {
   url: string;
@@ -12,6 +12,11 @@ export interface UploadResult {
   width?: number;
   height?: number;
   ratio?: number;
+  mux_upload_id?: string | null;
+  mux_asset_id?: string | null;
+  mux_playback_id?: string | null;
+  mux_thumbnail_url?: string | null;
+  video_status?: "ready" | "processing";
 }
 
 export interface UploadOptions {
@@ -161,22 +166,26 @@ export async function pickAndUploadVideo(
     const asset = result.assets[0];
     onProgress?.(10);
 
-    // Upload video to Cloudinary - uploadMedia returns URL string directly
-    const url = await uploadMedia(
+    const muxResult = await uploadVideoMux(
       sessionToken,
       asset.uri,
-      "video",
+      undefined,
       (p) => onProgress?.(10 + (p.progress || 0) * 0.9)
     );
 
     onProgress?.(100);
 
     return {
-      url,
+      url: muxResult.url || "",
       type: "video",
       width: asset.width,
       height: asset.height,
       ratio: asset.width && asset.height ? asset.width / asset.height : undefined,
+      mux_upload_id: muxResult.mux_upload_id,
+      mux_asset_id: muxResult.mux_asset_id,
+      mux_playback_id: muxResult.mux_playback_id,
+      mux_thumbnail_url: muxResult.mux_thumbnail_url,
+      video_status: muxResult.video_status,
     };
   } catch (error) {
     console.error("[Upload] Video upload failed:", error);
@@ -229,19 +238,23 @@ export async function pickAndUploadMedia(
     onProgress?.(10);
 
     if (isVideo) {
-      // uploadMedia returns URL string directly
-      const url = await uploadMedia(
+      const muxResult = await uploadVideoMux(
         sessionToken,
         asset.uri,
-        "video",
+        undefined,
         (p) => onProgress?.(10 + (p.progress || 0) * 0.9)
       );
       return {
-        url,
+        url: muxResult.url || "",
         type: "video",
         width: asset.width,
         height: asset.height,
         ratio: asset.width && asset.height ? asset.width / asset.height : undefined,
+        mux_upload_id: muxResult.mux_upload_id,
+        mux_asset_id: muxResult.mux_asset_id,
+        mux_playback_id: muxResult.mux_playback_id,
+        mux_thumbnail_url: muxResult.mux_thumbnail_url,
+        video_status: muxResult.video_status,
       };
     } else {
       const base64Data = asset.base64

@@ -23,14 +23,13 @@ export default function TopNavbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const { unreadMessages, unreadNotifications } = useBadge();
+  const { unreadMessageCount, activityCount } = useBadge();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const navItems = [
     { key: "home", label: t("tabs.home") || "Home", path: "/" },
     { key: "explore", label: t("nav.explore") || "Explore", path: "/locator" },
-    { key: "activities", label: t("tabs.activities") || "Activities", path: "/activities" },
   ];
 
   const isActive = (path: string) => {
@@ -44,7 +43,7 @@ export default function TopNavbar() {
         {/* Left: Logo */}
         <Pressable 
           style={styles.logoSection}
-          onPress={() => router.push("/")}
+          onPress={() => router.navigate("/(tabs)/home" as any)}
           data-testid="navbar-logo"
         >
           <View style={styles.logoIcon}>
@@ -107,16 +106,16 @@ export default function TopNavbar() {
               styles.iconButton,
               hoveredItem === "messages" && styles.iconButtonHover,
             ]}
-            onPress={() => router.push("/messages")}
+            onPress={() => router.navigate("/(tabs)/messages" as any)}
             onHoverIn={() => setHoveredItem("messages")}
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-messages"
           >
             <Ionicons name="chatbubble-outline" size={22} color="#374151" />
-            {unreadMessages > 0 && (
+            {unreadMessageCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
-                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                  {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
                 </Text>
               </View>
             )}
@@ -134,10 +133,10 @@ export default function TopNavbar() {
             data-testid="navbar-notifications"
           >
             <Ionicons name="notifications-outline" size={22} color="#374151" />
-            {unreadNotifications > 0 && (
+            {activityCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
-                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  {activityCount > 9 ? "9+" : activityCount}
                 </Text>
               </View>
             )}
@@ -149,15 +148,15 @@ export default function TopNavbar() {
               styles.userButton,
               hoveredItem === "user" && styles.userButtonHover,
             ]}
-            onPress={() => router.push("/profile")}
+            onPress={() => router.navigate("/(tabs)/profile" as any)}
             onHoverIn={() => setHoveredItem("user")}
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-user"
           >
             <Ionicons name="menu" size={16} color="#374151" />
-            {user?.profile_picture ? (
+            {user?.profile_photo ? (
               <Image
-                source={{ uri: user.profile_picture }}
+                source={{ uri: user.profile_photo }}
                 style={styles.userAvatar}
               />
             ) : (
@@ -207,14 +206,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
   },
   logoText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#4c6fff",
+    color: "#000000",
     letterSpacing: -0.3,
   },
   navLinks: {
@@ -256,7 +255,7 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -12 }],
     width: 24,
     height: 2,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     borderRadius: 1,
   },
   rightSection: {
@@ -268,7 +267,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 24,

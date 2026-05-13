@@ -134,7 +134,7 @@ export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
             </Pressable>
             
             <Pressable style={styles.option} onPress={() => shareVia("other")}>
-              <View style={[styles.iconCircle, { backgroundColor: "#4c6fff" }]}>
+              <View style={[styles.iconCircle, { backgroundColor: "#000000" }]}>
                 <Ionicons name="share-social" size={28} color="#fff" />
               </View>
               <Text style={styles.optionText}>{t("common.other") || "Other"}</Text>
@@ -147,7 +147,7 @@ export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
               <View style={styles.codeBox}>
                 <Text style={styles.codeText}>{inviteCode}</Text>
                 <Pressable onPress={() => shareVia("copy")}>
-                  <Ionicons name="copy-outline" size={20} color="#4c6fff" />
+                  <Ionicons name="copy-outline" size={20} color="#000000" />
                 </Pressable>
               </View>
             </View>

@@ -36,8 +36,8 @@ export type NotificationData = CallNotificationData | MessageNotificationData | 
 
 // Configure notification handler for foreground notifications
 Notifications.setNotificationHandler({
-  handleNotification: async (notification) => {
-    const data = notification.request.content.data as NotificationData;
+  handleNotification: async (notification): Promise<Notifications.NotificationBehavior> => {
+    const data = notification.request.content.data as unknown as NotificationData;
     
     // For incoming calls, always show with high priority
     if (data?.type === "incoming_call") {
@@ -45,6 +45,8 @@ Notifications.setNotificationHandler({
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: true,
+        shouldShowList: true,
+        shouldShowBanner: true,
         priority: Notifications.AndroidNotificationPriority.MAX,
       };
     }
@@ -54,6 +56,8 @@ Notifications.setNotificationHandler({
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
+      shouldShowList: true,
+      shouldShowBanner: true,
       priority: Notifications.AndroidNotificationPriority.HIGH,
     };
   },
@@ -92,7 +96,7 @@ export async function setupNotificationChannels(): Promise<void> {
     importance: Notifications.AndroidImportance.HIGH,
     sound: "default",
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: "#4c6fff",
+    lightColor: "#16a34a",
     enableVibrate: true,
     enableLights: true,
     showBadge: true,
@@ -157,7 +161,7 @@ export async function getExpoPushToken(): Promise<string | null> {
 
 // Handle notification response (when user taps notification)
 export function handleNotificationResponse(response: Notifications.NotificationResponse): void {
-  const data = response.notification.request.content.data as NotificationData;
+  const data = response.notification.request.content.data as unknown as NotificationData;
   
   if (!data?.type) return;
 
@@ -180,7 +184,7 @@ export function handleNotificationResponse(response: Notifications.NotificationR
     case "new_message":
       // Navigate to conversation
       router.push({
-        pathname: "/chat",
+        pathname: "/chat" as any,
         params: {
           recipientId: data.senderId,
           recipientName: data.senderName,
@@ -192,16 +196,16 @@ export function handleNotificationResponse(response: Notifications.NotificationR
       if (data.activityType === "friend_request" || data.activityType === "friend_accepted") {
         // Navigate to user profile
         router.push({
-          pathname: `/user/${data.actorId}`,
+          pathname: `/user/${data.actorId}` as any,
         });
       } else if (data.postId) {
         // Navigate to the post detail page
         router.push({
-          pathname: `/post/${data.postId}`,
+          pathname: `/post/${data.postId}` as any,
         });
       } else {
         // Default to activities tab
-        router.push("/(tabs)/activities");
+        router.push("/activities");
       }
       break;
   }
@@ -217,7 +221,7 @@ export function setupNotificationListeners(): () => void {
   // Handle foreground notifications (optional - for custom handling)
   const notificationSubscription = Notifications.addNotificationReceivedListener(
     (notification) => {
-      const data = notification.request.content.data as NotificationData;
+      const data = notification.request.content.data as unknown as NotificationData;
       console.log("[Push] Received notification:", data?.type);
       
       // For incoming calls in foreground, you might want to show a custom UI
@@ -255,7 +259,7 @@ export async function showIncomingCallNotification(
         callerName,
         callerPhoto,
         callType,
-      } as CallNotificationData,
+      } as unknown as Record<string, unknown>,
       sound: true,
       priority: Notifications.AndroidNotificationPriority.MAX,
       categoryIdentifier: "incoming_call",
@@ -287,7 +291,7 @@ export async function showMessageNotification(
         senderName,
         senderPhoto,
         messagePreview,
-      } as MessageNotificationData,
+      } as unknown as Record<string, unknown>,
       sound: true,
       badge: 1,
     },
@@ -334,7 +338,7 @@ export async function showActivityNotification(
         actorPhoto,
         postId,
         message,
-      } as ActivityNotificationData,
+      } as unknown as Record<string, unknown>,
       sound: true,
     },
     trigger: null,

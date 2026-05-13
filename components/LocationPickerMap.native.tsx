@@ -39,7 +39,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
     setSearching(true);
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&types=geocode|establishment`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&types=address`
       );
       const data = await response.json();
       if (data.predictions) {
@@ -84,15 +84,33 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
     setSearching(false);
   }, [onLocationChange]);
 
-  const handleMapPress = (event: MapPressEvent) => {
+  const handleMapPress = async (event: MapPressEvent) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
-    onLocationChange({ latitude, longitude });
     setShowPredictions(false);
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`
+      );
+      const data = await response.json();
+      const address = data.results?.[0]?.formatted_address;
+      onLocationChange({ latitude, longitude, address });
+    } catch {
+      onLocationChange({ latitude, longitude });
+    }
   };
 
-  const handleMarkerDragEnd = (event: any) => {
+  const handleMarkerDragEnd = async (event: any) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
-    onLocationChange({ latitude, longitude });
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`
+      );
+      const data = await response.json();
+      const address = data.results?.[0]?.formatted_address;
+      onLocationChange({ latitude, longitude, address });
+    } catch {
+      onLocationChange({ latitude, longitude });
+    }
   };
 
   return (
@@ -111,7 +129,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
             }}
             onFocus={() => predictions.length > 0 && setShowPredictions(true)}
           />
-          {searching && <ActivityIndicator size="small" color="#4c6fff" />}
+          {searching && <ActivityIndicator size="small" color="#000000" />}
           {searchQuery.length > 0 && !searching && (
             <Pressable 
               onPress={() => {
@@ -139,7 +157,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
                   style={styles.predictionItem}
                   onPress={() => selectPlace(item.place_id, item.description)}
                 >
-                  <Ionicons name="location-outline" size={18} color="#4c6fff" />
+                  <Ionicons name="location-outline" size={18} color="#000000" />
                   <Text style={styles.predictionText} numberOfLines={2}>
                     {item.description}
                   </Text>
@@ -163,13 +181,13 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
               coordinate={{ latitude: location.latitude, longitude: location.longitude }}
               draggable
               onDragEnd={handleMarkerDragEnd}
-              pinColor="#4c6fff"
+              pinColor="#000000"
             />
           )}
         </MapView>
         {!location && (
           <View style={styles.overlay}>
-            <Ionicons name="location" size={32} color="#4c6fff" />
+            <Ionicons name="location" size={32} color="#000000" />
             <Text style={styles.overlayText}>Tap on the map to set location</Text>
           </View>
         )}

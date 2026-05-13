@@ -6,9 +6,10 @@ type Props = {
   phone?: string | null;
   website?: string | null;
   email?: string | null;
+  onEdit?: () => void;
 };
 
-export default function ContactInfoSection({ phone, website, email }: Props) {
+export default function ContactInfoSection({ phone, website, email, onEdit }: Props) {
   const { t } = useTranslation();
 
   const openWebsite = () => {
@@ -34,24 +35,31 @@ export default function ContactInfoSection({ phone, website, email }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>{t("business.contactInfo")}</Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <Text style={[styles.cardTitle, { marginBottom: 0 }]}>{t("business.contactInfo")}</Text>
+        {onEdit && (
+          <Pressable onPress={onEdit}>
+            <Text style={{ color: "#000000", fontWeight: "600", fontSize: 13 }}>{t("business.edit") || "Edit"}</Text>
+          </Pressable>
+        )}
+      </View>
       {phone && (
         <Pressable style={styles.contactRow} onPress={openPhone}>
-          <Ionicons name="call-outline" size={20} color="#4c6fff" />
+          <Ionicons name="call-outline" size={20} color="#000000" />
           <Text style={styles.contactText}>{phone}</Text>
           <Ionicons name="open-outline" size={16} color="#9ca3af" />
         </Pressable>
       )}
       {website && (
         <Pressable style={styles.contactRow} onPress={openWebsite}>
-          <Ionicons name="globe-outline" size={20} color="#4c6fff" />
+          <Ionicons name="globe-outline" size={20} color="#000000" />
           <Text style={styles.contactText}>{website}</Text>
           <Ionicons name="open-outline" size={16} color="#9ca3af" />
         </Pressable>
       )}
       {email && (
         <Pressable style={styles.contactRow} onPress={openEmail}>
-          <Ionicons name="mail-outline" size={20} color="#4c6fff" />
+          <Ionicons name="mail-outline" size={20} color="#000000" />
           <Text style={styles.contactText}>{email}</Text>
           <Ionicons name="open-outline" size={16} color="#9ca3af" />
         </Pressable>
@@ -85,7 +93,7 @@ const styles = StyleSheet.create({
   contactText: {
     flex: 1,
     marginLeft: 12,
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 14,
   },
   emptyText: {

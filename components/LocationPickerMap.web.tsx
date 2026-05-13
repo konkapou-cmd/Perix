@@ -35,7 +35,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
     try {
       // Use a CORS proxy for web since Google Places API doesn't support CORS
       const corsProxy = "https://corsproxy.io/?";
-      const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&types=geocode|establishment`;
+      const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&types=address`;
       
       const response = await fetch(corsProxy + encodeURIComponent(apiUrl));
       const data = await response.json();
@@ -47,13 +47,19 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
       console.error("Places search error:", error);
       // Fallback to using Nominatim (OpenStreetMap) which supports CORS
       try {
-        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`;
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10&addressdetails=1`;
         const response = await fetch(nominatimUrl, {
           headers: { "User-Agent": "Perix App" }
         });
         const data = await response.json();
         if (data && data.length > 0) {
-          const nominatimPredictions = data.map((item: any, index: number) => ({
+          const addressResults = data.filter((item: any) => {
+            const addr = item.address || {};
+            const isBusiness = addr.amenity || addr.shop || addr.building;
+            if (isBusiness) return false;
+            return !!(addr.road || addr.street || addr.footway || addr.house_number || addr.city || addr.town || addr.village || addr.postcode);
+          });
+          const nominatimPredictions = addressResults.slice(0, 5).map((item: any, index: number) => ({
             place_id: `nominatim_${index}_${item.place_id}`,
             description: item.display_name,
             lat: item.lat,
@@ -141,7 +147,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
             }}
             onFocus={() => predictions.length > 0 && setShowPredictions(true)}
           />
-          {searching && <ActivityIndicator size="small" color="#4c6fff" />}
+          {searching && <ActivityIndicator size="small" color="#000000" />}
           {searchQuery.length > 0 && !searching && (
             <Pressable 
               onPress={() => {
@@ -164,7 +170,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
                 style={styles.predictionItem}
                 onPress={() => selectPlace(item.place_id, item.description, item.lat, item.lon)}
               >
-                <Ionicons name="location-outline" size={18} color="#4c6fff" />
+                <Ionicons name="location-outline" size={18} color="#000000" />
                 <Text style={styles.predictionText} numberOfLines={2}>
                   {item.description}
                 </Text>
@@ -204,7 +210,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
           <Text style={styles.applyButtonText}>Apply Coordinates</Text>
         </Pressable>
         <Pressable style={styles.mapsButton} onPress={openGoogleMaps}>
-          <Ionicons name="map-outline" size={18} color="#4c6fff" />
+          <Ionicons name="map-outline" size={18} color="#000000" />
           <Text style={styles.mapsButtonText}>Open Maps</Text>
         </Pressable>
       </View>
@@ -320,7 +326,7 @@ const styles = StyleSheet.create({
   },
   applyButton: {
     flex: 1,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
@@ -340,7 +346,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   mapsButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   preview: {

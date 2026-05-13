@@ -5,6 +5,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -15,15 +16,21 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Constants from "expo-constants";
-import { Video, ResizeMode } from "expo-av";
-import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../context/AuthContext";
-import { useSafeNavigation } from "../../hooks/useSafeNavigation";
+
+import { useSocket, useSocketEvent } from "../../context/SocketContext";
 import ShareContent from "../../components/ShareContent";
+import BusinessMap from "../../components/BusinessMap";
+import ChatSection from "../../components/shared/ChatSection";
+import AdaptiveImage from "../../components/AdaptiveImage";
+import AdaptiveVideo from "../../components/AdaptiveVideo";
+import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { 
   ChatMessage, 
   EventItem, 
@@ -36,43 +43,32 @@ import {
   getEventReminders,
   deleteEventReminder,
   EventReminder,
+  EVENT_THEMES,
+  DEFAULT_EVENT_THEME,
+  isUpcomingEvent,
+  toggleSaved,
+  checkSaved,
 } from "../../lib/api";
 
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL;
 
-// Event themes with colors and emojis - matching music genres for parties
-const EVENT_THEMES: Record<string, { emoji: string; label: string; color: string; gradient: string[] }> = {
-  "hip-hop": { emoji: "🎤", label: "Hip Hop", color: "#f59e0b", gradient: ["#f59e0b", "#d97706"] },
-  "rnb": { emoji: "💜", label: "R&B", color: "#8b5cf6", gradient: ["#8b5cf6", "#7c3aed"] },
-  "dance-edm": { emoji: "🎧", label: "Dance / EDM", color: "#06b6d4", gradient: ["#06b6d4", "#0891b2"] },
-  "techno": { emoji: "⚡", label: "Techno", color: "#1f2937", gradient: ["#374151", "#1f2937"] },
-  "latin": { emoji: "💃", label: "Latin", color: "#ef4444", gradient: ["#ef4444", "#dc2626"] },
-  "afrobeat": { emoji: "🌍", label: "Afrobeat", color: "#22c55e", gradient: ["#22c55e", "#16a34a"] },
-  "dancehall": { emoji: "🌴", label: "Dancehall", color: "#eab308", gradient: ["#eab308", "#ca8a04"] },
-  "house": { emoji: "🏠", label: "House", color: "#3b82f6", gradient: ["#3b82f6", "#2563eb"] },
-  "funk-disco": { emoji: "🪩", label: "Funk & Disco", color: "#ec4899", gradient: ["#ec4899", "#db2777"] },
-  "reggaeton": { emoji: "🔥", label: "Reggaeton", color: "#f97316", gradient: ["#f97316", "#ea580c"] },
-  "throwback": { emoji: "📼", label: "Throwback", color: "#a855f7", gradient: ["#a855f7", "#9333ea"] },
-  "trap": { emoji: "🔊", label: "Trap", color: "#991b1b", gradient: ["#b91c1c", "#991b1b"] },
-  "amapiano": { emoji: "🇿🇦", label: "Amapiano", color: "#10b981", gradient: ["#10b981", "#059669"] },
-  "multi-genre": { emoji: "🎶", label: "Multi-Genre", color: "#6366f1", gradient: ["#6366f1", "#4f46e5"] },
-  "tropical": { emoji: "🌺", label: "Tropical", color: "#14b8a6", gradient: ["#14b8a6", "#0d9488"] },
-  "vip-luxury": { emoji: "👑", label: "VIP Night", color: "#d4af37", gradient: ["#d4af37", "#b8860b"] },
-  "festival": { emoji: "🎪", label: "Festival", color: "#f472b6", gradient: ["#f472b6", "#ec4899"] },
-  "greek-music": { emoji: "🇬🇷", label: "Greek Music", color: "#0284c7", gradient: ["#0284c7", "#0369a1"] },
-  "international": { emoji: "🌐", label: "International", color: "#7c3aed", gradient: ["#7c3aed", "#6d28d9"] },
-};
-
-const DEFAULT_THEME = { emoji: "🎉", label: "Event", color: "#8b5cf6", gradient: ["#8b5cf6", "#7c3aed"] };
+const MAPS_API_KEY =
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  "";
 
 export default function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sessionToken, user } = useAuth();
-  const { safeGoBack, router } = useSafeNavigation();
+  const { connected, subscribe, unsubscribe } = useSocket();
+  const router = useRouter();
   const [event, setEvent] = useState<EventItem | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isAttending, setIsAttending] = useState(false);
   const [attendeesCount, setAttendeesCount] = useState(0);
@@ -89,15 +85,28 @@ export default function EventDetailPage() {
   const [loadingChat, setLoadingChat] = useState(false);
   const [showChat, setShowChat] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingItem, setSavingItem] = useState(false);
   const chatScrollRef = useRef<ScrollView>(null);
+
+  // Themed Alert state
+  const [themedAlertVisible, setThemedAlertVisible] = useState(false);
+  const [themedAlertMessage, setThemedAlertMessage] = useState("");
+
+  // Helper to show themed alert
+  const showThemedAlert = (message: string) => {
+    setThemedAlertMessage(message);
+    setThemedAlertVisible(true);
+  };
 
   // Get theme info
   const getTheme = () => {
-    if (!event?.theme) return DEFAULT_THEME;
-    return EVENT_THEMES[event.theme] || DEFAULT_THEME;
+    if (!event?.theme) return DEFAULT_EVENT_THEME;
+    return EVENT_THEMES[event.theme] || DEFAULT_EVENT_THEME;
   };
 
-  const theme = event ? getTheme() : DEFAULT_THEME;
+  const theme = event ? getTheme() : DEFAULT_EVENT_THEME;
+  const isPast = event ? !isUpcomingEvent(event) : false;
 
   useEffect(() => {
     loadEvent();
@@ -105,18 +114,34 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     if (sessionToken && id) {
-      loadChatMessages();
+      loadChatMessages(true);
     }
   }, [sessionToken, id]);
 
-  // Poll for new messages every 5 seconds when chat is open
+  useSocketEvent("channel_message", (data: any) => {
+    if (data.channel === `event:${id}` && data.message) {
+      setChatMessages((prev) => {
+        const exists = prev.some((m) => m.message_id === data.message.message_id);
+        if (exists) return prev;
+        return [...prev, data.message];
+      });
+    }
+  });
+
+  useEffect(() => {
+    if (!id) return;
+    subscribe(`event:${id}`);
+    return () => unsubscribe(`event:${id}`);
+  }, [id, subscribe, unsubscribe]);
+
+  // Poll for new messages — slow when WS connected, slower when disconnected
   useEffect(() => {
     if (!sessionToken || !id || !showChat) return;
     const interval = setInterval(() => {
-      loadChatMessages();
-    }, 5000);
+      loadChatMessages(false);
+    }, connected ? 30000 : 15000);
     return () => clearInterval(interval);
-  }, [sessionToken, id, showChat]);
+  }, [sessionToken, id, showChat, connected]);
 
   const loadEvent = async () => {
     if (!id) return;
@@ -131,24 +156,64 @@ export default function EventDetailPage() {
       }
       setEvent(eventData);
       setAttendeesCount(eventData.attendees_count || 0);
+      if (sessionToken) {
+        try {
+          const { is_saved } = await checkSaved(sessionToken, "event", id);
+          setIsSaved(is_saved);
+        } catch (error) {
+          console.error("Failed to check saved status:", error);
+        }
+      }
     } catch (error) {
       console.error("Failed to load event:", error);
-      Alert.alert(t("common.error"), t("events.eventNotFound"));
+      showThemedAlert(t("events.eventNotFound"));
     }
     setLoading(false);
   };
 
-  const loadChatMessages = async () => {
+  const handleToggleSave = async () => {
+    if (!sessionToken) {
+      Alert.alert(
+        t("common.loginRequired") || "Login Required",
+        t("common.loginToSave") || "Please log in to save items",
+        [
+          { text: t("common.cancel") || "Cancel", style: "cancel" },
+          { text: t("auth.login") || "Login", onPress: () => router.push("/login") },
+        ]
+      );
+      return;
+    }
+    if (!event) return;
+    setSavingItem(true);
+    try {
+      const { is_saved } = await toggleSaved(sessionToken, "event", event.event_id);
+      setIsSaved(is_saved);
+    } catch (error) {
+      console.error("Failed to toggle save:", error);
+      Alert.alert(t("common.error"), t("common.pleaseTryAgain"));
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
+  const loadChatMessages = async (isInitial = false) => {
     if (!sessionToken || !id) return;
-    setLoadingChat(true);
+    if (isInitial) setLoadingChat(true);
     try {
       const messages = await getEventMessages(sessionToken, id);
-      setChatMessages(messages);
-      setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: false }), 100);
+      setChatMessages(prev => {
+        const existingIds = new Set(prev.map(m => m.message_id));
+        const newMsgs = messages.filter(m => !existingIds.has(m.message_id));
+        if (newMsgs.length === 0) return prev;
+        const merged = [...prev, ...newMsgs];
+        merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        return merged;
+      });
+      if (isInitial) setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: false }), 100);
     } catch (error) {
       console.error("Failed to load chat:", error);
     }
-    setLoadingChat(false);
+    if (isInitial) setLoadingChat(false);
   };
 
   const handleSendMessage = async () => {
@@ -161,12 +226,29 @@ export default function EventDetailPage() {
       setChatText("");
       setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (error) {
-      Alert.alert(t("common.error"), t("common.pleaseTryAgain"));
+      showThemedAlert(t("common.pleaseTryAgain"));
     } finally {
       setSendingMessage(false);
     }
   };
 
+  const handleSendMedia = async (mediaUrl: string, mediaType: string) => {
+    if (!sessionToken || !id || sendingMessage) return;
+    setSendingMessage(true);
+    try {
+      const newMsg = await sendEventMessage(sessionToken, id, "", mediaUrl);
+      setChatMessages(prev => [...prev, newMsg]);
+      setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (error) {
+      showThemedAlert(t("common.pleaseTryAgain"));
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  
   const handleToggleAttendance = async () => {
     if (!sessionToken || !id) {
       Alert.alert(
@@ -180,12 +262,30 @@ export default function EventDetailPage() {
       return;
     }
     
+    if (event?.is_private && !isAttending) {
+      setPasswordInput("");
+      setPasswordModalVisible(true);
+      return;
+    }
+    
     try {
       const result = await toggleEventAttendance(sessionToken, id);
       setIsAttending(result.is_attending);
       setAttendeesCount(result.attendees_count);
     } catch (error) {
-      Alert.alert(t("common.error"), t("common.pleaseTryAgain"));
+      showThemedAlert(t("common.pleaseTryAgain"));
+    }
+  };
+
+  const handlePasswordSubmit = async () => {
+    setPasswordModalVisible(false);
+    if (!sessionToken || !id) return;
+    try {
+      const result = await toggleEventAttendance(sessionToken, id, passwordInput);
+      setIsAttending(result.is_attending);
+      setAttendeesCount(result.attendees_count);
+    } catch (error: any) {
+      showThemedAlert(t("common.pleaseTryAgain"));
     }
   };
 
@@ -210,10 +310,7 @@ export default function EventDetailPage() {
   // Toggle reminder
   const handleToggleReminder = async () => {
     if (!sessionToken || !id) {
-      Alert.alert(
-        t("events.loginRequired"),
-        t("events.loginToReminder") || "Please log in to set a reminder"
-      );
+      showThemedAlert(t("events.loginToReminder") || "Please log in to set a reminder");
       return;
     }
 
@@ -251,7 +348,7 @@ export default function EventDetailPage() {
         );
       }
     } catch (error: any) {
-      Alert.alert(t("common.error"), error.message || t("common.pleaseTryAgain"));
+      showThemedAlert(error.message || t("common.pleaseTryAgain"));
     } finally {
       setSettingReminder(false);
     }
@@ -273,12 +370,9 @@ export default function EventDetailPage() {
         created_at: new Date().toISOString(),
         minutes_before: result.minutes_before,
       });
-      Alert.alert(
-        t("events.reminderSet") || "Reminder Set!",
-        t("events.reminderSetDesc") || `We'll notify you ${minutesBefore >= 60 ? `${Math.floor(minutesBefore/60)} hour(s)` : `${minutesBefore} minutes`} before the event`
-      );
+      showThemedAlert(t("events.reminderSetDesc") || `We'll notify you ${minutesBefore >= 60 ? `${Math.floor(minutesBefore/60)} hour(s)` : `${minutesBefore} minutes`} before the event`);
     } catch (error: any) {
-      Alert.alert(t("common.error"), error.message || t("common.pleaseTryAgain"));
+      showThemedAlert(error.message || t("common.pleaseTryAgain"));
     } finally {
       setSettingReminder(false);
     }
@@ -341,6 +435,26 @@ export default function EventDetailPage() {
     Linking.openURL(url);
   };
 
+  const buildEventMediaItems = (evt: any): MediaItem[] => {
+    const items: MediaItem[] = [];
+    if (evt.video_url) items.push({ type: "video", uri: evt.video_url, muxThumbnailUrl: evt.mux_thumbnail_url || undefined, videoStatus: evt.video_status });
+    if (evt.cover_image_url) items.push({ type: "image", uri: evt.cover_image_url });
+    (evt.image_urls || []).forEach((u: string) => items.push({ type: "image", uri: u }));
+    (evt.gallery_images || []).forEach((u: string) => items.push({ type: "image", uri: u }));
+    (evt.gallery_videos || []).forEach((u: string) => items.push({ type: "video", uri: u }));
+    return items;
+  };
+
+  const getMuxThumbnail = (url: string): string | null => {
+    const match = url.match(/stream\.mux\.com\/([a-zA-Z0-9]+)|mux\.com\/([a-zA-Z0-9]+)/);
+    if (match) {
+      const playbackId = match[1] || match[2];
+      return `https://image.mux.com/${playbackId}/thumbnail.jpg`;
+    }
+    return null;
+  };
+
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.centered, { backgroundColor: `${theme.color}10` }]}>
@@ -354,7 +468,7 @@ export default function EventDetailPage() {
       <SafeAreaView style={styles.centered}>
         <Ionicons name="calendar-outline" size={48} color="#9ca3af" />
         <Text style={styles.errorText}>{t("events.eventNotFound")}</Text>
-        <Pressable style={[styles.primaryButton, { backgroundColor: theme.color }]} onPress={safeGoBack}>
+        <Pressable style={[styles.primaryButton, { backgroundColor: theme.color }]} onPress={() => router.back()}>
           <Text style={styles.primaryButtonText}>{t("common.back")}</Text>
         </Pressable>
       </SafeAreaView>
@@ -363,11 +477,23 @@ export default function EventDetailPage() {
 
   const eventDate = new Date(event.start_time);
   const organizer = event.artist?.name || event.business?.name;
-  const hasCoordinates = event.business?.latitude || event.artist?.latitude;
+  const hasCoordinates = !!(event.business?.latitude || event.artist?.latitude);
+  const eventLocation = hasCoordinates ? { latitude: event.business?.latitude || event.artist?.latitude!, longitude: event.business?.longitude || event.artist?.longitude! } : null;
   const themeInfo = getTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: `${themeInfo.color}08` }]} edges={["top"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: "#f5f6fb" }]} edges={["top", "bottom"]}>
+      {/* Themed Alert Modal */}
+      <Modal visible={themedAlertVisible} transparent animationType="fade">
+        <View style={styles.themedAlertOverlay}>
+          <View style={styles.themedAlertContainer}>
+            <Text style={styles.themedAlertMessage}>{themedAlertMessage}</Text>
+            <Pressable style={styles.themedAlertButton} onPress={() => setThemedAlertVisible(false)}>
+              <Text style={styles.themedAlertButtonText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
       <KeyboardAvoidingView 
         style={styles.flex1}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -378,90 +504,120 @@ export default function EventDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Back Button */}
-          <Pressable style={styles.backButton} onPress={safeGoBack}>
-            <Ionicons name="chevron-back" size={20} color={themeInfo.color} />
-            <Text style={[styles.backText, { color: themeInfo.color }]}>{t("common.back")}</Text>
-          </Pressable>
-
-          {/* Event Image/Video with Gradient Overlay */}
+          {/* Event Hero - Full Bleed Immersive */}
           <View style={styles.heroContainer}>
             {event.video_url ? (
-              <Video
-                source={{ uri: event.video_url }}
-                style={styles.heroMedia}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay={true}
-                isLooping={true}
-                isMuted={false}
-                useNativeControls={true}
+              <AdaptiveVideo
+                uri={event.video_url}
+                maxHeight={470}
+                borderRadius={12}
+                autoPlay={true}
+                initialMuted={true}
+                showMuteButton={true}
+                pauseWhenNotVisible={true}
+                videoStatus={event.video_status}
+                muxThumbnailUrl={event.mux_thumbnail_url || undefined}
+                onPress={() => {
+                  const items: MediaItem[] = buildEventMediaItems(event);
+                  const idx = items.findIndex(i => i.uri === event.video_url);
+                  setViewerMedia(items);
+                  setViewerIndex(idx >= 0 ? idx : 0);
+                  setViewerOpen(true);
+                }}
               />
-            ) : event.image_base64 ? (
-              <Image source={{ uri: event.image_base64 }} style={styles.heroMedia} />
+            ) : event.cover_image_url || event.image_urls?.[0] ? (
+              <AdaptiveImage
+                uri={event.cover_image_url || event.image_urls?.[0] || ""}
+                maxHeight={470}
+                borderRadius={12}
+                onPress={() => {
+                  const items: MediaItem[] = buildEventMediaItems(event);
+                  setViewerMedia(items);
+                  setViewerIndex(0);
+                  setViewerOpen(true);
+                }}
+              />
             ) : (
               <LinearGradient
-                colors={themeInfo.gradient}
-                style={styles.heroPlaceholder}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                colors={["#1a1a2e", "#16213e", "#0f3460"]}
+                style={styles.heroMedia}
               >
-                <Text style={styles.heroEmoji}>{themeInfo.emoji}</Text>
+                <View style={styles.heroFallbackIcon}>
+                  <Ionicons name="calendar" size={48} color="rgba(255,255,255,0.3)" />
+                </View>
               </LinearGradient>
             )}
-            
-            {/* Gradient Overlay for text readability */}
-            {(event.video_url || event.image_base64) && (
-              <LinearGradient
-                colors={["transparent", "rgba(0,0,0,0.7)"]}
-                style={styles.heroOverlay}
-              />
-            )}
 
-            {/* Theme Badge */}
-            <View style={styles.badgeRow}>
-              <LinearGradient
-                colors={themeInfo.gradient}
-                style={styles.themeBadge}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Text style={styles.badgeEmoji}>{themeInfo.emoji}</Text>
-                <Text style={styles.badgeText}>{themeInfo.label}</Text>
-              </LinearGradient>
-              
-              {/* Attendees Badge */}
-              <View style={styles.attendeesBadge}>
-                <Ionicons name="people" size={14} color="#fff" />
-                <Text style={styles.attendeesBadgeText}>{attendeesCount}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Event Title & Organizer */}
-          <View style={styles.header}>
-            <Text style={styles.title}>{event.title}</Text>
-            {organizer && (
-              <Pressable 
-                style={styles.organizerRow}
-                onPress={() => {
-                  if (event.artist?.artist_id) {
-                    router.push(`/artist/${event.artist.artist_id}`);
-                  } else if (event.business?.business_id) {
-                    router.push(`/business/${event.business.business_id}`);
-                  }
-                }}
-              >
-                <Text style={styles.organizerText}>{t("events.by")} </Text>
-                <Text style={[styles.organizerName, { color: themeInfo.color }]}>{organizer}</Text>
-                <Ionicons name="chevron-forward" size={16} color={themeInfo.color} />
+            {/* Back Button */}
+            <View style={styles.heroBackButton}>
+              <Pressable style={styles.heroBackPill} onPress={() => router.back()}>
+                <Ionicons name="chevron-back" size={20} color="#fff" />
+                <Text style={styles.heroBackText}>{t("common.back")}</Text>
               </Pressable>
-            )}
+            </View>
+
+            {/* Gradient Overlay + Content */}
+            <LinearGradient
+              colors={["transparent", "transparent", "rgba(0,0,0,0.7)", "rgba(0,0,0,0.9)"]}
+              locations={[0, 0.4, 0.7, 1]}
+              style={styles.heroGradientOverlay}
+            >
+              {/* Badges */}
+              <View style={styles.heroBadgeRow}>
+                {isPast ? (
+                  <View style={styles.heroBadge}>
+                    <Ionicons name="flag" size={12} color="#fff" />
+                    <Text style={styles.heroBadgeText}>{t("events.pastEvent") || "Past Event"}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.heroBadge}>
+                    <Ionicons name="calendar" size={12} color="#fff" />
+                    <Text style={styles.heroBadgeText}>{themeInfo.label}</Text>
+                  </View>
+                )}
+                <View style={styles.heroBadge}>
+                  <Ionicons name="people" size={12} color="#fff" />
+                  <Text style={styles.heroBadgeText}>{attendeesCount}</Text>
+                </View>
+                {event.is_private && (
+                  <View style={styles.heroBadge}>
+                    <Ionicons name="lock-closed" size={12} color="#fff" />
+                  </View>
+                )}
+              </View>
+
+              {/* Title */}
+              <Text style={styles.heroTitle}>{event.title}</Text>
+
+              {/* Organizer */}
+              {organizer && (
+                <Pressable 
+                  style={styles.heroOrganizerRow}
+                  onPress={() => {
+                    if (event.business?.business_id) {
+                      router.push(`/business/${event.business.business_id}`);
+                    }
+                  }}
+                >
+                  {event.business?.logo_image ? (
+                    <Image source={{ uri: event.business.logo_image }} style={styles.heroOrganizerAvatar} />
+                  ) : (
+                    <View style={styles.heroOrganizerAvatarPlaceholder}>
+                      <Ionicons name="business" size={12} color="#fff" />
+                    </View>
+                  )}
+                  <Text style={styles.heroOrganizerText}>{t("events.by")} {organizer}</Text>
+                </Pressable>
+              )}
+            </LinearGradient>
           </View>
 
           {/* Quick Info Cards Row */}
           <View style={styles.quickInfoRow}>
-            <View style={[styles.quickInfoCard, { borderLeftColor: themeInfo.color }]}>
-              <Ionicons name="calendar" size={20} color={themeInfo.color} />
+            <View style={styles.quickInfoCard}>
+              <View style={styles.quickInfoIconContainer}>
+                <Ionicons name="calendar" size={20} color="#fff" />
+              </View>
               <View>
                 <Text style={styles.quickInfoLabel}>{t("events.date")}</Text>
                 <Text style={styles.quickInfoValue}>
@@ -469,8 +625,10 @@ export default function EventDetailPage() {
                 </Text>
               </View>
             </View>
-            <View style={[styles.quickInfoCard, { borderLeftColor: "#f59e0b" }]}>
-              <Ionicons name="time" size={20} color="#f59e0b" />
+            <View style={styles.quickInfoCard}>
+              <View style={styles.quickInfoIconContainer}>
+                <Ionicons name="time" size={20} color="#fff" />
+              </View>
               <View>
                 <Text style={styles.quickInfoLabel}>{t("events.time")}</Text>
                 <Text style={styles.quickInfoValue}>
@@ -484,16 +642,16 @@ export default function EventDetailPage() {
           {event.location && (
             <Pressable style={styles.locationCard} onPress={openMap}>
               <View style={styles.locationIconContainer}>
-                <Ionicons name="location" size={24} color="#ef4444" />
+                <Ionicons name="location" size={24} color="#fff" />
               </View>
               <View style={styles.locationInfo}>
                 <Text style={styles.locationLabel}>{t("events.location")}</Text>
-                <Text style={[styles.locationValue, hasCoordinates && { color: themeInfo.color }]}>
+                <Text style={styles.locationValue}>
                   {event.location}
                 </Text>
               </View>
               {hasCoordinates && (
-                <View style={[styles.mapButton, { backgroundColor: themeInfo.color }]}>
+                <View style={styles.mapButton}>
                   <Ionicons name="navigate" size={18} color="#fff" />
                 </View>
               )}
@@ -501,81 +659,130 @@ export default function EventDetailPage() {
           )}
 
           {/* Map Preview */}
-          {hasCoordinates && (
-            <Pressable style={styles.mapContainer} onPress={openMap}>
-              <Image 
-                source={{ 
-                  uri: `https://maps.googleapis.com/maps/api/staticmap?center=${event.business?.latitude || event.artist?.latitude},${event.business?.longitude || event.artist?.longitude}&zoom=15&size=600x200&maptype=roadmap&markers=color:red%7C${event.business?.latitude || event.artist?.latitude},${event.business?.longitude || event.artist?.longitude}&key=AIzaSyAMr1Se10FOuTAV7YMEpDvWaKunxRWMa-c`
-                }}
-                style={styles.mapImage}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={[`${themeInfo.color}e6`, `${themeInfo.color}cc`]}
-                style={styles.mapOverlay}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
+          {hasCoordinates && eventLocation && (
+            <>
+              <View style={styles.mapContainer}>
+                <BusinessMap
+                  location={eventLocation}
+                  markers={[{ id: "event", latitude: eventLocation.latitude, longitude: eventLocation.longitude, title: event.title, description: event.location || organizer || "" }]}
+                  height={200}
+                  onMarkerPress={() => openMap()}
+                />
+              </View>
+              <Pressable style={[styles.mapOverlay, { backgroundColor: `${"#111827"}e6` }]} onPress={openMap}>
                 <Ionicons name="navigate" size={20} color="#fff" />
                 <Text style={styles.mapOverlayText}>{t("events.openInMaps") || "Open in Maps"}</Text>
-              </LinearGradient>
-            </Pressable>
+              </Pressable>
+            </>
           )}
 
           {/* Description */}
           {event.description && (
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="document-text" size={18} color={themeInfo.color} />
+                <Ionicons name="document-text" size={18} color={"#111827"} />
                 <Text style={styles.cardTitle}>{t("events.description")}</Text>
               </View>
               <Text style={styles.description}>{event.description}</Text>
             </View>
           )}
 
+          {/* Gallery */}
+          {(event.gallery_images?.length || event.gallery_videos?.length) && (
+            <View style={styles.gallerySection}>
+              <Text style={styles.sectionTitle}>{t("events.gallery") || "Gallery"}</Text>
+              <View style={styles.galleryGrid}>
+                {event.gallery_images?.map((uri, idx) => {
+                  const allItems = buildEventMediaItems(event);
+                  const galleryStartIdx = allItems.findIndex(i => i.uri === uri);
+                  return (
+                    <View key={`img-${idx}`} style={styles.galleryItemWrap}>
+                      <AdaptiveImage
+                        uri={uri}
+                        ratio={1}
+                        maxHeight={200}
+                        borderRadius={8}
+                        onPress={() => {
+                          setViewerMedia(allItems);
+                          setViewerIndex(galleryStartIdx >= 0 ? galleryStartIdx : 0);
+                          setViewerOpen(true);
+                        }}
+                      />
+                    </View>
+                  );
+                })}
+                {event.gallery_videos?.map((uri, idx) => {
+                  const allItems = buildEventMediaItems(event);
+                  const vidIdx = allItems.findIndex(i => i.uri === uri);
+                  const thumbnailUrl = getMuxThumbnail(uri);
+                  return (
+                    <View key={`vid-${idx}`} style={styles.galleryItemWrap}>
+                      <Pressable
+                        style={styles.galleryVideoInner}
+                        onPress={() => {
+                          setViewerMedia(allItems);
+                          setViewerIndex(vidIdx >= 0 ? vidIdx : 0);
+                          setViewerOpen(true);
+                        }}
+                      >
+                        <AdaptiveImage
+                          uri={thumbnailUrl || uri || ""}
+                          fallbackColor="#111827"
+                          ratio={1}
+                          maxHeight={200}
+                          borderRadius={8}
+                          showFallbackIcon={false}
+                        />
+                        <View style={styles.videoOverlay}>
+                          <Ionicons name="play-circle" size={32} color="#fff" />
+                        </View>
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           {/* RSVP Section */}
           <View style={styles.rsvpSection}>
             <Text style={styles.sectionTitle}>{t("events.yourResponse") || "Your Response"}</Text>
+            {isPast && (
+              <Text style={styles.pastEventNote}>{t("events.pastEventNote") || "This event has ended."}</Text>
+            )}
             <View style={styles.rsvpButtons}>
-              <Pressable 
-                style={[styles.attendButton, isAttending && { backgroundColor: "#10b981" }]} 
-                onPress={handleToggleAttendance}
+              <Pressable
+                style={[styles.attendButton, isPast && styles.disabledButton]}
+                onPress={isPast ? undefined : handleToggleAttendance}
+                disabled={isPast}
               >
-                <LinearGradient
-                  colors={isAttending ? ["#10b981", "#059669"] : themeInfo.gradient}
-                  style={styles.attendButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
+                <View style={[styles.attendButtonContent, { backgroundColor: "#111827" }]}>
                   <Ionicons 
                     name={isAttending ? "checkmark-circle" : "add-circle-outline"} 
-                    size={24} 
+                    size={20} 
                     color="#fff" 
                   />
                   <Text style={styles.attendButtonText}>
-                    {isAttending ? t("events.imAttending") : t("events.iWillAttend")}
+                    {isAttending ? t("events.attending") : t("events.rsvp")}
                   </Text>
-                  <View style={styles.attendCountBadge}>
-                    <Text style={styles.attendCountText}>{attendeesCount}</Text>
-                  </View>
-                </LinearGradient>
+                </View>
               </Pressable>
               
               {/* Reminder Button */}
-              <Pressable 
-                style={[styles.reminderButton, hasReminder && styles.reminderButtonActive]} 
-                onPress={handleToggleReminder}
-                disabled={settingReminder}
+              <Pressable
+                style={[styles.reminderButton, hasReminder && styles.reminderButtonActive, isPast && styles.disabledButton]}
+                onPress={isPast ? undefined : handleToggleReminder}
+                disabled={settingReminder || isPast}
                 data-testid="event-reminder-btn"
               >
                 {settingReminder ? (
-                  <ActivityIndicator size="small" color={hasReminder ? "#fff" : themeInfo.color} />
+                  <ActivityIndicator size="small" color="#111827" />
                 ) : (
                   <>
                     <Ionicons 
                       name={hasReminder ? "notifications" : "notifications-outline"} 
                       size={22} 
-                      color={hasReminder ? "#fff" : themeInfo.color} 
+                      color="#111827" 
                     />
                     <Text style={[styles.reminderButtonText, hasReminder && styles.reminderButtonTextActive]}>
                       {hasReminder ? t("events.reminded") || "Reminded" : t("events.remindMe") || "Remind"}
@@ -589,19 +796,24 @@ export default function EventDetailPage() {
           {/* Share Section */}
           <View style={styles.shareSection}>
             <Text style={styles.sectionTitle}>{t("events.inviteFriends")}</Text>
-            <View style={styles.shareButtons}>
-              <Pressable style={styles.whatsappButton} onPress={shareToWhatsApp}>
-                <Ionicons name="logo-whatsapp" size={24} color="#fff" />
-                <Text style={styles.shareButtonText}>WhatsApp</Text>
+            <View style={styles.shareActions}>
+              <Pressable style={styles.shareAction} onPress={shareToWhatsApp}>
+                <View style={styles.shareActionIconWrap}>
+                  <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                </View>
+                <Text style={styles.shareActionLabel}>WhatsApp</Text>
               </Pressable>
-              <Pressable 
-                style={[styles.shareButton, { borderColor: themeInfo.color, backgroundColor: `${themeInfo.color}15` }]} 
-                onPress={() => setShowShareModal(true)}
-              >
-                <Ionicons name="share-outline" size={24} color={themeInfo.color} />
-                <Text style={[styles.shareButtonTextSecondary, { color: themeInfo.color }]}>
-                  {t("events.share")}
-                </Text>
+              <Pressable style={styles.shareAction} onPress={() => setShowShareModal(true)}>
+                <View style={styles.shareActionIconWrap}>
+                  <Ionicons name="share-outline" size={20} color={COLORS.primary} />
+                </View>
+                <Text style={styles.shareActionLabel}>{t("events.share")}</Text>
+              </Pressable>
+              <Pressable style={styles.shareAction} onPress={handleToggleSave} disabled={savingItem}>
+                <View style={styles.shareActionIconWrap}>
+                  <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={20} color={isSaved ? COLORS.gold : COLORS.primary} />
+                </View>
+                <Text style={styles.shareActionLabel}>{isSaved ? t("common.saved") : t("events.save", "Save")}</Text>
               </Pressable>
             </View>
           </View>
@@ -613,166 +825,67 @@ export default function EventDetailPage() {
             contentType="event"
             contentId={event.event_id}
             title={event.title}
-            description={event.description}
-            imageUrl={event.image_base64}
+            description={event.description || undefined}
+            imageUrl={event.cover_image_url || event.image_urls?.[0] || undefined}
             extraData={{
-              location: event.location,
+              location: event.location || undefined,
               date: new Date(event.start_time).toLocaleDateString(),
               organizerName: organizer,
             }}
           />
 
+          <LazyMediaViewer
+            visible={viewerOpen}
+            media={viewerMedia}
+            initialIndex={viewerIndex}
+            onClose={() => setViewerOpen(false)}
+          />
+
           {/* Chat Section */}
-          {sessionToken && (
-            <View style={styles.chatSection}>
-              <Pressable 
-                style={styles.chatHeader}
-                onPress={() => setShowChat(!showChat)}
-              >
-                <View style={[styles.chatIconContainer, { backgroundColor: `${themeInfo.color}15` }]}>
-                  <Ionicons name="chatbubbles" size={22} color={themeInfo.color} />
-                </View>
-                <View style={styles.chatHeaderInfo}>
-                  <Text style={styles.chatTitle}>{t("events.chat") || "Event Chat"}</Text>
-                  <Text style={styles.chatSubtitle}>
-                    {chatMessages.length} {t("events.messages") || "messages"}
-                  </Text>
-                </View>
-                <View style={styles.chatToggle}>
-                  <Ionicons 
-                    name={showChat ? "chevron-up" : "chevron-down"} 
-                    size={20} 
-                    color="#6b7280" 
-                  />
-                </View>
-              </Pressable>
-              
-              {showChat && (
-                <>
-                  <ScrollView 
-                    ref={chatScrollRef}
-                    style={styles.chatMessages}
-                    nestedScrollEnabled={true}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {loadingChat ? (
-                      <ActivityIndicator size="small" color={themeInfo.color} style={{ marginVertical: 20 }} />
-                    ) : chatMessages.length === 0 ? (
-                      <View style={styles.emptyChat}>
-                        <View style={[styles.emptyChatIcon, { backgroundColor: `${themeInfo.color}15` }]}>
-                          <Ionicons name="chatbubbles-outline" size={32} color={themeInfo.color} />
-                        </View>
-                        <Text style={styles.emptyChatText}>
-                          {t("events.noChatMessages") || "No messages yet"}
-                        </Text>
-                        <Text style={styles.emptyChatSubtext}>
-                          {t("events.startConversation") || "Be the first to say hi!"}
-                        </Text>
-                      </View>
-                    ) : (
-                      chatMessages.map((msg) => {
-                        const isMe = msg.user_id === user?.user_id || msg.from_user_id === user?.user_id;
-                        const senderId = msg.user_id || msg.from_user_id;
-                        return (
-                          <View 
-                            key={msg.message_id} 
-                            style={[styles.chatBubble, isMe ? styles.chatBubbleMe : styles.chatBubbleOther]}
-                          >
-                            {!isMe && msg.user_name && (
-                              <Pressable 
-                                onPress={() => router.push(`/user/${senderId}`)}
-                                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                              >
-                                <Text style={[styles.chatBubbleName, { color: themeInfo.color }]}>
-                                  {msg.user_name}
-                                </Text>
-                              </Pressable>
-                            )}
-                            {isMe ? (
-                              <LinearGradient
-                                colors={themeInfo.gradient}
-                                style={styles.chatBubbleMeGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                              >
-                                <Text style={styles.chatBubbleTextMe}>{msg.text}</Text>
-                                <Text style={styles.chatBubbleTimeMe}>
-                                  {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </Text>
-                              </LinearGradient>
-                            ) : (
-                              <>
-                                <Text style={styles.chatBubbleText}>{msg.text}</Text>
-                                <Text style={styles.chatBubbleTime}>
-                                  {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </Text>
-                              </>
-                            )}
-                          </View>
-                        );
-                      })
-                    )}
-                  </ScrollView>
-                  
-                  <View style={styles.chatInputContainer}>
-                    <TextInput
-                      style={styles.chatInput}
-                      placeholder={t("events.typeMessage") || "Type a message..."}
-                      placeholderTextColor="#9ca3af"
-                      value={chatText}
-                      onChangeText={setChatText}
-                      multiline
-                      maxLength={500}
-                    />
-                    <Pressable 
-                      style={[styles.chatSendBtn, (!chatText.trim() || sendingMessage) && styles.chatSendBtnDisabled]}
-                      onPress={handleSendMessage}
-                      disabled={!chatText.trim() || sendingMessage}
-                    >
-                      <LinearGradient
-                        colors={themeInfo.gradient}
-                        style={styles.chatSendBtnGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                      >
-                        {sendingMessage ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <Ionicons name="send" size={18} color="#fff" />
-                        )}
-                      </LinearGradient>
-                    </Pressable>
-                  </View>
-                </>
-              )}
-            </View>
-          )}
-          
-          {/* Login prompt for chat if not authenticated */}
-          {!sessionToken && (
-            <View style={styles.loginPrompt}>
-              <View style={[styles.loginPromptIcon, { backgroundColor: `${themeInfo.color}15` }]}>
-                <Ionicons name="chatbubbles-outline" size={28} color={themeInfo.color} />
-              </View>
-              <Text style={styles.loginPromptText}>
-                {t("events.loginToChat") || "Log in to join the conversation"}
-              </Text>
-              <Pressable 
-                style={styles.loginButton} 
-                onPress={() => router.push("/login")}
-              >
-                <LinearGradient
-                  colors={themeInfo.gradient}
-                  style={styles.loginButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={styles.loginButtonText}>{t("auth.login")}</Text>
-                </LinearGradient>
-              </Pressable>
-            </View>
-          )}
+          <ChatSection
+            title={event.title}
+            messages={chatMessages}
+            loadingChat={loadingChat}
+            chatText={chatText}
+            onChatTextChange={setChatText}
+            onSendMessage={handleSendMessage}
+            onSendMedia={handleSendMedia}
+            sendingMessage={sendingMessage}
+            userId={user?.user_id}
+            themeColor={COLORS.eventAccent}
+            collapsible={true}
+            chatType="event"
+            chatId={event.event_id}
+            showLoginPrompt={!sessionToken}
+            onLoginPress={() => router.push("/login")}
+          />
         </ScrollView>
+
+        {/* Password Modal for Private Events */}
+        <Modal visible={passwordModalVisible} transparent animationType="fade">
+          <View style={styles.passwordModalOverlay}>
+            <View style={styles.passwordModalContent}>
+              <Text style={styles.passwordModalTitle}>{t("business.private")}</Text>
+              <Text style={styles.passwordModalHint}>{t("business.privateHint")}</Text>
+              <TextInput
+                style={styles.passwordModalInput}
+                value={passwordInput}
+                onChangeText={setPasswordInput}
+                placeholder={t("business.passwordPlaceholder")}
+                secureTextEntry
+                autoFocus
+              />
+              <View style={styles.passwordModalButtons}>
+                <Pressable style={styles.passwordModalCancel} onPress={() => setPasswordModalVisible(false)}>
+                  <Text style={styles.passwordModalCancelText}>{t("common.cancel")}</Text>
+                </Pressable>
+                <Pressable style={styles.passwordModalSubmit} onPress={handlePasswordSubmit}>
+                  <Text style={styles.passwordModalSubmitText}>{t("events.rsvp")}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -793,7 +906,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   backButton: {
     flexDirection: "row",
@@ -805,96 +918,102 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: "500",
   },
-  // Hero Section
+  // Hero Section - Full Bleed Immersive
   heroContainer: {
     width: "100%",
-    height: 240,
-    borderRadius: 20,
+    maxHeight: 470,
     overflow: "hidden",
-    marginBottom: 20,
-    position: "relative",
+    marginBottom: 0,
   },
   heroMedia: {
     width: "100%",
-    height: "100%",
+    maxHeight: 470,
+    resizeMode: "cover",
   },
-  heroPlaceholder: {
-    width: "100%",
-    height: "100%",
+  heroFallbackIcon: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  heroEmoji: {
-    fontSize: 72,
+  heroBackButton: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    zIndex: 10,
   },
-  heroOverlay: {
+  heroBackPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 2,
+  },
+  heroBackText: {
+    color: COLORS.background,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  heroGradientOverlay: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: "50%",
+    height: 180,
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 40,
   },
-  badgeRow: {
-    position: "absolute",
-    top: 16,
-    left: 16,
-    right: 16,
+  heroBadgeRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  themeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 24,
-    gap: 6,
-  },
-  badgeEmoji: {
-    fontSize: 16,
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  attendeesBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
-  },
-  attendeesBadgeText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  // Header
-  header: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#111827",
+    gap: 8,
     marginBottom: 8,
-    letterSpacing: -0.5,
   },
-  organizerRow: {
+  heroBadge: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
   },
-  organizerText: {
-    fontSize: 16,
-    color: "#6b7280",
-  },
-  organizerName: {
-    fontSize: 16,
+  heroBadgeText: {
+    color: COLORS.background,
+    fontSize: 11,
     fontWeight: "600",
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.background,
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  heroOrganizerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  heroOrganizerAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+  },
+  heroOrganizerAvatarPlaceholder: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroOrganizerText: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.85)",
+    fontWeight: "500",
   },
   // Quick Info Cards
   quickInfoRow: {
@@ -906,35 +1025,42 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 14,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
     padding: 14,
     gap: 12,
-    borderLeftWidth: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
+  quickInfoIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: COLORS.eventAccent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   quickInfoLabel: {
     fontSize: 11,
-    color: "#9ca3af",
+    color: COLORS.textDisabled,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   quickInfoValue: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.primary,
   },
   // Location Card
   locationCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    padding: 14,
     marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -943,20 +1069,20 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   locationIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "#fef2f2",
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: COLORS.eventAccent,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
+    marginRight: 10,
   },
   locationInfo: {
     flex: 1,
   },
   locationLabel: {
     fontSize: 11,
-    color: "#9ca3af",
+    color: COLORS.textDisabled,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 2,
@@ -964,12 +1090,13 @@ const styles = StyleSheet.create({
   locationValue: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.primary,
   },
   mapButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -996,13 +1123,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   mapOverlayText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 14,
     fontWeight: "600",
   },
   // Card
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
@@ -1021,22 +1148,33 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.primary,
   },
   description: {
     fontSize: 15,
     color: "#4b5563",
     lineHeight: 24,
   },
-  // RSVP Section
-  rsvpSection: {
-    marginBottom: 16,
-  },
   sectionTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.primary,
     marginBottom: 12,
+  },
+  rsvpSection: {
+    padding: 16,
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  pastEventNote: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginBottom: 12,
+    fontStyle: "italic",
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   rsvpButtons: {
     flexDirection: "row",
@@ -1044,8 +1182,16 @@ const styles = StyleSheet.create({
   },
   attendButton: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 8,
     overflow: "hidden",
+  },
+  attendButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    gap: 8,
+    borderRadius: 8,
   },
   attendButtonGradient: {
     flexDirection: "row",
@@ -1055,7 +1201,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   attendButtonText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 15,
     fontWeight: "700",
   },
@@ -1066,7 +1212,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   attendCountText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -1080,25 +1226,25 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#f3f4f6",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.border,
   },
   reminderButtonActive: {
-    backgroundColor: "#f59e0b",
-    borderColor: "#f59e0b",
+    backgroundColor: COLORS.warning,
+    borderColor: COLORS.warning,
   },
   reminderButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#6b7280",
+    color: COLORS.textMuted,
   },
   reminderButtonTextActive: {
-    color: "#fff",
+    color: COLORS.background,
   },
   // Share Section
   shareSection: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 18,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    padding: 16,
     marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -1106,43 +1252,36 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  shareButtons: {
+  shareActions: {
     flexDirection: "row",
-    gap: 12,
+    justifyContent: "space-around",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 4,
   },
-  whatsappButton: {
+  shareAction: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 4,
     flex: 1,
-    flexDirection: "row",
+  },
+  shareActionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary + "15",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#25D366",
-    paddingVertical: 14,
-    borderRadius: 14,
-    gap: 8,
   },
-  shareButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 2,
-    gap: 8,
-  },
-  shareButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  shareButtonTextSecondary: {
-    fontSize: 15,
-    fontWeight: "600",
+  shareActionLabel: {
+    fontSize: 11,
+    color: COLORS.textMuted || COLORS.textSecondary || "#6b7280",
+    textAlign: "center",
   },
   // Chat Section
   chatSection: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
     overflow: "hidden",
     marginBottom: 16,
     shadowColor: "#000",
@@ -1159,12 +1298,13 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f3f4f6",
   },
   chatIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: COLORS.eventAccent,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 8,
   },
   chatHeaderInfo: {
     flex: 1,
@@ -1172,18 +1312,18 @@ const styles = StyleSheet.create({
   chatTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.primary,
   },
   chatSubtitle: {
     fontSize: 13,
-    color: "#9ca3af",
+    color: COLORS.textDisabled,
     marginTop: 2,
   },
   chatToggle: {
     padding: 4,
   },
   chatMessages: {
-    maxHeight: 320,
+    maxHeight: 400,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -1203,11 +1343,11 @@ const styles = StyleSheet.create({
   emptyChatText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#374151",
+    color: COLORS.textSecondary,
   },
   emptyChatSubtext: {
     fontSize: 14,
-    color: "#9ca3af",
+    color: COLORS.textDisabled,
   },
   chatBubble: {
     maxWidth: "80%",
@@ -1235,15 +1375,15 @@ const styles = StyleSheet.create({
   },
   chatBubbleText: {
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.primary,
   },
   chatBubbleTextMe: {
     fontSize: 15,
-    color: "#fff",
+    color: COLORS.background,
   },
   chatBubbleTime: {
     fontSize: 11,
-    color: "#9ca3af",
+    color: COLORS.textDisabled,
     marginTop: 4,
     alignSelf: "flex-end",
   },
@@ -1269,7 +1409,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     maxHeight: 100,
-    color: "#111827",
+    color: COLORS.primary,
   },
   chatSendBtn: {
     width: 46,
@@ -1288,7 +1428,7 @@ const styles = StyleSheet.create({
   },
   // Login Prompt
   loginPrompt: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderRadius: 20,
     padding: 24,
     alignItems: "center",
@@ -1310,7 +1450,7 @@ const styles = StyleSheet.create({
   },
   loginPromptText: {
     fontSize: 15,
-    color: "#6b7280",
+    color: COLORS.textMuted,
     textAlign: "center",
   },
   loginButton: {
@@ -1323,25 +1463,188 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   loginButtonText: {
-    color: "#fff",
+    color: COLORS.background,
     fontWeight: "700",
     fontSize: 15,
   },
   // Error state
   errorText: {
     fontSize: 16,
-    color: "#6b7280",
+    color: COLORS.textMuted,
     marginTop: 12,
     marginBottom: 20,
   },
   primaryButton: {
     paddingVertical: 14,
     paddingHorizontal: 28,
-    borderRadius: 14,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
   },
   primaryButtonText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 16,
     fontWeight: "700",
+  },
+  // Themed Alert Styles
+  themedAlertOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  themedAlertContainer: {
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 320,
+    alignItems: "center",
+  },
+  themedAlertMessage: {
+    fontSize: 16,
+    color: COLORS.primary,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  themedAlertButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    width: "100%",
+    alignItems: "center",
+  },
+  themedAlertButtonText: {
+    color: COLORS.background,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  gallerySection: {
+    marginTop: 12,
+    paddingHorizontal: 12,
+  },
+  galleryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  galleryItem: {
+    width: "31%",
+    aspectRatio: 1,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  galleryImage: {
+    width: "100%",
+    height: "100%",
+  },
+  videoOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  galleryItemWrap: {
+    position: "relative",
+    width: "31%",
+    aspectRatio: 1,
+  },
+  galleryVideoInner: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+    overflow: "hidden",
+    position: "relative",
+  },
+  galleryRemoveBtn: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    zIndex: 5,
+  },
+  galleryAddBtn: {
+    width: "31%",
+    aspectRatio: 1,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderStyle: "dashed",
+    backgroundColor: COLORS.backgroundPage,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: SPACING.xs,
+  },
+  galleryAddText: {
+    fontSize: FONT_SIZES.micro,
+    color: COLORS.textSecondary,
+    fontWeight: "500" as const,
+  },
+
+  passwordModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  passwordModalContent: {
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    padding: 24,
+    width: "85%",
+  },
+  passwordModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  passwordModalHint: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginBottom: 16,
+  },
+  passwordModalInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: COLORS.primary,
+    marginBottom: 16,
+  },
+  passwordModalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  passwordModalCancel: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  passwordModalCancelText: {
+    color: COLORS.textSecondary,
+    fontWeight: "600",
+  },
+  passwordModalSubmit: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+  },
+  passwordModalSubmitText: {
+    color: COLORS.background,
+    fontWeight: "600",
   },
 });

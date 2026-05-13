@@ -43,16 +43,16 @@ export default function FanGallerySection({ posts, onViewMedia, onHidePost }: Pr
                 </View>
               ) : null}
               <View style={styles.fanGalleryAuthorBadge}>
-                {(post.author.profile_photo || post.author.picture) ? (
-                  <Image
-                    source={{ uri: (post.author.profile_photo || post.author.picture) as string }}
-                    style={styles.fanGalleryAuthorImage}
-                  />
-                ) : (
-                  <Text style={styles.fanGalleryAuthorText}>
-                    {post.author.name?.charAt(0).toUpperCase()}
-                  </Text>
-                )}
+                {(post.author?.profile_photo || post.author?.picture) ? (
+                    <Image
+                      source={{ uri: (post.author?.profile_photo || post.author?.picture) as string }}
+                      style={styles.fanGalleryAuthorImage}
+                    />
+                  ) : (
+                    <Text style={styles.fanGalleryAuthorText}>
+                      {post.author?.name?.charAt(0).toUpperCase()}
+                    </Text>
+                  )}
               </View>
               <Pressable
                 style={styles.fanGalleryHideBtn}

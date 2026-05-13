@@ -100,7 +100,7 @@ export default function ShareUserPage() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#4c6fff" />
+        <ActivityIndicator size="large" color="#000000" />
       </View>
     );
   }
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 24, paddingTop: 20 },
   logo: { width: 40, height: 40, borderRadius: 10 },
-  brandName: { fontSize: 24, fontWeight: "700", color: "#4c6fff", marginLeft: 10 },
+  brandName: { fontSize: 24, fontWeight: "700", color: "#000000", marginLeft: 10 },
   errorCard: { backgroundColor: "#fff", borderRadius: 16, padding: 32, alignItems: "center", margin: 20 },
   errorTitle: { fontSize: 18, fontWeight: "600", color: "#111827", marginTop: 16, marginBottom: 8 },
   errorText: { fontSize: 14, color: "#6b7280", textAlign: "center", marginBottom: 24 },
@@ -221,10 +221,10 @@ const styles = StyleSheet.create({
   ctaSection: { marginTop: 24, alignItems: "center" },
   ctaTitle: { fontSize: 18, fontWeight: "600", color: "#111827", marginBottom: 8, textAlign: "center" },
   ctaText: { fontSize: 14, color: "#6b7280", textAlign: "center", marginBottom: 20 },
-  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#4c6fff", paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, gap: 8, width: "100%", maxWidth: 300 },
+  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#000000", paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, gap: 8, width: "100%", maxWidth: 300 },
   primaryButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   secondaryButton: { marginTop: 12, paddingVertical: 12, paddingHorizontal: 24 },
-  secondaryButtonText: { color: "#4c6fff", fontSize: 14, fontWeight: "600" },
+  secondaryButtonText: { color: "#000000", fontSize: 14, fontWeight: "600" },
   footer: { marginTop: 40, alignItems: "center" },
   footerText: { fontSize: 12, color: "#9ca3af" },
 });

@@ -8,42 +8,35 @@ import {
   Pressable,
   ActivityIndicator,
   TextInput,
+  Alert,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeNavigation } from "../../hooks/useSafeNavigation";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
-import { Video, ResizeMode } from "expo-av";
-
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL + "/api";
-
-interface PostData {
-  post_id: string;
-  user_id: string;
-  user_name?: string;
-  user_avatar?: string;
-  text?: string;
-  media_url?: string;
-  media_type?: string;
-  likes: any[];
-  comments: any[];
-  created_at: string;
-}
+import { getPosts, togglePostLike, addPostComment, Post, PostComment, toggleSaved, checkSaved } from "../../lib/api";
+import { COLORS } from "../../lib/designTokens";
+import { CommentSection } from "../../components/CommentSection";
+import AdaptiveVideo from "../../components/AdaptiveVideo";
+import AdaptiveImage from "../../components/AdaptiveImage";
+import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 
 export default function PostDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { sessionToken, user } = useAuth();
-  const { safeGoBackToHome, router } = useSafeNavigation();
+  const { sessionToken, user, activeIdentity } = useAuth();
+  const router = useRouter();
   const { t } = useTranslation();
-  
-  const [post, setPost] = useState<PostData | null>(null);
+
+  const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
-  const [newComment, setNewComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingItem, setSavingItem] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   useEffect(() => {
     if (id) {
@@ -53,18 +46,22 @@ export default function PostDetail() {
 
   const loadPost = async () => {
     if (!sessionToken || !id) return;
-    
+
     try {
-      const response = await fetch(`${API_BASE}/posts/${id}`, {
-        headers: { Authorization: `Bearer ${sessionToken}` },
-      });
+      const posts = await getPosts(sessionToken, undefined, undefined, undefined, 1, 0);
+      const found = posts.find(p => p.post_id === id);
+      if (found) setPost(found);
       
-      if (response.ok) {
-        const data = await response.json();
-        setPost(data);
+      if (sessionToken && id) {
+        try {
+          const { is_saved } = await checkSaved(sessionToken, "post", id);
+          setIsSaved(is_saved);
+        } catch (e) {
+          console.log("Check saved failed:", e);
+        }
       }
     } catch (error) {
-      console.log("Failed to load post:", error);
+      console.error("Failed to load post:", error);
     } finally {
       setLoading(false);
     }
@@ -72,43 +69,45 @@ export default function PostDetail() {
 
   const handleLike = async () => {
     if (!sessionToken || !post) return;
-    
+
+    const wasLiked = post.liked_by_me;
+    setPost(prev => prev ? { ...prev, liked_by_me: !wasLiked, likes_count: wasLiked ? prev.likes_count - 1 : prev.likes_count + 1 } : prev);
+
     try {
-      await fetch(`${API_BASE}/posts/${post.post_id}/like`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${sessionToken}` },
-      });
-      loadPost();
+      const actor = activeIdentity?.type && activeIdentity.type !== 'user'
+        ? { type: activeIdentity.type, id: activeIdentity.id }
+        : undefined;
+      await togglePostLike(sessionToken, post.post_id, actor);
     } catch (error) {
-      console.log("Failed to like:", error);
+      console.error("Failed to like:", error);
+      setPost(prev => prev ? { ...prev, liked_by_me: wasLiked, likes_count: wasLiked ? prev.likes_count + 1 : prev.likes_count - 1 } : prev);
     }
   };
 
-  const handleComment = async () => {
-    if (!sessionToken || !post || !newComment.trim()) return;
-    
-    setSubmitting(true);
+  const handleToggleSave = async () => {
+    if (!sessionToken) {
+      Alert.alert(
+        t("common.loginRequired") || "Login Required",
+        t("common.loginToSave") || "Please log in to save items",
+        [
+          { text: t("common.cancel") || "Cancel", style: "cancel" },
+          { text: t("auth.login") || "Login", onPress: () => router.push("/login") },
+        ]
+      );
+      return;
+    }
+    if (!post) return;
+    setSavingItem(true);
     try {
-      await fetch(`${API_BASE}/posts/${post.post_id}/comment`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${sessionToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text: newComment.trim() }),
-      });
-      setNewComment("");
-      loadPost();
+      const { is_saved } = await toggleSaved(sessionToken, "post", post.post_id);
+      setIsSaved(is_saved);
     } catch (error) {
-      console.log("Failed to comment:", error);
+      console.error("Failed to toggle save:", error);
+      Alert.alert(t("common.error"), t("common.pleaseTryAgain"));
     } finally {
-      setSubmitting(false);
+      setSavingItem(false);
     }
   };
-
-  const isLiked = post?.likes?.some(
-    (like: any) => (typeof like === "string" ? like : like.actor_id) === user?.user_id
-  );
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -118,7 +117,7 @@ export default function PostDetail() {
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return "just now";
+    if (diffMins < 1) return t("common.justNow") || "just now";
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
@@ -128,32 +127,35 @@ export default function PostDetail() {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer} edges={['top']}>
-        <ActivityIndicator size="large" color="#4c6fff" />
+        <ActivityIndicator size="large" color="#000000" />
       </SafeAreaView>
     );
   }
 
   if (!post) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <Pressable onPress={safeGoBackToHome} style={styles.backButton}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </Pressable>
           <Text style={styles.headerTitle}>Post</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Post not found</Text>
+          <Text style={styles.errorText}>{t("post.notFound") || "Post not found"}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  const displayName = post.actor_name || post.author?.name || "User";
+  const displayAvatar = post.actor_avatar || post.author?.profile_photo || post.author?.picture;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={safeGoBackToHome} style={styles.backButton}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </Pressable>
         <Text style={styles.headerTitle}>Post</Text>
@@ -165,112 +167,112 @@ export default function PostDetail() {
         style={{ flex: 1 }}
       >
         <ScrollView style={styles.content}>
-          {/* Post Author */}
           <Pressable
             style={styles.authorRow}
-            onPress={() => router.push(`/user/${post.user_id}`)}
+            onPress={() => {
+              if (post.actor_type === 'business' && post.actor_id) {
+                router.push(`/business/${post.actor_id}`);
+              } else if (post.actor_type === 'artist' && post.actor_id) {
+                router.push(`/user/${post.actor_id}`);
+              } else {
+                router.push(`/user/${post.user_id}`);
+              }
+            }}
           >
-            {post.user_avatar ? (
-              <Image source={{ uri: post.user_avatar }} style={styles.avatar} />
+            {displayAvatar ? (
+              <Image source={{ uri: displayAvatar }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarText}>
-                  {(post.user_name || "U").charAt(0).toUpperCase()}
+                  {displayName.charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
             <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>{post.user_name || "User"}</Text>
+              <Text style={styles.authorName}>{displayName}</Text>
               <Text style={styles.postTime}>{formatTime(post.created_at)}</Text>
             </View>
           </Pressable>
 
-          {/* Post Content */}
           {post.text && <Text style={styles.postText}>{post.text}</Text>}
 
-          {/* Post Media */}
-          {post.media_url && post.media_type === "image" && (
-            <Image source={{ uri: post.media_url }} style={styles.postImage} />
-          )}
-          {post.media_url && post.media_type === "video" && (
-            <Video
-              source={{ uri: post.media_url }}
-              style={styles.postVideo}
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
+          {post.video_url ? (
+            <View style={styles.postVideoContainer}>
+              <AdaptiveVideo
+                uri={post.video_url}
+                style={styles.postVideo}
+                autoPlay={true}
+                showMuteButton={true}
+                initialMuted={true}
+                pauseWhenNotVisible={true}
+                ratio={post.media_ratio || undefined}
+                maxHeight={600}
+                borderRadius={8}
+                videoStatus={post.video_status}
+                muxThumbnailUrl={post.mux_thumbnail_url || undefined}
+                onPress={() => {
+                  const items: MediaItem[] = [];
+                  if (post.video_url) items.push({ type: "video", uri: post.video_url, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
+                  if (post.image_url) items.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
+                  setViewerMedia(items);
+                  setViewerIndex(0);
+                  setViewerOpen(true);
+                }}
+              />
+            </View>
+          ) : post.image_url ? (
+            <AdaptiveImage
+              uri={post.image_url}
+              ratio={post.media_ratio || undefined}
+              maxHeight={600}
+              borderRadius={8}
+              style={styles.postImage}
+              onPress={() => {
+                const items: MediaItem[] = [];
+                if (post.image_url) items.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
+                if (post.video_url) items.push({ type: "video", uri: post.video_url, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
+                setViewerMedia(items);
+                setViewerIndex(0);
+                setViewerOpen(true);
+              }}
             />
-          )}
+          ) : null}
 
-          {/* Like & Comment Counts */}
           <View style={styles.statsRow}>
             <Pressable style={styles.statButton} onPress={handleLike}>
               <Ionicons
-                name={isLiked ? "heart" : "heart-outline"}
+                name={post.liked_by_me ? "heart" : "heart-outline"}
                 size={24}
-                color={isLiked ? "#ef4444" : "#6b7280"}
+                color={post.liked_by_me ? "#ef4444" : "#6b7280"}
               />
-              <Text style={styles.statText}>{post.likes?.length || 0}</Text>
+              <Text style={styles.statText}>{post.likes_count || 0}</Text>
             </Pressable>
             <View style={styles.statButton}>
               <Ionicons name="chatbubble-outline" size={22} color="#6b7280" />
-              <Text style={styles.statText}>{post.comments?.length || 0}</Text>
+              <Text style={styles.statText}>{post.comments_count || 0}</Text>
             </View>
+            <Pressable style={styles.statButton} onPress={handleToggleSave} disabled={savingItem}>
+              <Ionicons
+                name={isSaved ? "bookmark" : "bookmark-outline"}
+                size={24}
+                color={isSaved ? COLORS.gold : "#6b7280"}
+              />
+              <Text style={[styles.statText, isSaved && { color: COLORS.gold }]}>
+                {isSaved ? (t("common.saved") || "Saved") : (t("common.save") || "Save")}
+              </Text>
+            </Pressable>
           </View>
 
-          {/* Comments Section */}
-          <View style={styles.commentsSection}>
-            <Text style={styles.commentsTitle}>
-              {t("common.comments")} ({post.comments?.length || 0})
-            </Text>
-            
-            {post.comments?.map((comment: any, index: number) => (
-              <View key={comment.comment_id || index} style={styles.commentItem}>
-                <Pressable onPress={() => router.push(`/user/${comment.user_id}`)}>
-                  {comment.user_avatar ? (
-                    <Image source={{ uri: comment.user_avatar }} style={styles.commentAvatar} />
-                  ) : (
-                    <View style={styles.commentAvatarPlaceholder}>
-                      <Text style={styles.commentAvatarText}>
-                        {(comment.user_name || "U").charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                </Pressable>
-                <View style={styles.commentContent}>
-                  <Text style={styles.commentAuthor}>{comment.user_name || "User"}</Text>
-                  <Text style={styles.commentText}>{comment.text}</Text>
-                  <Text style={styles.commentTime}>
-                    {comment.created_at ? formatTime(comment.created_at) : ""}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
+          <CommentSection postId={post.post_id} />
         </ScrollView>
-
-        {/* Comment Input */}
-        <View style={styles.commentInputContainer}>
-          <TextInput
-            style={styles.commentInput}
-            placeholder={t("home.addComment")}
-            placeholderTextColor="#9ca3af"
-            value={newComment}
-            onChangeText={setNewComment}
-            multiline
-          />
-          <Pressable
-            style={[styles.sendButton, !newComment.trim() && styles.sendButtonDisabled]}
-            onPress={handleComment}
-            disabled={!newComment.trim() || submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={20} color="#fff" />
-            )}
-          </Pressable>
-        </View>
       </KeyboardAvoidingView>
+
+      <LazyMediaViewer
+        visible={viewerOpen}
+        media={viewerMedia}
+        initialIndex={viewerIndex}
+        onClose={() => setViewerOpen(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -278,13 +280,13 @@ export default function PostDetail() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#f5f6fb",
   },
   loadingContainer: {
     flex: 1,
+    backgroundColor: "#f5f6fb",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
   },
   header: {
     flexDirection: "row",
@@ -338,7 +340,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#4c6fff",
+    color: "#000000",
   },
   authorInfo: {
     marginLeft: 12,
@@ -361,14 +363,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: "#fff",
   },
-  postImage: {
+postImage: {
     width: "100%",
-    height: 300,
-    resizeMode: "cover",
+    borderRadius: 8,
+  },
+  postVideoContainer: {
+    width: "100%",
+    maxHeight: 600,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#000",
   },
   postVideo: {
     width: "100%",
-    height: 300,
   },
   statsRow: {
     flexDirection: "row",
@@ -387,91 +394,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#6b7280",
     fontWeight: "500",
-  },
-  commentsSection: {
-    backgroundColor: "#fff",
-    marginTop: 8,
-    paddingVertical: 16,
-  },
-  commentsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  commentItem: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  commentAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  commentAvatarPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#e0e7ff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  commentAvatarText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#4c6fff",
-  },
-  commentContent: {
-    flex: 1,
-    marginLeft: 10,
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
-    padding: 10,
-  },
-  commentAuthor: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  commentText: {
-    fontSize: 14,
-    color: "#374151",
-    marginTop: 2,
-  },
-  commentTime: {
-    fontSize: 11,
-    color: "#9ca3af",
-    marginTop: 4,
-  },
-  commentInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    gap: 10,
-  },
-  commentInput: {
-    flex: 1,
-    backgroundColor: "#f3f4f6",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    maxHeight: 100,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#4c6fff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  sendButtonDisabled: {
-    backgroundColor: "#9ca3af",
   },
 });

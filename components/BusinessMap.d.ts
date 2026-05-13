@@ -1,4 +1,4 @@
-import { Business } from "../lib/api";
+import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental } from "../lib/api";
 
 type MapMarker = {
   id: string;
@@ -8,6 +8,7 @@ type MapMarker = {
   description?: string;
   isOpen?: boolean;
   pinColor?: string;
+  type?: "business" | "event" | "activity" | "artist" | "job" | "rental";
 };
 
 type MapBounds = {
@@ -15,16 +16,26 @@ type MapBounds = {
   maxLat: number;
   minLng: number;
   maxLng: number;
+  centerLat?: number;
+  centerLng?: number;
 };
 
 type Props = {
   location: { latitude: number; longitude: number };
   businesses?: Business[];
+  events?: EventItem[];
+  activities?: ActivityItem[];
+  artists?: ArtistSearchResult[];
+  rentals?: Rental[];
   markers?: MapMarker[];
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;
+  onRegionChangeComplete?: (bounds: MapBounds) => void;
   onMarkerPress?: (markerId: string) => void;
+  onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;
+  disabled?: boolean;
+  disabledHint?: string;
 };
 
 declare const BusinessMap: React.FC<Props>;

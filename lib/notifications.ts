@@ -43,7 +43,7 @@ export async function initializeNotificationChannels() {
       importance: Notifications.AndroidImportance.HIGH,
       sound: "default",
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#4c6fff",
+      lightColor: "#16a34a",
       enableVibrate: true,
       enableLights: true,
       showBadge: true,

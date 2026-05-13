@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -13,15 +14,16 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, usePathname } from "expo-router";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
-import { Video, ResizeMode, Audio } from "expo-av";
+import { Audio } from "expo-av";
 import { useAuth } from "../../../context/AuthContext";
 import { useBadge } from "../../../context/BadgeContext";
 import { useNotifications } from "../../../context/NotificationContext";
+import { useSocket, useSocketEvent } from "../../../context/SocketContext";
 import { 
   getMessagesWith, 
   sendMessage, 
@@ -33,17 +35,132 @@ import {
   getTypingStatus,
   sendMediaMessage,
   uploadMedia,
+  uploadVideoToMux,
 } from "../../../lib/api";
-import { useSafeNavigation } from "../../../hooks/useSafeNavigation";
+import AdaptiveVideo from "../../../components/AdaptiveVideo";
+
+import {
+  COLORS,
+  SPACING,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  BORDER_RADIUS,
+  SHADOWS,
+  ICON_SIZES,
+} from "../../../lib/designTokens";
+
+function TypingDots({ name, t }: { name: string; t: (key: string) => string }) {
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const animate = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+        ])
+      );
+    const a1 = animate(dot1, 0);
+    const a2 = animate(dot2, 200);
+    const a3 = animate(dot3, 400);
+    a1.start();
+    a2.start();
+    a3.start();
+    return () => { a1.stop(); a2.stop(); a3.stop(); };
+  }, [dot1, dot2, dot3]);
+
+  return (
+    <View style={styles.typingBubble}>
+      <Text style={styles.typingName}>{name}</Text>
+      <View style={styles.typingDotsRow}>
+        <Animated.View style={[styles.typingDot, { opacity: dot1 }]} />
+        <Animated.View style={[styles.typingDot, { opacity: dot2 }]} />
+        <Animated.View style={[styles.typingDot, { opacity: dot3 }]} />
+      </View>
+    </View>
+  );
+}
+
+function DateSeparator({ dateStr }: { dateStr: string }) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  let label: string;
+  if (diffDays === 0) label = "Today";
+  else if (diffDays === 1) label = "Yesterday";
+  else label = date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+
+  return (
+    <View style={styles.dateSeparator}>
+      <View style={styles.dateLine} />
+      <Text style={styles.dateText}>{label}</Text>
+      <View style={styles.dateLine} />
+    </View>
+  );
+}
+
+function VoiceMessageBubble({ uri, isMine }: { uri: string; isMine: boolean }) {
+  const soundRef = useRef<any>(null);
+  const [playing, setPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [position, setPosition] = useState(0);
+
+  const playSound = async () => {
+    try {
+      if (playing && soundRef.current) {
+        await soundRef.current.stopAsync();
+        setPlaying(false);
+        setPosition(0);
+        return;
+      }
+      const { sound } = await Audio.Sound.createAsync({ uri });
+      soundRef.current = sound;
+      sound.setOnPlaybackStatusUpdate((status: any) => {
+        if (status.isLoaded) {
+          setDuration(status.durationMillis / 1000);
+          setPosition(status.positionMillis / 1000);
+          if (status.didJustFinish) {
+            setPlaying(false);
+            setPosition(0);
+          }
+        }
+      });
+      await sound.playAsync();
+      setPlaying(true);
+    } catch (e) {
+      console.warn("Voice playback failed:", e);
+    }
+  };
+
+  useEffect(() => {
+    return () => { soundRef.current?.unloadAsync(); };
+  }, []);
+
+  const fmtTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
+
+  return (
+    <Pressable style={[styles.voiceBubble, isMine && styles.voiceBubbleMine]} onPress={playSound}>
+      <Ionicons name={playing ? "pause" : "play"} size={18} color={isMine ? "#fff" : COLORS.textPrimary} />
+      <View style={styles.voiceWaveform}>
+        <View style={[styles.voiceProgress, { flex: duration > 0 ? position / duration : 0 }, isMine && styles.voiceProgressMine]} />
+      </View>
+      <Text style={[styles.voiceDuration, isMine && styles.voiceDurationMine]}>{fmtTime(duration || position)}</Text>
+    </Pressable>
+  );
+}
 
 export default function ChatScreen() {
   const { t } = useTranslation();
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
   const pathname = usePathname();
-  const { safeGoBackToMessages, router } = useSafeNavigation();
+  const router = useRouter();
   const { sessionToken, user } = useAuth();
   const { refreshUnreadCount } = useBadge();
   const { showLocalNotification } = useNotifications();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -115,20 +232,36 @@ export default function ChatScreen() {
     loadMessages().finally(() => setLoading(false));
   }, [loadMessages, sessionToken, id]);
 
-  // Poll for new messages every 5 seconds and typing status every 2 seconds
+  // Use WebSocket for real-time updates, fallback to polling when disconnected
+  const { connected: wsConnected } = useSocket();
+
+  useSocketEvent("new_message", useCallback((data: any) => {
+    if (data?.message && (data.message.from_user_id === id || data.message.to_user_id === id)) {
+      loadMessages();
+    }
+  }, [id, loadMessages]));
+
+  useSocketEvent("typing_indicator", useCallback((data: any) => {
+    if (data?.from_user_id === id) {
+      setOtherUserTyping(data.is_typing);
+    }
+  }, [id]));
+
   useEffect(() => {
     if (!sessionToken || !id) return;
-    const messageInterval = setInterval(() => {
-      loadMessages();
-    }, 5000);
-    const typingInterval = setInterval(() => {
-      checkTypingStatus();
-    }, 2000);
-    return () => {
-      clearInterval(messageInterval);
-      clearInterval(typingInterval);
-    };
-  }, [sessionToken, id, loadMessages, checkTypingStatus]);
+    if (!wsConnected) {
+      const messageInterval = setInterval(() => {
+        loadMessages();
+      }, 5000);
+      const typingInterval = setInterval(() => {
+        checkTypingStatus();
+      }, 2000);
+      return () => {
+        clearInterval(messageInterval);
+        clearInterval(typingInterval);
+      };
+    }
+  }, [sessionToken, id, wsConnected, loadMessages, checkTypingStatus]);
 
   // Handle typing indicator
   const handleTextChange = (value: string) => {
@@ -139,7 +272,7 @@ export default function ChatScreen() {
     if (sessionToken && id && value.trim()) {
       if (!isTyping) {
         setIsTyping(true);
-        setTypingStatus(sessionToken, id, true).catch(() => {});
+        setTypingStatus(sessionToken, id, true).catch(e => console.warn("Typing status failed:", e));
       }
       
       // Clear existing timeout
@@ -151,7 +284,7 @@ export default function ChatScreen() {
       typingTimeoutRef.current = setTimeout(() => {
         setIsTyping(false);
         if (sessionToken && id) {
-          setTypingStatus(sessionToken, id, false).catch(() => {});
+          setTypingStatus(sessionToken, id, false).catch(e => console.warn("Typing status failed:", e));
         }
       }, 3000);
     }
@@ -164,7 +297,7 @@ export default function ChatScreen() {
         clearTimeout(typingTimeoutRef.current);
       }
       if (sessionToken && id) {
-        setTypingStatus(sessionToken, id, false).catch(() => {});
+        setTypingStatus(sessionToken, id, false).catch(e => console.warn("Typing status cleanup failed:", e));
       }
     };
   }, [sessionToken, id]);
@@ -190,13 +323,27 @@ export default function ChatScreen() {
         quality: 0.8,
       });
       
-      if (!result.canceled && result.assets?.[0]?.uri) {
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
         setUploadingMedia(true);
         try {
-          // Upload media first
-          const mediaUrl = await uploadMedia(sessionToken, result.assets[0].uri, mediaType);
-          
-          // Send media message
+          let mediaUrl = "";
+
+          if (mediaType === "video") {
+            const muxResult = await uploadVideoToMux(sessionToken, result.assets[0].uri);
+
+            if (muxResult.status === "ready" && muxResult.playback_url) {
+              mediaUrl = muxResult.playback_url;
+            } else if (muxResult.mux_playback_id) {
+              mediaUrl = `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8`;
+            } else if (muxResult.mux_asset_id) {
+              mediaUrl = `https://stream.mux.com/${muxResult.mux_asset_id}.m3u8`;
+            } else {
+              throw new Error("Video upload failed. Please try again.");
+            }
+          } else {
+            mediaUrl = await uploadMedia(sessionToken, result.assets[0].uri, mediaType);
+          }
+
           const newMessage = await sendMediaMessage(sessionToken, id, mediaUrl, mediaType, text.trim() || undefined);
           setMessages([...messages, newMessage]);
           setText("");
@@ -219,7 +366,7 @@ export default function ChatScreen() {
       setErrorMessage("");
       // Clear typing status
       setIsTyping(false);
-      setTypingStatus(sessionToken, id, false).catch(() => {});
+      setTypingStatus(sessionToken, id, false).catch(e => console.warn("Typing status failed:", e));
       
       const newMessage = await sendMessage(sessionToken, {
         to_user_id: id,
@@ -354,7 +501,7 @@ export default function ChatScreen() {
         clearInterval(recordingTimerRef.current);
       }
       if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current.stopAndUnloadAsync().catch(e => console.warn("Recording cleanup failed:", e));
       }
     };
   }, []);
@@ -427,112 +574,117 @@ export default function ChatScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
     >
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <View style={styles.header}>
-        <Pressable onPress={safeGoBackToMessages} style={styles.headerButton}>
-          <Ionicons name="chevron-back" size={22} color="#111827" />
+        <Pressable onPress={() => router.back()} style={styles.headerButton}>
+          <Ionicons name="chevron-back" size={ICON_SIZES.interactive} color={COLORS.textPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{name || t("messages.chat")}</Text>
         </View>
-        <View style={styles.headerActions}>
-          <Pressable 
-            style={styles.headerIcon}
-            onPress={() => router.push({
-              pathname: "/call",
-              params: { userId: id, userName: name, callType: "voice", mode: "outgoing" }
-            })}
-          >
-            <Ionicons name="call-outline" size={20} color="#4c6fff" />
-          </Pressable>
-          <Pressable 
-            style={styles.headerIcon}
-            onPress={() => router.push({
-              pathname: "/call",
-              params: { userId: id, userName: name, callType: "video", mode: "outgoing" }
-            })}
-          >
-            <Ionicons name="videocam-outline" size={20} color="#4c6fff" />
-          </Pressable>
-        </View>
+        {id !== user?.user_id && (
+          <View style={styles.headerActions}>
+            <Pressable
+              style={styles.headerIcon}
+              onPress={() => router.push({
+                pathname: "/call",
+                params: { userId: id, userName: name, callType: "voice", mode: "outgoing" }
+              })}
+            >
+              <Ionicons name="call-outline" size={20} color={COLORS.textPrimary} />
+            </Pressable>
+            <Pressable
+              style={styles.headerIcon}
+              onPress={() => router.push({
+                pathname: "/call",
+                params: { userId: id, userName: name, callType: "video", mode: "outgoing" }
+              })}
+            >
+              <Ionicons name="videocam-outline" size={20} color={COLORS.textPrimary} />
+            </Pressable>
+          </View>
+        )}
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4c6fff" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       ) : (
-        <ScrollView style={styles.chat} contentContainerStyle={{ padding: 16 }}>
+        <ScrollView style={styles.chat} contentContainerStyle={styles.chatContent}>
           {messages.length === 0 ? (
             <Text style={styles.emptyText}>{t("messages.noMessagesYet")}</Text>
           ) : (
-            messages.map((message: any) => {
+            messages.map((message: any, index: number) => {
               const isMine = message.from_user_id === user?.user_id;
               const hasMedia = message.media_url;
+              const showDate = index === 0 || (() => {
+                const prev = new Date(messages[index - 1].created_at).toDateString();
+                const curr = new Date(message.created_at).toDateString();
+                return prev !== curr;
+              })();
+
               return (
-                <Pressable
-                  key={message.message_id}
-                  onLongPress={() => handleLongPress(message)}
-                  style={[
-                    styles.messageBubble,
-                    isMine ? styles.myBubble : styles.theirBubble,
-                    hasMedia && styles.mediaBubble,
-                  ]}
-                >
-                  {/* Media content */}
-                  {hasMedia && message.media_type === "image" && (
-                    <Image 
-                      source={{ uri: message.media_url }} 
-                      style={styles.messageImage}
-                      resizeMode="cover"
-                    />
-                  )}
-                  {hasMedia && message.media_type === "video" && (
-                    <Video
-                      source={{ uri: message.media_url }}
-                      style={styles.messageVideo}
-                      resizeMode={ResizeMode.COVER}
-                      useNativeControls
-                      isLooping={false}
-                    />
-                  )}
-                  {/* Text content */}
-                  {message.text && (
-                    <Text style={[styles.messageText, isMine && styles.myText]}>
-                      {message.text}
-                    </Text>
-                  )}
-                  <View style={styles.messageFooter}>
-                    <Text style={[styles.messageTime, isMine && styles.myTimeText]}>
-                      {new Date(message.created_at).toLocaleTimeString()}
-                    </Text>
-                    {message.edited_at && (
-                      <Text style={[styles.editedLabel, isMine && styles.myTimeText]}>
-                        {t("messages.edited")}
+                <View key={message.message_id}>
+                  {showDate && <DateSeparator dateStr={message.created_at} />}
+                  <Pressable
+                    onLongPress={() => handleLongPress(message)}
+                    style={[
+                      styles.messageBubble,
+                      isMine ? styles.myBubble : styles.theirBubble,
+                    ]}
+                  >
+                    {hasMedia && message.media_type === "image" && (
+                      <Image 
+                        source={{ uri: message.media_url }} 
+                        style={styles.messageImage}
+                        resizeMode="cover"
+                      />
+                    )}
+                    {hasMedia && message.media_type === "video" && (
+                      <AdaptiveVideo
+                        uri={message.media_url}
+                        style={styles.messageVideo}
+                        useNativeControls
+                        isLooping={false}
+                      />
+                    )}
+                    {hasMedia && message.media_type === "audio" && (
+                      <VoiceMessageBubble uri={message.media_url} isMine={isMine} />
+                    )}
+                    {message.text && (
+                      <Text style={[styles.messageText, isMine && styles.myText]}>
+                        {message.text}
                       </Text>
                     )}
-                    {/* Read receipt indicator for sent messages */}
-                    {isMine && (
-                      <View style={styles.readReceipt}>
-                        <Ionicons 
-                          name={message.read ? "checkmark-done" : "checkmark"} 
-                          size={14} 
-                          color={message.read ? "#34d399" : "#9ca3af"} 
-                        />
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
+                    <View style={styles.messageFooter}>
+                      <Text style={[styles.messageTime, isMine && styles.myTimeText]}>
+                        {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </Text>
+                      {message.edited_at && (
+                        <Text style={[styles.editedLabel, isMine && styles.myTimeText]}>
+                          {t("messages.edited")}
+                        </Text>
+                      )}
+                      {isMine && (
+                        <View style={styles.readReceipt}>
+                          <Ionicons 
+                            name={message.read ? "checkmark-done" : "checkmark"} 
+                            size={14} 
+                            color={message.read ? COLORS.success : COLORS.textDisabled} 
+                          />
+                        </View>
+                      )}
+                    </View>
+                  </Pressable>
+                </View>
               );
             })
           )}
-          {/* Typing indicator */}
           {otherUserTyping && (
-            <View style={styles.typingIndicator}>
-              <Text style={styles.typingText}>{name || t("messages.user")} {t("messages.isTyping") || "is typing"}...</Text>
-            </View>
+            <TypingDots name={name || t("messages.user")} t={t} />
           )}
         </ScrollView>
       )}
@@ -540,8 +692,8 @@ export default function ChatScreen() {
       {/* Uploading media indicator */}
       {uploadingMedia && (
         <View style={styles.uploadingBar}>
-          <ActivityIndicator size="small" color="#4c6fff" />
-          <Text style={styles.uploadingText}>{t("messages.uploadingMedia") || "Uploading..."}</Text>
+          <ActivityIndicator size="small" color={COLORS.primary} />
+          <Text style={styles.uploadingText}>{t("messages.uploadingMedia") || "Uploading/Processing..."}</Text>
         </View>
       )}
 
@@ -565,21 +717,20 @@ export default function ChatScreen() {
       )}
 
       {!isRecording && (
-        <View style={styles.inputBar}>
-          {/* Media buttons */}
+        <View style={[styles.inputBar, { paddingBottom: 52 + insets.bottom }]}>
           <Pressable
             style={styles.mediaButton}
             onPress={() => handlePickMedia("image")}
             disabled={uploadingMedia}
           >
-            <Ionicons name="image-outline" size={22} color="#6b7280" />
+            <Ionicons name="image-outline" size={ICON_SIZES.interactive} color={COLORS.textMuted} />
           </Pressable>
           <Pressable
             style={styles.mediaButton}
             onPress={() => handlePickMedia("video")}
             disabled={uploadingMedia}
           >
-            <Ionicons name="videocam-outline" size={22} color="#6b7280" />
+            <Ionicons name="videocam-outline" size={ICON_SIZES.interactive} color={COLORS.textMuted} />
           </Pressable>
           
           <TextInput
@@ -587,9 +738,10 @@ export default function ChatScreen() {
             value={text}
             onChangeText={handleTextChange}
             style={styles.input}
+            multiline
+            placeholderTextColor={COLORS.textDisabled}
           />
           
-          {/* Show Mic button when text is empty, Send button when text exists */}
           {text.trim().length === 0 ? (
             <Pressable
               style={styles.voiceButton}
@@ -597,7 +749,7 @@ export default function ChatScreen() {
               disabled={uploadingMedia}
               data-testid="chat-voice-btn"
             >
-              <Ionicons name="mic" size={22} color="#4c6fff" />
+              <Ionicons name="mic" size={ICON_SIZES.interactive} color={COLORS.textPrimary} />
             </Pressable>
           ) : (
             <Pressable
@@ -668,46 +820,41 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: "#fff",
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.md,
+    backgroundColor: COLORS.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#eef2f7",
+    borderBottomColor: COLORS.border,
   },
   headerButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: SPACING.xl,
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: "#9ca3af",
-    marginTop: 2,
+    fontSize: FONT_SIZES.h4,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.textPrimary,
   },
   headerActions: {
     flexDirection: "row",
-    gap: 8,
+    gap: SPACING.sm,
   },
   headerIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -719,166 +866,189 @@ const styles = StyleSheet.create({
   chat: {
     flex: 1,
   },
+  chatContent: {
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+  },
   emptyText: {
-    color: "#9ca3af",
+    color: COLORS.textDisabled,
     textAlign: "center",
     marginTop: 40,
+    fontSize: FONT_SIZES.bodySmall,
+  },
+  dateSeparator: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: SPACING.md,
+    gap: SPACING.md,
+  },
+  dateLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dateText: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textMuted,
+    fontWeight: FONT_WEIGHTS.medium as any,
   },
   messageBubble: {
     maxWidth: "75%",
-    padding: 12,
-    borderRadius: 14,
-    marginBottom: 12,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    marginBottom: SPACING.md,
+    overflow: "hidden",
   },
   myBubble: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: COLORS.primary,
     alignSelf: "flex-end",
+    borderBottomRightRadius: 4,
   },
   theirBubble: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     alignSelf: "flex-start",
+    borderBottomLeftRadius: 4,
+    ...SHADOWS.subtle,
   },
   messageText: {
-    color: "#111827",
-    fontSize: 14,
+    color: COLORS.textPrimary,
+    fontSize: FONT_SIZES.bodySmall,
+    lineHeight: 20,
   },
   myText: {
     color: "#fff",
   },
   messageTime: {
-    fontSize: 10,
-    color: "#9ca3af",
+    fontSize: FONT_SIZES.micro,
+    color: COLORS.textDisabled,
   },
   messageFooter: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
-    gap: 6,
+    marginTop: SPACING.xs,
+    gap: SPACING.md,
   },
   myTimeText: {
     color: "rgba(255, 255, 255, 0.7)",
   },
   editedLabel: {
-    fontSize: 10,
-    color: "#9ca3af",
+    fontSize: FONT_SIZES.micro,
+    color: COLORS.textDisabled,
     fontStyle: "italic",
   },
   readReceipt: {
-    marginLeft: 4,
+    marginLeft: SPACING.xs,
   },
   inputBar: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    paddingBottom: 4,
-    backgroundColor: "#fff",
+    alignItems: "flex-end",
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.background,
     borderTopWidth: 1,
-    borderTopColor: "#eef2f7",
+    borderTopColor: COLORS.border,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    fontSize: 14,
-    color: "#111827",
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    fontSize: FONT_SIZES.bodySmall,
+    color: COLORS.textPrimary,
+    maxHeight: 80,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#4c6fff",
+    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   errorText: {
-    color: "#ef4444",
+    color: COLORS.danger,
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: SPACING.md,
+    fontSize: FONT_SIZES.caption,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.5,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: SPACING.xxl,
   },
   editModal: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: COLORS.background,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.xxl,
     width: "100%",
     maxWidth: 400,
   },
   editModalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 16,
+    fontSize: FONT_SIZES.h3,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.xl,
     textAlign: "center",
   },
   editInput: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 14,
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    fontSize: FONT_SIZES.bodySmall,
     minHeight: 80,
     textAlignVertical: "top",
+    color: COLORS.textPrimary,
   },
   editModalActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 12,
-    marginTop: 16,
+    gap: SPACING.md,
+    marginTop: SPACING.xl,
   },
   editCancelButton: {
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.xl,
   },
   editCancelText: {
-    color: "#6b7280",
-    fontWeight: "500",
+    color: COLORS.textMuted,
+    fontWeight: FONT_WEIGHTS.medium as any,
   },
   editSaveButton: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: COLORS.primary,
     paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    paddingHorizontal: SPACING.xxl,
+    borderRadius: BORDER_RADIUS.sm,
   },
   editSaveText: {
     color: "#fff",
-    fontWeight: "600",
-  },
-  // Media message styles
-  mediaBubble: {
-    padding: 4,
-    maxWidth: "75%",
+    fontWeight: FONT_WEIGHTS.semibold as any,
   },
   messageImage: {
     width: 200,
     height: 200,
-    borderRadius: 12,
-    marginBottom: 4,
+    borderRadius: BORDER_RADIUS.md,
+    marginBottom: SPACING.xs,
   },
   messageVideo: {
     width: 200,
     height: 150,
-    borderRadius: 12,
-    marginBottom: 4,
+    borderRadius: BORDER_RADIUS.md,
+    marginBottom: SPACING.xs,
   },
   mediaButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -886,79 +1056,123 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#eff6ff",
+    backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
     justifyContent: "center",
   },
-  hiddenButton: {
-    width: 0,
-    height: 0,
-    opacity: 0,
+  typingBubble: {
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.background,
+    borderRadius: BORDER_RADIUS.lg,
+    borderBottomLeftRadius: 4,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    marginBottom: SPACING.md,
+    ...SHADOWS.subtle,
+  },
+  typingName: {
+    fontSize: FONT_SIZES.micro,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.xs,
+  },
+  typingDotsRow: {
+    flexDirection: "row",
+    gap: SPACING.xs,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.textMuted,
+  },
+  voiceBubble: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+    backgroundColor: COLORS.backgroundPage,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    minWidth: 140,
+  },
+  voiceBubbleMine: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  voiceWaveform: {
+    flex: 1,
+    height: 4,
+    backgroundColor: "rgba(0,0,0,0.1)",
+    borderRadius: 2,
     overflow: "hidden",
   },
-  typingIndicator: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  voiceProgress: {
+    height: "100%",
+    backgroundColor: COLORS.textMuted,
+    borderRadius: 2,
   },
-  typingText: {
-    fontSize: 12,
-    color: "#6b7280",
-    fontStyle: "italic",
+  voiceProgressMine: {
+    backgroundColor: "rgba(255,255,255,0.5)",
+  },
+  voiceDuration: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textMuted,
+  },
+  voiceDurationMine: {
+    color: "rgba(255,255,255,0.7)",
   },
   uploadingBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
-    gap: 8,
-    backgroundColor: "#f0f4ff",
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
+    backgroundColor: COLORS.backgroundPage,
   },
   uploadingText: {
-    fontSize: 12,
-    color: "#4c6fff",
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textPrimary,
   },
-  // Voice recording styles
   recordingBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#fef2f2",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: COLORS.dangerLight,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
     borderTopWidth: 1,
-    borderTopColor: "#fecaca",
+    borderTopColor: COLORS.errorLight,
   },
   recordingIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: SPACING.sm,
   },
   recordingDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#ef4444",
+    backgroundColor: COLORS.danger,
   },
   recordingText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#ef4444",
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.danger,
   },
   recordingDuration: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginLeft: 8,
+    fontSize: FONT_SIZES.bodySmall,
+    color: COLORS.textMuted,
+    marginLeft: SPACING.sm,
   },
   recordingActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: SPACING.md,
   },
   cancelRecordButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#fee2e2",
+    backgroundColor: COLORS.dangerLight,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -966,7 +1180,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#4c6fff",
+    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },

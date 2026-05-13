@@ -14,6 +14,8 @@ import { useTranslation } from "react-i18next";
 import { ActivityItemType, getActivityFeed, markNotificationsRead } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useBadge } from "../context/BadgeContext";
+import { useNotifications } from "../context/NotificationContext";
+import { useSocket, useSocketEvent } from "../context/SocketContext";
 
 interface NotificationBarProps {
   onExpand?: () => void;
@@ -49,9 +51,9 @@ const getActivityColor = (type: string): string => {
     case "friend_request":
       return "#f59e0b";
     case "event":
-      return "#8b5cf6";
+      return "#FF6B6B";
     case "post":
-      return "#6366f1";
+      return "#FFD700";
     default:
       return "#6b7280";
   }
@@ -95,7 +97,9 @@ const getTranslatedMessage = (activity: ActivityItemType, t: any): string => {
 export default function NotificationBar({ onExpand }: NotificationBarProps) {
   const { t } = useTranslation();
   const { sessionToken } = useAuth();
+  const { connected } = useSocket();
   const { clearActivityCount } = useBadge();
+  const { clearAll } = useNotifications();
   const router = useRouter();
   const [activities, setActivities] = useState<ActivityItemType[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -104,11 +108,15 @@ export default function NotificationBar({ onExpand }: NotificationBarProps) {
   const animatedHeight = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  useSocketEvent("notification", () => {
+    loadActivities();
+  });
+
   useEffect(() => {
     loadActivities();
-    const interval = setInterval(loadActivities, 30000); // Refresh every 30s
+    const interval = setInterval(loadActivities, connected ? 60000 : 30000);
     return () => clearInterval(interval);
-  }, [sessionToken]);
+  }, [sessionToken, connected]);
 
   useEffect(() => {
     if (unreadCount > 0) {
@@ -178,18 +186,15 @@ export default function NotificationBar({ onExpand }: NotificationBarProps) {
     console.log("Notification clicked:", activity.type, activity.target_type, activity.target_id, activity.actor_id);
     
     if (activity.type === "like" || activity.type === "comment") {
-      // For likes/comments, go to the specific post
       if (activity.target_id) {
         router.push(`/post/${activity.target_id}`);
       } else {
-        router.push("/(tabs)/home");
+        router.navigate("/(tabs)/home" as any);
       }
     } else if (activity.type === "friend_request" && activity.actor_id) {
-      // Navigate to the person who sent the friend request
-      router.push(`/user/${activity.actor_id}`);
+      router.push(activity.actor_type === 'business' ? `/business/${activity.actor_id}` : `/user/${activity.actor_id}`);
     } else if (activity.type === "friend" && activity.actor_id) {
-      // Navigate to the new friend's profile
-      router.push(`/user/${activity.actor_id}`);
+      router.push(activity.actor_type === 'business' ? `/business/${activity.actor_id}` : `/user/${activity.actor_id}`);
     } else if (activity.target_type === "user" && activity.target_id) {
       router.push(`/user/${activity.target_id}`);
     } else if (activity.target_type === "post" && activity.target_id) {
@@ -197,10 +202,15 @@ export default function NotificationBar({ onExpand }: NotificationBarProps) {
     } else if (activity.target_type === "event" && activity.target_id) {
       router.push(`/event/${activity.target_id}`);
     } else if (activity.target_type === "activity" && activity.target_id) {
-      router.push("/(tabs)/activities");
+      router.push("/activities");
     } else if (activity.actor_id) {
-      // Fallback: navigate to the actor's profile
-      router.push(`/user/${activity.actor_id}`);
+      if (activity.actor_type === 'business') {
+        router.push(`/business/${activity.actor_id}`);
+      } else if (activity.actor_type === 'artist') {
+        router.push(`/user/${activity.actor_id}`);
+      } else {
+        router.push(`/user/${activity.actor_id}`);
+      }
     }
   };
 
@@ -239,7 +249,7 @@ export default function NotificationBar({ onExpand }: NotificationBarProps) {
       <View style={styles.emptyContainer}>
         <View style={styles.emptyContent}>
           <View style={styles.iconContainer}>
-            <Ionicons name="notifications-outline" size={18} color="#4c6fff" />
+            <Ionicons name="notifications-outline" size={18} color="#000000" />
           </View>
           <Text style={styles.emptyText}>{t("notifications.noActivity")}</Text>
         </View>
@@ -249,7 +259,7 @@ export default function NotificationBar({ onExpand }: NotificationBarProps) {
 
   const expandedHeight = animatedHeight.interpolate({
     inputRange: [0, 1],
-    outputRange: [56, Math.min(activities.length * 70 + 70, 350)],
+    outputRange: [56, Math.min(activities.length * 72 + 80, 400)],
   });
 
   return (
@@ -258,7 +268,7 @@ export default function NotificationBar({ onExpand }: NotificationBarProps) {
       <Pressable style={styles.headerBar} onPress={handleExpand}>
         <View style={styles.headerLeft}>
           <View style={styles.bellContainer}>
-            <Ionicons name="notifications" size={18} color="#4c6fff" />
+            <Ionicons name="notifications" size={18} color="#000000" />
             {unreadCount > 0 && (
               <Animated.View
                 style={[styles.badge, { transform: [{ scale: pulseAnim }] }]}
@@ -294,7 +304,20 @@ export default function NotificationBar({ onExpand }: NotificationBarProps) {
           )}
           
           {expanded && (
-            <Text style={styles.headerTitle}>{t("notifications.recent")}</Text>
+            <View style={styles.headerTitleRow}>
+              <Text style={styles.headerTitle}>{t("notifications.recent")}</Text>
+              <Pressable
+                onPress={async () => {
+                  await clearAll();
+                  setActivities([]);
+                  setUnreadCount(0);
+                  clearActivityCount();
+                }}
+                hitSlop={8}
+              >
+                <Text style={styles.clearAllText}>{t("common.clearAll") || "Clear all"}</Text>
+              </Pressable>
+            </View>
           )}
         </View>
         
@@ -441,6 +464,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#111827",
   },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flex: 1,
+  },
+  clearAllText: {
+    fontSize: 12,
+    color: "#ef4444",
+    fontWeight: "600",
+  },
   activityList: {
     paddingHorizontal: 10,
     paddingBottom: 8,
@@ -473,7 +507,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#4c6fff",
+    color: "#000000",
   },
   iconBadge: {
     position: "absolute",

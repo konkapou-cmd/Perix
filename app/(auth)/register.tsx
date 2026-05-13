@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { LANGUAGES, setStoredLanguage } from "../../i18n";
+import CityAutocompleteInput from "../../components/CityAutocompleteInput";
 
 export default function RegisterScreen() {
   const { t, i18n } = useTranslation();
@@ -28,9 +29,13 @@ export default function RegisterScreen() {
       router.replace("/(tabs)/home");
     }
   }, [user, router]);
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [city, setCity] = useState("");
+  const [cityLat, setCityLat] = useState<number | undefined>(undefined);
+  const [cityLng, setCityLng] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
@@ -42,15 +47,33 @@ export default function RegisterScreen() {
     setLanguageModalVisible(false);
   };
 
+  const handleCitySelect = (cityName: string, lat: number, lng: number) => {
+    setCityLat(lat || undefined);
+    setCityLng(lng || undefined);
+  };
+
   const handleRegister = async () => {
-    if (!name || !email || !password) return;
+    if (!firstName || !lastName || !email || !password || !city) return;
+    if (password.length < 4) {
+      setErrorMessage(t("auth.passwordTooShort", "Password must be at least 4 characters"));
+      return;
+    }
     try {
       setLoading(true);
       setErrorMessage("");
-      await register(name.trim(), email.trim(), password);
-      router.replace("/(tabs)/home");
+      await register(
+        firstName.trim(),
+        lastName.trim(),
+        email.trim(),
+        password,
+        city.trim(),
+        cityLat,
+        cityLng
+      );
+      router.replace("/onboarding");
     } catch (error) {
       const message = error instanceof Error ? error.message : t("auth.checkCredentials");
+      console.error("[Register] Failed:", message, error);
       setErrorMessage(message);
       Alert.alert(t("auth.signUpFailed"), message);
     } finally {
@@ -68,7 +91,7 @@ export default function RegisterScreen() {
             onPress={() => setLanguageModalVisible(true)}
             data-testid="language-selector-register"
           >
-            <Ionicons name="globe-outline" size={18} color="#4c6fff" />
+            <Ionicons name="globe-outline" size={18} color="#000000" />
             <Text style={styles.languageSelectorText}>{currentLanguage.nativeName}</Text>
             <Ionicons name="chevron-down" size={16} color="#6b7280" />
           </Pressable>
@@ -77,19 +100,35 @@ export default function RegisterScreen() {
             <Text style={styles.sectionTitle}>{t("auth.createAccount")}</Text>
             <Text style={styles.subtitle}>{t("brand.subtitle")}</Text>
 
-            <View style={styles.inputRow}>
-              <Ionicons name="person-outline" size={20} color="#6b7280" />
-              <TextInput
-                value={name}
-                onChangeText={(value) => {
-                  setName(value);
-                  setErrorMessage("");
-                }}
-                placeholder={t("auth.username")}
-                testID="register-name"
-                accessibilityLabel="register-name"
-                style={styles.input}
-              />
+            <View style={styles.nameRow}>
+              <View style={[styles.inputRow, styles.nameInput]}>
+                <Ionicons name="person-outline" size={20} color="#6b7280" />
+                <TextInput
+                  value={firstName}
+                  onChangeText={(value) => {
+                    setFirstName(value);
+                    setErrorMessage("");
+                  }}
+                  placeholder={t("auth.firstName", "First Name")}
+                  testID="register-first-name"
+                  accessibilityLabel="register-first-name"
+                  style={styles.input}
+                />
+              </View>
+              <View style={[styles.inputRow, styles.nameInput]}>
+                <Ionicons name="person-outline" size={20} color="#6b7280" />
+                <TextInput
+                  value={lastName}
+                  onChangeText={(value) => {
+                    setLastName(value);
+                    setErrorMessage("");
+                  }}
+                  placeholder={t("auth.lastName", "Last Name")}
+                  testID="register-last-name"
+                  accessibilityLabel="register-last-name"
+                  style={styles.input}
+                />
+              </View>
             </View>
             <View style={styles.inputRow}>
               <Ionicons name="mail-outline" size={20} color="#6b7280" />
@@ -122,6 +161,20 @@ export default function RegisterScreen() {
                 style={styles.input}
               />
             </View>
+
+            <CityAutocompleteInput
+              value={city}
+              onChangeText={(value) => {
+                setCity(value);
+                if (!value) {
+                  setCityLat(undefined);
+                  setCityLng(undefined);
+                }
+                setErrorMessage("");
+              }}
+              onSelectCity={handleCitySelect}
+              placeholder={t("auth.city", "City")}
+            />
 
             <Pressable
               style={[styles.primaryButton, loading && styles.buttonDisabled]}
@@ -179,7 +232,7 @@ export default function RegisterScreen() {
                     {lang.nativeName}
                   </Text>
                   {i18n.language === lang.code && (
-                    <Ionicons name="checkmark" size={20} color="#4c6fff" />
+                    <Ionicons name="checkmark" size={20} color="#000000" />
                   )}
                 </Pressable>
               ))}
@@ -218,6 +271,15 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginBottom: 18,
   },
+  nameRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  nameInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -236,7 +298,7 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { pointerEvents: "auto" } }),
   },
   primaryButton: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -257,7 +319,7 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   footerLink: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   errorText: {
@@ -277,7 +339,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   languageSelectorText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
     fontSize: 14,
   },
@@ -319,7 +381,7 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   languageOptionTextSelected: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
 });

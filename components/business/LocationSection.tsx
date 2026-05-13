@@ -9,27 +9,29 @@ type Location = {
 };
 
 type Props = {
-  location: Location | null;
-  onSetLocation: () => void;
+  address: string;
+  latitude: number;
+  longitude: number;
+  onEdit: () => void;
 };
 
-export default function LocationSection({ location, onSetLocation }: Props) {
+export default function LocationSection({ address, latitude, longitude, onEdit }: Props) {
   const { t } = useTranslation();
 
   return (
     <View style={styles.card}>
       <View style={styles.sectionHeader}>
         <Text style={styles.cardTitle}>{t("business.businessLocation")}</Text>
-        <Pressable style={styles.secondaryButton} onPress={onSetLocation}>
+        <Pressable style={styles.secondaryButton} onPress={onEdit}>
           <Text style={styles.secondaryButtonText}>{t("business.setLocation")}</Text>
         </Pressable>
       </View>
-      {location ? (
+      {address || (latitude && longitude) ? (
         <View style={styles.locationInfo}>
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={20} color="#4c6fff" />
+            <Ionicons name="location-outline" size={20} color="#000000" />
             <Text style={styles.locationText}>
-              {location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
+              {address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
             </Text>
           </View>
           <Text style={styles.locationHint}>{t("business.locationHint")}</Text>
@@ -68,7 +70,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
     fontSize: 13,
   },

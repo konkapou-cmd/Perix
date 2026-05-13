@@ -9,23 +9,23 @@ type DayHours = {
 };
 
 type Props = {
-  openingHours: Record<string, DayHours>;
-  onEditHours: () => void;
+  schedule: Record<string, DayHours>;
+  onEdit: () => void;
 };
 
-export default function OpeningHoursSection({ openingHours, onEditHours }: Props) {
+export default function OpeningHoursSection({ schedule, onEdit }: Props) {
   const { t } = useTranslation();
 
   return (
     <View style={styles.card}>
       <View style={styles.sectionHeader}>
         <Text style={styles.cardTitle}>{t("business.openingHours")}</Text>
-        <Pressable style={styles.secondaryButton} onPress={onEditHours}>
+        <Pressable style={styles.secondaryButton} onPress={onEdit}>
           <Text style={styles.secondaryButtonText}>{t("business.editHours")}</Text>
         </Pressable>
       </View>
       {DAYS.map((day) => {
-        const dayData = openingHours[day];
+        const dayData = schedule[day];
         const translatedDay = t(`days.${day.toLowerCase()}`);
         return (
           <View key={day} style={styles.hoursRow}>
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
     fontSize: 13,
   },

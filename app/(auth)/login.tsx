@@ -23,11 +23,11 @@ import { LANGUAGES, setStoredLanguage } from "../../i18n";
 
 export default function LoginScreen() {
   const { t, i18n } = useTranslation();
-  const { login, startGoogleLogin, user } = useAuth();
+  const { login, user } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
-  
+
   useEffect(() => {
     if (user) {
       router.replace("/(tabs)/home");
@@ -36,7 +36,6 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
 
@@ -53,7 +52,7 @@ export default function LoginScreen() {
       setLoading(true);
       setErrorMessage("");
       await login(email.trim(), password);
-      router.replace("/(tabs)/home");
+      router.replace("/onboarding");
     } catch (error) {
       const message = error instanceof Error ? error.message : t("auth.checkCredentials");
       setErrorMessage(message);
@@ -63,20 +62,11 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogle = async () => {
-    try {
-      setGoogleLoading(true);
-      await startGoogleLogin();
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView 
-          contentContainerStyle={styles.container} 
+        <ScrollView
+          contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.innerContainer}>
@@ -86,22 +76,22 @@ export default function LoginScreen() {
               onPress={() => setLanguageModalVisible(true)}
               data-testid="language-selector"
             >
-              <Ionicons name="globe-outline" size={18} color="#4c6fff" />
+              <Ionicons name="globe-outline" size={18} color="#000000" />
               <Text style={styles.languageSelectorText}>{currentLanguage.nativeName}</Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </Pressable>
 
             <View style={styles.logoCard}>
-              <Image 
-                source={require("../../assets/images/prx-adaptive-icon.png")} 
-                style={styles.logo} 
+              <Image
+                source={require("../../assets/images/prx-adaptive-icon.png")}
+                style={styles.logo}
               />
               <Text style={styles.brandTitle}>{t("brand.title")}</Text>
               <Text style={styles.subtitle}>{t("brand.subtitle")}</Text>
             </View>
 
           <View style={styles.formCard}>
-          <Text style={styles.sectionTitle}>{t("auth.welcome")}</Text>
+          <Text style={styles.sectionTitle}>{t("auth.signInTitle")}</Text>
           <View style={styles.inputRow}>
             <Ionicons name="mail-outline" size={20} color="#6b7280" />
             <TextInput
@@ -152,21 +142,6 @@ export default function LoginScreen() {
 
           {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-          <Pressable
-            style={[styles.googleButton, googleLoading && styles.buttonDisabled]}
-            onPress={handleGoogle}
-            disabled={googleLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color="#111827" />
-            ) : (
-              <>
-                <Ionicons name="logo-google" size={18} color="#111827" />
-                <Text style={styles.googleButtonText}>{t("auth.continueWithGoogle")}</Text>
-              </>
-            )}
-          </Pressable>
-
           <View style={styles.securedByContainer}>
             <Ionicons name="shield-checkmark" size={14} color="#10b981" />
             <Text style={styles.securedByText}>LOG IN SECURED BY</Text>
@@ -215,7 +190,7 @@ export default function LoginScreen() {
                     {lang.nativeName}
                   </Text>
                   {i18n.language === lang.code && (
-                    <Ionicons name="checkmark" size={20} color="#4c6fff" />
+                    <Ionicons name="checkmark" size={20} color="#000000" />
                   )}
                 </Pressable>
               ))}
@@ -298,7 +273,7 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { pointerEvents: "auto" } }),
   },
   primaryButton: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -308,21 +283,6 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
-  },
-  googleButton: {
-    marginTop: 12,
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    height: 48,
-    flexDirection: "row",
-    gap: 8,
-  },
-  googleButtonText: {
-    color: "#111827",
-    fontSize: 15,
     fontWeight: "600",
   },
   errorText: {
@@ -339,7 +299,7 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   footerLink: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   languageSelector: {
@@ -354,7 +314,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   languageSelectorText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
     fontSize: 14,
   },
@@ -396,7 +356,7 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   languageOptionTextSelected: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   securedByContainer: {
