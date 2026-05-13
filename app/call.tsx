@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -14,12 +14,13 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
+import { useSocket, useSocketEvent } from "../context/SocketContext";
 import {
   initiateCall,
   answerCall,
   endCall,
   rejectCall,
-  User,
+  getCallStatus,
   CallResponse,
   AGORA_APP_ID,
 } from "../lib/api";
@@ -38,9 +39,13 @@ export default function CallScreen() {
     callType?: string;
     callId?: string;
     mode?: string;
+    channel?: string;
+    token?: string;
+    appId?: string;
   }>();
   
   const { sessionToken } = useAuth();
+  const { connected: wsConnected } = useSocket();
   const [callMode, setCallMode] = useState<CallMode>(
     (params.mode as CallMode) || "outgoing"
   );
@@ -54,6 +59,44 @@ export default function CallScreen() {
   const [isVideoEnabled, setIsVideoEnabled] = useState(callType === "video");
   const [callData, setCallData] = useState<CallResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [remoteUid, setRemoteUid] = useState<number | null>(null);
+  const [localVideoEnabled, setLocalVideoEnabled] = useState(callType === "video");
+  
+  const engineRef = useRef<any>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const callIdRef = useRef<string | null>(null);
+  const [agoraAvailable, setAgoraAvailable] = useState(false);
+  const [agoraModules, setAgoraModules] = useState<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const agora = await import("react-native-agora");
+        if (mounted) {
+          setAgoraModules(agora);
+          setAgoraAvailable(true);
+        }
+      } catch (e) {
+        console.log("[Call] react-native-agora not available (Expo Go). Calls require a development build.");
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  useSocketEvent("call_status", (data: any) => {
+    const call = data.call;
+    if (!call || call.call_id !== callIdRef.current) return;
+
+    if (call.status === "active" && callMode === "outgoing") {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      const cd = callData;
+      if (cd) joinChannel(cd.channel, cd.token, cd.caller_uid, callType === "video");
+    } else if (call.status === "rejected" || call.status === "ended") {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      navigateBack();
+    }
+  });
 
   // Call timer
   useEffect(() => {
@@ -66,15 +109,31 @@ export default function CallScreen() {
     return () => clearInterval(timer);
   }, [callMode]);
 
+  // Cleanup engine on unmount
+  useEffect(() => {
+    return () => {
+      if (engineRef.current) {
+        try {
+          engineRef.current.leaveChannel();
+          engineRef.current.release();
+        } catch (e) {
+          // Engine may not be initialized
+        }
+        engineRef.current = null;
+      }
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, []);
+
   // Request camera and microphone permissions
   const requestPermissions = async () => {
     if (Platform.OS === "web") {
-      // Web permissions are handled differently
       return true;
     }
 
     try {
-      // Request microphone permission
       const audioPermission = await Audio.requestPermissionsAsync();
       if (audioPermission.status !== "granted") {
         Alert.alert(
@@ -85,7 +144,6 @@ export default function CallScreen() {
         return false;
       }
 
-      // Request camera permission for video calls
       if (callType === "video") {
         const cameraPermission = await Camera.requestCameraPermissionsAsync();
         if (cameraPermission.status !== "granted") {
@@ -105,24 +163,85 @@ export default function CallScreen() {
     }
   };
 
+  // Initialize Agora engine
+  const initEngine = useCallback((appId: string) => {
+    if (engineRef.current) return engineRef.current;
+    if (!agoraModules) return null;
+
+    const engine = agoraModules.createAgoraRtcEngine();
+    engine.initialize({ appId });
+
+    engine.addListener("onJoinChannelSuccess", (connection: any, elapsed: any) => {
+      console.log("Joined channel:", connection.channelId, "uid:", connection.localUid);
+      setCallMode("active");
+      setIsConnecting(false);
+    });
+
+    engine.addListener("onUserJoined", (connection: any, remoteUid_: number) => {
+      console.log("Remote user joined:", remoteUid_);
+      setRemoteUid(remoteUid_);
+    });
+
+    engine.addListener("onUserOffline", (connection: any, remoteUid_: number) => {
+      console.log("Remote user left:", remoteUid_);
+      setRemoteUid(null);
+      handleEndCall();
+    });
+
+    engine.addListener("onConnectionStateChanged", (connection: any, state: number, reason: number) => {
+      console.log("Connection state:", state, "reason:", reason);
+      if (state === agoraModules.ConnectionStateType.ConnectionStateDisconnected) {
+        navigateBack();
+      }
+    });
+
+    engineRef.current = engine;
+    return engine;
+  }, [agoraModules]);
+
+  // Join channel with engine
+  const joinChannel = useCallback(async (channel: string, token: string, uid: number, enableVideo: boolean) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+    } catch (e) {
+      console.log("Audio mode error:", e);
+    }
+
+    engine.enableAudio();
+    if (enableVideo) {
+      engine.enableVideo();
+    }
+
+    engine.joinChannel(token, channel, uid, {
+      publishMicrophoneTrack: true,
+      publishCameraTrack: enableVideo,
+      clientRoleType: agoraModules?.ClientRoleType.ClientRoleBroadcaster,
+    });
+  }, []);
+
   // Initialize call
   useEffect(() => {
     const initCall = async () => {
-      if (!sessionToken) {
-        setError("Not authenticated");
+      if (!agoraAvailable || !agoraModules) {
+        setError("Voice/Video calls require a development build of Perix. Please install the full app to use this feature.");
+        setIsConnecting(false);
         return;
       }
-
-      // Check if Agora SDK is available (react-native-agora needs to be installed)
-      const isAgoraAvailable = false; // TODO: Set to true when react-native-agora is installed
-      
-      if (!isAgoraAvailable) {
-        setError(t("calls.agoraNotAvailable") || "Video calls require app update. Coming soon!");
+      if (!sessionToken) {
+        setError("Not authenticated");
         setIsConnecting(false);
         return;
       }
 
-      // Request permissions first
       const hasPermissions = await requestPermissions();
       if (!hasPermissions) {
         setError(t("calls.permissionDenied"));
@@ -132,28 +251,48 @@ export default function CallScreen() {
 
       try {
         if (callMode === "outgoing" && params.userId) {
-          // Initiate outgoing call
-          const response = await initiateCall(
-            sessionToken,
-            params.userId,
-            callType
-          );
+          const response = await initiateCall(sessionToken, params.userId, callType);
           setCallData(response);
+          callIdRef.current = response.call_id;
+
+          const appId = response.app_id || AGORA_APP_ID;
+          const channel = response.channel;
+          const token = response.token;
+          const uid = response.caller_uid;
+
+          const engine = initEngine(appId);
+
+          if (!wsConnected) {
+            pollingRef.current = setInterval(async () => {
+              try {
+                const status = await getCallStatus(sessionToken, response.call_id);
+                if (status.status === "active") {
+                  clearInterval(pollingRef.current!);
+                  joinChannel(channel, token, uid, callType === "video");
+                } else if (status.status === "rejected" || status.status === "ended") {
+                  clearInterval(pollingRef.current!);
+                  navigateBack();
+                }
+              } catch (e) {
+                // Keep polling
+              }
+            }, 3000);
+          }
+
           setIsConnecting(false);
-          
-          // In a real app, you would connect to Agora here
-          // For demo, we'll simulate connection after 3 seconds
-          setTimeout(() => {
-            // Simulating the call being answered
-            // In production, this would be triggered by push notification response
-          }, 3000);
-          
-        } else if (callMode === "incoming" && params.callId) {
-          // Answer incoming call
+
+        } else if (callMode === "incoming" && params.callId && params.channel && params.token) {
+          const appId = params.appId || AGORA_APP_ID;
+          const engine = initEngine(appId);
+
           const response = await answerCall(sessionToken, params.callId);
           setCallData(response);
-          setCallMode("active");
-          setIsConnecting(false);
+
+          const channel = params.channel;
+          const token = params.token;
+          const uid = response.callee_uid;
+
+          joinChannel(channel, token, uid, callType === "video");
         }
       } catch (err: any) {
         setError(err.message || "Failed to connect call");
@@ -171,11 +310,23 @@ export default function CallScreen() {
   };
 
   const handleEndCall = async () => {
-    // Set a timeout to force navigation even if the API call hangs
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+    }
+
+    if (engineRef.current) {
+      try {
+        engineRef.current.leaveChannel();
+        engineRef.current.release();
+      } catch (e) {
+        // May fail if not joined
+      }
+      engineRef.current = null;
+    }
+
     const navigationTimeout = setTimeout(() => {
-      console.log("Force navigating due to timeout");
       navigateBack();
-    }, 3000);
+    }, 1000);
 
     try {
       if (sessionToken && callData?.call_id) {
@@ -185,7 +336,6 @@ export default function CallScreen() {
       console.error("Failed to end call:", err);
     } finally {
       clearTimeout(navigationTimeout);
-      navigateBack();
     }
   };
 
@@ -202,13 +352,12 @@ export default function CallScreen() {
         router.back();
         return;
       }
-      // Final fallback: replace with messages tab
-      router.replace("/(tabs)/messages");
+      // Final fallback: navigate to messages tab
+      router.navigate("/(tabs)/messages" as any);
     } catch (e) {
       console.error("Navigation error:", e);
-      // Ultimate fallback
       try {
-        router.replace("/(tabs)/messages");
+        router.navigate("/(tabs)/messages" as any);
       } catch (e2) {
         console.error("Ultimate fallback failed:", e2);
       }
@@ -247,9 +396,39 @@ export default function CallScreen() {
     }
   };
 
-  const toggleMute = () => setIsMuted(!isMuted);
-  const toggleSpeaker = () => setIsSpeakerOn(!isSpeakerOn);
-  const toggleVideo = () => setIsVideoEnabled(!isVideoEnabled);
+  const toggleMute = () => {
+    if (engineRef.current) {
+      if (isMuted) {
+        engineRef.current.enableAudio();
+      } else {
+        engineRef.current.disableAudio();
+      }
+    }
+    setIsMuted(!isMuted);
+  };
+
+  const toggleSpeaker = () => {
+    if (engineRef.current) {
+      if (isSpeakerOn) {
+        engineRef.current.setEnableSpeakerphone(false);
+      } else {
+        engineRef.current.setEnableSpeakerphone(true);
+      }
+    }
+    setIsSpeakerOn(!isSpeakerOn);
+  };
+
+  const toggleVideo = () => {
+    if (engineRef.current) {
+      if (localVideoEnabled) {
+        engineRef.current.disableVideo();
+      } else {
+        engineRef.current.enableVideo();
+      }
+    }
+    setLocalVideoEnabled(!localVideoEnabled);
+    setIsVideoEnabled(!localVideoEnabled);
+  };
 
   if (error) {
     return (
@@ -275,13 +454,25 @@ export default function CallScreen() {
         <Ionicons name="arrow-back" size={24} color="#fff" />
       </Pressable>
 
-      {/* Video background (placeholder) */}
-      {callType === "video" && isVideoEnabled && (
+      {/* Video background */}
+      {callType === "video" && agoraAvailable && (
         <View style={styles.videoBackground}>
-          {/* In production, this would show the Agora video stream */}
-          <View style={styles.localVideo}>
-            <Ionicons name="videocam" size={32} color="#fff" />
-          </View>
+          {remoteUid ? (
+            <agoraModules.RtcSurfaceView
+              style={styles.remoteVideo}
+              canvas={{ uid: remoteUid, renderMode: agoraModules.RenderModeType.RenderModeHidden }}
+            />
+          ) : (
+            <View style={styles.remoteVideoPlaceholder} />
+          )}
+          {localVideoEnabled && (
+            <View style={styles.localVideo}>
+              <agoraModules.RtcSurfaceView
+                style={{ width: 100, height: 140, borderRadius: 12 }}
+                canvas={{ uid: 0, renderMode: agoraModules.RenderModeType.RenderModeHidden }}
+              />
+            </View>
+          )}
         </View>
       )}
 
@@ -408,10 +599,16 @@ const styles = StyleSheet.create({
     right: 20,
     width: 100,
     height: 140,
-    backgroundColor: "#333",
     borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
+    overflow: "hidden",
+    zIndex: 10,
+  },
+  remoteVideo: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  remoteVideoPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#1a1a2e",
   },
   userInfo: {
     flex: 1,
@@ -429,7 +626,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -478,7 +675,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   controlButtonActive: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
   },
   controlLabel: {
     fontSize: 10,
@@ -531,7 +728,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     borderRadius: 8,
   },
   errorButtonText: {

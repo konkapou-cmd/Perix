@@ -18,8 +18,8 @@
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://api.perixapp.com",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyAMr1Se10FOuTAV7YMEpDvWaKunxRWMa-c",
-        "EXPO_PUBLIC_AGORA_APP_ID": "7793967d595046f08f88fed156f8be42"
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_AGORA_APP_ID": "${AGORA_APP_ID}"
       }
     },
     "production": {
@@ -30,8 +30,8 @@
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://api.perixapp.com",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyAMr1Se10FOuTAV7YMEpDvWaKunxRWMa-c",
-        "EXPO_PUBLIC_AGORA_APP_ID": "7793967d595046f08f88fed156f8be42"
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_AGORA_APP_ID": "${AGORA_APP_ID}"
       }
     }
   },

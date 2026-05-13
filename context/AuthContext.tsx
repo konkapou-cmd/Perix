@@ -1,9 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Linking from "expo-linking";
-import * as WebBrowser from "expo-web-browser";
-import * as AuthSession from "expo-auth-session";
 import Constants from "expo-constants";
 import {
   User,
@@ -11,7 +8,6 @@ import {
   registerUser,
   getMe,
   logoutUser,
-  exchangeGoogleSession,
 } from "../lib/api";
 
 type AuthContextValue = {
@@ -19,9 +15,8 @@ type AuthContextValue = {
   sessionToken: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (firstName: string, lastName: string, email: string, password: string, city: string, latitude?: number, longitude?: number) => Promise<void>;
   logout: () => Promise<void>;
-  startGoogleLogin: () => Promise<void>;
   refreshUser: () => Promise<void>;
   activeIdentity: {
     type: "user" | "business" | "artist";
@@ -39,20 +34,6 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-WebBrowser.maybeCompleteAuthSession();
-
-const BACKEND_URL =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
-  process.env.EXPO_PUBLIC_BACKEND_URL ||
-  "https://api.perixapp.com";
-
-const AUTH_URL = "https://auth.emergentagent.com/?redirect=";
-
-const parseSessionId = (url: string) => {
-  const match = url.match(/session_id=([^&]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
-};
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -60,7 +41,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [activeIdentity, setActiveIdentityState] = useState<
     AuthContextValue["activeIdentity"]
   >(null);
-  const [processingSession, setProcessingSession] = useState(false);
 
   const persistSession = async (token: string) => {
     setSessionToken(token);
@@ -84,39 +64,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await AsyncStorage.removeItem("session_token");
   };
 
-  const handleSessionId = useCallback(
-    async (url: string) => {
-      if (processingSession) {
-        return;
-      }
-      const sessionId = parseSessionId(url);
-      if (!sessionId) {
-        return;
-      }
-      try {
-        setProcessingSession(true);
-        const response = await exchangeGoogleSession(sessionId);
-        setUser(response.user);
-        await persistSession(response.session_token);
-      } catch (error) {
-        Alert.alert("Google Login Failed", "Please try again.");
-      } finally {
-        setProcessingSession(false);
-      }
-    },
-    [processingSession]
-  );
-
   const bootstrapAuth = useCallback(async () => {
     try {
       const storedToken = await AsyncStorage.getItem("session_token");
       const storedIdentity = await AsyncStorage.getItem("active_identity");
       if (storedToken) {
-        const profile = await getMe(storedToken);
+        const api = await import("../lib/api");
+        const [profile, userBusinesses, userArtist] = await Promise.all([
+          getMe(storedToken),
+          api.getMyBusinesses(storedToken).catch(() => [] as any[]),
+          api.getMyArtist(storedToken).catch(() => null),
+        ]);
         setUser(profile);
         setSessionToken(storedToken);
+
         if (storedIdentity) {
-          setActiveIdentityState(JSON.parse(storedIdentity));
+          const parsedIdentity = JSON.parse(storedIdentity);
+          const isValidBusiness = parsedIdentity.type === "business" &&
+            userBusinesses.some((b: any) => b.business_id === parsedIdentity.id);
+          const isValidArtist = parsedIdentity.type === "artist" &&
+            userArtist?.artist_id === parsedIdentity.id;
+          const isValidUser = parsedIdentity.type === "user" &&
+            parsedIdentity.id === profile.user_id;
+
+          if (isValidBusiness || isValidArtist || isValidUser) {
+            setActiveIdentityState(parsedIdentity);
+          } else {
+            setActiveIdentityState({
+              type: "user",
+              id: profile.user_id,
+              name: profile.name,
+              avatar: profile.profile_photo || profile.picture || null,
+            });
+          }
         } else {
           setActiveIdentityState({
             type: "user",
@@ -137,29 +117,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     bootstrapAuth();
   }, [bootstrapAuth]);
 
-  useEffect(() => {
-    const handleInitialUrl = async () => {
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        const webUrl = window.location.href;
-        if (webUrl.includes("session_id")) {
-          await handleSessionId(webUrl);
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-        return;
-      }
-      const initialUrl = await Linking.getInitialURL();
-      if (initialUrl) {
-        await handleSessionId(initialUrl);
-      }
-    };
-
-    handleInitialUrl();
-    const subscription = Linking.addEventListener("url", async ({ url }) => {
-      await handleSessionId(url);
-    });
-    return () => subscription.remove();
-  }, [handleSessionId]);
-
   const login = async (email: string, password: string) => {
     const response = await loginUser(email, password);
     setUser(response.user);
@@ -172,8 +129,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    const response = await registerUser(name, email, password);
+  const register = async (firstName: string, lastName: string, email: string, password: string, city: string, latitude?: number, longitude?: number) => {
+    const response = await registerUser(firstName, lastName, email, password, city, latitude, longitude);
     setUser(response.user);
     await persistSession(response.session_token);
     await persistIdentity({
@@ -185,28 +142,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    if (sessionToken) {
-      await logoutUser(sessionToken);
+    try {
+      if (sessionToken) {
+        await logoutUser(sessionToken);
+      }
+    } catch {
+      // Ignore API error — always clear local session
     }
     await clearSession();
     await persistIdentity(null);
-  };
-
-  const startGoogleLogin = async () => {
-    if (!BACKEND_URL) {
-      Alert.alert("Configuration Error", "Backend URL is missing.");
-      return;
-    }
-    const redirectUrl =
-      Platform.OS === "web"
-        ? window.location.origin + "/"
-        : AuthSession.makeRedirectUri();
-    const authUrl = `${AUTH_URL}${encodeURIComponent(redirectUrl)}`;
-    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
-
-    if (result.type === "success" && result.url) {
-      await handleSessionId(result.url);
-    }
   };
 
   const refreshUser = async () => {
@@ -215,7 +159,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const profile = await getMe(sessionToken);
       setUser(profile);
     } catch (error) {
-      console.error("Failed to refresh user:", error);
+      // Silent
     }
   };
 
@@ -227,7 +171,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       login,
       register,
       logout,
-      startGoogleLogin,
       refreshUser,
       activeIdentity,
       setActiveIdentity: persistIdentity,

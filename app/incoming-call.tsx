@@ -11,16 +11,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
 import { Audio } from "expo-av";
 import { useAuth } from "../context/AuthContext";
 import { answerCall, rejectCall } from "../lib/api";
 
 export default function IncomingCallScreen() {
   const { t } = useTranslation();
-  const { safeGoBackToMessages, router } = useSafeNavigation();
+  const router = useRouter();
   const { sessionToken } = useAuth();
   const params = useLocalSearchParams<{
     callId: string;
@@ -133,7 +132,7 @@ export default function IncomingCallScreen() {
       const response = await answerCall(sessionToken, params.callId);
       
       // Navigate to call screen with active call
-      router.replace({
+      router.push({
         pathname: "/call",
         params: {
           callId: params.callId,
@@ -148,7 +147,7 @@ export default function IncomingCallScreen() {
       });
     } catch (error) {
       console.error("Failed to answer call:", error);
-      safeGoBackToMessages();
+      router.back();
     }
   };
 
@@ -162,7 +161,7 @@ export default function IncomingCallScreen() {
         console.error("Failed to reject call:", error);
       }
     }
-    safeGoBackToMessages();
+    router.back();
   };
 
   const callTypeText = params.callType === "video" 
@@ -298,13 +297,13 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: "#4c6fff",
+    borderColor: "#000000",
   },
   avatarPlaceholder: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,

@@ -13,8 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
 import {
   FriendRequest,
   getReceivedFriendRequests,
@@ -29,7 +29,7 @@ type TabType = "received" | "sent";
 export default function FriendRequestsScreen() {
   const { t } = useTranslation();
   const { sessionToken } = useAuth();
-  const { safeGoBack, router } = useSafeNavigation();
+  const router = useRouter();
   
   const [activeTab, setActiveTab] = useState<TabType>("received");
   const [receivedRequests, setReceivedRequests] = useState<FriendRequest[]>([]);
@@ -123,12 +123,12 @@ export default function FriendRequestsScreen() {
         >
           {user?.profile_photo || user?.picture ? (
             <Image 
-              source={{ uri: user.profile_photo || user.picture }} 
+              source={{ uri: (user?.profile_photo || user?.picture) || undefined }} 
               style={styles.avatar} 
             />
           ) : (
             <LinearGradient
-              colors={["#6366f1", "#8b5cf6"]}
+              colors={["#FFD700", "#FF6B6B"]}
               style={styles.avatarPlaceholder}
             >
               <Text style={styles.avatarText}>
@@ -146,7 +146,7 @@ export default function FriendRequestsScreen() {
         
         <View style={styles.actionButtons}>
           {isProcessing ? (
-            <ActivityIndicator color="#4c6fff" />
+            <ActivityIndicator color="#000000" />
           ) : (
             <>
               <Pressable
@@ -154,7 +154,7 @@ export default function FriendRequestsScreen() {
                 onPress={() => handleAccept(item.request_id)}
               >
                 <LinearGradient
-                  colors={["#4c6fff", "#6366f1"]}
+                  colors={["#000000", "#FFD700"]}
                   style={styles.acceptButtonGradient}
                 >
                   <Ionicons name="checkmark" size={20} color="#fff" />
@@ -177,32 +177,32 @@ export default function FriendRequestsScreen() {
   };
 
   const renderSentRequest = ({ item }: { item: FriendRequest }) => {
-    const user = item.to_user;
-    const isProcessing = processingId === item.request_id;
+    const displayName = item.to_user?.name || item.to_entity_name || "Unknown";
+    const displayImage = item.to_user?.profile_photo || item.to_user?.picture || item.to_entity_image;
     
     return (
       <View style={styles.requestCard}>
         <Pressable 
           style={styles.userInfo}
-          onPress={() => user?.user_id && router.push(`/user/${user.user_id}`)}
+          onPress={() => (item.to_user?.user_id || item.entity_id) && router.push(`/user/${item.to_user?.user_id || item.entity_id}`)}
         >
-          {user?.profile_photo || user?.picture ? (
+          {displayImage ? (
             <Image 
-              source={{ uri: user.profile_photo || user.picture }} 
+              source={{ uri: displayImage }} 
               style={styles.avatar} 
             />
           ) : (
             <LinearGradient
-              colors={["#6366f1", "#8b5cf6"]}
+              colors={["#FFD700", "#FF6B6B"]}
               style={styles.avatarPlaceholder}
             >
               <Text style={styles.avatarText}>
-                {user?.name?.charAt(0) || "?"}
+                {displayName.charAt(0)}
               </Text>
             </LinearGradient>
           )}
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>{user?.name || "Unknown"}</Text>
+            <Text style={styles.userName}>{displayName}</Text>
             <Text style={styles.statusText}>
               {t("friends.pendingRequest") || "Pending"}
             </Text>
@@ -210,7 +210,7 @@ export default function FriendRequestsScreen() {
         </Pressable>
         
         <View style={styles.actionButtons}>
-          {isProcessing ? (
+          {processingId === item.request_id ? (
             <ActivityIndicator color="#ef4444" />
           ) : (
             <Pressable
@@ -248,7 +248,7 @@ export default function FriendRequestsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={safeGoBack}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#111827" />
         </Pressable>
         <Text style={styles.title}>{t("friends.friendRequests") || "Friend Requests"}</Text>
@@ -288,7 +288,7 @@ export default function FriendRequestsScreen() {
       {/* Content */}
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#4c6fff" />
+          <ActivityIndicator size="large" color="#000000" />
         </View>
       ) : currentRequests.length === 0 ? (
         <View style={styles.emptyState}>
@@ -312,10 +312,10 @@ export default function FriendRequestsScreen() {
           {activeTab === "received" && (
             <Pressable 
               style={styles.findFriendsButton}
-              onPress={() => router.push("/search")}
+              onPress={() => router.navigate("/(tabs)/locator" as any)}
             >
               <LinearGradient
-                colors={["#4c6fff", "#6366f1"]}
+                colors={["#000000", "#FFD700"]}
                 style={styles.findFriendsGradient}
               >
                 <Ionicons name="search" size={20} color="#fff" />
@@ -342,7 +342,7 @@ export default function FriendRequestsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#f0fdf4",
   },
   header: {
     flexDirection: "row",
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tabActive: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
   },
   tabText: {
     fontSize: 15,

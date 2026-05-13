@@ -27,14 +27,14 @@ const QUICK_PRESETS = [
 // Quick color palette for individual color selection
 const QUICK_COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#22c55e', '#14b8a6',
-  '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#ffffff',
+  '#3b82f6', '#6366f1', '#FF6B6B', '#ec4899', '#ffffff',
   '#a1a1aa', '#52525b', '#18181b', '#000000',
 ];
 
 // Default theme values
 const DEFAULT_THEME: ProfileTheme = {
   background_color: '#121212',
-  primary_color: '#4c6fff',
+  primary_color: '#000000',
   secondary_color: '#1e1e1e',
   text_color: '#ffffff',
   card_color: '#1e1e1e',
@@ -63,9 +63,9 @@ export default function InlineThemeBar({
   const [activeTab, setActiveTab] = useState<'presets' | 'colors' | 'gradient'>('presets');
   const [selectedColorField, setSelectedColorField] = useState<keyof ProfileTheme | null>(null);
   
-  const theme: ProfileTheme = {
+  const theme = {
     background_color: currentTheme?.background_color || '#121212',
-    primary_color: currentTheme?.primary_color || '#4c6fff',
+    primary_color: currentTheme?.primary_color || '#000000',
     secondary_color: currentTheme?.secondary_color || '#1e1e1e',
     text_color: currentTheme?.text_color || '#ffffff',
     card_color: currentTheme?.card_color || '#1e1e1e',
@@ -173,21 +173,21 @@ export default function InlineThemeBar({
               style={[styles.tab, activeTab === 'presets' && styles.tabActive]}
               onPress={() => { setActiveTab('presets'); setSelectedColorField(null); }}
             >
-              <Ionicons name="color-palette" size={16} color={activeTab === 'presets' ? '#4c6fff' : '#888'} />
+              <Ionicons name="color-palette" size={16} color={activeTab === 'presets' ? '#000000' : '#888'} />
               <Text style={[styles.tabText, activeTab === 'presets' && styles.tabTextActive]}>Presets</Text>
             </Pressable>
             <Pressable 
               style={[styles.tab, activeTab === 'colors' && styles.tabActive]}
               onPress={() => setActiveTab('colors')}
             >
-              <Ionicons name="color-fill" size={16} color={activeTab === 'colors' ? '#4c6fff' : '#888'} />
+              <Ionicons name="color-fill" size={16} color={activeTab === 'colors' ? '#000000' : '#888'} />
               <Text style={[styles.tabText, activeTab === 'colors' && styles.tabTextActive]}>Colors</Text>
             </Pressable>
             <Pressable 
               style={[styles.tab, activeTab === 'gradient' && styles.tabActive]}
               onPress={() => setActiveTab('gradient')}
             >
-              <Ionicons name="color-wand" size={16} color={activeTab === 'gradient' ? '#4c6fff' : '#888'} />
+              <Ionicons name="color-wand" size={16} color={activeTab === 'gradient' ? '#000000' : '#888'} />
               <Text style={[styles.tabText, activeTab === 'gradient' && styles.tabTextActive]}>Gradient</Text>
             </Pressable>
           </View>
@@ -286,7 +286,7 @@ export default function InlineThemeBar({
               {theme.use_gradient && (
                 <View style={styles.gradientPreview}>
                   <LinearGradient
-                    colors={[theme.gradient_start || '#121212', theme.gradient_end || '#4c6fff']}
+                    colors={[theme.gradient_start || '#121212', theme.gradient_end || '#000000']}
                     style={styles.gradientPreviewBox}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
@@ -304,7 +304,7 @@ export default function InlineThemeBar({
                       style={[styles.gradientColorBtn, selectedColorField === 'gradient_end' && styles.gradientColorBtnActive]}
                       onPress={() => setSelectedColorField('gradient_end')}
                     >
-                      <View style={[styles.gradientColorPreview, { backgroundColor: theme.gradient_end || '#4c6fff' }]} />
+                      <View style={[styles.gradientColorPreview, { backgroundColor: theme.gradient_end || '#000000' }]} />
                       <Text style={styles.gradientColorLabel}>End</Text>
                     </Pressable>
                   </View>
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   saveBtn: {
-    backgroundColor: '#4c6fff',
+    backgroundColor: '#000000',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   tabTextActive: {
-    color: '#4c6fff',
+    color: '#000000',
     fontWeight: '600',
   },
   presetsRow: {
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   colorFieldLabelActive: {
-    color: '#4c6fff',
+    color: '#000000',
     fontWeight: '600',
   },
   colorPaletteRow: {
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   gradientSwitchOn: {
-    backgroundColor: '#4c6fff',
+    backgroundColor: '#000000',
   },
   gradientSwitchThumb: {
     width: 20,

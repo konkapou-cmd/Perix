@@ -2,13 +2,16 @@ export { default as OpeningHoursModal, DayHours, defaultDayHours } from "./Openi
 export { default as EventModal } from "./EventModal";
 export { default as MediaGallerySection } from "./MediaGallerySection";
 export { default as JobModal } from "./JobModal";
+export { default as RentalModal } from "./RentalModal";
 export { default as ProfileSection } from "./ProfileSection";
 export { default as CategorySection } from "./CategorySection";
 export { default as PostCreationSection } from "./PostCreationSection";
-export { default as StoriesSection } from "./StoriesSection";
 export { default as EventsSection } from "./EventsSection";
+export { default as ActivitiesSection } from "./ActivitiesSection";
 export { default as JobsSection } from "./JobsSection";
+export { default as RentalsSection } from "./RentalsSection";
 export { default as ContactInfoSection } from "./ContactInfoSection";
 export { default as FanGallerySection } from "./FanGallerySection";
 export { default as LocationSection } from "./LocationSection";
 export { default as OpeningHoursSection } from "./OpeningHoursSection";
+export { default as SubscriptionTab } from "./SubscriptionTab";

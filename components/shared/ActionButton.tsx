@@ -1,5 +1,6 @@
 import { Pressable, Text, ActivityIndicator, StyleSheet, ViewStyle, TextStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../../lib/designTokens";
 
 type ActionButtonProps = {
   title: string;
@@ -69,7 +70,7 @@ export const ActionButton = ({
   };
 
   const iconSize = size === "small" ? 14 : size === "medium" ? 16 : 20;
-  const iconColor = variant === "outline" ? "#4c6fff" : "#fff";
+  const iconColor = variant === "outline" ? COLORS.primary : "#fff";
 
   return (
     <Pressable
@@ -109,21 +110,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   buttonPrimary: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: COLORS.primary,
   },
   buttonSecondary: {
-    backgroundColor: "#6b7280",
+    backgroundColor: COLORS.textMuted,
   },
   buttonSuccess: {
-    backgroundColor: "#10b981",
+    backgroundColor: COLORS.success,
   },
   buttonDanger: {
-    backgroundColor: "#ef4444",
+    backgroundColor: COLORS.error,
   },
   buttonOutline: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "#4c6fff",
+    borderColor: COLORS.primary,
   },
   buttonFullWidth: {
     width: "100%",
@@ -147,7 +148,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   textOutline: {
-    color: "#4c6fff",
+    color: COLORS.primary,
   },
   icon: {
     marginRight: 6,

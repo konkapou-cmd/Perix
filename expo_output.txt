@@ -1,0 +1,262 @@
+Starting project at C:\Users\PC\Downloads\Perix1\Perix-main\frontend
+Starting Metro Bundler
+Tunnel connected.
+Tunnel ready.
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web node_modules\expo-router\entry.js ▓▓▓▓░░░░░░░░░░░░ 27.5% (277/528)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓░░░░░░░░░░░ 36.2% (480/847)
+ WARN  Attempted to import the module "C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-asset\build\resolveAssetSource" which is not listed in the "exports" of "C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-asset" under the requested subpath "./build/resolveAssetSource". Falling back to file-based resolution. Consider updating the call site or asking the package maintainer(s) to expose this API.
+ WARN  Attempted to import the module "C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-asset\build\resolveAssetSource" which is not listed in the "exports" of "C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-asset" under the requested subpath "./build/resolveAssetSource". Falling back to file-based resolution. Consider updating the call site or asking the package maintainer(s) to expose this API.
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 55.2% ( 944/1271)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 71.4% (1331/1578)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ node_modules\expo-router\node\render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 87.2% (1801/1929)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 93.2% (2049/2123)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ node_modules\expo-router\node\render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundling failed 7859ms node_modules\expo-router\node\render.js (1 module)
+λ Bundling failed 11764ms node_modules\expo-router\node\render.js (2205 modules)
+Web Bundling failed 7880ms node_modules\expo-router\entry.js (1 module)
+Web Bundling failed 11787ms node_modules\expo-router\entry.js (2046 modules)
+
+Metro error: Importing native-only module "react-native/Libraries/Utilities/codegenNativeComponent" on web from: node_modules\react-native-safe-area-context\lib\commonjs\specs\NativeSafeAreaView.js
+
+Import stack:
+
+ node_modules\react-native-safe-area-context\lib\commonjs\specs\NativeSafeAreaView.js
+ | import "react-native/Libraries/Utilities/codegenNativeComponent"
+           ^ Importing react-native internals is not supported on web.
+
+ node_modules\react-native-safe-area-context\lib\commonjs\SafeAreaView.js
+ | import "./specs/NativeSafeAreaView"
+
+ node_modules\react-native-safe-area-context\lib\commonjs\index.js
+ | import "./SafeAreaView"
+
+ node_modules\expo-router\build\ExpoRoot.js
+ | import "react-native-safe-area-context"
+
+ node_modules\expo-router\build\exports.js
+ | import "./ExpoRoot"
+
+ node_modules\expo-router\build\index.js
+ | import "./exports"
+
+ app\(auth)\_layout.tsx
+ | import "expo-router"
+
+ app (require.context)
+
+
+Import stack:
+
+ node_modules\react-native-safe-area-context\lib\commonjs\specs\NativeSafeAreaView.js
+ | import "react-native/Libraries/Utilities/codegenNativeComponent"
+           ^ Importing react-native internals is not supported on web.
+
+ node_modules\react-native-safe-area-context\lib\commonjs\SafeAreaView.js
+ | import "./specs/NativeSafeAreaView"
+
+ node_modules\react-native-safe-area-context\lib\commonjs\index.js
+ | import "./SafeAreaView"
+
+ node_modules\expo-router\build\ExpoRoot.js
+ | import "react-native-safe-area-context"
+
+ node_modules\expo-router\build\exports.js
+ | import "./ExpoRoot"
+
+ node_modules\expo-router\build\index.js
+ | import "./exports"
+
+ app\(auth)\_layout.tsx
+ | import "expo-router"
+
+ app (require.context)
+
+
+
+
+Metro error: Importing native-only module "react-native/Libraries/Utilities/codegenNativeComponent" on web from: node_modules\react-native-safe-area-context\lib\commonjs\specs\NativeSafeAreaView.js
+
+Import stack:
+
+ node_modules\react-native-safe-area-context\lib\commonjs\specs\NativeSafeAreaView.js
+ | import "react-native/Libraries/Utilities/codegenNativeComponent"
+           ^ Importing react-native internals is not supported on web.
+
+ node_modules\react-native-safe-area-context\lib\commonjs\SafeAreaView.js
+ | import "./specs/NativeSafeAreaView"
+
+ node_modules\react-native-safe-area-context\lib\commonjs\index.js
+ | import "./SafeAreaView"
+
+ node_modules\expo-router\build\ExpoRoot.js
+ | import "react-native-safe-area-context"
+
+ node_modules\expo-router\build\exports.js
+ | import "./ExpoRoot"
+
+ node_modules\expo-router\build\index.js
+ | import "./exports"
+
+ app\(auth)\_layout.tsx
+ | import "expo-router"
+
+ app (require.context)
+
+
+Import stack:
+
+ node_modules\react-native-safe-area-context\lib\commonjs\specs\NativeSafeAreaView.js
+ | import "react-native/Libraries/Utilities/codegenNativeComponent"
+           ^ Importing react-native internals is not supported on web.
+
+ node_modules\react-native-safe-area-context\lib\commonjs\SafeAreaView.js
+ | import "./specs/NativeSafeAreaView"
+
+ node_modules\react-native-safe-area-context\lib\commonjs\index.js
+ | import "./SafeAreaView"
+
+ node_modules\expo-router\build\ExpoRoot.js
+ | import "react-native-safe-area-context"
+
+ node_modules\expo-router\build\exports.js
+ | import "./ExpoRoot"
+
+ node_modules\expo-router\build\index.js
+ | import "./exports"
+
+ app\(auth)\_layout.tsx
+ | import "expo-router"
+
+ app (require.context)
+
+
+
+Error: Cannot pipe to a closed or destroyed stream
+    at pipelineImpl (node:internal/streams/pipeline:264:15)
+    at node:stream/promises:31:5
+    at new Promise (<anonymous>)
+    at pipeline (node:stream/promises:20:10)
+    at respond (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-server\src\vendor\http.ts:138:19)
+    at C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-server\src\vendor\http.ts:68:13
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+Error: Cannot pipe to a closed or destroyed stream
+    at pipelineImpl (node:internal/streams/pipeline:264:15)
+    at node:stream/promises:31:5
+    at new Promise (<anonymous>)
+    at pipeline (node:stream/promises:20:10)
+    at respond (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-server\src\vendor\http.ts:138:19)
+    at C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-server\src\vendor\http.ts:68:13
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 56.1% ( 955/1304)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 69.5% (1280/1535)
+Web Bundling failed 4881ms node_modules\expo-router\entry.js (1981 modules)
+Error: Cannot pipe to a closed or destroyed stream
+    at pipelineImpl (node:internal/streams/pipeline:264:15)
+    at node:stream/promises:31:5
+    at new Promise (<anonymous>)
+    at pipeline (node:stream/promises:20:10)
+    at respond (C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-server\src\vendor\http.ts:138:19)
+    at C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\expo-server\src\vendor\http.ts:68:13
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+λ Bundling failed 4886ms node_modules\expo-router\node\render.js (2191 modules)
+
+Metro error: Unable to resolve module ../../src/private/devsupport/rndevtools/ReactDevToolsSettingsManager from C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\react-native\Libraries\Core\setUpReactDevTools.js: 
+
+None of these files exist:
+  * node_modules\react-native\src\private\devsupport\rndevtools\ReactDevToolsSettingsManager(.web.js.flow|.js.flow|.web.native.tsx|.native.tsx|.web.native.ts|.native.ts|.web.native.jsx|.native.jsx|.web.native.js|.native.js|.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)
+  * node_modules\react-native\src\private\devsupport\rndevtools\ReactDevToolsSettingsManager
+[0m [90m 39 |[39m   } [33m=[39m require([32m'react-devtools-core'[39m)[33m;[39m
+ [90m 40 |[39m
+[31m[1m>[22m[39m[90m 41 |[39m   [36mconst[39m reactDevToolsSettingsManager [33m=[39m require([32m'../../src/private/devsupport/rndevtools/ReactDevToolsSettingsManager'[39m)[33m;[39m
+ [90m    |[39m                                                 [31m[1m^[22m[39m
+ [90m 42 |[39m   [36mconst[39m serializedHookSettings [33m=[39m
+ [90m 43 |[39m     reactDevToolsSettingsManager[33m.[39mgetGlobalHookSettings()[33m;[39m
+ [90m 44 |[39m   [36mconst[39m maybeReactDevToolsRuntimeSettingsModuleModule [33m=[39m[0m
+
+Import stack:
+
+ node_modules\react-native\Libraries\Core\setUpReactDevTools.js
+ | import "../../src/private/devsupport/rndevtools/ReactDevToolsSettingsManager"
+
+ node_modules\react-native\src\private\setup\setUpDefaultReactNativeEnvironment.js
+ | import "../../../Libraries/Core/setUpReactDevTools"
+
+ node_modules\react-native\Libraries\Core\InitializeCore.js
+ | import "../../src/private/setup/setUpDefaultReactNativeEnvironment"
+
+ node_modules\@expo\metro-runtime\src\location\install.native.ts
+ | import "react-native/Libraries/Core/InitializeCore"
+           ^ Importing react-native internals is not supported on web.
+
+ node_modules\@expo\metro-runtime\src\index.ts
+ | import "./location/install"
+
+ node_modules\expo-router\entry-classic.js
+ | import "@expo/metro-runtime"
+
+ node_modules\expo-router\entry.js
+ | import "expo-router/entry-classic"
+
+ 
+ | import "./node_modules/expo-router/entry"
+
+
+Call Stack
+  <unknown> (node_modules\react-native\Libraries\Core\setUpReactDevTools.js)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 84.2% (1616/1761)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 81.1% (1645/1827)
+Web Bundling failed 4405ms node_modules\expo-router\entry.js (1927 modules)
+λ Bundling failed 4406ms node_modules\expo-router\node\render.js (2152 modules)
+
+Metro error: Unable to resolve module ../../src/private/devsupport/rndevtools/ReactDevToolsSettingsManager from C:\Users\PC\Downloads\Perix1\Perix-main\frontend\node_modules\react-native\Libraries\Core\setUpReactDevTools.js: 
+
+None of these files exist:
+  * node_modules\react-native\src\private\devsupport\rndevtools\ReactDevToolsSettingsManager(.web.js.flow|.js.flow|.web.native.tsx|.native.tsx|.web.native.ts|.native.ts|.web.native.jsx|.native.jsx|.web.native.js|.native.js|.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)
+  * node_modules\react-native\src\private\devsupport\rndevtools\ReactDevToolsSettingsManager
+[0m [90m 39 |[39m   } [33m=[39m require([32m'react-devtools-core'[39m)[33m;[39m
+ [90m 40 |[39m
+[31m[1m>[22m[39m[90m 41 |[39m   [36mconst[39m reactDevToolsSettingsManager [33m=[39m require([32m'../../src/private/devsupport/rndevtools/ReactDevToolsSettingsManager'[39m)[33m;[39m
+ [90m    |[39m                                                 [31m[1m^[22m[39m
+ [90m 42 |[39m   [36mconst[39m serializedHookSettings [33m=[39m
+ [90m 43 |[39m     reactDevToolsSettingsManager[33m.[39mgetGlobalHookSettings()[33m;[39m
+ [90m 44 |[39m   [36mconst[39m maybeReactDevToolsRuntimeSettingsModuleModule [33m=[39m[0m
+
+Import stack:
+
+ node_modules\react-native\Libraries\Core\setUpReactDevTools.js
+ | import "../../src/private/devsupport/rndevtools/ReactDevToolsSettingsManager"
+
+ node_modules\react-native\src\private\setup\setUpDefaultReactNativeEnvironment.js
+ | import "../../../Libraries/Core/setUpReactDevTools"
+
+ node_modules\react-native\Libraries\Core\InitializeCore.js
+ | import "../../src/private/setup/setUpDefaultReactNativeEnvironment"
+
+ node_modules\@expo\metro-runtime\src\location\install.native.ts
+ | import "react-native/Libraries/Core/InitializeCore"
+           ^ Importing react-native internals is not supported on web.
+
+ node_modules\@expo\metro-runtime\src\index.ts
+ | import "./location/install"
+
+ node_modules\expo-router\entry-classic.js
+ | import "@expo/metro-runtime"
+
+ node_modules\expo-router\entry.js
+ | import "expo-router/entry-classic"
+
+ 
+ | import "./node_modules/expo-router/entry"
+
+
+Call Stack
+  <unknown> (node_modules\react-native\Libraries\Core\setUpReactDevTools.js)
+› Detected a change in metro.config.js. Restart the server to see the new results.
+› Detected a change in metro.config.js. Restart the server to see the new results.

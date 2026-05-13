@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Text, StyleSheet, View, StyleProp, ViewStyle, TextStyle, Image, Pressable, Linking, Platform } from "react-native";
+import { useRouter } from "expo-router";
 import AdaptiveVideo from "./AdaptiveVideo";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -9,6 +10,11 @@ interface PostContentProps {
   videoStyle?: StyleProp<ViewStyle>;
   globalMuted?: boolean;
   onMuteChange?: (muted: boolean) => void;
+  youtubeLink?: string | null;
+  soundcloudUrl?: string | null;
+  taggedUsers?: { id: string; name: string }[];
+  taggedBusinesses?: { id: string; name: string }[];
+  onMentionPress?: (id: string, type: 'user' | 'business') => void;
 }
 
 // YouTube URL regex pattern - matches various YouTube URL formats
@@ -117,32 +123,137 @@ function SoundCloudEmbed({ url }: { url: string }) {
   );
 }
 
+const processTextWithMentions = (
+  text: string,
+  taggedUsers?: { id: string; name: string }[],
+  taggedBusinesses?: { id: string; name: string }[]
+): string => {
+  if (!text) return "";
+  
+  let processedText = text;
+  const allTags = [
+    ...(taggedUsers || []).map(u => ({ id: u.id, name: u.name })),
+    ...(taggedBusinesses || []).map(b => ({ id: b.id, name: b.name }))
+  ];
+  
+  for (const tag of allTags) {
+    // Replace @id with @name
+    processedText = processedText.replace(`@${tag.id}`, `@${tag.name}`);
+  }
+  
+  return processedText;
+};
+
 export default React.memo(function PostContent({ 
   text, 
   textStyle, 
   videoStyle,
   globalMuted = false,
-  onMuteChange 
+  onMuteChange,
+  onMentionPress,
+  youtubeLink,
+  soundcloudUrl,
+  taggedUsers,
+  taggedBusinesses,
 }: PostContentProps) {
-  const { segments, hasMedia } = useMemo(() => parsePostContent(text), [text]);
+  const router = useRouter();
   
-  // If no media URLs, just render text
-  if (!hasMedia) {
-    return <Text style={textStyle}>{text}</Text>;
+  const displayText = useMemo(() => 
+    processTextWithMentions(text, taggedUsers, taggedBusinesses), 
+    [text, taggedUsers, taggedBusinesses]
+  );
+  
+  const hasExplicitMedia = !!youtubeLink || !!soundcloudUrl;
+  const { segments, hasMedia } = useMemo(() => parsePostContent(displayText), [displayText]);
+
+  const handleMentionPress = (id: string, type: 'user' | 'business') => {
+    if (onMentionPress) {
+      onMentionPress(id, type);
+    } else {
+      // Default navigation
+      if (type === 'business') {
+        router.push(`/business/${id}`);
+      } else {
+        router.push(`/user/${id}`);
+      }
+    }
+  };
+  
+// Parse text to find @mentions and make them clickable
+  const renderTextWithMentions = () => {
+    const allTags = [
+      ...(taggedUsers || []).map(u => ({ id: u.id, name: u.name, type: 'user' as const })),
+      ...(taggedBusinesses || []).map(b => ({ id: b.id, name: b.name, type: 'business' as const }))
+    ];
+    
+    if (allTags.length === 0 || !displayText) {
+      return <Text style={textStyle}>{displayText}</Text>;
+    }
+    
+    // Build a regex to find all @names at once
+    const tagNames = allTags.map(t => t.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const mentionRegex = new RegExp(`@(${tagNames.join('|')})(?=\\s|$)`, 'gi');
+    
+    // Split text by mentions but keep the delimiters
+    const parts = displayText.split(mentionRegex);
+    const matches = displayText.match(mentionRegex) || [];
+    
+    return (
+      <Text style={textStyle}>
+        {parts.map((part, index) => {
+          // Check if this part is a mention (it should appear at odd indices in split result)
+          if (index > 0 && index % 2 === 1) {
+            const matchIdx = (index - 1) / 2;
+            const matchedName = matches[matchIdx]?.replace('@', '');
+            const tag = allTags.find(t => t.name.toLowerCase() === matchedName?.toLowerCase());
+            
+            if (tag) {
+              return (
+                <Text
+                  key={index}
+                  style={styles.mention}
+                  onPress={() => handleMentionPress(tag.id, tag.type)}
+                >
+                  @{matchedName}
+                </Text>
+              );
+            }
+          }
+          return <Text key={index}>{part}</Text>;
+        })}
+      </Text>
+    );
+  };
+
+  if (!hasExplicitMedia && !hasMedia) {
+    return renderTextWithMentions();
   }
   
   return (
     <View style={styles.container}>
+      {youtubeLink && (
+        <View style={styles.videoContainer}>
+          <AdaptiveVideo
+            uri={youtubeLink}
+            style={[styles.video, videoStyle]}
+            autoPlay={false}
+            isLooping={false}
+            showMuteButton={true}
+            initialMuted={globalMuted}
+            onMuteChange={onMuteChange}
+          />
+        </View>
+      )}
       {segments.map((segment, index) => {
         if (segment.type === 'text') {
           return (
-            <Text key={`text-${index}`} style={textStyle}>
-              {segment.content}
-            </Text>
+            <React.Fragment key={`text-${index}`}>
+              {renderTextWithMentions()}
+            </React.Fragment>
           );
         }
         
-        if (segment.type === 'youtube') {
+        if (segment.type === 'youtube' && !youtubeLink) {
           return (
             <View key={`youtube-${index}`} style={styles.videoContainer}>
               <AdaptiveVideo
@@ -158,7 +269,7 @@ export default React.memo(function PostContent({
           );
         }
         
-        if (segment.type === 'soundcloud') {
+        if (segment.type === 'soundcloud' && !soundcloudUrl) {
           return (
             <View key={`soundcloud-${index}`} style={styles.soundcloudWrapper}>
               <SoundCloudEmbed url={segment.content} />
@@ -175,6 +286,10 @@ export default React.memo(function PostContent({
 const styles = StyleSheet.create({
   container: {
     gap: 12,
+  },
+  mention: {
+    color: "#1d9bf0",
+    fontWeight: "500",
   },
   videoContainer: {
     marginTop: 8,

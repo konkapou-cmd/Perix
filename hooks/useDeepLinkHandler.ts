@@ -83,10 +83,6 @@ export function useDeepLinkHandler() {
         router.push(`/activity/${route.id}`);
         break;
 
-      case "artist":
-        router.push(`/artist/${route.id}`);
-        break;
-
       case "business":
         router.push(`/business/${route.id}`);
         break;

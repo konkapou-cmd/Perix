@@ -6,13 +6,15 @@ import { translateCategory } from "../../lib/categoryTranslation";
 type Props = {
   rootCategory: string | null;
   subcategory: string | null;
-  onChangeCategory: () => void;
+  tags: string[];
+  onEdit: () => void;
 };
 
 export default function CategorySection({
   rootCategory,
   subcategory,
-  onChangeCategory,
+  tags,
+  onEdit,
 }: Props) {
   const { t } = useTranslation();
 
@@ -20,13 +22,13 @@ export default function CategorySection({
     <View style={styles.card}>
       <View style={styles.sectionHeader}>
         <Text style={styles.cardTitle}>{t("business.category")}</Text>
-        <Pressable style={styles.secondaryButton} onPress={onChangeCategory}>
+        <Pressable style={styles.secondaryButton} onPress={onEdit}>
           <Text style={styles.secondaryButtonText}>{t("business.changeCategory")}</Text>
         </Pressable>
       </View>
       <View style={styles.categoryInfo}>
         <View style={styles.categoryRow}>
-          <Ionicons name="grid-outline" size={20} color="#4c6fff" />
+          <Ionicons name="grid-outline" size={20} color="#000000" />
           <View style={styles.categoryTextContainer}>
             <Text style={styles.categoryLabel}>{t("business.rootCategory")}</Text>
             <Text style={styles.categoryValue}>
@@ -75,7 +77,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
     fontSize: 13,
   },

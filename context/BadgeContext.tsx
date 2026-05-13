@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
+import { useSocketEvent } from "./SocketContext";
 import { getUnreadMessageCount, getActivityFeed } from "../lib/api";
 
 type BadgeContextType = {
@@ -66,7 +67,17 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
     }
   }, [sessionToken, user, refreshUnreadCount]);
 
-  // Refresh unread count periodically (every 30 seconds)
+  // Refresh unread count periodically (fallback every 30s, WS-driven when connected)
+  useSocketEvent("unread_count", useCallback((data: any) => {
+    if (typeof data?.count === "number") {
+      setUnreadMessageCount(data.count);
+    }
+  }, []));
+
+  useSocketEvent("new_message", useCallback(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]));
+
   useEffect(() => {
     if (!sessionToken) return;
     

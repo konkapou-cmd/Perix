@@ -18,22 +18,22 @@ import {
   Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from "expo-av";
 import { useTranslation } from "react-i18next";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../context/AuthContext";
-import { createStory, createPost, uploadMedia, uploadImageToCloudinary, UploadProgress } from "../lib/api";
-import UploadProgressModal from "../components/UploadProgressModal";
+import { useMapBounds } from "../context/MapBoundsContext";
+import { createPost, createStory, uploadMedia, uploadImageToCloudinary, uploadVideoMux, UploadProgress, apiRequest, MAX_STORY_VIDEO_SIZE_MB, deletePost, deleteStory } from "../lib/api";
+import UploadProgressSheet from "../components/UploadProgressSheet";
 import * as FileSystem from "expo-file-system/legacy";
 import Constants from "expo-constants";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CANVAS_WIDTH = SCREEN_WIDTH;
-const CANVAS_HEIGHT = SCREEN_WIDTH * 1.5; // 2:3 aspect ratio for stories
+const CANVAS_HEIGHT = SCREEN_WIDTH * 1.5; // 2:3 aspect ratio
 
 // Get API URL from config
 const BACKEND_URL =
@@ -135,6 +135,27 @@ const FILTERS = [
   { id: "fade", name: "Fade", style: { opacity: 0.85, tintColor: "rgba(255, 255, 255, 0.2)" } },
 ];
 
+// Drawing types
+interface DrawingPoint {
+  x: number;
+  y: number;
+}
+
+interface DrawingStroke {
+  id: string;
+  points: DrawingPoint[];
+  color: string;
+  width: number;
+  tool: "pen" | "highlighter" | "eraser";
+}
+
+const DRAWING_COLORS = [
+  "#FFFFFF", "#000000", "#FF3B30", "#FF9500", "#FFCC00",
+  "#34C759", "#007AFF", "#5856D6", "#AF52DE", "#FF2D55",
+];
+
+const BRUSH_SIZES = [2, 4, 8, 12, 20];
+
 interface TextOverlay {
   id: string;
   text: string;
@@ -148,13 +169,39 @@ interface TextOverlay {
   scale: number;
 }
 
+interface Sticker {
+  id: string;
+  type: "location" | "mention" | "hashtag" | "poll" | "emoji" | "countdown";
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+  // Location
+  locationName?: string;
+  locationLat?: number;
+  locationLng?: number;
+  // Mention
+  mentionUsername?: string;
+  mentionUserId?: string;
+  // Hashtag
+  hashtagName?: string;
+  // Poll
+  pollQuestion?: string;
+  pollOptions?: string[];
+  // Emoji slider
+  emojiValue?: number;
+  // Countdown
+  countdownDate?: string;
+}
+
 export default function MediaEditor() {
-  const { uri, type } = useLocalSearchParams<{ uri: string; type: "image" | "video" }>();
-  const { safeGoBack, router } = useSafeNavigation();
+  const { uri, type, mode } = useLocalSearchParams<{ uri: string; type: "image" | "video"; mode?: "post" }>();
+  const router = useRouter();
   const { t } = useTranslation();
-  const { sessionToken, activeIdentity } = useAuth();
+  const { sessionToken, activeIdentity, user } = useAuth();
+  const { mapBounds } = useMapBounds();
   
-  const [activeTab, setActiveTab] = useState<"text" | "filter" | "trim" | "music" | "none">("none");
+  const [activeTab, setActiveTab] = useState<"text" | "filter" | "trim" | "music" | "sticker" | "draw" | "none">("none");
   const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState("none");
@@ -178,6 +225,26 @@ export default function MediaEditor() {
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>(DEFAULT_MUSIC_TRACKS);
   const [loadingMusic, setLoadingMusic] = useState(false);
   const musicRef = useRef<Audio.Sound | null>(null);
+  
+  // Sticker states
+  const [activeStickerType, setActiveStickerType] = useState<"location" | "mention" | "hashtag" | "poll" | "emoji" | "countdown" | null>(null);
+  const [stickers, setStickers] = useState<Sticker[]>([]);
+  const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [hashtagQuery, setHashtagQuery] = useState("");
+  const [pollQuestion, setPollQuestion] = useState("");
+  
+  // Drawing states
+  const [activeDrawingTool, setActiveDrawingTool] = useState<"pen" | "highlighter" | "eraser" | null>(null);
+  const [drawingStrokes, setDrawingStrokes] = useState<DrawingStroke[]>([]);
+  const [currentStroke, setCurrentStroke] = useState<DrawingPoint[]>([]);
+  const [drawingColor, setDrawingColor] = useState("#FFFFFF");
+  const [brushSize, setBrushSize] = useState(4);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [emojiValue, setEmojiValue] = useState(5);
+  const [countdownDate, setCountdownDate] = useState(new Date(Date.now() + 86400000)); // Tomorrow
   
   // Video trimming states
   const [videoDuration, setVideoDuration] = useState(0);
@@ -383,6 +450,26 @@ export default function MediaEditor() {
     setSelectedTextId(newOverlay.id);
   };
 
+  // Add new sticker
+  const addSticker = (sticker: Sticker) => {
+    setStickers([...stickers, sticker]);
+    setSelectedStickerId(sticker.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  // Delete sticker
+  const deleteSticker = (id: string) => {
+    setStickers(stickers.filter(s => s.id !== id));
+    if (selectedStickerId === id) setSelectedStickerId(null);
+  };
+
+  // Update sticker position
+  const updateStickerPosition = (id: string, x: number, y: number) => {
+    setStickers(stickers =>
+      stickers.map(s => s.id === id ? { ...s, x, y } : s)
+    );
+  };
+
   // Update text overlay position
   const updateTextPosition = (id: string, x: number, y: number) => {
     setTextOverlays(overlays =>
@@ -408,82 +495,8 @@ export default function MediaEditor() {
     );
   };
 
-  // Handle done - show publish options
   const handleDone = () => {
     setShowPublishOptions(true);
-  };
-
-  // Publish as story
-  const publishAsStory = async () => {
-    if (!sessionToken) {
-      Alert.alert(t("common.error"), t("common.notLoggedIn"));
-      return;
-    }
-    
-    setPublishing(true);
-    setShowPublishOptions(false);
-    
-    try {
-      const decodedUri = decodeURIComponent(uri || "");
-      let mediaUrl: string;
-      let imageUrl: string | undefined;
-      
-      if (type === "video") {
-        // Upload video to Cloudinary
-        setShowUploadProgress(true);
-        setUploadProgress({ phase: "preparing", progress: 0 });
-        mediaUrl = await uploadMedia(sessionToken, decodedUri, "video", (progress) => {
-          setUploadProgress(progress);
-        });
-        setShowUploadProgress(false);
-      } else {
-        // Upload image to Cloudinary
-        setShowUploadProgress(true);
-        setUploadProgress({ phase: "uploading", progress: 30 });
-        const base64 = await FileSystem.readAsStringAsync(decodedUri, {
-          encoding: 'base64',
-        });
-        const base64Uri = `data:image/jpeg;base64,${base64}`;
-        
-        try {
-          imageUrl = await uploadImageToCloudinary(sessionToken, base64Uri);
-          setUploadProgress({ phase: "uploading", progress: 100 });
-        } catch (e) {
-          console.error("Image upload to Cloudinary failed:", e);
-          // Fallback to base64 if Cloudinary fails
-          mediaUrl = base64Uri;
-        }
-        setShowUploadProgress(false);
-      }
-      
-      const actor = activeIdentity
-        ? { type: activeIdentity.type, id: activeIdentity.id }
-        : undefined;
-      const businessId =
-        activeIdentity?.type === "business" ? activeIdentity.id : undefined;
-      
-      // Create story with Cloudinary URL
-      await createStory(
-        sessionToken, 
-        type === "video" ? undefined : (imageUrl ? undefined : mediaUrl), // base64 fallback
-        type === "video" ? mediaUrl : undefined, // video_url
-        businessId, 
-        actor,
-        type === "video" ? undefined : imageUrl // image_url from Cloudinary
-      );
-      
-      Alert.alert(
-        t("editor.success") || "Success!",
-        t("editor.storyPublished") || "Your story has been published!",
-        [{ text: t("common.ok"), onPress: () => router.replace("/(tabs)/home") }]
-      );
-    } catch (error) {
-      console.error("Error publishing story:", error);
-      Alert.alert(t("common.error"), t("editor.publishFailed") || "Failed to publish. Please try again.");
-    } finally {
-      setPublishing(false);
-      setShowUploadProgress(false);
-    }
   };
 
   // Publish as post
@@ -498,44 +511,107 @@ export default function MediaEditor() {
     
     try {
       const decodedUri = decodeURIComponent(uri || "");
-      let imageUrl: string | undefined;
-      let videoUrl: string | undefined;
-      
-      if (type === "video") {
-        // Upload video first
-        setShowUploadProgress(true);
-        setUploadProgress({ phase: "preparing", progress: 0 });
-        videoUrl = await uploadMedia(sessionToken, decodedUri, "video", (progress) => {
-          setUploadProgress(progress);
-        });
-        setShowUploadProgress(false);
-      } else {
-        // For images, read as base64
-        const base64 = await FileSystem.readAsStringAsync(decodedUri, {
-          encoding: 'base64',
-        });
-        imageUrl = `data:image/jpeg;base64,${base64}`;
-      }
-      
       const actor = activeIdentity
         ? { type: activeIdentity.type, id: activeIdentity.id }
         : undefined;
       const businessId =
         activeIdentity?.type === "business" ? activeIdentity.id : undefined;
       
-      await createPost(
-        sessionToken,
-        postCaption || t("home.sharedAnUpdate") || "Shared an update",
-        imageUrl,
-        videoUrl,
-        businessId,
-        actor
-      );
+      if (type === "video") {
+        const isRemoteUri = decodedUri.startsWith("http://") || decodedUri.startsWith("https://");
+
+        if (isRemoteUri) {
+          const muxPlaybackId = decodedUri.match(/stream\.mux\.com\/([a-zA-Z0-9]+)\.m3u8/)?.[1];
+          await createPost(
+            sessionToken,
+            postCaption || t("home.sharedAnUpdate") || "Shared an update",
+            null,
+            null,
+            businessId,
+            actor,
+            null,
+            [],
+            null,
+            null,
+            null,
+            decodedUri,
+            null,
+            null,
+            muxPlaybackId || undefined,
+            muxPlaybackId || undefined,
+            "ready"
+          );
+        } else {
+          setShowUploadProgress(true);
+          setUploadProgress({ phase: "preparing", progress: 0 });
+
+          const post = await createPost(
+            sessionToken,
+            postCaption || t("home.sharedAnUpdate") || "Shared an update",
+            null,
+            null,
+            businessId,
+            actor,
+            null,
+            [],
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          );
+
+          try {
+            const muxResult = await uploadVideoMux(sessionToken, decodedUri, `post:${post.post_id}`, (progress) => {
+              setUploadProgress(progress);
+            });
+            const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : undefined);
+            setShowUploadProgress(false);
+
+            await apiRequest(`/posts/${post.post_id}`, "PUT", sessionToken, {
+              video_url: videoUrl || undefined,
+              mux_upload_id: muxResult.mux_upload_id,
+              mux_asset_id: muxResult.mux_asset_id,
+              mux_playback_id: muxResult.mux_playback_id,
+              mux_thumbnail_url: muxResult.mux_thumbnail_url,
+              video_status: muxResult.mux_playback_id ? "ready" : "processing",
+            });
+          } catch (uploadError) {
+            try { await deletePost(sessionToken, post.post_id); } catch (_) {}
+            throw uploadError;
+          }
+        }
+      } else {
+        setShowUploadProgress(true);
+        setUploadProgress({ phase: "uploading", progress: 0 });
+        const imageUrl = await uploadMedia(sessionToken, decodedUri, "image", (progress) => {
+          setUploadProgress(progress);
+        });
+        setShowUploadProgress(false);
+        
+        await createPost(
+          sessionToken,
+          postCaption || t("home.sharedAnUpdate") || "Shared an update",
+          null,
+          null,
+          businessId,
+          actor,
+          null,
+          [],
+          null,
+          null,
+          imageUrl,
+          null,
+          null,
+          null
+        );
+      }
       
       Alert.alert(
         t("editor.success") || "Success!",
         t("editor.postPublished") || "Your post has been published!",
-        [{ text: t("common.ok"), onPress: () => router.replace("/(tabs)/home") }]
+        [{ text: t("common.ok"), onPress: () => router.back() }]
       );
     } catch (error) {
       console.error("Error publishing post:", error);
@@ -544,6 +620,202 @@ export default function MediaEditor() {
       setPublishing(false);
       setShowUploadProgress(false);
     }
+  };
+
+  const publishAsStory = async () => {
+    if (!sessionToken) {
+      Alert.alert(t("common.error"), t("common.notLoggedIn"));
+      return;
+    }
+
+    setPublishing(true);
+    setShowPublishOptions(false);
+
+    try {
+      const decodedUri = decodeURIComponent(uri || "");
+      const actor = activeIdentity
+        ? { type: activeIdentity.type as "user" | "business" | "artist", id: activeIdentity.id }
+        : undefined;
+
+      if (type === "video") {
+        if (!decodedUri.startsWith("http://") && !decodedUri.startsWith("https://")) {
+          const videoInfo = await FileSystem.getInfoAsync(decodedUri);
+          if (videoInfo.exists && videoInfo.size > MAX_STORY_VIDEO_SIZE_MB * 1024 * 1024) {
+            Alert.alert(t("common.error"), `Video must be under ${MAX_STORY_VIDEO_SIZE_MB}MB`);
+            setPublishing(false);
+            return;
+          }
+        }
+
+        const storyDuration = type === "video" ? (trimEnd - trimStart) : undefined;
+        if (storyDuration !== undefined && storyDuration > 60) {
+          Alert.alert(t("common.error"), t("stories.maxDurationError") || "Story videos must be 60 seconds or less");
+          setPublishing(false);
+          return;
+        }
+
+        const storyResp = await createStory(sessionToken, {
+          media_url: undefined,
+          media_type: "video",
+          text: postCaption || undefined,
+          actor_type: actor?.type,
+          actor_id: actor?.id,
+          video_status: "uploading",
+          duration_seconds: storyDuration,
+          latitude: user?.latitude ?? mapBounds?.centerLat ?? undefined,
+          longitude: user?.longitude ?? mapBounds?.centerLng ?? undefined,
+        });
+        const storyId = storyResp.story_id;
+
+        try {
+          setShowUploadProgress(true);
+          setUploadProgress({ phase: "preparing", progress: 0 });
+          const muxResult = await uploadVideoMux(sessionToken, decodedUri, `story:${storyId}`, (progress) => {
+            setUploadProgress(progress);
+          });
+          setShowUploadProgress(false);
+
+          const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+          if (videoUrl || muxResult.mux_upload_id) {
+            await apiRequest(`/stories/${storyId}`, "PATCH", sessionToken, {
+              media_url: videoUrl || undefined,
+              mux_upload_id: muxResult.mux_upload_id,
+              mux_asset_id: muxResult.mux_asset_id,
+              mux_playback_id: muxResult.mux_playback_id,
+              mux_thumbnail_url: muxResult.mux_thumbnail_url,
+              video_status: muxResult.mux_playback_id ? "ready" : "processing",
+            });
+          }
+        } catch (uploadError) {
+          try { await deleteStory(sessionToken, storyId); } catch (_) {}
+          throw uploadError;
+        }
+      } else {
+        let mediaUrl: string | undefined;
+        try {
+          setShowUploadProgress(true);
+          setUploadProgress({ phase: "uploading", progress: 0 });
+          mediaUrl = await uploadMedia(sessionToken, decodedUri, "image", (progress) => {
+            setUploadProgress(progress);
+          });
+          setShowUploadProgress(false);
+        } catch (uploadErr) {
+          console.error("Image upload to Cloudinary failed:", uploadErr);
+          Alert.alert(t("common.error"), "Failed to upload image. Please try again.");
+          return;
+        }
+
+        if (!mediaUrl) {
+          Alert.alert(t("common.error"), "Upload returned empty URL. Please try again.");
+          return;
+        }
+
+        await createStory(sessionToken, {
+          media_url: mediaUrl || undefined,
+          media_type: "image",
+          text: postCaption || undefined,
+          actor_type: actor?.type,
+          actor_id: actor?.id,
+          latitude: user?.latitude ?? mapBounds?.centerLat ?? undefined,
+          longitude: user?.longitude ?? mapBounds?.centerLng ?? undefined,
+        });
+      }
+
+      Alert.alert(
+        t("editor.success") || "Success!",
+        t("stories.storyPublished") || "Your story has been published!",
+        [{ text: t("common.ok"), onPress: () => router.back() }]
+      );
+    } catch (error) {
+      console.error("Error publishing story:", error);
+      Alert.alert(t("common.error"), t("editor.publishFailed") || "Failed to publish. Please try again.");
+    } finally {
+      setPublishing(false);
+      setShowUploadProgress(false);
+    }
+  };
+
+  // Drawing handlers
+  const handleStrokeStart = (x: number, y: number) => {
+    if (!activeDrawingTool) return;
+    setIsDrawing(true);
+    setCurrentStroke([{ x, y }]);
+    Haptics.selectionAsync();
+  };
+
+  const handleStrokeMove = (x: number, y: number) => {
+    if (!isDrawing || !activeDrawingTool) return;
+    setCurrentStroke(prev => [...prev, { x, y }]);
+  };
+
+  const handleStrokeEnd = () => {
+    if (!isDrawing || !activeDrawingTool || currentStroke.length === 0) return;
+    
+    const newStroke: DrawingStroke = {
+      id: `stroke_${Date.now()}`,
+      points: currentStroke,
+      color: activeDrawingTool === "eraser" ? "eraser" : drawingColor,
+      width: activeDrawingTool === "highlighter" ? brushSize * 3 : brushSize,
+      tool: activeDrawingTool,
+    };
+    
+    setDrawingStrokes(prev => [...prev, newStroke]);
+    setCurrentStroke([]);
+    setIsDrawing(false);
+  };
+
+  // Drawing Canvas Component (simplified - tracks strokes)
+  const DrawingCanvas = ({
+    strokes,
+    currentStroke,
+    activeTool,
+    color,
+    brushSize,
+    onStrokeStart,
+    onStrokeMove,
+    onStrokeEnd,
+  }: {
+    strokes: DrawingStroke[];
+    currentStroke: DrawingPoint[];
+    activeTool: "pen" | "highlighter" | "eraser";
+    color: string;
+    brushSize: number;
+    onStrokeStart: (x: number, y: number) => void;
+    onStrokeMove: (x: number, y: number) => void;
+    onStrokeEnd: () => void;
+  }) => {
+    const panResponder = useRef(
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (evt) => {
+          const { locationX, locationY } = evt.nativeEvent;
+          onStrokeStart(locationX, locationY);
+        },
+        onPanResponderMove: (evt) => {
+          const { locationX, locationY } = evt.nativeEvent;
+          onStrokeMove(locationX, locationY);
+        },
+        onPanResponderRelease: () => {
+          onStrokeEnd();
+        },
+      })
+    ).current;
+
+    return (
+      <View 
+        style={styles.drawingCanvas} 
+        {...panResponder.panHandlers}
+        pointerEvents="box-only"
+      >
+        {/* Drawing indicator */}
+        {activeTool && (
+          <View style={styles.drawingIndicator}>
+            <View style={[styles.drawingDot, { backgroundColor: activeTool === "eraser" ? "#FF3B30" : color, width: brushSize * 2, height: brushSize * 2 }]} />
+          </View>
+        )}
+      </View>
+    );
   };
 
   // Snap grid settings
@@ -617,150 +889,140 @@ export default function MediaEditor() {
     return { x: snappedX, y: snappedY, guides };
   };
 
-  // Alignment functions with haptic feedback
-  const alignText = (alignment: 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom') => {
-    if (!selectedTextId) return;
-    
-    const overlay = textOverlays.find(o => o.id === selectedTextId);
-    if (!overlay) return;
-
-    const textWidth = 100 * overlay.scale; // Approximate
-    const textHeight = overlay.fontSize * overlay.scale;
-
-    let newX = overlay.x;
-    let newY = overlay.y;
-
-    switch (alignment) {
-      case 'left':
-        newX = 20;
-        break;
-      case 'center-h':
-        newX = (CANVAS_WIDTH - textWidth) / 2;
-        break;
-      case 'right':
-        newX = CANVAS_WIDTH - textWidth - 20;
-        break;
-      case 'top':
-        newY = 20;
-        break;
-      case 'center-v':
-        newY = (CANVAS_HEIGHT - textHeight) / 2;
-        break;
-      case 'bottom':
-        newY = CANVAS_HEIGHT - textHeight - 20;
-        break;
-    }
-
-    // Haptic feedback when aligning
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    updateTextPosition(selectedTextId, newX, newY);
+  // Helper to normalize rotation to -180 to 180 range
+  const normalizeRotation = (degrees: number): number => {
+    let normalized = degrees % 360;
+    if (normalized > 180) normalized -= 360;
+    if (normalized < -180) normalized += 360;
+    return normalized;
   };
 
-  // Rotation function with haptic feedback
-  const rotateText = (degrees: number) => {
-    if (!selectedTextId) return;
-    const overlay = textOverlays.find(o => o.id === selectedTextId);
-    if (!overlay) return;
-    
-    const newRotation = (overlay.rotation + degrees) % 360;
-    Haptics.selectionAsync();
-    updateSelectedText({ rotation: newRotation });
-  };
-
-  // Scale function with haptic feedback
-  const scaleText = (delta: number) => {
-    if (!selectedTextId) return;
-    const overlay = textOverlays.find(o => o.id === selectedTextId);
-    if (!overlay) return;
-    
-    const newScale = Math.max(0.5, Math.min(3, overlay.scale + delta));
-    Haptics.selectionAsync();
-    updateSelectedText({ scale: newScale });
-  };
-
-  // Draggable text component with rotation and scale
+  // Improved Draggable text component with pinch-to-zoom and two-finger rotation
   const DraggableText = ({ overlay }: { overlay: TextOverlay }) => {
     const pan = useRef(new Animated.ValueXY({ x: overlay.x, y: overlay.y })).current;
     const scaleAnim = useRef(new Animated.Value(overlay.scale)).current;
+    const rotationAnim = useRef(new Animated.Value(overlay.rotation)).current;
     const isSelected = selectedTextId === overlay.id;
     const lastScale = useRef(overlay.scale);
+    const lastRotation = useRef(overlay.rotation);
     const lastDistance = useRef(0);
-    
-    // Update animation values when overlay changes
+    const lastAngle = useRef(0);
+    const [gestureHint, setGestureHint] = useState<'drag' | 'pinch' | 'rotate' | null>(null);
+
+    // Update animation values when overlay properties change externally
     useEffect(() => {
-      scaleAnim.setValue(overlay.scale);
+      Animated.parallel([
+        Animated.spring(pan, {
+          toValue: { x: overlay.x, y: overlay.y },
+          useNativeDriver: true,
+          bounciness: 5,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: overlay.scale,
+          useNativeDriver: true,
+          bounciness: 5,
+        }),
+        Animated.spring(rotationAnim, {
+          toValue: overlay.rotation,
+          useNativeDriver: true,
+          bounciness: 5,
+        }),
+      ]).start();
       lastScale.current = overlay.scale;
-    }, [overlay.scale]);
-    
+      lastRotation.current = overlay.rotation;
+    }, [overlay.x, overlay.y, overlay.scale, overlay.rotation]);
+
+    // Calculate distance between two touches
+    const getTouchDistance = (touches: any[]) => {
+      if (touches.length < 2) return 0;
+      const dx = touches[1].pageX - touches[0].pageX;
+      const dy = touches[1].pageY - touches[0].pageY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    // Calculate angle between two touches
+    const getTouchAngle = (touches: any[]) => {
+      if (touches.length < 2) return 0;
+      return Math.atan2(
+        touches[1].pageY - touches[0].pageY,
+        touches[1].pageX - touches[0].pageX
+      ) * (180 / Math.PI);
+    };
+
     const panResponder = useRef(
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-          // Allow move if single touch or pinch
-          return Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2;
-        },
+        onMoveShouldSetPanResponder: () => true,
         onPanResponderGrant: (evt) => {
           setSelectedTextId(overlay.id);
           pan.setOffset({ x: (pan.x as any)._value, y: (pan.y as any)._value });
           pan.setValue({ x: 0, y: 0 });
           
-          // Initialize pinch scale
-          if (evt.nativeEvent.touches.length === 2) {
-            const touch1 = evt.nativeEvent.touches[0];
-            const touch2 = evt.nativeEvent.touches[1];
-            lastDistance.current = Math.sqrt(
-              Math.pow(touch2.pageX - touch1.pageX, 2) +
-              Math.pow(touch2.pageY - touch1.pageY, 2)
-            );
+          const touches = evt.nativeEvent.touches;
+          if (touches.length === 2) {
+            lastDistance.current = getTouchDistance(touches);
+            lastAngle.current = getTouchAngle(touches);
+            setGestureHint('pinch');
+          } else {
+            setGestureHint('drag');
           }
         },
         onPanResponderMove: (evt, gestureState) => {
-          // Handle pinch to scale
-          if (evt.nativeEvent.touches.length === 2) {
-            const touch1 = evt.nativeEvent.touches[0];
-            const touch2 = evt.nativeEvent.touches[1];
-            const distance = Math.sqrt(
-              Math.pow(touch2.pageX - touch1.pageX, 2) +
-              Math.pow(touch2.pageY - touch1.pageY, 2)
-            );
+          const touches = evt.nativeEvent.touches;
+          
+          if (touches.length === 2) {
+            // Two-finger gesture: pinch to scale OR rotate
+            const newDistance = getTouchDistance(touches);
+            const newAngle = getTouchAngle(touches);
             
-            if (lastDistance.current > 0) {
-              const scaleDelta = (distance - lastDistance.current) / 100;
-              const newScale = Math.max(0.5, Math.min(3, lastScale.current + scaleDelta));
+            const distanceDelta = newDistance - lastDistance.current;
+            const angleDelta = newAngle - lastAngle.current;
+            
+            // Determine gesture type based on which delta is larger
+            if (Math.abs(distanceDelta) > Math.abs(angleDelta) * 2) {
+              // Pinch gesture (scale)
+              setGestureHint('pinch');
+              const scaleDelta = distanceDelta / 150;
+              const newScale = Math.max(0.3, Math.min(4, lastScale.current + scaleDelta));
               scaleAnim.setValue(newScale);
-              lastScale.current = newScale;
+            } else if (Math.abs(angleDelta) > 2) {
+              // Rotation gesture
+              setGestureHint('rotate');
+              const newRotation = lastRotation.current + angleDelta;
+              rotationAnim.setValue(newRotation);
             }
-            lastDistance.current = distance;
-          } else {
+            
+            lastDistance.current = newDistance;
+            lastAngle.current = newAngle;
+          } else if (touches.length === 1) {
             // Single touch - drag
+            setGestureHint('drag');
             pan.setValue({ x: gestureState.dx, y: gestureState.dy });
           }
         },
         onPanResponderRelease: () => {
           pan.flattenOffset();
-          const rawX = (pan.x as any)._value;
-          const rawY = (pan.y as any)._value;
           
-          // Apply snap to grid
-          const { x: snappedX, y: snappedY, guides } = snapToGrid(rawX, rawY);
+          const finalX = Math.max(0, Math.min(CANVAS_WIDTH - 50, (pan.x as any)._value));
+          const finalY = Math.max(0, Math.min(CANVAS_HEIGHT - 30, (pan.y as any)._value));
           
-          const finalX = Math.max(0, Math.min(CANVAS_WIDTH - 100, snappedX));
-          const finalY = Math.max(0, Math.min(CANVAS_HEIGHT - 50, snappedY));
-          
-          // Show guides briefly
-          setShowGuides(guides);
-          setTimeout(() => setShowGuides({}), 500);
-          
-          // Update position and scale
           setTextOverlays(overlays =>
             overlays.map(o =>
               o.id === overlay.id 
-                ? { ...o, x: finalX, y: finalY, scale: lastScale.current }
+                ? { 
+                    ...o, 
+                    x: finalX, 
+                    y: finalY, 
+                    scale: lastScale.current,
+                    rotation: normalizeRotation(lastRotation.current) 
+                  }
                 : o
             )
           );
           
           lastDistance.current = 0;
+          lastAngle.current = 0;
+          setGestureHint(null);
         },
       })
     ).current;
@@ -772,17 +1034,35 @@ export default function MediaEditor() {
       <Animated.View
         style={[
           styles.draggableText,
-          { 
+          {
             transform: [
-              ...pan.getTranslateTransform(),
-              { rotate: `${overlay.rotation}deg` },
+              { translateX: pan.x },
+              { translateY: pan.y },
+              { rotate: rotationAnim.interpolate({ inputRange: [-360, 360], outputRange: ['-360deg', '360deg'] }) },
               { scale: scaleAnim },
-            ] 
+            ],
           },
           isSelected && styles.draggableTextSelected,
         ]}
         {...panResponder.panHandlers}
       >
+        {/* Selection border and handles */}
+        {isSelected && (
+          <>
+            {/* Corner resize handles */}
+            <View style={[styles.resizeHandle, styles.resizeHandleTL]} />
+            <View style={[styles.resizeHandle, styles.resizeHandleTR]} />
+            <View style={[styles.resizeHandle, styles.resizeHandleBL]} />
+            <View style={[styles.resizeHandle, styles.resizeHandleBR]} />
+            
+            {/* Rotation indicator */}
+            <View style={styles.rotationHandle}>
+              <Ionicons name="refresh" size={14} color="#fff" />
+            </View>
+            <View style={styles.rotationLine} />
+          </>
+        )}
+        
         <Text
           style={[
             styles.overlayText,
@@ -798,13 +1078,140 @@ export default function MediaEditor() {
         >
           {overlay.text}
         </Text>
+        
+        {/* Gesture hint tooltip */}
+        {isSelected && gestureHint && (
+          <View style={styles.gestureHint}>
+            <Text style={styles.gestureHintText}>
+              {gestureHint === 'drag' && '↔ Drag to move'}
+              {gestureHint === 'pinch' && '⇲ Pinch to resize'}
+              {gestureHint === 'rotate' && '↻ Two fingers to rotate'}
+            </Text>
+          </View>
+        )}
+        
+        {/* Delete button */}
         {isSelected && (
           <Pressable
             style={styles.deleteTextButton}
             onPress={() => deleteTextOverlay(overlay.id)}
           >
-            <Ionicons name="close-circle" size={24} color="#FF3B30" />
+            <View style={styles.deleteButtonInner}>
+              <Ionicons name="close" size={14} color="#fff" />
+            </View>
           </Pressable>
+        )}
+      </Animated.View>
+    );
+  };
+
+  // Draggable Sticker component
+  const DraggableSticker = ({ sticker, onDelete }: { sticker: Sticker; onDelete: () => void }) => {
+    const pan = useRef(new Animated.ValueXY({ x: sticker.x, y: sticker.y })).current;
+    const isSelected = selectedStickerId === sticker.id;
+
+    const panResponder = useRef(
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          setSelectedStickerId(sticker.id);
+          pan.setOffset({ x: (pan.x as any)._value, y: (pan.y as any)._value });
+          pan.setValue({ x: 0, y: 0 });
+        },
+        onPanResponderMove: (_, gesture) => {
+          pan.setValue({ x: gesture.dx, y: gesture.dy });
+        },
+        onPanResponderRelease: () => {
+          pan.flattenOffset();
+          const finalX = (pan.x as any)._value;
+          const finalY = (pan.y as any)._value;
+          updateStickerPosition(sticker.id, finalX, finalY);
+        },
+      })
+    ).current;
+
+    const getStickerContent = () => {
+      switch (sticker.type) {
+        case "location":
+          return (
+            <View style={styles.stickerContentBox}>
+              <Ionicons name="location" size={18} color="#FF3B30" />
+              <Text style={styles.stickerText}>{sticker.locationName}</Text>
+            </View>
+          );
+        case "mention":
+          return (
+            <View style={styles.stickerContentBox}>
+              <Ionicons name="at" size={18} color="#3897f0" />
+              <Text style={styles.stickerText}>{sticker.mentionUsername}</Text>
+            </View>
+          );
+        case "hashtag":
+          return (
+            <View style={styles.stickerContentBox}>
+              <Ionicons name="pricetag" size={18} color="#E4405D" />
+              <Text style={styles.stickerText}>{sticker.hashtagName}</Text>
+            </View>
+          );
+        case "poll":
+          return (
+            <View style={styles.pollSticker}>
+              <Text style={styles.pollQuestionText}>{sticker.pollQuestion}</Text>
+              {sticker.pollOptions?.map((option, idx) => (
+                <View key={idx} style={styles.pollOptionItem}>
+                  <View style={styles.pollCheckbox} />
+                  <Text style={styles.pollOptionText}>{option}</Text>
+                </View>
+              ))}
+            </View>
+          );
+        case "emoji":
+          return (
+            <View style={styles.emojiSticker}>
+              <Text style={styles.emojiStickerText}>{["😂", "🔥", "❤️", "😍", "👍"][sticker.emojiValue || 0]}</Text>
+            </View>
+          );
+        case "countdown":
+          return (
+            <View style={styles.countdownSticker}>
+              <Ionicons name="time" size={24} color="#8b5cf6" />
+              <Text style={styles.countdownLabel}>Countdown</Text>
+              <Text style={styles.countdownTime}>
+                {new Date(sticker.countdownDate || Date.now() + 86400000).toLocaleDateString()}
+              </Text>
+            </View>
+          );
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <Animated.View
+        style={[
+          styles.draggableSticker,
+          {
+            transform: [
+              { translateX: pan.x },
+              { translateY: pan.y },
+              { rotate: `${sticker.rotation}deg` },
+              { scale: sticker.scale },
+            ],
+          },
+          isSelected && styles.draggableStickerSelected,
+        ]}
+        {...panResponder.panHandlers}
+      >
+        {getStickerContent()}
+        {isSelected && (
+          <>
+            <Pressable style={styles.deleteStickerBtn} onPress={onDelete}>
+              <View style={styles.deleteButtonInner}>
+                <Ionicons name="close" size={12} color="#fff" />
+              </View>
+            </Pressable>
+          </>
         )}
       </Animated.View>
     );
@@ -833,7 +1240,7 @@ export default function MediaEditor() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={safeGoBack} style={styles.headerButton}>
+          <Pressable onPress={() => router.back()} style={styles.headerButton}>
             <Ionicons name="close" size={28} color="#fff" />
           </Pressable>
           <Text style={styles.headerTitle}>
@@ -883,6 +1290,25 @@ export default function MediaEditor() {
             <DraggableText key={overlay.id} overlay={overlay} />
           ))}
           
+          {/* Stickers */}
+          {stickers.map(sticker => (
+            <DraggableSticker key={sticker.id} sticker={sticker} onDelete={() => deleteSticker(sticker.id)} />
+          ))}
+          
+          {/* Drawing Canvas Overlay */}
+          {activeDrawingTool && (
+            <DrawingCanvas
+              strokes={drawingStrokes}
+              currentStroke={currentStroke}
+              activeTool={activeDrawingTool}
+              color={drawingColor}
+              brushSize={brushSize}
+              onStrokeStart={handleStrokeStart}
+              onStrokeMove={handleStrokeMove}
+              onStrokeEnd={handleStrokeEnd}
+            />
+          )}
+          
           {/* Video Play Button Overlay */}
           {type === "video" && !isPlaying && (
             <Pressable style={styles.playButtonOverlay} onPress={togglePlayPause}>
@@ -902,7 +1328,7 @@ export default function MediaEditor() {
             style={[styles.toolTab, activeTab === "text" && styles.toolTabActive]}
             onPress={() => setActiveTab(activeTab === "text" ? "none" : "text")}
           >
-            <Ionicons name="text" size={24} color={activeTab === "text" ? "#4c6fff" : "#fff"} />
+            <Ionicons name="text" size={24} color={activeTab === "text" ? "#000000" : "#fff"} />
             <Text style={[styles.toolTabText, activeTab === "text" && styles.toolTabTextActive]}>
               {t("editor.text") || "Text"}
             </Text>
@@ -911,7 +1337,7 @@ export default function MediaEditor() {
             style={[styles.toolTab, activeTab === "filter" && styles.toolTabActive]}
             onPress={() => setActiveTab(activeTab === "filter" ? "none" : "filter")}
           >
-            <Ionicons name="color-filter" size={24} color={activeTab === "filter" ? "#4c6fff" : "#fff"} />
+            <Ionicons name="color-filter" size={24} color={activeTab === "filter" ? "#000000" : "#fff"} />
             <Text style={[styles.toolTabText, activeTab === "filter" && styles.toolTabTextActive]}>
               {t("editor.filter") || "Filter"}
             </Text>
@@ -921,7 +1347,7 @@ export default function MediaEditor() {
               style={[styles.toolTab, activeTab === "trim" && styles.toolTabActive]}
               onPress={() => setActiveTab(activeTab === "trim" ? "none" : "trim")}
             >
-              <Ionicons name="cut" size={24} color={activeTab === "trim" ? "#4c6fff" : "#fff"} />
+              <Ionicons name="cut" size={24} color={activeTab === "trim" ? "#000000" : "#fff"} />
               <Text style={[styles.toolTabText, activeTab === "trim" && styles.toolTabTextActive]}>
                 {t("editor.trim") || "Trim"}
               </Text>
@@ -932,9 +1358,29 @@ export default function MediaEditor() {
             style={[styles.toolTab, activeTab === "music" && styles.toolTabActive]}
             onPress={() => setActiveTab(activeTab === "music" ? "none" : "music")}
           >
-            <Ionicons name="musical-notes" size={24} color={activeTab === "music" ? "#4c6fff" : "#fff"} />
+            <Ionicons name="musical-notes" size={24} color={activeTab === "music" ? "#000000" : "#fff"} />
             <Text style={[styles.toolTabText, activeTab === "music" && styles.toolTabTextActive]}>
               {t("editor.music") || "Music"}
+            </Text>
+          </Pressable>
+          {/* Sticker Tab */}
+          <Pressable
+            style={[styles.toolTab, activeTab === "sticker" && styles.toolTabActive]}
+            onPress={() => setActiveTab(activeTab === "sticker" ? "none" : "sticker")}
+          >
+            <Ionicons name="happy-outline" size={24} color={activeTab === "sticker" ? "#000000" : "#fff"} />
+            <Text style={[styles.toolTabText, activeTab === "sticker" && styles.toolTabTextActive]}>
+              {t("editor.stickers") || "Stickers"}
+            </Text>
+          </Pressable>
+          {/* Draw Tab */}
+          <Pressable
+            style={[styles.toolTab, activeTab === "draw" && styles.toolTabActive]}
+            onPress={() => setActiveTab(activeTab === "draw" ? "none" : "draw")}
+          >
+            <Ionicons name="pencil" size={24} color={activeTab === "draw" ? "#000000" : "#fff"} />
+            <Text style={[styles.toolTabText, activeTab === "draw" && styles.toolTabTextActive]}>
+              {t("editor.draw") || "Draw"}
             </Text>
           </Pressable>
         </View>
@@ -944,7 +1390,7 @@ export default function MediaEditor() {
           <View style={styles.toolPanel}>
             {/* Instructions */}
             <View style={styles.textInstructions}>
-              <Ionicons name="finger-print-outline" size={16} color="#4c6fff" />
+              <Ionicons name="finger-print-outline" size={16} color="#000000" />
               <Text style={styles.textInstructionsText}>
                 {t("editor.dragToPosition") || "Add text, then drag to position it on the image"}
               </Text>
@@ -979,7 +1425,7 @@ export default function MediaEditor() {
                 onSubmitEditing={addTextOverlay}
               />
               <Pressable style={styles.addTextButton} onPress={addTextOverlay}>
-                <Ionicons name="add-circle" size={32} color="#4c6fff" />
+                <Ionicons name="add-circle" size={32} color="#000000" />
               </Pressable>
             </View>
 
@@ -1080,89 +1526,112 @@ export default function MediaEditor() {
               ))}
             </ScrollView>
 
-            {/* Alignment Controls - Only show when text is selected */}
+            {/* Precision Controls - Only show when text is selected */}
             {selectedTextId && (
               <>
-                <Text style={styles.toolLabel}>{t("editor.align") || "Align"}</Text>
-                <View style={styles.alignmentRow}>
-                  <Pressable style={styles.alignButton} onPress={() => alignText('left')}>
-                    <Ionicons name="arrow-back" size={20} color="#fff" />
-                    <Text style={styles.alignButtonText}>Left</Text>
+                {/* Quick Actions Row */}
+                <View style={styles.quickActionsRow}>
+                  <Pressable 
+                    style={styles.quickActionButton}
+                    onPress={() => {
+                      const current = textOverlays.find(o => o.id === selectedTextId);
+                      if (current) updateSelectedText({ rotation: current.rotation - 45 });
+                    }}
+                  >
+                    <Ionicons name="arrow-undo" size={18} color="#fff" />
+                    <Text style={styles.quickActionText}>Rotate -45°</Text>
                   </Pressable>
-                  <Pressable style={styles.alignButton} onPress={() => alignText('center-h')}>
-                    <Ionicons name="remove-outline" size={20} color="#fff" style={{ transform: [{ rotate: '90deg' }] }} />
-                    <Text style={styles.alignButtonText}>Center</Text>
+                  <Pressable 
+                    style={styles.quickActionButton}
+                    onPress={() => {
+                      const current = textOverlays.find(o => o.id === selectedTextId);
+                      if (current) updateSelectedText({ rotation: current.rotation + 45 });
+                    }}
+                  >
+                    <Ionicons name="arrow-redo" size={18} color="#fff" />
+                    <Text style={styles.quickActionText}>Rotate +45°</Text>
                   </Pressable>
-                  <Pressable style={styles.alignButton} onPress={() => alignText('right')}>
-                    <Ionicons name="arrow-forward" size={20} color="#fff" />
-                    <Text style={styles.alignButtonText}>Right</Text>
-                  </Pressable>
-                  <Pressable style={styles.alignButton} onPress={() => alignText('top')}>
-                    <Ionicons name="arrow-up" size={20} color="#fff" />
-                    <Text style={styles.alignButtonText}>Top</Text>
-                  </Pressable>
-                  <Pressable style={styles.alignButton} onPress={() => alignText('center-v')}>
-                    <Ionicons name="remove-outline" size={20} color="#fff" />
-                    <Text style={styles.alignButtonText}>Middle</Text>
-                  </Pressable>
-                  <Pressable style={styles.alignButton} onPress={() => alignText('bottom')}>
-                    <Ionicons name="arrow-down" size={20} color="#fff" />
-                    <Text style={styles.alignButtonText}>Bottom</Text>
+                  <Pressable 
+                    style={[styles.quickActionButton, styles.resetActionButton]}
+                    onPress={() => updateSelectedText({ rotation: 0, scale: 1 })}
+                  >
+                    <Ionicons name="refresh" size={18} color="#FF9500" />
+                    <Text style={[styles.quickActionText, { color: '#FF9500' }]}>Reset</Text>
                   </Pressable>
                 </View>
 
-                {/* Rotation Controls */}
-                <Text style={styles.toolLabel}>{t("editor.rotate") || "Rotate"}</Text>
-                <View style={styles.rotationRow}>
-                  <Pressable style={styles.rotateButton} onPress={() => rotateText(-15)}>
-                    <Ionicons name="refresh-outline" size={22} color="#fff" style={{ transform: [{ scaleX: -1 }] }} />
-                    <Text style={styles.rotateButtonText}>-15°</Text>
-                  </Pressable>
-                  <Pressable style={styles.rotateButton} onPress={() => rotateText(-5)}>
-                    <Text style={styles.rotateButtonText}>-5°</Text>
-                  </Pressable>
-                  <View style={styles.rotationDisplay}>
-                    <Text style={styles.rotationDisplayText}>
-                      {textOverlays.find(o => o.id === selectedTextId)?.rotation || 0}°
+                {/* Fine-tune Rotation */}
+                <View style={styles.sliderControl}>
+                  <View style={styles.sliderHeader}>
+                    <Text style={styles.sliderLabel}>Rotation</Text>
+                    <Text style={styles.sliderValue}>
+                      {Math.round(textOverlays.find(o => o.id === selectedTextId)?.rotation || 0)}°
                     </Text>
                   </View>
-                  <Pressable style={styles.rotateButton} onPress={() => rotateText(5)}>
-                    <Text style={styles.rotateButtonText}>+5°</Text>
-                  </Pressable>
-                  <Pressable style={styles.rotateButton} onPress={() => rotateText(15)}>
-                    <Ionicons name="refresh-outline" size={22} color="#fff" />
-                    <Text style={styles.rotateButtonText}>+15°</Text>
-                  </Pressable>
-                  <Pressable style={[styles.rotateButton, styles.resetButton]} onPress={() => updateSelectedText({ rotation: 0 })}>
-                    <Ionicons name="refresh-circle-outline" size={22} color="#FF9500" />
-                    <Text style={[styles.rotateButtonText, { color: '#FF9500' }]}>Reset</Text>
-                  </Pressable>
+                  <View style={styles.stepperRow}>
+                    <Pressable 
+                      style={styles.stepperButton}
+                      onPress={() => {
+                        const current = textOverlays.find(o => o.id === selectedTextId)?.rotation || 0;
+                        updateSelectedText({ rotation: Math.max(-180, current - 15) });
+                      }}
+                    >
+                      <Ionicons name="remove" size={20} color="#fff" />
+                    </Pressable>
+                    <View style={styles.stepperDisplay}>
+                      <Text style={styles.stepperValue}>
+                        {Math.round(textOverlays.find(o => o.id === selectedTextId)?.rotation || 0)}°
+                      </Text>
+                    </View>
+                    <Pressable 
+                      style={styles.stepperButton}
+                      onPress={() => {
+                        const current = textOverlays.find(o => o.id === selectedTextId)?.rotation || 0;
+                        updateSelectedText({ rotation: Math.min(180, current + 15) });
+                      }}
+                    >
+                      <Ionicons name="add" size={20} color="#fff" />
+                    </Pressable>
+                  </View>
                 </View>
 
-                {/* Scale Controls */}
-                <Text style={styles.toolLabel}>{t("editor.scale") || "Scale"}</Text>
-                <View style={styles.scaleRow}>
-                  <Pressable style={styles.scaleButton} onPress={() => scaleText(-0.1)}>
-                    <Ionicons name="contract-outline" size={22} color="#fff" />
-                    <Text style={styles.scaleButtonText}>Smaller</Text>
-                  </Pressable>
-                  <View style={styles.scaleDisplay}>
-                    <Text style={styles.scaleDisplayText}>
+                {/* Fine-tune Size */}
+                <View style={styles.sliderControl}>
+                  <View style={styles.sliderHeader}>
+                    <Text style={styles.sliderLabel}>Size</Text>
+                    <Text style={styles.sliderValue}>
                       {Math.round((textOverlays.find(o => o.id === selectedTextId)?.scale || 1) * 100)}%
                     </Text>
                   </View>
-                  <Pressable style={styles.scaleButton} onPress={() => scaleText(0.1)}>
-                    <Ionicons name="expand-outline" size={22} color="#fff" />
-                    <Text style={styles.scaleButtonText}>Larger</Text>
-                  </Pressable>
-                  <Pressable style={[styles.scaleButton, styles.resetButton]} onPress={() => updateSelectedText({ scale: 1 })}>
-                    <Ionicons name="refresh-circle-outline" size={22} color="#FF9500" />
-                    <Text style={[styles.scaleButtonText, { color: '#FF9500' }]}>Reset</Text>
-                  </Pressable>
+                  <View style={styles.stepperRow}>
+                    <Pressable 
+                      style={styles.stepperButton}
+                      onPress={() => {
+                        const current = textOverlays.find(o => o.id === selectedTextId)?.scale || 1;
+                        updateSelectedText({ scale: Math.max(0.3, current - 0.2) });
+                      }}
+                    >
+                      <Ionicons name="remove" size={20} color="#fff" />
+                    </Pressable>
+                    <View style={styles.stepperDisplay}>
+                      <Text style={styles.stepperValue}>
+                        {Math.round((textOverlays.find(o => o.id === selectedTextId)?.scale || 1) * 100)}%
+                      </Text>
+                    </View>
+                    <Pressable 
+                      style={styles.stepperButton}
+                      onPress={() => {
+                        const current = textOverlays.find(o => o.id === selectedTextId)?.scale || 1;
+                        updateSelectedText({ scale: Math.min(3, current + 0.2) });
+                      }}
+                    >
+                      <Ionicons name="add" size={20} color="#fff" />
+                    </Pressable>
+                  </View>
                 </View>
 
                 <Text style={styles.tipText}>
-                  <Ionicons name="information-circle-outline" size={14} color="#666" /> Tip: Pinch with two fingers to resize text
+                  💡 Drag text to move • Pinch with two fingers to resize • Two-finger rotate gesture
                 </Text>
               </>
             )}
@@ -1361,7 +1830,7 @@ export default function MediaEditor() {
                     <Ionicons 
                       name={musicMuted ? "volume-mute" : "volume-high"} 
                       size={20} 
-                      color={musicMuted ? "#666" : "#4c6fff"} 
+                      color={musicMuted ? "#666" : "#000000"} 
                     />
                   </Pressable>
                   {type === "video" && (
@@ -1417,7 +1886,7 @@ export default function MediaEditor() {
             <ScrollView style={styles.musicList} showsVerticalScrollIndicator={false}>
               {loadingMusic && (
                 <View style={styles.loadingMusicContainer}>
-                  <ActivityIndicator size="small" color="#4c6fff" />
+                  <ActivityIndicator size="small" color="#000000" />
                   <Text style={styles.loadingMusicText}>Loading music...</Text>
                 </View>
               )}
@@ -1434,7 +1903,7 @@ export default function MediaEditor() {
                     <Ionicons 
                       name={track.icon as any} 
                       size={24} 
-                      color={selectedMusic === track.id ? "#4c6fff" : "#fff"} 
+                      color={selectedMusic === track.id ? "#000000" : "#fff"} 
                     />
                   </View>
                   <View style={styles.musicTrackInfo}>
@@ -1452,11 +1921,410 @@ export default function MediaEditor() {
                     )}
                   </View>
                   {selectedMusic === track.id && (
-                    <Ionicons name="checkmark-circle" size={24} color="#4c6fff" />
+                    <Ionicons name="checkmark-circle" size={24} color="#000000" />
                   )}
                 </Pressable>
               ))}
             </ScrollView>
+          </View>
+        )}
+
+        {/* Sticker Panel */}
+        {activeTab === "sticker" && (
+          <View style={styles.toolPanel}>
+            {/* Sticker Type Selector */}
+            <View style={styles.stickerTypeRow}>
+              <Pressable
+                style={[styles.stickerTypeBtn, activeStickerType === "location" && styles.stickerTypeBtnActive]}
+                onPress={() => setActiveStickerType(activeStickerType === "location" ? null : "location")}
+              >
+                <Ionicons name="location" size={24} color={activeStickerType === "location" ? "#000000" : "#fff"} />
+                <Text style={[styles.stickerTypeText, activeStickerType === "location" && styles.stickerTypeTextActive]}>
+                  {t("editor.location") || "Location"}
+                </Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.stickerTypeBtn, activeStickerType === "mention" && styles.stickerTypeBtnActive]}
+                onPress={() => setActiveStickerType(activeStickerType === "mention" ? null : "mention")}
+              >
+                <Ionicons name="at" size={24} color={activeStickerType === "mention" ? "#000000" : "#fff"} />
+                <Text style={[styles.stickerTypeText, activeStickerType === "mention" && styles.stickerTypeTextActive]}>
+                  {t("editor.mention") || "Mention"}
+                </Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.stickerTypeBtn, activeStickerType === "hashtag" && styles.stickerTypeBtnActive]}
+                onPress={() => setActiveStickerType(activeStickerType === "hashtag" ? null : "hashtag")}
+              >
+                <Ionicons name="pricetag" size={24} color={activeStickerType === "hashtag" ? "#000000" : "#fff"} />
+                <Text style={[styles.stickerTypeText, activeStickerType === "hashtag" && styles.stickerTypeTextActive]}>
+                  {t("editor.hashtag") || "Hashtag"}
+                </Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.stickerTypeBtn, activeStickerType === "poll" && styles.stickerTypeBtnActive]}
+                onPress={() => setActiveStickerType(activeStickerType === "poll" ? null : "poll")}
+              >
+                <Ionicons name="bar-chart" size={24} color={activeStickerType === "poll" ? "#000000" : "#fff"} />
+                <Text style={[styles.stickerTypeText, activeStickerType === "poll" && styles.stickerTypeTextActive]}>
+                  {t("editor.poll") || "Poll"}
+                </Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.stickerTypeBtn, activeStickerType === "emoji" && styles.stickerTypeBtnActive]}
+                onPress={() => setActiveStickerType(activeStickerType === "emoji" ? null : "emoji")}
+              >
+                <Ionicons name="happy" size={24} color={activeStickerType === "emoji" ? "#000000" : "#fff"} />
+                <Text style={[styles.stickerTypeText, activeStickerType === "emoji" && styles.stickerTypeTextActive]}>
+                  {t("editor.emoji") || "Emoji"}
+                </Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.stickerTypeBtn, activeStickerType === "countdown" && styles.stickerTypeBtnActive]}
+                onPress={() => setActiveStickerType(activeStickerType === "countdown" ? null : "countdown")}
+              >
+                <Ionicons name="time" size={24} color={activeStickerType === "countdown" ? "#000000" : "#fff"} />
+                <Text style={[styles.stickerTypeText, activeStickerType === "countdown" && styles.stickerTypeTextActive]}>
+                  {t("editor.countdown") || "Timer"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Sticker Content Based on Type */}
+            {activeStickerType === "location" && (
+              <View style={styles.stickerContent}>
+                <TextInput
+                  style={styles.stickerInput}
+                  placeholder={t("editor.searchLocation") || "Search location..."}
+                  placeholderTextColor="#999"
+                  value={locationQuery}
+                  onChangeText={setLocationQuery}
+                />
+                <Pressable
+                  style={styles.addStickerBtn}
+                  onPress={() => {
+                    if (locationQuery.trim()) {
+                      addSticker({
+                        id: `sticker_${Date.now()}`,
+                        type: "location",
+                        x: CANVAS_WIDTH / 2 - 50,
+                        y: CANVAS_HEIGHT / 2 - 20,
+                        rotation: 0,
+                        scale: 1,
+                        locationName: locationQuery.trim(),
+                      });
+                      setLocationQuery("");
+                      setActiveStickerType(null);
+                    }
+                  }}
+                >
+                  <Ionicons name="add-circle" size={28} color="#000000" />
+                  <Text style={styles.addStickerBtnText}>{t("editor.addLocation") || "Add Location"}</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {activeStickerType === "mention" && (
+              <View style={styles.stickerContent}>
+                <TextInput
+                  style={styles.stickerInput}
+                  placeholder={t("editor.searchUser") || "Search @username..."}
+                  placeholderTextColor="#999"
+                  value={mentionQuery}
+                  onChangeText={setMentionQuery}
+                  autoCapitalize="none"
+                />
+                <Pressable
+                  style={styles.addStickerBtn}
+                  onPress={() => {
+                    if (mentionQuery.trim()) {
+                      addSticker({
+                        id: `sticker_${Date.now()}`,
+                        type: "mention",
+                        x: CANVAS_WIDTH / 2 - 50,
+                        y: CANVAS_HEIGHT / 2 - 20,
+                        rotation: 0,
+                        scale: 1,
+                        mentionUsername: mentionQuery.trim().startsWith("@") ? mentionQuery.trim() : `@${mentionQuery.trim()}`,
+                      });
+                      setMentionQuery("");
+                      setActiveStickerType(null);
+                    }
+                  }}
+                >
+                  <Ionicons name="add-circle" size={28} color="#000000" />
+                  <Text style={styles.addStickerBtnText}>{t("editor.addMention") || "Add Mention"}</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {activeStickerType === "hashtag" && (
+              <View style={styles.stickerContent}>
+                <TextInput
+                  style={styles.stickerInput}
+                  placeholder={t("editor.searchHashtag") || "Search #hashtag..."}
+                  placeholderTextColor="#999"
+                  value={hashtagQuery}
+                  onChangeText={setHashtagQuery}
+                  autoCapitalize="none"
+                />
+                <Pressable
+                  style={styles.addStickerBtn}
+                  onPress={() => {
+                    if (hashtagQuery.trim()) {
+                      addSticker({
+                        id: `sticker_${Date.now()}`,
+                        type: "hashtag",
+                        x: CANVAS_WIDTH / 2 - 50,
+                        y: CANVAS_HEIGHT / 2 - 20,
+                        rotation: 0,
+                        scale: 1,
+                        hashtagName: hashtagQuery.trim().startsWith("#") ? hashtagQuery.trim() : `#${hashtagQuery.trim()}`,
+                      });
+                      setHashtagQuery("");
+                      setActiveStickerType(null);
+                    }
+                  }}
+                >
+                  <Ionicons name="add-circle" size={28} color="#000000" />
+                  <Text style={styles.addStickerBtnText}>{t("editor.addHashtag") || "Add Hashtag"}</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {activeStickerType === "poll" && (
+              <View style={styles.stickerContent}>
+                <TextInput
+                  style={styles.stickerInput}
+                  placeholder={t("editor.pollQuestion") || "Ask a question..."}
+                  placeholderTextColor="#999"
+                  value={pollQuestion}
+                  onChangeText={setPollQuestion}
+                />
+                {pollOptions.map((option, idx) => (
+                  <View key={idx} style={styles.pollOptionRow}>
+                    <TextInput
+                      style={[styles.stickerInput, styles.pollOptionInput]}
+                      placeholder={`Option ${idx + 1}`}
+                      placeholderTextColor="#999"
+                      value={option}
+                      onChangeText={(text) => {
+                        const newOptions = [...pollOptions];
+                        newOptions[idx] = text;
+                        setPollOptions(newOptions);
+                      }}
+                    />
+                    {idx >= 2 && (
+                      <Pressable onPress={() => {
+                        const newOptions = pollOptions.filter((_, i) => i !== idx);
+                        setPollOptions(newOptions);
+                      }}>
+                        <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                      </Pressable>
+                    )}
+                  </View>
+                ))}
+                {pollOptions.length < 4 && (
+                  <Pressable style={styles.addOptionBtn} onPress={() => setPollOptions([...pollOptions, ""])}>
+                    <Ionicons name="add" size={20} color="#000000" />
+                    <Text style={styles.addOptionBtnText}>{t("editor.addOption") || "Add Option"}</Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  style={[styles.addStickerBtn, !pollQuestion.trim() && styles.addStickerBtnDisabled]}
+                  onPress={() => {
+                    const validOptions = pollOptions.filter(o => o.trim());
+                    if (pollQuestion.trim() && validOptions.length >= 2) {
+                      addSticker({
+                        id: `sticker_${Date.now()}`,
+                        type: "poll",
+                        x: CANVAS_WIDTH / 2 - 50,
+                        y: CANVAS_HEIGHT / 2 - 20,
+                        rotation: 0,
+                        scale: 1,
+                        pollQuestion: pollQuestion.trim(),
+                        pollOptions: validOptions,
+                      });
+                      setPollQuestion("");
+                      setPollOptions(["", ""]);
+                      setActiveStickerType(null);
+                    }
+                  }}
+                >
+                  <Ionicons name="add-circle" size={28} color={pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2 ? "#000000" : "#999"} />
+                  <Text style={[styles.addStickerBtnText, !pollQuestion.trim() && styles.addStickerBtnTextDisabled]}>
+                    {t("editor.addPoll") || "Add Poll"}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+
+            {activeStickerType === "emoji" && (
+              <View style={styles.stickerContent}>
+                <View style={styles.emojiPickerRow}>
+                  {["😂", "🔥", "❤️", "😍", "👍", "🎉", "💯", "✨", "🙌", "😎"].map(emoji => (
+                    <Pressable
+                      key={emoji}
+                      style={styles.emojiBtn}
+                      onPress={() => {
+                        addSticker({
+                          id: `sticker_${Date.now()}`,
+                          type: "emoji",
+                          x: CANVAS_WIDTH / 2 - 50,
+                          y: CANVAS_HEIGHT / 2 - 20,
+                          rotation: 0,
+                          scale: 1,
+                          emojiValue: 5,
+                        });
+                        setActiveStickerType(null);
+                      }}
+                    >
+                      <Text style={styles.emojiBtnText}>{emoji}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {activeStickerType === "countdown" && (
+              <View style={styles.stickerContent}>
+                <View style={styles.countdownInfo}>
+                  <Ionicons name="time-outline" size={24} color="#000000" />
+                  <Text style={styles.countdownInfoText}>
+                    {t("editor.countdownInfo") || "Countdown will be set for 24 hours from now"}
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.addStickerBtn}
+                  onPress={() => {
+                    addSticker({
+                      id: `sticker_${Date.now()}`,
+                      type: "countdown",
+                      x: CANVAS_WIDTH / 2 - 50,
+                      y: CANVAS_HEIGHT / 2 - 20,
+                      rotation: 0,
+                      scale: 1,
+                      countdownDate: new Date(Date.now() + 86400000).toISOString(),
+                    });
+                    setActiveStickerType(null);
+                  }}
+                >
+                  <Ionicons name="add-circle" size={28} color="#000000" />
+                  <Text style={styles.addStickerBtnText}>{t("editor.addCountdown") || "Add Countdown"}</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Drawing Panel */}
+        {activeTab === "draw" && (
+          <View style={styles.toolPanel}>
+            {/* Drawing Tools */}
+            <View style={styles.drawingToolsRow}>
+              <Pressable
+                style={[styles.drawingToolBtn, activeDrawingTool === "pen" && styles.drawingToolBtnActive]}
+                onPress={() => setActiveDrawingTool(activeDrawingTool === "pen" ? null : "pen")}
+              >
+                <Ionicons name="pencil" size={24} color={activeDrawingTool === "pen" ? "#000000" : "#fff"} />
+                <Text style={[styles.drawingToolText, activeDrawingTool === "pen" && styles.drawingToolTextActive]}>
+                  {t("editor.pen") || "Pen"}
+                </Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.drawingToolBtn, activeDrawingTool === "highlighter" && styles.drawingToolBtnActive]}
+                onPress={() => setActiveDrawingTool(activeDrawingTool === "highlighter" ? null : "highlighter")}
+              >
+                <Ionicons name="brush" size={24} color={activeDrawingTool === "highlighter" ? "#000000" : "#fff"} />
+                <Text style={[styles.drawingToolText, activeDrawingTool === "highlighter" && styles.drawingToolTextActive]}>
+                  {t("editor.highlighter") || "Marker"}
+                </Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.drawingToolBtn, activeDrawingTool === "eraser" && styles.drawingToolBtnActive]}
+                onPress={() => setActiveDrawingTool(activeDrawingTool === "eraser" ? null : "eraser")}
+              >
+                <Ionicons name="trash-outline" size={24} color={activeDrawingTool === "eraser" ? "#FF3B30" : "#fff"} />
+                <Text style={[styles.drawingToolText, activeDrawingTool === "eraser" && { color: "#FF3B30" }]}>
+                  {t("editor.eraser") || "Eraser"}
+                </Text>
+              </Pressable>
+              
+              {drawingStrokes.length > 0 && (
+                <Pressable
+                  style={styles.drawingToolBtn}
+                  onPress={() => {
+                    setDrawingStrokes(strokes => strokes.slice(0, -1));
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                >
+                  <Ionicons name="arrow-undo" size={24} color="#fff" />
+                  <Text style={styles.drawingToolText}>Undo</Text>
+                </Pressable>
+              )}
+              
+              <Pressable
+                style={styles.drawingToolBtn}
+                onPress={() => setDrawingStrokes([])}
+              >
+                <Ionicons name="refresh" size={24} color="#FF9500" />
+                <Text style={[styles.drawingToolText, { color: "#FF9500" }]}>Clear</Text>
+              </Pressable>
+            </View>
+
+            {/* Color Picker */}
+            <View style={styles.colorPickerRow}>
+              <Text style={styles.drawingLabel}>{t("editor.color") || "Color"}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.colorScrollView}>
+                {DRAWING_COLORS.map(color => (
+                  <Pressable
+                    key={color}
+                    style={[
+                      styles.colorCircle,
+                      { backgroundColor: color },
+                      drawingColor === color && styles.colorCircleSelected,
+                    ]}
+                    onPress={() => setDrawingColor(color)}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Brush Size */}
+            <View style={styles.brushSizeRow}>
+              <Text style={styles.drawingLabel}>{t("editor.size") || "Size"}</Text>
+              <View style={styles.brushSizeOptions}>
+                {BRUSH_SIZES.map(size => (
+                  <Pressable
+                    key={size}
+                    style={[
+                      styles.brushSizeBtn,
+                      brushSize === size && styles.brushSizeBtnActive,
+                    ]}
+                    onPress={() => setBrushSize(size)}
+                  >
+                    <View style={[styles.brushSizePreview, { width: size + 4, height: size + 4 }]} />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Drawing Instructions */}
+            {activeDrawingTool && (
+              <View style={styles.drawingInstructions}>
+                <Ionicons name="finger-print-outline" size={16} color="#000000" />
+                <Text style={styles.drawingInstructionsText}>
+                  {t("editor.drawInstructions") || "Draw on the image. Tap a tool again to deselect."}
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -1484,21 +2352,22 @@ export default function MediaEditor() {
               maxLength={500}
             />
 
-            {/* Publish Buttons */}
-            <Pressable style={styles.publishButton} onPress={publishAsStory}>
-              <Ionicons name="time-outline" size={24} color="#fff" />
-              <View style={styles.publishButtonTextContainer}>
-                <Text style={styles.publishButtonTitle}>{t("editor.publishStory") || "Publish as Story"}</Text>
-                <Text style={styles.publishButtonSubtitle}>{t("editor.storyDisappears") || "Disappears after 24 hours"}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
-            </Pressable>
-
+            {/* Publish as Post Button */}
             <Pressable style={styles.publishButton} onPress={publishAsPost}>
               <Ionicons name="grid-outline" size={24} color="#fff" />
               <View style={styles.publishButtonTextContainer}>
                 <Text style={styles.publishButtonTitle}>{t("editor.publishPost") || "Publish as Post"}</Text>
                 <Text style={styles.publishButtonSubtitle}>{t("editor.postStays") || "Stays on your profile"}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </Pressable>
+
+            {/* Publish as Story Button */}
+            <Pressable style={[styles.publishButton, { backgroundColor: "#7c3aed" }]} onPress={publishAsStory}>
+              <Ionicons name="play-circle-outline" size={24} color="#fff" />
+              <View style={styles.publishButtonTextContainer}>
+                <Text style={styles.publishButtonTitle}>{t("editor.publishStory") || "Publish as Story"}</Text>
+                <Text style={styles.publishButtonSubtitle}>{t("editor.story24h") || "Visible for 24 hours"}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#666" />
             </Pressable>
@@ -1511,15 +2380,7 @@ export default function MediaEditor() {
       </Modal>
 
       {/* Upload Progress */}
-      <UploadProgressModal visible={showUploadProgress} progress={uploadProgress} />
-
-      {/* Publishing Overlay */}
-      {publishing && (
-        <View style={styles.publishingOverlay}>
-          <ActivityIndicator size="large" color="#4c6fff" />
-          <Text style={styles.publishingText}>{t("editor.publishing") || "Publishing..."}</Text>
-        </View>
-      )}
+      <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={type === "video" ? "video" : "photo"} mode="blocking" />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -1549,7 +2410,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   doneButton: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1580,24 +2441,376 @@ const styles = StyleSheet.create({
   },
   draggableText: {
     position: "absolute",
-    padding: 8,
-    borderRadius: 4,
+    padding: 12,
+    borderRadius: 8,
+    minWidth: 60,
+    minHeight: 30,
+    alignItems: "center",
+    justifyContent: "center",
   },
   draggableTextSelected: {
-    backgroundColor: "rgba(76, 111, 255, 0.3)",
-    borderWidth: 1,
-    borderColor: "#4c6fff",
-    borderStyle: "dashed",
+    borderWidth: 2,
+    borderColor: "#000000",
+    borderStyle: "solid",
+    backgroundColor: "rgba(22, 163, 74, 0.15)",
   },
   overlayText: {
-    textShadowColor: "rgba(0, 0, 0, 0.75)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
-  deleteTextButton: {
+  // Draggable Sticker styles
+  draggableSticker: {
+    position: "absolute",
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backdropFilter: "blur(10px)",
+    minWidth: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  draggableStickerSelected: {
+    borderWidth: 2,
+    borderColor: "#000000",
+    backgroundColor: "rgba(22, 163, 74, 0.2)",
+  },
+  stickerContentBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  stickerText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  pollSticker: {
+    minWidth: 150,
+  },
+  pollQuestionText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  pollOptionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  pollCheckbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  pollOptionText: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 12,
+  },
+  emojiSticker: {
+    padding: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emojiStickerText: {
+    fontSize: 48,
+  },
+  countdownSticker: {
+    alignItems: "center",
+    gap: 4,
+  },
+  countdownLabel: {
+    color: "#8b5cf6",
+    fontSize: 10,
+    textTransform: "uppercase",
+  },
+  countdownTime: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  deleteStickerBtn: {
     position: "absolute",
     top: -12,
     right: -12,
+    zIndex: 100,
+  },
+  // Drawing styles
+  drawingCanvas: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 50,
+  },
+  drawingIndicator: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 20,
+    padding: 10,
+  },
+  drawingDot: {
+    borderRadius: 10,
+  },
+  drawingToolsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  drawingToolBtn: {
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    minWidth: 60,
+  },
+  drawingToolBtnActive: {
+    backgroundColor: "rgba(22,163,74,0.2)",
+    borderWidth: 1,
+    borderColor: "#000000",
+  },
+  drawingToolText: {
+    color: "#fff",
+    fontSize: 10,
+    marginTop: 4,
+  },
+  drawingToolTextActive: {
+    color: "#000000",
+  },
+  drawingLabel: {
+    color: "#999",
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  colorPickerRow: {
+    marginBottom: 12,
+  },
+  colorScrollView: {
+    flexDirection: "row",
+  },
+  colorCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  colorCircleSelected: {
+    borderColor: "#fff",
+    borderWidth: 3,
+  },
+  brushSizeRow: {
+    marginBottom: 12,
+  },
+  brushSizeOptions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  brushSizeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  brushSizeBtnActive: {
+    backgroundColor: "rgba(22,163,74,0.3)",
+    borderWidth: 2,
+    borderColor: "#000000",
+  },
+  brushSizePreview: {
+    borderRadius: 10,
+    backgroundColor: "#fff",
+  },
+  drawingInstructions: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(22,163,74,0.1)",
+    padding: 10,
+    borderRadius: 8,
+    gap: 8,
+  },
+  drawingInstructionsText: {
+    color: "#999",
+    fontSize: 12,
+    flex: 1,
+  },
+  deleteTextButton: {
+    position: "absolute",
+    top: -16,
+    right: -16,
+    zIndex: 100,
+  },
+  deleteButtonInner: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#FF3B30",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  // Resize handles
+  resizeHandle: {
+    position: "absolute",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#000000",
+    borderWidth: 2,
+    borderColor: "#fff",
+    zIndex: 10,
+  },
+  resizeHandleTL: {
+    top: -10,
+    left: -10,
+  },
+  resizeHandleTR: {
+    top: -10,
+    right: -10,
+  },
+  resizeHandleBL: {
+    bottom: -10,
+    left: -10,
+  },
+  resizeHandleBR: {
+    bottom: -10,
+    right: -10,
+  },
+  // Rotation handle
+  rotationHandle: {
+    position: "absolute",
+    top: -30,
+    alignSelf: "center",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#8b5cf6",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  rotationLine: {
+    position: "absolute",
+    top: -8,
+    width: 2,
+    height: 8,
+    backgroundColor: "#8b5cf6",
+  },
+  // Gesture hint tooltip
+  gestureHint: {
+    position: "absolute",
+    bottom: -35,
+    alignSelf: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  gestureHintText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  // Quick actions row
+  quickActionsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 12,
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  quickActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  quickActionText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  resetActionButton: {
+    backgroundColor: "rgba(255, 149, 0, 0.2)",
+    borderWidth: 1,
+    borderColor: "#FF9500",
+  },
+  // Slider controls
+  sliderControl: {
+    marginBottom: 16,
+  },
+  sliderHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  sliderLabel: {
+    color: "#999",
+    fontSize: 13,
+  },
+  sliderValue: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  sliderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sliderTrack: {
+    flex: 1,
+    height: 32,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
+    position: "relative",
+    justifyContent: "center",
+  },
+  // Stepper controls (replaced sliders)
+  stepperRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  stepperButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepperDisplay: {
+    minWidth: 80,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  stepperValue: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
   toolsContainer: {
     backgroundColor: "rgba(0, 0, 0, 0.9)",
@@ -1629,12 +2842,125 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   toolTabTextActive: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   toolPanel: {
     padding: 8,
     maxHeight: SCREEN_HEIGHT * 0.36,
+  },
+  // Sticker styles
+  stickerTypeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  stickerTypeBtn: {
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    minWidth: 60,
+  },
+  stickerTypeBtnActive: {
+    backgroundColor: "rgba(22, 163, 74, 0.2)",
+    borderWidth: 1,
+    borderColor: "#000000",
+  },
+  stickerTypeText: {
+    color: "#fff",
+    fontSize: 10,
+    marginTop: 4,
+  },
+  stickerTypeTextActive: {
+    color: "#000000",
+    fontWeight: "600",
+  },
+  stickerContent: {
+    padding: 8,
+  },
+  stickerInput: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: "#fff",
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  addStickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(22, 163, 74, 0.2)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  addStickerBtnDisabled: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+  },
+  addStickerBtnText: {
+    color: "#000000",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  addStickerBtnTextDisabled: {
+    color: "#999",
+  },
+  pollOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  pollOptionInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  addOptionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 8,
+  },
+  addOptionBtnText: {
+    color: "#000000",
+    fontSize: 12,
+  },
+  emojiPickerRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emojiBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emojiBtnText: {
+    fontSize: 24,
+  },
+  countdownInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  countdownInfoText: {
+    flex: 1,
+    color: "#999",
+    fontSize: 12,
   },
   textInputRow: {
     flexDirection: "row",
@@ -1674,7 +3000,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   colorButtonSelected: {
-    borderColor: "#4c6fff",
+    borderColor: "#000000",
   },
   fontRow: {
     flexDirection: "row",
@@ -1687,7 +3013,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   fontButtonSelected: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
   },
   fontButtonText: {
     color: "#fff",
@@ -1734,7 +3060,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   backgroundButtonSelected: {
-    borderColor: "#4c6fff",
+    borderColor: "#000000",
     backgroundColor: "rgba(76, 111, 255, 0.2)",
   },
   backgroundButtonText: {
@@ -1771,7 +3097,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   filterNameSelected: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
   // Music Panel Styles
@@ -1822,7 +3148,7 @@ const styles = StyleSheet.create({
   volumeFill: {
     position: "absolute",
     height: "100%",
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     borderRadius: 2,
   },
   volumeThumb: {
@@ -1867,7 +3193,7 @@ const styles = StyleSheet.create({
   musicTrackSelected: {
     backgroundColor: "rgba(76, 111, 255, 0.2)",
     borderWidth: 1,
-    borderColor: "#4c6fff",
+    borderColor: "#000000",
   },
   musicTrackIcon: {
     width: 44,
@@ -1887,7 +3213,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   musicTrackNameSelected: {
-    color: "#4c6fff",
+    color: "#000000",
   },
   musicTrackArtist: {
     color: "#999",
@@ -1975,20 +3301,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   cancelButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 16,
     fontWeight: "600",
-  },
-  publishingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.8)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  publishingText: {
-    color: "#fff",
-    fontSize: 16,
-    marginTop: 16,
   },
   // Play button overlay styles
   playButtonOverlay: {
@@ -2022,7 +3337,7 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   trimDurationBadge: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -2049,7 +3364,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     height: "100%",
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     borderRadius: 4,
   },
   timelinePosition: {
@@ -2081,7 +3396,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 3,
     borderWidth: 1,
-    borderColor: "#4c6fff",
+    borderColor: "#000000",
   },
   trimControlsRow: {
     flexDirection: "row",
@@ -2128,7 +3443,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -2146,7 +3461,7 @@ const styles = StyleSheet.create({
   trimPresetActive: {
     backgroundColor: "rgba(76, 111, 255, 0.3)",
     borderWidth: 1,
-    borderColor: "#4c6fff",
+    borderColor: "#000000",
   },
   trimPresetText: {
     color: "#fff",
@@ -2164,7 +3479,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textInstructionsText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 12,
     flex: 1,
   },
@@ -2253,7 +3568,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   rotationDisplayText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 14,
     fontWeight: "bold",
   },
@@ -2291,7 +3606,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   scaleDisplayText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 14,
     fontWeight: "bold",
   },

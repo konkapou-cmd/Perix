@@ -13,11 +13,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
+import { Platform } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 
 type JobForm = {
   title: string;
   description: string;
   cover_image: string;
+  job_type: string;
+  requirements: string;
+  salary_range: string;
+  work_location: string;
+  expires_at: string;
 };
 
 type Props = {
@@ -27,6 +35,9 @@ type Props = {
   onFormChange: (form: JobForm) => void;
   onSave: () => void;
   isSaving?: boolean;
+  nearLat?: number;
+  nearLng?: number;
+  businessAddress?: string;
 };
 
 export default function JobModal({
@@ -36,6 +47,9 @@ export default function JobModal({
   onFormChange,
   onSave,
   isSaving,
+  nearLat,
+  nearLng,
+  businessAddress,
 }: Props) {
   const { t } = useTranslation();
 
@@ -45,7 +59,7 @@ export default function JobModal({
       quality: 0.7,
       base64: true,
     });
-    if (!result.canceled && result.assets?.[0]?.base64) {
+    if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
       const uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
       onFormChange({ ...jobForm, cover_image: uri });
     }
@@ -61,9 +75,9 @@ export default function JobModal({
           <Text style={styles.modalTitle}>{t("jobs.createJob")}</Text>
           <Pressable onPress={onSave} disabled={isSaving} style={styles.headerButton}>
             {isSaving ? (
-              <ActivityIndicator size="small" color="#4c6fff" />
+              <ActivityIndicator size="small" color="#000000" />
             ) : (
-              <Ionicons name="checkmark" size={28} color="#4c6fff" />
+              <Ionicons name="checkmark" size={28} color="#000000" />
             )}
           </Pressable>
         </View>
@@ -84,6 +98,51 @@ export default function JobModal({
             multiline
             textAlignVertical="top"
           />
+          <Text style={styles.label}>Job Type</Text>
+          <View style={styles.pickerRow}>
+            {['Full-time', 'Part-time', 'Contract', 'Internship', 'Remote'].map(type => (
+              <Pressable
+                key={type}
+                style={[styles.chip, jobForm.job_type === type && styles.chipSelected]}
+                onPress={() => onFormChange({ ...jobForm, job_type: type })}
+              >
+                <Text style={[styles.chipText, jobForm.job_type === type && styles.chipTextSelected]}>{type}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.label}>Requirements</Text>
+          <TextInput
+            style={[styles.input, { height: 80 }]}
+            placeholder="Key requirements and qualifications..."
+            value={jobForm.requirements}
+            onChangeText={(v) => onFormChange({ ...jobForm, requirements: v })}
+            multiline
+            textAlignVertical="top"
+          />
+
+          <Text style={styles.label}>Salary Range (optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. €30,000 - €45,000"
+            value={jobForm.salary_range}
+            onChangeText={(v) => onFormChange({ ...jobForm, salary_range: v })}
+          />
+
+          <Text style={styles.label}>Work Location</Text>
+          <PlacesAutocompleteInput
+            value={jobForm.work_location}
+            onChangeText={(text) => onFormChange({ ...jobForm, work_location: text })}
+            onSelectPlace={(address) => onFormChange({ ...jobForm, work_location: address })}
+            placeholder={businessAddress || "e.g. Berlin, Germany or Remote"}
+            style={styles.input}
+            nearLat={nearLat}
+            nearLng={nearLng}
+          />
+          <Text style={styles.hintText}>
+            Pinned at your business location on the map
+          </Text>
+
           <Text style={styles.label}>{t("jobs.coverImage")}</Text>
           <Pressable style={styles.uploadArea} onPress={handlePickCover}>
             {jobForm.cover_image ? (
@@ -167,5 +226,36 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 150,
     borderRadius: 12,
+  },
+  pickerRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 4,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#fff",
+  },
+  chipSelected: {
+    backgroundColor: "#000000",
+    borderColor: "#000000",
+  },
+  chipText: {
+    fontSize: 14,
+    color: "#374151",
+  },
+  chipTextSelected: {
+    color: "#fff",
+  },
+  hintText: {
+    fontSize: 12,
+    color: "#9ca3af",
+    marginTop: 4,
+    marginBottom: 4,
   },
 });

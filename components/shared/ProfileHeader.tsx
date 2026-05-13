@@ -38,7 +38,7 @@ export const ProfileHeader = ({
   return (
     <View style={styles.container}>
       <Pressable style={styles.backButton} onPress={onBack}>
-        <Ionicons name="chevron-back" size={20} color="#4c6fff" />
+        <Ionicons name="chevron-back" size={20} color="#000000" />
         <Text style={styles.backText}>{t("common.back")}</Text>
       </Pressable>
 
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   backText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "500",
     marginLeft: 4,
   },
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
   },
   avatarFallback: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 4,

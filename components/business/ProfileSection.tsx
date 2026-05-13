@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   secondaryButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontWeight: "600",
   },
 });

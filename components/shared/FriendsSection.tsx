@@ -1,6 +1,7 @@
 import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 type Friend = {
   user_id: string;
@@ -14,6 +15,7 @@ type FriendsSectionProps = {
   onToggleFriend: () => void;
   isLoading?: boolean;
   showMakeButton?: boolean;
+  showFriendRequests?: boolean;
 };
 
 export const FriendsSection = ({
@@ -22,6 +24,7 @@ export const FriendsSection = ({
   onToggleFriend,
   isLoading = false,
   showMakeButton = true,
+  showFriendRequests = false,
 }: FriendsSectionProps) => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -29,6 +32,17 @@ export const FriendsSection = ({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t("userProfile.connections")}</Text>
+
+      {showFriendRequests && (
+        <Pressable
+          style={styles.friendRequestsButton}
+          onPress={() => router.push("/friend-requests")}
+        >
+          <Ionicons name="person-add" size={16} color="#0066cc" />
+          <Text style={styles.friendRequestsText}>{t("profile.friendRequests") || "Friend Requests"}</Text>
+          <Ionicons name="chevron-forward" size={16} color="#0066cc" />
+        </Pressable>
+      )}
       
       {showMakeButton && (
         <Pressable
@@ -94,7 +108,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   friendButton: {
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: "center",
@@ -154,5 +168,21 @@ const styles = StyleSheet.create({
     color: "#374151",
     marginTop: 4,
     textAlign: "center",
+  },
+  friendRequestsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: "#f0f7ff",
+    borderRadius: 10,
+    marginBottom: 12,
+    gap: 8,
+  },
+  friendRequestsText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#0066cc",
   },
 });

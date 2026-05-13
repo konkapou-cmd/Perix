@@ -31,7 +31,24 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.local
+.env.development
+.env.production
 .env*.local
+
+# Firebase config (contains API keys - use google-services.json.example for template)
+google-services.json
+
+# Play Store signing keys
+play-store-key.json
+
+# TypeScript error output
+tsc_output.txt
+tsc_final.txt
+
+# Orphaned files
+fix
 
 # typescript
 *.tsbuildinfo

@@ -11,13 +11,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { getCallHistory, deleteCallHistory, deleteAllCallHistory, CallRecord } from "../lib/api";
-import { useSafeNavigation } from "../hooks/useSafeNavigation";
 
 export default function CallHistoryScreen() {
   const { t } = useTranslation();
-  const { safeGoBackToMessages, router } = useSafeNavigation();
+  const router = useRouter();
   const { sessionToken, user } = useAuth();
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +124,7 @@ export default function CallHistoryScreen() {
       return { name: "call-outline" as const, color: "#ef4444" };
     }
     if (isOutgoing) {
-      return { name: "arrow-up-outline" as const, color: "#4c6fff" };
+      return { name: "arrow-up-outline" as const, color: "#000000" };
     }
     return { name: "arrow-down-outline" as const, color: "#10b981" };
   };
@@ -146,9 +146,14 @@ export default function CallHistoryScreen() {
           <Ionicons name={icon.name} size={20} color={icon.color} />
         </View>
         <View style={styles.callInfo}>
-          <Text style={[styles.callName, isMissed && styles.missedText]}>
-            {otherName}
-          </Text>
+          <Pressable onPress={() => {
+            const otherUserId = item.other_user?.user_id || (item.is_outgoing ? item.callee_id : item.caller_id);
+            if (otherUserId) router.push(`/user/${otherUserId}`);
+          }}>
+            <Text style={[styles.callName, isMissed && styles.missedText]}>
+              {otherName}
+            </Text>
+          </Pressable>
           <View style={styles.callMeta}>
             <Ionicons
               name={item.call_type === "video" ? "videocam-outline" : "call-outline"}
@@ -182,14 +187,14 @@ export default function CallHistoryScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Pressable onPress={safeGoBackToMessages} style={styles.backButton}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </Pressable>
           <Text style={styles.title}>{t("calls.callHistory")}</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#4c6fff" />
+          <ActivityIndicator size="large" color="#000000" />
         </View>
       </SafeAreaView>
     );
@@ -198,7 +203,7 @@ export default function CallHistoryScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={safeGoBackToMessages} style={styles.backButton}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </Pressable>
         <Text style={styles.title}>{t("calls.callHistory")}</Text>

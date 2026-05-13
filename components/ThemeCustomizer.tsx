@@ -11,102 +11,252 @@ import {
   Switch,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { updateProfileTheme, ProfileTheme } from '../lib/api';
 
-// Extended color presets with gradient options
+// Extended color presets with gradient options - aligned with business categories
 const COLOR_PRESETS = [
-  { 
-    name: 'Ocean', 
-    background: '#0a192f', 
-    primary: '#64ffda', 
-    secondary: '#112240', 
-    text: '#ccd6f6',
-    accent: '#64ffda',
-    gradient: ['#0a192f', '#112240'],
+  // Clean Light Presets
+  {
+    name: 'Clean',
+    background: '#ffffff',
+    primary: '#3b82f6',
+    secondary: '#f3f4f6',
+    text: '#111827',
+    accent: '#FFD700',
+    gradient: ['#ffffff', '#f8fafc'],
   },
-  { 
-    name: 'Sunset', 
-    background: '#1a1a2e', 
-    primary: '#e94560', 
-    secondary: '#16213e', 
-    text: '#eaeaea',
-    accent: '#f97316',
-    gradient: ['#1a1a2e', '#e94560'],
+  // Sports & Wellness - Energetic Orange
+  {
+    name: 'Active',
+    background: '#fff7ed',
+    primary: '#f97316',
+    secondary: '#ffedd5',
+    text: '#7c2d12',
+    accent: '#ea580c',
+    gradient: ['#fff7ed', '#ffedd5'],
   },
-  { 
-    name: 'Forest', 
-    background: '#1b2d1b', 
-    primary: '#4ade80', 
-    secondary: '#2d4a2d', 
-    text: '#e0f0e0',
-    accent: '#22c55e',
-    gradient: ['#1b2d1b', '#2d4a2d'],
+  // Fashion & Retail - Luxe Pink
+  {
+    name: 'Luxe',
+    background: '#fdf2f8',
+    primary: '#ec4899',
+    secondary: '#fce7f3',
+    text: '#831843',
+    accent: '#f472b6',
+    gradient: ['#fdf2f8', '#fce7f3'],
   },
-  { 
-    name: 'Royal', 
-    background: '#1e1e3f', 
-    primary: '#a855f7', 
-    secondary: '#3b3b6b', 
-    text: '#f0e0ff',
-    accent: '#8b5cf6',
-    gradient: ['#1e1e3f', '#4c1d95'],
+  // Entertainment - Bold Purple
+  {
+    name: 'Entertain',
+    background: '#faf5ff',
+    primary: '#a855f7',
+    secondary: '#f3e8ff',
+    text: '#581c87',
+    accent: '#c084fc',
+    gradient: ['#faf5ff', '#f3e8ff'],
   },
-  { 
-    name: 'Flame', 
-    background: '#1f1f1f', 
-    primary: '#f59e0b', 
-    secondary: '#3d3d3d', 
-    text: '#fef3c7',
+  // Bars & Nightlife - Deep Gold
+  {
+    name: 'Night',
+    background: '#fefce8',
+    primary: '#ca8a04',
+    secondary: '#fef9c3',
+    text: '#713f12',
+    accent: '#eab308',
+    gradient: ['#fefce8', '#fef9c3'],
+  },
+  // Professional - Corporate Blue
+  {
+    name: 'Corporate',
+    background: '#f0f9ff',
+    primary: '#0284c7',
+    secondary: '#e0f2fe',
+    text: '#0c4a6e',
+    accent: '#38bdf8',
+    gradient: ['#f0f9ff', '#e0f2fe'],
+  },
+  // Beauty & Care - Elegant Rose
+  {
+    name: 'Beauty',
+    background: '#fff1f2',
+    primary: '#f43f5e',
+    secondary: '#ffe4e6',
+    text: '#881337',
+    accent: '#fb7185',
+    gradient: ['#fff1f2', '#ffe4e6'],
+  },
+  // Education - Scholar Navy
+  {
+    name: 'Scholar',
+    background: '#eff6ff',
+    primary: '#3b82f6',
+    secondary: '#dbeafe',
+    text: '#1e3a8a',
+    accent: '#60a5fa',
+    gradient: ['#eff6ff', '#dbeafe'],
+  },
+  // Restaurants - Culinary Warm
+  {
+    name: 'Culinary',
+    background: '#fef2f2',
+    primary: '#dc2626',
+    secondary: '#fee2e2',
+    text: '#7f1d1d',
     accent: '#ef4444',
-    gradient: ['#1f1f1f', '#451a03'],
+    gradient: ['#fef2f2', '#fee2e2'],
   },
-  { 
-    name: 'Midnight', 
-    background: '#0f0f23', 
-    primary: '#3b82f6', 
-    secondary: '#1e3a5f', 
-    text: '#e0f2fe',
-    accent: '#06b6d4',
-    gradient: ['#0f0f23', '#1e3a5f'],
+  // Minimal Dark
+  {
+    name: 'Dark',
+    background: '#18181b',
+    primary: '#71717a',
+    secondary: '#27272a',
+    text: '#fafafa',
+    accent: '#a1a1aa',
+    gradient: ['#18181b', '#27272a'],
   },
-  { 
-    name: 'Rose', 
-    background: '#2d1f2d', 
-    primary: '#ec4899', 
-    secondary: '#4a2d4a', 
-    text: '#fce7f3',
-    accent: '#f43f5e',
-    gradient: ['#2d1f2d', '#831843'],
+];
+
+// Premium presets with gradient and box color overrides - dark themes for premium look
+const PREMIUM_PRESETS = [
+  // Elegant Black & White - Minimal, flat, no shadows/curves
+  {
+    name: 'Elegant',
+    background: '#ffffff',
+    primary: '#000000',
+    secondary: '#f5f5f5',
+    text: '#000000',
+    accent: '#000000',
+    gradient: ['#ffffff', '#f5f5f5'],
+    useGradient: true,
+    galleryCard: '#f5f5f5',
+    infoCard: '#f5f5f5',
+    actionButton: '#000000',
+    border: '#e5e7eb',
   },
-  { 
-    name: 'Neon', 
-    background: '#0a0a0a', 
-    primary: '#00ff88', 
-    secondary: '#1a1a1a', 
-    text: '#ffffff',
-    accent: '#00ffff',
-    gradient: ['#0a0a0a', '#1a0a2e'],
+  // Aurora Purple - Entertainment/Nightlife
+  {
+    name: 'Aurora',
+    background: '#0c0c1d',
+    primary: '#a855f7',
+    secondary: '#1a1a3e',
+    text: '#f5f3ff',
+    accent: '#c084fc',
+    gradient: ['#0c0c1d', '#1a0a2e'],
+    useGradient: true,
+    galleryCard: '#1a1a3e',
+    infoCard: '#151530',
+    actionButton: '#a855f7',
+    border: '#2d2b55',
   },
-  { 
-    name: 'Warm', 
-    background: '#1c1917', 
-    primary: '#fb923c', 
-    secondary: '#292524', 
-    text: '#fef3c7',
-    accent: '#fbbf24',
-    gradient: ['#1c1917', '#451a03'],
+  // Sapphire Blue - Corporate/Professional
+  {
+    name: 'Sapphire',
+    background: '#0a1628',
+    primary: '#38bdf8',
+    secondary: '#0f2040',
+    text: '#f0f9ff',
+    accent: '#7dd3fc',
+    gradient: ['#0a1628', '#0f2040'],
+    useGradient: true,
+    galleryCard: '#0f2040',
+    infoCard: '#0a1a30',
+    actionButton: '#38bdf8',
+    border: '#1e3a5f',
   },
-  { 
-    name: 'Default', 
-    background: '#121212', 
-    primary: '#4c6fff', 
-    secondary: '#1e1e1e', 
-    text: '#ffffff',
-    accent: '#4c6fff',
-    gradient: ['#121212', '#1e1e1e'],
+  // Ruby Night - Fashion/Beauty
+  {
+    name: 'Ruby',
+    background: '#1a0510',
+    primary: '#f43f5e',
+    secondary: '#2d0a18',
+    text: '#fff1f2',
+    accent: '#fb7185',
+    gradient: ['#1a0510', '#2d0a18'],
+    useGradient: true,
+    galleryCard: '#2d0a18',
+    infoCard: '#1f0812',
+    actionButton: '#f43f5e',
+    border: '#3d1525',
+  },
+  // Ember Orange - Restaurants/Bars
+  {
+    name: 'Ember',
+    background: '#1a0f05',
+    primary: '#f97316',
+    secondary: '#2d1a0a',
+    text: '#fff7ed',
+    accent: '#fb923c',
+    gradient: ['#1a0f05', '#2d1a0a'],
+    useGradient: true,
+    galleryCard: '#2d1a0a',
+    infoCard: '#1f1208',
+    actionButton: '#f97316',
+    border: '#3d2510',
+  },
+  // Emerald Dark - Sports/Wellness (minimal green, elegant)
+  {
+    name: 'Emerald',
+    background: '#021a12',
+    primary: '#10b981',
+    secondary: '#0a2a1a',
+    text: '#d1fae5',
+    accent: '#34d399',
+    gradient: ['#021a12', '#0a2a1a'],
+    useGradient: true,
+    galleryCard: '#0a2a1a',
+    infoCard: '#052015',
+    actionButton: '#10b981',
+    border: '#1a3d2a',
+  },
+  // Amethyst - Creative/Education
+  {
+    name: 'Amethyst',
+    background: '#0f0a1a',
+    primary: '#8b5cf6',
+    secondary: '#1a1030',
+    text: '#f5f3ff',
+    accent: '#a78bfa',
+    gradient: ['#0f0a1a', '#1a1030'],
+    useGradient: true,
+    galleryCard: '#1a1030',
+    infoCard: '#12081f',
+    actionButton: '#8b5cf6',
+    border: '#2d1f40',
+  },
+  // Onyx Gold - Luxury/Professional
+  {
+    name: 'Onyx',
+    background: '#0a0a0a',
+    primary: '#eab308',
+    secondary: '#1a1a0a',
+    text: '#fafafa',
+    accent: '#facc15',
+    gradient: ['#0a0a0a', '#1a1a0a'],
+    useGradient: true,
+    galleryCard: '#1a1a0a',
+    infoCard: '#0f0f0a',
+    actionButton: '#eab308',
+    border: '#2a2a15',
+  },
+  // Obsidian Teal - Minimalist
+  {
+    name: 'Obsidian',
+    background: '#0a0f0d',
+    primary: '#14b8a6',
+    secondary: '#0f1a17',
+    text: '#f0fdfa',
+    accent: '#2dd4bf',
+    gradient: ['#0a0f0d', '#0f1a17'],
+    useGradient: true,
+    galleryCard: '#0f1a17',
+    infoCard: '#08120f',
+    actionButton: '#14b8a6',
+    border: '#1a2d25',
   },
 ];
 
@@ -125,9 +275,9 @@ const CUSTOM_COLORS = [
   // Blues
   '#0ea5e9', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af',
   // Indigos
-  '#6366f1', '#4f46e5', '#4338ca', '#3730a3',
+  '#FFD700', '#4f46e5', '#4338ca', '#3730a3',
   // Purples
-  '#8b5cf6', '#a855f7', '#9333ea', '#7c3aed',
+  '#FF6B6B', '#a855f7', '#9333ea', '#7c3aed',
   // Pinks
   '#d946ef', '#ec4899', '#db2777', '#be185d',
   // Neutrals
@@ -135,13 +285,20 @@ const CUSTOM_COLORS = [
   '#52525b', '#3f3f46', '#27272a', '#18181b', '#000000',
 ];
 
-// Font options for profile
+// Artistic font combinations with styles
 const FONT_OPTIONS = [
-  { id: 'default', name: 'Default', style: {} },
-  { id: 'modern', name: 'Modern', style: { letterSpacing: 0.5 } },
-  { id: 'elegant', name: 'Elegant', style: { letterSpacing: 1 } },
-  { id: 'bold', name: 'Bold', style: { fontWeight: '700' } },
-  { id: 'light', name: 'Light', style: { fontWeight: '300' } },
+  { id: 'default', name: 'Classic', fontFamily: undefined, fontWeight: '400', fontStyle: 'normal', letterSpacing: 0, textTransform: 'none', sampleText: 'Clean & Simple' },
+  { id: 'bold-modern', name: 'Bold Modern', fontFamily: 'sans-serif', fontWeight: '700', fontStyle: 'normal', letterSpacing: -0.5, textTransform: 'none', sampleText: 'Bold Impact' },
+  { id: 'elegant-serif', name: 'Editorial', fontFamily: 'serif', fontWeight: '500', fontStyle: 'normal', letterSpacing: 0, textTransform: 'none', sampleText: 'Editorial Style' },
+  { id: 'minimal', name: 'Minimal', fontFamily: 'sans-serif', fontWeight: '300', fontStyle: 'normal', letterSpacing: 0.3, textTransform: 'none', sampleText: 'Minimal Light' },
+  { id: 'corporate', name: 'Corporate', fontFamily: 'sans-serif', fontWeight: '600', fontStyle: 'normal', letterSpacing: -0.3, textTransform: 'none', sampleText: 'Corporate Strong' },
+  { id: 'mono-tech', name: 'Tech Mono', fontFamily: 'monospace', fontWeight: '400', fontStyle: 'normal', letterSpacing: 1, textTransform: 'none', sampleText: 'Tech & Modern' },
+  { id: 'display', name: 'Display', fontFamily: 'sans-serif', fontWeight: '900', fontStyle: 'italic', letterSpacing: -1, textTransform: 'none', sampleText: 'Display Bold' },
+  { id: 'friendly', name: 'Friendly', fontFamily: 'sans-serif', fontWeight: '400', fontStyle: 'normal', letterSpacing: 0.5, textTransform: 'none', sampleText: 'Friendly & Open' },
+  { id: 'clean', name: 'Clean', fontFamily: 'sans-serif', fontWeight: '300', fontStyle: 'normal', letterSpacing: 0.5, textTransform: 'none', sampleText: 'Clean Light' },
+  { id: 'elegant-modern', name: 'Elegant Modern', fontFamily: 'sans-serif', fontWeight: '300', fontStyle: 'italic', letterSpacing: 0.5, textTransform: 'none', sampleText: 'Refined Edge' },
+  { id: 'geometric', name: 'Geometric', fontFamily: 'sans-serif', fontWeight: '700', fontStyle: 'normal', letterSpacing: -0.5, textTransform: 'none', sampleText: 'Geometric Bold' },
+  { id: 'artistic', name: 'Artistic', fontFamily: 'cursive', fontWeight: '400', fontStyle: 'italic', letterSpacing: 1, textTransform: 'none', sampleText: 'Artistic Charm' },
 ];
 
 // Border radius options
@@ -158,9 +315,10 @@ type Props = {
   currentTheme?: ProfileTheme | null;
   sessionToken: string;
   onThemeUpdated?: () => void;
+  saveThemeOverride?: (theme: ProfileTheme) => Promise<void>;
 };
 
-type TabType = 'presets' | 'colors' | 'advanced';
+type TabType = 'presets' | 'colors' | 'fonts' | 'advanced';
 
 export default function ThemeCustomizer({
   visible,
@@ -168,20 +326,30 @@ export default function ThemeCustomizer({
   currentTheme,
   sessionToken,
   onThemeUpdated,
+  saveThemeOverride,
 }: Props) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('presets');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState<keyof ProfileTheme | null>(null);
   const [theme, setTheme] = useState<ProfileTheme>({
-    background_color: currentTheme?.background_color || '#121212',
-    primary_color: currentTheme?.primary_color || '#4c6fff',
-    secondary_color: currentTheme?.secondary_color || '#1e1e1e',
-    text_color: currentTheme?.text_color || '#ffffff',
-    card_color: currentTheme?.card_color || '#1e1e1e',
+    background_color: currentTheme?.background_color || '#ffffff',
+    primary_color: currentTheme?.primary_color || '#000000',
+    secondary_color: currentTheme?.secondary_color || '#f9fafb',
+    text_color: currentTheme?.text_color || '#111827',
+    card_color: currentTheme?.card_color || '#ffffff',
     gradient_start: currentTheme?.gradient_start || null,
     gradient_end: currentTheme?.gradient_end || null,
     use_gradient: currentTheme?.use_gradient || false,
+    font_family: currentTheme?.font_family || null,
+    font_weight: currentTheme?.font_weight || null,
+    font_style: currentTheme?.font_style || null,
+    letter_spacing: currentTheme?.letter_spacing || null,
+    text_transform: currentTheme?.text_transform || null,
+    gallery_card_color: currentTheme?.gallery_card_color || null,
+    info_card_color: currentTheme?.info_card_color || null,
+    action_button_color: currentTheme?.action_button_color || null,
+    border_color: currentTheme?.border_color || null,
   });
   const [saving, setSaving] = useState(false);
   const [customHex, setCustomHex] = useState('');
@@ -190,14 +358,23 @@ export default function ThemeCustomizer({
   useEffect(() => {
     if (visible) {
       setTheme({
-        background_color: currentTheme?.background_color || '#121212',
-        primary_color: currentTheme?.primary_color || '#4c6fff',
-        secondary_color: currentTheme?.secondary_color || '#1e1e1e',
-        text_color: currentTheme?.text_color || '#ffffff',
-        card_color: currentTheme?.card_color || '#1e1e1e',
+        background_color: currentTheme?.background_color || '#ffffff',
+        primary_color: currentTheme?.primary_color || '#000000',
+        secondary_color: currentTheme?.secondary_color || '#f9fafb',
+        text_color: currentTheme?.text_color || '#111827',
+        card_color: currentTheme?.card_color || '#ffffff',
         gradient_start: currentTheme?.gradient_start || null,
         gradient_end: currentTheme?.gradient_end || null,
         use_gradient: currentTheme?.use_gradient || false,
+        font_family: currentTheme?.font_family || null,
+        font_weight: currentTheme?.font_weight || null,
+        font_style: currentTheme?.font_style || null,
+        letter_spacing: currentTheme?.letter_spacing || null,
+        text_transform: currentTheme?.text_transform || null,
+        gallery_card_color: currentTheme?.gallery_card_color || null,
+        info_card_color: currentTheme?.info_card_color || null,
+        action_button_color: currentTheme?.action_button_color || null,
+        border_color: currentTheme?.border_color || null,
       });
       setSelectedPreset(null);
       setSelectedField(null);
@@ -206,7 +383,8 @@ export default function ThemeCustomizer({
 
   const applyPreset = (preset: typeof COLOR_PRESETS[0]) => {
     setSelectedPreset(preset.name);
-    setTheme({
+    setTheme(prev => ({
+      ...prev,
       background_color: preset.background,
       primary_color: preset.primary,
       secondary_color: preset.secondary,
@@ -215,12 +393,35 @@ export default function ThemeCustomizer({
       gradient_start: preset.gradient[0],
       gradient_end: preset.gradient[1],
       use_gradient: false,
-    });
+      gallery_card_color: prev.gallery_card_color || preset.secondary,
+      info_card_color: prev.info_card_color || preset.secondary,
+      action_button_color: prev.action_button_color || preset.primary,
+    }));
   };
 
-  const selectCustomColor = (color: string) => {
-    if (!selectedField) return;
-    setTheme(prev => ({ ...prev, [selectedField]: color }));
+  const applyPremiumPreset = (preset: typeof PREMIUM_PRESETS[0]) => {
+    setSelectedPreset(preset.name);
+    setTheme(prev => ({
+      ...prev,
+      background_color: preset.background,
+      primary_color: preset.primary,
+      secondary_color: preset.secondary,
+      text_color: preset.text,
+      card_color: preset.secondary,
+      gradient_start: preset.gradient[0],
+      gradient_end: preset.gradient[1],
+      use_gradient: preset.useGradient,
+      gallery_card_color: preset.galleryCard,
+      info_card_color: preset.infoCard,
+      action_button_color: preset.actionButton,
+      border_color: preset.border,
+    }));
+  };
+
+  const selectCustomColor = (color: string, fieldKey?: string) => {
+    const targetField = fieldKey || selectedField;
+    if (!targetField) return;
+    setTheme(prev => ({ ...prev, [targetField]: color }));
     setSelectedPreset(null);
   };
 
@@ -238,9 +439,14 @@ export default function ThemeCustomizer({
 
   const saveTheme = async () => {
     if (!sessionToken) return;
+    
     setSaving(true);
     try {
-      await updateProfileTheme(sessionToken, theme);
+      if (saveThemeOverride) {
+        await saveThemeOverride(theme);
+      } else {
+        await updateProfileTheme(sessionToken, theme);
+      }
       Alert.alert(
         t('theme.success') || 'Success',
         t('theme.themeUpdated') || 'Your profile theme has been updated!'
@@ -259,18 +465,82 @@ export default function ThemeCustomizer({
 
   const resetTheme = () => {
     setTheme({
-      background_color: '#121212',
-      primary_color: '#4c6fff',
-      secondary_color: '#1e1e1e',
-      text_color: '#ffffff',
-      card_color: '#1e1e1e',
-      gradient_start: null,
-      gradient_end: null,
-      use_gradient: false,
+      background_color: '#ffffff',
+      primary_color: '#000000',
+      secondary_color: '#f5f5f5',
+      text_color: '#000000',
+      card_color: '#ffffff',
+      gradient_start: '#ffffff',
+      gradient_end: '#f5f5f5',
+      use_gradient: true,
+      font_family: null,
+      font_weight: null,
+      font_style: null,
+      letter_spacing: null,
+      text_transform: null,
+      gallery_card_color: '#f5f5f5',
+      info_card_color: '#f5f5f5',
+      action_button_color: '#000000',
+      border_color: '#e5e7eb',
     });
     setSelectedPreset(null);
     setSelectedField(null);
   };
+
+  const renderFontsTab = () => (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <Text style={styles.sectionTitle}>{t('theme.fontFamily') || 'Font Style'}</Text>
+      <Text style={styles.sectionHint}>{t('theme.fontHint') || 'Choose a font style for your profile'}</Text>
+      <View style={styles.fontGrid}>
+        {FONT_OPTIONS.map((font) => {
+          const isSelected = theme.font_family === font.fontFamily && 
+                           theme.font_weight === font.fontWeight &&
+                           theme.font_style === font.fontStyle;
+          return (
+            <Pressable
+              key={font.id}
+              style={[
+                styles.fontCard,
+                isSelected && styles.fontCardSelected,
+              ]}
+              onPress={() => setTheme(prev => ({ 
+                ...prev, 
+                font_family: font.fontFamily,
+                font_weight: font.fontWeight,
+                font_style: font.fontStyle,
+                letter_spacing: font.letterSpacing,
+                text_transform: font.textTransform,
+              }))}
+            >
+              <Text 
+                style={[
+                  styles.fontName,
+                  isSelected && styles.fontNameSelected,
+                ]}
+              >
+                {font.name}
+              </Text>
+              <Text 
+                style={[
+                  styles.fontSample,
+                  { 
+                    fontFamily: font.fontFamily,
+                    fontWeight: font.fontWeight as any,
+                    fontStyle: font.fontStyle as any,
+                    letterSpacing: font.letterSpacing,
+                    textTransform: font.textTransform as any,
+                  },
+                  isSelected && styles.fontSampleSelected,
+                ]}
+              >
+                {font.sampleText}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </ScrollView>
+  );
 
   const renderPreview = () => (
     <View style={styles.previewSection}>
@@ -283,39 +553,48 @@ export default function ThemeCustomizer({
           {renderPreviewContent()}
         </LinearGradient>
       ) : (
-        <View style={[styles.previewCard, { backgroundColor: theme.background_color || '#121212' }]}>
+        <View style={[styles.previewCard, { backgroundColor: (theme.background_color || '#ffffff') as any }]}>
           {renderPreviewContent()}
         </View>
       )}
     </View>
   );
 
-  const renderPreviewContent = () => (
+  const renderPreviewContent = () => {
+    const fontStyle: import('react-native').TextStyle = {
+      fontFamily: theme.font_family || undefined,
+      fontWeight: (theme.font_weight || undefined) as any,
+      fontStyle: (theme.font_style || undefined) as any,
+      letterSpacing: theme.letter_spacing || undefined,
+      textTransform: (theme.text_transform || undefined) as any,
+    };
+    return (
     <>
       <View style={styles.previewHeader}>
-        <View style={[styles.previewAvatar, { backgroundColor: theme.primary_color }]}>
-          <Ionicons name="person" size={20} color={theme.text_color || '#fff'} />
+        <View style={[styles.previewAvatar, { backgroundColor: (theme.primary_color || '#000000') as any }]}>
+          <Ionicons name="person" size={20} color={(theme.text_color || '#fff') as any} />
         </View>
         <View style={styles.previewInfo}>
-          <Text style={[styles.previewName, { color: theme.text_color }]}>Username</Text>
-          <Text style={[styles.previewBio, { color: theme.text_color, opacity: 0.7 }]}>Bio text here</Text>
+          <Text style={[styles.previewName, { color: (theme.text_color || '#fff') as any, ...fontStyle }]}>Username</Text>
+          <Text style={[styles.previewBio, { color: (theme.text_color || '#fff') as any, opacity: 0.7, ...fontStyle }]}>Bio text here</Text>
         </View>
       </View>
-      <View style={[styles.previewCardInner, { backgroundColor: theme.card_color || theme.secondary_color }]}>
-        <Text style={[styles.previewCardText, { color: theme.text_color }]}>Card Content</Text>
+      <View style={[styles.previewCardInner, { backgroundColor: (theme.card_color || theme.secondary_color || '#1e1e1e') as any }]}>
+        <Text style={[styles.previewCardText, { color: (theme.text_color || '#fff') as any, ...fontStyle }]}>Card Content</Text>
       </View>
       <View style={styles.previewButtons}>
-        <View style={[styles.previewButton, { backgroundColor: theme.primary_color }]}>
-          <Text style={styles.previewButtonText}>{t('theme.button') || 'Follow'}</Text>
+        <View style={[styles.previewButton, { backgroundColor: (theme.primary_color || '#000000') as any }]}>
+          <Text style={[styles.previewButtonText, fontStyle]}>{t('theme.button') || 'Follow'}</Text>
         </View>
-        <View style={[styles.previewButtonOutline, { borderColor: theme.primary_color }]}>
-          <Text style={[styles.previewButtonOutlineText, { color: theme.primary_color }]}>
+        <View style={[styles.previewButtonOutline, { borderColor: (theme.primary_color || '#000000') as any }]}>
+          <Text style={[styles.previewButtonOutlineText, { color: (theme.primary_color || '#000000') as any, ...fontStyle }]}>
             {t('theme.message') || 'Message'}
           </Text>
         </View>
       </View>
     </>
-  );
+    );
+  };
 
   const renderPresetsTab = () => (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
@@ -331,10 +610,46 @@ export default function ThemeCustomizer({
             onPress={() => applyPreset(preset)}
           >
             <LinearGradient
-              colors={preset.gradient}
+              colors={preset.gradient as [string, string]}
               style={styles.presetGradient}
             >
               <View style={[styles.presetDot, { backgroundColor: preset.primary }]} />
+            </LinearGradient>
+            <Text style={styles.presetName}>{preset.name}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Premium Themes */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 8 }}>
+        <Ionicons name="star" size={16} color="#f59e0b" />
+        <Text style={[styles.sectionTitle, { marginLeft: 6, marginBottom: 0 }]}>
+          {t('theme.premiumThemes') || 'Premium Themes'}
+        </Text>
+      </View>
+      <Text style={[styles.sectionHint, { marginBottom: 10 }]}>
+        {t('theme.premiumHint') || 'Complete themes with matching box colors & gradients'}
+      </Text>
+      <View style={styles.presetsGrid}>
+        {PREMIUM_PRESETS.map((preset) => (
+          <Pressable
+            key={preset.name}
+            style={[
+              styles.presetCard,
+              selectedPreset === preset.name && styles.presetCardSelected,
+            ]}
+            onPress={() => applyPremiumPreset(preset)}
+          >
+            <LinearGradient
+              colors={preset.gradient as [string, string]}
+              style={styles.presetGradient}
+            >
+              <View style={[styles.presetDot, { backgroundColor: preset.primary }]} />
+              {preset.useGradient && (
+                <View style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 }}>
+                  <Text style={{ fontSize: 8, color: '#fff', fontWeight: '600' }}>PRO</Text>
+                </View>
+              )}
             </LinearGradient>
             <Text style={styles.presetName}>{preset.name}</Text>
           </Pressable>
@@ -344,8 +659,8 @@ export default function ThemeCustomizer({
   );
 
   const renderColorsTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      {/* Color Fields */}
+    <View style={styles.tabContent}>
+      {/* Color Fields - Each with inline color picker */}
       {[
         { key: 'background_color', label: t('theme.background') || 'Background', icon: 'color-fill' },
         { key: 'primary_color', label: t('theme.primary') || 'Primary / Buttons', icon: 'color-palette' },
@@ -353,163 +668,89 @@ export default function ThemeCustomizer({
         { key: 'text_color', label: t('theme.text') || 'Text Color', icon: 'text' },
         { key: 'card_color', label: t('theme.card') || 'Card Background', icon: 'card' },
       ].map((field) => (
-        <View key={field.key}>
-          <Pressable
-            style={[
-              styles.colorField,
-              selectedField === field.key && styles.colorFieldSelected,
-            ]}
-            onPress={() => setSelectedField(
-              selectedField === field.key ? null : field.key as keyof ProfileTheme
-            )}
-          >
+        <View key={field.key} style={styles.inlineColorSection}>
+          <View style={styles.inlineColorHeader}>
             <View style={styles.colorFieldLeft}>
               <Ionicons name={field.icon as any} size={18} color="#888" />
               <Text style={styles.colorFieldLabel}>{field.label}</Text>
             </View>
-            <View style={styles.colorFieldRight}>
+            <View style={styles.currentColorDisplay}>
               <View 
                 style={[
                   styles.colorPreview, 
                   { backgroundColor: (theme as any)[field.key] || '#fff' }
                 ]} 
               />
-              <Ionicons 
-                name={selectedField === field.key ? "chevron-up" : "chevron-down"} 
-                size={16} 
-                color="#666" 
+              <Text style={styles.hexCodeText}>{(theme as any)[field.key] || '#fff'}</Text>
+            </View>
+          </View>
+          <View style={styles.inlineColorGrid}>
+            {CUSTOM_COLORS.map((color) => (
+              <Pressable
+                key={`${field.key}-${color}`}
+                style={[
+                  styles.colorDot,
+                  { backgroundColor: color },
+                  (theme as any)[field.key] === color && styles.colorDotSelected,
+                ]}
+                onPress={() => selectCustomColor(color, field.key)}
               />
-            </View>
-          </Pressable>
-          
-          {/* Color Picker Grid */}
-          {selectedField === field.key && (
-            <View style={styles.colorPicker}>
-              <View style={styles.colorGrid}>
-                {CUSTOM_COLORS.map((color) => (
-                  <Pressable
-                    key={`${field.key}-${color}`}
-                    style={[
-                      styles.colorDot,
-                      { backgroundColor: color },
-                      (theme as any)[field.key] === color && styles.colorDotSelected,
-                    ]}
-                    onPress={() => selectCustomColor(color)}
-                  />
-                ))}
-              </View>
-              {/* Custom Hex Input */}
-              <View style={styles.hexInputRow}>
-                <TextInput
-                  style={styles.hexInput}
-                  placeholder="#FF0000"
-                  placeholderTextColor="#666"
-                  value={customHex}
-                  onChangeText={setCustomHex}
-                  autoCapitalize="characters"
-                  maxLength={7}
-                />
-                <Pressable style={styles.hexApplyBtn} onPress={applyCustomHex}>
-                  <Text style={styles.hexApplyText}>Apply</Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
+            ))}
+          </View>
         </View>
       ))}
-    </ScrollView>
+    </View>
   );
 
   const renderAdvancedTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      {/* Gradient Toggle */}
-      <View style={styles.advancedSection}>
-        <Text style={styles.advancedSectionTitle}>
-          <Ionicons name="color-wand" size={16} color="#4c6fff" /> Gradient Background
-        </Text>
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Enable Gradient</Text>
-          <Switch
-            value={theme.use_gradient || false}
-            onValueChange={(value) => {
-              setTheme(prev => ({
-                ...prev,
-                use_gradient: value,
-                gradient_start: value ? (prev.gradient_start || prev.background_color) : null,
-                gradient_end: value ? (prev.gradient_end || prev.secondary_color) : null,
-              }));
-            }}
-            trackColor={{ false: '#333', true: '#4c6fff' }}
-            thumbColor="#fff"
-          />
-        </View>
-        
-        {theme.use_gradient && (
-          <View style={styles.gradientColors}>
-            <Pressable 
-              style={styles.gradientColorBtn}
-              onPress={() => setSelectedField('gradient_start')}
-            >
-              <View style={[styles.gradientColorPreview, { backgroundColor: theme.gradient_start || '#121212' }]} />
-              <Text style={styles.gradientColorLabel}>Start</Text>
-            </Pressable>
-            <Ionicons name="arrow-forward" size={20} color="#666" />
-            <Pressable 
-              style={styles.gradientColorBtn}
-              onPress={() => setSelectedField('gradient_end')}
-            >
-              <View style={[styles.gradientColorPreview, { backgroundColor: theme.gradient_end || '#1e1e1e' }]} />
-              <Text style={styles.gradientColorLabel}>End</Text>
-            </Pressable>
-          </View>
-        )}
-        
-        {(selectedField === 'gradient_start' || selectedField === 'gradient_end') && (
-          <View style={styles.colorPicker}>
-            <Text style={styles.colorPickerLabel}>
-              Select {selectedField === 'gradient_start' ? 'Start' : 'End'} Color:
-            </Text>
-            <View style={styles.colorGrid}>
-              {CUSTOM_COLORS.slice(0, 30).map((color) => (
-                <Pressable
-                  key={`gradient-${color}`}
-                  style={[
-                    styles.colorDot,
-                    { backgroundColor: color },
-                    (theme as any)[selectedField] === color && styles.colorDotSelected,
-                  ]}
-                  onPress={() => {
-                    setTheme(prev => ({ ...prev, [selectedField!]: color }));
-                    setSelectedField(null);
-                  }}
-                />
-              ))}
+    <View style={styles.tabContent}>
+      {/* Box Colors - Each with inline color picker */}
+      <Text style={styles.advancedSectionTitle}>
+        <Ionicons name="cube" size={16} color="#000000" /> Box Colors
+      </Text>
+      {[
+        { key: 'gallery_card_color', label: 'Gallery Box', icon: 'images' },
+        { key: 'info_card_color', label: 'Info Box', icon: 'information-circle' },
+        { key: 'action_button_color', label: 'Action Button', icon: 'flash' },
+        { key: 'border_color', label: 'Borders', icon: 'square-outline' },
+      ].map((field) => (
+        <View key={field.key} style={styles.inlineColorSection}>
+          <View style={styles.inlineColorHeader}>
+            <View style={styles.colorFieldLeft}>
+              <Ionicons name={field.icon as any} size={18} color="#888" />
+              <Text style={styles.colorFieldLabel}>{field.label}</Text>
+            </View>
+            <View style={styles.currentColorDisplay}>
+              <View 
+                style={[
+                  styles.colorPreview, 
+                  { backgroundColor: (theme as any)[field.key] || '#fff' }
+                ]} 
+              />
+              <Text style={styles.hexCodeText}>{(theme as any)[field.key] || '#fff'}</Text>
             </View>
           </View>
-        )}
-      </View>
-
-      {/* Quick Tips */}
-      <View style={styles.tipsSection}>
-        <Text style={styles.tipTitle}>
-          <Ionicons name="bulb" size={14} color="#f59e0b" /> Tips
-        </Text>
-        <Text style={styles.tipText}>
-          • Use contrasting colors for text and background
-        </Text>
-        <Text style={styles.tipText}>
-          • Primary color is used for buttons and highlights
-        </Text>
-        <Text style={styles.tipText}>
-          • Gradients work best with similar color families
-        </Text>
-      </View>
-    </ScrollView>
+          <View style={styles.inlineColorGrid}>
+            {CUSTOM_COLORS.map((color) => (
+              <Pressable
+                key={`adv-${field.key}-${color}`}
+                style={[
+                  styles.colorDot,
+                  { backgroundColor: color },
+                  (theme as any)[field.key] === color && styles.colorDotSelected,
+                ]}
+                onPress={() => selectCustomColor(color, field.key)}
+              />
+            ))}
+          </View>
+        </View>
+      ))}
+    </View>
   );
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
+    <Modal visible={visible} animationType="slide">
+      <SafeAreaView style={styles.fullScreenContainer} edges={['top']}>
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
@@ -534,7 +775,7 @@ export default function ThemeCustomizer({
               <Ionicons 
                 name="color-palette" 
                 size={18} 
-                color={activeTab === 'presets' ? '#4c6fff' : '#888'} 
+                color={activeTab === 'presets' ? '#000000' : '#888'} 
               />
               <Text style={[styles.tabText, activeTab === 'presets' && styles.tabTextActive]}>
                 Presets
@@ -547,7 +788,7 @@ export default function ThemeCustomizer({
               <Ionicons 
                 name="color-fill" 
                 size={18} 
-                color={activeTab === 'colors' ? '#4c6fff' : '#888'} 
+                color={activeTab === 'colors' ? '#000000' : '#888'} 
               />
               <Text style={[styles.tabText, activeTab === 'colors' && styles.tabTextActive]}>
                 Colors
@@ -560,20 +801,34 @@ export default function ThemeCustomizer({
               <Ionicons 
                 name="settings" 
                 size={18} 
-                color={activeTab === 'advanced' ? '#4c6fff' : '#888'} 
+                color={activeTab === 'advanced' ? '#000000' : '#888'} 
               />
               <Text style={[styles.tabText, activeTab === 'advanced' && styles.tabTextActive]}>
                 Advanced
               </Text>
             </Pressable>
+            <Pressable
+              style={[styles.tab, activeTab === 'fonts' && styles.tabActive]}
+              onPress={() => setActiveTab('fonts')}
+            >
+              <Ionicons 
+                name="text" 
+                size={18} 
+                color={activeTab === 'fonts' ? '#000000' : '#888'} 
+              />
+              <Text style={[styles.tabText, activeTab === 'fonts' && styles.tabTextActive]}>
+                Fonts
+              </Text>
+            </Pressable>
           </View>
 
-          {/* Tab Content */}
-          <View style={styles.tabContentContainer}>
+          {/* Tab Content - Scrollable */}
+          <ScrollView style={styles.tabContentScroll} contentContainerStyle={styles.tabContentContainer}>
             {activeTab === 'presets' && renderPresetsTab()}
             {activeTab === 'colors' && renderColorsTab()}
             {activeTab === 'advanced' && renderAdvancedTab()}
-          </View>
+            {activeTab === 'fonts' && renderFontsTab()}
+          </ScrollView>
 
           {/* Save Button */}
           <View style={styles.footer}>
@@ -593,28 +848,26 @@ export default function ThemeCustomizer({
             </Pressable>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  fullScreenContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'flex-end',
+    backgroundColor: '#1a1a1a',
   },
   container: {
+    flex: 1,
     backgroundColor: '#1a1a1a',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '92%',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
+    paddingTop: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#2a2a2a',
   },
@@ -631,8 +884,8 @@ const styles = StyleSheet.create({
   
   // Preview Section
   previewSection: {
-    padding: 16,
-    paddingBottom: 8,
+    padding: 10,
+    paddingBottom: 6,
   },
   previewLabel: {
     fontSize: 11,
@@ -643,38 +896,38 @@ const styles = StyleSheet.create({
   },
   previewCard: {
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#333',
   },
   previewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   previewAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
   previewInfo: {
-    marginLeft: 12,
+    marginLeft: 10,
     flex: 1,
   },
   previewName: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
   },
   previewBio: {
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
   },
   previewCardInner: {
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
   },
   previewCardText: {
     fontSize: 13,
@@ -723,29 +976,35 @@ const styles = StyleSheet.create({
   },
   tabActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#4c6fff',
+    borderBottomColor: '#000000',
   },
   tabText: {
     fontSize: 13,
     color: '#888',
   },
   tabTextActive: {
-    color: '#4c6fff',
+    color: '#000000',
     fontWeight: '600',
   },
 
-  // Tab Content
+  // Tab Content - Scrollable wrapper
+  tabContentScroll: {
+    flex: 1,
+  },
   tabContentContainer: {
-    height: 280,
+    padding: 16,
+    paddingBottom: 24,
+    flexGrow: 1,
   },
   tabContent: {
-    padding: 16,
+    paddingBottom: 24,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '600',
     color: '#888',
     marginBottom: 12,
+    marginTop: 20,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -754,7 +1013,7 @@ const styles = StyleSheet.create({
   presetsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   presetCard: {
     width: '22%',
@@ -766,7 +1025,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   presetCardSelected: {
-    borderColor: '#4c6fff',
+    borderColor: '#000000',
   },
   presetGradient: {
     width: 44,
@@ -803,7 +1062,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   colorFieldSelected: {
-    borderColor: '#4c6fff',
+    borderColor: '#000000',
     backgroundColor: '#2a2a3a',
   },
   colorFieldLeft: {
@@ -871,7 +1130,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   hexApplyBtn: {
-    backgroundColor: '#4c6fff',
+    backgroundColor: '#000000',
     paddingHorizontal: 16,
     borderRadius: 8,
     justifyContent: 'center',
@@ -882,18 +1141,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
+  // Inline Color Picker
+  inlineColorSection: {
+    backgroundColor: '#252525',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  inlineColorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  currentColorDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  hexCodeText: {
+    color: '#888',
+    fontSize: 12,
+    fontFamily: 'monospace',
+  },
+  inlineColorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+
   // Advanced Tab
   advancedSection: {
     backgroundColor: '#252525',
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
+    padding: 16,
+    marginBottom: 16,
   },
   advancedSectionTitle: {
     fontSize: 13,
     fontWeight: '600',
     color: '#fff',
-    marginBottom: 12,
+    marginBottom: 14,
+    marginTop: 4,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -948,16 +1237,18 @@ const styles = StyleSheet.create({
   // Footer
   footer: {
     padding: 16,
-    paddingBottom: 32,
+    paddingTop: 16,
+    paddingBottom: 34,
     borderTopWidth: 1,
     borderTopColor: '#2a2a2a',
+    gap: 12,
   },
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    backgroundColor: '#4c6fff',
+    backgroundColor: '#000000',
     borderRadius: 12,
     gap: 8,
   },
@@ -968,5 +1259,43 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 15,
+  },
+
+  // Fonts Tab
+  sectionHint: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 12,
+    marginTop: -4,
+  },
+  fontGrid: {
+    gap: 10,
+  },
+  fontCard: {
+    backgroundColor: '#252525',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  fontCardSelected: {
+    borderColor: '#000000',
+    backgroundColor: '#1a3a35',
+  },
+  fontName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ccc',
+    marginBottom: 4,
+  },
+  fontNameSelected: {
+    color: '#000000',
+  },
+  fontSample: {
+    fontSize: 20,
+    color: '#888',
+  },
+  fontSampleSelected: {
+    color: '#fff',
   },
 });

@@ -4,11 +4,9 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { useAuth } from "./AuthContext";
-// Import the centralized notification setup
-import { initializeNotificationChannels } from "../lib/notifications";
+import { initializeNotificationChannels, dismissAllNotifications } from "../lib/notifications";
 
 // Suppress Expo Go notification warning (will work in production builds)
-// Also suppress VirtualizedList warning for development
 LogBox.ignoreLogs([
   "expo-notifications: Android Push notifications",
   "expo-notifications:",
@@ -27,6 +25,7 @@ type NotificationContextType = {
   notification: Notifications.Notification | null;
   registerForPushNotifications: () => Promise<void>;
   showLocalNotification: (title: string, body: string, data?: Record<string, unknown>) => Promise<void>;
+  clearAll: () => Promise<void>;
 };
 
 const NotificationContext = createContext<NotificationContextType>({
@@ -34,6 +33,7 @@ const NotificationContext = createContext<NotificationContextType>({
   notification: null,
   registerForPushNotifications: async () => {},
   showLocalNotification: async () => {},
+  clearAll: async () => {},
 });
 
 export const useNotifications = () => useContext(NotificationContext);
@@ -69,9 +69,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       // Get Expo push token
       const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: projectId || undefined,
-      });
+      let tokenData;
+      try {
+        tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId: projectId || undefined,
+        });
+      } catch (e: any) {
+        if (e?.message?.includes("Expo Go") || e?.message?.includes("development build")) {
+          console.log("[Notifications] Push tokens not available in Expo Go — local notifications still work");
+          return;
+        }
+        console.error("[Notifications] Error getting push token:", e);
+        return;
+      }
       const token = tokenData.data;
       console.log("[Notifications] Expo push token:", token);
       setExpoPushToken(token);
@@ -131,6 +141,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       });
     } catch (error) {
       console.error("[Notifications] Error showing local notification:", error);
+    }
+  };
+
+  // Clear all delivered notifications
+  const clearAll = async () => {
+    try {
+      await dismissAllNotifications();
+    } catch (error) {
+      console.error("[Notifications] Error clearing all notifications:", error);
     }
   };
 
@@ -199,6 +218,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         notification,
         registerForPushNotifications,
         showLocalNotification,
+        clearAll,
       }}
     >
       {children}

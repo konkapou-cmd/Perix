@@ -108,7 +108,7 @@ export default function ShareActivityPage() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#4c6fff" />
+        <ActivityIndicator size="large" color="#000000" />
       </View>
     );
   }
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#4c6fff",
+    color: "#000000",
     marginLeft: 10,
   },
   errorCard: {
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#4c6fff",
+    backgroundColor: "#000000",
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 12,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   secondaryButtonText: {
-    color: "#4c6fff",
+    color: "#000000",
     fontSize: 14,
     fontWeight: "600",
   },
