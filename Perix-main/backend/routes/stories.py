@@ -45,7 +45,7 @@ async def _batch_fetch_actor_info(stories: list) -> dict:
     if business_ids:
         businesses = await db.businesses.find(
             {"business_id": {"$in": list(business_ids)}},
-            {"name": 1, "logo_image": 1},
+            {"business_id": 1, "name": 1, "logo_image": 1},
         ).to_list(len(business_ids))
         for b in businesses:
             actor_map[("business", b["business_id"])] = {
@@ -55,7 +55,7 @@ async def _batch_fetch_actor_info(stories: list) -> dict:
     if artist_ids:
         artists = await db.artists.find(
             {"artist_id": {"$in": list(artist_ids)}},
-            {"name": 1, "profile_photo": 1},
+            {"artist_id": 1, "name": 1, "profile_photo": 1},
         ).to_list(len(artist_ids))
         for a in artists:
             actor_map[("artist", a["artist_id"])] = {
@@ -97,12 +97,13 @@ async def _batch_fetch_story_stats(story_ids: list, current_user_id: str) -> dic
 def _build_story_response_from_batch(story_doc: dict, actor_map: dict, stats: dict) -> StoryResponse:
     actor_type = story_doc.get("actor_type", "user")
     actor_id = story_doc.get("actor_id", story_doc.get("user_id"))
+    story_id = story_doc.get("story_id", "")
 
     actor_info = actor_map.get((actor_type, actor_id), {})
-    story_stats = stats.get(story_doc["story_id"], {})
+    story_stats = stats.get(story_id, {})
 
     return StoryResponse(
-        story_id=story_doc["story_id"],
+        story_id=story_id,
         user_id=story_doc.get("user_id", actor_id),
         actor_type=actor_type,
         actor_id=actor_id,
@@ -132,12 +133,14 @@ async def build_story_response(story_doc: dict, current_user_id: str) -> StoryRe
 
 @router.post("", response_model=StoryResponse)
 async def create_story(body: StoryCreate, current_user: UserPublic = Depends(get_current_user)):
-    actor_type, actor_id = resolve_actor(current_user, body.actor_type)
+    actor = await resolve_actor(body.actor_type, None, current_user)
+    actor_type = actor["actor_type"]
+    actor_id = actor["actor_id"]
     now = now_utc()
     expires_at = now + timedelta(hours=STORY_EXPIRY_HOURS)
 
     story_doc = {
-        "story_id": generate_id(),
+        "story_id": generate_id("story"),
         "user_id": current_user.user_id,
         "actor_type": actor_type,
         "actor_id": actor_id,
@@ -163,7 +166,10 @@ async def get_stories(current_user: UserPublic = Depends(get_current_user)):
     now = now_utc()
     cutoff = (now - timedelta(hours=STORY_EXPIRY_HOURS)).isoformat()
 
-    await db.stories.delete_many({"expires_at": {"$lt": cutoff}, "is_hidden": False})
+    try:
+        await db.stories.delete_many({"expires_at": {"$lt": cutoff}, "is_hidden": False})
+    except Exception:
+        pass
 
     stories = await db.stories.find(
         {"is_hidden": False, "expires_at": {"$gte": cutoff}},
@@ -171,7 +177,7 @@ async def get_stories(current_user: UserPublic = Depends(get_current_user)):
     ).to_list(length=200)
 
     actor_map = await _batch_fetch_actor_info(stories)
-    story_ids = [s["story_id"] for s in stories]
+    story_ids = [s["story_id"] for s in stories if "story_id" in s]
     stats = await _batch_fetch_story_stats(story_ids, current_user.user_id)
 
     grouped: dict = {}
@@ -297,7 +303,9 @@ async def update_story(story_id: str, body: StoryUpdate, current_user: UserPubli
 
 @router.get("/my-stories", response_model=List[StoryResponse])
 async def get_my_stories(actor_type: str = "user", current_user: UserPublic = Depends(get_current_user)):
-    at, aid = resolve_actor(current_user, actor_type)
+    actor = await resolve_actor(actor_type, None, current_user)
+    at = actor["actor_type"]
+    aid = actor["actor_id"]
     now = now_utc()
     cutoff = (now - timedelta(hours=STORY_EXPIRY_HOURS)).isoformat()
 

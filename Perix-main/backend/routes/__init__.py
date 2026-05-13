@@ -31,6 +31,7 @@ from routes.story_analytics import router as story_analytics_router
 from routes.ws import router as ws_router
 from routes.rentals import router as rentals_router
 from routes.places import router as places_router
+from routes.mux import router as mux_router
 
 # Create main API router
 api_router = APIRouter(prefix="/api")
@@ -66,6 +67,7 @@ api_router.include_router(story_analytics_router)
 api_router.include_router(ws_router)
 api_router.include_router(rentals_router)
 api_router.include_router(places_router)
+api_router.include_router(mux_router)
 
 
 @api_router.get("/")

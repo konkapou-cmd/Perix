@@ -9,7 +9,7 @@ from typing import Optional
 from config import MUX_TOKEN_ID, MUX_TOKEN_SECRET
 from database import db
 from routes.dependencies import get_current_user, UserPublic
-from utils.helpers import generate_id
+from utils.helpers import generate_id, now_utc
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/mux", tags=["Mux Video"])
@@ -100,7 +100,7 @@ async def create_mux_upload(
             "content_ref": payload.content_ref,
             "passthrough": passthrough,
             "status": "created",
-            "created_at": upload.created_at,
+            "created_at": now_utc(),
         })
 
         return MuxUploadCreateResponse(

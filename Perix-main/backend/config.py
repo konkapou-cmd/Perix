@@ -35,6 +35,10 @@ if CLOUDINARY_URL:
 # Session settings
 SESSION_DAYS = 7
 
+# Mux (Video)
+MUX_TOKEN_ID = os.getenv("MUX_TOKEN_ID", "")
+MUX_TOKEN_SECRET = os.getenv("MUX_TOKEN_SECRET", "")
+
 # Google Maps
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", os.getenv("EXPO_PUBLIC_GOOGLE_MAPS_API_KEY", ""))
 

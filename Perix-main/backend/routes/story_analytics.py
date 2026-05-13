@@ -179,7 +179,9 @@ async def get_actor_analytics(
     if actor_type not in valid_types:
         raise HTTPException(400, f"Invalid actor_type. Must be one of {valid_types}")
 
-    at, aid = resolve_actor(current_user, actor_type)
+    actor = await resolve_actor(actor_type, None, current_user)
+    at = actor["actor_type"]
+    aid = actor["actor_id"]
 
     now = now_utc()
     cutoff = (now - timedelta(hours=STORY_EXPIRY_HOURS)).isoformat()
