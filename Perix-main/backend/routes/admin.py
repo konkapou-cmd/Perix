@@ -216,12 +216,16 @@ async def get_reported_users(
     async for u in user_cursor:
         user_map[u["user_id"]] = u
 
-    report_counts_pipeline = [
-        {"$group": {"_id": "$reported_user_id", "count": {"$sum": 1}}}
-    ]
-    report_count_map = {}
-    async for doc in db.reports.aggregate(report_counts_pipeline):
-        report_count_map[doc["_id"]] = doc["count"]
+    report_count_map: dict = {}
+    try:
+        async for doc in db.reports.aggregate([{"$group": {"_id": "$reported_user_id", "count": {"$sum": 1}}}]):
+            report_count_map[doc["_id"]] = doc["count"]
+    except Exception:
+        all_reports = await db.reports.find({}, {"reported_user_id": 1}).to_list(5000)
+        for r in all_reports:
+            uid = r.get("reported_user_id")
+            if uid:
+                report_count_map[uid] = report_count_map.get(uid, 0) + 1
 
     result = []
     for report in reports:
@@ -273,13 +277,19 @@ async def get_all_users(
     ).sort("created_at", -1).to_list(500)
     
     user_ids = [u["user_id"] for u in users]
-    report_counts_pipeline = [
-        {"$match": {"reported_user_id": {"$in": user_ids}}},
-        {"$group": {"_id": "$reported_user_id", "count": {"$sum": 1}}}
-    ]
-    report_count_map = {}
-    async for doc in db.reports.aggregate(report_counts_pipeline):
-        report_count_map[doc["_id"]] = doc["count"]
+    report_count_map: dict = {}
+    try:
+        async for doc in db.reports.aggregate([
+            {"$match": {"reported_user_id": {"$in": user_ids}}},
+            {"$group": {"_id": "$reported_user_id", "count": {"$sum": 1}}}
+        ]):
+            report_count_map[doc["_id"]] = doc["count"]
+    except Exception:
+        all_reports = await db.reports.find({"reported_user_id": {"$in": user_ids}}).to_list(5000)
+        for r in all_reports:
+            uid = r.get("reported_user_id")
+            if uid:
+                report_count_map[uid] = report_count_map.get(uid, 0) + 1
 
     for user in users:
         user["report_count"] = report_count_map.get(user["user_id"], 0)

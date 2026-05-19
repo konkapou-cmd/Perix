@@ -659,15 +659,21 @@ async def admin_get_monetization_stats(current_user: UserPublic = Depends(get_cu
     active_promoters = await db.promoters.count_documents({"status": "active"})
     
     # Sum earnings
-    pipeline = [
-        {"$group": {
-            "_id": None,
-            "total_earnings": {"$sum": "$total_earnings"},
-            "total_pending": {"$sum": "$pending_payout"},
-            "total_referrals": {"$sum": "$total_referrals"}
-        }}
-    ]
-    earnings_result = await db.promoters.aggregate(pipeline).to_list(1)
+    try:
+        earnings_result = await db.promoters.aggregate([
+            {"$group": {
+                "_id": None,
+                "total_earnings": {"$sum": "$total_earnings"},
+                "total_pending": {"$sum": "$pending_payout"},
+                "total_referrals": {"$sum": "$total_referrals"}
+            }}
+        ]).to_list(1)
+    except Exception:
+        promoters = await db.promoters.find({}).to_list(1000)
+        te = sum(p.get("total_earnings", 0) or 0 for p in promoters)
+        tp = sum(p.get("pending_payout", 0) or 0 for p in promoters)
+        tr = sum(p.get("total_referrals", 0) or 0 for p in promoters)
+        earnings_result = [{"total_earnings": te, "total_pending": tp, "total_referrals": tr}]
     earnings = earnings_result[0] if earnings_result else {
         "total_earnings": 0,
         "total_pending": 0,
@@ -678,17 +684,23 @@ async def admin_get_monetization_stats(current_user: UserPublic = Depends(get_cu
     total_transactions = await db.payment_transactions.count_documents({})
     paid_transactions = await db.payment_transactions.count_documents({"payment_status": "paid"})
     
-    # Revenue pipeline
-    revenue_pipeline = [
-        {"$match": {"payment_status": "paid"}},
-        {"$group": {
-            "_id": None,
-            "total_revenue": {"$sum": "$amount"},
-            "platform_revenue": {"$sum": "$platform_amount"},
-            "promoter_revenue": {"$sum": "$promoter_amount"}
-        }}
-    ]
-    revenue_result = await db.payment_transactions.aggregate(revenue_pipeline).to_list(1)
+    # Revenue
+    try:
+        revenue_result = await db.payment_transactions.aggregate([
+            {"$match": {"payment_status": "paid"}},
+            {"$group": {
+                "_id": None,
+                "total_revenue": {"$sum": "$amount"},
+                "platform_revenue": {"$sum": "$platform_amount"},
+                "promoter_revenue": {"$sum": "$promoter_amount"}
+            }}
+        ]).to_list(1)
+    except Exception:
+        txs = await db.payment_transactions.find({"payment_status": "paid"}).to_list(5000)
+        rev = sum(t.get("amount", 0) or 0 for t in txs)
+        plat = sum(t.get("platform_amount", 0) or 0 for t in txs)
+        prom = sum(t.get("promoter_amount", 0) or 0 for t in txs)
+        revenue_result = [{"total_revenue": rev, "platform_revenue": plat, "promoter_revenue": prom}]
     revenue = revenue_result[0] if revenue_result else {
         "total_revenue": 0,
         "platform_revenue": 0,

@@ -70,17 +70,29 @@ async def _batch_fetch_story_stats(story_ids: list, current_user_id: str) -> dic
     if not story_ids:
         return stats
 
-    view_counts = await db.story_views.aggregate([
-        {"$match": {"story_id": {"$in": story_ids}}},
-        {"$group": {"_id": "$story_id", "count": {"$sum": 1}}},
-    ]).to_list(len(story_ids))
+    try:
+        view_counts = await db.story_views.aggregate([
+            {"$match": {"story_id": {"$in": story_ids}}},
+            {"$group": {"_id": "$story_id", "count": {"$sum": 1}}},
+        ]).to_list(len(story_ids))
+    except Exception:
+        views = await db.story_views.find({"story_id": {"$in": story_ids}}, {"story_id": 1}).to_list(1000)
+        counts: dict = {}
+        for v in views: counts[v["story_id"]] = counts.get(v["story_id"], 0) + 1
+        view_counts = [{"_id": sid, "count": c} for sid, c in counts.items()]
     for vc in view_counts:
         stats[vc["_id"]]["view_count"] = vc["count"]
 
-    reaction_counts = await db.story_reactions.aggregate([
-        {"$match": {"story_id": {"$in": story_ids}}},
-        {"$group": {"_id": "$story_id", "count": {"$sum": 1}}},
-    ]).to_list(len(story_ids))
+    try:
+        reaction_counts = await db.story_reactions.aggregate([
+            {"$match": {"story_id": {"$in": story_ids}}},
+            {"$group": {"_id": "$story_id", "count": {"$sum": 1}}},
+        ]).to_list(len(story_ids))
+    except Exception:
+        reactions = await db.story_reactions.find({"story_id": {"$in": story_ids}}, {"story_id": 1}).to_list(1000)
+        counts: dict = {}
+        for r in reactions: counts[r["story_id"]] = counts.get(r["story_id"], 0) + 1
+        reaction_counts = [{"_id": sid, "count": c} for sid, c in counts.items()]
     for rc in reaction_counts:
         stats[rc["_id"]]["reaction_count"] = rc["count"]
 
@@ -214,9 +226,9 @@ async def get_stories(current_user: UserPublic = Depends(get_current_user)):
         ))
 
     own_id = current_user.user_id
-    own_entry = [g for g in result if g.actor_id == own_id or (g.actor_type == "user" and g.user_id == own_id)]
-    others = [g for g in result if g.actor_id != own_id and not (g.actor_type == "user" and g.user_id == own_id)]
-    return own_entry + others
+    unseen_groups = [g for g in result if g.has_unseen]
+    seen_groups = [g for g in result if not g.has_unseen]
+    return unseen_groups + seen_groups
 
 
 @router.get("/{story_id}", response_model=StoryResponse)

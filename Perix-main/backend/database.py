@@ -39,12 +39,12 @@ async def create_indexes():
     # Businesses collection indexes
     await db.businesses.create_index("business_id", unique=True)
     await db.businesses.create_index("owner_id")
-    await _safe_create_index(db.businesses, [("location", "2dsphere")])
+    # 2dsphere removed — not supported by FerretDB
     
     # Artists collection indexes
     await db.artists.create_index("artist_id", unique=True)
     await db.artists.create_index("user_id")
-    await _safe_create_index(db.artists, [("location", "2dsphere")])
+    # 2dsphere removed — not supported by FerretDB
     
     # Calls collection indexes
     await db.calls.create_index("caller_id")
@@ -215,6 +215,14 @@ def build_category_tree() -> None:
                 "german", "african", "american", "arabic"
             ]
         },
+        {
+            "name": "🏠 Rental & Real Estate",
+            "slug": "rental-real-estate",
+            "subcategories": [
+                "apartments", "houses", "studios", "rooms",
+                "commercial-spaces"
+            ]
+        },
     ]
 
     roots: Dict[str, Dict] = {}
@@ -233,6 +241,8 @@ def build_category_tree() -> None:
         for sub_slug in cat["subcategories"]:
             sub_name = sub_slug.replace("-", " ").title()
             modules = make_modules()
+            if root_slug == "rental-real-estate":
+                modules["rentals"] = True
             tools = [key for key, value in modules.items() if value]
 
             subcategory = {

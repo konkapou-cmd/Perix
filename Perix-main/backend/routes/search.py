@@ -1,6 +1,7 @@
 """Search routes - Geospatial search for artists and posts."""
 from fastapi import APIRouter, Depends, Query
 from typing import List, Optional
+from math import radians, cos, sin, asin, sqrt
 from pydantic import BaseModel
 
 from database import db
@@ -11,6 +12,16 @@ router = APIRouter(prefix="/search", tags=["Search"])
 
 # 25 km in meters
 SEARCH_RADIUS_METERS = 25000
+
+
+def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distance between two points in meters using haversine formula."""
+    R = 6371000
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    return 2 * R * asin(sqrt(a))
 
 
 class ArtistSearchResult(BaseModel):
@@ -92,42 +103,40 @@ async def search_nearby(
     # Convert radius to meters
     radius_meters = radius_km * 1000
     
-    # Find artists within radius using $geoNear aggregation
-    # This allows us to get distance information
-    pipeline = [
-        {
-            "$geoNear": {
-                "near": {
-                    "type": "Point",
-                    "coordinates": [search_lng, search_lat]
-                },
-                "distanceField": "distance",
-                "maxDistance": radius_meters,
-                "spherical": True,
-                "query": {
-                    "location": {"$exists": True, "$ne": None}
+    # Find artists within radius — try geo aggregation, fall back to haversine
+    artists_raw: List[dict] = []
+    try:
+        pipeline = [
+            {
+                "$geoNear": {
+                    "near": {"type": "Point", "coordinates": [search_lng, search_lat]},
+                    "distanceField": "distance",
+                    "maxDistance": radius_meters,
+                    "spherical": True,
+                    "query": {"location": {"$exists": True, "$ne": None}}
                 }
-            }
-        },
-        {
-            "$project": {
-                "_id": 0,
-                "artist_id": 1,
-                "name": 1,
-                "bio": 1,
-                "genres": 1,
-                "town": 1,
-                "profile_photo": 1,
-                "cover_photo": 1,
-                "gallery_images": 1,
-                "distance": 1,
-            }
-        },
-        {"$limit": 100}
-    ]
-    
-    artists_cursor = db.artists.aggregate(pipeline)
-    artists_raw = await artists_cursor.to_list(100)
+            },
+            {"$project": {
+                "_id": 0, "artist_id": 1, "name": 1, "bio": 1, "genres": 1,
+                "town": 1, "profile_photo": 1, "cover_photo": 1, "gallery_images": 1,
+                "distance": 1, "latitude": 1, "longitude": 1,
+            }},
+            {"$limit": 100}
+        ]
+        artists_cursor = db.artists.aggregate(pipeline)
+        artists_raw = await artists_cursor.to_list(100)
+    except Exception:
+        all_artists = await db.artists.find(
+            {"latitude": {"$exists": True, "$ne": None}, "longitude": {"$exists": True, "$ne": None}},
+            {"_id": 0}
+        ).to_list(500)
+        artists_raw = []
+        for a in all_artists:
+            d = haversine_m(search_lat, search_lng, a["latitude"], a["longitude"])
+            if d <= radius_meters:
+                a["distance"] = d
+                artists_raw.append(a)
+        artists_raw = sorted(artists_raw, key=lambda x: x.get("distance", 0))[:100]
     
     # Build artist results with distance
     artist_results = []
@@ -210,40 +219,38 @@ async def search_artists_by_city(
     
     radius_meters = radius_km * 1000
     
-    pipeline = [
-        {
-            "$geoNear": {
-                "near": {
-                    "type": "Point",
-                    "coordinates": [coords["longitude"], coords["latitude"]]
-                },
-                "distanceField": "distance",
-                "maxDistance": radius_meters,
-                "spherical": True,
-                "query": {
-                    "location": {"$exists": True, "$ne": None}
+    artists_raw: List[dict] = []
+    try:
+        pipeline = [
+            {
+                "$geoNear": {
+                    "near": {"type": "Point", "coordinates": [coords["longitude"], coords["latitude"]]},
+                    "distanceField": "distance",
+                    "maxDistance": radius_meters,
+                    "spherical": True,
+                    "query": {"location": {"$exists": True, "$ne": None}}
                 }
-            }
-        },
-        {
-            "$project": {
-                "_id": 0,
-                "artist_id": 1,
-                "name": 1,
-                "bio": 1,
-                "genres": 1,
-                "town": 1,
-                "profile_photo": 1,
-                "cover_photo": 1,
-                "gallery_images": 1,
+            },
+            {"$project": {
+                "_id": 0, "artist_id": 1, "name": 1, "bio": 1, "genres": 1,
+                "town": 1, "profile_photo": 1, "cover_photo": 1, "gallery_images": 1,
                 "distance": 1,
-            }
-        },
-        {"$limit": 50}
-    ]
-    
-    artists_cursor = db.artists.aggregate(pipeline)
-    artists_raw = await artists_cursor.to_list(50)
+            }},
+            {"$limit": 50}
+        ]
+        artists_cursor = db.artists.aggregate(pipeline)
+        artists_raw = await artists_cursor.to_list(50)
+    except Exception:
+        all_artists = await db.artists.find(
+            {"latitude": {"$exists": True, "$ne": None}, "longitude": {"$exists": True, "$ne": None}},
+            {"_id": 0}
+        ).to_list(500)
+        for a in all_artists:
+            d = haversine_m(coords["latitude"], coords["longitude"], a["latitude"], a["longitude"])
+            if d <= radius_meters:
+                a["distance"] = d
+                artists_raw.append(a)
+        artists_raw = sorted(artists_raw, key=lambda x: x.get("distance", 0))[:50]
     
     results = []
     for artist in artists_raw:

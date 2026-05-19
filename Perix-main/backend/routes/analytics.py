@@ -74,20 +74,27 @@ async def get_user_analytics(
     total_likes_received = 0
     total_comments_received = 0
     if post_ids:
-        likes_pipeline = [
-            {"$match": {"post_id": {"$in": post_ids}}},
-            {"$group": {"_id": None, "total_likes": {"$sum": {"$size": {"$ifNull": ["$likes", []]}}}}}
-        ]
-        likes_result = await db.posts.aggregate(likes_pipeline).to_list(1)
+        try:
+            likes_result = await db.posts.aggregate([
+                {"$match": {"post_id": {"$in": post_ids}}},
+                {"$group": {"_id": None, "total_likes": {"$sum": {"$size": {"$ifNull": ["$likes", []]}}}}}
+            ]).to_list(1)
+        except Exception:
+            posts = await db.posts.find({"post_id": {"$in": post_ids}}, {"likes": 1}).to_list(1000)
+            total = sum(len(p.get("likes", [])) for p in posts)
+            likes_result = [{"total_likes": total}]
         if likes_result:
             total_likes_received = likes_result[0].get("total_likes", 0)
         
-        # Get comments received
-        comments_pipeline = [
-            {"$match": {"post_id": {"$in": post_ids}}},
-            {"$group": {"_id": None, "total_comments": {"$sum": {"$size": {"$ifNull": ["$comments", []]}}}}}
-        ]
-        comments_result = await db.posts.aggregate(comments_pipeline).to_list(1)
+        try:
+            comments_result = await db.posts.aggregate([
+                {"$match": {"post_id": {"$in": post_ids}}},
+                {"$group": {"_id": None, "total_comments": {"$sum": {"$size": {"$ifNull": ["$comments", []]}}}}}
+            ]).to_list(1)
+        except Exception:
+            posts = await db.posts.find({"post_id": {"$in": post_ids}}, {"comments": 1}).to_list(1000)
+            total = sum(len(p.get("comments", [])) for p in posts)
+            comments_result = [{"total_comments": total}]
         if comments_result:
             total_comments_received = comments_result[0].get("total_comments", 0)
     

@@ -129,17 +129,34 @@ async def get_story_viewers(
     if not story_doc:
         raise HTTPException(404, "Story not found")
 
-    pipeline = [
-        {"$match": {"story_id": story_id}},
-        {"$sort": {"viewed_at": -1}},
-        {"$group": {
-            "_id": "$user_id",
-            "viewed_at": {"$first": "$viewed_at"},
-            "watch_duration": {"$first": "$watch_duration"},
-            "completed": {"$first": "$completed"},
-        }},
-    ]
-    grouped = await db.story_views.aggregate(pipeline).to_list(length=1000)
+    grouped: list = []
+    try:
+        pipeline = [
+            {"$match": {"story_id": story_id}},
+            {"$sort": {"viewed_at": -1}},
+            {"$group": {
+                "_id": "$user_id",
+                "viewed_at": {"$first": "$viewed_at"},
+                "watch_duration": {"$first": "$watch_duration"},
+                "completed": {"$first": "$completed"},
+            }},
+        ]
+        grouped = await db.story_views.aggregate(pipeline).to_list(length=1000)
+    except Exception:
+        all_views = await db.story_views.find(
+            {"story_id": story_id}, sort=[("viewed_at", -1)]
+        ).to_list(length=5000)
+        seen: dict = {}
+        for v in all_views:
+            uid = v.get("user_id")
+            if uid and uid not in seen:
+                seen[uid] = {
+                    "_id": uid,
+                    "viewed_at": v.get("viewed_at"),
+                    "watch_duration": v.get("watch_duration"),
+                    "completed": v.get("completed"),
+                }
+        grouped = list(seen.values())
     total = len(grouped)
 
     page = grouped[skip:skip + limit]
@@ -197,24 +214,41 @@ async def get_actor_analytics(
     view_counts_map = {}
     completed_counts_map = {}
     if story_ids:
-        view_agg = await db.story_views.aggregate([
-            {"$match": {"story_id": {"$in": story_ids}}},
-            {"$group": {
-                "_id": "$story_id",
-                "total": {"$sum": 1},
-                "completed": {"$sum": {"$cond": [{"$eq": ["$completed", True]}, 1, 0]}},
-            }},
-        ]).to_list(len(story_ids))
+        try:
+            view_agg = await db.story_views.aggregate([
+                {"$match": {"story_id": {"$in": story_ids}}},
+                {"$group": {
+                    "_id": "$story_id",
+                    "total": {"$sum": 1},
+                    "completed": {"$sum": {"$cond": [{"$eq": ["$completed", True]}, 1, 0]}},
+                }},
+            ]).to_list(len(story_ids))
+        except Exception:
+            views = await db.story_views.find({"story_id": {"$in": story_ids}}).to_list(5000)
+            counts: dict = {}
+            completed: dict = {}
+            for v in views:
+                sid = v["story_id"]
+                counts[sid] = counts.get(sid, 0) + 1
+                if v.get("completed"):
+                    completed[sid] = completed.get(sid, 0) + 1
+            view_agg = [{"_id": sid, "total": counts[sid], "completed": completed.get(sid, 0)} for sid in counts]
         for v in view_agg:
             view_counts_map[v["_id"]] = v["total"]
             completed_counts_map[v["_id"]] = v["completed"]
 
     reaction_counts_map = {}
     if story_ids:
-        reaction_agg = await db.story_reactions.aggregate([
-            {"$match": {"story_id": {"$in": story_ids}}},
-            {"$group": {"_id": "$story_id", "total": {"$sum": 1}}},
-        ]).to_list(len(story_ids))
+        try:
+            reaction_agg = await db.story_reactions.aggregate([
+                {"$match": {"story_id": {"$in": story_ids}}},
+                {"$group": {"_id": "$story_id", "total": {"$sum": 1}}},
+            ]).to_list(len(story_ids))
+        except Exception:
+            reactions = await db.story_reactions.find({"story_id": {"$in": story_ids}}).to_list(5000)
+            counts: dict = {}
+            for r in reactions: counts[r["story_id"]] = counts.get(r["story_id"], 0) + 1
+            reaction_agg = [{"_id": sid, "total": c} for sid, c in counts.items()]
         for r in reaction_agg:
             reaction_counts_map[r["_id"]] = r["total"]
 
