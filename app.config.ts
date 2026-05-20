@@ -22,6 +22,7 @@ const config: ExpoConfig = {
       NSPhotoLibraryAddUsageDescription: "Save media to your gallery.",
       NSCameraUsageDescription: "Capture stories, gallery media, and video calls.",
       NSMicrophoneUsageDescription: "Voice and video calls require microphone access.",
+      UIBackgroundModes: ["voip"],
     },
     associatedDomains: [
       "applinks:perixapp.com",
@@ -70,6 +71,11 @@ const config: ExpoConfig = {
         ],
         category: ["BROWSABLE", "DEFAULT"],
       },
+      {
+        action: "VIEW",
+        data: [{ scheme: "perix", host: "call", pathPrefix: "/answer" }],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
     ],
   },
   web: {
@@ -90,6 +96,7 @@ const config: ExpoConfig = {
     ],
     "expo-localization",
     "expo-font",
+    "expo-audio",
     "expo-web-browser",
     [
       "expo-build-properties",

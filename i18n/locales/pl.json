@@ -1326,6 +1326,16 @@
     "callFailed": "Poziv nije uspeo. Molimo pokušajte ponovo.",
     "businessClosed": "Biznis je trenutno zatvoren. Molimo pozovite tokom radnog vremena."
   },
+
+    "cityAd": {
+    "sectionTitle": "City Ads",
+    "yourAd": "Your Ad",
+    "noAds": "No ads yet",
+    "adPublished": "Your city ad has been published!",
+    "createAd": "Create City Ad",
+    "maxDuration": "City Ads must be under 3 minutes",
+    "uploadingAd": "Uploading your ad..."
+  },
   "subscription": {
     "title": "Zarządzaj subskrypcją",
     "active": "Aktywna",
@@ -1905,3 +1915,5 @@
     "justNow": "przed chwilą"
   }
 }
+
+

@@ -17,19 +17,22 @@ import {
   Platform,
   Keyboard,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Video, ResizeMode, AVPlaybackStatus, Audio } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { useAudioPlayer } from "expo-audio";
 import { useTranslation } from "react-i18next";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../context/AuthContext";
 import { useMapBounds } from "../context/MapBoundsContext";
-import { createPost, createStory, uploadMedia, uploadImageToCloudinary, uploadVideoMux, UploadProgress, apiRequest, MAX_STORY_VIDEO_SIZE_MB, deletePost, deleteStory } from "../lib/api";
+import { createPost, createStory, uploadMedia, uploadImageToCloudinary, uploadVideoMux, processVideo, UploadProgress, apiRequest, MAX_STORY_VIDEO_SIZE_MB, deletePost, deleteStory } from "../lib/api";
 import UploadProgressSheet from "../components/UploadProgressSheet";
 import * as FileSystem from "expo-file-system/legacy";
 import Constants from "expo-constants";
+import ViewShot from "react-native-view-shot";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CANVAS_WIDTH = SCREEN_WIDTH;
@@ -212,6 +215,9 @@ export default function MediaEditor() {
   const [fontSize, setFontSize] = useState(24);
   const [publishing, setPublishing] = useState(false);
   const [showPublishOptions, setShowPublishOptions] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [showFilterName, setShowFilterName] = useState(false);
+  const filterNameTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [postCaption, setPostCaption] = useState("");
@@ -224,7 +230,12 @@ export default function MediaEditor() {
   const [videoMuted, setVideoMuted] = useState(false);
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>(DEFAULT_MUSIC_TRACKS);
   const [loadingMusic, setLoadingMusic] = useState(false);
-  const musicRef = useRef<Audio.Sound | null>(null);
+  const track = musicTracks.find(t => t.id === selectedMusic);
+  const musicPlayer = useAudioPlayer(track?.uri || null);
+
+  useEffect(() => {
+    musicPlayer.loop = true;
+  }, [musicPlayer]);
   
   // Sticker states
   const [activeStickerType, setActiveStickerType] = useState<"location" | "mention" | "hashtag" | "poll" | "emoji" | "countdown" | null>(null);
@@ -252,10 +263,27 @@ export default function MediaEditor() {
   const [trimEnd, setTrimEnd] = useState(30);
   const [currentPosition, setCurrentPosition] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [textSubTab, setTextSubTab] = useState<"style" | "font" | "bg">("style");
+  const insets = useSafeAreaInsets();
   
-  const videoRef = useRef<Video>(null);
+  const player = useVideoPlayer(decodeURIComponent(uri || ""), (player) => {
+    player.loop = true;
+    player.muted = false;
+    player.play();
+  });
+  const viewShotRef = useRef<any>(null);
+  const textInputRef = useRef<TextInput>(null);
   const trimStartAnim = useRef(new Animated.Value(0)).current;
   const trimEndAnim = useRef(new Animated.Value(1)).current;
+
+  // Clear selections when entering preview mode
+  useEffect(() => {
+    if (previewMode) {
+      setSelectedTextId(null);
+      setSelectedStickerId(null);
+      setActiveTab("none");
+    }
+  }, [previewMode]);
 
   // Fetch music tracks from API on mount
   useEffect(() => {
@@ -310,111 +338,65 @@ export default function MediaEditor() {
     return "musical-notes";
   };
 
-  // Initialize and manage music playback
-  useEffect(() => {
-    const setupMusic = async () => {
-      // Cleanup previous music
-      if (musicRef.current) {
-        await musicRef.current.unloadAsync();
-        musicRef.current = null;
-      }
-      
-      const track = musicTracks.find(t => t.id === selectedMusic);
-      if (track && track.uri) {
-        try {
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: track.uri },
-            { isLooping: true, volume: musicVolume, isMuted: musicMuted }
-          );
-          musicRef.current = sound;
-          if (isPlaying) {
-            await sound.playAsync();
-          }
-        } catch (error) {
-          console.log("Error loading music:", error);
-        }
-      }
-    };
-    
-    setupMusic();
-    
-    return () => {
-      if (musicRef.current) {
-        musicRef.current.unloadAsync();
-      }
-    };
-  }, [selectedMusic, musicTracks]);
-
   // Sync music with video playback
   useEffect(() => {
-    const syncMusic = async () => {
-      if (musicRef.current) {
-        if (isPlaying && !musicMuted) {
-          await musicRef.current.playAsync();
-        } else {
-          await musicRef.current.pauseAsync();
-        }
-      }
-    };
-    syncMusic();
-  }, [isPlaying, musicMuted]);
+    if (isPlaying && !musicMuted) {
+      musicPlayer.play();
+    } else {
+      musicPlayer.pause();
+    }
+  }, [isPlaying, musicMuted, musicPlayer]);
 
   // Update music volume
   useEffect(() => {
-    if (musicRef.current) {
-      musicRef.current.setVolumeAsync(musicVolume);
-    }
-  }, [musicVolume]);
+    musicPlayer.volume = musicVolume;
+  }, [musicVolume, musicPlayer]);
 
   // Update music mute state
   useEffect(() => {
-    if (musicRef.current) {
-      musicRef.current.setIsMutedAsync(musicMuted);
-    }
-  }, [musicMuted]);
+    musicPlayer.muted = musicMuted;
+  }, [musicMuted, musicPlayer]);
 
   // Video playback status update
-  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (!status.isLoaded) return;
-    
-    if (status.durationMillis) {
-      const duration = status.durationMillis / 1000;
-      setVideoDuration(duration);
-      if (trimEnd > duration) setTrimEnd(duration);
-    }
-    
-    if (status.positionMillis) {
-      const position = status.positionMillis / 1000;
+  useEffect(() => {
+    const sub = player.addListener("timeUpdate", () => {
+      const position = player.currentTime;
       setCurrentPosition(position);
+      setIsPlaying(player.playing);
+      
+      if (player.duration) {
+        const duration = player.duration;
+        setVideoDuration(duration);
+        if (trimEnd > duration) setTrimEnd(duration);
+      }
       
       // Loop within trim bounds
-      if (position >= trimEnd && status.isPlaying) {
-        videoRef.current?.setPositionAsync(trimStart * 1000);
+      if (position >= trimEnd && player.playing) {
+        player.currentTime = trimStart;
       }
-    }
-    
-    setIsPlaying(status.isPlaying || false);
-  }, [trimStart, trimEnd]);
+    });
+    return () => sub.remove();
+  }, [player, trimStart, trimEnd]);
+
+  useEffect(() => {
+    setCurrentPosition(player.currentTime);
+  }, [player]);
 
   // Seek to position
   const seekToPosition = async (position: number) => {
-    if (videoRef.current) {
-      await videoRef.current.setPositionAsync(position * 1000);
-    }
+    player.currentTime = position;
   };
 
   // Toggle play/pause
   const togglePlayPause = async () => {
-    if (!videoRef.current) return;
-    
     if (isPlaying) {
-      await videoRef.current.pauseAsync();
+      player.pause();
     } else {
       // Start from trim start if at the end
       if (currentPosition >= trimEnd || currentPosition < trimStart) {
-        await videoRef.current.setPositionAsync(trimStart * 1000);
+        player.currentTime = trimStart;
       }
-      await videoRef.current.playAsync();
+      player.play();
     }
   };
 
@@ -447,8 +429,94 @@ export default function MediaEditor() {
     
     setTextOverlays([...textOverlays, newOverlay]);
     setNewText("");
-    setSelectedTextId(newOverlay.id);
+    setSelectedTextId(null);
+    setActiveTab("none");
+    Keyboard.dismiss();
   };
+
+  // Tap-to-type: create text overlay at tap position
+  const handleCanvasTap = useCallback((event: any) => {
+    const { locationX, locationY } = event.nativeEvent;
+    
+    // Check if tapping on an existing text overlay
+    const tappedOverlay = textOverlays.find(overlay => {
+      const dx = locationX - overlay.x;
+      const dy = locationY - overlay.y;
+      return Math.abs(dx) < 100 && Math.abs(dy) < 40;
+    });
+    
+    if (tappedOverlay) {
+      // Tap on existing text → select it for editing
+      setSelectedTextId(tappedOverlay.id);
+      setNewText(tappedOverlay.text);
+      setActiveTab("text");
+      setTimeout(() => textInputRef.current?.focus(), 100);
+      return;
+    }
+    
+    // If text is already selected, tapping empty area → deselect
+    if (selectedTextId) {
+      setSelectedTextId(null);
+      setActiveTab("none");
+      return;
+    }
+    
+    // No text selected, tapping empty area → create new text
+    const newOverlay: TextOverlay = {
+      id: `text_${Date.now()}`,
+      text: "",
+      x: Math.max(10, Math.min(locationX - 50, CANVAS_WIDTH - 110)),
+      y: Math.max(10, Math.min(locationY - 20, CANVAS_HEIGHT - 40)),
+      color: selectedColor,
+      fontSize: fontSize,
+      fontId: selectedFont,
+      rotation: 0,
+      backgroundId: selectedBackground,
+      scale: 1,
+    };
+    
+    setTextOverlays(prev => [...prev, newOverlay]);
+    setSelectedTextId(newOverlay.id);
+    setActiveTab("text");
+    
+    // Auto-focus the text input after a short delay
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
+  }, [textOverlays, selectedTextId, selectedColor, fontSize, selectedFont, selectedBackground]);
+
+  // Swipe filter: cycle through filters on horizontal swipe
+  const swipeStartX = useRef(0);
+  const handleSwipeStart = useCallback((event: any) => {
+    swipeStartX.current = event.nativeEvent.locationX;
+  }, []);
+
+  const handleSwipeEnd = useCallback((event: any) => {
+    const endX = event.nativeEvent.locationX;
+    const diffX = endX - swipeStartX.current;
+    const threshold = 50; // minimum swipe distance
+
+    if (Math.abs(diffX) < threshold) return;
+
+    const currentIndex = FILTERS.findIndex(f => f.id === selectedFilter);
+    let newIndex: number;
+
+    if (diffX > 0) {
+      // Swipe right → previous filter
+      newIndex = currentIndex > 0 ? currentIndex - 1 : FILTERS.length - 1;
+    } else {
+      // Swipe left → next filter
+      newIndex = currentIndex < FILTERS.length - 1 ? currentIndex + 1 : 0;
+    }
+
+    setSelectedFilter(FILTERS[newIndex].id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Show filter name overlay briefly
+    setShowFilterName(true);
+    if (filterNameTimeout.current) clearTimeout(filterNameTimeout.current);
+    filterNameTimeout.current = setTimeout(() => setShowFilterName(false), 1200);
+  }, [selectedFilter]);
 
   // Add new sticker
   const addSticker = (sticker: Sticker) => {
@@ -583,9 +651,19 @@ export default function MediaEditor() {
           }
         }
       } else {
+        // Capture canvas with overlays if any exist, otherwise use raw file
+        let uploadUri = decodedUri;
+        const hasOverlays = textOverlays.length > 0 || stickers.length > 0 || drawingStrokes.length > 0 || selectedFilter !== "none";
+        if (hasOverlays && viewShotRef.current?.capture) {
+          try {
+            uploadUri = await viewShotRef.current.capture();
+          } catch (e) {
+            console.warn("ViewShot capture failed, using raw file:", e);
+          }
+        }
         setShowUploadProgress(true);
         setUploadProgress({ phase: "uploading", progress: 0 });
-        const imageUrl = await uploadMedia(sessionToken, decodedUri, "image", (progress) => {
+        const imageUrl = await uploadMedia(sessionToken, uploadUri, "image", (progress) => {
           setUploadProgress(progress);
         });
         setShowUploadProgress(false);
@@ -648,8 +726,8 @@ export default function MediaEditor() {
         }
 
         const storyDuration = type === "video" ? (trimEnd - trimStart) : undefined;
-        if (storyDuration !== undefined && storyDuration > 60) {
-          Alert.alert(t("common.error"), t("stories.maxDurationError") || "Story videos must be 60 seconds or less");
+        if (storyDuration !== undefined && storyDuration > 180) {
+          Alert.alert(t("common.error"), t("cityAd.maxDuration") || "City Ads must be under 3 minutes");
           setPublishing(false);
           return;
         }
@@ -668,9 +746,26 @@ export default function MediaEditor() {
         const storyId = storyResp.story_id;
 
         try {
+          // Pre-process video with FFmpeg if trim or filter is active
+          let processedUri = decodedUri;
+          const needsProcessing = (trimEnd - trimStart) < videoDuration || selectedFilter !== "none" || textOverlays.length > 0 || stickers.length > 0;
+          if (needsProcessing) {
+            setShowUploadProgress(true);
+            setUploadProgress({ phase: "processing", progress: 0 });
+            processedUri = await processVideo(
+              sessionToken, decodedUri, trimStart, trimEnd,
+              selectedFilter !== "none" ? selectedFilter : undefined,
+              textOverlays.length > 0 ? textOverlays.map(o => ({
+                text: o.text, x: o.x / CANVAS_WIDTH, y: o.y / CANVAS_HEIGHT,
+                color: o.color.includes("#") ? o.color.replace("#", "") : o.color,
+                fontSize: o.fontSize, rotation: o.rotation,
+              })) : undefined
+            );
+          }
+
           setShowUploadProgress(true);
           setUploadProgress({ phase: "preparing", progress: 0 });
-          const muxResult = await uploadVideoMux(sessionToken, decodedUri, `story:${storyId}`, (progress) => {
+          const muxResult = await uploadVideoMux(sessionToken, processedUri, `story:${storyId}`, (progress) => {
             setUploadProgress(progress);
           });
           setShowUploadProgress(false);
@@ -693,9 +788,19 @@ export default function MediaEditor() {
       } else {
         let mediaUrl: string | undefined;
         try {
+          // Capture canvas with overlays if any exist, otherwise use raw file
+          let uploadUri = decodedUri;
+          const hasOverlays = textOverlays.length > 0 || stickers.length > 0 || drawingStrokes.length > 0 || selectedFilter !== "none";
+          if (hasOverlays && viewShotRef.current?.capture) {
+            try {
+              uploadUri = await viewShotRef.current.capture();
+            } catch (e) {
+              console.warn("ViewShot capture failed, using raw file:", e);
+            }
+          }
           setShowUploadProgress(true);
           setUploadProgress({ phase: "uploading", progress: 0 });
-          mediaUrl = await uploadMedia(sessionToken, decodedUri, "image", (progress) => {
+          mediaUrl = await uploadMedia(sessionToken, uploadUri, "image", (progress) => {
             setUploadProgress(progress);
           });
           setShowUploadProgress(false);
@@ -1057,7 +1162,7 @@ export default function MediaEditor() {
             
             {/* Rotation indicator */}
             <View style={styles.rotationHandle}>
-              <Ionicons name="refresh" size={14} color="#fff" />
+              <Ionicons name="refresh" size={14} color={COLORS.background} />
             </View>
             <View style={styles.rotationLine} />
           </>
@@ -1097,7 +1202,7 @@ export default function MediaEditor() {
             onPress={() => deleteTextOverlay(overlay.id)}
           >
             <View style={styles.deleteButtonInner}>
-              <Ionicons name="close" size={14} color="#fff" />
+              <Ionicons name="close" size={14} color={COLORS.background} />
             </View>
           </Pressable>
         )}
@@ -1208,7 +1313,7 @@ export default function MediaEditor() {
           <>
             <Pressable style={styles.deleteStickerBtn} onPress={onDelete}>
               <View style={styles.deleteButtonInner}>
-                <Ionicons name="close" size={12} color="#fff" />
+                <Ionicons name="close" size={12} color={COLORS.background} />
               </View>
             </Pressable>
           </>
@@ -1233,38 +1338,47 @@ export default function MediaEditor() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Header - outside KeyboardAvoidingView so it stays fixed */}
+      <View style={styles.header}>
+        <Pressable onPress={() => {
+          if (activeTab !== "none") {
+            setActiveTab("none");
+          } else {
+            router.back();
+          }
+        }} style={styles.headerButton}>
+          <Ionicons name="close" size={28} color={COLORS.background} />
+        </Pressable>
+        <Text style={styles.headerTitle}>
+          {t("editor.title") || "Edit"}
+        </Text>
+        <View style={styles.headerRight}>
+          <Pressable onPress={() => setPreviewMode(!previewMode)} style={styles.headerButton}>
+            <Ionicons name={previewMode ? "eye" : "eye-outline"} size={24} color={COLORS.background} />
+          </Pressable>
+          <Pressable onPress={handleDone} style={styles.doneButton}>
+            <Text style={styles.doneButtonText}>{t("common.save") || "Done"}</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Canvas - wrapped in KeyboardAvoidingView so it shrinks when keyboard opens */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoid}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.headerButton}>
-            <Ionicons name="close" size={28} color="#fff" />
-          </Pressable>
-          <Text style={styles.headerTitle}>
-            {t("editor.title") || "Edit"}
-          </Text>
-          <Pressable onPress={handleDone} style={styles.doneButton}>
-            <Text style={styles.doneButtonText}>{t("common.save") || "Done"}</Text>
-          </Pressable>
-        </View>
 
       {/* Canvas */}
       <View style={styles.canvasContainer}>
-        <View style={styles.canvas}>
+        <ViewShot ref={viewShotRef} options={{ format: "jpg", quality: 0.9 }} style={styles.canvas}>
           {/* Media */}
           {type === "video" ? (
-            <Video
-              ref={videoRef}
-              source={{ uri: decodeURIComponent(uri || "") }}
+            <VideoView
+              player={player}
               style={styles.media}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay={true}
-              isLooping={true}
-              isMuted={false}
-              onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+              contentFit="cover"
+              nativeControls={false}
             />
           ) : (
             <Image
@@ -1276,6 +1390,15 @@ export default function MediaEditor() {
 
           {/* Filter Overlay */}
           {getFilterOverlay()}
+
+          {/* Filter Name Overlay */}
+          {showFilterName && (
+            <View style={styles.filterNameOverlay}>
+              <Text style={styles.filterNameText}>
+                {FILTERS.find(f => f.id === selectedFilter)?.name || "Normal"}
+              </Text>
+            </View>
+          )}
 
           {/* Alignment Guides */}
           {showGuides.vertical !== undefined && (
@@ -1313,329 +1436,131 @@ export default function MediaEditor() {
           {type === "video" && !isPlaying && (
             <Pressable style={styles.playButtonOverlay} onPress={togglePlayPause}>
               <View style={styles.playButton}>
-                <Ionicons name="play" size={40} color="#fff" />
+                <Ionicons name="play" size={40} color={COLORS.background} />
               </View>
             </Pressable>
           )}
-        </View>
+
+          {/* Transparent tap/swipe overlay - only fires when no child consumes the touch */}
+          {!previewMode && (
+            <View
+              style={StyleSheet.absoluteFillObject}
+              pointerEvents="box-none"
+              onStartShouldSetResponder={() => true}
+              onResponderGrant={(e) => { swipeStartX.current = e.nativeEvent.locationX; }}
+              onResponderRelease={(e) => {
+                const { locationX, locationY } = e.nativeEvent;
+                const diffX = locationX - swipeStartX.current;
+                if (Math.abs(diffX) > 50) {
+                  handleSwipeEnd({ nativeEvent: { locationX } });
+                } else {
+                  handleCanvasTap({ nativeEvent: { locationX, locationY } });
+                }
+              }}
+            />
+          )}
+        </ViewShot>
       </View>
+      </KeyboardAvoidingView>
 
-      {/* Bottom Tools */}
-      <View style={styles.toolsContainer}>
-        {/* Tool Tabs */}
-        <View style={styles.toolTabs}>
-          <Pressable
-            style={[styles.toolTab, activeTab === "text" && styles.toolTabActive]}
-            onPress={() => setActiveTab(activeTab === "text" ? "none" : "text")}
-          >
-            <Ionicons name="text" size={24} color={activeTab === "text" ? "#000000" : "#fff"} />
-            <Text style={[styles.toolTabText, activeTab === "text" && styles.toolTabTextActive]}>
-              {t("editor.text") || "Text"}
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.toolTab, activeTab === "filter" && styles.toolTabActive]}
-            onPress={() => setActiveTab(activeTab === "filter" ? "none" : "filter")}
-          >
-            <Ionicons name="color-filter" size={24} color={activeTab === "filter" ? "#000000" : "#fff"} />
-            <Text style={[styles.toolTabText, activeTab === "filter" && styles.toolTabTextActive]}>
-              {t("editor.filter") || "Filter"}
-            </Text>
-          </Pressable>
-          {type === "video" && (
-            <Pressable
-              style={[styles.toolTab, activeTab === "trim" && styles.toolTabActive]}
-              onPress={() => setActiveTab(activeTab === "trim" ? "none" : "trim")}
-            >
-              <Ionicons name="cut" size={24} color={activeTab === "trim" ? "#000000" : "#fff"} />
-              <Text style={[styles.toolTabText, activeTab === "trim" && styles.toolTabTextActive]}>
-                {t("editor.trim") || "Trim"}
-              </Text>
-            </Pressable>
-          )}
-          {/* Music Tab */}
-          <Pressable
-            style={[styles.toolTab, activeTab === "music" && styles.toolTabActive]}
-            onPress={() => setActiveTab(activeTab === "music" ? "none" : "music")}
-          >
-            <Ionicons name="musical-notes" size={24} color={activeTab === "music" ? "#000000" : "#fff"} />
-            <Text style={[styles.toolTabText, activeTab === "music" && styles.toolTabTextActive]}>
-              {t("editor.music") || "Music"}
-            </Text>
-          </Pressable>
-          {/* Sticker Tab */}
-          <Pressable
-            style={[styles.toolTab, activeTab === "sticker" && styles.toolTabActive]}
-            onPress={() => setActiveTab(activeTab === "sticker" ? "none" : "sticker")}
-          >
-            <Ionicons name="happy-outline" size={24} color={activeTab === "sticker" ? "#000000" : "#fff"} />
-            <Text style={[styles.toolTabText, activeTab === "sticker" && styles.toolTabTextActive]}>
-              {t("editor.stickers") || "Stickers"}
-            </Text>
-          </Pressable>
-          {/* Draw Tab */}
-          <Pressable
-            style={[styles.toolTab, activeTab === "draw" && styles.toolTabActive]}
-            onPress={() => setActiveTab(activeTab === "draw" ? "none" : "draw")}
-          >
-            <Ionicons name="pencil" size={24} color={activeTab === "draw" ? "#000000" : "#fff"} />
-            <Text style={[styles.toolTabText, activeTab === "draw" && styles.toolTabTextActive]}>
-              {t("editor.draw") || "Draw"}
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Text Tool Panel */}
+      {/* Tool Panel - only when a tab is active, above the tab bar */}
+      {!previewMode && activeTab !== "none" && (
+      <View style={styles.toolPanelContainer}>
+        {/* Text Tool Panel - Compact with sub-tabs */}
         {activeTab === "text" && (
-          <View style={styles.toolPanel}>
-            {/* Instructions */}
-            <View style={styles.textInstructions}>
-              <Ionicons name="finger-print-outline" size={16} color="#000000" />
-              <Text style={styles.textInstructionsText}>
-                {t("editor.dragToPosition") || "Add text, then drag to position it on the image"}
-              </Text>
-            </View>
-            
-            {/* Text Preview (if text is entered) */}
-            {newText.length > 0 && (
-              <View style={styles.textPreviewBox}>
-                <Text style={styles.textPreviewLabel}>{t("editor.preview") || "Preview"}:</Text>
-                <Text style={[
-                  styles.textPreviewText,
-                  { 
-                    color: selectedColor,
-                    fontSize: Math.min(fontSize, 24),
-                    fontWeight: FONTS.find(f => f.id === selectedFont)?.fontWeight,
-                    fontStyle: FONTS.find(f => f.id === selectedFont)?.fontStyle,
-                  }
-                ]}>
-                  {newText}
-                </Text>
-              </View>
-            )}
-            
-            {/* Text Input */}
+          <ScrollView style={styles.toolPanel} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            {/* Text Input with inline Add */}
             <View style={styles.textInputRow}>
               <TextInput
+                ref={textInputRef}
                 style={styles.textInput}
                 placeholder={t("editor.enterText") || "Enter text..."}
-                placeholderTextColor="#999"
+                placeholderTextColor={COLORS.textMuted}
                 value={newText}
                 onChangeText={setNewText}
                 onSubmitEditing={addTextOverlay}
               />
-              <Pressable style={styles.addTextButton} onPress={addTextOverlay}>
-                <Ionicons name="add-circle" size={32} color="#000000" />
+              <Pressable style={[styles.sizeButton, { backgroundColor: COLORS.primaryDark }]} onPress={addTextOverlay}>
+                <Ionicons name="add" size={20} color={COLORS.background} />
               </Pressable>
             </View>
 
-            {/* Color Picker */}
-            <Text style={styles.toolLabel}>{t("editor.color") || "Color"}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.colorRow}>
-              {TEXT_COLORS.map(color => (
+            {/* Sub-tabs: Style | Font | Bg */}
+            <View style={{ flexDirection: "row", gap: 6, marginVertical: 6, paddingHorizontal: 4 }}>
+              {[{ key: "style" as const, label: t("editor.color") || "Style" },
+                { key: "font" as const, label: t("editor.font") || "Font" },
+                { key: "bg" as const, label: t("editor.background") || "Bg" }].map(subtab => (
                 <Pressable
-                  key={color}
-                  style={[
-                    styles.colorButton,
-                    { backgroundColor: color },
-                    selectedColor === color && styles.colorButtonSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedColor(color);
-                    updateSelectedText({ color });
-                  }}
-                />
-              ))}
-            </ScrollView>
-
-            {/* Font Picker */}
-            <Text style={styles.toolLabel}>{t("editor.font") || "Font"}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fontRow}>
-              {FONTS.map(font => (
-                <Pressable
-                  key={font.id}
-                  style={[
-                    styles.fontButton,
-                    selectedFont === font.id && styles.fontButtonSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedFont(font.id);
-                    updateSelectedText({ fontId: font.id });
-                  }}
+                  key={subtab.key}
+                  style={[styles.fontButton, textSubTab === subtab.key && { backgroundColor: COLORS.background }]}
+                  onPress={() => setTextSubTab(subtab.key)}
                 >
-                  <Text
-                    style={[
-                      styles.fontButtonText,
-                      { fontWeight: font.fontWeight, fontStyle: font.fontStyle },
-                      selectedFont === font.id && styles.fontButtonTextSelected,
-                    ]}
-                  >
-                    {font.name}
+                  <Text style={[styles.fontButtonText, textSubTab === subtab.key && { color: COLORS.primaryDark, fontWeight: "600" }]}>
+                    {subtab.label}
                   </Text>
                 </Pressable>
               ))}
-            </ScrollView>
-
-            {/* Font Size */}
-            <Text style={styles.toolLabel}>{t("editor.size") || "Size"}: {fontSize}</Text>
-            <View style={styles.sizeRow}>
-              <Pressable
-                style={styles.sizeButton}
-                onPress={() => {
-                  const newSize = Math.max(12, fontSize - 4);
-                  setFontSize(newSize);
-                  updateSelectedText({ fontSize: newSize });
-                }}
-              >
-                <Ionicons name="remove" size={24} color="#fff" />
-              </Pressable>
-              <View style={styles.sizePreview}>
-                <Text style={[styles.sizePreviewText, { fontSize: Math.min(fontSize, 32) }]}>Aa</Text>
-              </View>
-              <Pressable
-                style={styles.sizeButton}
-                onPress={() => {
-                  const newSize = Math.min(72, fontSize + 4);
-                  setFontSize(newSize);
-                  updateSelectedText({ fontSize: newSize });
-                }}
-              >
-                <Ionicons name="add" size={24} color="#fff" />
-              </Pressable>
             </View>
 
-            {/* Text Background Style */}
-            <Text style={styles.toolLabel}>{t("editor.textStyle") || "Text Style"}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.backgroundRow}>
-              {TEXT_BACKGROUNDS.map(bg => (
-                <Pressable
-                  key={bg.id}
-                  style={[
-                    styles.backgroundButton,
-                    selectedBackground === bg.id && styles.backgroundButtonSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedBackground(bg.id);
-                    updateSelectedText({ backgroundId: bg.id });
-                  }}
-                >
-                  <Text style={[styles.backgroundButtonText, bg.style]}>
-                    {bg.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            {/* Precision Controls - Only show when text is selected */}
-            {selectedTextId && (
+            {/* Style: Color + Size */}
+            {textSubTab === "style" && (
               <>
-                {/* Quick Actions Row */}
-                <View style={styles.quickActionsRow}>
-                  <Pressable 
-                    style={styles.quickActionButton}
-                    onPress={() => {
-                      const current = textOverlays.find(o => o.id === selectedTextId);
-                      if (current) updateSelectedText({ rotation: current.rotation - 45 });
-                    }}
-                  >
-                    <Ionicons name="arrow-undo" size={18} color="#fff" />
-                    <Text style={styles.quickActionText}>Rotate -45°</Text>
-                  </Pressable>
-                  <Pressable 
-                    style={styles.quickActionButton}
-                    onPress={() => {
-                      const current = textOverlays.find(o => o.id === selectedTextId);
-                      if (current) updateSelectedText({ rotation: current.rotation + 45 });
-                    }}
-                  >
-                    <Ionicons name="arrow-redo" size={18} color="#fff" />
-                    <Text style={styles.quickActionText}>Rotate +45°</Text>
-                  </Pressable>
-                  <Pressable 
-                    style={[styles.quickActionButton, styles.resetActionButton]}
-                    onPress={() => updateSelectedText({ rotation: 0, scale: 1 })}
-                  >
-                    <Ionicons name="refresh" size={18} color="#FF9500" />
-                    <Text style={[styles.quickActionText, { color: '#FF9500' }]}>Reset</Text>
-                  </Pressable>
+                <Text style={styles.toolLabel}>{t("editor.color") || "Color"}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.colorRow}>
+                  {TEXT_COLORS.map(color => (
+                    <Pressable
+                      key={color}
+                      style={[styles.colorButton, { backgroundColor: color }, selectedColor === color && styles.colorButtonSelected]}
+                      onPress={() => { setSelectedColor(color); updateSelectedText({ color }); }}
+                    />
+                  ))}
+                </ScrollView>
+                <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+                  {[16, 24, 36].map(s => (
+                    <Pressable
+                      key={s}
+                      style={[styles.fontButton, fontSize === s && { backgroundColor: COLORS.background }]}
+                      onPress={() => { setFontSize(s); updateSelectedText({ fontSize: s }); }}
+                    >
+                      <Text style={[styles.fontButtonText, { fontSize: s === 16 ? 10 : s === 24 ? 14 : 18, color: fontSize === s ? COLORS.primaryDark : COLORS.textMuted }]}>A</Text>
+                    </Pressable>
+                  ))}
                 </View>
-
-                {/* Fine-tune Rotation */}
-                <View style={styles.sliderControl}>
-                  <View style={styles.sliderHeader}>
-                    <Text style={styles.sliderLabel}>Rotation</Text>
-                    <Text style={styles.sliderValue}>
-                      {Math.round(textOverlays.find(o => o.id === selectedTextId)?.rotation || 0)}°
-                    </Text>
-                  </View>
-                  <View style={styles.stepperRow}>
-                    <Pressable 
-                      style={styles.stepperButton}
-                      onPress={() => {
-                        const current = textOverlays.find(o => o.id === selectedTextId)?.rotation || 0;
-                        updateSelectedText({ rotation: Math.max(-180, current - 15) });
-                      }}
-                    >
-                      <Ionicons name="remove" size={20} color="#fff" />
-                    </Pressable>
-                    <View style={styles.stepperDisplay}>
-                      <Text style={styles.stepperValue}>
-                        {Math.round(textOverlays.find(o => o.id === selectedTextId)?.rotation || 0)}°
-                      </Text>
-                    </View>
-                    <Pressable 
-                      style={styles.stepperButton}
-                      onPress={() => {
-                        const current = textOverlays.find(o => o.id === selectedTextId)?.rotation || 0;
-                        updateSelectedText({ rotation: Math.min(180, current + 15) });
-                      }}
-                    >
-                      <Ionicons name="add" size={20} color="#fff" />
-                    </Pressable>
-                  </View>
-                </View>
-
-                {/* Fine-tune Size */}
-                <View style={styles.sliderControl}>
-                  <View style={styles.sliderHeader}>
-                    <Text style={styles.sliderLabel}>Size</Text>
-                    <Text style={styles.sliderValue}>
-                      {Math.round((textOverlays.find(o => o.id === selectedTextId)?.scale || 1) * 100)}%
-                    </Text>
-                  </View>
-                  <View style={styles.stepperRow}>
-                    <Pressable 
-                      style={styles.stepperButton}
-                      onPress={() => {
-                        const current = textOverlays.find(o => o.id === selectedTextId)?.scale || 1;
-                        updateSelectedText({ scale: Math.max(0.3, current - 0.2) });
-                      }}
-                    >
-                      <Ionicons name="remove" size={20} color="#fff" />
-                    </Pressable>
-                    <View style={styles.stepperDisplay}>
-                      <Text style={styles.stepperValue}>
-                        {Math.round((textOverlays.find(o => o.id === selectedTextId)?.scale || 1) * 100)}%
-                      </Text>
-                    </View>
-                    <Pressable 
-                      style={styles.stepperButton}
-                      onPress={() => {
-                        const current = textOverlays.find(o => o.id === selectedTextId)?.scale || 1;
-                        updateSelectedText({ scale: Math.min(3, current + 0.2) });
-                      }}
-                    >
-                      <Ionicons name="add" size={20} color="#fff" />
-                    </Pressable>
-                  </View>
-                </View>
-
-                <Text style={styles.tipText}>
-                  💡 Drag text to move • Pinch with two fingers to resize • Two-finger rotate gesture
-                </Text>
               </>
             )}
-          </View>
+
+            {/* Font options */}
+            {textSubTab === "font" && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {FONTS.filter(f => f.id === "default" || f.id === "mono" || f.id === "serif").map(font => (
+                  <Pressable
+                    key={font.id}
+                    style={[styles.fontButton, selectedFont === font.id && styles.fontButtonSelected]}
+                    onPress={() => { setSelectedFont(font.id); updateSelectedText({ fontId: font.id }); }}
+                  >
+                    <Text style={[styles.fontButtonText, { fontWeight: font.fontWeight as any }]}>
+                      {font.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+
+            {/* Background styles */}
+            {textSubTab === "bg" && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {TEXT_BACKGROUNDS.slice(0, 8).map((bg: any) => (
+                  <Pressable
+                    key={bg.id}
+                    style={[styles.fontButton, selectedBackground === bg.id && styles.fontButtonSelected]}
+                    onPress={() => { setSelectedBackground(bg.id); updateSelectedText({ backgroundId: bg.id }); }}
+                  >
+                    <Text style={[styles.fontButtonText, bg.style]}>{bg.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </ScrollView>
         )}
 
         {/* Filter Tool Panel */}
@@ -1748,21 +1673,21 @@ export default function MediaEditor() {
                       style={styles.trimControlBtn}
                       onPress={() => setTrimStart(Math.max(0, trimStart - 1))}
                     >
-                      <Ionicons name="remove" size={20} color="#fff" />
+                      <Ionicons name="remove" size={20} color={COLORS.background} />
                     </Pressable>
                     <Text style={styles.trimControlValue}>{formatTime(trimStart)}</Text>
                     <Pressable
                       style={styles.trimControlBtn}
                       onPress={() => setTrimStart(Math.min(trimEnd - 1, trimStart + 1))}
                     >
-                      <Ionicons name="add" size={20} color="#fff" />
+                      <Ionicons name="add" size={20} color={COLORS.background} />
                     </Pressable>
                   </View>
                 </View>
 
                 {/* Play/Pause Button */}
                 <Pressable style={styles.playPauseButton} onPress={togglePlayPause}>
-                  <Ionicons name={isPlaying ? "pause" : "play"} size={28} color="#fff" />
+                  <Ionicons name={isPlaying ? "pause" : "play"} size={28} color={COLORS.background} />
                 </Pressable>
 
                 <View style={styles.trimControl}>
@@ -1772,14 +1697,14 @@ export default function MediaEditor() {
                       style={styles.trimControlBtn}
                       onPress={() => setTrimEnd(Math.max(trimStart + 1, trimEnd - 1))}
                     >
-                      <Ionicons name="remove" size={20} color="#fff" />
+                      <Ionicons name="remove" size={20} color={COLORS.background} />
                     </Pressable>
                     <Text style={styles.trimControlValue}>{formatTime(trimEnd)}</Text>
                     <Pressable
                       style={styles.trimControlBtn}
                       onPress={() => setTrimEnd(Math.min(videoDuration, trimEnd + 1))}
                     >
-                      <Ionicons name="add" size={20} color="#fff" />
+                      <Ionicons name="add" size={20} color={COLORS.background} />
                     </Pressable>
                   </View>
                 </View>
@@ -1869,14 +1794,14 @@ export default function MediaEditor() {
                     style={styles.volumeBtn}
                     onPress={() => setMusicVolume(Math.max(0, musicVolume - 0.1))}
                   >
-                    <Ionicons name="remove" size={16} color="#fff" />
+                    <Ionicons name="remove" size={16} color={COLORS.background} />
                   </Pressable>
                   <Text style={styles.volumeText}>{Math.round(musicVolume * 100)}%</Text>
                   <Pressable 
                     style={styles.volumeBtn}
                     onPress={() => setMusicVolume(Math.min(1, musicVolume + 0.1))}
                   >
-                    <Ionicons name="add" size={16} color="#fff" />
+                    <Ionicons name="add" size={16} color={COLORS.background} />
                   </Pressable>
                 </View>
               </View>
@@ -2001,7 +1926,7 @@ export default function MediaEditor() {
                 <TextInput
                   style={styles.stickerInput}
                   placeholder={t("editor.searchLocation") || "Search location..."}
-                  placeholderTextColor="#999"
+                  placeholderTextColor={COLORS.textMuted}
                   value={locationQuery}
                   onChangeText={setLocationQuery}
                 />
@@ -2034,7 +1959,7 @@ export default function MediaEditor() {
                 <TextInput
                   style={styles.stickerInput}
                   placeholder={t("editor.searchUser") || "Search @username..."}
-                  placeholderTextColor="#999"
+                  placeholderTextColor={COLORS.textMuted}
                   value={mentionQuery}
                   onChangeText={setMentionQuery}
                   autoCapitalize="none"
@@ -2068,7 +1993,7 @@ export default function MediaEditor() {
                 <TextInput
                   style={styles.stickerInput}
                   placeholder={t("editor.searchHashtag") || "Search #hashtag..."}
-                  placeholderTextColor="#999"
+                  placeholderTextColor={COLORS.textMuted}
                   value={hashtagQuery}
                   onChangeText={setHashtagQuery}
                   autoCapitalize="none"
@@ -2102,7 +2027,7 @@ export default function MediaEditor() {
                 <TextInput
                   style={styles.stickerInput}
                   placeholder={t("editor.pollQuestion") || "Ask a question..."}
-                  placeholderTextColor="#999"
+                  placeholderTextColor={COLORS.textMuted}
                   value={pollQuestion}
                   onChangeText={setPollQuestion}
                 />
@@ -2111,7 +2036,7 @@ export default function MediaEditor() {
                     <TextInput
                       style={[styles.stickerInput, styles.pollOptionInput]}
                       placeholder={`Option ${idx + 1}`}
-                      placeholderTextColor="#999"
+                      placeholderTextColor={COLORS.textMuted}
                       value={option}
                       onChangeText={(text) => {
                         const newOptions = [...pollOptions];
@@ -2265,7 +2190,7 @@ export default function MediaEditor() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
                 >
-                  <Ionicons name="arrow-undo" size={24} color="#fff" />
+                  <Ionicons name="arrow-undo" size={24} color={COLORS.background} />
                   <Text style={styles.drawingToolText}>Undo</Text>
                 </Pressable>
               )}
@@ -2328,6 +2253,38 @@ export default function MediaEditor() {
           </View>
         )}
       </View>
+      )}
+
+      {/* Tab Bar - Always at the bottom, scrollable */}
+      {!previewMode && (
+      <View style={[styles.tabBarContainer, { paddingBottom: insets.bottom || 4 }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolTabs}>
+          {[
+            { key: "text", icon: "text", label: t("editor.text") || "Text", always: true },
+            { key: "filter", icon: "color-filter", label: t("editor.filter") || "Filter", always: true },
+            { key: "trim", icon: "cut", label: t("editor.trim") || "Trim", always: type === "video" },
+            { key: "music", icon: "musical-notes", label: t("editor.music") || "Music", always: true },
+            { key: "sticker", icon: "happy-outline", label: t("editor.stickers") || "Sticker", always: true },
+            { key: "draw", icon: "pencil", label: t("editor.draw") || "Draw", always: true },
+          ].filter((t: any) => t.always).map((tab: any) => (
+            <Pressable
+              key={tab.key}
+              style={[styles.toolTab, activeTab === tab.key && styles.toolTabActive]}
+              onPress={() => setActiveTab(activeTab === tab.key ? "none" : tab.key)}
+            >
+              <Ionicons
+                name={tab.icon}
+                size={20}
+                color={activeTab === tab.key ? COLORS.background : COLORS.textMuted}
+              />
+              <Text style={[styles.toolTabText, activeTab === tab.key && styles.toolTabTextActive]}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+      )}
 
       {/* Publish Options Modal */}
       <Modal
@@ -2354,7 +2311,7 @@ export default function MediaEditor() {
 
             {/* Publish as Post Button */}
             <Pressable style={styles.publishButton} onPress={publishAsPost}>
-              <Ionicons name="grid-outline" size={24} color="#fff" />
+              <Ionicons name="grid-outline" size={24} color={COLORS.background} />
               <View style={styles.publishButtonTextContainer}>
                 <Text style={styles.publishButtonTitle}>{t("editor.publishPost") || "Publish as Post"}</Text>
                 <Text style={styles.publishButtonSubtitle}>{t("editor.postStays") || "Stays on your profile"}</Text>
@@ -2362,15 +2319,17 @@ export default function MediaEditor() {
               <Ionicons name="chevron-forward" size={20} color="#666" />
             </Pressable>
 
-            {/* Publish as Story Button */}
-            <Pressable style={[styles.publishButton, { backgroundColor: "#7c3aed" }]} onPress={publishAsStory}>
-              <Ionicons name="play-circle-outline" size={24} color="#fff" />
+            {/* Publish as City Ad Button - Business only */}
+            {activeIdentity?.type === "business" && (
+            <Pressable style={[styles.publishButton, { backgroundColor: COLORS.activityAccent }]} onPress={publishAsStory}>
+              <Ionicons name="play-circle-outline" size={24} color={COLORS.background} />
               <View style={styles.publishButtonTextContainer}>
-                <Text style={styles.publishButtonTitle}>{t("editor.publishStory") || "Publish as Story"}</Text>
+                <Text style={styles.publishButtonTitle}>{t("cityAd.createAd") || "Publish as City Ad"}</Text>
                 <Text style={styles.publishButtonSubtitle}>{t("editor.story24h") || "Visible for 24 hours"}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#666" />
             </Pressable>
+            )}
 
             <Pressable style={styles.cancelButton} onPress={() => setShowPublishOptions(false)}>
               <Text style={styles.cancelButtonText}>{t("common.cancel")}</Text>
@@ -2381,7 +2340,6 @@ export default function MediaEditor() {
 
       {/* Upload Progress */}
       <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={type === "video" ? "video" : "photo"} mode="blocking" />
-      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -2389,7 +2347,7 @@ export default function MediaEditor() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: COLORS.primaryDark,
   },
   keyboardAvoid: {
     flex: 1,
@@ -2406,8 +2364,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
     color: "#fff",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   doneButton: {
     backgroundColor: "#000000",
@@ -2418,7 +2381,7 @@ const styles = StyleSheet.create({
   doneButtonText: {
     color: "#fff",
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   canvasContainer: {
     flex: 1,
@@ -2428,7 +2391,7 @@ const styles = StyleSheet.create({
   canvas: {
     width: CANVAS_WIDTH,
     height: CANVAS_HEIGHT,
-    backgroundColor: "#111",
+    backgroundColor: COLORS.primaryLight,
     overflow: "hidden",
   },
   media: {
@@ -2438,6 +2401,24 @@ const styles = StyleSheet.create({
   filterOverlay: {
     ...StyleSheet.absoluteFillObject,
     pointerEvents: "none",
+  },
+  filterNameOverlay: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -60 }, { translateY: -20 }],
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    zIndex: 100,
+    pointerEvents: "none",
+  },
+  filterNameText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: FONT_WEIGHTS.semibold,
+    textAlign: "center",
   },
   draggableText: {
     position: "absolute",
@@ -2483,7 +2464,7 @@ const styles = StyleSheet.create({
   stickerText: {
     color: "#fff",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   pollSticker: {
     minWidth: 150,
@@ -2491,7 +2472,7 @@ const styles = StyleSheet.create({
   pollQuestionText: {
     color: "#fff",
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: FONT_WEIGHTS.bold,
     marginBottom: 8,
   },
   pollOptionItem: {
@@ -2531,7 +2512,7 @@ const styles = StyleSheet.create({
   countdownTime: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   deleteStickerBtn: {
     position: "absolute",
@@ -2581,7 +2562,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   drawingToolTextActive: {
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   drawingLabel: {
     color: "#999",
@@ -2769,7 +2750,7 @@ const styles = StyleSheet.create({
   sliderValue: {
     color: "#fff",
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   sliderRow: {
     flexDirection: "row",
@@ -2810,44 +2791,45 @@ const styles = StyleSheet.create({
   stepperValue: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
   },
-  toolsContainer: {
+  toolPanelContainer: {
     backgroundColor: "rgba(0, 0, 0, 0.9)",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 8,
-    maxHeight: SCREEN_HEIGHT * 0.48,
-  },
-  toolTabs: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.1)",
-  },
-  toolTab: {
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
-  },
-  toolTabActive: {
-    backgroundColor: "rgba(76, 111, 255, 0.2)",
-  },
-  toolTabText: {
-    fontSize: 9,
-    color: "#888",
-    marginTop: 2,
-  },
-  toolTabTextActive: {
-    color: "#000000",
-    fontWeight: "600",
   },
   toolPanel: {
     padding: 8,
-    maxHeight: SCREEN_HEIGHT * 0.36,
+  },
+  tabBarContainer: {
+    backgroundColor: "rgba(0, 0, 0, 0.95)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.08)",
+  },
+  toolTabs: {
+    flexDirection: "row",
+    gap: 2,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  toolTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  toolTabActive: {
+    backgroundColor: COLORS.background,
+  },
+  toolTabText: {
+    fontSize: FONT_SIZES.caption,
+    color: COLORS.textMuted,
+  },
+  toolTabTextActive: {
+    color: COLORS.primaryDark,
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   // Sticker styles
   stickerTypeRow: {
@@ -2876,8 +2858,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   stickerTypeTextActive: {
-    color: "#000000",
-    fontWeight: "600",
+    color: COLORS.primaryDark,
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   stickerContent: {
     padding: 8,
@@ -2904,9 +2886,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
   addStickerBtnText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   addStickerBtnTextDisabled: {
     color: "#999",
@@ -2928,7 +2910,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   addOptionBtnText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 12,
   },
   emojiPickerRow: {
@@ -3020,7 +3002,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   fontButtonTextSelected: {
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   sizeRow: {
     flexDirection: "row",
@@ -3097,8 +3079,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   filterNameSelected: {
-    color: "#000000",
-    fontWeight: "600",
+    color: COLORS.primaryDark,
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   // Music Panel Styles
   musicHeader: {
@@ -3110,7 +3092,7 @@ const styles = StyleSheet.create({
   musicTitle: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   musicControls: {
     flexDirection: "row",
@@ -3213,7 +3195,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   musicTrackNameSelected: {
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   musicTrackArtist: {
     color: "#999",
@@ -3221,7 +3203,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   musicTrackGenre: {
-    color: "#666",
+    color: COLORS.textSecondary,
     fontSize: 10,
     marginTop: 2,
   },
@@ -3258,7 +3240,7 @@ const styles = StyleSheet.create({
   },
   publishOptionsTitle: {
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: FONT_WEIGHTS.bold,
     color: "#fff",
     textAlign: "center",
     marginBottom: 20,
@@ -3287,7 +3269,7 @@ const styles = StyleSheet.create({
   },
   publishButtonTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
     color: "#fff",
   },
   publishButtonSubtitle: {
@@ -3301,9 +3283,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   cancelButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   // Play button overlay styles
   playButtonOverlay: {
@@ -3333,7 +3315,7 @@ const styles = StyleSheet.create({
   trimDurationText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
     fontVariant: ["tabular-nums"],
   },
   trimDurationBadge: {
@@ -3433,7 +3415,7 @@ const styles = StyleSheet.create({
   trimControlValue: {
     color: "#fff",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: FONT_WEIGHTS.semibold,
     marginHorizontal: 12,
     fontVariant: ["tabular-nums"],
     minWidth: 40,
@@ -3479,7 +3461,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textInstructionsText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 12,
     flex: 1,
   },
@@ -3568,7 +3550,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   rotationDisplayText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 14,
     fontWeight: "bold",
   },
@@ -3606,12 +3588,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   scaleDisplayText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 14,
     fontWeight: "bold",
   },
   tipText: {
-    color: "#666",
+    color: COLORS.textSecondary,
     fontSize: 11,
     fontStyle: "italic",
     marginTop: 4,

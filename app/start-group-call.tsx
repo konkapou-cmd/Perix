@@ -317,7 +317,7 @@ export default function StartGroupCallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f5f6fb",
   },
   loadingContainer: {
     flex: 1,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   groupNameInput: {
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderRadius: 12,
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   selectedChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#eff6ff",
+    backgroundColor: "#f3f4f6",
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 10,
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   selectedName: {
     fontSize: 14,
-    color: "#1e40af",
+    color: "#111827",
     fontWeight: "500",
     maxWidth: 80,
   },
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     paddingHorizontal: 12,
     gap: 8,
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f3f4f6",
   },
   friendItemSelected: {
-    backgroundColor: "#f0f9ff",
+    backgroundColor: "#f3f4f6",
     marginHorizontal: -16,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#d1d5db",
+    borderColor: "#e5e7eb",
     justifyContent: "center",
     alignItems: "center",
   },

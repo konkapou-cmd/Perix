@@ -1,6 +1,8 @@
 import { useState } from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -87,6 +89,7 @@ export default function OpeningHoursModal({
   return (
     <Modal visible={visible} animationType="slide">
       <View style={styles.modalContainer}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>{t("business.openingHours")}</Text>
           <Pressable onPress={onClose}>
@@ -157,6 +160,7 @@ export default function OpeningHoursModal({
             <Text style={styles.primaryButtonText}>{t("common.save")}</Text>
           </Pressable>
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

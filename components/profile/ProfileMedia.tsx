@@ -31,6 +31,7 @@ interface ProfileMediaProps {
   cardColor?: string;
   textColor?: string;
   readOnly?: boolean;
+  isUploading?: boolean;
   onAddPhoto?: () => void;
   onAddVideo?: () => void;
   onDeleteItem?: (source: "post" | "gallery", type: "image" | "video", uri: string) => void;
@@ -45,6 +46,7 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
   cardColor = PROFILE_COLORS.CARD,
   textColor = PROFILE_COLORS.TEXT,
   readOnly = false,
+  isUploading = false,
   onAddPhoto,
   onAddVideo,
   onDeleteItem,
@@ -197,8 +199,9 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
       {!readOnly && (
         <View style={styles.addButtons}>
           <Pressable
-            style={[styles.addBtn, { backgroundColor: cardColor }]}
+            style={[styles.addBtn, { backgroundColor: cardColor }, isUploading && styles.addBtnDisabled]}
             onPress={onAddPhoto}
+            disabled={isUploading}
           >
             <Ionicons name="add-circle-outline" size={18} color={primaryColor} />
             <Text style={[styles.addBtnText, { color: primaryColor }]}>
@@ -206,8 +209,9 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.addBtn, { backgroundColor: cardColor }]}
+            style={[styles.addBtn, { backgroundColor: cardColor }, isUploading && styles.addBtnDisabled]}
             onPress={onAddVideo}
+            disabled={isUploading}
           >
             <Ionicons name="add-circle-outline" size={18} color={primaryColor} />
             <Text style={[styles.addBtnText, { color: primaryColor }]}>
@@ -284,6 +288,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderRadius: PROFILE.CARD_RADIUS,
+  },
+  addBtnDisabled: {
+    opacity: 0.5,
   },
   addBtnText: {
     fontSize: 13,

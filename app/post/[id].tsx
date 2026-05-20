@@ -201,11 +201,12 @@ export default function PostDetail() {
               <AdaptiveVideo
                 uri={post.video_url}
                 style={styles.postVideo}
-                autoPlay={true}
-                showMuteButton={true}
-                initialMuted={true}
-                pauseWhenNotVisible={true}
-                ratio={post.media_ratio || undefined}
+      autoPlay={true}
+                      showMuteButton={true}
+                      initialMuted={true}
+                      pauseWhenNotVisible={true}
+                      resizeMode="contain"
+                      ratio={post.media_ratio || undefined}
                 maxHeight={600}
                 borderRadius={8}
                 videoStatus={post.video_status}
@@ -372,7 +373,7 @@ postImage: {
     maxHeight: 600,
     borderRadius: 8,
     overflow: "hidden",
-    backgroundColor: "#000",
+    backgroundColor: "transparent",
   },
   postVideo: {
     width: "100%",

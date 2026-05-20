@@ -7,6 +7,8 @@ import {
   Pressable,
   FlatList,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
   Modal,
   Alert,
   TextStyle,
@@ -303,11 +305,12 @@ pendingMentionIds = [],
             <AdaptiveVideo
               uri={post.video_url}
               style={styles.postVideo}
-              autoPlay={true}
-              showMuteButton={true}
-              initialMuted={true}
-              pauseWhenNotVisible={true}
-              ratio={post.media_ratio || undefined}
+      autoPlay={true}
+                      showMuteButton={true}
+                      initialMuted={true}
+                      pauseWhenNotVisible={true}
+                      resizeMode="contain"
+                      ratio={post.media_ratio || undefined}
               maxHeight={470}
               borderRadius={8}
               videoStatus={post.video_status}
@@ -369,6 +372,7 @@ pendingMentionIds = [],
   };
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <View style={styles.container}>
       {!readOnly && (
         <View style={[styles.createPost, { backgroundColor: cardColor }]}>
@@ -527,6 +531,7 @@ pendingMentionIds = [],
         onClose={() => setViewerOpen(false)}
       />
     </View>
+    </KeyboardAvoidingView>
   );
 };
 

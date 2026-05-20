@@ -8,6 +8,7 @@ import {
   Share,
   Text,
   Pressable,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -43,6 +44,7 @@ import { ProfileMedia } from "./ProfileMedia";
 import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE_COLORS } from "./ProfileDesign";
+import { COLORS } from "../../lib/designTokens";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import AdaptiveImage from "../AdaptiveImage";
 import AdaptiveVideo from "../AdaptiveVideo";
@@ -73,9 +75,11 @@ interface BusinessProfilePremiumProps {
   jobs?: Job[];
   openJobModal?: () => void;
   handleDeleteJob?: (jobId: string) => void;
+  handleEditJob?: (job: any) => void;
   rentals?: Rental[];
   openRentalModal?: () => void;
   handleDeleteRental?: (rentalId: string) => void;
+  handleEditRental?: (rental: any) => void;
   fanGalleryPosts?: Post[];
   handleHideFanPost?: (postId: string) => void;
   openingHours?: Record<string, any>;
@@ -87,6 +91,7 @@ interface BusinessProfilePremiumProps {
   galleryVideos?: string[];
   handleAddGalleryPhoto?: () => void;
   handleAddGalleryVideo?: () => void;
+  isUploading?: boolean;
   handleDeleteGalleryImage?: (index: number) => void;
   handleDeleteGalleryVideo?: (index: number) => void;
   handleMoveGalleryImage?: (from: number, to: number) => void;
@@ -126,6 +131,8 @@ interface BusinessProfilePremiumProps {
   onRefreshPosts?: () => void;
   friends?: any[];
   onCreateStory?: () => void;
+  onUploadCityAd?: () => void;
+  onPlan?: () => void;
 }
 
 export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
@@ -156,9 +163,11 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   jobs = [],
   openJobModal,
   handleDeleteJob,
+  handleEditJob,
   rentals = [],
   openRentalModal,
   handleDeleteRental,
+  handleEditRental,
   openingHours = {},
   openHoursModal,
   socialLinks = {},
@@ -168,6 +177,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   galleryVideos = [],
   handleAddGalleryPhoto,
   handleAddGalleryVideo,
+  isUploading = false,
   handleDeleteGalleryImage,
   handleDeleteGalleryVideo,
   onUpdateLogo,
@@ -197,10 +207,11 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   onOpenTagModal,
   onEditTags,
   onCreateStory,
+  onUploadCityAd,
+  onPlan,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("posts");
   const [showAnalytics, setShowAnalytics] = useState(false);
 
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -217,36 +228,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     });
     return items;
   };
-
-  const hasUpcomingEvents = events.some(e => isUpcomingEvent(e));
-
-  const tabs: TabDefinition[] = useMemo(() => {
-    const contentTabs: TabDefinition[] = [];
-
-    if (events.length > 0) {
-      contentTabs.push({ key: "events", label: t("business.events", "Events"), icon: "calendar-outline", count: events.length });
-    }
-    if (jobs.length > 0) {
-      contentTabs.push({ key: "jobs", label: t("jobs.myJobs", "Jobs"), icon: "briefcase-outline", count: jobs.length });
-    }
-    if ((detail.business.root_category === "rental-real-estate" || detail.business.enabled_modules?.rentals) && rentals && rentals.length > 0) {
-      contentTabs.push({ key: "rentals", label: t("rentals.rentals", "Rentals"), icon: "home-outline", count: rentals.length });
-    }
-
-    const alwaysTabs: TabDefinition[] = [
-      { key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: businessPosts.length },
-      { key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length },
-    ];
-
-    if (!readOnly) {
-      alwaysTabs.push({ key: "plan", label: t("subscription.plan", "Plan"), icon: "star-outline" });
-    }
-
-    if (hasUpcomingEvents || contentTabs.length > 0) {
-      return [...contentTabs, ...alwaysTabs];
-    }
-    return alwaysTabs;
-  }, [events.length, jobs.length, rentals, detail.business.root_category, detail.business.enabled_modules, businessPosts.length, galleryImages.length, galleryVideos.length, readOnly, hasUpcomingEvents, t]);
 
   const theme = detail.business.theme;
   const { themeStyles, themeColors, isDark } = useThemeStyles(theme);
@@ -303,14 +284,11 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     type: "business",
     bio: detail.business.description,
     location: detail.business.address,
-    website: detail.business.website,
-    email: detail.business.email,
-    phone: detail.business.phone,
-    socialLinks,
-    openingHours: transformedHours,
-    category: detail.business.root_category 
-      ? `${translateCategory(detail.business.root_category, t)}${detail.business.subcategory ? ` / ${translateCategory(detail.business.subcategory, t)}` : ""}`
-      : "",
+    website: isOwnProfile ? undefined : detail.business.website,
+    email: isOwnProfile ? undefined : detail.business.email,
+    phone: isOwnProfile ? undefined : detail.business.phone,
+    socialLinks: isOwnProfile ? undefined : socialLinks,
+    openingHours: isOwnProfile ? undefined : transformedHours,
     isOpen: (() => {
       try {
         const now = new Date();
@@ -363,6 +341,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           onShare={onShare || handleShare}
           onViewPublic={handleViewPublic}
           onCustomizeTheme={() => setThemeModalVisible?.(true)}
+          onPlan={onPlan}
           onEditProfile={onEditProfile}
           onSettings={() => router.push("/settings")}
           onLogout={() => {}}
@@ -389,7 +368,18 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                 ]
               : undefined
 }
-         />
+          />
+        {/* Category/Subcategory badge - always visible */}
+        {detail.business.root_category && (
+          <View style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Ionicons name="grid-outline" size={14} color={COLORS.textMuted} />
+              <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>
+                {`${translateCategory(detail.business.root_category, t)}${detail.business.subcategory ? ` / ${translateCategory(detail.business.subcategory, t)}` : ""}`}
+              </Text>
+            </View>
+          </View>
+        )}
 
         <ProfileAboutInline
           data={aboutData}
@@ -403,8 +393,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           themeStyles={themeStyles}
         />
 
-        {/* Business Map */}
-        {detail.business.latitude && detail.business.longitude && (
+        {/* Business Map - hidden for own profile */}
+        {!isOwnProfile && detail.business.latitude && detail.business.longitude && (
           <Pressable
             style={styles.businessMapContainer}
             onPress={() => {
@@ -429,125 +419,319 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           </Pressable>
         )}
 
-        <ProfileTabs
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          tabs={tabs}
-          primaryColor={primaryColor}
-          bgColor={cardColor}
-          borderColor={borderColor}
-          themeStyles={themeStyles}
-        />
+        {/* City Ad upload button for business owners */}
+        {isOwnProfile && onUploadCityAd && (
+          <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+            <Pressable
+              style={styles.primaryActionBtn}
+              onPress={onUploadCityAd}
+            >
+              <Ionicons name="videocam" size={18} color={COLORS.primaryDark} />
+              <Text style={styles.primaryActionText}>{t("cityAd.createAd") || "Create City Ad"}</Text>
+            </Pressable>
+          </View>
+        )}
 
-        <View style={styles.tabContent}>
-          {activeTab === "posts" && (
-              <ProfilePosts
-               posts={businessPosts}
-               primaryColor={primaryColor}
-               cardColor={cardColor}
-               textColor={textColor}
-               readOnly={readOnly}
-               postText={postText}
-               setPostText={setPostText}
-               postImage={postImage}
-               postVideo={postVideo}
-               postVideoPreview={postVideoPreview}
-               pickPostImage={pickPostImage}
-               pickPostVideo={pickPostVideo}
-               onDiscardMedia={onDiscardMedia}
-               handleCreatePost={handleCreatePost}
-               onDeletePost={onDeletePost}
-               onEditPost={onEditPost}
-               currentUserId={currentUserId}
-               avatarUri={avatarUri}
-               themeStyles={themeStyles}
-               onOpenTagModal={onOpenTagModal}
-               onEditTags={onEditTags}
-               friends={friends}
-               businesses={[detail.business]}
-               showMentionSuggestions={showMentionSuggestions}
-               mentionSuggestions={mentionSuggestions}
-onSelectMention={onSelectMention}
-                pendingMentionIds={pendingMentionIds}
-                onRefreshPosts={onRefreshPosts}
-                 isOwnProfile={isOwnProfile}
-                 onCreateStory={onCreateStory}
-               />
+        {/* Create Event, Job, Rental buttons for business owner */}
+        {isOwnProfile && (
+          <View style={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
+            {openEventModal && (
+              <Pressable
+                style={styles.primaryActionBtn}
+                onPress={() => openEventModal()}
+              >
+                <Ionicons name="calendar-outline" size={18} color={COLORS.primaryDark} />
+                <Text style={styles.primaryActionText}>{t("business.createEvent") || "Create Event"}</Text>
+              </Pressable>
             )}
-            {activeTab === "media" && (
-            <ProfileMedia
-              images={galleryImages}
-              videos={galleryVideos}
-              posts={businessPosts}
-              primaryColor={primaryColor}
-              cardColor={cardColor}
-              textColor={textColor}
-              readOnly={readOnly}
-              onAddPhoto={handleAddGalleryPhoto}
-              onAddVideo={handleAddGalleryVideo}
-              onDeleteItem={(source, type, uri) => {
-                if (source === "post") {
-                  const post = businessPosts.find(p => p.image_url === uri || p.video_url === uri);
-                  if (post) onDeletePost?.(post);
-                } else {
-                  if (type === "image") {
-                    const idx = galleryImages.indexOf(uri);
-                    if (idx !== -1) handleDeleteGalleryImage?.(idx);
-                  } else {
-                    const idx = galleryVideos.indexOf(uri);
-                    if (idx !== -1) handleDeleteGalleryVideo?.(idx);
-                  }
-                }
-              }}
-            />
-          )}
-{activeTab === "events" && (
-            <View style={styles.tabSection}>
+            {openJobModal && (
+              <Pressable
+                style={styles.primaryActionBtn}
+                onPress={openJobModal}
+              >
+                <Ionicons name="briefcase-outline" size={18} color={COLORS.primaryDark} />
+                <Text style={styles.primaryActionText}>{t("business.createJob") || "Create Job"}</Text>
+              </Pressable>
+            )}
+            {detail.business.root_category === "rental-real-estate" && openRentalModal && (
+              <Pressable
+                style={styles.primaryActionBtn}
+                onPress={openRentalModal}
+              >
+                <Ionicons name="home-outline" size={18} color={COLORS.primaryDark} />
+                <Text style={styles.primaryActionText}>{t("business.publishRental") || "Publish Rental"}</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {/* Public profile: website-style layout without tabs */}
+        {readOnly ? (
+          <View style={styles.publicContent}>
+            {/* Events Carousel */}
+            {events.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitle}>
+                    <View style={styles.sectionIcon}>
+                      <Ionicons name="calendar" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.sectionTitleText}>{t("events.title", "Events")}</Text>
+                  </View>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={160} decelerationRate="fast">
+                  {events.map((event, idx) => (
+                    <Pressable key={event.event_id || idx} style={styles.carouselCard} onPress={() => router.push(`/event/${event.event_id}`)}>
+                      {event.video_url ? (
+                        <AdaptiveVideo uri={event.video_url} style={styles.carouselImage} autoPlay isLooping initialMuted showMuteButton pauseWhenNotVisible />
+                      ) : event.cover_image_url || event.image_urls?.[0] ? (
+                        <Image source={{ uri: event.cover_image_url || event.image_urls![0] }} style={styles.carouselImage} />
+                      ) : (
+                        <View style={styles.carouselFallback}>
+                          <Ionicons name="calendar" size={32} color={COLORS.textMuted} />
+                        </View>
+                      )}
+                      <View style={styles.carouselInfo}>
+                        <Text style={styles.carouselTitle} numberOfLines={1}>{event.title}</Text>
+                        <Text style={styles.carouselSubtitle} numberOfLines={1}>{event.start_time || ""}</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Rentals Carousel */}
+            {rentals.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitle}>
+                    <View style={styles.sectionIcon}>
+                      <Ionicons name="home" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.sectionTitleText}>{t("business.rentals", "Rentals")}</Text>
+                  </View>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={160} decelerationRate="fast">
+                  {rentals.map((rental: any, idx: number) => (
+                    <Pressable key={rental.rental_id || idx} style={styles.carouselCard} onPress={() => router.push(`/rental/${rental.rental_id}`)}>
+                      {rental.cover_image || rental.gallery_images?.[0] ? (
+                        <Image source={{ uri: rental.cover_image || rental.gallery_images?.[0] }} style={styles.carouselImage} />
+                      ) : (
+                        <View style={styles.carouselFallback}>
+                          <Ionicons name="home" size={32} color={COLORS.textMuted} />
+                        </View>
+                      )}
+                      <View style={styles.carouselInfo}>
+                        <Text style={styles.carouselTitle} numberOfLines={1}>{rental.title || "Rental"}</Text>
+                        <Text style={styles.carouselSubtitle} numberOfLines={1}>{rental.price ? `${rental.price}€` : ""}</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Jobs Carousel */}
+            {jobs.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitle}>
+                    <View style={styles.sectionIcon}>
+                      <Ionicons name="briefcase" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.sectionTitleText}>{t("business.jobs", "Jobs")}</Text>
+                  </View>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={160} decelerationRate="fast">
+                  {jobs.map((job: any, idx: number) => (
+                    <Pressable key={job.job_id || idx} style={styles.carouselCard} onPress={() => router.push(`/job/${job.job_id}`)}>
+                      {job.cover_image ? (
+                        <Image source={{ uri: job.cover_image }} style={styles.carouselImage} />
+                      ) : (
+                        <View style={styles.carouselFallback}>
+                          <Ionicons name="briefcase" size={32} color={COLORS.textMuted} />
+                        </View>
+                      )}
+                      <View style={styles.carouselInfo}>
+                        <Text style={styles.carouselTitle} numberOfLines={1}>{job.title || "Job"}</Text>
+                        <Text style={styles.carouselSubtitle} numberOfLines={1}>{job.application_deadline || ""}</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Gallery */}
+            {(galleryImages.length > 0 || galleryVideos.length > 0) && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitle}>
+                    <View style={styles.sectionIcon}>
+                      <Ionicons name="images" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.sectionTitleText}>{t("business.gallery", "Gallery")}</Text>
+                  </View>
+                </View>
+                <ProfileMedia
+                  images={galleryImages}
+                  videos={galleryVideos}
+                  posts={businessPosts}
+                  primaryColor={primaryColor}
+                  cardColor={cardColor}
+                  textColor={textColor}
+                  readOnly={true}
+                />
+              </View>
+            )}
+
+            {/* Posts */}
+            {businessPosts.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitle}>
+                    <View style={styles.sectionIcon}>
+                      <Ionicons name="document-text" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.sectionTitleText}>{t("profile.posts", "Posts")}</Text>
+                  </View>
+                </View>
+                <ProfilePosts
+                  posts={businessPosts}
+                  readOnly={true}
+                  isOwnProfile={false}
+                  primaryColor={primaryColor}
+                  cardColor={cardColor}
+                  textColor={textColor}
+                  currentUserId={currentUserId}
+                  avatarUri={avatarUri}
+                  friends={friends}
+                  businesses={[detail.business]}
+                />
+              </View>
+            )}
+          </View>
+        ) : (
+          /* Private profile: vertical list layout */
+          <>
+            {/* Events */}
+            {events.length > 0 && (
               <EventsSection
                 events={events}
-                onAddEvent={readOnly ? () => {} : (openEventModal ?? (() => {}))}
-                onEditEvent={readOnly ? () => {} : (handleEditEvent ?? ((e) => openEventModal?.(e)))}
-                onDeleteEvent={readOnly ? () => {} : (handleDeleteEvent ?? (() => {}))}
-                readOnly={readOnly}
+                onAddEvent={openEventModal ?? (() => {})}
+                onEditEvent={handleEditEvent ?? ((e) => openEventModal?.(e))}
+                onDeleteEvent={handleDeleteEvent ?? (() => {})}
                 primaryColor={primaryColor}
                 cardColor={cardColor}
                 textColor={textColor}
                 secondaryColor={secondaryColor}
               />
-            </View>
-          )}
-          {activeTab === "jobs" && (
-            <View style={styles.tabSection}>
+            )}
+
+            {/* Jobs */}
+            {jobs.length > 0 && (
               <JobsSection
                 jobs={jobs}
-                readOnly={readOnly}
-                onAddJob={readOnly ? undefined : (openJobModal ?? (() => {}))}
-                onDeleteJob={readOnly ? undefined : (handleDeleteJob ?? (() => {}))}
+                onAddJob={openJobModal ?? (() => {})}
+                onEditJob={handleEditJob}
+                onDeleteJob={handleDeleteJob ?? (() => {})}
               />
-            </View>
-          )}
-          {activeTab === "rentals" && (
-            <View style={styles.tabSection}>
+            )}
+
+            {/* Rentals */}
+            {detail.business.root_category === "rental-real-estate" && rentals && rentals.length > 0 && (
               <RentalsSection
                 rentals={rentals}
-                readOnly={readOnly}
-                onAddRental={readOnly ? undefined : (openRentalModal ?? (() => {}))}
-                onDeleteRental={readOnly ? undefined : (handleDeleteRental ?? (() => {}))}
+                onAddRental={openRentalModal ?? (() => {})}
+                onEditRental={handleEditRental}
+                onDeleteRental={handleDeleteRental ?? (() => {})}
               />
-            </View>
-          )}
-          {activeTab === "plan" && !readOnly && (
-            <SubscriptionTab
-              sessionToken={sessionToken}
-              businessId={detail.business.business_id}
-              subscriptionStatus={detail.business.subscription_status}
-              planType={(detail.business as any).plan_type}
+            )}
+
+            {/* Media */}
+            {(galleryImages.length > 0 || galleryVideos.length > 0) && (
+              <View style={styles.privateSection}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitle}>
+                    <View style={styles.sectionIcon}>
+                      <Ionicons name="images" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.sectionTitleText}>{t("business.gallery", "Gallery")}</Text>
+                  </View>
+                </View>
+                <ProfileMedia
+                  images={galleryImages}
+                  videos={galleryVideos}
+                  posts={businessPosts}
+                  primaryColor={primaryColor}
+                  cardColor={cardColor}
+                  textColor={textColor}
+                  onAddPhoto={handleAddGalleryPhoto}
+                  onAddVideo={handleAddGalleryVideo}
+                  isUploading={isUploading}
+                  onDeleteItem={(source, type, uri) => {
+                    if (source === "post") {
+                      const post = businessPosts.find(p => p.image_url === uri || p.video_url === uri);
+                      if (post) onDeletePost?.(post);
+                    } else {
+                      if (type === "image") {
+                        const idx = galleryImages.indexOf(uri);
+                        if (idx !== -1) handleDeleteGalleryImage?.(idx);
+                      } else {
+                        const idx = galleryVideos.indexOf(uri);
+                        if (idx !== -1) handleDeleteGalleryVideo?.(idx);
+                      }
+                    }
+                  }}
+                />
+              </View>
+            )}
+
+            {/* Posts */}
+            <View style={styles.privateSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitle}>
+                  <View style={styles.sectionIcon}>
+                    <Ionicons name="document-text" size={18} color="#fff" />
+                  </View>
+                  <Text style={styles.sectionTitleText}>{t("profile.posts", "Posts")}</Text>
+                </View>
+              </View>
+              <ProfilePosts
+              posts={businessPosts}
               primaryColor={primaryColor}
               cardColor={cardColor}
               textColor={textColor}
+              postText={postText}
+              setPostText={setPostText}
+              postImage={postImage}
+              postVideo={postVideo}
+              postVideoPreview={postVideoPreview}
+              pickPostImage={pickPostImage}
+              pickPostVideo={pickPostVideo}
+              onDiscardMedia={onDiscardMedia}
+              handleCreatePost={handleCreatePost}
+              onDeletePost={onDeletePost}
+              onEditPost={onEditPost}
+              currentUserId={currentUserId}
+              avatarUri={avatarUri}
+              themeStyles={themeStyles}
+              onOpenTagModal={onOpenTagModal}
+              onEditTags={onEditTags}
+              friends={friends}
+              businesses={[detail.business]}
+              showMentionSuggestions={showMentionSuggestions}
+              mentionSuggestions={mentionSuggestions}
+              onSelectMention={onSelectMention}
+              pendingMentionIds={pendingMentionIds}
+              onRefreshPosts={onRefreshPosts}
+              isOwnProfile={isOwnProfile}
+              onCreateStory={onCreateStory}
             />
-          )}
-        </View>
+          </View>
+          </>
+        )}
       </ScrollView>
 
       <LazyMediaViewer
@@ -605,5 +789,95 @@ const styles = StyleSheet.create({
   highlightsSection: {
     paddingHorizontal: 16,
     paddingTop: 12,
+  },
+  privateSection: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  primaryActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  primaryActionText: {
+    color: COLORS.primaryDark,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  publicContent: {
+    paddingHorizontal: 16,
+    gap: 16,
+    marginTop: 12,
+  },
+  section: {
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sectionIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitleText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  carouselCard: {
+    width: 150,
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    marginRight: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  carouselImage: {
+    width: "100%",
+    height: 90,
+    backgroundColor: "#f3f4f6",
+  },
+  carouselFallback: {
+    width: "100%",
+    height: 90,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  carouselInfo: {
+    padding: 12,
+    flex: 1,
+    justifyContent: "center",
+  },
+  carouselTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  carouselSubtitle: {
+    fontSize: 12,
+    color: "#6b7280",
   },
 });

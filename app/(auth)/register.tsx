@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../context/AuthContext";
 import { LANGUAGES, setStoredLanguage } from "../../i18n";
 import CityAutocompleteInput from "../../components/CityAutocompleteInput";
@@ -70,7 +71,9 @@ export default function RegisterScreen() {
         cityLat,
         cityLng
       );
-      router.replace("/onboarding");
+      if (city.trim()) await AsyncStorage.setItem("@onboarding_city", city.trim());
+      const done = await AsyncStorage.getItem("@onboarding_complete");
+      router.replace(done === "true" ? "/(tabs)/home" : "/onboarding");
     } catch (error) {
       const message = error instanceof Error ? error.message : t("auth.checkCredentials");
       console.error("[Register] Failed:", message, error);
@@ -82,7 +85,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           {/* Language Selector */}

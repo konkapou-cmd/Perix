@@ -1223,6 +1223,16 @@
     "callFailed": "Telefonata dështoi. Ju lutem provoni përsëri.",
     "businessClosed": "Biznesi është i mbyllur aktualisht. Ju lutem telefononi gjatë orarit të punës."
   },
+
+    "cityAd": {
+    "sectionTitle": "City Ads",
+    "yourAd": "Your Ad",
+    "noAds": "No ads yet",
+    "adPublished": "Your city ad has been published!",
+    "createAd": "Create City Ad",
+    "maxDuration": "City Ads must be under 3 minutes",
+    "uploadingAd": "Uploading your ad..."
+  },
   "subscription": {
     "title": "Menaxho Abonimin",
     "active": "Aktiv",
@@ -1799,3 +1809,4 @@
     "viewProfile": "Shiko Profilin"
   }
 }
+

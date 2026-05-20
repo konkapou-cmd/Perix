@@ -687,62 +687,48 @@ export default function EventDetailPage() {
             </View>
           )}
 
-          {/* Gallery */}
-          {(event.gallery_images?.length || event.gallery_videos?.length) && (
-            <View style={styles.gallerySection}>
-              <Text style={styles.sectionTitle}>{t("events.gallery") || "Gallery"}</Text>
-              <View style={styles.galleryGrid}>
-                {event.gallery_images?.map((uri, idx) => {
-                  const allItems = buildEventMediaItems(event);
-                  const galleryStartIdx = allItems.findIndex(i => i.uri === uri);
-                  return (
-                    <View key={`img-${idx}`} style={styles.galleryItemWrap}>
-                      <AdaptiveImage
-                        uri={uri}
-                        ratio={1}
-                        maxHeight={200}
-                        borderRadius={8}
-                        onPress={() => {
-                          setViewerMedia(allItems);
-                          setViewerIndex(galleryStartIdx >= 0 ? galleryStartIdx : 0);
-                          setViewerOpen(true);
-                        }}
-                      />
-                    </View>
-                  );
-                })}
-                {event.gallery_videos?.map((uri, idx) => {
-                  const allItems = buildEventMediaItems(event);
-                  const vidIdx = allItems.findIndex(i => i.uri === uri);
-                  const thumbnailUrl = getMuxThumbnail(uri);
-                  return (
-                    <View key={`vid-${idx}`} style={styles.galleryItemWrap}>
-                      <Pressable
-                        style={styles.galleryVideoInner}
-                        onPress={() => {
-                          setViewerMedia(allItems);
-                          setViewerIndex(vidIdx >= 0 ? vidIdx : 0);
-                          setViewerOpen(true);
-                        }}
-                      >
-                        <AdaptiveImage
-                          uri={thumbnailUrl || uri || ""}
-                          fallbackColor="#111827"
-                          ratio={1}
-                          maxHeight={200}
-                          borderRadius={8}
-                          showFallbackIcon={false}
-                        />
-                        <View style={styles.videoOverlay}>
-                          <Ionicons name="play-circle" size={32} color="#fff" />
-                        </View>
-                      </Pressable>
-                    </View>
-                  );
-                })}
+          {/* Gallery — all media including cover */}
+          {(() => {
+            const allMediaItems = buildEventMediaItems(event);
+            if (allMediaItems.length === 0) return null;
+            return (
+              <View style={styles.gallerySection}>
+                <Text style={styles.sectionTitle}>{t("events.gallery") || "Gallery"}</Text>
+                <View style={styles.galleryGrid}>
+                  {allMediaItems.map((item, idx) => {
+                    const thumbnailUrl = item.type === "video"
+                      ? item.muxThumbnailUrl || getMuxThumbnail(item.uri) || item.uri
+                      : item.uri;
+                    return (
+                      <View key={`g-${idx}`} style={styles.galleryItemWrap}>
+                        <Pressable
+                          style={StyleSheet.absoluteFill}
+                          onPress={() => {
+                            setViewerMedia(allMediaItems);
+                            setViewerIndex(idx);
+                            setViewerOpen(true);
+                          }}
+                        >
+                          <AdaptiveImage
+                            uri={thumbnailUrl}
+                            style={styles.galleryImage}
+                            resizeMode="contain"
+                            borderRadius={8}
+                            showFallbackIcon={false}
+                          />
+                          {item.type === "video" && (
+                            <View style={styles.galleryPlayOverlay}>
+                              <Ionicons name="play-circle" size={24} color="#fff" />
+                            </View>
+                          )}
+                        </Pressable>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
-          )}
+            );
+          })()}
 
           {/* RSVP Section */}
           <View style={styles.rsvpSection}>
@@ -1530,17 +1516,21 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
   },
-  galleryItem: {
-    width: "31%",
-    aspectRatio: 1,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
   galleryImage: {
     width: "100%",
     height: "100%",
   },
-  videoOverlay: {
+  galleryItemWrap: {
+    position: "relative",
+    width: "31%",
+    height: 80,
+    overflow: "hidden",
+    backgroundColor: "#1f2937",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  galleryPlayOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
@@ -1548,19 +1538,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
-  galleryItemWrap: {
-    position: "relative",
-    width: "31%",
-    aspectRatio: 1,
-  },
-  galleryVideoInner: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 8,
-    overflow: "hidden",
-    position: "relative",
+    backgroundColor: "rgba(0,0,0,0.2)",
   },
   galleryRemoveBtn: {
     position: "absolute",

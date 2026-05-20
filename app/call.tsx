@@ -134,7 +134,7 @@ export default function CallScreen() {
     }
 
     try {
-      const audioPermission = await Audio.requestPermissionsAsync();
+      const audioPermission = await Camera.requestMicrophonePermissionsAsync();
       if (audioPermission.status !== "granted") {
         Alert.alert(
           t("calls.permissionRequired"),
@@ -544,6 +544,16 @@ export default function CallScreen() {
               </Pressable>
             )}
 
+            {callType === "video" && isVideoEnabled && (
+              <Pressable
+                style={styles.controlButton}
+                onPress={() => engineRef.current?.switchCamera()}
+              >
+                <Ionicons name="camera-reverse" size={24} color="#fff" />
+                <Text style={styles.controlLabel}>{t("calls.swapCamera") || "Swap"}</Text>
+              </Pressable>
+            )}
+
             <Pressable
               style={[styles.controlButton, isSpeakerOn && styles.controlButtonActive]}
               onPress={toggleSpeaker}
@@ -675,7 +685,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   controlButtonActive: {
-    backgroundColor: "#000000",
+    backgroundColor: "rgba(76, 111, 255, 0.8)",
   },
   controlLabel: {
     fontSize: 10,

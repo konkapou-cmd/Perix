@@ -43,6 +43,8 @@ import {
   togglePostLike,
   uploadImageToCloudinary,
   uploadVideoMux,
+  createStory,
+  apiRequest,
   searchUsers,
   UploadProgress,
   isUpcomingEvent,
@@ -58,13 +60,13 @@ import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory } from "../../lib/categoryTranslation";
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
 import { SkeletonBox } from "../../components/shared";
-import { StoryViewer } from "../../components/stories/StoryViewer";
+import { CityAdViewer } from "../../components/stories/CityAdViewer";
 import { SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 
 import { useFeedData } from "../../hooks/useFeedData";
 import { useContentSorting } from "../../hooks/useContentSorting";
 import { useLayoutPreferences } from "../../hooks/useLayoutPreferences";
-import { StoryCircles } from "../../components/home/StoryCircles";
+import { CityAdCircles } from "../../components/home/CityAdCircles";
 import { MapSection } from "../../components/home/MapSection";
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
 import { PostCard } from "../../components/home/PostCard";
@@ -221,6 +223,43 @@ export default function HomeScreen() {
 
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
   const [storyViewerIndex, setStoryViewerIndex] = useState(0);
+  const [uploadingAd, setUploadingAd] = useState(false);
+
+  const handleCreateCityAd = async () => {
+    if (!sessionToken) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    try {
+      setUploadingAd(true);
+      const story = await createStory(sessionToken, {
+        media_url: undefined,
+        media_type: "video",
+        actor_type: "business",
+        video_status: "uploading",
+      });
+      const muxResult = await uploadVideoMux(sessionToken, result.assets[0].uri, `story:${story.story_id}`);
+      const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+      if (videoUrl || muxResult.mux_upload_id) {
+        await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
+          media_url: videoUrl || undefined,
+          mux_upload_id: muxResult.mux_upload_id,
+          mux_asset_id: muxResult.mux_asset_id,
+          mux_playback_id: muxResult.mux_playback_id,
+          mux_thumbnail_url: muxResult.mux_thumbnail_url,
+          video_status: muxResult.mux_playback_id ? "ready" : "processing",
+        });
+      }
+      Alert.alert(t("cityAd.adPublished") || "Your city ad has been published!");
+      setUploadingAd(false);
+    } catch (e) {
+      console.error("City ad creation failed:", e);
+      setUploadingAd(false);
+      Alert.alert(t("common.error"), "Failed to create city ad");
+    }
+  };
 
   const [postText, setPostText] = useState("");
   const [tagResults, setTagResults] = useState<User[]>([]);
@@ -614,10 +653,10 @@ export default function HomeScreen() {
           </View>
         )}
 
-        <StoryCircles
+        <CityAdCircles
           user={user}
           storyGroups={storyGroups}
-          onYourStoryPress={() => router.push("/camera")}
+          onYourStoryPress={handleCreateCityAd}
           onStoryPress={(idx) => { setStoryViewerIndex(idx); setStoryViewerOpen(true); }}
           activeIdentity={activeIdentity}
         />
@@ -672,7 +711,9 @@ export default function HomeScreen() {
                 return (
                   <Pressable key={`${event.event_id}-${mapRefreshKey}`} style={[styles.artistCard, { backgroundColor: "#ffffff" }]} onPress={() => router.push(`/event/${event.event_id}`)} data-testid={`event-card-${event.event_id}`}>
                     <View style={styles.contentCardImage}>
-                      {eventImg ? (
+                      {event.video_url ? (
+                        <AdaptiveVideo uri={event.video_url} style={styles.artistAvatarImage} autoPlay isLooping initialMuted />
+                      ) : eventImg ? (
                         <Image source={{ uri: eventImg }} style={styles.artistAvatarImage} resizeMode="cover" />
                       ) : (
                         <View style={styles.contentCardFallback}><Ionicons name="calendar" style={styles.contentCardFallbackIcon} size={32} color="#9ca3af" /></View>
@@ -948,7 +989,9 @@ export default function HomeScreen() {
               ) : eventsForDate.map((event) => (
                 <Pressable key={event.event_id} style={styles.calendarEventCard} onPress={() => { setCalendarOpen(false); router.push(`/event/${event.event_id}`); }}>
                   <View style={styles.eventThumbContainer}>
-                    {(event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0]) ? (
+                    {event.video_url ? (
+                      <AdaptiveVideo uri={event.video_url} style={styles.eventThumbCard} autoPlay isLooping initialMuted />
+                    ) : (event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0]) ? (
                       <AdaptiveImage uri={event.cover_image_url ?? event.image_urls?.[0] ?? event.gallery_images?.[0] ?? ""} style={styles.eventThumbCard} fallbackColor="#000000" />
                     ) : (<View style={[styles.eventThumbCard, styles.eventThumbPlaceholder]}><Ionicons name="musical-note" size={18} color="#000000" /></View>)}
                   </View>
@@ -1095,9 +1138,24 @@ export default function HomeScreen() {
 
       <Modal visible={storyViewerOpen} animationType="fade" onRequestClose={() => setStoryViewerOpen(false)}>
         {storyViewerOpen && storyGroups.length > 0 && (
-          <StoryViewer groups={storyGroups} initialGroupIndex={storyViewerIndex} onClose={() => setStoryViewerOpen(false)} onDelete={() => {}} />
+          <CityAdViewer groups={storyGroups} initialGroupIndex={storyViewerIndex} onClose={() => setStoryViewerOpen(false)} />
         )}
       </Modal>
+
+      {/* Uploading Ad Overlay */}
+      {uploadingAd && (
+        <View style={{
+          position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          alignItems: "center", justifyContent: "center",
+          zIndex: 1000,
+        }}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={{ color: "#fff", fontSize: 16, marginTop: 12, fontWeight: "600" }}>
+            {t("cityAd.uploadingAd") || "Uploading your ad..."}
+          </Text>
+        </View>
+      )}
 
       <LayoutSettingsModal
         visible={showLayoutSettings}

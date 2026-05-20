@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -61,11 +62,17 @@ type Props = {
 
 function formToMedia(form: ActivityForm): MediaItem[] {
   const items: MediaItem[] = [];
-  if (form.cover_image_url) items.push({ uri: form.cover_image_url, type: "image" });
+  if (form.cover_image_url) {
+    items.push({ uri: form.cover_image_url, type: "image" });
+  } else if (form.video_url) {
+    items.push({ uri: form.video_url, type: "video" });
+  }
   form.image_urls.forEach((u) => {
     if (u !== form.cover_image_url) items.push({ uri: u, type: "image" });
   });
-  if (form.video_url) items.push({ uri: form.video_url, type: "video" });
+  if (form.video_url && items.length > 0 && items[0].uri !== form.video_url) {
+    items.push({ uri: form.video_url, type: "video" });
+  }
   form.gallery_images.forEach((u) => {
     if (!items.some((m) => m.uri === u)) items.push({ uri: u, type: "image" });
   });
@@ -76,6 +83,19 @@ function formToMedia(form: ActivityForm): MediaItem[] {
 }
 
 function mediaToForm(media: MediaItem[], base: ActivityForm): ActivityForm {
+  const coverIsVideo = media.length > 0 && media[0].type === "video";
+  if (coverIsVideo) {
+    const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
+    const images = media.filter((m) => m.type === "image").map((m) => m.uri);
+    return {
+      ...base,
+      cover_image_url: undefined,
+      image_urls: images,
+      video_url: videos[0] || undefined,
+      gallery_images: images,
+      gallery_videos: videos.slice(1),
+    };
+  }
   const images = media.filter((m) => m.type === "image").map((m) => m.uri);
   const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
   return {
@@ -145,6 +165,7 @@ export default function ActivityModal({
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={s.modalContainer} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={s.header}>
           <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
             <Ionicons name="close" size={24} color={COLORS.textPrimary} />
@@ -295,6 +316,7 @@ export default function ActivityModal({
             </Text>
           </Pressable>
         </View>
+      </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

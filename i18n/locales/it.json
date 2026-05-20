@@ -1288,6 +1288,16 @@
     "callFailed": "Chiamata fallita. Per favore riprova.",
     "businessClosed": "L'attività è attualmente chiusa. Per favore chiama durante gli orari di apertura."
   },
+
+    "cityAd": {
+    "sectionTitle": "City Ads",
+    "yourAd": "Your Ad",
+    "noAds": "No ads yet",
+    "adPublished": "Your city ad has been published!",
+    "createAd": "Create City Ad",
+    "maxDuration": "City Ads must be under 3 minutes",
+    "uploadingAd": "Uploading your ad..."
+  },
   "subscription": {
     "title": "Gestisci Abbonamento",
     "active": "Attivo",
@@ -1864,3 +1874,5 @@
     "justNow": "adesso"
   }
 }
+
+

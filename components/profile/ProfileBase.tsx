@@ -79,6 +79,7 @@ interface ProfileHeaderProps {
   onLogout?: () => void;
   showLogout?: boolean;
   onSaved?: () => void;
+  onPlan?: () => void;
   showMessageButton?: boolean;
   onMessagePress?: () => void;
   friendStatus?: "friends" | "request_sent" | "request_received" | "none";
@@ -114,6 +115,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onSettings,
   onEditProfile,
   onCustomizeTheme,
+  onPlan,
   onViewPublic,
   onLogout,
   showLogout = false,
@@ -276,19 +278,23 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               {onCustomizeTheme && (
                 <Pressable style={styles.iconBtn} onPress={onCustomizeTheme}>
                   <Ionicons name="color-palette-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
+                  <Text style={styles.iconLabel}>{t("common.design") || "Design"}</Text>
                 </Pressable>
               )}
-              {onSaved && (
-                <Pressable style={styles.iconBtn} onPress={onSaved}>
-                  <Ionicons name="bookmark-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
+              {onPlan && (
+                <Pressable style={styles.iconBtn} onPress={onPlan}>
+                  <Ionicons name="star-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
+                  <Text style={styles.iconLabel}>{t("subscription.plan") || "Plan"}</Text>
                 </Pressable>
               )}
               <Pressable style={styles.iconBtn} onPress={onSettings || (() => router.push("/settings"))}>
                 <Ionicons name="settings-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
+                <Text style={styles.iconLabel}>{t("common.settings") || "Settings"}</Text>
               </Pressable>
               {showLogout && onLogout && (
                 <Pressable style={styles.iconBtn} onPress={onLogout}>
                   <Ionicons name="log-out-outline" size={20} color={PROFILE_COLORS.DANGER} />
+                  <Text style={styles.iconLabel}>{t("common.logout") || "Logout"}</Text>
                 </Pressable>
               )}
             </View>
@@ -603,16 +609,21 @@ const styles = StyleSheet.create({
   },
   secondaryRow: {
     flexDirection: "row",
-    gap: 16,
+    gap: 20,
     marginTop: 10,
     justifyContent: "center",
   },
   iconBtn: {
-    width: 40,
-    height: 40,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 20,
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  iconLabel: {
+    fontSize: 12,
+    color: PROFILE_COLORS.TEXT_SECONDARY,
   },
   tabsScroll: {
     flexDirection: "row",

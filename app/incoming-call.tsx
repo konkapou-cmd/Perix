@@ -14,7 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Audio } from "expo-av";
+import { useAudioPlayer } from "expo-audio";
 import { useAuth } from "../context/AuthContext";
+import { useSocketEvent } from "../context/SocketContext";
 import { answerCall, rejectCall } from "../lib/api";
 
 export default function IncomingCallScreen() {
@@ -29,9 +31,14 @@ export default function IncomingCallScreen() {
   }>();
 
   const [isAnswering, setIsAnswering] = useState(false);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  // Ringtone player
+  const ringtoneUri = require("../../assets/sounds/ringtone.mp3");
+  const ringtonePlayer = useAudioPlayer(ringtoneUri, {
+    audioMode: { playsInSilentMode: true },
+  });
 
   // Pulse animation for avatar
   useEffect(() => {
@@ -63,64 +70,40 @@ export default function IncomingCallScreen() {
     }).start();
   }, [slideAnim]);
 
-  // Play ringtone and vibrate
+  // Set audio mode for iOS VoIP ringtone
   useEffect(() => {
-    let isMounted = true;
-    let soundObject: Audio.Sound | null = null;
-    
-    const playRingtone = async () => {
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          shouldDuckAndroid: false,
-          playThroughEarpieceAndroid: false,
-        });
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      shouldDuckAndroid: false,
+      playThroughEarpieceAndroid: false,
+    }).catch(() => {});
+  }, []);
 
-        // Create and play a simple ringtone using the bundled sound
-        // We'll use a looping approach to create a ringtone effect
-        const { sound: ringSound } = await Audio.Sound.createAsync(
-          { uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' }, // Simple notification sound
-          { 
-            isLooping: true,
-            volume: 1.0,
-            shouldPlay: true,
-          }
-        );
-        
-        if (isMounted) {
-          soundObject = ringSound;
-          setSound(ringSound);
-        } else {
-          await ringSound.unloadAsync();
-        }
+  // Play ringtone and vibrate on mount
+  useEffect(() => {
+    ringtonePlayer.loop = true;
+    ringtonePlayer.play();
 
-        // Vibrate pattern: wait 500ms, vibrate 1000ms, repeat
-        if (Platform.OS !== "web") {
-          const pattern = [500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000];
-          Vibration.vibrate(pattern, true);
-        }
-      } catch (error) {
-        console.log("Error setting up audio:", error);
-        // Fallback to vibration only
-        if (Platform.OS !== "web") {
-          const pattern = [500, 1000, 500, 1000, 500, 1000];
-          Vibration.vibrate(pattern, true);
-        }
-      }
-    };
-
-    playRingtone();
+    if (Platform.OS !== "web") {
+      const pattern = [500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000];
+      Vibration.vibrate(pattern, true);
+    }
 
     return () => {
-      isMounted = false;
       Vibration.cancel();
-      if (soundObject) {
-        soundObject.stopAsync().then(() => soundObject?.unloadAsync());
-      }
+      ringtonePlayer.pause();
     };
-  }, []);
+  }, [ringtonePlayer]);
+
+  // Dismiss screen if caller hangs up
+  useSocketEvent("call_status", (data: any) => {
+    if (data.call_id === params.callId && (data.status === "ended" || data.status === "rejected")) {
+      Vibration.cancel();
+      router.back();
+    }
+  });
 
   const handleAnswer = async () => {
     if (!sessionToken || !params.callId || isAnswering) return;

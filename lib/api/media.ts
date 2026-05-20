@@ -141,3 +141,38 @@ export const uploadImageToCloudinary = async (token: string, imageBase64: string
   );
   return response.url;
 };
+
+export const processVideo = async (
+  token: string,
+  videoUri: string,
+  trimStart?: number,
+  trimEnd?: number,
+  filterName?: string,
+  textOverlays?: Array<{text: string; x: number; y: number; color: string; fontSize: number; rotation: number}>
+): Promise<string> => {
+  if (!API_BASE) throw new Error("Backend URL missing");
+
+  const formData = new FormData();
+  formData.append("file", { uri: videoUri, name: "video.mp4", type: "video/mp4" } as any);
+  if (trimStart != null) formData.append("trim_start", String(trimStart));
+  if (trimEnd != null) formData.append("trim_end", String(trimEnd));
+  if (filterName) formData.append("filter_name", filterName);
+  if (textOverlays?.length) {
+    formData.append("text_overlays_json", JSON.stringify(textOverlays));
+  }
+
+  const response = await fetch(`${API_BASE}/media/process-video`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || err.detail || "Video processing failed");
+  }
+
+  const result = await response.json();
+  if (!result.success) throw new Error(result.error || "Video processing failed");
+  return result.processed_url;
+};

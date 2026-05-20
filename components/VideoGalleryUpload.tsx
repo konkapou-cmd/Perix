@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { Video, ResizeMode } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { uploadMedia, UploadProgress, GalleryItem, updateGalleryCaption } from "../lib/api";
 import { useTranslation } from "react-i18next";
 
@@ -51,6 +51,18 @@ const getVideoUrls = (videos: GalleryItem[]): string[] => {
   return videos.map(v => v.uri);
 };
 
+function ThumbnailPlayer({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri);
+  return (
+    <VideoView
+      player={player}
+      style={styles.videoPreview}
+      contentFit="cover"
+      nativeControls={false}
+    />
+  );
+}
+
 export default function VideoGalleryUpload({
   videos,
   onVideosChange,
@@ -69,7 +81,11 @@ export default function VideoGalleryUpload({
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  
+  const modalPlayer = useVideoPlayer(selectedVideo || "", (p) => {
+    p.loop = true;
+    if (selectedVideo) p.play();
+  });
+
   // Caption editing state
   const [captionModalVisible, setCaptionModalVisible] = useState(false);
   const [editingCaption, setEditingCaption] = useState("");
@@ -347,14 +363,7 @@ export default function VideoGalleryUpload({
                 style={[styles.videoThumbnail, editMode && styles.videoThumbnailEditMode]}
                 onPress={() => handleVideoPress(videoItem.uri, index)}
               >
-                <Video
-                  source={{ uri: videoItem.uri }}
-                  style={styles.videoPreview}
-                  resizeMode={ResizeMode.COVER}
-                  shouldPlay={false}
-                  isMuted
-                  isLooping={false}
-                />
+                <ThumbnailPlayer uri={videoItem.uri} />
                 {!editMode && (
                   <View style={styles.playOverlay}>
                     <Ionicons name="play-circle" size={36} color="rgba(255,255,255,0.9)" />
@@ -452,13 +461,11 @@ export default function VideoGalleryUpload({
               </Pressable>
             </View>
             {selectedVideo && (
-              <Video
-                source={{ uri: selectedVideo }}
+              <VideoView
+                player={modalPlayer}
                 style={styles.modalVideo}
-                resizeMode={ResizeMode.CONTAIN}
-                shouldPlay
-                useNativeControls
-                isLooping
+                contentFit="contain"
+                nativeControls
               />
             )}
             {/* Show caption in modal if enabled */}

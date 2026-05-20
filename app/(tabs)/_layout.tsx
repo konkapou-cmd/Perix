@@ -53,14 +53,6 @@ function JobsTabIcon({ color, size, filled }: { color: string; size: number; fil
   return <Ionicons name={filled ? "briefcase" : "briefcase-outline"} size={size} color={color} />;
 }
 
-function CreateTabIcon() {
-  return (
-    <View style={styles.createButton}>
-      <Ionicons name="add" size={28} color={COLORS.background} />
-    </View>
-  );
-}
-
 export default function TabsLayout() {
   const { t } = useTranslation();
   const { isDesktop } = useResponsiveLayout();
@@ -130,19 +122,6 @@ export default function TabsLayout() {
             }}
           />
           <Tabs.Screen
-            name="create"
-            options={{
-              tabBarIcon: () => <CreateTabIcon />,
-              lazy: true,
-            }}
-            listeners={{
-              tabPress: (e) => {
-                e.preventDefault();
-                router.push("/camera");
-              },
-            }}
-          />
-          <Tabs.Screen
             name="messages"
             options={{
               tabBarIcon: ({ color, size, focused }) => (
@@ -200,24 +179,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 10,
     fontWeight: "700",
-  },
-  createButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -20,
-    shadowColor: COLORS.primaryDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  createTabButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    height: 52,
   },
 });

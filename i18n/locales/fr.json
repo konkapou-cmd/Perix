@@ -1321,6 +1321,16 @@
     "callFailed": "L'appel a échoué. Veuillez réessayer.",
     "businessClosed": "Le commerce est actuellement fermé. Veuillez appeler pendant les heures d'ouverture."
   },
+
+    "cityAd": {
+    "sectionTitle": "City Ads",
+    "yourAd": "Your Ad",
+    "noAds": "No ads yet",
+    "adPublished": "Your city ad has been published!",
+    "createAd": "Create City Ad",
+    "maxDuration": "City Ads must be under 3 minutes",
+    "uploadingAd": "Uploading your ad..."
+  },
   "subscription": {
     "title": "Gérer l'Abonnement",
     "active": "Actif",
@@ -1897,3 +1907,4 @@
     "justNow": "à l'instant"
   }
 }
+

@@ -163,8 +163,9 @@ function PushNotificationManager() {
 
         switch (data.type) {
           case "incoming_call":
+            // Auto-accept when tapping from background/lock screen
             router.push({
-              pathname: "/incoming-call",
+              pathname: "/call-answer",
               params: {
                 callId: data.callId as string,
                 callerId: data.callerId as string,

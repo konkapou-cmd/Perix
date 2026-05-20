@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -40,6 +41,8 @@ import {
   updateProfileInfo,
   uploadMedia,
   uploadVideoMux,
+  createStory,
+  apiRequest,
   uploadImageToCloudinary,
   UploadProgress,
   MAX_VIDEO_SIZE_BYTES,
@@ -67,8 +70,10 @@ import {
   deleteEvent,
   deleteJob,
   createJob,
+  updateJob,
   createRental,
   deleteRental,
+  updateRental,
   updateUserSlug,
   updateBusinessSlug,
   getPosts,
@@ -258,6 +263,7 @@ export default function ProfileScreen() {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | { phase: "preparing" | "uploading" | "processing" | "complete"; progress: number } | null>(null);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [uploadContext, setUploadContext] = useState<'post' | 'gallery' | 'avatar' | 'cover' | 'video'>('post');
+  const [isUploading, setIsUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // -- SHARED MODAL STATE --
@@ -302,6 +308,8 @@ export default function ProfileScreen() {
   const [jobModalVisible, setJobModalVisible] = useState(false);
   const [jobForm, setJobForm] = useState<{title: string; description: string; cover_image: string; job_type: string; requirements: string; salary_range: string; work_location: string; expires_at: string}>({ title: "", description: "", cover_image: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "" });
   const [jobSaving, setJobSaving] = useState(false);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [editingRentalId, setEditingRentalId] = useState<string | null>(null);
 
   const [rentalModalVisible, setRentalModalVisible] = useState(false);
   const [rentalForm, setRentalForm] = useState<{title: string; description: string; cover_image: string; rent_price: string; rooms_size: string; address: string; latitude: number | null; longitude: number | null; available_from: string; deposit: string; property_type: string; gallery_images: string[]}>({ title: "", description: "", cover_image: "", rent_price: "", rooms_size: "", address: "", latitude: null, longitude: null, available_from: "", deposit: "", property_type: "", gallery_images: [] });
@@ -1088,7 +1096,8 @@ const handleUpdateSlug = async (newSlug: string) => {
 
   // Business gallery handlers
   const handleAddBusinessGalleryPhoto = async () => {
-    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
+    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business" || isUploading) return;
+    setIsUploading(true);
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
@@ -1112,10 +1121,12 @@ const handleUpdateSlug = async (newSlug: string) => {
         Alert.alert(t("common.error", "Error"), t("business.failedUploadImage", "Failed to upload image"));
       }
     }
+    setIsUploading(false);
   };
 
   const handleAddBusinessGalleryVideo = async () => {
-    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
+    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business" || isUploading) return;
+    setIsUploading(true);
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["videos"],
       allowsEditing: true,
@@ -1143,6 +1154,7 @@ const handleUpdateSlug = async (newSlug: string) => {
         Alert.alert(t("common.error", "Error"), t("business.failedUploadVideo", "Failed to upload video"));
       }
     }
+    setIsUploading(false);
   };
 
   const handleDeleteBusinessGalleryImage = async (index: number) => {
@@ -1705,14 +1717,13 @@ handleCreatePost={handleCreatePost}
                  showMentionSuggestions={showMentionSuggestions}
                  mentionSuggestions={filteredSuggestions}
                  onSelectMention={selectMention}
-                 pendingMentionIds={pendingMentionIds}
-                  onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
-                  onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
-                  onCreateStory={() => router.push("/camera")}
-               />
-             )}
+                  pendingMentionIds={pendingMentionIds}
+                   onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
+                   onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
+                />
+              )}
 
-        {activeIdentity?.type === 'business' && businessDetail && (
+         {activeIdentity?.type === 'business' && businessDetail && (
            <BusinessProfilePremium
               business={businessDetail}
               sessionToken={sessionToken || ""}
@@ -1761,6 +1772,20 @@ postText={postText}
                 onSelectMention={selectMention}
                 pendingMentionIds={pendingMentionIds}
                 jobs={bizJobs}
+               handleEditJob={(job) => {
+                 setJobForm({
+                   title: job.title || "",
+                   description: job.description || "",
+                   cover_image: job.cover_image || "",
+                   job_type: job.job_type || "",
+                   requirements: job.requirements || "",
+                   salary_range: job.salary_range || "",
+                   work_location: job.work_location || "",
+                   expires_at: job.expires_at || "",
+                 });
+                 setEditingJobId(job.job_id || null);
+                 setJobModalVisible(true);
+               }}
                openJobModal={() => setJobModalVisible(true)}
                handleDeleteJob={(jobId) => {
                  Alert.alert(
@@ -1781,6 +1806,24 @@ postText={postText}
                  );
                }}
                rentals={businessDetail?.rentals || []}
+               handleEditRental={(rental) => {
+                 setRentalForm({
+                   title: rental.title || "",
+                   description: rental.description || "",
+                   cover_image: rental.cover_image || "",
+                   rent_price: rental.rent_price || "",
+                   rooms_size: rental.rooms_size || "",
+                   address: rental.address || "",
+                   latitude: rental.latitude ?? null,
+                   longitude: rental.longitude ?? null,
+                   available_from: rental.available_from || "",
+                   deposit: rental.deposit || "",
+                   property_type: rental.property_type || "",
+                   gallery_images: rental.gallery_images || [],
+                 });
+                 setEditingRentalId(rental.rental_id || null);
+                 setRentalModalVisible(true);
+               }}
                openRentalModal={() => setRentalModalVisible(true)}
                handleDeleteRental={(rentalId) => {
                  Alert.alert(
@@ -1811,8 +1854,9 @@ postText={postText}
               openSocialLinksModal={() => setSocialLinksModalVisible(true)}
               galleryImages={bizGalleryImages}
               galleryVideos={bizGalleryVideos}
-              handleAddGalleryPhoto={handleAddBusinessGalleryPhoto}
-              handleAddGalleryVideo={handleAddBusinessGalleryVideo}
+               handleAddGalleryPhoto={handleAddBusinessGalleryPhoto}
+               handleAddGalleryVideo={handleAddBusinessGalleryVideo}
+               isUploading={isUploading}
               handleDeleteGalleryImage={handleDeleteBusinessGalleryImage}
               handleDeleteGalleryVideo={handleDeleteBusinessGalleryVideo}
                openMediaViewer={() => {}}
@@ -1831,12 +1875,52 @@ onDeletePost={handleDeletePost}
 currentUserId={businessDetail?.business?.business_id}
                 isOwnProfile={activeIdentity?.type === 'business'}
                  identityPicker={identityPicker}
-                 onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
-                 onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
-                 onCreateStory={() => router.push("/camera")}
-               />
-            )}
-      </View>
+                  onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
+                  onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
+                  onUploadCityAd={async () => {
+                    if (!sessionToken) return;
+                    const result = await ImagePicker.launchImageLibraryAsync({
+                      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+                      quality: 0.7,
+                    });
+                    if (result.canceled || !result.assets?.[0]?.uri) return;
+                    try {
+                      const story = await createStory(sessionToken, {
+                        media_url: undefined,
+                        media_type: "video",
+                        actor_type: "business",
+                        video_status: "uploading",
+                      });
+                      const muxResult = await uploadVideoMux(sessionToken, result.assets[0].uri, `story:${story.story_id}`);
+                      const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+                      if (videoUrl || muxResult.mux_upload_id) {
+                        await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
+                          media_url: videoUrl || undefined,
+                          mux_upload_id: muxResult.mux_upload_id,
+                          mux_asset_id: muxResult.mux_asset_id,
+                          mux_playback_id: muxResult.mux_playback_id,
+                          mux_thumbnail_url: muxResult.mux_thumbnail_url,
+                          video_status: muxResult.mux_playback_id ? "ready" : "processing",
+                        });
+                      }
+                      Alert.alert(t("cityAd.adPublished") || "Your city ad has been published!");
+                    } catch (e) {
+                      console.error("City ad creation failed:", e);
+                      Alert.alert(t("common.error"), "Failed to create city ad");
+                    }
+                  }}
+                  onPlan={() => {
+                    const biz = businessDetail?.business;
+                    if (biz) {
+                      router.push({
+                        pathname: "/plan",
+                        params: { businessId: biz.business_id }
+                      });
+                    }
+                  }}
+                />
+             )}
+        </View>
       <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={uploadContext} mode="inline" onDismiss={() => { setShowUploadProgress(false); setUploadProgress(null); }} />
       <Modal visible={themedAlertVisible} transparent animationType="fade">
         <View style={styles.themedAlertOverlay}>
@@ -1934,7 +2018,7 @@ currentUserId={businessDetail?.business?.business_id}
             setJobSaving(true);
             try {
               const businessId = activeIdentity?.id;
-              await createJob(sessionToken, {
+              const jobData = {
                 title: jobForm.title,
                 description: jobForm.description,
                 cover_image: jobForm.cover_image || undefined,
@@ -1945,12 +2029,18 @@ currentUserId={businessDetail?.business?.business_id}
                 salary_range: jobForm.salary_range || undefined,
                 work_location: jobForm.work_location || undefined,
                 expires_at: jobForm.expires_at || undefined,
-              });
+              };
+              if (editingJobId) {
+                await updateJob(sessionToken, editingJobId, jobData);
+              } else {
+                await createJob(sessionToken, jobData);
+              }
               setJobModalVisible(false);
+              setEditingJobId(null);
               setJobForm({ title: "", description: "", cover_image: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "" });
               loadBusinessProfile();
             } catch (error) {
-              console.error("Failed to create job:", error);
+              console.error("Failed to save job:", error);
             }
             setJobSaving(false);
           }}
@@ -1991,7 +2081,7 @@ currentUserId={businessDetail?.business?.business_id}
                   uploadedGallery.push(img);
                 }
               }
-              await createRental(sessionToken, {
+              const rentalData = {
                 title: rentalForm.title,
                 description: rentalForm.description,
                 cover_image: coverImageUrl || undefined,
@@ -2004,8 +2094,14 @@ currentUserId={businessDetail?.business?.business_id}
                 deposit: rentalForm.deposit || undefined,
                 property_type: rentalForm.property_type || undefined,
                 gallery_images: uploadedGallery,
-              });
+              };
+              if (editingRentalId) {
+                await updateRental(sessionToken, editingRentalId, rentalData);
+              } else {
+                await createRental(sessionToken, rentalData);
+              }
               setRentalModalVisible(false);
+              setEditingRentalId(null);
               setRentalForm({ title: "", description: "", cover_image: "", rent_price: "", rooms_size: "", address: "", latitude: null, longitude: null, available_from: "", deposit: "", property_type: "", gallery_images: [] });
               loadBusinessProfile();
             } catch (error) {
@@ -2022,6 +2118,7 @@ currentUserId={businessDetail?.business?.business_id}
       {/* User Edit Profile Modal */}
       <Modal visible={userEditModalVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t("profile.editProfile", "Edit Profile")}</Text>
             <Pressable onPress={() => setUserEditModalVisible(false)}>
@@ -2077,12 +2174,14 @@ currentUserId={businessDetail?.business?.business_id}
               {savingInfo ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t("common.save", "Save")}</Text>}
             </Pressable>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
       {/* Business Edit Profile Modal */}
       <Modal visible={bizEditModalVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t("business.editInfo", "Edit Business")}</Text>
             <Pressable onPress={() => setBizEditModalVisible(false)}>
@@ -2201,6 +2300,7 @@ currentUserId={businessDetail?.business?.business_id}
               {bizSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t("business.saveChanges", "Save Changes")}</Text>}
             </Pressable>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
