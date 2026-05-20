@@ -153,12 +153,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Register for notifications when user logs in
-  useEffect(() => {
-    if (sessionToken && user) {
-      registerForPushNotifications();
-    }
-  }, [sessionToken, user]);
+  // Token registration now handled by _layout.tsx PushNotificationManager
+  // useEffect(() => {
+  //   if (sessionToken && user) {
+  //     registerForPushNotifications();
+  //   }
+  // }, [sessionToken, user]);
 
   // Re-register token when it changes
   useEffect(() => {

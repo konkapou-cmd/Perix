@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   reactionBar: {
     position: "absolute",
-    bottom: 40,
+    bottom: 80,
     left: 0,
     right: 0,
     alignItems: "center",

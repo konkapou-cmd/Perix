@@ -109,11 +109,12 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
           <AdaptiveVideo
             uri={post.video_url}
             style={styles.postVideo}
-            autoPlay={true}
-            showMuteButton={true}
-            initialMuted={true}
-            pauseWhenNotVisible={true}
-            ratio={post.media_ratio || undefined}
+      autoPlay={true}
+                      showMuteButton={true}
+                      initialMuted={true}
+                      pauseWhenNotVisible={true}
+                      resizeMode="contain"
+                      ratio={post.media_ratio || undefined}
             maxHeight={470}
             borderRadius={8}
             videoStatus={post.video_status}

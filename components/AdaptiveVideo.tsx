@@ -1,8 +1,70 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Pressable, StyleProp, StyleSheet, View, ViewStyle, Platform, Linking, Text, Image as RNImage, Dimensions, ActivityIndicator } from "react-native";
-import { AVPlaybackStatus, Video, ResizeMode } from "expo-av";
+import React, { useEffect, useRef, useState } from "react";
+import { Dimensions, Pressable, StyleProp, StyleSheet, View, ViewStyle, Text, Image as RNImage, ActivityIndicator } from "react-native";
+import { useVideoPlayer, VideoView, VideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../lib/designTokens";
+
+// ─── Playback coordinator ───────────────────────────────────────
+// Ensures only the single best-centered visible video plays at any time.
+class PlaybackCoordinator {
+  private videos = new Map<string, {
+    player: VideoPlayer;
+    offset: () => number;
+    shouldPlay: () => boolean;
+  }>();
+  private activeId: string | null = null;
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private threshold: number;
+
+  constructor() {
+    this.threshold = Dimensions.get("window").height * 0.55;
+  }
+
+  register(id: string, player: VideoPlayer, offset: () => number, shouldPlay: () => boolean) {
+    this.videos.set(id, { player, offset, shouldPlay });
+    this.start();
+  }
+
+  unregister(id: string) {
+    this.videos.delete(id);
+    if (this.videos.size === 0) this.stop();
+    if (this.activeId === id) this.activeId = null;
+  }
+
+  private start() {
+    if (this.timer) return;
+    this.timer = setInterval(() => this.evaluate(), 300);
+  }
+
+  private stop() {
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+  }
+
+  private evaluate() {
+    let bestId: string | null = null;
+    let bestOffset = Infinity;
+    for (const [id, entry] of this.videos) {
+      const off = entry.offset();
+      if (off < bestOffset) { bestOffset = off; bestId = id; }
+    }
+    if (bestId === this.activeId) return;
+    // Pause previous
+    if (this.activeId) {
+      try { this.videos.get(this.activeId)?.player.pause(); } catch (_) {}
+    }
+    this.activeId = null;
+    // Play new if close enough to center
+    const bestEntry = bestId ? this.videos.get(bestId) : undefined;
+    if (bestEntry && bestOffset < this.threshold && bestEntry.shouldPlay()) {
+      try { bestEntry.player.play(); } catch (_) {}
+      this.activeId = bestId;
+    }
+  }
+}
+
+const coordinator = new PlaybackCoordinator();
+let videoIdCounter = 0;
+// ────────────────────────────────────────────────────────────────
 
 type AdaptiveVideoProps = {
   uri?: string;
@@ -15,42 +77,20 @@ type AdaptiveVideoProps = {
   initialMuted?: boolean;
   onMuteChange?: (muted: boolean) => void;
   onPlay?: () => void;
-  useNativeControls?: boolean;
-  resizeMode?: ResizeMode | string;
-  pauseWhenNotVisible?: boolean;
+  resizeMode?: "contain" | "cover";
   videoStatus?: string | null;
   muxThumbnailUrl?: string | null;
   maxHeight?: number;
   borderRadius?: number;
   onPress?: () => void;
+  pauseWhenNotVisible?: boolean;
+  useNativeControls?: boolean;
 };
 
 const DEFAULT_MAX_HEIGHT = 470;
 
-function getYouTubeVideoId(url: string): string | null {
-  if (!url) return null;
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([^&\s?#]+)/,
-    /^([a-zA-Z0-9_-]{11})$/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match && match[1]) return match[1];
-  }
-  return null;
-}
-
-function isYouTubeUrl(url: string): boolean {
-  if (!url) return false;
-  return url.includes('youtube.com') || url.includes('youtu.be');
-}
-
-function isMuxUrl(url: string): boolean {
-  return !!url && (url.includes('stream.mux.com') || url.includes('mux.com'));
-}
-
 function isMuxProcessingPlaceholder(url: string): boolean {
-  return !!url && url.startsWith('mux://');
+  return !!url && url.startsWith("mux://");
 }
 
 export default function AdaptiveVideo({
@@ -64,98 +104,97 @@ export default function AdaptiveVideo({
   initialMuted = false,
   onMuteChange,
   onPlay,
-  useNativeControls = false,
-  resizeMode,
-  pauseWhenNotVisible = true,
+  resizeMode = "cover",
   videoStatus,
   muxThumbnailUrl,
   maxHeight = DEFAULT_MAX_HEIGHT,
   borderRadius = 0,
   onPress,
+  pauseWhenNotVisible = false,
+  useNativeControls = false,
 }: AdaptiveVideoProps) {
   const videoUri = uri || source?.uri || "";
-  const videoRef = useRef<Video>(null);
-  const containerRef = useRef<View>(null);
-  const [aspectRatio, setAspectRatio] = useState(ratio || 16 / 9);
-  const [isMuted, setIsMuted] = useState(initialMuted);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [showYouTubePlayer, setShowYouTubePlayer] = useState(false);
-  const [hasPlaybackStarted, setHasPlaybackStarted] = useState(false);
-
-  const youtubeVideoId = getYouTubeVideoId(videoUri);
-  const isYouTube = isYouTubeUrl(videoUri) || !!youtubeVideoId;
   const isProcessing = videoStatus === "processing" || isMuxProcessingPlaceholder(videoUri);
+  const containerRef = useRef<View>(null);
+  const shouldPlayRef = useRef(autoPlay);
+  const videoIdRef = useRef<string | null>(null);
 
-  const checkVisibility = useCallback(() => {
-    if (!containerRef.current || !pauseWhenNotVisible) return;
-    containerRef.current.measureInWindow((x, y, width, height) => {
-      const screenHeight = Dimensions.get('window').height;
-      const visibleTop = Math.max(0, y);
-      const visibleBottom = Math.min(screenHeight, y + height);
-      const visibleHeight = visibleBottom - visibleTop;
-      setIsVisible(visibleHeight > height * 0.5);
-    });
-  }, [pauseWhenNotVisible]);
+  const player = useVideoPlayer(videoUri, (p) => {
+    p.loop = isLooping;
+    p.muted = initialMuted;
+    if (autoPlay) p.play();
+  });
+
+  const [isPlaying, setIsPlaying] = useState(autoPlay);
+  const [isMuted, setIsMuted] = useState(initialMuted);
 
   useEffect(() => {
-    if (!autoPlay || !pauseWhenNotVisible || isYouTube) return;
-    if (isVisible && videoRef.current && hasPlaybackStarted) {
-      videoRef.current.playAsync();
-    } else if (!isVisible && videoRef.current) {
-      videoRef.current.pauseAsync();
-    }
-  }, [isVisible, autoPlay, pauseWhenNotVisible, isYouTube, hasPlaybackStarted]);
+    const sub = player.addListener("playingChange", (e) => {
+      setIsPlaying(e.isPlaying);
+      if (e.isPlaying) onPlay?.();
+    });
+    return () => sub.remove();
+  }, [player, onPlay]);
 
-  useEffect(() => { if (ratio) setAspectRatio(ratio); }, [ratio]);
-  useEffect(() => { setIsMuted(initialMuted); }, [initialMuted]);
+  useEffect(() => {
+    if (player) player.muted = isMuted;
+  }, [isMuted, player]);
 
-  const handleLoad = async (status: AVPlaybackStatus) => {
-    if (!status.isLoaded) return;
-    const statusAny = status as any;
-    const natural = statusAny.naturalSize as { width?: number; height?: number };
-    if (natural?.width && natural?.height) {
-      setAspectRatio(natural.width / natural.height);
-    } else {
-      const orientation = statusAny.naturalSize?.orientation;
-      if (orientation === "portrait") setAspectRatio(9 / 16);
-    }
-    if (videoRef.current) await videoRef.current.setIsMutedAsync(isMuted);
-    setHasPlaybackStarted(true);
-    if (autoPlay && isVisible && videoRef.current) {
-      try {
-        await videoRef.current.playAsync();
-        setIsPlaying(true);
-        onPlay?.();
-      } catch (error) {
-        console.log("Auto-play failed:", error);
-      }
-    }
-  };
+  useEffect(() => {
+    if (player) player.loop = isLooping;
+  }, [isLooping, player]);
 
-  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      const wasPlaying = isPlaying;
-      setIsPlaying(status.isPlaying);
-      if (status.isPlaying && !wasPlaying) onPlay?.();
-    }
-  };
+  useEffect(() => {
+    if (!pauseWhenNotVisible || !player || isProcessing || !videoUri) return;
+    const id = `v${++videoIdCounter}`;
+    videoIdRef.current = id;
+    const centerRef = { current: Infinity };
 
-  const toggleMute = async () => {
+    coordinator.register(
+      id,
+      player,
+      () => centerRef.current,
+      () => shouldPlayRef.current,
+    );
+
+    let mounted = true;
+    const measure = () => {
+      if (!mounted || !containerRef.current) return;
+      containerRef.current.measureInWindow((x, y, w, h) => {
+        if (!mounted) return;
+        const sh = Dimensions.get("window").height;
+        const vt = Math.max(0, y);
+        const vb = Math.min(sh, y + h);
+        const vh = vb - vt;
+        if (vh < h * 0.5) { centerRef.current = Infinity; return; }
+        const vc = y + h / 2;
+        const sc = sh / 2;
+        centerRef.current = Math.abs(vc - sc);
+      });
+    };
+    const interval = setInterval(measure, 300);
+    measure();
+    return () => {
+      coordinator.unregister(id);
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [pauseWhenNotVisible, player, isProcessing, videoUri]);
+
+  const toggleMute = () => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
     onMuteChange?.(newMuted);
-    if (videoRef.current) await videoRef.current.setIsMutedAsync(newMuted);
   };
 
-  const togglePlayPause = async () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        await videoRef.current.pauseAsync();
-      } else {
-        await videoRef.current.playAsync();
-        setHasPlaybackStarted(true);
-      }
+  const togglePlayPause = () => {
+    shouldPlayRef.current = !isPlaying;
+    if (isPlaying) {
+      player.pause();
+      setIsPlaying(false);
+    } else {
+      player.play();
+      setIsPlaying(true);
     }
   };
 
@@ -164,15 +203,11 @@ export default function AdaptiveVideo({
       onPress();
       return;
     }
-    if (autoPlay) {
-      togglePlayPause();
-    }
+    togglePlayPause();
   };
 
-  const effectiveResizeMode = (resizeMode as ResizeMode) || ResizeMode.COVER;
-
   const containerStyle: ViewStyle = {
-    aspectRatio,
+    aspectRatio: ratio || 16 / 9,
     maxHeight,
     borderRadius,
     overflow: "hidden",
@@ -182,14 +217,8 @@ export default function AdaptiveVideo({
   if (isProcessing) {
     const thumbUri = muxThumbnailUrl || null;
     return (
-      <View
-        ref={containerRef}
-        style={[containerStyle, style]}
-        onLayout={checkVisibility}
-      >
-        {thumbUri ? (
-          <RNImage source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : null}
+      <View ref={containerRef} style={[containerStyle, style]}>
+        {thumbUri && <RNImage source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
         <View style={styles.processingOverlay}>
           <ActivityIndicator size="large" color="#fff" />
           <Text style={styles.processingText}>Processing video...</Text>
@@ -198,67 +227,26 @@ export default function AdaptiveVideo({
     );
   }
 
-  if (isYouTube && youtubeVideoId) {
-    const thumbnailUrl = `https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg`;
-    const youtubeEmbedUrl = `https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&rel=0`;
-    const youtubeAppUrl = `https://www.youtube.com/watch?v=${youtubeVideoId}`;
-
-    if (Platform.OS === 'web' && showYouTubePlayer) {
-      return (
-        <View style={[containerStyle, style]}>
-          <iframe src={youtubeEmbedUrl} style={{ width: '100%', height: '100%', border: 'none' }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-          <Pressable style={styles.closeButton} onPress={() => setShowYouTubePlayer(false)}>
-            <Ionicons name="close" size={20} color="#fff" />
-          </Pressable>
-        </View>
-      );
-    }
-
-    return (
-      <Pressable
-        ref={containerRef}
-        style={[containerStyle, style]}
-        onLayout={checkVisibility}
-        onPress={() => {
-          if (Platform.OS === 'web') setShowYouTubePlayer(true);
-          else Linking.openURL(youtubeAppUrl);
-        }}
-      >
-        <RNImage source={{ uri: thumbnailUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        <View style={styles.youtubeOverlay}>
-          <View style={styles.youtubePlayButton}>
-            <Ionicons name="logo-youtube" size={50} color="#ff0000" />
-          </View>
-          <Text style={styles.youtubeBadge}>YouTube</Text>
-        </View>
-      </Pressable>
-    );
+  if (!videoUri) {
+    return <View ref={containerRef} style={[containerStyle, style]} />;
   }
 
   const videoContent = (
-    <View
-      ref={containerRef}
-      style={[containerStyle, style]}
-      onLayout={checkVisibility}
-    >
-      <Video
-        ref={videoRef}
-        source={{ uri: videoUri }}
-        style={StyleSheet.absoluteFill}
-        useNativeControls={useNativeControls || !autoPlay}
-        resizeMode={effectiveResizeMode}
-        isLooping={isLooping}
-        isMuted={isMuted}
-        shouldPlay={autoPlay && isVisible && hasPlaybackStarted}
-        onLoad={handleLoad}
-        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-      />
+    <View ref={containerRef} style={[containerStyle, style]}>
+      {player && (
+        <VideoView
+          player={player}
+          style={StyleSheet.absoluteFill}
+          contentFit={resizeMode}
+          nativeControls={useNativeControls}
+        />
+      )}
       {showMuteButton && (
         <Pressable style={styles.muteButton} onPress={toggleMute}>
           <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
         </Pressable>
       )}
-      {!isPlaying && hasPlaybackStarted && autoPlay && (
+      {!isPlaying && (
         <Pressable style={styles.playPauseOverlay} onPress={handlePress}>
           <View style={styles.playButton}>
             <Ionicons name="play" size={40} color="#fff" />
@@ -298,43 +286,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 40,
     padding: 10,
-  },
-  youtubeOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
-  youtubePlayButton: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 50,
-    padding: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  youtubeBadge: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    backgroundColor: "#ff0000",
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "700",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  closeButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 20,
-    padding: 8,
-    zIndex: 10,
   },
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,

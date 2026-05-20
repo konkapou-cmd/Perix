@@ -401,7 +401,8 @@ export default function BusinessDetailScreen() {
           pickPostVideo={pickPostVideo}
           handleCreatePost={handleCreatePost}
           isOwnProfile={false}
-          jobs={[]}
+          jobs={businessDetail.jobs || []}
+          rentals={businessDetail.rentals || []}
           openJobModal={() => {}}
           handleDeleteJob={() => {}}
           fanGalleryPosts={[]}

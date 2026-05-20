@@ -1,7 +1,9 @@
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +15,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
-import { Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 
@@ -68,6 +69,7 @@ export default function JobModal({
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.modalContainer}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={styles.modalHeader}>
           <Pressable onPress={onClose} style={styles.headerButton}>
             <Ionicons name="close" size={28} color="#111827" />
@@ -155,6 +157,7 @@ export default function JobModal({
             )}
           </Pressable>
         </ScrollView>
+      </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

@@ -74,11 +74,10 @@ export const ProfileAboutInline: React.FC<Props> = ({
 
   const hasBio = !!data.bio;
   const hasLocation = !!data.location;
-  const hasCategory = data.type === "business" && !!data.category;
   const hasHours = data.type === "business" && data.openingHours && Object.keys(data.openingHours).length > 0;
   const hasContact = !!(data.website || data.email || data.phone);
   const hasSocials = !!(data.socialLinks && Object.keys(data.socialLinks).length > 0);
-  const hasAnyInfo = hasBio || hasCategory || hasHours || hasContact || hasSocials || hasLocation;
+  const hasAnyInfo = hasBio || hasHours || hasContact || hasSocials || hasLocation;
 
   if (!hasAnyInfo) return null;
 
@@ -88,14 +87,6 @@ export const ProfileAboutInline: React.FC<Props> = ({
         <Text style={[s.bio, { color: textColor }, themeStyles]} numberOfLines={3}>
           {data.bio}
         </Text>
-      )}
-
-      {hasCategory && (
-        <View style={s.categoryRow}>
-          <View style={[s.categoryBadge, { backgroundColor: primaryColor }]}>
-            <Text style={s.categoryText}>{data.category}</Text>
-          </View>
-        </View>
       )}
 
       {hasHours && (
@@ -176,20 +167,6 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.body,
     lineHeight: 20,
     marginTop: SPACING.xs,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    marginTop: SPACING.sm,
-  },
-  categoryBadge: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.full,
-  },
-  categoryText: {
-    color: "#fff",
-    fontSize: FONT_SIZES.small,
-    fontWeight: FONT_WEIGHTS.semibold as any,
   },
   hoursCard: {
     marginTop: SPACING.md,

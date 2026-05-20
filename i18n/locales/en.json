@@ -580,6 +580,9 @@
     "contentCreation": "Content creation",
     "shareUpdate": "Share a business update",
     "publishStory": "Publish story",
+    "createEvent": "Create Event",
+    "createJob": "Create Job",
+    "publishRental": "Publish Rental",
     "events": "Events",
     "addEvent": "Add event",
     "noEvents": "No events yet.",
@@ -1195,6 +1198,15 @@
     "noStoriesYet": "No stories yet",
     "addStory": "Add story",
     "storyPublished": "Your story has been published!"
+  },
+  "cityAd": {
+    "sectionTitle": "City Ads",
+    "yourAd": "Your Ad",
+    "noAds": "No ads yet",
+    "adPublished": "Your city ad has been published!",
+    "createAd": "Create City Ad",
+    "maxDuration": "City Ads must be under 3 minutes",
+    "uploadingAd": "Uploading your ad..."
   },
   "calls": {
     "calling": "Calling...",

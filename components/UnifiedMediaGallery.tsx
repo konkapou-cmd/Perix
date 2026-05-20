@@ -73,6 +73,7 @@ export default function UnifiedMediaGallery({
       onChange([...media, ...newItems].slice(0, maxItems));
     }
     setUploadingIndex(null);
+    setItemProgress({});
     if (failCount > 0) {
       Alert.alert(
         t("common.error") || "Error",
@@ -116,6 +117,7 @@ export default function UnifiedMediaGallery({
       );
     } finally {
       setUploadingIndex(null);
+      setItemProgress({});
     }
   };
 
@@ -132,7 +134,7 @@ export default function UnifiedMediaGallery({
       <Pressable style={s.heroContainer} onPress={media.length === 0 && isCreator ? addImages : undefined}>
         {coverItem ? (
           coverItem.type === "video" ? (
-            <AdaptiveVideo uri={coverItem.uri} style={s.heroImage} useNativeControls isLooping={false} />
+            <AdaptiveVideo uri={coverItem.uri} style={s.heroImage} resizeMode="contain" isLooping={false} autoPlay />
           ) : (
             <Image source={{ uri: coverItem.uri }} style={s.heroImage} resizeMode="cover" />
           )
@@ -173,14 +175,24 @@ export default function UnifiedMediaGallery({
                     size={gridItemSize}
                   />
                 ) : item.type === "video" ? (
-                  <AdaptiveVideo uri={item.uri} style={s.gridImage} useNativeControls isLooping={false} />
+                  <AdaptiveVideo uri={item.uri} style={s.gridImage} resizeMode="contain" isLooping={false} autoPlay />
                 ) : (
-                  <AdaptiveImage uri={item.uri} style={s.gridImage} />
+                  <AdaptiveImage uri={item.uri} style={s.gridImage} resizeMode="contain" />
                 )}
                 {!isUploading && !progress && isCreator && (
-                  <Pressable style={s.removeGridBtn} onPress={() => removeItem(realIdx)}>
-                    <Ionicons name="close-circle" size={20} color={COLORS.danger} />
-                  </Pressable>
+                  <View style={s.gridActions}>
+                    {media.length > 1 && realIdx !== 0 && (
+                      <Pressable style={s.setCoverBtn} onPress={() => {
+                        const newMedia = [item, ...media.filter((_, i) => i !== realIdx)];
+                        onChange(newMedia);
+                      }}>
+                        <Ionicons name="star-outline" size={14} color="#fff" />
+                      </Pressable>
+                    )}
+                    <Pressable style={s.removeGridBtn} onPress={() => removeItem(realIdx)}>
+                      <Ionicons name="close-circle" size={20} color={COLORS.danger} />
+                    </Pressable>
+                  </View>
                 )}
               </View>
             );
@@ -190,7 +202,7 @@ export default function UnifiedMediaGallery({
 
       {isCreator && media.length < maxItems && (
         <View style={s.addRow}>
-          <Pressable style={s.addBtn} onPress={addImages}>
+          <Pressable style={s.addBtn} onPress={addImages} disabled={uploadingIndex !== null}>
             <Ionicons name="image-outline" size={20} color={COLORS.primary} />
             <Text style={s.addBtnText}>{t("activities.addPhoto") || "Photo"}</Text>
           </Pressable>
@@ -288,24 +300,42 @@ const s = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
     marginVertical: SPACING.sm,
   },
   gridItem: {
     position: "relative",
     width: "31%",
-    aspectRatio: 1,
+    height: gridItemSize,
+    overflow: "hidden",
+    backgroundColor: "#1f2937",
+    borderRadius: BORDER_RADIUS.md,
+    justifyContent: "center",
+    alignItems: "center",
   },
   gridImage: {
     width: "100%",
     height: "100%",
-    borderRadius: BORDER_RADIUS.md,
   },
   removeGridBtn: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    backgroundColor: COLORS.background,
+    padding: 4,
+    backgroundColor: "rgba(0,0,0,0.4)",
     borderRadius: 10,
+  },
+  gridActions: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    flexDirection: "row",
+    gap: 4,
+  },
+  setCoverBtn: {
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 12,
+    width: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   addRow: {
     flexDirection: "row",

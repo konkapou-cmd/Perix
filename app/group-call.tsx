@@ -464,7 +464,7 @@ export default function GroupCallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#1a1a2e",
   },
   loadingContainer: {
     flex: 1,
@@ -490,22 +490,22 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   callSubtitle: {
-    color: "#94a3b8",
+    color: "#6b7280",
     fontSize: 14,
     marginTop: 2,
   },
   viewModeToggle: {
     flexDirection: "row",
     backgroundColor: "#1e293b",
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 4,
   },
   viewModeBtn: {
     padding: 8,
-    borderRadius: 6,
+    borderRadius: 12,
   },
   viewModeBtnActive: {
-    backgroundColor: "#000000",
+    backgroundColor: "rgba(76, 111, 255, 0.8)",
   },
   videoArea: {
     flex: 1,
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   thumbnailName: {
-    color: "#94a3b8",
+    color: "#6b7280",
     fontSize: 12,
     marginTop: 4,
     textAlign: "center",
@@ -633,8 +633,8 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 16,
     backgroundColor: "#1e293b",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   controlBtn: {
     alignItems: "center",
@@ -663,8 +663,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#1e293b",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     padding: 20,
     maxHeight: "70%",
   },
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   modalSubtitle: {
-    color: "#94a3b8",
+    color: "#6b7280",
     fontSize: 14,
     marginBottom: 16,
   },
@@ -689,7 +689,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyText: {
-    color: "#94a3b8",
+    color: "#6b7280",
     fontSize: 14,
     textAlign: "center",
   },

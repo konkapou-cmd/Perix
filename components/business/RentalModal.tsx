@@ -1,7 +1,9 @@
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -96,6 +98,7 @@ export default function RentalModal({
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={styles.header}>
           <Pressable onPress={onClose} style={styles.headerBtn}>
             <Ionicons name="close" size={24} color={COLORS.primary} />
@@ -227,6 +230,7 @@ export default function RentalModal({
 
           <View style={{ height: 40 }} />
         </ScrollView>
+      </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

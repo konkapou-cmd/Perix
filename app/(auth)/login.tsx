@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../context/AuthContext";
 import { LANGUAGES, setStoredLanguage } from "../../i18n";
 
@@ -52,7 +53,8 @@ export default function LoginScreen() {
       setLoading(true);
       setErrorMessage("");
       await login(email.trim(), password);
-      router.replace("/onboarding");
+      const done = await AsyncStorage.getItem("@onboarding_complete");
+      router.replace(done === "true" ? "/(tabs)/home" : "/onboarding");
     } catch (error) {
       const message = error instanceof Error ? error.message : t("auth.checkCredentials");
       setErrorMessage(message);
@@ -63,7 +65,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.container}

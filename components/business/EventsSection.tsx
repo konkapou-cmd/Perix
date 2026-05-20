@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { EventItem } from "../../lib/api";
 import { EVENT_THEMES, DEFAULT_EVENT_THEME } from "../../lib/api/events";
-import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { FONT_SIZES, FONT_WEIGHTS } from "../../lib/designTokens";
+import AdaptiveVideo from "../AdaptiveVideo";
 
 type Props = {
   events: EventItem[];
@@ -32,310 +33,105 @@ function formatEventDate(startTime: string): string {
   }
 }
 
-function formatEventTime(startTime: string): string | null {
-  try {
-    const d = new Date(startTime);
-    return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return null;
-  }
-}
-
 export default function EventsSection({
   events,
   onAddEvent,
   onEditEvent,
   onDeleteEvent,
   readOnly = false,
-  primaryColor = COLORS.primary,
-  cardColor = "#fff",
-  textColor = COLORS.textPrimary,
-  secondaryColor = COLORS.textSecondary,
 }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
 
   return (
-    <View style={s.container}>
-      <View style={s.sectionHeader}>
-        <Text style={[s.cardTitle, { color: textColor }]}>{t("business.events")}</Text>
-        {!readOnly && (
-          <Pressable style={[s.addButton, { backgroundColor: primaryColor }]} onPress={onAddEvent}>
-            <Ionicons name="add-circle" size={18} color="#fff" />
-            <Text style={s.addButtonText}>{t("business.addEvent")}</Text>
-          </Pressable>
-        )}
-      </View>
-
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>{t("business.events")}</Text>
       {events.length === 0 ? (
-        <View style={s.emptyState}>
-          <View style={[s.emptyIcon, { backgroundColor: `${primaryColor}20` }]}>
-            <Ionicons name="calendar" size={32} color={primaryColor} />
-          </View>
-          <Text style={[s.emptyTitle, { color: textColor }]}>{t("business.noEvents")}</Text>
-          <Text style={[s.emptySubtitle, { color: secondaryColor }]}>
-            {t("business.noEventsSubtitle", "Events you create will appear here")}
-          </Text>
-        </View>
+        <Text style={styles.emptyText}>{t("business.noEvents")}</Text>
       ) : (
-        <View style={s.grid}>
-          {events.map((event) => {
-            const theme = getThemeInfo(event.theme);
-            const imageUrl = event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0];
-            const showPrivate = event.is_private;
-
-            return (
-              <View key={event.event_id} style={[s.card, { backgroundColor: cardColor }]}>
-                <Pressable
-                  style={s.cardContent}
-                  onPress={() => router.push(`/event/${event.event_id}`)}
-                >
-                  <View style={s.imageContainer}>
-                    {imageUrl ? (
-                      <Image source={{ uri: imageUrl }} style={s.image} resizeMode="cover" />
-                    ) : (
-                      <View style={[s.imagePlaceholder, { backgroundColor: `${theme.color}30` }]}>
-                        <Text style={s.themeEmoji}>{theme.emoji}</Text>
-                      </View>
-                    )}
-                    {showPrivate && (
-                      <View style={s.privateBadge}>
-                        <Ionicons name="lock-closed" size={12} color="#fff" />
-                      </View>
-                    )}
-                    <View style={[s.themeBadge, { backgroundColor: theme.color }]}>
-                      <Text style={s.themeBadgeEmoji}>{theme.emoji}</Text>
-                      <Text style={s.themeBadgeLabel}>{theme.label}</Text>
-                    </View>
-                    {event.is_attending && (
-                      <View style={s.attendingBadge}>
-                        <Ionicons name="checkmark-circle" size={10} color="#fff" />
-                        <Text style={s.attendingText}>{t("events.attending", "Attending")}</Text>
-                      </View>
-                    )}
-                    {event.is_creator && !event.is_attending && (
-                      <View style={s.ownerBadge}>
-                        <Ionicons name="star" size={10} color="#fff" />
-                        <Text style={s.ownerText}>{t("events.yours", "Yours")}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={s.info}>
-                    <Text style={[s.title, { color: textColor }]} numberOfLines={1}>
-                      {event.title}
-                    </Text>
-                    <View style={s.metaRow}>
-                      <Ionicons name="calendar-outline" size={12} color={secondaryColor} />
-                      <Text style={[s.metaText, { color: secondaryColor }]}>
-                        {formatEventDate(event.start_time)}
-                      </Text>
-                      {formatEventTime(event.start_time) && (
-                        <>
-                          <Text style={[s.metaText, { color: secondaryColor }]}> · </Text>
-                          <Text style={[s.metaText, { color: secondaryColor }]}>
-                            {formatEventTime(event.start_time)}
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                    {event.location && (
-                      <View style={s.metaRow}>
-                        <Ionicons name="location-outline" size={12} color={secondaryColor} />
-                        <Text style={[s.metaText, { color: secondaryColor }]} numberOfLines={1}>
-                          {event.location}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
-                {!readOnly && (
-                  <View style={s.actions}>
-                    <Pressable style={s.actionBtn} onPress={() => onEditEvent(event)}>
-                      <Ionicons name="create-outline" size={18} color={primaryColor} />
-                    </Pressable>
-                    <Pressable style={s.actionBtn} onPress={() => onDeleteEvent(event.event_id)}>
-                      <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                    </Pressable>
-                  </View>
-                )}
+        events.map((event) => {
+          const theme = getThemeInfo(event.theme);
+          const imageUrl = event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0];
+          const hasVideo = !!event.video_url;
+          return (
+            <Pressable key={event.event_id} style={styles.eventRow} onPress={() => router.push(`/event/${event.event_id}`)}>
+              {imageUrl ? (
+                <Image source={{ uri: imageUrl }} style={styles.thumb} />
+              ) : hasVideo ? (
+                <AdaptiveVideo uri={event.video_url || ""} style={styles.thumb} autoPlay={false} isLooping initialMuted />
+              ) : (
+                <View style={[styles.thumb, styles.thumbPlaceholder]}>
+                  <Text style={styles.thumbEmoji}>{theme.emoji}</Text>
+                </View>
+              )}
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                <Text style={styles.eventMeta}>{formatEventDate(event.start_time)}</Text>
               </View>
-            );
-          })}
-        </View>
+              {!readOnly && (
+                <View style={{ flexDirection: "row", gap: 4 }}>
+                  <Pressable style={styles.iconBtn} onPress={() => onEditEvent(event)}>
+                    <Ionicons name="create-outline" size={18} color="#111827" />
+                  </Pressable>
+                  <Pressable style={styles.iconBtn} onPress={() => onDeleteEvent(event.event_id)}>
+                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                  </Pressable>
+                </View>
+              )}
+            </Pressable>
+          );
+        })
       )}
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  container: {
-    paddingTop: SPACING.sm,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: SPACING.md,
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
   },
   cardTitle: {
-    fontSize: FONT_SIZES.h3,
-    fontWeight: FONT_WEIGHTS.bold as any,
-  },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xxl,
-    borderRadius: BORDER_RADIUS.full,
-    gap: SPACING.sm,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontWeight: FONT_WEIGHTS.semibold as any,
-    fontSize: FONT_SIZES.bodySmall,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: SPACING.huge,
-    paddingHorizontal: SPACING.xl,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.md,
-  },
-  emptyTitle: {
-    fontSize: FONT_SIZES.h3,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-    marginBottom: SPACING.xs,
-  },
-  emptySubtitle: {
-    fontSize: FONT_SIZES.bodySmall,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  grid: {
-    gap: SPACING.md,
-  },
-  card: {
-    borderRadius: BORDER_RADIUS.lg,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardContent: {
-    flex: 1,
-  },
-  imageContainer: {
-    position: "relative",
-    height: 140,
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  imagePlaceholder: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  themeEmoji: {
-    fontSize: 36,
-  },
-  privateBadge: {
-    position: "absolute",
-    top: SPACING.sm,
-    right: SPACING.sm,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 12,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-  },
-  attendingBadge: {
-    position: "absolute",
-    bottom: SPACING.sm,
-    left: SPACING.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 2,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: "#10b981",
-  },
-  attendingText: {
-    fontSize: FONT_SIZES.small,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-    color: "#fff",
-  },
-  ownerBadge: {
-    position: "absolute",
-    bottom: SPACING.sm,
-    left: SPACING.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 2,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: "#f59e0b",
-  },
-  ownerText: {
-    fontSize: FONT_SIZES.small,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-    color: "#fff",
-  },
-  themeBadge: {
-    position: "absolute",
-    top: SPACING.sm,
-    left: SPACING.sm,
-    borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  themeBadgeEmoji: {
-    fontSize: FONT_SIZES.micro,
-  },
-  themeBadgeLabel: {
-    color: "#fff",
-    fontSize: FONT_SIZES.micro,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-  },
-  info: {
-    padding: SPACING.md,
-  },
-  title: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    marginBottom: SPACING.xs,
+    color: "#111827",
+    marginBottom: 12,
   },
-  metaRow: {
+  eventRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.xs,
-    marginBottom: 2,
+    marginBottom: 12,
   },
-  metaText: {
+  eventTitle: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#111827",
+  },
+  eventMeta: {
     fontSize: FONT_SIZES.small,
+    color: "#9ca3af",
+    marginTop: 2,
   },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
-    paddingBottom: SPACING.sm,
+  thumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
   },
-  actionBtn: {
-    padding: SPACING.xs,
+  thumbPlaceholder: {
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbEmoji: {
+    fontSize: 18,
+  },
+  iconBtn: {
+    padding: 8,
+  },
+  emptyText: {
+    color: "#9ca3af",
+    marginBottom: 12,
   },
 });

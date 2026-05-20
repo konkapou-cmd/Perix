@@ -53,7 +53,7 @@ export function StoryCircles({ user, storyGroups, onYourStoryPress, onStoryPress
             style={styles.item}
             onPress={() => onStoryPress(idx)}
           >
-            <View style={[styles.ring, { borderColor: "#000000" }]}>
+            <View style={[styles.ring, { borderColor: group.has_unseen ? COLORS.primaryDark : COLORS.textMuted }]}>
               <View style={styles.avatarWrap}>
                 {group.author_avatar ? (
                   <Image source={{ uri: group.author_avatar }} style={styles.avatar} />
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     height: 62,
     borderRadius: 31,
     borderWidth: 2,
-    borderColor: "#000000",
+    borderColor: COLORS.primaryDark,
     padding: 2,
     alignItems: "center",
     justifyContent: "center",
@@ -132,11 +132,11 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#3b82f6",
+    backgroundColor: COLORS.info,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#fff",
+    borderColor: COLORS.background,
   },
   name: {
     fontSize: 11,

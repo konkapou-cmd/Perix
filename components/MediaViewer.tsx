@@ -1,10 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Dimensions,
   Image as RNImage,
   Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -12,7 +10,7 @@ import {
   View,
   ActivityIndicator,
 } from "react-native";
-import { Video, ResizeMode } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Gesture,
@@ -124,67 +122,64 @@ function ImageItem({ item }: { item: MediaItem }) {
   );
 }
 
-function VideoItem({ item, isActive }: { item: MediaItem; isActive: boolean }) {
-  const videoRef = useRef<Video>(null);
-
-  useEffect(() => {
-    if (!isActive) {
-      videoRef.current?.pauseAsync().catch(() => {});
-    }
-  }, [isActive]);
-
-  if (item.videoStatus === "processing" || (item.uri && item.uri.startsWith("mux://"))) {
-    const thumbUri = item.muxThumbnailUrl || null;
-    return (
-      <View style={styles.videoContainer}>
-        {thumbUri ? (
-          <RNImage source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : null}
-        <View style={styles.processingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.processingText}>Processing video...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.videoContainer}>
-      <Video
-        ref={videoRef}
-        source={{ uri: item.uri }}
-        style={StyleSheet.absoluteFill}
-        useNativeControls={true}
-        resizeMode={ResizeMode.CONTAIN}
-        isLooping={true}
-        isMuted={false}
-        shouldPlay={isActive}
-      />
-    </View>
-  );
-}
-
 export default function MediaViewer({ visible, media, initialIndex = 0, onClose }: MediaViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const currentItem = media[currentIndex];
+  const isVideo = currentItem?.type === "video";
+  const isProcessing = isVideo && (currentItem?.videoStatus === "processing" || currentItem?.uri?.startsWith("mux://"));
+
+  const videoSource = isVideo && !isProcessing ? currentItem.uri : null;
+  const player = useVideoPlayer(videoSource, (p) => {
+    p.loop = true;
+    p.muted = false;
+  });
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
   }, [initialIndex, visible]);
 
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetX = event.nativeEvent.contentOffset.x;
-      const newIndex = Math.round(offsetX / SCREEN_WIDTH);
-      if (newIndex !== currentIndex && newIndex >= 0 && newIndex < media.length) {
-        setCurrentIndex(newIndex);
-      }
-    },
-    [currentIndex, media.length]
-  );
+  useEffect(() => {
+    if (!player) return;
+    player.pause();
+    if (isVideo && !isProcessing) {
+      const timer = setTimeout(() => player.play(), 150);
+      setIsPlaying(true);
+      return () => clearTimeout(timer);
+    } else {
+      setIsPlaying(false);
+    }
+  }, [currentIndex, isVideo, isProcessing, player]);
 
-  // Always render the Modal — it handles visibility internally.
-  // This ensures hooks are always called in the same order.
+  useEffect(() => {
+    if (!player) return;
+    const sub = player.addListener("playingChange", (e) => {
+      setIsPlaying(e.isPlaying);
+    });
+    return () => sub.remove();
+  }, [player]);
+
+  const goPrev = useCallback(() => {
+    if (currentIndex > 0) setCurrentIndex((i) => i - 1);
+  }, [currentIndex]);
+
+  const goNext = useCallback(() => {
+    if (currentIndex < media.length - 1) setCurrentIndex((i) => i + 1);
+  }, [currentIndex, media.length]);
+
+  const togglePlayback = useCallback(() => {
+    if (!isVideo || isProcessing || !player) return;
+    if (isPlaying) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  }, [isVideo, isProcessing, isPlaying, player]);
+
   const hasMedia = media.length > 0;
+  const isFirst = currentIndex === 0;
+  const isLast = currentIndex === media.length - 1;
 
   return (
     <Modal visible={visible && hasMedia} animationType="fade" transparent={true} onRequestClose={onClose} statusBarTranslucent>
@@ -198,35 +193,70 @@ export default function MediaViewer({ visible, media, initialIndex = 0, onClose 
             </View>
           </Pressable>
 
-          <View style={styles.swipeArea}>
-            {hasMedia && (
-              <Animated.FlatList
-                data={media}
-                keyExtractor={(_, index) => index.toString()}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-                initialScrollIndex={Math.min(initialIndex, media.length - 1)}
-                getItemLayout={(_, index) => ({
-                  length: SCREEN_WIDTH,
-                  offset: SCREEN_WIDTH * index,
-                  index,
-                })}
-                renderItem={({ item, index }) => (
-                  <View style={styles.slideItem}>
-                    {item.type === "video" ? (
-                      <VideoItem item={item} isActive={index === currentIndex} />
-                    ) : (
-                      <ImageItem item={item} />
+          <View style={styles.mediaArea}>
+            {isVideo ? (
+              <View style={styles.videoContainer}>
+                {isProcessing ? (
+                  <>
+                    {currentItem?.muxThumbnailUrl && (
+                      <RNImage source={{ uri: currentItem.muxThumbnailUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                     )}
+                    <View style={styles.processingOverlay}>
+                      <ActivityIndicator size="large" color="#fff" />
+                      <Text style={styles.processingText}>Processing video...</Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <VideoView
+                      player={player}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="contain"
+                      nativeControls={false}
+                    />
+                    <Pressable style={StyleSheet.absoluteFill} onPress={togglePlayback}>
+                      {!isPlaying && (
+                        <View style={styles.playIconOverlay}>
+                          <View style={styles.playIconCircle}>
+                            <Ionicons name="play" size={48} color="#fff" />
+                          </View>
+                        </View>
+                      )}
+                    </Pressable>
+                  </>
+                )}
+              </View>
+            ) : currentItem ? (
+              <ImageItem item={currentItem} />
+            ) : null}
+          </View>
+
+          {media.length > 1 && (
+            <>
+              <Pressable
+                style={[styles.sideTapZone, styles.sideTapZoneLeft]}
+                onPress={goPrev}
+                disabled={isFirst}
+              >
+                {!isFirst && (
+                  <View style={styles.sideArrowHint}>
+                    <Ionicons name="chevron-back" size={40} color="rgba(255,255,255,0.35)" />
                   </View>
                 )}
-                style={styles.flatList}
-              />
-            )}
-          </View>
+              </Pressable>
+              <Pressable
+                style={[styles.sideTapZone, styles.sideTapZoneRight]}
+                onPress={goNext}
+                disabled={isLast}
+              >
+                {!isLast && (
+                  <View style={styles.sideArrowHint}>
+                    <Ionicons name="chevron-forward" size={40} color="rgba(255,255,255,0.35)" />
+                  </View>
+                )}
+              </Pressable>
+            </>
+          )}
 
           {media.length > 1 && (
             <View style={styles.counter}>
@@ -236,9 +266,6 @@ export default function MediaViewer({ visible, media, initialIndex = 0, onClose 
             </View>
           )}
 
-          <Pressable style={styles.dismissArea} onPress={onClose}>
-            <Text style={styles.dismissText}>Tap to close</Text>
-          </Pressable>
         </View>
       </GestureHandlerRootView>
     </Modal>
@@ -266,18 +293,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  swipeArea: {
+  mediaArea: {
     flex: 1,
     width: SCREEN_WIDTH,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  flatList: {
-    flex: 1,
-  },
-  slideItem: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -295,7 +313,20 @@ const styles = StyleSheet.create({
   videoContainer: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
-    backgroundColor: "#000",
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  playIconOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  playIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -311,6 +342,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  sideTapZone: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: SCREEN_WIDTH / 3,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  sideTapZoneLeft: {
+    left: 0,
+  },
+  sideTapZoneRight: {
+    right: 0,
+  },
+  sideArrowHint: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   counter: {
     position: "absolute",
     bottom: 80,
@@ -324,15 +378,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
-  },
-  dismissArea: {
-    position: "absolute",
-    bottom: 30,
-    alignSelf: "center",
-    padding: 10,
-  },
-  dismissText: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 12,
   },
 });

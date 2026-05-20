@@ -581,6 +581,7 @@
     "addVideo": "Video hinzufügen",
     "uploading": "Hochladen...",
     "photos": "Fotos",
+    "gallery": "Galerie",
     "videos": "Videos",
     "noMedia": "Noch keine Medien hochgeladen.",
     "businessLocation": "Geschäftsstandort",
@@ -1277,6 +1278,15 @@
     "callFailed": "Anruf fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "businessClosed": "Unternehmen ist derzeit geschlossen. Bitte rufen Sie während der Öffnungszeiten an."
   },
+  "cityAd": {
+    "sectionTitle": "City Ads",
+    "yourAd": "Your Ad",
+    "noAds": "No ads yet",
+    "adPublished": "Your city ad has been published!",
+    "createAd": "Create City Ad",
+    "maxDuration": "City Ads must be under 3 minutes",
+    "uploadingAd": "Uploading your ad..."
+  },
   "subscription": {
     "title": "Abonnement verwalten",
     "active": "Aktiv",
@@ -1853,3 +1863,4 @@
     "justNow": "gerade eben"
   }
 }
+

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
@@ -67,6 +67,7 @@ export default function SubscriptionTab({
   const tColor = textColor || COLORS.textPrimary;
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
       <View style={[s.planCard, { backgroundColor: cColor }]}>
         <View style={s.planHeader}>
@@ -156,6 +157,7 @@ export default function SubscriptionTab({
 
       <View style={{ height: SPACING.huge }} />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
