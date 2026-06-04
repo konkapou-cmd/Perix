@@ -13,7 +13,7 @@ from routes.dependencies import get_current_user
 
 router = APIRouter(prefix="/saved", tags=["Saved Items"])
 
-VALID_TYPES = {"event", "activity", "job", "post", "business", "user"}
+VALID_TYPES = {"event", "activity", "job", "post", "business", "user", "rental"}
 
 
 @router.post("/toggle", response_model=SavedToggleResponse)
@@ -168,5 +168,14 @@ async def _fetch_item_data(item_type: str, item_id: str) -> Optional[Dict[str, A
                 "name": doc.get("name"),
                 "cover_image_url": doc.get("cover_photo") or doc.get("picture"),
                 "profile_photo": doc.get("profile_photo") or doc.get("picture"),
+            }
+    elif item_type == "rental":
+        doc = await db.rentals.find_one({"rental_id": item_id}, {"_id": 0})
+        if doc:
+            return {
+                "title": doc.get("title"),
+                "cover_image": doc.get("cover_image"),
+                "rent_price": doc.get("rent_price"),
+                "address": doc.get("address"),
             }
     return None

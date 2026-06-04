@@ -684,10 +684,18 @@ async def get_user_attendance(
             description=event.get("description"),
             cover_image_url=event.get("cover_image_url"),
             image_urls=event.get("image_urls", []),
+            video_url=event.get("video_url"),
             start_time=event["start_time"],
             end_time=event.get("end_time"),
             location=event.get("location"),
+            latitude=event.get("latitude"),
+            longitude=event.get("longitude"),
             created_at=event["created_at"],
+            theme=event.get("theme"),
+            is_private=event.get("is_private", False),
+            profile_theme=business.get("theme") if business else None,
+            gallery_images=event.get("gallery_images", []),
+            gallery_videos=event.get("gallery_videos", []),
         )
         if event["start_time"] >= now:
             upcoming.append(event_response)

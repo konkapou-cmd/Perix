@@ -106,6 +106,7 @@ class BusinessDetail(BaseModel):
     events: List["EventResponse"] = []
     posts: List["PostResponse"] = []
     jobs: List[dict] = []
+    rentals: List[dict] = []
     is_owner: bool
     is_favorited: bool
 

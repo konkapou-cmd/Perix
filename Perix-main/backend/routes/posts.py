@@ -328,7 +328,7 @@ async def get_single_post(
     post_id: str,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    """Get a single post by ID with full details for notifications."""
+    """Get a single post by ID with full details."""
     post = await db.posts.find_one({"post_id": post_id}, {"_id": 0})
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -338,6 +338,26 @@ async def get_single_post(
         {"user_id": post["user_id"]}, {"_id": 0, "password_hash": 0}
     )
     
+    actor_name = post.get("actor_name") or (author.get("name") if author else "User")
+    actor_avatar = post.get("actor_avatar") or (author.get("profile_photo") or author.get("picture") if author else None)
+    actor_type = post.get("actor_type", "user")
+    actor_id = post.get("actor_id") or post.get("user_id")
+    
+    # Process likes
+    likes = post.get("likes", [])
+    likes_count = len(likes)
+    liked_by_me = False
+    if isinstance(current_user, dict):
+        current_uid = current_user.get("user_id", "")
+    else:
+        current_uid = current_user.user_id
+    
+    for like in likes:
+        lid = like.get("actor_id") if isinstance(like, dict) else like
+        if lid == current_uid or lid == post.get("user_id"):
+            liked_by_me = True
+            break
+    
     # Get commenter info for all comments
     comments = post.get("comments", [])
     commenter_ids = list({c.get("user_id") for c in comments if c.get("user_id")})
@@ -346,7 +366,6 @@ async def get_single_post(
     ).to_list(100)
     commenter_map = {u["user_id"]: u for u in commenters}
     
-    # Enrich comments with user info
     enriched_comments = []
     for comment in comments:
         commenter = commenter_map.get(comment.get("user_id"), {})
@@ -357,16 +376,24 @@ async def get_single_post(
         })
     
     return {
-        "post_id": post["post_id"],
-        "user_id": post["user_id"],
-        "user_name": post.get("actor_name") or (author.get("name") if author else "User"),
-        "user_avatar": post.get("actor_avatar") or (author.get("profile_photo") or author.get("picture") if author else None),
-        "text": post.get("text"),
-        "media_url": post.get("image_base64") or post.get("video_url"),
-        "media_type": "video" if post.get("video_url") else "image" if post.get("image_base64") else None,
-        "likes": post.get("likes", []),
+        **post,
+        "actor_name": actor_name,
+        "actor_avatar": actor_avatar,
+        "actor_type": actor_type,
+        "actor_id": actor_id,
+        "likes_count": likes_count,
+        "liked_by_me": liked_by_me,
+        "comments_count": len(comments),
         "comments": enriched_comments,
-        "created_at": post.get("created_at"),
+        "image_url": post.get("image_url") or post.get("image_base64"),
+        "video_url": post.get("video_url"),
+        "mux_thumbnail_url": post.get("mux_thumbnail_url"),
+        "mux_playback_id": post.get("mux_playback_id"),
+        "video_status": post.get("video_status"),
+        "media_ratio": post.get("media_ratio"),
+        "tagged_user_ids": post.get("tagged_user_ids", []),
+        "tagged_business_ids": post.get("tagged_business_ids", []),
+        "author": author,
     }
 
 

@@ -124,3 +124,5 @@ zipp==3.23.0
 agora-token-builder==1.0.0
 APScheduler==3.11.2
 mux-python==5.1.2
+ffmpeg-python==0.2.0
+imageio-ffmpeg==0.6.0

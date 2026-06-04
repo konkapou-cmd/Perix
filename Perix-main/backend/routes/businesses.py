@@ -335,7 +335,36 @@ async def get_business(
     jobs = await db.jobs.find(
         {"business_id": business_id, "is_active": True}, {"_id": 0}
     ).sort("created_at", -1).to_list(100)
-    
+
+    rentals = await db.rentals.find(
+        {"business_id": business_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+
+    rental_responses = []
+    for r in rentals:
+        rental_responses.append({
+            "rental_id": r.get("rental_id", ""),
+            "business_id": r.get("business_id", ""),
+            "business_name": r.get("business_name"),
+            "business_logo": r.get("business_logo"),
+            "title": r.get("title", ""),
+            "description": r.get("description"),
+            "cover_image": r.get("cover_image"),
+            "rent_price": r.get("rent_price"),
+            "rooms_size": r.get("rooms_size"),
+            "address": r.get("address"),
+            "latitude": r.get("latitude"),
+            "longitude": r.get("longitude"),
+            "available_from": r.get("available_from"),
+            "deposit": r.get("deposit"),
+            "property_type": r.get("property_type"),
+            "gallery_images": r.get("gallery_images", []),
+            "is_active": r.get("is_active", True),
+            "created_at": str(r.get("created_at", "")),
+            "root_category": r.get("root_category"),
+            "subcategory": r.get("subcategory"),
+        })
+
     # DEBUG: Log what's being searched for
     logger.debug(f"[DEBUG] get_business: Searching posts for business_id={business_id}")
     
@@ -371,10 +400,18 @@ async def get_business(
             description=event.get("description"),
             cover_image_url=event.get("cover_image_url"),
             image_urls=event.get("image_urls", []),
+            video_url=event.get("video_url"),
             start_time=event["start_time"],
             end_time=event.get("end_time"),
             location=event.get("location"),
+            latitude=event.get("latitude"),
+            longitude=event.get("longitude"),
             created_at=event["created_at"],
+            theme=event.get("theme"),
+            is_private=event.get("is_private", False),
+            profile_theme=business.get("theme") if business else None,
+            gallery_images=event.get("gallery_images", []),
+            gallery_videos=event.get("gallery_videos", []),
         )
         for event in events
     ]
@@ -389,6 +426,7 @@ async def get_business(
         events=event_responses,
         posts=post_responses,
         jobs=job_responses,
+        rentals=rental_responses,
         is_owner=is_owner,
         is_favorited=is_favorited,
     )
