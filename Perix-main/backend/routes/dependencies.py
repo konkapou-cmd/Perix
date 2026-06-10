@@ -40,6 +40,9 @@ def build_user_public(user_doc: Dict) -> UserPublic:
         "friends": normalized_friends,
         "theme": user_doc.get("theme"),
         "is_admin": user_doc.get("is_admin", False),
+        "role": user_doc.get("role", "user"),
+        "latitude": user_doc.get("latitude"),
+        "longitude": user_doc.get("longitude"),
     }
     return UserPublic(**safe_doc)
 

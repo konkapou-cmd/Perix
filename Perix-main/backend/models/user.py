@@ -50,17 +50,36 @@ class UserPublic(BaseModel):
     friends: List[dict] = []  # [{"entity_type": "user"|"business"|"artist", "entity_id": str}, ...]
     theme: Optional[ThemeSettings] = None  # Profile theme customization
     is_admin: bool = False  # Admin flag
+    role: str = "user"  # "user" | "business"
 
 
 class RegisterInput(BaseModel):
     name: str
     email: EmailStr
     password: str = Field(min_length=4, max_length=128)
+    role: str = "user"  # "user" | "business"
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    root_category: Optional[str] = None
+    subcategory: Optional[str] = None
+    business_name: Optional[str] = None
 
 
 class LoginInput(BaseModel):
     email: EmailStr
     password: str
+
+
+class UpgradeToBusinessInput(BaseModel):
+    root_category: str
+    subcategory: str
+    business_name: Optional[str] = None
+
+
+class ChangePasswordInput(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=4, max_length=128)
 
 
 class GoogleSessionInput(BaseModel):
@@ -70,6 +89,7 @@ class GoogleSessionInput(BaseModel):
 class AuthResponse(BaseModel):
     user: UserPublic
     session_token: str
+    business: Optional[Dict] = None
 
 
 class UserPublicProfile(BaseModel):

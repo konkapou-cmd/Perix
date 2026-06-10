@@ -31,6 +31,18 @@ def build_artist_summary(artist_doc: Dict) -> Dict[str, Any]:
     }
 
 
+async def build_tagged_artists(artist_ids: List[str]) -> tuple:
+    """Look up artist summaries for a list of artist IDs."""
+    if not artist_ids:
+        return artist_ids, None
+    docs = await db.artists.find(
+        {"artist_id": {"$in": artist_ids}},
+        {"_id": 0, "artist_id": 1, "name": 1, "profile_photo": 1}
+    ).to_list(50)
+    summaries = [{ "artist_id": d["artist_id"], "name": d["name"], "profile_photo": d.get("profile_photo") } for d in docs]
+    return artist_ids, summaries or None
+
+
 @router.post("", response_model=EventResponse)
 async def create_event(
     payload: EventCreate, current_user: UserPublic = Depends(get_current_user)
@@ -88,10 +100,13 @@ async def create_event(
         "gallery_videos": payload.gallery_videos or [],
         "is_private": payload.is_private,
         "password": payload.password,
+        "tagged_artist_ids": payload.tagged_artist_ids or [],
         "created_at": now_utc(),
         "attendees": [],
     }
     await db.events.insert_one(event_doc)
+    
+    tagged_artist_ids, tagged_artists = await build_tagged_artists(payload.tagged_artist_ids or [])
     
     from routes.businesses import build_business_summary
     return EventResponse(
@@ -114,6 +129,8 @@ async def create_event(
         profile_theme=business.get("theme") if business else None,
         gallery_images=event_doc.get("gallery_images", []),
         gallery_videos=event_doc.get("gallery_videos", []),
+        tagged_artist_ids=tagged_artist_ids,
+        tagged_artists=tagged_artists or None,
     )
 
 
@@ -172,6 +189,9 @@ async def list_events(
             query["start_time"] = {"$gte": start_date}
         except ValueError:
             pass
+    elif not start_after and not start_before:
+        # Default: only show future events
+        query["start_time"] = {"$gte": now_utc()}
     
     if start_before:
         from datetime import datetime
@@ -251,6 +271,7 @@ async def list_events(
                 profile_theme=business.get("theme") if business else None,
                 gallery_images=event.get("gallery_images", []),
                 gallery_videos=event.get("gallery_videos", []),
+                tagged_artist_ids=event.get("tagged_artist_ids", []),
             )
         )
     return response
@@ -279,6 +300,8 @@ async def get_event_detail(
     attendees = event.get("attendees", [])
     is_attending = current_user.user_id in attendees
     
+    tagged_artist_ids, tagged_artists = await build_tagged_artists(event.get("tagged_artist_ids", []))
+    
     from routes.businesses import build_business_summary
     return EventResponse(
         event_id=event["event_id"],
@@ -302,6 +325,8 @@ async def get_event_detail(
         profile_theme=business.get("theme") if business else None,
         gallery_images=event.get("gallery_images", []),
         gallery_videos=event.get("gallery_videos", []),
+        tagged_artist_ids=tagged_artist_ids,
+        tagged_artists=tagged_artists,
     )
 
 
@@ -398,6 +423,7 @@ async def update_event(
         )
     
     from routes.businesses import build_business_summary
+    tagged_artist_ids, tagged_artists = await build_tagged_artists(event.get("tagged_artist_ids", []))
     return EventResponse(
         event_id=event["event_id"],
         business=build_business_summary(business) if business else None,
@@ -414,11 +440,12 @@ async def update_event(
         longitude=event.get("longitude"),
         created_at=event["created_at"],
         is_private=event.get("is_private", False),
-        password=event.get("password"),
         theme=event.get("theme"),
         profile_theme=business.get("theme") if business else None,
         gallery_images=event.get("gallery_images", []),
         gallery_videos=event.get("gallery_videos", []),
+        tagged_artist_ids=tagged_artist_ids,
+        tagged_artists=tagged_artists,
     )
 
 

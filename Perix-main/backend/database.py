@@ -139,6 +139,8 @@ def build_category_tree() -> None:
             "tickets": True,
             "jobs": True,
             "bookings": True,
+            "services": True,
+            "menu": False,
             "rentals": False,
             "gym": False,
             "salon": False,
@@ -146,82 +148,247 @@ def build_category_tree() -> None:
 
     CATEGORIES = [
         {
-            "name": "🟢 Sports & Wellness",
-            "slug": "sports-wellness",
-            "subcategories": [
-                "gyms", "team-sports", "racket-sports", "martial-arts",
-                "swimming", "crossfit-functional", "extreme-sports",
-                "dance", "personal-training", "wellness-rehabilitation"
-            ]
+            "name": "🏃 Sports, Fitness & Wellness",
+            "slug": "sports-fitness-wellness",
+            "groups": [
+                {
+                    "name": "Fitness",
+                    "slug": "fitness",
+                    "subcategories": ["gyms", "crossfit", "functional-training", "personal-training", "pilates", "yoga", "group-fitness"],
+                },
+                {
+                    "name": "Sports",
+                    "slug": "sports",
+                    "subcategories": ["team-sports", "racket-sports", "swimming", "martial-arts", "climbing", "cycling", "running-clubs", "water-sports", "winter-sports", "extreme-sports"],
+                },
+                {
+                    "name": "Wellness & Recovery",
+                    "slug": "wellness-recovery",
+                    "subcategories": ["physiotherapy", "rehabilitation", "sports-massage", "recovery-centers", "wellness-centers", "meditation"],
+                },
+            ],
         },
         {
-            "name": "👕 Fashion & Retail",
-            "slug": "fashion-retail",
-            "subcategories": [
-                "casual-wear", "formal-wear", "sportswear", "footwear",
-                "accessories", "childrens-clothing", "vintage-thrift",
-                "tailoring-custom", "bags-leather-goods"
-            ]
+            "name": "👕 Fashion & Accessories",
+            "slug": "fashion-accessories",
+            "groups": [
+                {
+                    "name": "Clothing",
+                    "slug": "clothing",
+                    "subcategories": ["casual-wear", "formal-wear", "sportswear", "childrens-clothing", "vintage-thrift"],
+                },
+                {
+                    "name": "Footwear",
+                    "slug": "footwear",
+                    "subcategories": ["sneakers", "formal-shoes", "athletic-footwear"],
+                },
+                {
+                    "name": "Accessories",
+                    "slug": "accessories",
+                    "subcategories": ["jewelry", "watches", "sunglasses", "fashion-accessories"],
+                },
+                {
+                    "name": "Specialty",
+                    "slug": "specialty",
+                    "subcategories": ["tailoring-custom", "bags-leather-goods", "luxury-fashion"],
+                },
+            ],
         },
         {
-            "name": "🎭 Entertainment",
-            "slug": "entertainment",
-            "subcategories": [
-                "cinema", "theatre", "bowling", "escape-rooms",
-                "vr-gaming", "stand-up-comedy", "indoor-playgrounds",
-                "arcade", "event-venues", "exhibitions-cultural"
-            ]
+            "name": "🎭 Entertainment & Events",
+            "slug": "entertainment-events",
+            "groups": [
+                {
+                    "name": "Experiences",
+                    "slug": "experiences",
+                    "subcategories": ["cinema", "theatre", "stand-up-comedy", "cultural-events", "exhibitions"],
+                },
+                {
+                    "name": "Gaming & Activities",
+                    "slug": "gaming-activities",
+                    "subcategories": ["escape-rooms", "vr-gaming", "arcades", "bowling", "billiards"],
+                },
+                {
+                    "name": "Family Entertainment",
+                    "slug": "family-entertainment",
+                    "subcategories": ["indoor-playgrounds", "family-activity-centers"],
+                },
+                {
+                    "name": "Venues",
+                    "slug": "venues",
+                    "subcategories": ["event-venues", "concert-halls"],
+                },
+                {
+                    "name": "Artists & Performers",
+                    "slug": "artists-performers",
+                    "subcategories": ["djs", "bands", "singers", "comedians", "magicians", "dancers", "actors", "mcs-hosts", "cultural-groups"],
+                },
+            ],
         },
         {
-            "name": "🍸 Bars & Nightlife",
-            "slug": "bars-nightlife",
-            "subcategories": [
-                "cocktail-bars", "wine-bars", "beer-bars", "rock-bars",
-                "jazz-bars", "clubs-dj", "live-folk-music", "sports-bars",
-                "activity-bars", "rooftop-bars", "beach-bars", "after-hours"
-            ]
+            "name": "🍸 Nightlife & Social",
+            "slug": "nightlife-social",
+            "groups": [
+                {
+                    "name": "Bars",
+                    "slug": "bars",
+                    "subcategories": ["cocktail-bars", "wine-bars", "beer-bars", "sports-bars"],
+                },
+                {
+                    "name": "Music Venues",
+                    "slug": "music-venues",
+                    "subcategories": ["rock-bars", "jazz-bars", "live-folk-music", "live-music-venues"],
+                },
+                {
+                    "name": "Clubs",
+                    "slug": "clubs",
+                    "subcategories": ["dj-clubs", "dance-clubs", "after-hours-clubs"],
+                },
+            ],
         },
         {
             "name": "🏢 Professional Services",
             "slug": "professional-services",
-            "subcategories": [
-                "law-firms", "accounting", "real-estate", "travel-agencies",
-                "insurance", "consulting", "marketing-digital",
-                "it-services", "translation-services"
-            ]
+            "groups": [
+                {
+                    "name": "Legal & Financial",
+                    "slug": "legal-financial",
+                    "subcategories": ["law-firms", "accounting", "tax-services", "insurance"],
+                },
+                {
+                    "name": "Consulting & Marketing",
+                    "slug": "consulting-marketing",
+                    "subcategories": ["consulting", "marketing-digital", "translation-services"],
+                },
+                {
+                    "name": "Tech & IT",
+                    "slug": "tech-it",
+                    "subcategories": ["it-services", "software-development", "web-design"],
+                },
+                {
+                    "name": "Real Estate",
+                    "slug": "real-estate",
+                    "subcategories": ["real-estate-agents", "property-management"],
+                },
+            ],
         },
         {
             "name": "💄 Beauty & Personal Care",
             "slug": "beauty-care",
-            "subcategories": [
-                "hair-salons", "barbershops", "nail-salons", "spas",
-                "dermatology-laser", "makeup-services",
-                "facial-body-treatments", "tanning-salons"
-            ]
+            "groups": [
+                {
+                    "name": "Hair",
+                    "slug": "hair",
+                    "subcategories": ["hair-salons", "barbershops"],
+                },
+                {
+                    "name": "Nails & Skin",
+                    "slug": "nails-skin",
+                    "subcategories": ["nail-salons", "dermatology-laser", "facial-body-treatments"],
+                },
+                {
+                    "name": "Wellness",
+                    "slug": "wellness-beauty",
+                    "subcategories": ["spas", "makeup-services", "tanning-salons"],
+                },
+            ],
         },
         {
             "name": "🎓 Education & Creativity",
             "slug": "education-creativity",
-            "subcategories": [
-                "tutoring", "language-schools", "music-schools",
-                "dance-schools", "art-workshops"
-            ]
+            "groups": [
+                {
+                    "name": "Academic",
+                    "slug": "academic",
+                    "subcategories": ["tutoring", "language-schools"],
+                },
+                {
+                    "name": "Creative",
+                    "slug": "creative",
+                    "subcategories": ["music-schools", "dance-schools", "art-workshops"],
+                },
+            ],
         },
         {
-            "name": "🍽️ Restaurants",
-            "slug": "restaurants",
-            "subcategories": [
-                "italian", "asian", "greek", "balkan",
-                "german", "african", "american", "arabic"
-            ]
+            "name": "🍽️ Food & Dining",
+            "slug": "food-dining",
+            "groups": [
+                {
+                    "name": "Restaurant Types",
+                    "slug": "restaurant-types",
+                    "subcategories": ["casual-dining", "fine-dining", "fast-casual", "buffet", "food-courts"],
+                },
+                {
+                    "name": "Cuisine",
+                    "slug": "cuisine",
+                    "subcategories": ["italian", "asian", "greek", "balkan", "german", "african", "american", "arabic", "japanese", "chinese", "korean", "thai", "mexican", "indian", "mediterranean"],
+                },
+                {
+                    "name": "Specialty",
+                    "slug": "specialty",
+                    "subcategories": ["seafood", "steakhouse", "vegan", "vegetarian", "brunch", "pizza", "burger"],
+                },
+                {
+                    "name": "Drinks & Cafés",
+                    "slug": "drinks-cafes",
+                    "subcategories": ["cafes", "coffee-shops", "bakeries"],
+                },
+            ],
         },
         {
-            "name": "🏠 Rental & Real Estate",
-            "slug": "rental-real-estate",
-            "subcategories": [
-                "apartments", "houses", "studios", "rooms",
-                "commercial-spaces"
-            ]
+            "name": "🏠 Rentals",
+            "slug": "rentals",
+            "groups": [
+                {
+                    "name": "Rentals",
+                    "slug": "rentals",
+                    "subcategories": ["apartments", "houses", "studios", "rooms", "commercial-spaces"],
+                },
+            ],
+        },
+        {
+            "name": "🛒 Shopping & Retail",
+            "slug": "shopping-retail",
+            "groups": [
+                {
+                    "name": "Shopping & Retail",
+                    "slug": "shopping-retail",
+                    "subcategories": ["electronics", "home-goods", "furniture", "books-stationery", "florists", "gifts-souvenirs"],
+                },
+            ],
+        },
+        {
+            "name": "🚗 Automotive",
+            "slug": "automotive",
+            "groups": [
+                {
+                    "name": "Automotive",
+                    "slug": "automotive",
+                    "subcategories": ["car-dealers", "car-rentals", "repair-shops", "car-washes"],
+                },
+            ],
+        },
+        {
+            "name": "🏥 Healthcare",
+            "slug": "healthcare",
+            "groups": [
+                {
+                    "name": "Healthcare",
+                    "slug": "healthcare",
+                    "subcategories": ["doctors", "dentists", "clinics", "pharmacies", "mental-health"],
+                },
+            ],
+        },
+        {
+            "name": "🐾 Pets",
+            "slug": "pets",
+            "groups": [
+                {
+                    "name": "Pets",
+                    "slug": "pets",
+                    "subcategories": ["veterinarians", "pet-grooming", "pet-supplies"],
+                },
+            ],
         },
     ]
 
@@ -235,28 +402,47 @@ def build_category_tree() -> None:
         roots[root_slug] = {
             "name": root_name,
             "slug": root_slug,
-            "subcategories": [],
+            "groups": [],
         }
 
-        for sub_slug in cat["subcategories"]:
-            sub_name = sub_slug.replace("-", " ").title()
-            modules = make_modules()
-            if root_slug == "rental-real-estate":
-                modules["rentals"] = True
-            tools = [key for key, value in modules.items() if value]
+        for group in cat.get("groups", []):
+            group_slug = group["slug"]
+            group_name = group["name"]
+            group_subs = []
 
-            subcategory = {
-                "name": sub_name,
-                "slug": sub_slug,
-                "modules": modules,
-                "tools": tools,
-            }
-            roots[root_slug]["subcategories"].append(subcategory)
-            lookup[sub_slug] = {
-                **subcategory,
-                "root_slug": root_slug,
-                "root_name": root_name,
-            }
+            for sub_slug in group["subcategories"]:
+                sub_name = sub_slug.replace("-", " ").title()
+                modules = make_modules()
+                if root_slug in ("rentals", "rental-real-estate"):
+                    modules["rentals"] = True
+                if root_slug == "sports-fitness-wellness":
+                    modules["gym"] = True
+                if root_slug == "beauty-care":
+                    modules["salon"] = True
+                if root_slug == "food-dining":
+                    modules["menu"] = True
+                tools = [key for key, value in modules.items() if value]
+
+                subcategory = {
+                    "name": sub_name,
+                    "slug": sub_slug,
+                    "group_slug": group_slug,
+                    "group_name": group_name,
+                    "modules": modules,
+                    "tools": tools,
+                }
+                group_subs.append(subcategory)
+                lookup[sub_slug] = {
+                    **subcategory,
+                    "root_slug": root_slug,
+                    "root_name": root_name,
+                }
+
+            roots[root_slug]["groups"].append({
+                "name": group_name,
+                "slug": group_slug,
+                "subcategories": group_subs,
+            })
 
     CATEGORY_TREE = list(roots.values())
     CATEGORY_LOOKUP = lookup

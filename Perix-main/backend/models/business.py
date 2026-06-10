@@ -10,6 +10,8 @@ class BusinessModules(BaseModel):
     tickets: bool = False
     jobs: bool = False
     bookings: bool = False
+    services: bool = False
+    menu: bool = False
     rentals: bool = False
     gym: bool = False
     salon: bool = False

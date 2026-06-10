@@ -54,6 +54,7 @@ class EventCreate(BaseModel):
     profile_theme: Optional[ThemeSettings] = None
     gallery_images: List[str] = []
     gallery_videos: List[str] = []
+    tagged_artist_ids: List[str] = []
     is_private: bool = False
     password: Optional[str] = None
 
@@ -80,6 +81,8 @@ class EventResponse(BaseModel):
     profile_theme: Optional[ThemeSettings] = None
     gallery_images: List[str] = []
     gallery_videos: List[str] = []
+    tagged_artist_ids: List[str] = []
+    tagged_artists: Optional[List[Dict[str, Any]]] = None
 
 
 class EventPublicResponse(BaseModel):
@@ -103,6 +106,8 @@ class EventPublicResponse(BaseModel):
     profile_theme: Optional[ThemeSettings] = None
     gallery_images: List[str] = []
     gallery_videos: List[str] = []
+    tagged_artist_ids: List[str] = []
+    tagged_artists: Optional[List[Dict[str, Any]]] = None
 
 
 class EventUpdate(BaseModel):
@@ -122,6 +127,7 @@ class EventUpdate(BaseModel):
     gallery_videos: Optional[List[str]] = None
     is_private: Optional[bool] = None
     password: Optional[str] = None
+    tagged_artist_ids: Optional[List[str]] = None
 
 
 class EventAttendRequest(BaseModel):

@@ -105,7 +105,7 @@ async def create_business(
     if payload.root_category and payload.root_category != category_info["root_slug"]:
         raise HTTPException(status_code=400, detail="Subcategory does not match root category")
 
-    trial_expires_at = now_utc() + timedelta(days=10)
+    trial_expires_at = now_utc() + timedelta(days=90)
     business_doc = {
         "business_id": generate_id("biz"),
         "owner_id": current_user.user_id,
@@ -154,6 +154,8 @@ async def update_business(
     )
     if not business:
         raise HTTPException(status_code=403, detail="Not authorized")
+    if not is_subscription_active(business):
+        raise HTTPException(status_code=403, detail="Active subscription required to edit business profile")
     update_data = {key: value for key, value in payload.dict().items() if value is not None}
     
     if "subcategory" in update_data:
@@ -193,6 +195,8 @@ async def update_business_theme(
         raise HTTPException(status_code=404, detail="Business not found")
     if business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    if not is_subscription_active(business):
+        raise HTTPException(status_code=403, detail="Active subscription required to edit business profile")
     
     theme_data = {
         "background_color": theme.background_color,
@@ -542,6 +546,8 @@ async def update_business_gallery(
     )
     if not business:
         raise HTTPException(status_code=403, detail="Not authorized")
+    if not is_subscription_active(business):
+        raise HTTPException(status_code=403, detail="Active subscription required to edit business profile")
 
     existing_images = business.get("gallery_images", [])
     existing_videos = business.get("gallery_videos", [])

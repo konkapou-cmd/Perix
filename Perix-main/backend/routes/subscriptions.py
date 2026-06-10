@@ -145,7 +145,7 @@ async def subscription_plans(current_user: UserPublic = Depends(get_current_user
     return SubscriptionPlanResponse(
         monthly_plan_id=plans["monthly_plan_id"],
         yearly_plan_id=plans["yearly_plan_id"],
-        trial_days=10,
+        trial_days=90,
         monthly_price=24.99,
         yearly_price=249.99,
         currency="EUR",

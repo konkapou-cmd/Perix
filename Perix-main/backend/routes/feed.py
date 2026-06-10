@@ -45,6 +45,7 @@ async def get_home_feed(
     event_start_before: Optional[str] = None,
     activity_date: Optional[str] = None,
     offset: Optional[int] = 0,
+    friends_only: bool = False,
     current_user: UserPublic = Depends(get_current_user),
 ):
     """Get the home feed with posts, stories, events, and businesses."""
@@ -83,8 +84,29 @@ async def get_home_feed(
     }
     if excluded_user_ids:
         post_query["$and"].append({"user_id": {"$nin": excluded_user_ids}})
+
+    # Friends-only filter: show posts from friends and followed businesses/artists
+    if friends_only:
+        friend_ids = set()
+        for friend_entry in current_user.friends or []:
+            if isinstance(friend_entry, dict):
+                friend_ids.add(friend_entry.get("entity_id", ""))
+            elif isinstance(friend_entry, str):
+                friend_ids.add(friend_entry)
+        if friend_ids:
+            post_query["$and"].append({
+                "$or": [
+                    {"user_id": {"$in": list(friend_ids)}},
+                    {"actor_id": {"$in": list(friend_ids)}},
+                ]
+            })
+        else:
+            # User has no friends — return empty posts list
+            posts = []
+            post_query = None
     
-    posts = await db.posts.find(
+    if post_query is not None:
+        posts = await db.posts.find(
         post_query,
         {"_id": 0, "post_id": 1, "user_id": 1, "text": 1, "image_url": 1, 
          "video_url": 1, "created_at": 1, "likes": 1, "comments": 1, 

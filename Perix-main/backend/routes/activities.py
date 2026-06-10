@@ -317,6 +317,10 @@ async def list_activities(
             base_query["date"] = {"$gte": filter_date.isoformat()}
         except ValueError:
             pass
+    else:
+        # Default: only show today and future activities
+        from datetime import date as date_type
+        base_query["date"] = {"$gte": date_type.today().isoformat()}
     
     # Add theme filtering if provided
     if theme:

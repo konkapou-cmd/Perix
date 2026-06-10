@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 import logging
+import random
 from datetime import timedelta
 
 from database import db
@@ -228,6 +229,8 @@ async def get_stories(current_user: UserPublic = Depends(get_current_user)):
     own_id = current_user.user_id
     unseen_groups = [g for g in result if g.has_unseen]
     seen_groups = [g for g in result if not g.has_unseen]
+    random.shuffle(unseen_groups)
+    random.shuffle(seen_groups)
     return unseen_groups + seen_groups
 
 

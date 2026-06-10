@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,7 @@ from models.post import (
 )
 from utils.helpers import generate_id, now_utc
 from utils.cloudinary_utils import upload_to_cloudinary
+from utils.push_notifications import send_activity_notification
 from routes.dependencies import get_current_user, resolve_actor, build_user_public, like_matches_actor, get_blocked_user_ids
 from datetime import timedelta
 
@@ -428,6 +430,19 @@ async def toggle_post_like(
                 "created_at": now_utc(),
             }
         )
+        # Send push notification to post author (if not self-like)
+        if actor["actor_id"] != post["user_id"]:
+            asyncio.create_task(
+                send_activity_notification(
+                    recipient_user_id=post["user_id"],
+                    actor_name=actor["actor_name"],
+                    actor_id=actor["actor_id"],
+                    actor_photo=actor["actor_avatar"],
+                    activity_type="like",
+                    message=f"{actor['actor_name']} liked your post",
+                    post_id=post_id,
+                )
+            )
     post["likes"] = likes
     await db.posts.update_one({"post_id": post_id}, {"$set": {"likes": likes}})
     author_doc = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0})
@@ -461,6 +476,19 @@ async def add_post_comment(
     comments.append(comment_doc)
     post["comments"] = comments
     await db.posts.update_one({"post_id": post_id}, {"$set": {"comments": comments}})
+    # Send push notification to post author (if not self-comment)
+    if actor["actor_id"] != post["user_id"]:
+        asyncio.create_task(
+            send_activity_notification(
+                recipient_user_id=post["user_id"],
+                actor_name=actor["actor_name"],
+                actor_id=actor["actor_id"],
+                actor_photo=actor["actor_avatar"],
+                activity_type="comment",
+                message=f"{actor['actor_name']} commented: \"{payload.text[:50]}\"",
+                post_id=post_id,
+            )
+        )
     author_doc = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0})
     author = build_user_public(author_doc) if author_doc else current_user
     business_info = await get_business_info_for_post(post)

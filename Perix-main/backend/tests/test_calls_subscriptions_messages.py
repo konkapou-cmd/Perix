@@ -221,7 +221,7 @@ class TestSubscriptionPlansAPI:
         assert data["monthly_price"] == 9.99, f"Monthly price should be 9.99, got {data['monthly_price']}"
         assert data["yearly_price"] == 99.00, f"Yearly price should be 99.00, got {data['yearly_price']}"
         assert data["currency"] == "USD"
-        assert data["trial_days"] == 10
+        assert data["trial_days"] == 90
         
         print(f"Subscription plans: Monthly=${data['monthly_price']}, Yearly=${data['yearly_price']}")
     
