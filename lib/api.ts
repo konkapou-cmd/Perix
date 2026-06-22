@@ -90,6 +90,7 @@ export type {
   SubscriptionResponse,
   TaggedBusinessInActivity,
   ActivityInvite,
+  Service,
 } from "./api/core";
 
 export * from "./api/auth";
@@ -104,6 +105,7 @@ export * from "./api/calls";
 export * from "./api/groupCalls";
 export * from "./api/jobs";
 export * from "./api/rentals";
+export * from "./api/services";
 export * from "./api/mux";
 export * from "./api/social";
 export * from "./api/notifications";

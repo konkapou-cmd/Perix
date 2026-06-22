@@ -4,7 +4,7 @@ import { Platform, Alert } from "react-native";
 export const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL ||
-  "https://api.perixapp.com";
+  "http://192.168.178.56:8000";
 
 export const API_BASE = `${BACKEND_URL}/api`;
 
@@ -74,6 +74,7 @@ export type User = {
     name: string;
     profile_photo?: string | null;
   } | null;
+  role?: string;
 };
 
 export type UserPublic = {
@@ -222,26 +223,27 @@ export type EventItem = {
   cover_image_url?: string | null;
   image_urls?: string[];
   video_url?: string | null;
-  video_status?: string | null;
-  mux_thumbnail_url?: string | null;
   start_time: string;
   end_time?: string | null;
   location?: string | null;
   latitude?: number | null;
   longitude?: number | null;
-  created_at?: string;
   theme?: string | null;
   is_private?: boolean;
   password?: string | null;
-  attendees_count?: number;
-  is_attending?: boolean;
-  is_creator?: boolean;
   gallery_images?: string[];
   gallery_videos?: string[];
-  business?: any;
+  tagged_artist_ids?: string[];
+  tagged_artists?: ArtistSearchResult[];
   artist?: any;
-  creator?: { user_id: string; name: string; profile_photo?: string | null } | null;
+  business?: any;
+  creator?: any;
+  attendees_count?: number;
+  is_attending?: boolean;
+  created_at: string;
   profile_theme?: any;
+  mux_thumbnail_url?: string | null;
+  video_status?: string | null;
 };
 
 export type ArtistDetail = {
@@ -358,6 +360,12 @@ export type UserPublicProfile = {
 export type AuthResponse = {
   user: User;
   session_token: string;
+  business?: {
+    business_id: string;
+    name: string;
+    root_category: string;
+    subcategory: string;
+  };
 };
 
 export const parseResponse = async (response: Response) => {
@@ -455,6 +463,8 @@ export type BusinessModules = {
   tickets: boolean;
   jobs: boolean;
   bookings: boolean;
+  services: boolean;
+  menu: boolean;
   rentals: boolean;
   gym: boolean;
   salon: boolean;
@@ -499,6 +509,7 @@ export type BusinessDetail = {
   posts: Post[];
   jobs: any[];
   rentals: Rental[];
+  services: Service[];
   is_owner: boolean;
   is_favorited: boolean;
 };
@@ -506,9 +517,23 @@ export type BusinessDetail = {
 export type CategoryGroup = {
   name: string;
   slug: string;
-  subcategories: {
+  groups?: {
     name: string;
     slug: string;
+    subcategories: {
+      name: string;
+      slug: string;
+      group_slug?: string;
+      group_name?: string;
+      modules: BusinessModules;
+      tools: string[];
+    }[];
+  }[];
+  subcategories?: {
+    name: string;
+    slug: string;
+    group_slug?: string;
+    group_name?: string;
     modules: BusinessModules;
     tools: string[];
   }[];
@@ -984,4 +1009,149 @@ export type StoryHighlight = {
   created_at: string;
   view_count: number;
   reaction_count: number;
+};
+
+// Services & Bookings
+export type ServiceType =
+  | "gym_class" | "gym_session" | "gym_membership" | "gym_pass" | "gym_recovery"
+  | "salon_appointment" | "salon_package" | "salon_course"
+  | "pro_consultation" | "pro_package" | "pro_retainer"
+  | "edu_class" | "edu_lesson" | "edu_workshop" | "edu_course"
+  | "menu_item"
+  | "rental_property"
+  | "table_reservation" | "vip_package"
+  | "ent_booking" | "ent_performance"
+  | "retail_product" | "retail_custom" | "tailoring_alteration" | "custom_order"
+  | "auto_vehicle" | "auto_rental" | "auto_repair" | "auto_wash"
+  | "health_appointment" | "health_procedure" | "health_test"
+  | "pet_appointment" | "pet_product";
+
+export type Service = {
+  service_id: string;
+  business_id: string;
+  type: ServiceType;
+  root_category?: string | null;
+  name: string;
+  description?: string | null;
+  price?: string | null;
+  duration_minutes?: number | null;
+  capacity?: number | null;
+  facilities: string[];
+  beds?: number | null;
+  room_size?: string | null;
+  room_number?: string | null;
+  menu_category?: string | null;
+  dietary_tags: string[];
+  image_urls: string[];
+  cover_image_url?: string | null;
+  gallery_images: string[];
+  gallery_videos: string[];
+  video_url?: string | null;
+  mux_thumbnail_url?: string | null;
+  video_status?: string | null;
+  status?: "draft" | "published" | "hidden";
+  sort_order?: number;
+  is_active: boolean;
+  created_at: string;
+  // Per-category fields
+  instructor?: string | null;
+  difficulty_level?: string | null;
+  specialist_name?: string | null;
+  service_category?: string | null;
+  consultation_type?: string | null;
+  meeting_type?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  size_sqm?: number | null;
+  floor?: number | null;
+  furnished?: boolean | null;
+  available_from?: string | null;
+  lease_duration?: string | null;
+  max_guests?: number | null;
+  property_type?: string | null;
+  deposit?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  make?: string | null;
+  model?: string | null;
+  year?: number | null;
+  mileage_km?: number | null;
+  fuel_type?: string | null;
+  transmission?: string | null;
+  stock_status?: string | null;
+  brand?: string | null;
+  condition?: string | null;
+  treatment_type?: string | null;
+  session_type?: string | null;
+  calories?: number | null;
+  allergens: string[];
+  spice_level?: number | null;
+  duration_days?: number | null;
+  duration_months?: number | null;
+  includes?: string | null;
+  visits_included?: number | null;
+  valid_days?: number | null;
+  included_services: string[];
+  sessions_count?: number | null;
+  duration_per_session?: number | null;
+  special_requests?: string | null;
+  pickup_location?: string | null;
+  dropoff_location?: string | null;
+  reason_for_visit?: string | null;
+  insurance_info?: string | null;
+  pet_name?: string | null;
+  pet_type?: string | null;
+};
+
+export type TimeSlot = {
+  slot_id: string;
+  service_id: string;
+  day_of_week?: number | null;
+  start_time: string;
+  end_time: string;
+  date?: string | null;
+  is_recurring: boolean;
+  is_blocked: boolean;
+  is_booked: boolean;
+};
+
+export type SlotAvailability = {
+  slot_id: string;
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  confirmed_count: number;
+  available_spots: number;
+  is_full: boolean;
+};
+
+export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
+
+export type Booking = {
+  booking_id: string;
+  service_id: string;
+  slot_id?: string | null;
+  business_id: string;
+  client_id: string;
+  client_name: string;
+  client_email?: string | null;
+  date: string;
+  end_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  guests?: number | null;
+  total_price?: string | null;
+  status: BookingStatus;
+  notes?: string | null;
+  created_at: string;
+  service_name?: string | null;
+  business_name?: string | null;
+  pet_name?: string | null;
+  pet_type?: string | null;
+  pickup_location?: string | null;
+  dropoff_location?: string | null;
+  insurance_info?: string | null;
+  reason_for_visit?: string | null;
+  special_requests?: string | null;
 };

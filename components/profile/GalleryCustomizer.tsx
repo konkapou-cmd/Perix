@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -167,8 +168,8 @@ export const GalleryCustomizer: React.FC<GalleryCustomizerProps> = ({
   onReorderImages,
   onReorderVideos,
   title,
-  primaryColor = "#000000",
-  textColor = "#111827",
+  primaryColor = COLORS.primaryDark,
+  textColor = COLORS.textPrimary,
   cardColor = "#ffffff",
 }) => {
   const { t } = useTranslation();

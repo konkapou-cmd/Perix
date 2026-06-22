@@ -6,6 +6,7 @@ import { ActivityItem } from "../../lib/api";
 import { ACTIVITY_THEMES } from "../../lib/api/core";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../../lib/designTokens";
+import { formatDate } from "../../lib/formatDate";
 
 interface ActivitiesCarouselProps {
   activities: ActivityItem[];
@@ -30,15 +31,6 @@ function getThemeColor(theme?: string | null): string {
   if (!theme) return "#6b7280";
   const themeData = ACTIVITY_THEMES[theme as keyof typeof ACTIVITY_THEMES];
   return themeData?.color || "#6b7280";
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  } catch {
-    return dateStr;
-  }
 }
 
 function formatTime(timeStr?: string | null): string {
@@ -259,14 +251,14 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },
   title: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   headerRight: {
     flexDirection: "row",
@@ -277,7 +269,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -288,7 +280,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: COLORS.primaryDark,
   },
   seeAllText: {
     fontSize: 13,
@@ -306,11 +298,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   filterChipActive: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
   },
   filterChipText: {
     fontSize: 12,
@@ -328,7 +320,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   cardInner: {
     width: CARD_WIDTH,
@@ -521,7 +513,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 16,
   },
   emptyText: {
@@ -533,7 +525,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,

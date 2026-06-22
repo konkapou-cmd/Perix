@@ -42,7 +42,8 @@ export const getHomeFeed = async (
   location?: { latitude: number; longitude: number } | null,
   maxDistanceKm?: number,
   mapBounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number } | null,
-  offset?: number
+  offset?: number,
+  friendsOnly?: boolean
 ): Promise<import("./core").HomeFeed> => {
   const params = new URLSearchParams();
   if (location) {
@@ -57,6 +58,7 @@ export const getHomeFeed = async (
     params.append("max_lng", mapBounds.maxLng.toString());
   }
   if (offset && offset > 0) params.append("offset", offset.toString());
+  if (friendsOnly) params.append("friends_only", "true");
   const query = params.toString() ? `?${params.toString()}` : "";
   return apiRequest<import("./core").HomeFeed>(`/feed/home${query}`, "GET", token);
 };

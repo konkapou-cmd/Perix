@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
+import { COLORS } from "../lib/designTokens";
 import { useSocket, useSocketEvent } from "../context/SocketContext";
 import {
   initiateCall,
@@ -636,7 +637,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -738,7 +739,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     borderRadius: 8,
   },
   errorButtonText: {

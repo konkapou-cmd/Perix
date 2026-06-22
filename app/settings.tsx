@@ -9,6 +9,8 @@ import {
   Alert,
   Linking,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +22,7 @@ import { useRouter } from "expo-router";
 import { LanguagePicker } from "../components/LanguagePicker";
 import { getNotificationPreferences, updateNotificationPreferences, NotificationPrefs as NotificationPrefsAPI } from "../lib/api/notifications";
 import { deleteUserAccount } from "../lib/api/social";
+import { COLORS } from "../lib/designTokens";
 
 const APP_VERSION = Constants.expoConfig?.version || "1.0.0";
 const NOTIF_PREFS_KEY = "@perix_notification_prefs";
@@ -51,6 +54,11 @@ export default function SettingsScreen() {
   const [loadingPrefs, setLoadingPrefs] = useState(true);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
 
   useEffect(() => {
     loadPrefs();
@@ -170,6 +178,47 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword) {
+      Alert.alert(t("common.error") || "Error", t("settings.passwordFieldsRequired") || "Please fill in both fields");
+      return;
+    }
+    if (newPassword.length < 4) {
+      Alert.alert(t("common.error") || "Error", t("auth.passwordTooShort") || "Password must be at least 4 characters");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { apiRequest } = await import("../lib/api/core");
+      await apiRequest("/auth/change-password", "PUT", sessionToken!, {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      Alert.alert(t("common.success") || "Success", t("settings.passwordChanged") || "Password changed successfully");
+      setShowPasswordModal(false);
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (e: any) {
+      Alert.alert(t("common.error") || "Error", e?.message || t("settings.passwordChangeFailed") || "Failed to change password");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleClearCache = async () => {
+    setClearingCache(true);
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const cacheKeys = keys.filter(k => k.startsWith("@") && !k.includes("session") && !k.includes("user_language") && !k.includes("active_identity"));
+      await AsyncStorage.multiRemove(cacheKeys);
+      Alert.alert(t("common.success") || "Success", t("settings.cacheCleared") || "Cache cleared successfully");
+    } catch {
+      Alert.alert(t("common.error") || "Error", t("settings.cacheClearFailed") || "Failed to clear cache");
+    } finally {
+      setClearingCache(false);
+    }
+  };
+
   const SectionHeader = ({ title }: { title: string }) => (
     <Text style={styles.sectionHeader}>{title}</Text>
   );
@@ -196,8 +245,8 @@ export default function SettingsScreen() {
       onPress={onPress}
       disabled={!onPress}
     >
-      <View style={[styles.iconContainer, { backgroundColor: `${iconColor || "#000000"}15` }]}>
-        <Ionicons name={icon as any} size={20} color={iconColor || "#000000"} />
+      <View style={[styles.iconContainer, { backgroundColor: `${iconColor || COLORS.primaryDark}15` }]}>
+        <Ionicons name={icon as any} size={20} color={iconColor || COLORS.primaryDark} />
       </View>
       <View style={styles.settingTextContainer}>
         <Text style={[styles.settingTitle, danger && styles.dangerText]}>{title}</Text>
@@ -226,8 +275,8 @@ export default function SettingsScreen() {
   }) => (
     <View style={styles.toggleRow}>
       <View style={styles.toggleLeft}>
-        <View style={[styles.iconContainer, { backgroundColor: `${iconColor || "#000000"}15` }]}>
-          <Ionicons name={icon as any} size={20} color={iconColor || "#000000"} />
+        <View style={[styles.iconContainer, { backgroundColor: `${iconColor || COLORS.primaryDark}15` }]}>
+          <Ionicons name={icon as any} size={20} color={iconColor || COLORS.primaryDark} />
         </View>
         <View style={styles.settingTextContainer}>
           <Text style={styles.settingTitle}>{title}</Text>
@@ -237,7 +286,7 @@ export default function SettingsScreen() {
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ false: "#e5e7eb", true: "#000000" }}
+        trackColor={{ false: "#e5e7eb", true: COLORS.primaryDark }}
         thumbColor="#fff"
       />
     </View>
@@ -247,7 +296,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#000000" />
+          <Ionicons name="chevron-back" size={24} color={COLORS.primaryDark} />
         </Pressable>
         <Text style={styles.headerTitle}>{t("settings.title") || "Settings"}</Text>
         <View style={{ width: 40 }} />
@@ -320,21 +369,21 @@ export default function SettingsScreen() {
             iconColor="#059669"
             title={t("settings.privacyPolicy") || "Privacy Policy"}
             subtitle={t("settings.privacyPolicyDesc") || "How we handle your data"}
-            onPress={() => Linking.openURL("https://perixapp.com/privacy")}
+            onPress={() => router.push("/privacy-policy" as any)}
           />
           <SettingRow
             icon="document-text"
             iconColor="#6b7280"
             title={t("settings.termsOfService") || "Terms of Service"}
             subtitle={t("settings.termsOfServiceDesc") || "Rules and guidelines"}
-            onPress={() => Linking.openURL("https://perixapp.com/terms")}
+            onPress={() => router.push("/terms-of-service" as any)}
           />
           <SettingRow
             icon="help-circle"
             iconColor="#2563eb"
             title={t("settings.helpSupport") || "Help & Support"}
             subtitle={t("settings.helpSupportDesc") || "Get help or contact us"}
-            onPress={() => Linking.openURL("mailto:support@perixapp.com")}
+            onPress={() => router.push("/help-support" as any)}
           />
           <SettingRow
             icon="ban"
@@ -353,6 +402,27 @@ export default function SettingsScreen() {
             title={user?.name || t("settings.viewProfile") || "View Profile"}
             subtitle={t("settings.profileEmail") || user?.email || ""}
             onPress={() => router.navigate("/(tabs)/profile" as any)}
+          />
+          <SettingRow
+            icon="create-outline"
+            iconColor="#0891b2"
+            title={t("settings.editProfile") || "Edit Profile"}
+            subtitle={t("settings.editProfileDesc") || "Name, bio, location, photo"}
+            onPress={() => router.navigate("/(tabs)/profile" as any)}
+          />
+          <SettingRow
+            icon="lock-closed"
+            iconColor="#f59e0b"
+            title={t("settings.changePassword") || "Change Password"}
+            subtitle={t("settings.changePasswordDesc") || "Update your password"}
+            onPress={() => setShowPasswordModal(true)}
+          />
+          <SettingRow
+            icon="trash-outline"
+            iconColor="#6b7280"
+            title={t("settings.clearCache") || "Clear Cache"}
+            subtitle={t("settings.clearCacheDesc") || "Free up storage"}
+            onPress={handleClearCache}
           />
         </View>
 
@@ -386,6 +456,46 @@ export default function SettingsScreen() {
         visible={showLanguagePicker}
         onClose={() => setShowLanguagePicker(false)}
       />
+
+      <Modal visible={showPasswordModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{t("settings.changePassword") || "Change Password"}</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder={t("settings.currentPassword") || "Current password"}
+              placeholderTextColor="#9ca3af"
+              secureTextEntry
+            />
+            <TextInput
+              style={styles.modalInput}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder={t("settings.newPassword") || "New password"}
+              placeholderTextColor="#9ca3af"
+              secureTextEntry
+            />
+            <View style={styles.modalButtons}>
+              <Pressable style={styles.modalCancelBtn} onPress={() => setShowPasswordModal(false)}>
+                <Text style={styles.modalCancelText}>{t("common.cancel") || "Cancel"}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalSaveBtn, changingPassword && { opacity: 0.5 }]}
+                onPress={handleChangePassword}
+                disabled={changingPassword}
+              >
+                {changingPassword ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalSaveText}>{t("common.save") || "Save"}</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -393,7 +503,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
   },
   header: {
     flexDirection: "row",
@@ -416,7 +526,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   scrollView: {
     flex: 1,
@@ -479,7 +589,7 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   settingSubtitle: {
     fontSize: 13,
@@ -502,5 +612,63 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#9ca3af",
     marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    marginBottom: 16,
+  },
+  modalInput: {
+    backgroundColor: "#f3f4f6",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    marginBottom: 10,
+    color: COLORS.textPrimary,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  modalSaveBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#000",
+    alignItems: "center",
+  },
+  modalSaveText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#fff",
   },
 });

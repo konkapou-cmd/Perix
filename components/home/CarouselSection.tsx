@@ -94,14 +94,14 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   sectionHeaderRight: {
     flexDirection: "row",
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: COLORS.primaryDark,
   },
   seeAllButtonText: {
     fontSize: 13,

@@ -1,6 +1,7 @@
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 
 type Props = {
   phone?: string | null;
@@ -39,27 +40,27 @@ export default function ContactInfoSection({ phone, website, email, onEdit }: Pr
         <Text style={[styles.cardTitle, { marginBottom: 0 }]}>{t("business.contactInfo")}</Text>
         {onEdit && (
           <Pressable onPress={onEdit}>
-            <Text style={{ color: "#000000", fontWeight: "600", fontSize: 13 }}>{t("business.edit") || "Edit"}</Text>
+            <Text style={{ color: COLORS.primaryDark, fontWeight: "600", fontSize: 13 }}>{t("business.edit") || "Edit"}</Text>
           </Pressable>
         )}
       </View>
       {phone && (
         <Pressable style={styles.contactRow} onPress={openPhone}>
-          <Ionicons name="call-outline" size={20} color="#000000" />
+          <Ionicons name="call-outline" size={20} color={COLORS.primaryDark} />
           <Text style={styles.contactText}>{phone}</Text>
           <Ionicons name="open-outline" size={16} color="#9ca3af" />
         </Pressable>
       )}
       {website && (
         <Pressable style={styles.contactRow} onPress={openWebsite}>
-          <Ionicons name="globe-outline" size={20} color="#000000" />
+          <Ionicons name="globe-outline" size={20} color={COLORS.primaryDark} />
           <Text style={styles.contactText}>{website}</Text>
           <Ionicons name="open-outline" size={16} color="#9ca3af" />
         </Pressable>
       )}
       {email && (
         <Pressable style={styles.contactRow} onPress={openEmail}>
-          <Ionicons name="mail-outline" size={20} color="#000000" />
+          <Ionicons name="mail-outline" size={20} color={COLORS.primaryDark} />
           <Text style={styles.contactText}>{email}</Text>
           <Ionicons name="open-outline" size={16} color="#9ca3af" />
         </Pressable>
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 10,
   },
   contactRow: {
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   contactText: {
     flex: 1,
     marginLeft: 12,
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 14,
   },
   emptyText: {

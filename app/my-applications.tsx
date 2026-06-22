@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
+import { COLORS } from "../lib/designTokens";
 import { getMyApplications, MyApplication } from "../lib/api";
 
 export default function MyApplicationsScreen() {
@@ -42,7 +43,7 @@ export default function MyApplicationsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loading}><ActivityIndicator size="large" color="#000000" /></View>
+        <View style={styles.loading}><ActivityIndicator size="large" color={COLORS.primaryDark} /></View>
       </SafeAreaView>
     );
   }
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", paddingTop: 80 },
   emptyTitle: { fontSize: 20, fontWeight: "700", color: "#374151", marginTop: 16 },
   emptySubtitle: { fontSize: 15, color: "#6b7280", marginTop: 8, marginBottom: 24 },
-  browseBtn: { backgroundColor: "#000000", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
+  browseBtn: { backgroundColor: COLORS.primaryDark, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
   browseBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "#e5e7eb" },
   cardHeader: { marginBottom: 10 },
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
   logo: { width: 44, height: 44, borderRadius: 8, marginRight: 12 },
   logoPlaceholder: { backgroundColor: "#f3f4f6", justifyContent: "center", alignItems: "center" },
   jobTitle: { fontSize: 16, fontWeight: "600", color: "#111827" },
-  businessName: { fontSize: 14, color: "#000000", marginTop: 2 },
+  businessName: { fontSize: 14, color: COLORS.primaryDark, marginTop: 2 },
   locationRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   location: { fontSize: 13, color: "#6b7280", marginLeft: 2 },
   message: { fontSize: 14, color: "#374151", marginBottom: 12, lineHeight: 20 },
@@ -140,5 +141,5 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 13, fontWeight: "600" },
   date: { fontSize: 13, color: "#9ca3af" },
-  doc: { fontSize: 13, color: "#000000", marginTop: 6 },
+  doc: { fontSize: 13, color: COLORS.primaryDark, marginTop: 6 },
 });

@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { Business } from "../../lib/api";
+import { COLORS } from "../../lib/designTokens";
 
 const { width } = Dimensions.get("window");
 
@@ -87,7 +88,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
                 <Text style={styles.itemType}>{t("profile.user") || "Personal Profile"}</Text>
               </View>
               {activeIdentity?.type === "user" && (
-                <Ionicons name="checkmark-circle" size={24} color="#000000" />
+                <Ionicons name="checkmark-circle" size={24} color={COLORS.primaryDark} />
               )}
             </Pressable>
 
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   closeButton: {
     padding: 8,
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   itemType: {
     fontSize: 13,

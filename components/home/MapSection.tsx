@@ -29,7 +29,7 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
     const act = activities.find(a => a.activity_id === id);
     if (act) { router.push(`/activity/${id}` as any); return; }
     const rental = rentals.find(r => r.rental_id === id);
-    if (rental) { router.push(`/rental/${id}` as any); return; }
+    if (rental) { router.push(`/service/${rental.service_id || id}` as any); return; }
   };
 
   const handleRecenter = async () => {
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     elevation: 4,
-    shadowColor: "#000",
+    shadowColor: "#2B075F",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

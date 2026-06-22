@@ -36,9 +36,11 @@ import {
   APP_URL,
 } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { COLORS } from "../../lib/designTokens";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 
 import { BusinessProfilePremium } from "../../components/profile/BusinessProfilePremium";
+import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 
 export default function BusinessDetailScreen() {
@@ -61,6 +63,7 @@ export default function BusinessDetailScreen() {
   const [postImage, setPostImage] = useState<string | null>(null);
   const [postVideo, setPostVideo] = useState<string | null>(null);
   const [postVideoPreview, setPostVideoPreview] = useState<string | null>(null);
+  const [isPosting, setIsPosting] = useState(false);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
@@ -81,6 +84,10 @@ export default function BusinessDetailScreen() {
   // Save State
   const [isSaved, setIsSaved] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
+
+  // Booking State
+  const [bookingService, setBookingService] = useState<any>(null);
+  const [bookingModalVisible, setBookingModalVisible] = useState(false);
 
   const loadBusiness = useCallback(async () => {
     if (!sessionToken || !id) return;
@@ -191,6 +198,11 @@ export default function BusinessDetailScreen() {
     Share.share({ message: url, url });
   };
 
+  const handleOpenBooking = (service: any) => {
+    setBookingService(service);
+    setBookingModalVisible(true);
+  };
+
   const pickPostImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -241,11 +253,12 @@ export default function BusinessDetailScreen() {
   };
 
   const handleCreatePost = async (eventOrText?: any) => {
-    if (!sessionToken || !businessDetail || !isOwner) return;
+    if (isPosting || !sessionToken || !businessDetail || !isOwner) return;
     const text = typeof eventOrText === 'string' ? eventOrText : postText;
-    if (!text.trim() && !postImage && !postVideo) return;
+    if (!text.trim() && !postImage && !postVideo && !postVideoPreview) return;
 
     try {
+      setIsPosting(true);
       setShowUploadProgress(true);
       setUploadProgress({ phase: "preparing", progress: 0 });
 
@@ -294,8 +307,13 @@ export default function BusinessDetailScreen() {
     } catch (error) {
       setShowUploadProgress(false);
       setUploadProgress(null);
+      setPostImage(null);
+      setPostVideo(null);
+      setPostVideoPreview(null);
       console.error("Failed to create post:", error);
       Alert.alert("Error", "Failed to create post. Please try again.");
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -342,7 +360,7 @@ export default function BusinessDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color={COLORS.primaryDark} />
       </SafeAreaView>
     );
   }
@@ -351,7 +369,7 @@ export default function BusinessDetailScreen() {
     return (
       <SafeAreaView style={styles.centered}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#000000" />
+          <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
           <Text style={styles.backText}>{t("common.back")}</Text>
         </Pressable>
         <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
@@ -376,9 +394,9 @@ export default function BusinessDetailScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 44 : 0}
       >
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, ...Platform.select({ web: { width: "100%", maxWidth: 914, alignSelf: "center" } as any, default: {} }) }}>
         <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#000000" />
+          <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
           <Text style={styles.backText}>{t("common.back")}</Text>
         </Pressable>
 
@@ -400,9 +418,12 @@ export default function BusinessDetailScreen() {
           pickPostImage={pickPostImage}
           pickPostVideo={pickPostVideo}
           handleCreatePost={handleCreatePost}
+          isPosting={isPosting}
+          uploadPercent={uploadProgress?.progress || 0}
           isOwnProfile={false}
           jobs={businessDetail.jobs || []}
           rentals={businessDetail.rentals || []}
+          services={businessDetail.services || []}
           openJobModal={() => {}}
           handleDeleteJob={() => {}}
           fanGalleryPosts={[]}
@@ -432,6 +453,7 @@ export default function BusinessDetailScreen() {
           isSaved={isSaved}
           savingItem={savingItem}
           avatarUri={businessDetail.business.logo_image}
+          openBookingModal={handleOpenBooking}
         />
       </View>
 
@@ -495,19 +517,30 @@ export default function BusinessDetailScreen() {
           </View>
         </View>
       </Modal>
+      <ServiceBookingModal
+        visible={bookingModalVisible}
+        service={bookingService}
+        rootCategory={businessDetail?.business?.root_category || ""}
+        sessionToken={sessionToken || ""}
+        userName={user?.name || user?.email || ""}
+        userEmail={user?.email || ""}
+        onClose={() => setBookingModalVisible(false)}
+        onSuccess={() => loadBusiness()}
+      />
+
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fb" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   backButtonRow: { flexDirection: "row", alignItems: "center", marginHorizontal: 16, marginVertical: 8 },
   backButton: { flexDirection: "row", alignItems: "center" },
-  backText: { color: "#000000", fontWeight: "600", marginLeft: 4 },
+  backText: { color: COLORS.primaryDark, fontWeight: "600", marginLeft: 4 },
   errorText: { color: "#ef4444", fontSize: 16, fontWeight: "600", marginTop: 16, textAlign: "center" },
-  retryButton: { backgroundColor: "#000000", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 12, marginTop: 16 },
+  retryButton: { backgroundColor: COLORS.primaryDark, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 12, marginTop: 16 },
   retryButtonText: { color: "#fff", fontWeight: "600" },
   reportModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 20 },
   reportModalContent: { backgroundColor: "#fff", borderRadius: 16, padding: 20, width: "100%", maxWidth: 400 },
@@ -536,13 +569,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     maxHeight: 100,
     fontSize: 15,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },

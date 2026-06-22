@@ -280,8 +280,7 @@
     "real-estate-agencies": "Agencje Nieruchomości",
     "studios": "Studia",
     "rooms": "Pokoje",
-    "commercial-spaces": "Przestrzenie Komercyjne",
-    "vacation-rentals": "Wynajem Wakacyjny",
+
     "co-living-spaces": "Przestrzenie Co-Living",
     "commercial-real-estate": "Nieruchomości Komercyjne",
     "property-management": "Zarządzanie Nieruchomościami"
@@ -329,11 +328,20 @@
     "passwordTooShort": "Hasło musi mieć co najmniej 4 znaki",
     "login": "Zaloguj się",
     "loginRequired": "Wymagane logowanie",
-    "signInRequired": "Musisz być zalogowany"
+    "signInRequired": "Musisz być zalogowany",
+    "iAm": "Jestem...",
+    "individual": "Osoba prywatna",
+    "business": "Biznes",
+    "businessName": "Nazwa biznesu",
+    "rootCategory": "Slug kategorii (np. food-dining)",
+    "subcategory": "Slug podkategorii (np. italian)",
+    "firstName": "Imię",
+    "lastName": "Nazwisko",
+    "city": "Miasto"
   },
   "brand": {
     "title": "Perix",
-    "subtitle": "Mapa życia miasta"
+    "subtitle": "Twoje ulubione miasto w Twoich rękach!"
   },
   "tabs": {
     "home": "Strona główna",
@@ -435,7 +443,9 @@
     "mediaPermissionMessage": "Zezwól na dostęp do biblioteki zdjęć, aby dodać obrazy.",
     "noLocationSet": "Ustaw lokalizację w swoim profilu, aby zobaczyć pobliskie treści.",
     "postFailed": "Nie udało się utworzyć posta",
-    "upcomingActivities": "Nadchodzące aktywności"
+    "upcomingActivities": "Nadchodzące aktywności",
+    "nearby": "W pobliżu",
+    "following": "Obserwowani"
   },
   "profile": {
     "title": "Profil",
@@ -840,7 +850,9 @@
     "chat": "Ćaskanje",
     "noChatMessages": "Još nema poruka",
     "startConversation": "Započnite razgovor!",
-    "typeMessage": "Unesite poruku..."
+    "typeMessage": "Unesite poruku...",
+    "tagArtists": "Oznacz artystów",
+    "searchArtists": "Szukaj artystów..."
   },
   "messages": {
     "title": "Poruke",
@@ -1326,8 +1338,7 @@
     "callFailed": "Poziv nije uspeo. Molimo pokušajte ponovo.",
     "businessClosed": "Biznis je trenutno zatvoren. Molimo pozovite tokom radnog vremena."
   },
-
-    "cityAd": {
+  "cityAd": {
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",
@@ -1909,11 +1920,101 @@
     "unblockFailed": "Nie udało się odblokować użytkownika",
     "unblockUser": "Odblokuj użytkownika",
     "version": "Wersja",
-    "viewProfile": "Zobacz profil"
+    "viewProfile": "Zobacz profil",
+    "editProfile": "Edytuj profil",
+    "editProfileDesc": "Imię, biografia, lokalizacja, zdjęcie",
+    "changePassword": "Zmień hasło",
+    "changePasswordDesc": "Zaktualizuj swoje hasło",
+    "clearCache": "Wyczyść pamięć podręczną",
+    "clearCacheDesc": "Zwolnij miejsce na dysku",
+    "currentPassword": "Aktualne hasło",
+    "newPassword": "Nowe hasło",
+    "passwordFieldsRequired": "Wypełnij oba pola",
+    "passwordChanged": "Hasło zostało pomyślnie zmienione",
+    "passwordChangeFailed": "Błąd przy zmianie hasła",
+    "cacheCleared": "Pamięć podręczna została pomyślnie wyczyszczona",
+    "cacheClearFailed": "Błąd przy czyszczeniu pamięci podręcznej"
   },
   "time": {
     "justNow": "przed chwilą"
+  },
+  "services": {
+    "noServices": "Brak dostępnych usług w tej chwili",
+    "addMenuItem": "Dodaj element do menu",
+    "add": "Dodaj usługę",
+    "menu": "Menu",
+    "rooms": "Pokoje",
+    "listings": "Ogłoszenia",
+    "title": "Usługi"
+  },
+  "menu": {
+    "starter": "Przystawki",
+    "main": "Dania główne",
+    "dessert": "Desery",
+    "drink": "Napoje",
+    "side": "Dodatki",
+    "other": "Inne"
+  },
+  "upgrade": {
+    "title": "Odblokuj swój biznes",
+    "withBusiness": "Z profilem biznesowym możesz:",
+    "freeTrial": "Bezpłatna próba 90 dni",
+    "noPayment": "Nie wymaga płatności. Anuluj w dowolnym momencie.",
+    "categoryTitle": "Wybierz kategorię swojego biznesu",
+    "rootCategory": "Kategoria (np. food-dining)",
+    "subcategory": "Podkategoria (np. italian)",
+    "businessName": "Nazwa biznesu",
+    "startTrial": "Rozpocznij bezpłatną próbę",
+    "selectCategory": "Wybierz kategorię i podkategorię",
+    "success": "Sukces",
+    "upgraded": "Twój profil biznesowy został utworzony! Bezpłatna próba 90 dni aktywowana.",
+    "failed": "Błąd przy tworzeniu biznesu"
+  },
+  "help": {
+    "title": "Pomoc i Wsparcie",
+    "faq": "Często zadawane pytania",
+    "createEventQ": "Jak utworzyć wydarzenie?",
+    "createEventA": "Przejdź do swojego profilu, przełącz na tożsamość biznesową i dotknij '+ Utwórz wydarzenie'.",
+    "changePasswordQ": "Jak zmienić hasło?",
+    "changePasswordA": "Przejdź do Ustawienia → Konto → Zmień hasło.",
+    "reportContentQ": "Jak zgłosić nieodpowiednie treści?",
+    "reportContentA": "Na dowolnej publikacji, wydarzeniu lub profilu, dotknij menu z trzema kropkami i wybierz 'Zgłoś'.",
+    "deleteAccountQ": "Jak usunąć moje konto?",
+    "deleteAccountA": "Przejdź do Ustawienia i dotknij 'Usuń konto' w strefie zagrożenia.",
+    "businessQ": "Jak utworzyć profil biznesowy?",
+    "businessA": "Ze swojego profilu, dotknij rozwijanego menu tożsamości i wybierz 'Aktualizuj do biznesu'.",
+    "subscriptionQ": "Co się dzieje po bezpłatnej próbie?",
+    "subscriptionA": "Po próbie możesz subskrybować płatny plan.",
+    "privacyQ": "Jak chronione są moje dane?",
+    "privacyA": "Wszystkie dane są szyfrowane. Nigdy nie sprzedajemy Twoich danych osobowych.",
+    "stillNeedHelp": "Potrzebujesz jeszcze pomocy?",
+    "contactDesc": "Skontaktuj się z naszym zespołem wsparcia, a odpowiemy w ciągu 24 godzin.",
+    "emailUs": "Email wsparcia"
+  },
+  "terms": {
+    "title": "Warunki korzystania",
+    "lastUpdated": "Ostatnia aktualizacja: Czerwiec 2026",
+    "acceptance": "Akceptacja warunków",
+    "acceptanceContent": "Korzystając z Perix, akceptujesz te warunki.",
+    "eligibility": "Kwalifikowalność",
+    "eligibilityContent": "Musisz mieć co najmniej 16 lat.",
+    "userContent": "Treści użytkownika",
+    "userContentContent": "Zachowujesz własność treści, które publikujesz.",
+    "acceptableUse": "Akceptowalne użytkowanie",
+    "acceptableUseContent": "Nie publikuj szkodliwych ani nielegalnych treści.",
+    "intellectualProperty": "Własność intelektualna",
+    "intellectualPropertyContent": "Treści Perix są chronione prawem autorskim.",
+    "termination": "Rozwiązanie",
+    "terminationContent": "Możemy zawiesić konta, które naruszają te warunki.",
+    "disclaimers": "Zastrzeżenia",
+    "disclaimersContent": "Perix jest dostarczany 'tak jak jest' bez gwarancji.",
+    "liability": "Ograniczenie odpowiedzialności",
+    "liabilityContent": "Perix nie ponosi odpowiedzialności za szkody wynikające z korzystania z usługi.",
+    "governingLaw": "Prawo właściwe",
+    "governingLawContent": "Te warunki podlegają prawu niemieckiemu.",
+    "changes": "Zmiany",
+    "changesContent": "Możemy aktualizować te warunki. Kontynuacja korzystania oznacza akceptację.",
+    "contact": "Kontakt",
+    "contactContent": "Email support@perix.app"
   }
 }
-
-

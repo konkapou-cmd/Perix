@@ -17,12 +17,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
-import { getPosts, togglePostLike, addPostComment, Post, PostComment, toggleSaved, checkSaved } from "../../lib/api";
+import { getPost, togglePostLike, addPostComment, Post, PostComment, toggleSaved, checkSaved } from "../../lib/api";
 import { COLORS } from "../../lib/designTokens";
 import { CommentSection } from "../../components/CommentSection";
+import PostContent from "../../components/PostContent";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
 import AdaptiveImage from "../../components/AdaptiveImage";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
+import { formatRelativeDate } from "../../lib/formatDate";
 
 export default function PostDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,9 +50,8 @@ export default function PostDetail() {
     if (!sessionToken || !id) return;
 
     try {
-      const posts = await getPosts(sessionToken, undefined, undefined, undefined, 1, 0);
-      const found = posts.find(p => p.post_id === id);
-      if (found) setPost(found);
+      const post = await getPost(sessionToken, id);
+      if (post) setPost(post);
       
       if (sessionToken && id) {
         try {
@@ -109,25 +110,10 @@ export default function PostDetail() {
     }
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return t("common.justNow") || "just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer} edges={['top']}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color={COLORS.primaryDark} />
       </SafeAreaView>
     );
   }
@@ -137,7 +123,7 @@ export default function PostDetail() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#111827" />
+            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
           </Pressable>
           <Text style={styles.headerTitle}>Post</Text>
           <View style={{ width: 40 }} />
@@ -156,7 +142,7 @@ export default function PostDetail() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Post</Text>
         <View style={{ width: 40 }} />
@@ -190,30 +176,37 @@ export default function PostDetail() {
             )}
             <View style={styles.authorInfo}>
               <Text style={styles.authorName}>{displayName}</Text>
-              <Text style={styles.postTime}>{formatTime(post.created_at)}</Text>
+              <Text style={styles.postTime}>{formatRelativeDate(post.created_at)}</Text>
             </View>
           </Pressable>
 
-          {post.text && <Text style={styles.postText}>{post.text}</Text>}
+          {post.text && (
+            <PostContent
+              text={post.text}
+              textStyle={styles.postText}
+              taggedUsers={post.tagged_user_ids?.map(id => ({ id, name: id }))}
+              taggedBusinesses={post.tagged_business_ids?.map(id => ({ id, name: id }))}
+              taggedArtists={post.tagged_artist_ids?.map(id => ({ id, name: id }))}
+            />
+          )}
 
           {post.video_url ? (
             <View style={styles.postVideoContainer}>
               <AdaptiveVideo
                 uri={post.video_url}
                 style={styles.postVideo}
-      autoPlay={true}
-                      showMuteButton={true}
-                      initialMuted={true}
-                      pauseWhenNotVisible={true}
-                      resizeMode="contain"
-                      ratio={post.media_ratio || undefined}
+                showMuteButton={true}
+                initialMuted={true}
+                resizeMode="contain"
+                coverPhoto={post.mux_thumbnail_url || undefined}
+                ratio={post.media_ratio || undefined}
                 maxHeight={600}
                 borderRadius={8}
                 videoStatus={post.video_status}
                 muxThumbnailUrl={post.mux_thumbnail_url || undefined}
                 onPress={() => {
                   const items: MediaItem[] = [];
-                  if (post.video_url) items.push({ type: "video", uri: post.video_url, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
+                  if (post.video_url) items.push({ type: "video", uri: post.video_url, ratio: post.media_ratio || undefined, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
                   if (post.image_url) items.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
                   setViewerMedia(items);
                   setViewerIndex(0);
@@ -231,7 +224,7 @@ export default function PostDetail() {
               onPress={() => {
                 const items: MediaItem[] = [];
                 if (post.image_url) items.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
-                if (post.video_url) items.push({ type: "video", uri: post.video_url, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
+                if (post.video_url) items.push({ type: "video", uri: post.video_url, ratio: post.media_ratio || undefined, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
                 setViewerMedia(items);
                 setViewerIndex(0);
                 setViewerOpen(true);
@@ -264,7 +257,7 @@ export default function PostDetail() {
             </Pressable>
           </View>
 
-          <CommentSection postId={post.post_id} />
+          <CommentSection postId={post.post_id} onCommentAdded={() => setPost(prev => prev ? { ...prev, comments_count: (prev.comments_count || 0) + 1 } : prev)} />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -281,11 +274,12 @@ export default function PostDetail() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
+    ...Platform.select({ web: { width: "100%", maxWidth: 914, alignSelf: "center" } as any, default: {} }),
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -305,7 +299,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   content: {
     flex: 1,
@@ -341,7 +335,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   authorInfo: {
     marginLeft: 12,
@@ -349,7 +343,7 @@ const styles = StyleSheet.create({
   authorName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   postTime: {
     fontSize: 13,

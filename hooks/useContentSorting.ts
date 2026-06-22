@@ -65,7 +65,7 @@ export function useContentSorting({
   const sortedEvents = useMemo(() => {
     let upcoming = events.filter(isUpcomingEvent);
     if (eventsFilter === "attending") upcoming = upcoming.filter(e => e.is_attending);
-    else if (eventsFilter === "mine") upcoming = upcoming.filter(e => e.is_creator);
+    else if (eventsFilter === "mine") upcoming = upcoming.filter(e => (e as any).is_creator);
     switch (sorting.events) {
       case "distance": return sortByDistance(upcoming as any[], userLat, userLng);
       case "chronological": return [...upcoming].sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());

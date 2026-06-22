@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { getPostComments, addPostComment, toggleCommentLike } from '../lib/api/posts';
 import { PostComment } from '../lib/api/core';
+import { formatRelativeDate } from '../lib/formatDate';
 
 interface CommentSectionProps {
   postId: string;
@@ -184,7 +185,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommen
                         <Text style={styles.commentAuthor}>{getDisplayName(comment)}</Text>
                       </Pressable>
                       <Text style={styles.commentDate}>
-                        {new Date(comment.created_at).toLocaleDateString()}
+                        {formatRelativeDate(comment.created_at)}
                       </Text>
                     </View>
                     <Text style={styles.commentText}>{comment.text}</Text>

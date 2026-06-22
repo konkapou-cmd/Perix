@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useBadge } from "../context/BadgeContext";
+import { COLORS } from "../lib/designTokens";
 
 interface NavItem {
   key: string;
@@ -93,7 +94,7 @@ export default function Sidebar() {
         onPress={() => router.navigate("/(tabs)/home" as any)}
       >
         <View style={styles.logoIcon}>
-          <Ionicons name="location" size={24} color="#fff" />
+          <Ionicons name="location" size={24} color={COLORS.background} />
         </View>
         <Text style={styles.logoText}>Perix</Text>
       </Pressable>
@@ -122,7 +123,7 @@ export default function Sidebar() {
                 <Ionicons
                   name={active ? item.iconActive : item.icon}
                   size={24}
-                  color={active ? "#000000" : "#4b5563"}
+                  color={active ? COLORS.primaryDark : COLORS.textSecondary}
                 />
                 {badgeCount > 0 && (
                   <View style={styles.badge}>
@@ -156,7 +157,7 @@ export default function Sidebar() {
         onHoverOut={() => setHoveredItem(null)}
         data-testid="sidebar-create-post"
       >
-        <Ionicons name="add" size={20} color="#fff" />
+        <Ionicons name="add" size={20} color={COLORS.background} />
         <Text style={styles.createButtonText}>
           {t("nav.createPost") || "Create Post"}
         </Text>
@@ -194,7 +195,7 @@ export default function Sidebar() {
               @{user.email?.split("@")[0]}
             </Text>
           </View>
-          <Ionicons name="ellipsis-horizontal" size={18} color="#9ca3af" />
+          <Ionicons name="ellipsis-horizontal" size={18} color={COLORS.textDisabled} />
         </Pressable>
       )}
     </View>
@@ -205,9 +206,9 @@ const styles = StyleSheet.create({
   container: {
     width: 260,
     height: "100%",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderRightWidth: 1,
-    borderRightColor: "#e5e7eb",
+    borderRightColor: COLORS.border,
     paddingHorizontal: 16,
     paddingVertical: 20,
     justifyContent: "flex-start",
@@ -233,14 +234,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },
   logoText: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#111827",
+    color: COLORS.textPrimary,
     letterSpacing: -0.5,
   },
   navItems: {
@@ -262,10 +263,10 @@ const styles = StyleSheet.create({
     }),
   },
   navItemActive: {
-    backgroundColor: "#eff6ff",
+    backgroundColor: COLORS.primaryLight,
   },
   navItemHover: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.divider,
   },
   iconContainer: {
     position: "relative",
@@ -274,7 +275,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -6,
     right: -10,
-    backgroundColor: "#ef4444",
+    backgroundColor: COLORS.danger,
     borderRadius: 10,
     minWidth: 18,
     height: 18,
@@ -283,17 +284,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 10,
     fontWeight: "700",
   },
   navLabel: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#4b5563",
+    color: COLORS.textSecondary,
   },
   navLabelActive: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
   },
   createButton: {
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primary,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 9999,
@@ -315,11 +316,11 @@ const styles = StyleSheet.create({
     }),
   },
   createButtonHover: {
-    backgroundColor: "#3b5bdb",
+    backgroundColor: COLORS.primaryHover,
     transform: [{ scale: 1.02 }],
   },
   createButtonText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     ...Platform.select({
       web: {
         cursor: "pointer" as any,
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
     }),
   },
   userCardHover: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.divider,
   },
   userAvatar: {
     width: 40,
@@ -349,12 +350,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },
   userAvatarText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -364,10 +365,10 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   userHandle: {
     fontSize: 12,
-    color: "#6b7280",
+    color: COLORS.textMuted,
   },
 });

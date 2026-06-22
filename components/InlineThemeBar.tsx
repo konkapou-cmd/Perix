@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { ProfileTheme } from '../lib/api';
+import { COLORS } from '../lib/designTokens';
 
 // Color presets optimized for quick selection
 const QUICK_PRESETS = [

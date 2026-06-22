@@ -31,6 +31,7 @@ import AdaptiveImage from "../../components/AdaptiveImage";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
+import { formatEventDate, formatEventTime } from "../../lib/formatDate";
 import { 
   ChatMessage, 
   EventItem, 
@@ -388,8 +389,8 @@ export default function EventDetailPage() {
   const shareToWhatsApp = async () => {
     if (!event) return;
     
-    const eventDate = new Date(event.start_time).toLocaleDateString();
-    const eventTime = new Date(event.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const eventDate = formatEventDate(event.start_time);
+    const eventTime = formatEventTime(event.start_time);
     const organizer = event.artist?.name || event.business?.name || "";
     const location = event.location || "";
     
@@ -415,8 +416,8 @@ export default function EventDetailPage() {
   const shareEvent = async () => {
     if (!event) return;
     
-    const eventDate = new Date(event.start_time).toLocaleDateString();
-    const eventTime = new Date(event.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const eventDate = formatEventDate(event.start_time);
+    const eventTime = formatEventTime(event.start_time);
     const organizer = event.artist?.name || event.business?.name || "";
     // Use /share/ prefix for public deep links
     const eventUrl = `${BACKEND_URL?.replace('/api', '')}/share/event/${event.event_id}`;
@@ -437,11 +438,24 @@ export default function EventDetailPage() {
 
   const buildEventMediaItems = (evt: any): MediaItem[] => {
     const items: MediaItem[] = [];
-    if (evt.video_url) items.push({ type: "video", uri: evt.video_url, muxThumbnailUrl: evt.mux_thumbnail_url || undefined, videoStatus: evt.video_status });
-    if (evt.cover_image_url) items.push({ type: "image", uri: evt.cover_image_url });
-    (evt.image_urls || []).forEach((u: string) => items.push({ type: "image", uri: u }));
-    (evt.gallery_images || []).forEach((u: string) => items.push({ type: "image", uri: u }));
-    (evt.gallery_videos || []).forEach((u: string) => items.push({ type: "video", uri: u }));
+    const seen = new Set<string>();
+    if (evt.video_url) {
+      seen.add(evt.video_url);
+      items.push({ type: "video", uri: evt.video_url, muxThumbnailUrl: evt.mux_thumbnail_url || undefined, videoStatus: evt.video_status });
+    }
+    if (evt.cover_image_url && !seen.has(evt.cover_image_url)) {
+      seen.add(evt.cover_image_url);
+      items.push({ type: "image", uri: evt.cover_image_url });
+    }
+    (evt.image_urls || []).forEach((u: string) => {
+      if (!seen.has(u)) { seen.add(u); items.push({ type: "image", uri: u }); }
+    });
+    (evt.gallery_images || []).forEach((u: string) => {
+      if (!seen.has(u)) { seen.add(u); items.push({ type: "image", uri: u }); }
+    });
+    (evt.gallery_videos || []).forEach((u: string) => {
+      if (!seen.has(u)) { seen.add(u); items.push({ type: "video", uri: u }); }
+    });
     return items;
   };
 
@@ -482,7 +496,7 @@ export default function EventDetailPage() {
   const themeInfo = getTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#f5f6fb" }]} edges={["top", "bottom"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.backgroundPage }]} edges={["top", "bottom"]}>
       {/* Themed Alert Modal */}
       <Modal visible={themedAlertVisible} transparent animationType="fade">
         <View style={styles.themedAlertOverlay}>
@@ -500,7 +514,7 @@ export default function EventDetailPage() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 30}
       >
         <ScrollView 
-          style={styles.flex1}
+          style={[styles.flex1, Platform.OS === "web" ? { width: "100%", maxWidth: 914, alignSelf: "center" } as any : undefined]}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
@@ -514,7 +528,6 @@ export default function EventDetailPage() {
                 autoPlay={true}
                 initialMuted={true}
                 showMuteButton={true}
-                pauseWhenNotVisible={true}
                 videoStatus={event.video_status}
                 muxThumbnailUrl={event.mux_thumbnail_url || undefined}
                 onPress={() => {
@@ -621,7 +634,7 @@ export default function EventDetailPage() {
               <View>
                 <Text style={styles.quickInfoLabel}>{t("events.date")}</Text>
                 <Text style={styles.quickInfoValue}>
-                  {eventDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {formatEventDate(event.start_time)}
                 </Text>
               </View>
             </View>
@@ -632,7 +645,7 @@ export default function EventDetailPage() {
               <View>
                 <Text style={styles.quickInfoLabel}>{t("events.time")}</Text>
                 <Text style={styles.quickInfoValue}>
-                  {eventDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  {formatEventTime(event.start_time)}
                 </Text>
               </View>
             </View>
@@ -669,7 +682,7 @@ export default function EventDetailPage() {
                   onMarkerPress={() => openMap()}
                 />
               </View>
-              <Pressable style={[styles.mapOverlay, { backgroundColor: `${"#111827"}e6` }]} onPress={openMap}>
+              <Pressable style={[styles.mapOverlay, { backgroundColor: `${COLORS.textPrimary}e6` }]} onPress={openMap}>
                 <Ionicons name="navigate" size={20} color="#fff" />
                 <Text style={styles.mapOverlayText}>{t("events.openInMaps") || "Open in Maps"}</Text>
               </Pressable>
@@ -680,10 +693,38 @@ export default function EventDetailPage() {
           {event.description && (
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="document-text" size={18} color={"#111827"} />
+                <Ionicons name="document-text" size={18} color={COLORS.textPrimary} />
                 <Text style={styles.cardTitle}>{t("events.description")}</Text>
               </View>
               <Text style={styles.description}>{event.description}</Text>
+            </View>
+          )}
+
+          {/* Tagged Artists */}
+          {event.tagged_artists && event.tagged_artists.length > 0 && (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="mic" size={18} color={COLORS.textPrimary} />
+                <Text style={styles.cardTitle}>{t("events.taggedArtists", "Artists")}</Text>
+              </View>
+              <View style={styles.taggedArtistsRow}>
+                {event.tagged_artists.map((artist: any) => (
+                  <Pressable
+                    key={artist.artist_id}
+                    style={styles.taggedArtistCard}
+                    onPress={() => router.push(`/user/${artist.artist_id}` as any)}
+                  >
+                    {artist.profile_photo ? (
+                      <Image source={{ uri: artist.profile_photo }} style={styles.taggedArtistAvatar} />
+                    ) : (
+                      <View style={[styles.taggedArtistAvatar, styles.taggedArtistAvatarPlaceholder]}>
+                        <Ionicons name="person" size={18} color="#9ca3af" />
+                      </View>
+                    )}
+                    <Text style={styles.taggedArtistName} numberOfLines={1}>{artist.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           )}
 
@@ -742,7 +783,7 @@ export default function EventDetailPage() {
                 onPress={isPast ? undefined : handleToggleAttendance}
                 disabled={isPast}
               >
-                <View style={[styles.attendButtonContent, { backgroundColor: "#111827" }]}>
+                <View style={[styles.attendButtonContent, { backgroundColor: COLORS.textPrimary }]}>
                   <Ionicons 
                     name={isAttending ? "checkmark-circle" : "add-circle-outline"} 
                     size={20} 
@@ -762,13 +803,13 @@ export default function EventDetailPage() {
                 data-testid="event-reminder-btn"
               >
                 {settingReminder ? (
-                  <ActivityIndicator size="small" color="#111827" />
+                  <ActivityIndicator size="small" color={COLORS.textPrimary} />
                 ) : (
                   <>
                     <Ionicons 
                       name={hasReminder ? "notifications" : "notifications-outline"} 
                       size={22} 
-                      color="#111827" 
+                      color={COLORS.textPrimary} 
                     />
                     <Text style={[styles.reminderButtonText, hasReminder && styles.reminderButtonTextActive]}>
                       {hasReminder ? t("events.reminded") || "Reminded" : t("events.remindMe") || "Remind"}
@@ -815,7 +856,7 @@ export default function EventDetailPage() {
             imageUrl={event.cover_image_url || event.image_urls?.[0] || undefined}
             extraData={{
               location: event.location || undefined,
-              date: new Date(event.start_time).toLocaleDateString(),
+              date: formatEventDate(event.start_time),
               organizerName: organizer,
             }}
           />
@@ -1389,7 +1430,7 @@ const styles = StyleSheet.create({
   },
   chatInput: {
     flex: 1,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 24,
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -1522,8 +1563,8 @@ const styles = StyleSheet.create({
   },
   galleryItemWrap: {
     position: "relative",
-    width: "31%",
-    height: 80,
+    width: "calc(33.33% - 6px)",
+    aspectRatio: 1,
     overflow: "hidden",
     backgroundColor: "#1f2937",
     borderRadius: 8,
@@ -1624,5 +1665,35 @@ const styles = StyleSheet.create({
   passwordModalSubmitText: {
     color: COLORS.background,
     fontWeight: "600",
+  },
+  taggedArtistsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    paddingTop: 8,
+  },
+  taggedArtistCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: COLORS.backgroundPage,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  taggedArtistAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  taggedArtistAvatarPlaceholder: {
+    backgroundColor: "#e5e7eb",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  taggedArtistName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLORS.textPrimary,
   },
 });

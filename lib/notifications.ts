@@ -30,6 +30,8 @@ try {
 export const CHANNEL_MESSAGES = "messages";
 export const CHANNEL_CALLS = "calls";
 export const CHANNEL_ACTIVITIES = "activities";
+export const CHANNEL_SOCIAL = "social";
+export const CHANNEL_EVENTS = "events";
 
 // Initialize notification channels (Android only)
 export async function initializeNotificationChannels() {
@@ -73,6 +75,33 @@ export async function initializeNotificationChannels() {
       sound: "default",
       vibrationPattern: [0, 100],
       lightColor: "#f59e0b",
+      enableVibrate: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    });
+    
+    // Social channel - HIGH priority for friend requests
+    await Notifications.setNotificationChannelAsync(CHANNEL_SOCIAL, {
+      name: "Social",
+      description: "Friend requests and social notifications",
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#6366f1",
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    });
+
+    // Events channel - DEFAULT priority for event reminders
+    await Notifications.setNotificationChannelAsync(CHANNEL_EVENTS, {
+      name: "Events",
+      description: "Event reminders and notifications",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: "default",
+      vibrationPattern: [0, 200, 100, 200],
+      lightColor: "#ec4899",
       enableVibrate: true,
       showBadge: true,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,

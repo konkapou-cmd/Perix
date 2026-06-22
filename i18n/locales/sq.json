@@ -279,8 +279,7 @@
     "real-estate-agencies": "Agjenci Imobiliare",
     "studios": "Studio",
     "rooms": "Dhoma",
-    "commercial-spaces": "Hapësira Tregtare",
-    "vacation-rentals": "Qira Pushimesh",
+
     "co-living-spaces": "Hapësira Co-Living",
     "commercial-real-estate": "Pasuri Komerciale të Paluajtshme",
     "property-management": "Menaxhim Pasurish të Paluajtshme"
@@ -328,11 +327,20 @@
     "passwordTooShort": "Fjalëkalimi duhet të ketë të paktën 4 karaktere",
     "login": "Hyr",
     "loginRequired": "Kërkohet hyrja",
-    "signInRequired": "Duhet të jeni të lidhur"
+    "signInRequired": "Duhet të jeni të lidhur",
+    "iAm": "Jam...",
+    "individual": "Individ",
+    "business": "Biznes",
+    "businessName": "Emri i biznesit",
+    "rootCategory": "Slug kategorie (p.sh. food-dining)",
+    "subcategory": "Slug nënkategorie (p.sh. italian)",
+    "firstName": "Emri",
+    "lastName": "Mbiemri",
+    "city": "Qyteti"
   },
   "brand": {
     "title": "Perix",
-    "subtitle": "Harta e Qytetit"
+    "subtitle": "Qyteti yt i preferuar në duart e tua!"
   },
   "tabs": {
     "home": "Kryefaqja",
@@ -434,7 +442,9 @@
     "mediaPermissionMessage": "Ju lutem lejoni qasjen në bibliotekën tuaj të fotove për të shtuar imazhe.",
     "noLocationSet": "Ju lutem vendosni vendndodhjen tuaj në profilin tuaj për të parë përmbajtje afër.",
     "postFailed": "Dështoi krijimi i postimit",
-    "upcomingActivities": "Aktivitete të Ardhshme"
+    "upcomingActivities": "Aktivitete të Ardhshme",
+    "nearby": "Pranë",
+    "following": "Duke ndjekur"
   },
   "profile": {
     "title": "Profili",
@@ -684,7 +694,6 @@
     "location": "Vendndodhja",
     "locationPlaceholder": "Kërko për një adresë...",
     "eventImage": "Imazhi i Eventit",
-    "gallery": "Galeria",
     "galleryHint": "Shtoni imazhe në galeri (deri në 20)",
     "private": "Private",
     "privateHint": "Vetëm njerëzit me fjalëkalimin mund të bashkohen",
@@ -801,7 +810,9 @@
     "rsvpHere": "Konfirmo këtu",
     "searchEvents": "Kërko evente...",
     "setReminder": "Vendos Kujtesë",
-    "yourResponse": "Përgjigja Juaj"
+    "yourResponse": "Përgjigja Juaj",
+    "tagArtists": "Etiketo artistë",
+    "searchArtists": "Kërko artistë..."
   },
   "messages": {
     "title": "Mesazhe",
@@ -1097,7 +1108,6 @@
     "businessName": "Emri i biznesit",
     "saveBusiness": "Ruaj biznesin",
     "addBusiness": "Shto biznes",
-    "noBusinesses": "Nuk u gjetën biznese",
     "manage": "Menaxho",
     "trial": "Provë",
     "daysLeft": "ditë të mbetura",
@@ -1223,8 +1233,7 @@
     "callFailed": "Telefonata dështoi. Ju lutem provoni përsëri.",
     "businessClosed": "Biznesi është i mbyllur aktualisht. Ju lutem telefononi gjatë orarit të punës."
   },
-
-    "cityAd": {
+  "cityAd": {
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",
@@ -1806,7 +1815,98 @@
     "unblockFailed": "Dështoi zhbllokimi i përdoruesit",
     "unblockUser": "Zhblloko Përdoruesin",
     "version": "Versioni",
-    "viewProfile": "Shiko Profilin"
+    "viewProfile": "Shiko Profilin",
+    "editProfile": "Ndrysho profilin",
+    "editProfileDesc": "Emri, biografia, vendndodhja, foto",
+    "changePassword": "Ndrysho fjalëkalimin",
+    "changePasswordDesc": "Përditëso fjalëkalimin tënd",
+    "clearCache": "Pastro cache",
+    "clearCacheDesc": "Liro hapësirë ruajtjeje",
+    "currentPassword": "Fjalëkalimi aktual",
+    "newPassword": "Fjalëkalim i ri",
+    "passwordFieldsRequired": "Plotëso të dy fushat",
+    "passwordChanged": "Fjalëkalimi u ndryshua me sukses",
+    "passwordChangeFailed": "Gabim në ndryshimin e fjalëkalimit",
+    "cacheCleared": "Cache u pastrua me sukses",
+    "cacheClearFailed": "Gabim në pastrimin e cache"
+  },
+  "services": {
+    "noServices": "Asnjë shërbim i disponueshëm për momentin",
+    "addMenuItem": "Shto element në menu",
+    "add": "Shto shërbim",
+    "menu": "Menu",
+    "rooms": "Dhoma",
+    "listings": "Shpalljet",
+    "title": "Shërbime"
+  },
+  "menu": {
+    "starter": "Antipasta",
+    "main": "Pjata kryesore",
+    "dessert": "Ëmbëlsira",
+    "drink": "Pije",
+    "side": "Garnitura",
+    "other": "Të tjera"
+  },
+  "upgrade": {
+    "title": "Zhblloko biznesin tënd",
+    "withBusiness": "Me një profil biznesi mund të:",
+    "freeTrial": "Provim falas 90 ditë",
+    "noPayment": "Nuk kërkohet pagesë. Anulo në çdo kohë.",
+    "categoryTitle": "Zgjidh kategorinë e biznesit tënd",
+    "rootCategory": "Kategoria (p.sh. food-dining)",
+    "subcategory": "Nënkategoria (p.sh. italian)",
+    "businessName": "Emri i biznesit",
+    "startTrial": "Fillo provimin falas",
+    "selectCategory": "Zgjidh kategorinë dhe nënkategorinë",
+    "success": "Sukses",
+    "upgraded": "Profili yt i biznesit u krijua! Provim falas 90 ditë i aktivizuar.",
+    "failed": "Gabim në krijimin e biznesit"
+  },
+  "help": {
+    "title": "Ndihmë dhe Mbështetje",
+    "faq": "Pyetje të shpeshta",
+    "createEventQ": "Si krijoj një ngjarje?",
+    "createEventA": "Shko në profilin tënd, kalo në identitetin e biznesit dhe prek '+ Krijo ngjarje'.",
+    "changePasswordQ": "Si ndryshoj fjalëkalimin tim?",
+    "changePasswordA": "Shko te Cilësimet → Llogaria → Ndrysho fjalëkalimin.",
+    "reportContentQ": "Si raportoj përmbajtje të papërshtatshme?",
+    "reportContentA": "Në çdo publikim, ngjarje ose profil, prek menunë me tre pika dhe zgjidh 'Raporto'.",
+    "deleteAccountQ": "Si fshij llogarinë time?",
+    "deleteAccountA": "Shko te Cilësimet dhe prek 'Fshi llogarinë' në zonën e rrezikut.",
+    "businessQ": "Si krijoj një profil biznesi?",
+    "businessA": "Nga profili yt, prek menunë rënëse të identitetit dhe zgjidh 'Përditëso në biznes'.",
+    "subscriptionQ": "Çfarë ndodh pas provimit falas?",
+    "subscriptionA": "Pas provimit, mund të abonohesh në një plan me pagesë.",
+    "privacyQ": "Si mbrohen të dhënat e mia?",
+    "privacyA": "Të gjitha të dhënat janë të koduara. Nuk i shesim kurrë të dhënat e tua personale.",
+    "stillNeedHelp": "Ke ende nevojë për ndihmë?",
+    "contactDesc": "Kontakto ekipin tonë të mbështetjes dhe do të të përgjigjemi brenda 24 orëve.",
+    "emailUs": "Email mbështetje"
+  },
+  "terms": {
+    "title": "Kushtet e shërbimit",
+    "lastUpdated": "Përditësimi i fundit: Qershor 2026",
+    "acceptance": "Pranimi i kushteve",
+    "acceptanceContent": "Duke përdorur Perix, pranon këto kushte.",
+    "eligibility": "Përshtatshmëria",
+    "eligibilityContent": "Duhet të jesh të paktën 16 vjeç.",
+    "userContent": "Përmbajtja e përdoruesit",
+    "userContentContent": "Ruan pronësinë e përmbajtjes që publikon.",
+    "acceptableUse": "Përdorim i pranueshëm",
+    "acceptableUseContent": "Mos publiko përmbajtje të dëmshme ose ilegale.",
+    "intellectualProperty": "Pronësia intelektuale",
+    "intellectualPropertyContent": "Përmbajtja e Perix mbrohet nga të drejtat e autorit.",
+    "termination": "Përfundimi",
+    "terminationContent": "Mund të pezullojmë llogari që shkelin këto kushte.",
+    "disclaimers": "Mohime",
+    "disclaimersContent": "Perix ofrohet 'siç është' pa garanci.",
+    "liability": "Kufizimi i përgjegjësisë",
+    "liabilityContent": "Perix nuk është përgjegjës për dëmet nga përdorimi i shërbimit.",
+    "governingLaw": "Ligji i zbatueshëm",
+    "governingLawContent": "Këto kushte rregullohen nga ligji gjerman.",
+    "changes": "Ndryshime",
+    "changesContent": "Mund të përditësojmë këto kushte. Përdorimi i vazhdueshëm do të thotë pranim.",
+    "contact": "Kontakt",
+    "contactContent": "Email support@perix.app"
   }
 }
-

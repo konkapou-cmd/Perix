@@ -4,11 +4,12 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  FlatList,
   Dimensions,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import AdaptiveImage from "../AdaptiveImage";
 import AdaptiveVideo from "../AdaptiveVideo";
@@ -31,11 +32,7 @@ interface ProfileMediaProps {
   cardColor?: string;
   textColor?: string;
   readOnly?: boolean;
-  isUploading?: boolean;
-  onAddPhoto?: () => void;
-  onAddVideo?: () => void;
   onDeleteItem?: (source: "post" | "gallery", type: "image" | "video", uri: string) => void;
-  syncToGallery?: (urls: string[], type: "image" | "video") => void;
 }
 
 export const ProfileMedia: React.FC<ProfileMediaProps> = ({
@@ -46,15 +43,14 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
   cardColor = PROFILE_COLORS.CARD,
   textColor = PROFILE_COLORS.TEXT,
   readOnly = false,
-  isUploading = false,
-  onAddPhoto,
-  onAddVideo,
   onDeleteItem,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"photos" | "videos">("photos");
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+
+  const isWeb = Platform.OS === "web";
 
   const allMedia = useMemo(() => {
     const media: MediaItem[] = [];
@@ -196,31 +192,6 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
         </Pressable>
       </View>
 
-      {!readOnly && (
-        <View style={styles.addButtons}>
-          <Pressable
-            style={[styles.addBtn, { backgroundColor: cardColor }, isUploading && styles.addBtnDisabled]}
-            onPress={onAddPhoto}
-            disabled={isUploading}
-          >
-            <Ionicons name="add-circle-outline" size={18} color={primaryColor} />
-            <Text style={[styles.addBtnText, { color: primaryColor }]}>
-              {t("profile.addPhoto", "Add Photo")}
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.addBtn, { backgroundColor: cardColor }, isUploading && styles.addBtnDisabled]}
-            onPress={onAddVideo}
-            disabled={isUploading}
-          >
-            <Ionicons name="add-circle-outline" size={18} color={primaryColor} />
-            <Text style={[styles.addBtnText, { color: primaryColor }]}>
-              {t("profile.addVideo", "Add Video")}
-            </Text>
-          </Pressable>
-        </View>
-      )}
-
       {mediaItems.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="images-outline" size={48} color="#d1d5db" />
@@ -231,14 +202,48 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={mediaItems}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          numColumns={GRID_COLS}
-          scrollEnabled={false}
-          contentContainerStyle={styles.gridContainer}
-        />
+        <View style={styles.webGrid}>
+          {mediaItems.map((item, index) => (
+            <Pressable
+              key={item.id}
+              style={[styles.webGridItem, !isWeb && { flex: 1, maxWidth: "33%" }]}
+              onPress={() => handleItemPress(item, index)}
+            >
+              {item.type === "image" ? (
+                <AdaptiveImage uri={item.uri} style={styles.webGridMedia} ratio={1} maxHeight={1200} borderRadius={0} />
+              ) : (
+                <View style={styles.videoThumbnail}>
+                  <AdaptiveVideo
+                    uri={item.uri}
+                    coverPhoto={item.uri.includes('mux.com') ? item.uri.replace('stream.mux.com', 'image.mux.com').replace('.m3u8', '/thumbnail.jpg?time=0&width=300') : item.uri.replace('/upload/', '/upload/so_0,vc_00,w_300/')}
+                    style={styles.webGridMedia}
+                    ratio={1}
+                    maxHeight={1200}
+                    autoPlay
+                    initialMuted
+                    isLooping
+                    showMuteButton={false}
+                    useNativeControls={false}
+                    borderRadius={0}
+                  />
+                  <View style={styles.videoOverlay}>
+                    <Ionicons name="play-circle" size={32} color="#fff" />
+                  </View>
+                </View>
+              )}
+              {item.source === "post" && (
+                <View style={styles.postBadge}>
+                  <Ionicons name="document-text" size={10} color="#fff" />
+                </View>
+              )}
+              {!readOnly && (
+                <Pressable style={styles.deleteBtn} onPress={() => handleDelete(item, index)}>
+                  <Ionicons name="close-circle" size={22} color={PROFILE_COLORS.DANGER} />
+                </Pressable>
+              )}
+            </Pressable>
+          ))}
+        </View>
       )}
 
       <LazyMediaViewer
@@ -251,7 +256,7 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles: Record<string, any> = StyleSheet.create({
   container: {
     flex: 1,
     marginTop: 8,
@@ -275,27 +280,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: PROFILE_COLORS.TEXT_SECONDARY,
   },
-  addButtons: {
-    flexDirection: "row",
-    padding: 12,
-    gap: 10,
-  },
-  addBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: PROFILE.CARD_RADIUS,
-  },
-  addBtnDisabled: {
-    opacity: 0.5,
-  },
-  addBtnText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
   gridContainer: {
     padding: GRID_GAP,
   },
@@ -304,11 +288,32 @@ const styles = StyleSheet.create({
     height: ITEM_SIZE,
     margin: GRID_GAP / 2,
     position: "relative",
+    overflow: "hidden",
+  },
+  webGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    paddingHorizontal: 8,
+    paddingTop: 12,
+    paddingBottom: 24,
+  },
+  webGridItem: {
+    width: "calc(33.33% - 8px)" as any,
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: COLORS.textPrimary,
+    position: "relative",
+  },
+  webGridMedia: {
+    width: "100%",
+    height: "100%",
   },
   gridImage: {
     width: "100%",
     height: "100%",
-    borderRadius: 4,
+    borderRadius: 8,
   },
   videoThumbnail: {
     width: "100%",

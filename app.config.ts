@@ -119,7 +119,7 @@ const config: ExpoConfig = {
   ],
   extra: {
     EXPO_PUBLIC_BACKEND_URL:
-      process.env.EXPO_PUBLIC_BACKEND_URL || "https://api.perixapp.com",
+      process.env.EXPO_PUBLIC_BACKEND_URL || "http://192.168.178.56:8000",
     EXPO_PUBLIC_GOOGLE_MAPS_API_KEY:
       process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "",
     EXPO_PUBLIC_AGORA_APP_ID:

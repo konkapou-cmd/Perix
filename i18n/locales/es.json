@@ -280,8 +280,7 @@
     "real-estate-agencies": "Inmobiliarias",
     "studios": "Estudios",
     "rooms": "Habitaciones",
-    "commercial-spaces": "Espacios Comerciales",
-    "vacation-rentals": "Alquileres Vacacionales",
+
     "co-living-spaces": "Espacios de Covivienda",
     "commercial-real-estate": "Bienes Raíces Comerciales",
     "property-management": "Administración de Propiedades"
@@ -329,11 +328,20 @@
     "passwordTooShort": "La contraseña debe tener al menos 4 caracteres",
     "login": "Iniciar Sesión",
     "loginRequired": "Inicio de sesión requerido",
-    "signInRequired": "Debes iniciar sesión"
+    "signInRequired": "Debes iniciar sesión",
+    "iAm": "Soy...",
+    "individual": "Particular",
+    "business": "Negocio",
+    "businessName": "Nombre del negocio",
+    "rootCategory": "Slug de categoría (ej. food-dining)",
+    "subcategory": "Slug de subcategoría (ej. italian)",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "city": "Ciudad"
   },
   "brand": {
     "title": "Perix",
-    "subtitle": "Mapa de la Ciudad"
+    "subtitle": "¡Tu ciudad favorita en tus manos!"
   },
   "tabs": {
     "home": "Inicio",
@@ -435,7 +443,9 @@
     "mediaPermissionMessage": "Por favor permite el acceso a tu biblioteca de fotos para añadir imágenes.",
     "noLocationSet": "Por favor establece tu ubicación en tu perfil para ver contenido cercano.",
     "postFailed": "Error al crear la publicación",
-    "upcomingActivities": "Próximas Actividades"
+    "upcomingActivities": "Próximas Actividades",
+    "nearby": "Cerca",
+    "following": "Siguiendo"
   },
   "profile": {
     "title": "Perfil",
@@ -822,7 +832,9 @@
     "rsvpHere": "Confirma aquí",
     "searchEvents": "Buscar eventos...",
     "setReminder": "Establecer Recordatorio",
-    "yourResponse": "Tu Respuesta"
+    "yourResponse": "Tu Respuesta",
+    "tagArtists": "Etiquetar artistas",
+    "searchArtists": "Buscar artistas..."
   },
   "messages": {
     "title": "Mensajes",
@@ -1282,8 +1294,7 @@
     "callFailed": "Llamada fallida. Por favor, inténtalo de nuevo.",
     "businessClosed": "El negocio está cerrado actualmente. Por favor llama durante el horario de atención."
   },
-
-    "cityAd": {
+  "cityAd": {
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",
@@ -1862,10 +1873,101 @@
     "unblockFailed": "Error al desbloquear al usuario",
     "unblockUser": "Desbloquear Usuario",
     "version": "Versión",
-    "viewProfile": "Ver Perfil"
+    "viewProfile": "Ver Perfil",
+    "editProfile": "Editar perfil",
+    "editProfileDesc": "Nombre, biografía, ubicación, foto",
+    "changePassword": "Cambiar contraseña",
+    "changePasswordDesc": "Actualiza tu contraseña",
+    "clearCache": "Limpiar caché",
+    "clearCacheDesc": "Libera espacio de almacenamiento",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña",
+    "passwordFieldsRequired": "Por favor completa ambos campos",
+    "passwordChanged": "Contraseña cambiada exitosamente",
+    "passwordChangeFailed": "Error al cambiar contraseña",
+    "cacheCleared": "Caché limpiada exitosamente",
+    "cacheClearFailed": "Error al limpiar caché"
   },
   "time": {
     "justNow": "justo ahora"
+  },
+  "services": {
+    "noServices": "Aún no hay servicios disponibles",
+    "addMenuItem": "Agregar elemento al menú",
+    "add": "Agregar servicio",
+    "menu": "Menú",
+    "rooms": "Habitaciones",
+    "listings": "Anuncios",
+    "title": "Servicios"
+  },
+  "menu": {
+    "starter": "Entrantes",
+    "main": "Platos principales",
+    "dessert": "Postres",
+    "drink": "Bebidas",
+    "side": "Acompañamientos",
+    "other": "Otros"
+  },
+  "upgrade": {
+    "title": "Desbloquea tu negocio",
+    "withBusiness": "Con un perfil de negocio puedes:",
+    "freeTrial": "Prueba gratuita de 90 días",
+    "noPayment": "No se requiere pago. Cancela en cualquier momento.",
+    "categoryTitle": "Elige la categoría de tu negocio",
+    "rootCategory": "Categoría (ej. food-dining)",
+    "subcategory": "Subcategoría (ej. italian)",
+    "businessName": "Nombre del negocio",
+    "startTrial": "Iniciar prueba gratuita",
+    "selectCategory": "Por favor selecciona categoría y subcategoría",
+    "success": "Éxito",
+    "upgraded": "¡Tu perfil de negocio ha sido creado! Prueba gratuita de 90 días activada.",
+    "failed": "Error al crear el negocio"
+  },
+  "help": {
+    "title": "Ayuda y Soporte",
+    "faq": "Preguntas frecuentes",
+    "createEventQ": "¿Cómo creo un evento?",
+    "createEventA": "Ve a tu perfil, cambia a identidad de negocio y toca '+ Crear evento'.",
+    "changePasswordQ": "¿Cómo cambio mi contraseña?",
+    "changePasswordA": "Ve a Configuración → Cuenta → Cambiar contraseña.",
+    "reportContentQ": "¿Cómo reporto contenido inapropiado?",
+    "reportContentA": "En cualquier publicación, evento o perfil, toca el menú de tres puntos y selecciona 'Reportar'.",
+    "deleteAccountQ": "¿Cómo elimino mi cuenta?",
+    "deleteAccountA": "Ve a Configuración y toca 'Eliminar cuenta' en la zona de peligro.",
+    "businessQ": "¿Cómo creo un perfil de negocio?",
+    "businessA": "Desde tu perfil, toca el menú desplegable de identidad y selecciona 'Actualizar a negocio'.",
+    "subscriptionQ": "¿Qué pasa después de la prueba gratuita?",
+    "subscriptionA": "Después de la prueba, puedes suscribirte a un plan de pago.",
+    "privacyQ": "¿Cómo se protegen mis datos?",
+    "privacyA": "Todos los datos están encriptados. Nunca vendemos tus datos personales.",
+    "stillNeedHelp": "¿Aún necesitas ayuda?",
+    "contactDesc": "Contacta con nuestro equipo de soporte y te responderemos en 24 horas.",
+    "emailUs": "Email de soporte"
+  },
+  "terms": {
+    "title": "Términos de servicio",
+    "lastUpdated": "Última actualización: Junio 2026",
+    "acceptance": "Aceptación de términos",
+    "acceptanceContent": "Al usar Perix, aceptas estos términos.",
+    "eligibility": "Elegibilidad",
+    "eligibilityContent": "Debes tener al menos 16 años.",
+    "userContent": "Contenido del usuario",
+    "userContentContent": "Conservas la propiedad del contenido que publicas.",
+    "acceptableUse": "Uso aceptable",
+    "acceptableUseContent": "No publiques contenido dañino o ilegal.",
+    "intellectualProperty": "Propiedad intelectual",
+    "intellectualPropertyContent": "El contenido de Perix está protegido por derechos de autor.",
+    "termination": "Terminación",
+    "terminationContent": "Podemos suspender cuentas que violen estos términos.",
+    "disclaimers": "Descargos de responsabilidad",
+    "disclaimersContent": "Perix se proporciona 'tal cual' sin garantías.",
+    "liability": "Limitación de responsabilidad",
+    "liabilityContent": "Perix no es responsable por daños por el uso del servicio.",
+    "governingLaw": "Ley aplicable",
+    "governingLawContent": "Estos términos se rigen por la ley alemana.",
+    "changes": "Cambios",
+    "changesContent": "Podemos actualizar estos términos. El uso continuo significa aceptación.",
+    "contact": "Contacto",
+    "contactContent": "Email support@perix.app"
   }
 }
-

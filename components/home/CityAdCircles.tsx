@@ -1,12 +1,14 @@
 import React, { useRef, useEffect } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { GroupedStory, User } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { useTranslation } from "react-i18next";
 
-const CARD_WIDTH = 120;
+const CARD_WIDTH = Platform.OS === "web" ? 180 : 145;
+const CARD_IMAGE_HEIGHT = Platform.OS === "web" ? 135 : 110;
+const SNAP_INTERVAL = Platform.OS === "web" ? 192 : 157;
 
 interface CityAdCirclesProps {
   user: User | null;
@@ -58,7 +60,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={SNAP_INTERVAL} decelerationRate="fast">
         {storyGroups.length === 0 && !isBusiness && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>{t("cityAd.noAds") || "No ads yet"}</Text>
@@ -152,13 +154,19 @@ const styles = StyleSheet.create({
   },
   adCard: {
     width: CARD_WIDTH,
-    marginRight: SPACING.lg,
+    backgroundColor: "#ffffff",
+    marginRight: 12,
+    marginBottom: 4,
+    borderRadius: 12,
+    shadowColor: "#2B075F",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    overflow: "hidden",
   },
   previewContainer: {
     width: CARD_WIDTH,
-    height: CARD_WIDTH * 1.5,
-    borderRadius: BORDER_RADIUS.sm,
-    overflow: "hidden",
+    height: CARD_IMAGE_HEIGHT,
     backgroundColor: COLORS.border,
     position: "relative",
   },
@@ -178,25 +186,27 @@ const styles = StyleSheet.create({
   },
   seenOverlay: {
     position: "absolute",
-    top: 4,
-    right: 4,
+    top: 6,
+    right: 6,
     width: 20,
     height: 20,
     borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.success,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 10,
   },
   uploadCardContent: {
     width: CARD_WIDTH,
-    height: CARD_WIDTH * 1.5,
-    borderRadius: BORDER_RADIUS.sm,
+    height: CARD_IMAGE_HEIGHT,
     borderWidth: 2,
     borderColor: COLORS.border,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.backgroundPage,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   uploadIconWrap: {
     width: 48,
@@ -206,17 +216,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.sm,
-    shadowColor: "#000",
+    shadowColor: "#2B075F",
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
   businessName: {
-    fontSize: FONT_SIZES.caption,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.sm,
-    textAlign: "center",
-    fontWeight: FONT_WEIGHTS.medium,
+    fontSize: Platform.OS === "web" ? 15 : 13,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   emptyState: {
     width: CARD_WIDTH,

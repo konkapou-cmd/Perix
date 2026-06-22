@@ -4,8 +4,8 @@ export const PROFILE = {
   AVATAR_BOTTOM_OFFSET: -50,
   HEADER_OVERLAP: 50,
   TAB_BAR_HEIGHT: 48,
-  TAB_ACTIVE_COLOR: "#111827",
-  TAB_INACTIVE_COLOR: "#9ca3af",
+  TAB_ACTIVE_COLOR: "#5B16C9",
+  TAB_INACTIVE_COLOR: "#5D5575",
   CARD_RADIUS: 16,
   BUTTON_RADIUS: 12,
   SECTION_GAP: 20,
@@ -13,16 +13,16 @@ export const PROFILE = {
 } as const;
 
 export const PROFILE_COLORS = {
-  PRIMARY: "#111827",
+  PRIMARY: "#5B16C9",
   BG: "#ffffff",
   CARD: "#ffffff",
-  TEXT: "#111827",
-  TEXT_SECONDARY: "#6b7280",
-  BORDER: "#e5e7eb",
+  TEXT: "#120A35",
+  TEXT_SECONDARY: "#6E6688",
+  BORDER: "#E7DFF2",
   DANGER: "#ef4444",
-  WARNING: "#f59e0b",
+  WARNING: "#FFC400",
   SUCCESS: "#10b981",
-  GOLD: "#FFD700",
+  GOLD: "#FFC400",
 } as const;
 
 export type ProfileColors = typeof PROFILE_COLORS;

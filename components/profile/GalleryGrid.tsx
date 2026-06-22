@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import ImageZoomModal from "../ImageZoomModal";
 import AdaptiveVideo from "../AdaptiveVideo";
 
@@ -52,8 +53,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
   onDeleteVideo,
   title,
   showAddButtons = true,
-  primaryColor = "#000000",
-  textColor = "#111827",
+  primaryColor = COLORS.primaryDark,
+  textColor = COLORS.textPrimary,
   cardColor = "#ffffff",
 }) => {
   const { t } = useTranslation();

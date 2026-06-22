@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
@@ -69,17 +70,17 @@ export default function JobModal({
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.modalContainer}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.modalHeader}>
           <Pressable onPress={onClose} style={styles.headerButton}>
-            <Ionicons name="close" size={28} color="#111827" />
+            <Ionicons name="close" size={28} color={COLORS.textPrimary} />
           </Pressable>
           <Text style={styles.modalTitle}>{t("jobs.createJob")}</Text>
           <Pressable onPress={onSave} disabled={isSaving} style={styles.headerButton}>
             {isSaving ? (
-              <ActivityIndicator size="small" color="#000000" />
+              <ActivityIndicator size="small" color={COLORS.primaryDark} />
             ) : (
-              <Ionicons name="checkmark" size={28} color="#000000" />
+              <Ionicons name="checkmark" size={28} color={COLORS.primaryDark} />
             )}
           </Pressable>
         </View>
@@ -184,7 +185,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   modalBody: {
     flex: 1,
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   uploadArea: {
     borderWidth: 2,
@@ -245,8 +246,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   chipSelected: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
   },
   chipText: {
     fontSize: 14,

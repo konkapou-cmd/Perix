@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 
 // Days of the week
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -89,11 +90,11 @@ export default function OpeningHoursModal({
   return (
     <Modal visible={visible} animationType="slide">
       <View style={styles.modalContainer}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>{t("business.openingHours")}</Text>
           <Pressable onPress={onClose}>
-            <Ionicons name="close" size={24} color="#111827" />
+            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
           </Pressable>
         </View>
         <ScrollView style={styles.modalBody}>
@@ -107,7 +108,7 @@ export default function OpeningHoursModal({
                   <Ionicons
                     name={openingHours[day]?.enabled ? "checkbox" : "square-outline"}
                     size={24}
-                    color={openingHours[day]?.enabled ? "#000000" : "#9ca3af"}
+                    color={openingHours[day]?.enabled ? COLORS.primaryDark : "#9ca3af"}
                   />
                   <Text style={styles.dayName}>{t(`business.days.${day.toLowerCase()}`)}</Text>
                 </Pressable>
@@ -116,7 +117,7 @@ export default function OpeningHoursModal({
                     style={styles.addPeriodButton}
                     onPress={() => addPeriod(day)}
                   >
-                    <Ionicons name="add-circle-outline" size={20} color="#000000" />
+                    <Ionicons name="add-circle-outline" size={20} color={COLORS.primaryDark} />
                   </Pressable>
                 )}
               </View>
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   modalBody: {
     flex: 1,
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
   dayName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   addPeriodButton: {
     padding: 4,
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   primaryButton: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,

@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 
 type Location = {
   latitude: number;
@@ -29,7 +30,7 @@ export default function LocationSection({ address, latitude, longitude, onEdit }
       {address || (latitude && longitude) ? (
         <View style={styles.locationInfo}>
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={20} color="#000000" />
+            <Ionicons name="location-outline" size={20} color={COLORS.primaryDark} />
             <Text style={styles.locationText}>
               {address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
             </Text>
@@ -52,7 +53,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 10,
   },
   sectionHeader: {
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
     fontSize: 13,
   },

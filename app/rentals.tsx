@@ -22,7 +22,6 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import {
   getRentals,
-  getRental,
   Rental,
   CategoryGroup,
   getBusinessCategories,
@@ -45,8 +44,6 @@ const PROPERTY_TYPES = [
   { slug: "house", icon: "home" },
   { slug: "studio", icon: "bed-outline" },
   { slug: "room", icon: "bed" },
-  { slug: "commercial", icon: "business-outline" },
-  { slug: "vacation", icon: "airplane-outline" },
 ];
 
 export default function RentalsScreen() {
@@ -60,7 +57,7 @@ export default function RentalsScreen() {
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
 
-  const rootCategory = "rental-real-estate";
+  const rootCategory = "";
   const [subcategory, setSubcategory] = useState<string>("");
   const [propertyType, setPropertyType] = useState<string>("");
   const [savedRentalIds, setSavedRentalIds] = useState<Set<string>>(new Set());
@@ -69,9 +66,6 @@ export default function RentalsScreen() {
   const [rentalsOffset, setRentalsOffset] = useState(0);
   const [rentalsTotal, setRentalsTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
-
-  const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
 
   const selectedRootGroup = useMemo(
     () => categories.find((c) => c.slug === rootCategory),
@@ -205,14 +199,7 @@ export default function RentalsScreen() {
   };
 
   const openRentalDetail = async (rental: Rental) => {
-    if (!sessionToken) return;
-    try {
-      const fullRental = await getRental(sessionToken, rental.rental_id);
-      setSelectedRental(fullRental);
-      setDetailModalVisible(true);
-    } catch (error) {
-      console.error("Failed to load rental details:", error);
-    }
+    router.push(`/service/${rental.service_id || rental.rental_id}` as any);
   };
 
   const translatePropertyType = (slug: string) => {
@@ -221,8 +208,6 @@ export default function RentalsScreen() {
       house: t("categories.houses", "Houses"),
       studio: t("categories.studios", "Studios"),
       room: t("categories.rooms", "Rooms"),
-      commercial: t("categories.commercial-spaces", "Commercial Spaces"),
-      vacation: t("categories.vacation-rentals", "Vacation Rentals"),
     };
     return map[slug] || slug;
   };
@@ -231,7 +216,7 @@ export default function RentalsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{t("rentals.rentals")}</Text>
@@ -314,7 +299,7 @@ export default function RentalsScreen() {
           />
         ) : (
           <View style={styles.mapPlaceholder}>
-            <Ionicons name="location" size={40} color="#000000" />
+            <Ionicons name="location" size={40} color={COLORS.primaryDark} />
             <Text style={styles.mapPlaceholderText}>{t("rentals.tapLocation", "Tap to enable location")}</Text>
             <Text style={styles.mapPlaceholderSubtext}>{t("rentals.viewNearby", "View rentals near you")}</Text>
           </View>
@@ -395,7 +380,7 @@ export default function RentalsScreen() {
           )}
           onEndReached={loadMoreRentals}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={loadingMore ? <ActivityIndicator color="#111827" /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={COLORS.textPrimary} /> : null}
           ListEmptyComponent={
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>{searchQuery ? t("rentals.noResults", "No rentals found") : t("rentals.noRentals")}</Text>
@@ -411,7 +396,7 @@ export default function RentalsScreen() {
           <View style={styles.categoryModalHeader}>
             <Text style={styles.categoryModalTitle}>{t("locator.selectSubcategory")}</Text>
             <Pressable onPress={() => setSubcategoryModalVisible(false)}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
           <ScrollView>
@@ -442,167 +427,6 @@ export default function RentalsScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* Rental Detail Modal */}
-      <Modal visible={detailModalVisible} animationType="slide" onRequestClose={() => setDetailModalVisible(false)}>
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Pressable onPress={() => setDetailModalVisible(false)}>
-              <Ionicons name="close" size={28} color="#111827" />
-            </Pressable>
-            <Text style={styles.modalTitle}>{t("rentals.rentals")}</Text>
-            <View style={{ width: 28 }} />
-          </View>
-
-          {selectedRental && (
-            <ScrollView style={styles.modalBody}>
-              {selectedRental.cover_image ? (
-                <Image source={{ uri: selectedRental.cover_image }} style={styles.detailImage} />
-              ) : selectedRental.gallery_images && selectedRental.gallery_images[0] ? (
-                <Image source={{ uri: selectedRental.gallery_images[0] }} style={styles.detailImage} />
-              ) : (
-                <View style={[styles.detailImage, styles.detailImagePlaceholder]}>
-                  <Ionicons name="home" size={64} color="#9ca3af" />
-                </View>
-              )}
-
-              <View style={styles.detailContent}>
-                <View style={styles.detailBadges}>
-                  {selectedRental.property_type && (
-                    <View style={styles.propertyBadge}>
-                      <Text style={styles.propertyBadgeText}>{translatePropertyType(selectedRental.property_type)}</Text>
-                    </View>
-                  )}
-                  {selectedRental.rent_price && (
-                    <View style={styles.priceBadge}>
-                      <Text style={styles.priceBadgeText}>{selectedRental.rent_price}</Text>
-                    </View>
-                  )}
-                </View>
-
-                <Text style={styles.detailTitle}>{selectedRental.title}</Text>
-
-                <Pressable style={styles.detailRow} onPress={() => {
-                  if (selectedRental.business_id) router.push(`/business/${selectedRental.business_id}`);
-                }}>
-                  {selectedRental.business_logo && (
-                    <Image source={{ uri: selectedRental.business_logo }} style={styles.businessLogo} />
-                  )}
-                  <Text style={[styles.detailBusiness, { color: "#0066cc" }]}>{selectedRental.business_name}</Text>
-                  <Ionicons name="open-outline" size={14} color="#0066cc" />
-                </Pressable>
-
-                <View style={styles.detailInfoRow}>
-                  {selectedRental.rent_price && (
-                    <View style={styles.detailInfoCard}>
-                      <Ionicons name="cash-outline" size={20} color={COLORS.warning || "#f59e0b"} />
-                      <Text style={styles.detailInfoLabel}>{t("rentals.rentPrice")}</Text>
-                      <Text style={styles.detailInfoValue}>{selectedRental.rent_price}</Text>
-                    </View>
-                  )}
-                  {selectedRental.rooms_size && (
-                    <View style={styles.detailInfoCard}>
-                      <Ionicons name="resize-outline" size={20} color="#3b82f6" />
-                      <Text style={styles.detailInfoLabel}>{t("rentals.roomsSize")}</Text>
-                      <Text style={styles.detailInfoValue}>{selectedRental.rooms_size}</Text>
-                    </View>
-                  )}
-                </View>
-
-                {selectedRental.deposit && (
-                  <View style={styles.detailRow}>
-                    <Ionicons name="shield-outline" size={18} color="#6b7280" />
-                    <View>
-                      <Text style={styles.detailSmallLabel}>{t("rentals.deposit")}</Text>
-                      <Text style={styles.detailLocation}>{selectedRental.deposit}</Text>
-                    </View>
-                  </View>
-                )}
-
-                {selectedRental.available_from && (
-                  <View style={styles.detailRow}>
-                    <Ionicons name="calendar-outline" size={18} color="#6b7280" />
-                    <View>
-                      <Text style={styles.detailSmallLabel}>{t("rentals.availableFrom")}</Text>
-                      <Text style={styles.detailLocation}>{selectedRental.available_from}</Text>
-                    </View>
-                  </View>
-                )}
-
-                {selectedRental.address && (
-                  <Pressable style={styles.detailRow} onPress={() => {
-                    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedRental.address || "")}`;
-                    try { require("react-native").Linking.openURL(url); } catch {}
-                  }}>
-                    <Ionicons name="location-outline" size={18} color="#6b7280" />
-                    <Text style={[styles.detailLocation, { color: "#0066cc", textDecorationLine: "underline" }]}>{selectedRental.address}</Text>
-                  </Pressable>
-                )}
-
-                {selectedRental.latitude && selectedRental.longitude && (
-                  <View style={styles.detailMapContainer}>
-                    <BusinessMap
-                      location={{ latitude: selectedRental.latitude, longitude: selectedRental.longitude }}
-                      markers={[{
-                        id: selectedRental.rental_id,
-                        latitude: selectedRental.latitude,
-                        longitude: selectedRental.longitude,
-                        title: selectedRental.title,
-                        description: selectedRental.business_name || "",
-                      }]}
-                    />
-                  </View>
-                )}
-
-                {selectedRental.description && (
-                  <>
-                    <Text style={styles.detailSectionTitle}>{t("rentals.description")}</Text>
-                    <Text style={styles.detailDescription}>{selectedRental.description}</Text>
-                  </>
-                )}
-
-                {selectedRental.gallery_images && selectedRental.gallery_images.length > 0 && (
-                  <>
-                    <Text style={styles.detailSectionTitle}>{t("rentals.gallery")}</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {selectedRental.gallery_images.map((img, idx) => (
-                        <Image key={idx} source={{ uri: img }} style={styles.galleryThumb} />
-                      ))}
-                    </ScrollView>
-                  </>
-                )}
-
-                <View style={styles.detailActions}>
-                  <Pressable
-                    style={styles.saveButton}
-                    onPress={() => handleToggleSave(selectedRental.rental_id)}
-                  >
-                    <Ionicons
-                      name={savedRentalIds.has(selectedRental.rental_id) ? "bookmark" : "bookmark-outline"}
-                      size={20}
-                      color={savedRentalIds.has(selectedRental.rental_id) ? COLORS.gold : "#111827"}
-                    />
-                    <Text style={styles.saveButtonText}>
-                      {savedRentalIds.has(selectedRental.rental_id) ? t("common.saved", "Saved") : t("common.save", "Save")}
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={styles.whatsappButton}
-                    onPress={() => {
-                      const text = encodeURIComponent(`Hi, I'm interested in: ${selectedRental.title}`);
-                      const url = `https://wa.me/?text=${text}`;
-                      try { require("react-native").Linking.openURL(url); } catch {}
-                    }}
-                  >
-                    <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-                    <Text style={styles.whatsappButtonText}>{t("common.share", "Share")}</Text>
-                  </Pressable>
-                </View>
-              </View>
-            </ScrollView>
-          )}
-        </SafeAreaView>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -624,7 +448,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   subtitle: {
     color: "#6b7280",
@@ -633,7 +457,7 @@ const styles = StyleSheet.create({
   },
   myBtn: {
     marginLeft: "auto",
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -662,7 +486,7 @@ const styles = StyleSheet.create({
   },
   filterValue: {
     flex: 1,
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -681,7 +505,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   chipActive: {
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.textPrimary,
   },
   chipText: {
     fontSize: 13,
@@ -726,7 +550,7 @@ const styles = StyleSheet.create({
   mapPlaceholderText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
     marginTop: 8,
   },
   mapPlaceholderSubtext: {
@@ -737,7 +561,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     paddingHorizontal: 16,
     marginBottom: 8,
   },
@@ -778,11 +602,11 @@ const styles = StyleSheet.create({
   rentalTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   rentalBusiness: {
     fontSize: 13,
-    color: "#000000",
+    color: COLORS.primaryDark,
     marginTop: 2,
   },
   rentalMeta: {
@@ -827,161 +651,13 @@ const styles = StyleSheet.create({
   },
   rentalDistance: {
     fontSize: 12,
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "500",
     marginTop: 2,
   },
   rentalCardActions: {
     alignItems: "center",
     gap: SPACING.sm,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  modalBody: {
-    flex: 1,
-  },
-  detailImage: {
-    width: "100%",
-    height: 200,
-  },
-  detailImagePlaceholder: {
-    backgroundColor: "#f3f4f6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  detailContent: {
-    padding: 16,
-  },
-  detailBadges: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-  },
-  detailTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-  },
-  businessLogo: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  detailBusiness: {
-    fontSize: 16,
-    color: "#000000",
-    fontWeight: "500",
-  },
-  detailLocation: {
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  detailSmallLabel: {
-    fontSize: 11,
-    color: "#9ca3af",
-  },
-  detailInfoRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginVertical: 12,
-  },
-  detailInfoCard: {
-    flex: 1,
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
-    padding: 12,
-    alignItems: "center",
-    gap: 4,
-  },
-  detailInfoLabel: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  detailInfoValue: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  detailMapContainer: {
-    height: 150,
-    borderRadius: 12,
-    overflow: "hidden",
-    marginVertical: 16,
-  },
-  detailSectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  detailDescription: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 22,
-  },
-  galleryThumb: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  detailActions: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 24,
-  },
-  saveButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#f3f4f6",
-    padding: 14,
-    borderRadius: 12,
-    flex: 1,
-  },
-  saveButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  whatsappButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#dcfce7",
-    padding: 14,
-    borderRadius: 12,
-    flex: 1,
-  },
-  whatsappButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#166534",
   },
   categoryModalContainer: {
     flex: 1,
@@ -998,7 +674,7 @@ const styles = StyleSheet.create({
   categoryModalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   categoryModalItem: {
     padding: 16,

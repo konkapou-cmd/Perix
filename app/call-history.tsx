@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
+import { COLORS } from "../lib/designTokens";
 import { getCallHistory, deleteCallHistory, deleteAllCallHistory, CallRecord } from "../lib/api";
 
 export default function CallHistoryScreen() {
@@ -124,7 +125,7 @@ export default function CallHistoryScreen() {
       return { name: "call-outline" as const, color: "#ef4444" };
     }
     if (isOutgoing) {
-      return { name: "arrow-up-outline" as const, color: "#000000" };
+      return { name: "arrow-up-outline" as const, color: COLORS.primaryDark };
     }
     return { name: "arrow-down-outline" as const, color: "#10b981" };
   };
@@ -188,13 +189,13 @@ export default function CallHistoryScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#111827" />
+            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
           </Pressable>
           <Text style={styles.title}>{t("calls.callHistory")}</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#000000" />
+          <ActivityIndicator size="large" color={COLORS.primaryDark} />
         </View>
       </SafeAreaView>
     );
@@ -204,7 +205,7 @@ export default function CallHistoryScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
         <Text style={styles.title}>{t("calls.callHistory")}</Text>
         {calls.length > 0 ? (
@@ -241,7 +242,7 @@ export default function CallHistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
   },
   header: {
     flexDirection: "row",
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   loading: {
     flex: 1,
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
   callName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   missedText: {
     color: "#ef4444",

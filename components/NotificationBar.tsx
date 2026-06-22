@@ -16,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import { useBadge } from "../context/BadgeContext";
 import { useNotifications } from "../context/NotificationContext";
 import { useSocket, useSocketEvent } from "../context/SocketContext";
+import { formatDate } from "../lib/formatDate";
 
 interface NotificationBarProps {
   onExpand?: () => void;
@@ -71,7 +72,7 @@ const formatTimeAgo = (dateString: string): string => {
   if (diffMins < 60) return `${diffMins}m`;
   if (diffHours < 24) return `${diffHours}h`;
   if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString();
+  return formatDate(dateString);
 };
 
 // Helper to translate notification messages based on type

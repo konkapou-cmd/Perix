@@ -37,6 +37,13 @@ type EventForm = {
   gallery_videos: string[];
   is_private: boolean;
   password: string;
+  tagged_artist_ids: string[];
+};
+
+type ArtistSuggestion = {
+  artist_id: string;
+  name: string;
+  profile_photo?: string | null;
 };
 
 type Props = {
@@ -60,6 +67,7 @@ type Props = {
   sessionToken?: string;
   nearLat?: number;
   nearLng?: number;
+  availableArtists?: ArtistSuggestion[];
 };
 
 const themesMap = EVENT_THEMES;
@@ -88,20 +96,18 @@ function formToMedia(form: EventForm): MediaItem[] {
 
 function mediaToForm(media: MediaItem[], base: EventForm): EventForm {
   const coverIsVideo = media.length > 0 && media[0].type === "video";
+  const images = media.filter((m) => m.type === "image").map((m) => m.uri);
+  const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
   if (coverIsVideo) {
-    const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
-    const images = media.filter((m) => m.type === "image").map((m) => m.uri);
     return {
       ...base,
       cover_image_url: undefined,
       image_urls: images,
       video_url: videos[0] || undefined,
-      gallery_images: images,
+      gallery_images: images.slice(1),
       gallery_videos: videos.slice(1),
     };
   }
-  const images = media.filter((m) => m.type === "image").map((m) => m.uri);
-  const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
   return {
     ...base,
     cover_image_url: images[0] || undefined,
@@ -133,8 +139,36 @@ export default function EventModal({
   sessionToken,
   nearLat,
   nearLng,
+  availableArtists,
 }: Props) {
   const { t } = useTranslation();
+  const [artistQuery, setArtistQuery] = useState("");
+  const [showArtistSuggestions, setShowArtistSuggestions] = useState(false);
+
+  const taggedArtists = (availableArtists || []).filter(a =>
+    (eventForm.tagged_artist_ids || []).includes(a.artist_id)
+  );
+
+  const filteredArtistSuggestions = artistQuery.trim()
+    ? (availableArtists || []).filter(a =>
+        a.name.toLowerCase().includes(artistQuery.toLowerCase()) &&
+        !(eventForm.tagged_artist_ids || []).includes(a.artist_id)
+      ).slice(0, 10)
+    : [];
+
+  const handleSelectArtist = (artist: ArtistSuggestion) => {
+    const ids = [...(eventForm.tagged_artist_ids || []), artist.artist_id];
+    onFormChange({ ...eventForm, tagged_artist_ids: ids });
+    setArtistQuery("");
+    setShowArtistSuggestions(false);
+  };
+
+  const handleRemoveArtist = (artistId: string) => {
+    onFormChange({
+      ...eventForm,
+      tagged_artist_ids: (eventForm.tagged_artist_ids || []).filter(id => id !== artistId)
+    });
+  };
 
   useEffect(() => {
     if (eventEditing) {
@@ -153,6 +187,7 @@ export default function EventModal({
         gallery_videos: (eventEditing as any).gallery_videos || [],
         is_private: (eventEditing as any).is_private || false,
         password: (eventEditing as any).password || "",
+        tagged_artist_ids: eventEditing.tagged_artist_ids || [],
       });
     }
   }, [eventEditing]);
@@ -172,7 +207,7 @@ export default function EventModal({
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={s.modalContainer} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={s.header}>
           <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
             <Ionicons name="close" size={24} color={COLORS.textPrimary} />
@@ -291,6 +326,60 @@ export default function EventModal({
               ))}
             </ScrollView>
           )}
+
+          {/* Artist Tagging */}
+          <View style={s.artistSection}>
+            <Text style={s.label}>{t("events.tagArtists", "Tag Artists")}</Text>
+            {taggedArtists.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.taggedArtistsRow}>
+                {taggedArtists.map((artist) => (
+                  <Pressable key={artist.artist_id} style={s.taggedArtistChip} onPress={() => handleRemoveArtist(artist.artist_id)}>
+                    {artist.profile_photo ? (
+                      <Image source={{ uri: artist.profile_photo }} style={s.taggedArtistAvatar} />
+                    ) : (
+                      <View style={[s.taggedArtistAvatar, s.taggedArtistAvatarPlaceholder]}>
+                        <Ionicons name="person" size={14} color={COLORS.textMuted} />
+                      </View>
+                    )}
+                    <Text style={s.taggedArtistName} numberOfLines={1}>{artist.name}</Text>
+                    <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+            <View style={s.artistInputRow}>
+              <Ionicons name="search" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
+              <TextInput
+                style={[s.input, { flex: 1 }]}
+                value={artistQuery}
+                onChangeText={(text) => { setArtistQuery(text); setShowArtistSuggestions(!!text.trim()); }}
+                placeholder={t("events.searchArtists", "Search artists...")}
+                placeholderTextColor={COLORS.textDisabled}
+                onFocus={() => artistQuery.trim() && setShowArtistSuggestions(true)}
+              />
+              {artistQuery ? (
+                <Pressable onPress={() => { setArtistQuery(""); setShowArtistSuggestions(false); }}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                </Pressable>
+              ) : null}
+            </View>
+            {showArtistSuggestions && filteredArtistSuggestions.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.artistSuggestionsRow}>
+                {filteredArtistSuggestions.map((artist) => (
+                  <Pressable key={artist.artist_id} style={s.artistSuggestionChip} onPress={() => handleSelectArtist(artist)}>
+                    {artist.profile_photo ? (
+                      <Image source={{ uri: artist.profile_photo }} style={s.artistSuggestionAvatar} />
+                    ) : (
+                      <View style={[s.artistSuggestionAvatar, s.artistSuggestionAvatarPlaceholder]}>
+                        <Ionicons name="person" size={14} color={COLORS.textMuted} />
+                      </View>
+                    )}
+                    <Text style={s.artistSuggestionName} numberOfLines={1}>{artist.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </View>
 
           <View style={s.privateRow}>
             <View style={s.privateLabelContainer}>
@@ -532,5 +621,81 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.primary,
+  },
+  // Artist tagging
+  artistSection: {
+    marginBottom: SPACING.md,
+  },
+  taggedArtistsRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 8,
+  },
+  taggedArtistChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.primary + "15",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  taggedArtistAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  taggedArtistAvatarPlaceholder: {
+    backgroundColor: COLORS.backgroundPage,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  taggedArtistName: {
+    fontSize: FONT_SIZES.caption,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: COLORS.textPrimary,
+    maxWidth: 100,
+  },
+  artistInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: Platform.OS === "web" ? 8 : 6,
+    backgroundColor: COLORS.background,
+  },
+  artistSuggestionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 8,
+  },
+  artistSuggestionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.backgroundPage,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  artistSuggestionAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  artistSuggestionAvatarPlaceholder: {
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  artistSuggestionName: {
+    fontSize: FONT_SIZES.caption,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: COLORS.textPrimary,
+    maxWidth: 100,
   },
 });

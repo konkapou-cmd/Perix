@@ -6,6 +6,10 @@ export const registerUser = async (
   email: string,
   password: string,
   city: string,
+  role: string = "user",
+  rootCategory?: string,
+  subcategory?: string,
+  businessName?: string,
   latitude?: number,
   longitude?: number
 ): Promise<AuthResponse> => {
@@ -13,8 +17,12 @@ export const registerUser = async (
     name: `${firstName} ${lastName}`.trim(),
     email,
     password,
+    role,
   };
   if (city) body.city = city;
+  if (rootCategory) body.root_category = rootCategory;
+  if (subcategory) body.subcategory = subcategory;
+  if (businessName) body.business_name = businessName;
   if (latitude != null) body.latitude = latitude;
   if (longitude != null) body.longitude = longitude;
   return apiRequest<AuthResponse>("/auth/register", "POST", null, body);

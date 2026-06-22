@@ -10,6 +10,7 @@ import {
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { GroupedStory, viewStory, markStorySeen } from "../../lib/api";
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from "../../lib/designTokens";
@@ -27,6 +28,7 @@ export function CityAdViewer({
   onClose: () => void;
 }) {
   const { sessionToken, user } = useAuth();
+  const router = useRouter();
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex);
   const [storyIndex, setStoryIndex] = useState(0);
 
@@ -110,11 +112,22 @@ export function CityAdViewer({
       </Pressable>
 
       {/* Business name header */}
-      <View style={styles.header}>
+      <Pressable
+        style={styles.header}
+        onPress={() => {
+          if (currentGroup?.actor_type === "business" && currentGroup?.actor_id) {
+            player.pause();
+            router.push(`/business/${currentGroup.actor_id}`);
+          }
+        }}
+      >
         <Text style={styles.businessName}>
           {currentGroup?.author_name || "Business"}
         </Text>
-      </View>
+        {currentGroup?.actor_type === "business" && (
+          <Ionicons name="chevron-forward" size={14} color={COLORS.primary} style={{ marginLeft: 4 }} />
+        )}
+      </Pressable>
 
       {/* Video player */}
       <View style={styles.videoContainer}>

@@ -79,12 +79,12 @@ export interface UseThemeStylesResult {
 
 const DEFAULT_COLORS = {
   backgroundColor: '#ffffff',
-  primaryColor: '#111827',
-  textColor: '#111827',
-  secondaryColor: '#6b7280',
+  primaryColor: '#5B16C9',
+  textColor: '#120A35',
+  secondaryColor: '#6E6688',
   cardColor: '#ffffff',
-  borderColor: '#e5e7eb',
-  accentColor: '#111827',
+  borderColor: '#E7DFF2',
+  accentColor: '#5B16C9',
 };
 
 export function useThemeStyles(theme?: ProfileTheme | null): UseThemeStylesResult {
@@ -156,25 +156,25 @@ export function useThemeStyles(theme?: ProfileTheme | null): UseThemeStylesResul
             },
             shadows: {
                 subtle: {
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
+                    shadowColor: "#2B075F",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 12,
                     elevation: 2,
                 },
                 medium: {
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.15,
+                    shadowColor: "#2B075F",
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.10,
                     shadowRadius: 24,
-                    elevation: 8,
+                    elevation: 6,
                 },
                 strong: {
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 8,
-                    elevation: 4,
+                    shadowColor: "#2B075F",
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.18,
+                    shadowRadius: 24,
+                    elevation: 10,
                 },
             },
             maxWidth: {

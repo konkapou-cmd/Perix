@@ -14,7 +14,8 @@ interface PostContentProps {
   soundcloudUrl?: string | null;
   taggedUsers?: { id: string; name: string }[];
   taggedBusinesses?: { id: string; name: string }[];
-  onMentionPress?: (id: string, type: 'user' | 'business') => void;
+  taggedArtists?: { id: string; name: string }[];
+  onMentionPress?: (id: string, type: 'user' | 'business' | 'artist') => void;
 }
 
 // YouTube URL regex pattern - matches various YouTube URL formats
@@ -155,6 +156,7 @@ export default React.memo(function PostContent({
   soundcloudUrl,
   taggedUsers,
   taggedBusinesses,
+  taggedArtists,
 }: PostContentProps) {
   const router = useRouter();
   
@@ -166,7 +168,7 @@ export default React.memo(function PostContent({
   const hasExplicitMedia = !!youtubeLink || !!soundcloudUrl;
   const { segments, hasMedia } = useMemo(() => parsePostContent(displayText), [displayText]);
 
-  const handleMentionPress = (id: string, type: 'user' | 'business') => {
+  const handleMentionPress = (id: string, type: 'user' | 'business' | 'artist') => {
     if (onMentionPress) {
       onMentionPress(id, type);
     } else {
@@ -183,7 +185,8 @@ export default React.memo(function PostContent({
   const renderTextWithMentions = () => {
     const allTags = [
       ...(taggedUsers || []).map(u => ({ id: u.id, name: u.name, type: 'user' as const })),
-      ...(taggedBusinesses || []).map(b => ({ id: b.id, name: b.name, type: 'business' as const }))
+      ...(taggedBusinesses || []).map(b => ({ id: b.id, name: b.name, type: 'business' as const })),
+      ...(taggedArtists || []).map(a => ({ id: a.id, name: a.name, type: 'artist' as const }))
     ];
     
     if (allTags.length === 0 || !displayText) {

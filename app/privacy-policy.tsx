@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { COLORS } from "../lib/designTokens";
 
 export default function PrivacyPolicyScreen() {
   const { t } = useTranslation();
@@ -97,7 +98,7 @@ export default function PrivacyPolicyScreen() {
 
         {/* GDPR Notice */}
         <View style={styles.gdprNotice}>
-          <Ionicons name="shield-checkmark" size={24} color="#000000" />
+          <Ionicons name="shield-checkmark" size={24} color={COLORS.primaryDark} />
           <View style={styles.gdprText}>
             <Text style={styles.gdprTitle}>
               {t("privacy.gdprTitle") || "GDPR Compliance"}
@@ -184,7 +185,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gdprTitle: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 4,

@@ -13,5 +13,12 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "__tests__",
+    "dist",
+    ".expo",
+    ".metro-cache",
+    "node_modules"
   ]
 }

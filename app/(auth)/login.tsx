@@ -18,9 +18,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../context/AuthContext";
 import { LANGUAGES, setStoredLanguage } from "../../i18n";
+import { COLORS } from "../../lib/designTokens";
 
 export default function LoginScreen() {
   const { t, i18n } = useTranslation();
@@ -53,8 +53,6 @@ export default function LoginScreen() {
       setLoading(true);
       setErrorMessage("");
       await login(email.trim(), password);
-      const done = await AsyncStorage.getItem("@onboarding_complete");
-      router.replace(done === "true" ? "/(tabs)/home" : "/onboarding");
     } catch (error) {
       const message = error instanceof Error ? error.message : t("auth.checkCredentials");
       setErrorMessage(message);
@@ -65,8 +63,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
@@ -78,7 +76,7 @@ export default function LoginScreen() {
               onPress={() => setLanguageModalVisible(true)}
               data-testid="language-selector"
             >
-              <Ionicons name="globe-outline" size={18} color="#000000" />
+              <Ionicons name="globe-outline" size={18} color={COLORS.primaryDark} />
               <Text style={styles.languageSelectorText}>{currentLanguage.nativeName}</Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </Pressable>
@@ -192,15 +190,15 @@ export default function LoginScreen() {
                     {lang.nativeName}
                   </Text>
                   {i18n.language === lang.code && (
-                    <Ionicons name="checkmark" size={20} color="#000000" />
+                    <Ionicons name="checkmark" size={20} color={COLORS.primaryDark} />
                   )}
                 </Pressable>
               ))}
             </View>
           </Pressable>
         </Modal>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -209,7 +207,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingVertical: 24,
     paddingHorizontal: 24,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -235,7 +233,7 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   subtitle: {
     marginTop: 6,
@@ -246,7 +244,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderRadius: 18,
     padding: 20,
-    shadowColor: "#111827",
+    shadowColor: COLORS.textPrimary,
     shadowOpacity: 0.08,
     shadowRadius: 18,
     elevation: 4,
@@ -254,7 +252,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 16,
   },
   inputRow: {
@@ -271,11 +269,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
     ...Platform.select({ web: { pointerEvents: "auto" } }),
   },
   primaryButton: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -301,7 +299,7 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   footerLink: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
   },
   languageSelector: {
@@ -316,7 +314,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   languageSelectorText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
     fontSize: 14,
   },
@@ -336,7 +334,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 16,
     textAlign: "center",
   },
@@ -348,7 +346,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   languageOptionSelected: {
     backgroundColor: "#eef2ff",
@@ -358,7 +356,7 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   languageOptionTextSelected: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
   },
   securedByContainer: {
@@ -376,7 +374,7 @@ const styles = StyleSheet.create({
   },
   securedByBrand: {
     fontSize: 14,
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontWeight: "700",
     letterSpacing: 1,
   },

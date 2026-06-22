@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.backgroundPage,
   },
   friendItemSelected: {
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
     borderWidth: 1,
     borderColor: COLORS.success,
   },

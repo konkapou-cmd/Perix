@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 10,
   },
   sectionHeader: {
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
     fontSize: 13,
   },
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
   dayLabel: {
     width: 40,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontSize: 13,
   },
   dayLabelClosed: {

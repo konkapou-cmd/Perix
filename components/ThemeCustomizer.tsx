@@ -16,18 +16,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { updateProfileTheme, ProfileTheme } from '../lib/api';
+import { COLORS } from '../lib/designTokens';
 
 // Extended color presets with gradient options - aligned with business categories
 const COLOR_PRESETS = [
   // Clean Light Presets
   {
     name: 'Clean',
-    background: '#ffffff',
-    primary: '#3b82f6',
-    secondary: '#f3f4f6',
-    text: '#111827',
-    accent: '#FFD700',
-    gradient: ['#ffffff', '#f8fafc'],
+    background: '#FBF8FF',
+    primary: '#5B16C9',
+    secondary: '#F5EEFF',
+    text: '#120A35',
+    accent: '#FFC400',
+    gradient: ['#FBF8FF', '#F5EEFF'],
   },
   // Sports & Wellness - Energetic Orange
   {

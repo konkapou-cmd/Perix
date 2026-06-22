@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import React, { useRef, useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Post, BACKEND_URL } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
@@ -10,6 +10,8 @@ import { useTranslation } from "react-i18next";
 import AdaptiveVideo from "../AdaptiveVideo";
 import AdaptiveImage from "../AdaptiveImage";
 import LazyMediaViewer, { MediaItem } from "../LazyMediaViewer";
+import useResponsiveLayout from "../../hooks/useResponsiveLayout";
+import { formatDate } from "../../lib/formatDate";
 
 interface PostCardProps {
   post: Post;
@@ -24,19 +26,22 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
   const router = useRouter();
   const { t } = useTranslation();
   const [viewerOpen, setViewerOpen] = useState(false);
+  const { contentMaxWidth } = useResponsiveLayout();
+  const skipCardNav = useRef(false);
 
   const displayName = post.actor_name || post.author?.name || "User";
   const displayAvatar = post.actor_avatar || post.author?.profile_photo || post.author?.picture;
 
   const mediaItems: MediaItem[] = [];
   if (post.video_url) {
-    mediaItems.push({ type: "video", uri: post.video_url, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
+    mediaItems.push({ type: "video", uri: post.video_url, ratio: post.media_ratio || undefined, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
   }
   if (post.image_url) {
     mediaItems.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
   }
 
   const handleAuthorPress = () => {
+    skipCardNav.current = true;
     if (post.actor_type === "business" && post.actor_id) {
       router.push(`/business/${post.actor_id}` as any);
     } else if (post.actor_type === "artist" && post.actor_id) {
@@ -83,7 +88,10 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
   };
 
   return (
-    <Pressable style={styles.postCard} onPress={() => router.push(`/post/${post.post_id}`)}>
+    <Pressable style={styles.postCard} onPress={() => {
+      if (skipCardNav.current) { skipCardNav.current = false; return; }
+      router.push(`/post/${post.post_id}`);
+    }}>
       <View style={styles.postHeader}>
         <Pressable onPress={handleAuthorPress}>
           {displayAvatar ? (
@@ -98,39 +106,48 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
         </Pressable>
         <View style={styles.postAuthorInfo}>
           <Text style={styles.postAuthorName}>{displayName}</Text>
-          <Text style={styles.postTimeText}>{new Date(post.created_at).toLocaleDateString()}</Text>
+          <Text style={styles.postTimeText}>{formatDate(post.created_at)}</Text>
         </View>
       </View>
 
-      {post.text && <Text style={styles.postTextContent} numberOfLines={3}>{post.text}</Text>}
+      {post.text && (
+        post.video_url || post.image_url ? (
+          <Text style={styles.postTextContent} numberOfLines={3}>{post.text}</Text>
+        ) : (
+          <View style={styles.textOnlyPreview}>
+            <Ionicons name="chatbubble-ellipses" size={16} color="#d1d5db" style={{ marginBottom: 8 }} />
+            <Text style={styles.textOnlyContent} numberOfLines={8}>{post.text}</Text>
+          </View>
+        )
+      )}
 
       {post.video_url ? (
-        <View style={styles.postMediaContainer}>
+        <View style={styles.postMediaWrapper}>
           <AdaptiveVideo
             uri={post.video_url}
-            style={styles.postVideo}
-      autoPlay={true}
-                      showMuteButton={true}
-                      initialMuted={true}
-                      pauseWhenNotVisible={true}
-                      resizeMode="contain"
-                      ratio={post.media_ratio || undefined}
-            maxHeight={470}
-            borderRadius={8}
+            autoPlay
+            isLooping
+            initialMuted={true}
+            resizeMode="cover"
+            coverPhoto={post.mux_thumbnail_url || undefined}
+            ratio={1}
+            maxHeight={1200}
+            borderRadius={0}
             videoStatus={post.video_status}
             muxThumbnailUrl={post.mux_thumbnail_url || undefined}
             onPress={() => setViewerOpen(true)}
           />
         </View>
       ) : post.image_url ? (
-        <AdaptiveImage
-          uri={post.image_url}
-          ratio={post.media_ratio || undefined}
-          maxHeight={470}
-          borderRadius={8}
-          style={styles.postImage}
-          onPress={() => setViewerOpen(true)}
-        />
+        <View style={styles.postMediaWrapper}>
+          <AdaptiveImage
+            uri={post.image_url}
+            ratio={1}
+            maxHeight={1200}
+            borderRadius={0}
+            onPress={() => setViewerOpen(true)}
+          />
+        </View>
       ) : null}
 
       {isSaved && (
@@ -182,14 +199,16 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
 const styles = StyleSheet.create({
   postCard: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    overflow: "hidden",
     marginBottom: 12,
+    ...Platform.select({ web: { width: "100%", maxWidth: 720, alignSelf: "center", cursor: "pointer", transition: "box-shadow 0.2s" } as any, default: {} }),
   },
   postHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
+    paddingHorizontal: 16,
   },
   postAvatar: {
     width: 36,
@@ -205,37 +224,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   postAvatarText: {
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 16 : 14,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   postAuthorInfo: {
     marginLeft: 10,
   },
   postAuthorName: {
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 16 : 14,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   postTimeText: {
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 13 : 12,
     color: "#6b7280",
   },
   postTextContent: {
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 16 : 14,
     color: "#374151",
-    lineHeight: 20,
+    lineHeight: Platform.OS === "web" ? 24 : 20,
     marginBottom: 8,
+    paddingHorizontal: 16,
   },
-  postMediaContainer: {
+  textOnlyPreview: {
+    marginHorizontal: 16,
     marginBottom: 8,
+    padding: 16,
+    backgroundColor: "#f8f9fb",
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: "#e5e7eb",
   },
-  postImage: {
+  textOnlyContent: {
+    fontSize: Platform.OS === "web" ? 16 : 14,
+    color: "#374151",
+    lineHeight: Platform.OS === "web" ? 24 : 20,
+  },
+  postMediaWrapper: {
     width: "100%",
+    aspectRatio: 1,
+    overflow: "hidden",
+    backgroundColor: COLORS.textPrimary,
     marginBottom: 8,
-  },
-  postVideo: {
-    width: "100%",
   },
   savedBadge: {
     position: "absolute",
@@ -244,7 +275,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.textPrimary,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
@@ -252,6 +283,7 @@ const styles = StyleSheet.create({
   postStats: {
     flexDirection: "row",
     gap: 16,
+    paddingHorizontal: 16,
   },
   postStatItem: {
     flexDirection: "row",
@@ -259,7 +291,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   postStatText: {
-    fontSize: 13,
+    fontSize: Platform.OS === "web" ? 14 : 13,
     color: "#6b7280",
   },
 });

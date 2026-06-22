@@ -2,6 +2,7 @@ import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../../lib/designTokens";
 
 type Friend = {
   user_id: string;
@@ -104,11 +105,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   friendButton: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: "center",

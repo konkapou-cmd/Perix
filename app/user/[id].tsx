@@ -18,6 +18,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { UserPublicProfile, getUserPublicProfile, getPosts, reportUser, getFriendshipStatus, toggleFollow, sendFriendRequest, cancelFriendRequest, acceptFriendRequest, FriendshipStatus, toggleSaved, checkSaved, APP_URL, getUserActivities, ActivityItem } from "../../lib/api";
+import { COLORS } from "../../lib/designTokens";
 import { useAuth } from "../../context/AuthContext";
 
 import { UserProfilePremium } from "../../components/profile/UserProfilePremium";
@@ -225,7 +226,7 @@ export default function UserProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color={COLORS.primaryDark} />
       </SafeAreaView>
     );
   }
@@ -234,7 +235,7 @@ export default function UserProfileScreen() {
     return (
       <SafeAreaView style={styles.centered}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#000000" />
+          <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
           <Text style={styles.backText}>{t("common.back")}</Text>
         </Pressable>
         <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
@@ -260,9 +261,9 @@ export default function UserProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 44 : 0}
       >
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, ...Platform.select({ web: { width: "100%", maxWidth: 914, alignSelf: "center" } as any, default: {} }) }}>
         <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#000000" />
+          <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
           <Text style={styles.backText}>{t("common.back")}</Text>
         </Pressable>
 
@@ -333,7 +334,7 @@ export default function UserProfileScreen() {
             <View style={styles.reportModalHeader}>
               <Text style={styles.reportModalTitle}>{t("userProfile.reportUser")}</Text>
               <Pressable onPress={() => setReportModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#111827" />
+                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
               </Pressable>
             </View>
             <Text style={styles.reportModalDescription}>
@@ -373,13 +374,13 @@ export default function UserProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fb" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   backButtonRow: { flexDirection: "row", alignItems: "center", marginHorizontal: 16, marginVertical: 8 },
   backButton: { flexDirection: "row", alignItems: "center" },
-  backText: { color: "#000000", fontWeight: "600", marginLeft: 4 },
+  backText: { color: COLORS.primaryDark, fontWeight: "600", marginLeft: 4 },
   errorText: { color: "#ef4444", fontSize: 16, fontWeight: "600", marginTop: 16, textAlign: "center" },
-  retryButton: { backgroundColor: "#000000", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 12, marginTop: 16 },
+  retryButton: { backgroundColor: COLORS.primaryDark, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 12, marginTop: 16 },
   retryButtonText: { color: "#fff", fontWeight: "600" },
   reportModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 20 },
   reportModalContent: { backgroundColor: "#fff", borderRadius: 16, padding: 20, width: "100%", maxWidth: 400 },

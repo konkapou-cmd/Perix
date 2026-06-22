@@ -4,7 +4,9 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -296,7 +298,7 @@ export default function JobsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{t("jobs.title")}</Text>
@@ -375,7 +377,7 @@ export default function JobsScreen() {
           />
         ) : (
           <View style={styles.mapPlaceholder}>
-            <Ionicons name="location" size={40} color="#000000" />
+            <Ionicons name="location" size={40} color={COLORS.primaryDark} />
             <Text style={styles.mapPlaceholderText}>{t("jobs.tapToEnableLocation")}</Text>
             <Text style={styles.mapPlaceholderSubtext}>{t("jobs.viewNearbyJobs")}</Text>
           </View>
@@ -461,7 +463,7 @@ export default function JobsScreen() {
           )}
           onEndReached={loadMoreJobs}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={loadingMore ? <ActivityIndicator color="#111827" /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={COLORS.textPrimary} /> : null}
           ListEmptyComponent={
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>{searchQuery ? t("jobs.noResults", "No jobs found") : t("jobs.noJobs")}</Text>
@@ -478,7 +480,7 @@ export default function JobsScreen() {
           <View style={styles.categoryModalHeader}>
             <Text style={styles.categoryModalTitle}>{t("locator.selectCategory")}</Text>
             <Pressable onPress={() => setCategoryModalVisible(false)}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
           <ScrollView>
@@ -515,7 +517,7 @@ export default function JobsScreen() {
           <View style={styles.categoryModalHeader}>
             <Text style={styles.categoryModalTitle}>{t("locator.selectSubcategory")}</Text>
             <Pressable onPress={() => setSubcategoryModalVisible(false)}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
           <ScrollView>
@@ -551,7 +553,7 @@ export default function JobsScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Pressable onPress={() => setDetailModalVisible(false)}>
-              <Ionicons name="close" size={28} color="#111827" />
+              <Ionicons name="close" size={28} color={COLORS.textPrimary} />
             </Pressable>
             <Text style={styles.modalTitle}>{t("jobs.title")}</Text>
             <View style={{ width: 28 }} />
@@ -581,7 +583,7 @@ export default function JobsScreen() {
                 </Pressable>
 
                 <View style={styles.detailRow}>
-                  <Ionicons name="location-outline" size={18} color="#000000" />
+                  <Ionicons name="location-outline" size={18} color={COLORS.primaryDark} />
                   <Text style={styles.detailLocation}>{selectedJob.location}</Text>
                 </View>
 
@@ -620,9 +622,10 @@ export default function JobsScreen() {
       {/* Apply Modal */}
       <Modal visible={applyModalVisible} animationType="slide" onRequestClose={() => setApplyModalVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={styles.modalHeader}>
             <Pressable onPress={() => setApplyModalVisible(false)}>
-              <Ionicons name="close" size={28} color="#111827" />
+              <Ionicons name="close" size={28} color={COLORS.textPrimary} />
             </Pressable>
             <Text style={styles.modalTitle}>{t("jobs.apply")}</Text>
             <View style={{ width: 28 }} />
@@ -642,7 +645,7 @@ export default function JobsScreen() {
 
             <Text style={styles.inputLabel}>{t("jobs.uploadCV")}</Text>
             <Pressable style={styles.uploadButton} onPress={() => pickDocument("cv")}>
-              <Ionicons name="document-attach" size={20} color="#000000" />
+              <Ionicons name="document-attach" size={20} color={COLORS.primaryDark} />
               <Text style={styles.uploadButtonText}>
                 {cvFile ? cvFile.name : t("jobs.uploadCV")}
               </Text>
@@ -650,7 +653,7 @@ export default function JobsScreen() {
 
             <Text style={styles.inputLabel}>{t("jobs.uploadCoverLetter")}</Text>
             <Pressable style={styles.uploadButton} onPress={() => pickDocument("coverLetter")}>
-              <Ionicons name="document-attach" size={20} color="#000000" />
+              <Ionicons name="document-attach" size={20} color={COLORS.primaryDark} />
               <Text style={styles.uploadButtonText}>
                 {coverLetterFile ? coverLetterFile.name : t("jobs.uploadCoverLetter")}
               </Text>
@@ -672,6 +675,7 @@ export default function JobsScreen() {
               )}
             </Pressable>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -695,7 +699,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   subtitle: {
     color: "#6b7280",
@@ -720,7 +724,7 @@ const styles = StyleSheet.create({
   },
   filterValue: {
     flex: 1,
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -739,7 +743,7 @@ const styles = StyleSheet.create({
   mapPlaceholderText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
     marginTop: 8,
   },
   mapPlaceholderSubtext: {
@@ -750,7 +754,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     paddingHorizontal: 16,
     marginBottom: 8,
   },
@@ -789,11 +793,11 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   jobBusiness: {
     fontSize: 13,
-    color: "#000000",
+    color: COLORS.primaryDark,
     marginTop: 2,
   },
   jobMeta: {
@@ -809,7 +813,7 @@ const styles = StyleSheet.create({
   },
   jobDistance: {
     fontSize: 12,
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "500",
     marginTop: 2,
   },
@@ -828,7 +832,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   modalBody: {
     flex: 1,
@@ -848,7 +852,7 @@ const styles = StyleSheet.create({
   detailTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   detailRow: {
@@ -864,7 +868,7 @@ const styles = StyleSheet.create({
   },
   detailBusiness: {
     fontSize: 16,
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "500",
   },
   detailLocation: {
@@ -880,7 +884,7 @@ const styles = StyleSheet.create({
   detailSectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
@@ -894,7 +898,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     padding: 16,
     borderRadius: 12,
     marginTop: 24,
@@ -915,7 +919,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   messageInput: {
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderRadius: 12,
@@ -927,14 +931,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderRadius: 12,
     padding: 14,
   },
   uploadButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 14,
   },
   submitButton: {
@@ -970,7 +974,7 @@ const styles = StyleSheet.create({
   categoryModalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   categoryModalItem: {
     padding: 16,
@@ -983,7 +987,7 @@ const styles = StyleSheet.create({
   },
   myAppsBtn: {
     marginLeft: "auto",
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
