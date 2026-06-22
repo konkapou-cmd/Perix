@@ -175,40 +175,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotification(notification);
     });
 
-    // Listener for when user taps on a notification
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log("[Notifications] Response:", response);
-      const data = response.notification.request.content.data;
-      
-      // Handle navigation based on notification type
-      if (data?.type === "message") {
-        // Navigate to messages
-        console.log("[Notifications] Navigate to messages for user:", data.from_user_id);
-      } else if (data?.type === "activity") {
-        // Navigate to activities
-        console.log("[Notifications] Navigate to activity:", data.activity_id);
-      } else if (data?.type === "event") {
-        // Navigate to event
-        console.log("[Notifications] Navigate to event:", data.event_id);
-      }
-    });
-
-    return () => {
-      if (notificationListener.current) {
-        try {
-          notificationListener.current.remove();
-        } catch (e) {
-          // Ignore cleanup errors on web
-        }
-      }
-      if (responseListener.current) {
-        try {
-          responseListener.current.remove();
-        } catch (e) {
-          // Ignore cleanup errors on web
-        }
-      }
-    };
+    // Navigation handled by _layout.tsx PushNotificationManager
   }, []);
 
   return (

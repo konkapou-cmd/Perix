@@ -134,7 +134,7 @@ export default function UnifiedMediaGallery({
       <Pressable style={s.heroContainer} onPress={media.length === 0 && isCreator ? addImages : undefined}>
         {coverItem ? (
           coverItem.type === "video" ? (
-            <AdaptiveVideo uri={coverItem.uri} style={s.heroImage} resizeMode="contain" isLooping={false} autoPlay />
+            <AdaptiveVideo uri={coverItem.uri} style={s.heroImage} resizeMode="contain" isLooping={false} initialMuted />
           ) : (
             <Image source={{ uri: coverItem.uri }} style={s.heroImage} resizeMode="cover" />
           )
@@ -175,7 +175,7 @@ export default function UnifiedMediaGallery({
                     size={gridItemSize}
                   />
                 ) : item.type === "video" ? (
-                  <AdaptiveVideo uri={item.uri} style={s.gridImage} resizeMode="contain" isLooping={false} autoPlay />
+                  <AdaptiveVideo uri={item.uri} style={s.gridImage} resizeMode="contain" isLooping={false} initialMuted />
                 ) : (
                   <AdaptiveImage uri={item.uri} style={s.gridImage} resizeMode="contain" />
                 )}

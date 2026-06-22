@@ -19,6 +19,10 @@ export const getPosts = async (
   return apiRequest<Post[]>(`/posts${query}`, "GET", token);
 };
 
+export const getPost = async (token: string, postId: string): Promise<Post> => {
+  return apiRequest<Post>(`/posts/${postId}`, "GET", token);
+};
+
 export const createPost = async (
   token: string,
   text: string,

@@ -31,6 +31,7 @@ import {
   EventItem,
   Post,
   Job,
+  Service,
   createBusiness,
   getCategoryTree,
   getMyBusinesses,
@@ -71,9 +72,10 @@ import {
   deleteJob,
   createJob,
   updateJob,
-  createRental,
-  deleteRental,
-  updateRental,
+  getServices,
+  createService,
+  updateService,
+  deleteService,
   updateUserSlug,
   updateBusinessSlug,
   getPosts,
@@ -93,143 +95,117 @@ import { UserProfilePremium } from "../../components/profile/UserProfilePremium"
 import { BusinessProfilePremium } from "../../components/profile/BusinessProfilePremium";
 import { EventModal } from "../../components/business";
 import { JobModal } from "../../components/business";
-import { RentalModal } from "../../components/business";
+import { ServiceModal, DEFAULT_SERVICE_FORM, ServiceBookingModal, SlotManagerModal, BookingListModal, UserBookingListModal } from "../../components/business";
 import ActivityModal from "../../components/business/ActivityModal";
 import { useMapBounds } from "../../context/MapBoundsContext";
 import OpeningHoursModal from "../../components/business/OpeningHoursModal";
 import SocialLinksModal from "../../components/SocialLinksModal";
 import PlacesAutocompleteInput from "../../components/PlacesAutocompleteInput";
 
+const DEFAULT_MODULES = { events: true, tickets: true, jobs: true, bookings: true, services: true, menu: false, rentals: false, gym: false, salon: false };
+const DEFAULT_TOOLS = ["events", "tickets", "jobs", "bookings", "services"];
+
+function sub(slug: string, modules = DEFAULT_MODULES, tools = DEFAULT_TOOLS) {
+  return { name: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), slug, modules, tools };
+}
+
 const FALLBACK_CATEGORY_TREE: CategoryGroup[] = [
   {
-    name: "🟢 Sports & Wellness",
-    slug: "sports-wellness",
-    subcategories: [
-      { name: "Gyms", slug: "gyms", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Team Sports", slug: "team-sports", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Racket Sports", slug: "racket-sports", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Martial Arts", slug: "martial-arts", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Swimming", slug: "swimming", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Crossfit Functional", slug: "crossfit-functional", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Extreme Sports", slug: "extreme-sports", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Dance", slug: "dance", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Personal Training", slug: "personal-training", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Wellness Rehabilitation", slug: "wellness-rehabilitation", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
+    name: "🏃 Sports, Fitness & Wellness", slug: "sports-fitness-wellness",
+    groups: [
+      { name: "Fitness", slug: "fitness", subcategories: ["gyms","crossfit","functional-training","personal-training","pilates","yoga","group-fitness"].map(s => sub(s, { ...DEFAULT_MODULES, gym: true }, ["events","tickets","jobs","bookings","services","gym"])) },
+      { name: "Sports", slug: "sports", subcategories: ["team-sports","racket-sports","swimming","martial-arts","climbing","cycling","running-clubs","water-sports","winter-sports","extreme-sports"].map(s => sub(s)) },
+      { name: "Wellness & Recovery", slug: "wellness-recovery", subcategories: ["physiotherapy","rehabilitation","sports-massage","recovery-centers","wellness-centers","meditation"].map(s => sub(s)) },
     ],
   },
   {
-    name: "👕 Fashion & Retail",
-    slug: "fashion-retail",
-    subcategories: [
-      { name: "Casual Wear", slug: "casual-wear", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Formal Wear", slug: "formal-wear", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Sportswear", slug: "sportswear", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Footwear", slug: "footwear", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Accessories", slug: "accessories", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Childrens Clothing", slug: "childrens-clothing", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Vintage Thrift", slug: "vintage-thrift", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Tailoring Custom", slug: "tailoring-custom", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Bags Leather Goods", slug: "bags-leather-goods", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
+    name: "👕 Fashion & Accessories", slug: "fashion-accessories",
+    groups: [
+      { name: "Clothing", slug: "clothing", subcategories: ["casual-wear","formal-wear","sportswear","childrens-clothing","vintage-thrift"].map(s => sub(s)) },
+      { name: "Footwear", slug: "footwear", subcategories: ["sneakers","formal-shoes","athletic-footwear"].map(s => sub(s)) },
+      { name: "Accessories", slug: "accessories", subcategories: ["jewelry","watches","sunglasses","fashion-accessories"].map(s => sub(s)) },
+      { name: "Specialty", slug: "specialty", subcategories: ["tailoring-custom","bags-leather-goods","luxury-fashion"].map(s => sub(s)) },
     ],
   },
   {
-    name: "🎭 Entertainment",
-    slug: "entertainment",
-    subcategories: [
-      { name: "Cinema", slug: "cinema", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Theatre", slug: "theatre", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Bowling", slug: "bowling", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Escape Rooms", slug: "escape-rooms", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Vr Gaming", slug: "vr-gaming", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Stand Up Comedy", slug: "stand-up-comedy", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Indoor Playgrounds", slug: "indoor-playgrounds", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Arcade", slug: "arcade", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Event Venues", slug: "event-venues", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Exhibitions Cultural", slug: "exhibitions-cultural", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
+    name: "🎭 Entertainment & Events", slug: "entertainment-events",
+    groups: [
+      { name: "Experiences", slug: "experiences", subcategories: ["cinema","theatre","stand-up-comedy","cultural-events","exhibitions"].map(s => sub(s)) },
+      { name: "Gaming & Activities", slug: "gaming-activities", subcategories: ["escape-rooms","vr-gaming","arcades","bowling","billiards"].map(s => sub(s)) },
+      { name: "Family Entertainment", slug: "family-entertainment", subcategories: ["indoor-playgrounds","family-activity-centers"].map(s => sub(s)) },
+      { name: "Venues", slug: "venues", subcategories: ["event-venues","concert-halls"].map(s => sub(s)) },
+      { name: "Artists & Performers", slug: "artists-performers", subcategories: ["djs","bands","singers","comedians","magicians","dancers","actors","mcs-hosts","cultural-groups"].map(s => sub(s)) },
     ],
   },
   {
-    name: "🍸 Bars & Nightlife",
-    slug: "bars-nightlife",
-    subcategories: [
-      { name: "Cocktail Bars", slug: "cocktail-bars", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Wine Bars", slug: "wine-bars", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Beer Bars", slug: "beer-bars", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Rock Bars", slug: "rock-bars", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Jazz Bars", slug: "jazz-bars", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Clubs Dj", slug: "clubs-dj", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Live Folk Music", slug: "live-folk-music", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Sports Bars", slug: "sports-bars", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Activity Bars", slug: "activity-bars", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Rooftop Bars", slug: "rooftop-bars", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Beach Bars", slug: "beach-bars", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "After Hours", slug: "after-hours", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
+    name: "🍸 Nightlife & Social", slug: "nightlife-social",
+    groups: [
+      { name: "Bars", slug: "bars", subcategories: ["cocktail-bars","wine-bars","beer-bars","sports-bars"].map(s => sub(s)) },
+      { name: "Music Venues", slug: "music-venues", subcategories: ["rock-bars","jazz-bars","live-folk-music","live-music-venues"].map(s => sub(s)) },
+      { name: "Clubs", slug: "clubs", subcategories: ["dj-clubs","dance-clubs","after-hours-clubs"].map(s => sub(s)) },
     ],
   },
   {
-    name: "🏢 Professional Services",
-    slug: "professional-services",
-    subcategories: [
-      { name: "Law Firms", slug: "law-firms", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Accounting", slug: "accounting", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Real Estate", slug: "real-estate", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Travel Agencies", slug: "travel-agencies", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Insurance", slug: "insurance", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Consulting", slug: "consulting", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Marketing Digital", slug: "marketing-digital", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "It Services", slug: "it-services", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Translation Services", slug: "translation-services", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
+    name: "🏢 Professional Services", slug: "professional-services",
+    groups: [
+      { name: "Legal & Financial", slug: "legal-financial", subcategories: ["law-firms","accounting","tax-services","insurance"].map(s => sub(s)) },
+      { name: "Consulting & Marketing", slug: "consulting-marketing", subcategories: ["consulting","marketing-digital","translation-services"].map(s => sub(s)) },
+      { name: "Tech & IT", slug: "tech-it", subcategories: ["it-services","software-development","web-design"].map(s => sub(s)) },
+      { name: "Real Estate", slug: "real-estate", subcategories: ["real-estate-agents","property-management"].map(s => sub(s)) },
     ],
   },
   {
-    name: "💄 Beauty & Personal Care",
-    slug: "beauty-care",
-    subcategories: [
-      { name: "Hair Salons", slug: "hair-salons", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Barbershops", slug: "barbershops", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Nail Salons", slug: "nail-salons", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Spas", slug: "spas", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Dermatology Laser", slug: "dermatology-laser", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Makeup Services", slug: "makeup-services", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Facial Body Treatments", slug: "facial-body-treatments", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Tanning Salons", slug: "tanning-salons", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
+    name: "💄 Beauty & Personal Care", slug: "beauty-care",
+    groups: [
+      { name: "Hair", slug: "hair", subcategories: ["hair-salons","barbershops"].map(s => sub(s, { ...DEFAULT_MODULES, salon: true }, ["events","tickets","jobs","bookings","services","salon"])) },
+      { name: "Nails & Skin", slug: "nails-skin", subcategories: ["nail-salons","dermatology-laser","facial-body-treatments"].map(s => sub(s, { ...DEFAULT_MODULES, salon: true }, ["events","tickets","jobs","bookings","services","salon"])) },
+      { name: "Wellness", slug: "wellness-beauty", subcategories: ["spas","makeup-services","tanning-salons"].map(s => sub(s, { ...DEFAULT_MODULES, salon: true }, ["events","tickets","jobs","bookings","services","salon"])) },
     ],
   },
   {
-    name: "🎓 Education & Creativity",
-    slug: "education-creativity",
-    subcategories: [
-      { name: "Tutoring", slug: "tutoring", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Language Schools", slug: "language-schools", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Music Schools", slug: "music-schools", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Dance Schools", slug: "dance-schools", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Art Workshops", slug: "art-workshops", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
+    name: "🎓 Education & Creativity", slug: "education-creativity",
+    groups: [
+      { name: "Academic", slug: "academic", subcategories: ["tutoring","language-schools"].map(s => sub(s)) },
+      { name: "Creative", slug: "creative", subcategories: ["music-schools","dance-schools","art-workshops"].map(s => sub(s)) },
     ],
   },
   {
-    name: "🍽️ Restaurants",
-    slug: "restaurants",
-    subcategories: [
-      { name: "Italian", slug: "italian", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Asian", slug: "asian", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Greek", slug: "greek", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Balkan", slug: "balkan", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "German", slug: "german", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "African", slug: "african", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "American", slug: "american", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
-      { name: "Arabic", slug: "arabic", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: false, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings"] },
+    name: "🍽️ Food & Dining", slug: "food-dining",
+    groups: [
+      { name: "Restaurant Types", slug: "restaurant-types", subcategories: ["casual-dining","fine-dining","fast-casual","buffet","food-courts"].map(s => sub(s, { ...DEFAULT_MODULES, menu: true }, ["events","tickets","jobs","bookings","services","menu"])) },
+      { name: "Cuisine", slug: "cuisine", subcategories: ["italian","asian","greek","balkan","german","african","american","arabic","japanese","chinese","korean","thai","mexican","indian","mediterranean"].map(s => sub(s, { ...DEFAULT_MODULES, menu: true }, ["events","tickets","jobs","bookings","services","menu"])) },
+      { name: "Specialty", slug: "specialty", subcategories: ["seafood","steakhouse","vegan","vegetarian","brunch","pizza","burger"].map(s => sub(s, { ...DEFAULT_MODULES, menu: true }, ["events","tickets","jobs","bookings","services","menu"])) },
+      { name: "Drinks & Cafés", slug: "drinks-cafes", subcategories: ["cafes","coffee-shops","bakeries"].map(s => sub(s)) },
     ],
   },
   {
-    name: "🏠 Rental & Real Estate",
-    slug: "rental-real-estate",
-    subcategories: [
-      { name: "Apartments", slug: "apartments", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: true, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings", "rentals"] },
-      { name: "Houses", slug: "houses", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: true, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings", "rentals"] },
-      { name: "Studios", slug: "studios", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: true, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings", "rentals"] },
-      { name: "Rooms", slug: "rooms", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: true, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings", "rentals"] },
-      { name: "Commercial Spaces", slug: "commercial-spaces", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: true, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings", "rentals"] },
-      { name: "Vacation Rentals", slug: "vacation-rentals", modules: { events: true, tickets: true, jobs: true, bookings: true, rentals: true, gym: false, salon: false }, tools: ["events", "tickets", "jobs", "bookings", "rentals"] },
+    name: "🏠 Rentals", slug: "rentals",
+    groups: [
+      { name: "Rentals", slug: "rentals", subcategories: ["apartments","houses","studios","rooms","commercial-spaces"].map(s => sub(s, { ...DEFAULT_MODULES, rentals: true }, ["events","tickets","jobs","bookings","services","rentals"])) },
+    ],
+  },
+  {
+    name: "🛒 Shopping & Retail", slug: "shopping-retail",
+    groups: [
+      { name: "Shopping & Retail", slug: "shopping-retail", subcategories: ["electronics","home-goods","furniture","books-stationery","florists","gifts-souvenirs"].map(s => sub(s)) },
+    ],
+  },
+  {
+    name: "🚗 Automotive", slug: "automotive",
+    groups: [
+      { name: "Automotive", slug: "automotive", subcategories: ["car-dealers","car-rentals","repair-shops","car-washes"].map(s => sub(s)) },
+    ],
+  },
+  {
+    name: "🏥 Healthcare", slug: "healthcare",
+    groups: [
+      { name: "Healthcare", slug: "healthcare", subcategories: ["doctors","dentists","clinics","pharmacies","mental-health"].map(s => sub(s)) },
+    ],
+  },
+  {
+    name: "🐾 Pets", slug: "pets",
+    groups: [
+      { name: "Pets", slug: "pets", subcategories: ["veterinarians","pet-grooming","pet-supplies"].map(s => sub(s)) },
     ],
   },
 ];
@@ -291,13 +267,36 @@ export default function ProfileScreen() {
   // ---------------------------------------------------------------------------
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [allMapBusinesses, setAllMapBusinesses] = useState<Business[]>([]);
+
+  function findRootCategory(categories: CategoryGroup[], identifier: string): CategoryGroup | undefined {
+    if (!identifier || categories.length === 0) return undefined;
+    let root = categories.find(g => g.slug === identifier);
+    if (root) return root;
+    root = categories.find(g =>
+      g.name === identifier ||
+      g.slug.replace(/-/g, " ") === identifier.toLowerCase() ||
+      g.name.toLowerCase() === identifier.toLowerCase()
+    );
+    if (root) return root;
+    const term = identifier.toLowerCase();
+    return categories.find(g =>
+      g.name.toLowerCase().includes(term) ||
+      g.slug.toLowerCase().includes(term)
+    );
+  }
+
+  function getSubcategories(categories: CategoryGroup[], rootSlug: string) {
+    const root = findRootCategory(categories, rootSlug);
+    if (!root) return [];
+    return root.subcategories ?? root.groups?.flatMap(g => g.subcategories ?? []) ?? [];
+  }
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [pickerRoot, setPickerRoot] = useState("");
   const [pickerSub, setPickerSub] = useState("");
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [eventEditing, setEventEditing] = useState<EventItem | null>(null);
-  const [eventForm, setEventForm] = useState<{title: string; description: string; start_time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; theme: string; gallery_images: string[]; gallery_videos: string[]; is_private: boolean; password: string}>({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", gallery_images: [], gallery_videos: [], is_private: false, password: "" });
+  const [eventForm, setEventForm] = useState<{title: string; description: string; start_time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; theme: string; gallery_images: string[]; gallery_videos: string[]; is_private: boolean; password: string; tagged_artist_ids: string[]}>({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", gallery_images: [], gallery_videos: [], is_private: false, password: "", tagged_artist_ids: [] });
   const [eventVideoPreview, setEventVideoPreview] = useState<string | null>(null);
   const [eventThemes, setEventThemes] = useState<{slug: string; label: string; color?: string; emoji?: string; gradient?: [string, string]}[]>([]);
   const [showThemePicker, setShowThemePicker] = useState(false);
@@ -309,11 +308,6 @@ export default function ProfileScreen() {
   const [jobForm, setJobForm] = useState<{title: string; description: string; cover_image: string; job_type: string; requirements: string; salary_range: string; work_location: string; expires_at: string}>({ title: "", description: "", cover_image: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "" });
   const [jobSaving, setJobSaving] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
-  const [editingRentalId, setEditingRentalId] = useState<string | null>(null);
-
-  const [rentalModalVisible, setRentalModalVisible] = useState(false);
-  const [rentalForm, setRentalForm] = useState<{title: string; description: string; cover_image: string; rent_price: string; rooms_size: string; address: string; latitude: number | null; longitude: number | null; available_from: string; deposit: string; property_type: string; gallery_images: string[]}>({ title: "", description: "", cover_image: "", rent_price: "", rooms_size: "", address: "", latitude: null, longitude: null, available_from: "", deposit: "", property_type: "", gallery_images: [] });
-  const [rentalSaving, setRentalSaving] = useState(false);
   const [activityModalVisible, setActivityModalVisible] = useState(false);
   const [themedAlertVisible, setThemedAlertVisible] = useState(false);
   const [themedAlertMessage, setThemedAlertMessage] = useState("");
@@ -354,24 +348,39 @@ export default function ProfileScreen() {
       const adminRes = await checkAdminStatus(sessionToken);
       setIsAdmin(adminRes.is_admin);
 
-      const [friendRes, bizRes, catRes] = await Promise.all([
+      const [friendRes, bizRes] = await Promise.all([
         getMyFriends(sessionToken),
         getMyBusinesses(sessionToken),
-        getCategoryTree(sessionToken),
       ]);
       
       setFriends(friendRes);
       setBusinesses(bizRes);
-      setCategoryTree(catRes && catRes.length > 0 ? catRes : FALLBACK_CATEGORY_TREE);
     } catch (e) {
       console.log("Failed to load initial profile data:", e);
-      setCategoryTree(FALLBACK_CATEGORY_TREE);
     }
+  }, [sessionToken]);
+
+  const loadCategoryTree = useCallback(() => {
+    if (!sessionToken) {
+      setCategoryTree(FALLBACK_CATEGORY_TREE);
+      return;
+    }
+    getCategoryTree(sessionToken)
+      .then((catRes) => {
+        setCategoryTree(catRes && catRes.length > 0 ? catRes : FALLBACK_CATEGORY_TREE);
+      })
+      .catch(() => {
+        setCategoryTree(FALLBACK_CATEGORY_TREE);
+      });
   }, [sessionToken]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    loadCategoryTree();
+  }, [loadCategoryTree]);
 
   // Load ALL businesses for tagging (appear on map)
   const loadTaggingBusinesses = useCallback(async () => {
@@ -587,6 +596,7 @@ export default function ProfileScreen() {
           gallery_videos: eventForm.gallery_videos,
           is_private: eventForm.is_private,
           password: eventForm.is_private ? (eventForm.password || null) : null,
+          tagged_artist_ids: eventForm.tagged_artist_ids?.length ? eventForm.tagged_artist_ids : null,
         });
       } else {
         const payload: any = {
@@ -604,6 +614,7 @@ export default function ProfileScreen() {
           gallery_videos: eventForm.gallery_videos,
           is_private: eventForm.is_private,
           password: eventForm.is_private ? (eventForm.password || null) : null,
+          tagged_artist_ids: eventForm.tagged_artist_ids?.length ? eventForm.tagged_artist_ids : [],
         };
         if (activeIdentity?.type === "business") payload.business_id = activeIdentity.id;
         console.log("[handleSaveEvent] Creating event, payload:", JSON.stringify({ ...payload, image_urls: payload.image_urls?.length, gallery_images: payload.gallery_images?.length, gallery_videos: payload.gallery_videos?.length }));
@@ -611,7 +622,7 @@ export default function ProfileScreen() {
       }
       setEventModalVisible(false);
       setEventEditing(null);
-      setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: "", theme: "", gallery_images: [], gallery_videos: [], is_private: false, password: "" });
+      setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: "", theme: "", gallery_images: [], gallery_videos: [], is_private: false, password: "", tagged_artist_ids: [] });
       if (activeIdentity?.type === "business") loadBusinessProfile();
     } catch (e) {
       console.error("[handleSaveEvent] Error:", (e as Error)?.message, "Status:", (e as any)?.status, "eventEditing:", eventEditing?.event_id);
@@ -1027,6 +1038,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [bizEvents, setBizEvents] = useState<EventItem[]>([]);
   const [bizPosts, setBizPosts] = useState<Post[]>([]);
   const [bizJobs, setBizJobs] = useState<Job[]>([]);
+  const [bizServices, setBizServices] = useState<Service[]>([]);
   const [bizAnalytics, setBizAnalytics] = useState<any>(null);
 
   // Business editing state
@@ -1037,11 +1049,24 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [bizGalleryImages, setBizGalleryImages] = useState<string[]>([]);
   const [bizGalleryVideos, setBizGalleryVideos] = useState<string[]>([]);
 
+  const [serviceModalVisible, setServiceModalVisible] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [serviceForm, setServiceForm] = useState(DEFAULT_SERVICE_FORM);
+  const [serviceSaving, setServiceSaving] = useState(false);
+
+  const [bookingModalVisible, setBookingModalVisible] = useState(false);
+  const [bookingService, setBookingService] = useState<Service | null>(null);
+  const [slotManagerVisible, setSlotManagerVisible] = useState(false);
+  const [slotManagerServiceId, setSlotManagerServiceId] = useState("");
+  const [bookingListVisible, setBookingListVisible] = useState(false);
+  const [userBookingListVisible, setUserBookingListVisible] = useState(false);
+
   // Shared generic media for unified components
   const [postText, setPostText] = useState("");
   const [postImage, setPostImage] = useState<string | null>(null);
   const [postVideo, setPostVideo] = useState<string | null>(null);
   const [postVideoPreview, setPostVideoPreview] = useState<string | null>(null);
+  const [isPosting, setIsPosting] = useState(false);
 
   const loadBusinessFullData = async (bizId: string) => {
     if (!sessionToken) return;
@@ -1051,6 +1076,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       setBizEvents(data.events || []);
       setBizPosts(data.posts || []);
       setBizJobs(data.jobs || []);
+      setBizServices(data.services || []);
       // Load business editing state
       setBusinessOpeningHours(data.business.opening_hours || {} as any);
       setBusinessSocialLinks(data.business.social_links || {});
@@ -1092,6 +1118,226 @@ const handleUpdateSlug = async (newSlug: string) => {
     } catch (e) {
       Alert.alert(t("common.error", "Error"), t("business.failedSaveSocialLinks", "Failed to save social links"));
     }
+  };
+
+  // Service handlers
+  const handleAddService = (type?: string) => {
+    setEditingServiceId(null);
+    setServiceForm({
+      ...DEFAULT_SERVICE_FORM,
+      type: type || DEFAULT_SERVICE_FORM.type,
+    });
+    setServiceModalVisible(true);
+  };
+
+  const handleEditService = (service: Service) => {
+    setEditingServiceId(service.service_id);
+    setServiceForm({
+      type: service.type || "appointment",
+      name: service.name || "",
+      description: service.description || "",
+      price: service.price || "",
+      duration_minutes: service.duration_minutes?.toString() || "",
+      capacity: service.capacity?.toString() || "",
+      facilities: service.facilities || [],
+      beds: service.beds?.toString() || "",
+      room_size: service.room_size || "",
+      room_number: service.room_number || "",
+      menu_category: service.menu_category || "",
+      dietary_tags: service.dietary_tags || [],
+      image_urls: service.image_urls || [],
+      cover_image_url: service.cover_image_url || "",
+      gallery_images: service.gallery_images || [],
+      gallery_videos: service.gallery_videos || [],
+      video_url: service.video_url || "",
+      instructor: service.instructor || "",
+      difficulty_level: service.difficulty_level || "",
+      specialist_name: service.specialist_name || "",
+      service_category: service.service_category || "",
+      consultation_type: service.consultation_type || "",
+      meeting_type: service.meeting_type || "",
+      bedrooms: service.bedrooms?.toString() || "",
+      bathrooms: service.bathrooms?.toString() || "",
+      size_sqm: service.size_sqm?.toString() || "",
+      floor: service.floor?.toString() || "",
+      furnished: service.furnished || false,
+      available_from: service.available_from || "",
+      lease_duration: service.lease_duration || "",
+      max_guests: service.max_guests?.toString() || "",
+      property_type: service.property_type || "",
+      deposit: service.deposit || "",
+      address: service.address || "",
+      latitude: service.latitude?.toString() || "",
+      longitude: service.longitude?.toString() || "",
+      make: service.make || "",
+      model: service.model || "",
+      year: service.year?.toString() || "",
+      mileage_km: service.mileage_km?.toString() || "",
+      fuel_type: service.fuel_type || "",
+      transmission: service.transmission || "",
+      stock_status: service.stock_status || "",
+      brand: service.brand || "",
+      condition: service.condition || "",
+      treatment_type: service.treatment_type || "",
+      session_type: service.session_type || "",
+      calories: service.calories?.toString() || "",
+      allergens: service.allergens || [],
+      spice_level: service.spice_level?.toString() || "",
+      duration_days: service.duration_days?.toString() || "",
+      duration_months: service.duration_months?.toString() || "",
+      includes: service.includes || "",
+      visits_included: service.visits_included?.toString() || "",
+      valid_days: service.valid_days?.toString() || "",
+      included_services: service.included_services || [],
+      sessions_count: service.sessions_count?.toString() || "",
+      duration_per_session: service.duration_per_session?.toString() || "",
+      special_requests: service.special_requests || "",
+      pickup_location: service.pickup_location || "",
+      dropoff_location: service.dropoff_location || "",
+      reason_for_visit: service.reason_for_visit || "",
+      insurance_info: service.insurance_info || "",
+      pet_name: service.pet_name || "",
+      pet_type: service.pet_type || "",
+      status: (service.status as "draft" | "published" | "hidden") || "published",
+      sort_order: service.sort_order?.toString() || "0",
+    });
+    setServiceModalVisible(true);
+  };
+
+  const handleDeleteService = (serviceId: string) => {
+    Alert.alert(
+      t("services.deleteService", "Delete Service"),
+      t("services.confirmDelete", "Are you sure you want to delete this service?"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            if (!sessionToken) return;
+            try {
+              await deleteService(sessionToken, serviceId);
+              loadBusinessProfile();
+            } catch (e) {
+              console.error("Failed to delete service:", e);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSaveService = async () => {
+    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
+    if (!serviceForm.name.trim()) {
+      Alert.alert(t("common.error", "Error"), t("services.nameRequired", "Service name is required"));
+      return;
+    }
+    setServiceSaving(true);
+    try {
+      const businessId = activeIdentity.id;
+      const isRentalService = businessDetail?.business.root_category === "rentals" || businessDetail?.business.root_category === "rental-real-estate";
+      let coverImageUrl = serviceForm.cover_image_url;
+      let galleryImages = [...serviceForm.gallery_images];
+      if (isRentalService && sessionToken) {
+        if (coverImageUrl && coverImageUrl.startsWith("data:")) {
+          coverImageUrl = await uploadImageToCloudinary(sessionToken, coverImageUrl);
+        }
+        galleryImages = await Promise.all(
+          galleryImages.map(async (img: string) => {
+            if (img.startsWith("data:")) {
+              return await uploadImageToCloudinary(sessionToken, img);
+            }
+            return img;
+          })
+        );
+      }
+      const payload: any = {
+        business_id: businessId,
+        type: serviceForm.type,
+        name: serviceForm.name.trim(),
+        description: serviceForm.description || undefined,
+        price: serviceForm.price || undefined,
+        duration_minutes: serviceForm.duration_minutes ? parseInt(serviceForm.duration_minutes, 10) : undefined,
+        capacity: serviceForm.capacity ? parseInt(serviceForm.capacity, 10) : undefined,
+        facilities: serviceForm.facilities,
+        beds: serviceForm.beds ? parseInt(serviceForm.beds, 10) : undefined,
+        room_size: serviceForm.room_size || undefined,
+        room_number: serviceForm.room_number || undefined,
+        menu_category: serviceForm.menu_category || undefined,
+        dietary_tags: serviceForm.dietary_tags,
+        image_urls: serviceForm.image_urls,
+        cover_image_url: coverImageUrl || undefined,
+        gallery_images: galleryImages,
+        gallery_videos: serviceForm.gallery_videos,
+        video_url: serviceForm.video_url || undefined,
+        instructor: serviceForm.instructor || undefined,
+        difficulty_level: serviceForm.difficulty_level || undefined,
+        specialist_name: serviceForm.specialist_name || undefined,
+        service_category: serviceForm.service_category || undefined,
+        consultation_type: serviceForm.consultation_type || undefined,
+        meeting_type: serviceForm.meeting_type || undefined,
+        bedrooms: serviceForm.bedrooms ? parseInt(serviceForm.bedrooms, 10) : undefined,
+        bathrooms: serviceForm.bathrooms ? parseInt(serviceForm.bathrooms, 10) : undefined,
+        size_sqm: serviceForm.size_sqm ? parseFloat(serviceForm.size_sqm) : undefined,
+        floor: serviceForm.floor ? parseInt(serviceForm.floor, 10) : undefined,
+        furnished: serviceForm.furnished,
+        available_from: serviceForm.available_from || undefined,
+        lease_duration: serviceForm.lease_duration || undefined,
+        max_guests: serviceForm.max_guests ? parseInt(serviceForm.max_guests, 10) : undefined,
+        property_type: serviceForm.property_type || undefined,
+        deposit: serviceForm.deposit || undefined,
+        address: serviceForm.address || undefined,
+        latitude: serviceForm.latitude ? parseFloat(serviceForm.latitude) : undefined,
+        longitude: serviceForm.longitude ? parseFloat(serviceForm.longitude) : undefined,
+        make: serviceForm.make || undefined,
+        model: serviceForm.model || undefined,
+        year: serviceForm.year ? parseInt(serviceForm.year, 10) : undefined,
+        mileage_km: serviceForm.mileage_km ? parseInt(serviceForm.mileage_km, 10) : undefined,
+        fuel_type: serviceForm.fuel_type || undefined,
+        transmission: serviceForm.transmission || undefined,
+        stock_status: serviceForm.stock_status || undefined,
+        brand: serviceForm.brand || undefined,
+        condition: serviceForm.condition || undefined,
+        treatment_type: serviceForm.treatment_type || undefined,
+        session_type: serviceForm.session_type || undefined,
+        calories: serviceForm.calories ? parseInt(serviceForm.calories, 10) : undefined,
+        allergens: serviceForm.allergens,
+        spice_level: serviceForm.spice_level ? parseInt(serviceForm.spice_level, 10) : undefined,
+      };
+      if (editingServiceId) {
+        await updateService(sessionToken, editingServiceId, payload);
+      } else {
+        await createService(sessionToken, payload);
+      }
+      setServiceModalVisible(false);
+      setEditingServiceId(null);
+      setServiceForm(DEFAULT_SERVICE_FORM);
+      loadBusinessProfile();
+    } catch (e) {
+      console.error("Failed to save service:", e);
+      Alert.alert(t("common.error", "Error"), t("services.saveFailed", "Failed to save service"));
+    }
+    setServiceSaving(false);
+  };
+
+  // Booking / Slot Manager / Booking List handlers
+  const handleOpenBooking = (service: Service) => {
+    setBookingService(service);
+    setBookingModalVisible(true);
+  };
+
+  const handleOpenSlotManager = (serviceId: string) => {
+    setSlotManagerServiceId(serviceId);
+    setSlotManagerVisible(true);
+  };
+
+  const handleOpenBookingList = () => {
+    setBookingListVisible(true);
+  };
+
+  const handleOpenUserBookings = () => {
+    setUserBookingListVisible(true);
   };
 
   // Business gallery handlers
@@ -1238,7 +1484,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   };
 
   const handleCreatePost = async (eventOrText?: any) => {
-    if (!sessionToken) return;
+    if (isPosting || !sessionToken) return;
      
      // Determine actor identity - use activeIdentity or fallback to user
      let actorIdentity = activeIdentity;
@@ -1257,12 +1503,13 @@ const handleUpdateSlug = async (newSlug: string) => {
      }
      
       const text = typeof eventOrText === 'string' ? eventOrText : postText;
-     if (!text.trim() && !postImage && !postVideo) {
+      if (!text.trim() && !postImage && !postVideo && !postVideoPreview) {
           Alert.alert(t("common.error", "Error"), t("profile.emptyPost", "Please add some content or media to post"));
          return;
      }
 
 try {
+        setIsPosting(true);
         // Only show upload progress if there's actual media to upload
         const hasMedia = !!postImage || !!postVideo;
         
@@ -1280,15 +1527,9 @@ try {
             if (hasMedia) setUploadProgress({ phase: "uploading", progress: 30 });
             uploadedImageUrl = await uploadImageToCloudinary(sessionToken, postImage);
           }
-if (postVideo) {
-             setUploadContext('video');
-             if (hasMedia) setUploadProgress({ phase: "uploading", progress: 60 });
-             const muxResult = await uploadVideoMux(sessionToken, postVideo, undefined, (progress) => {
-               setUploadProgress(progress);
-             });
-             uploadedVideoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : "");
-             muxUploadId = muxResult.mux_upload_id;
-           }
+          if (postVideo) {
+            uploadedVideoUrl = postVideo; // Already uploaded during video pick
+          }
    
         if (hasMedia) setUploadProgress({ phase: "processing", progress: 90 });
  
@@ -1304,13 +1545,14 @@ if (postVideo) {
         const newPost = await createPost(
             sessionToken,
             text,
-            null, // image_base64
+            uploadedImageUrl ? null : postImage, // base64 fallback if Cloudinary fails
             null, // video_base64
             null, // business_id
             { type: actorIdentity.type, id: actorIdentity.id }, // actor
             null, // media_ratio
             tagUserArray, // tagged_user_ids
             firstBusinessId, // tagged_business_id (MVP: first selection)
+            undefined, // tagged_artist_id
             uploadedImageUrl, // image_url
             uploadedVideoUrl,  // video_url
             null,              // youtube_link
@@ -1332,42 +1574,9 @@ setPostText("");
            setShowUploadProgress(false);
            setUploadProgress(null);
          }
-         setPendingMentionIds([]);
+          setPendingMentionIds([]);
 
-        // SYNC TO GALLERY - Add media to gallery
-        if (actorIdentity.type === 'business') {
-          if (uploadedImageUrl) {
-            try {
-              await updateBusinessGallery(sessionToken, actorIdentity.id, { images: [uploadedImageUrl] });
-            } catch (e) {
-              console.log("Failed to add image to business gallery:", e);
-            }
-          }
-          if (uploadedVideoUrl) {
-            try {
-              await updateBusinessGallery(sessionToken, actorIdentity.id, { videos: [uploadedVideoUrl] });
-            } catch (e) {
-              console.log("Failed to add video to business gallery:", e);
-            }
-          }
-        } else {
-          if (uploadedImageUrl) {
-            try {
-              await updateProfileGallery(sessionToken, { images: [uploadedImageUrl] });
-            } catch (e) {
-              console.log("Failed to add image to user gallery:", e);
-            }
-          }
-          if (uploadedVideoUrl) {
-            try {
-              await updateProfileGallery(sessionToken, { videos: [uploadedVideoUrl] });
-            } catch (e) {
-              console.log("Failed to add video to user gallery:", e);
-            }
-          }
-        }
-
-        // Refresh to get updated gallery
+        // Refresh to get updated profile
         if (actorIdentity.type === 'business') {
           loadBusinessProfile();
         } else {
@@ -1380,8 +1589,13 @@ setPostText("");
       } catch (error) {
         setShowUploadProgress(false);
         setUploadProgress(null);
+        setPostImage(null);
+        setPostVideo(null);
+        setPostVideoPreview(null);
         console.error("Failed to create post:", error);
          Alert.alert(t("common.error", "Error"), t("profile.failedCreatePost", "Failed to create post. Please try again."));
+      } finally {
+        setIsPosting(false);
       }
    }
 
@@ -1567,8 +1781,8 @@ setPostText("");
 
   // Inline @ mention autocomplete - combine friends and ALL map businesses for dropdown
   const allMentionables = useMemo(() => {
-    const friendItems = friends.map(f => ({ id: f.user_id, name: f.name || f.user_id, type: 'user' as const, avatar: f.profile_photo || f.picture }));
-    const bizItems = allMapBusinesses.map(b => ({ id: b.business_id, name: b.name, type: 'business' as const, avatar: b.logo_image }));
+    const friendItems = (friends || []).map(f => ({ id: f.user_id, name: f.name || f.user_id, type: 'user' as const, avatar: f.profile_photo || f.picture }));
+    const bizItems = (allMapBusinesses || []).map(b => ({ id: b.business_id, name: b.name, type: 'business' as const, avatar: b.logo_image }));
     return [...friendItems, ...bizItems];
   }, [friends, allMapBusinesses]);
 
@@ -1706,8 +1920,10 @@ postText={postText}
                  pickPostImage={handlePickPostImage}
                  pickPostVideo={handlePickPostVideo}
                  onDiscardMedia={() => { setPostImage(null); setPostVideo(null); setPostVideoPreview(null); }}
-handleCreatePost={handleCreatePost}
-                  onDeletePost={handleDeletePost}
+ handleCreatePost={handleCreatePost}
+                isPosting={isPosting}
+                uploadPercent={uploadProgress?.progress || 0}
+                   onDeletePost={handleDeletePost}
                   onEditPost={handleEditPost}
                   onRefreshPosts={loadUserProfile}
                   currentUserId={user?.user_id}
@@ -1718,8 +1934,9 @@ handleCreatePost={handleCreatePost}
                  mentionSuggestions={filteredSuggestions}
                  onSelectMention={selectMention}
                   pendingMentionIds={pendingMentionIds}
-                   onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
-                   onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
+                  onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
+                  onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
+                  onOpenBookings={handleOpenUserBookings}
                 />
               )}
 
@@ -1767,7 +1984,9 @@ postText={postText}
                 pickPostVideo={handlePickPostVideo}
                 onDiscardMedia={() => { setPostImage(null); setPostVideo(null); setPostVideoPreview(null); }}
                handleCreatePost={handleCreatePost}
-                showMentionSuggestions={showMentionSuggestions}
+                isPosting={isPosting}
+                uploadPercent={uploadProgress?.progress || 0}
+                 showMentionSuggestions={showMentionSuggestions}
                 mentionSuggestions={filteredSuggestions}
                 onSelectMention={selectMention}
                 pendingMentionIds={pendingMentionIds}
@@ -1805,44 +2024,6 @@ postText={postText}
                    ]
                  );
                }}
-               rentals={businessDetail?.rentals || []}
-               handleEditRental={(rental) => {
-                 setRentalForm({
-                   title: rental.title || "",
-                   description: rental.description || "",
-                   cover_image: rental.cover_image || "",
-                   rent_price: rental.rent_price || "",
-                   rooms_size: rental.rooms_size || "",
-                   address: rental.address || "",
-                   latitude: rental.latitude ?? null,
-                   longitude: rental.longitude ?? null,
-                   available_from: rental.available_from || "",
-                   deposit: rental.deposit || "",
-                   property_type: rental.property_type || "",
-                   gallery_images: rental.gallery_images || [],
-                 });
-                 setEditingRentalId(rental.rental_id || null);
-                 setRentalModalVisible(true);
-               }}
-               openRentalModal={() => setRentalModalVisible(true)}
-               handleDeleteRental={(rentalId) => {
-                 Alert.alert(
-                   t("rentals.deleteRental") || "Delete Rental",
-                   t("rentals.confirmDelete") || "Are you sure you want to delete this rental?",
-                   [
-                     { text: t("common.cancel"), style: "cancel" },
-                     {
-                       text: t("common.delete"),
-                       style: "destructive",
-                       onPress: async () => {
-                         if (!sessionToken) return;
-                         await deleteRental(sessionToken, rentalId);
-                         loadBusinessProfile();
-                       },
-                     },
-                   ]
-                 );
-               }}
               slug={(businessDetail as any)?.business?.slug || ''}
               onUpdateSlug={handleUpdateBusinessSlug}
               fanGalleryPosts={[]}
@@ -1859,8 +2040,7 @@ postText={postText}
                isUploading={isUploading}
               handleDeleteGalleryImage={handleDeleteBusinessGalleryImage}
               handleDeleteGalleryVideo={handleDeleteBusinessGalleryVideo}
-               openMediaViewer={() => {}}
-               onUpdateLogo={handleUpdateBusinessLogo}
+                onUpdateLogo={handleUpdateBusinessLogo}
                onUpdateCover={handleUpdateBusinessCover}
                analytics={bizAnalytics}
                analyticsLoading={false}
@@ -1889,6 +2069,9 @@ currentUserId={businessDetail?.business?.business_id}
                         media_url: undefined,
                         media_type: "video",
                         actor_type: "business",
+                        actor_id: activeIdentity?.id,
+                        latitude: businessDetail?.business.latitude,
+                        longitude: businessDetail?.business.longitude,
                         video_status: "uploading",
                       });
                       const muxResult = await uploadVideoMux(sessionToken, result.assets[0].uri, `story:${story.story_id}`);
@@ -1918,6 +2101,13 @@ currentUserId={businessDetail?.business?.business_id}
                       });
                     }
                   }}
+                  services={bizServices}
+                  onAddService={handleAddService}
+                  handleEditService={handleEditService}
+                  handleDeleteService={handleDeleteService}
+                  openBookingModal={handleOpenBooking}
+                  onOpenSlotManager={handleOpenSlotManager}
+                  onOpenBookingList={handleOpenBookingList}
                 />
              )}
         </View>
@@ -1988,6 +2178,7 @@ currentUserId={businessDetail?.business?.business_id}
           sessionToken={sessionToken || undefined}
           nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
           nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}
+          availableArtists={[]}
         />
         <ActivityModal
           visible={activityModalVisible}
@@ -2049,80 +2240,59 @@ currentUserId={businessDetail?.business?.business_id}
           nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}
           businessAddress={businessDetail?.business.address ?? undefined}
         />
-        <RentalModal
-          visible={rentalModalVisible}
-          onClose={() => { setRentalModalVisible(false); setRentalForm({ title: "", description: "", cover_image: "", rent_price: "", rooms_size: "", address: "", latitude: null, longitude: null, available_from: "", deposit: "", property_type: "", gallery_images: [] }); }}
-          rentalForm={rentalForm}
-          onFormChange={setRentalForm}
-          onSave={async () => {
-            if (!sessionToken || !rentalForm.title.trim()) return;
-            setRentalSaving(true);
-            try {
-              let coverImageUrl: string | undefined;
-              if (rentalForm.cover_image && rentalForm.cover_image.startsWith("data:")) {
-                try {
-                  coverImageUrl = await uploadImageToCloudinary(sessionToken, rentalForm.cover_image);
-                } catch (e) {
-                  console.error("[Rental] Cover image upload failed:", e);
-                }
-              } else if (rentalForm.cover_image) {
-                coverImageUrl = rentalForm.cover_image;
-              }
-              const uploadedGallery: string[] = [];
-              for (const img of rentalForm.gallery_images) {
-                if (img.startsWith("data:")) {
-                  try {
-                    const url = await uploadImageToCloudinary(sessionToken, img);
-                    uploadedGallery.push(url);
-                  } catch (e) {
-                    console.error("[Rental] Gallery image upload failed:", e);
-                  }
-                } else {
-                  uploadedGallery.push(img);
-                }
-              }
-              const rentalData = {
-                title: rentalForm.title,
-                description: rentalForm.description,
-                cover_image: coverImageUrl || undefined,
-                rent_price: rentalForm.rent_price || undefined,
-                rooms_size: rentalForm.rooms_size || undefined,
-                address: rentalForm.address || undefined,
-                latitude: rentalForm.latitude,
-                longitude: rentalForm.longitude,
-                available_from: rentalForm.available_from || undefined,
-                deposit: rentalForm.deposit || undefined,
-                property_type: rentalForm.property_type || undefined,
-                gallery_images: uploadedGallery,
-              };
-              if (editingRentalId) {
-                await updateRental(sessionToken, editingRentalId, rentalData);
-              } else {
-                await createRental(sessionToken, rentalData);
-              }
-              setRentalModalVisible(false);
-              setEditingRentalId(null);
-              setRentalForm({ title: "", description: "", cover_image: "", rent_price: "", rooms_size: "", address: "", latitude: null, longitude: null, available_from: "", deposit: "", property_type: "", gallery_images: [] });
-              loadBusinessProfile();
-            } catch (error) {
-              console.error("Failed to create rental:", error);
-              Alert.alert(t("common.error") || "Error", "Failed to create rental. Make sure your business is in the Real Estate category.");
-            }
-            setRentalSaving(false);
-          }}
-          isSaving={rentalSaving}
-          nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
-          nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}
+      <ServiceModal
+        visible={serviceModalVisible}
+        onClose={() => { setServiceModalVisible(false); setEditingServiceId(null); setServiceForm(DEFAULT_SERVICE_FORM); }}
+        form={serviceForm}
+        setForm={setServiceForm}
+        onSave={handleSaveService}
+        isSaving={serviceSaving}
+        rootCategory={businessDetail?.business.root_category}
+        sessionToken={sessionToken || ""}
+        nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
+        nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}
+      />
+
+      <ServiceBookingModal
+        visible={bookingModalVisible}
+        service={bookingService}
+        rootCategory={businessDetail?.business.root_category || ""}
+        sessionToken={sessionToken || ""}
+        userName={user?.name}
+        userEmail={user?.email}
+        onClose={() => { setBookingModalVisible(false); setBookingService(null); }}
+        onSuccess={loadBusinessProfile}
+      />
+
+      {slotManagerServiceId && (
+        <SlotManagerModal
+          visible={slotManagerVisible}
+          serviceId={slotManagerServiceId}
+          sessionToken={sessionToken || ""}
+          onClose={() => { setSlotManagerVisible(false); setSlotManagerServiceId(""); }}
         />
+      )}
+
+      <BookingListModal
+        visible={bookingListVisible}
+        businessId={activeIdentity?.id || ""}
+        sessionToken={sessionToken || ""}
+        onClose={() => setBookingListVisible(false)}
+      />
+
+      <UserBookingListModal
+        visible={userBookingListVisible}
+        sessionToken={sessionToken || ""}
+        onClose={() => setUserBookingListVisible(false)}
+      />
 
       {/* User Edit Profile Modal */}
       <Modal visible={userEditModalVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t("profile.editProfile", "Edit Profile")}</Text>
             <Pressable onPress={() => setUserEditModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={COLORS.primaryDark} />
             </Pressable>
           </View>
           <ScrollView ref={userEditScrollRef} contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
@@ -2174,18 +2344,17 @@ currentUserId={businessDetail?.business?.business_id}
               {savingInfo ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t("common.save", "Save")}</Text>}
             </Pressable>
           </ScrollView>
-          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
+
 
       {/* Business Edit Profile Modal */}
       <Modal visible={bizEditModalVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t("business.editInfo", "Edit Business")}</Text>
             <Pressable onPress={() => setBizEditModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={COLORS.primaryDark} />
             </Pressable>
           </View>
           <ScrollView ref={bizEditScrollRef} contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
@@ -2196,7 +2365,7 @@ currentUserId={businessDetail?.business?.business_id}
             <Text style={styles.inputLabel}>{t("business.category", "Category")}</Text>
             <Pressable style={styles.pickerButton} onPress={() => setBizCategoryModalVisible(true)}>
               <Text style={styles.pickerButtonText}>
-                {bizEditForm.root_category ? (categoryTree.find(g => g.slug === bizEditForm.root_category)?.name || bizEditForm.root_category) : t("business.selectCategory", "Select Category")}
+                {bizEditForm.root_category ? (() => { const rc = findRootCategory(categoryTree, bizEditForm.root_category); return rc ? rc.name : bizEditForm.root_category; })() : t("business.selectCategory", "Select Category")}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </Pressable>
@@ -2210,7 +2379,7 @@ currentUserId={businessDetail?.business?.business_id}
               setBizSubcategoryModalVisible(true);
             }}>
               <Text style={styles.pickerButtonText}>
-                {bizEditForm.subcategory ? (categoryTree.find(g => g.slug === bizEditForm.root_category)?.subcategories.find(s => s.slug === bizEditForm.subcategory)?.name || bizEditForm.subcategory) : t("business.selectSubcategory", "Select Subcategory")}
+                {bizEditForm.subcategory ? (getSubcategories(categoryTree, bizEditForm.root_category).find(s => s.slug === bizEditForm.subcategory)?.name || bizEditForm.subcategory) : t("business.selectSubcategory", "Select Subcategory")}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </Pressable>
@@ -2259,7 +2428,7 @@ currentUserId={businessDetail?.business?.business_id}
                       newHours[dayKey] = { ...dayHours, enabled: !dayHours.enabled };
                       setBizEditForm({ ...bizEditForm, opening_hours: newHours });
                     }}>
-                      <Ionicons name={dayHours.enabled ? "checkbox" : "square-outline"} size={22} color={dayHours.enabled ? "#000000" : "#9ca3af"} />
+                      <Ionicons name={dayHours.enabled ? "checkbox" : "square-outline"} size={22} color={dayHours.enabled ? COLORS.primaryDark : "#9ca3af"} />
                     </Pressable>
                     <Text style={styles.dayNameEdit}>{day}</Text>
                   </View>
@@ -2300,7 +2469,6 @@ currentUserId={businessDetail?.business?.business_id}
               {bizSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t("business.saveChanges", "Save Changes")}</Text>}
             </Pressable>
           </ScrollView>
-          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -2310,7 +2478,7 @@ currentUserId={businessDetail?.business?.business_id}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t("business.selectCategory", "Select Category")}</Text>
             <Pressable onPress={() => setBizCategoryModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={COLORS.primaryDark} />
             </Pressable>
           </View>
           <ScrollView>
@@ -2336,11 +2504,11 @@ currentUserId={businessDetail?.business?.business_id}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t("business.selectSubcategory", "Select Subcategory")}</Text>
             <Pressable onPress={() => setBizSubcategoryModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={COLORS.primaryDark} />
             </Pressable>
           </View>
           <ScrollView>
-            {categoryTree.find(g => g.slug === bizEditForm.root_category)?.subcategories.map((sub) => (
+            {getSubcategories(categoryTree, bizEditForm.root_category).map((sub) => (
               <Pressable
                 key={sub.slug}
                 style={styles.modalItem}
@@ -2362,7 +2530,7 @@ currentUserId={businessDetail?.business?.business_id}
             <Pressable onPress={() => setShowCategoryPicker(false)}>
               <Ionicons name="close" size={28} color="#374151" />
             </Pressable>
-            <Text style={{ fontSize: 18, fontWeight: "700", color: "#111827" }}>{t("business.chooseCategory", "Choose Category")}</Text>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: COLORS.textPrimary }}>{t("business.chooseCategory", "Choose Category")}</Text>
             <View style={{ width: 28 }} />
           </View>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
@@ -2371,21 +2539,21 @@ currentUserId={businessDetail?.business?.business_id}
               {categoryTree.map((cat) => (
                 <Pressable
                   key={cat.slug}
-                  style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: pickerRoot === cat.slug ? "#111827" : "#f3f4f6", borderWidth: 1, borderColor: pickerRoot === cat.slug ? "#111827" : "#e5e7eb" }}
+                  style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#e5e7eb" }}
                   onPress={() => { setPickerRoot(cat.slug); setPickerSub(""); }}
                 >
                   <Text style={{ fontSize: 14, fontWeight: "600", color: pickerRoot === cat.slug ? "#fff" : "#374151" }}>{cat.name}</Text>
                 </Pressable>
               ))}
             </View>
-            {pickerRoot && categoryTree.find(g => g.slug === pickerRoot) && (
+            {pickerRoot && getSubcategories(categoryTree, pickerRoot).length > 0 && (
               <>
                 <Text style={{ fontSize: 14, color: "#6b7280", marginBottom: 12 }}>{t("business.selectSubHint", "Select a subcategory")}</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                  {categoryTree.find(g => g.slug === pickerRoot)!.subcategories.map((sub) => (
+                  {getSubcategories(categoryTree, pickerRoot).map((sub) => (
                     <Pressable
                       key={sub.slug}
-                      style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: pickerSub === sub.slug ? "#111827" : "#f3f4f6", borderWidth: 1, borderColor: pickerSub === sub.slug ? "#111827" : "#e5e7eb" }}
+                      style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: pickerSub === sub.slug ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: pickerSub === sub.slug ? COLORS.textPrimary : "#e5e7eb" }}
                       onPress={() => setPickerSub(sub.slug)}
                     >
                       <Text style={{ fontSize: 13, fontWeight: "500", color: pickerSub === sub.slug ? "#fff" : "#374151" }}>{sub.name}</Text>
@@ -2397,7 +2565,7 @@ currentUserId={businessDetail?.business?.business_id}
           </ScrollView>
           <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 16 + insets.bottom, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e5e7eb" }}>
             <Pressable
-              style={{ backgroundColor: pickerRoot && pickerSub ? "#111827" : "#d1d5db", borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
+              style={{ backgroundColor: pickerRoot && pickerSub ? COLORS.textPrimary : "#d1d5db", borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
               disabled={!pickerRoot || !pickerSub}
               onPress={handleCreateNewBusiness}
             >
@@ -2481,7 +2649,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
   },
   tagHint: {
@@ -2592,13 +2760,13 @@ const styles = StyleSheet.create({
   },
   themedAlertMessage: {
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.textPrimary,
     textAlign: "center",
     marginBottom: 20,
     lineHeight: 22,
   },
   themedAlertButton: {
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.textPrimary,
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
@@ -2626,7 +2794,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   modalBody: {
     padding: 20,
@@ -2652,7 +2820,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   primaryButton: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 12,
@@ -2675,7 +2843,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   secondaryButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
   },
   editImagePreview: {
@@ -2712,7 +2880,7 @@ const styles = StyleSheet.create({
   },
   dayNameEdit: {
     fontSize: 14,
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontWeight: "500",
   },
   periodRowEdit: {
@@ -2747,7 +2915,7 @@ const styles = StyleSheet.create({
   },
   pickerButtonText: {
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
     flex: 1,
   },
   modalItem: {
@@ -2757,7 +2925,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalItemText: {
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontSize: 16,
   },
 });

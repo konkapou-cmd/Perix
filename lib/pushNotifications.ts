@@ -1,7 +1,5 @@
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
 import Constants from "expo-constants";
-import { router } from "expo-router";
 
 // Types for notification data
 export interface CallNotificationData {
@@ -33,89 +31,6 @@ export interface ActivityNotificationData {
 }
 
 export type NotificationData = CallNotificationData | MessageNotificationData | ActivityNotificationData;
-
-// Configure notification handler for foreground notifications
-Notifications.setNotificationHandler({
-  handleNotification: async (notification): Promise<Notifications.NotificationBehavior> => {
-    const data = notification.request.content.data as unknown as NotificationData;
-    
-    // For incoming calls, always show with high priority
-    if (data?.type === "incoming_call") {
-      return {
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-        shouldShowList: true,
-        shouldShowBanner: true,
-        priority: Notifications.AndroidNotificationPriority.MAX,
-      };
-    }
-    
-    // For messages and activities
-    return {
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowList: true,
-      shouldShowBanner: true,
-      priority: Notifications.AndroidNotificationPriority.HIGH,
-    };
-  },
-});
-
-// Notification channel IDs for Android
-export const CHANNELS = {
-  CALLS: "calls",
-  MESSAGES: "messages",
-  ACTIVITIES: "activities",
-} as const;
-
-// Initialize notification channels (Android only)
-export async function setupNotificationChannels(): Promise<void> {
-  if (Platform.OS !== "android") return;
-
-  // Calls channel - highest priority with custom ringtone
-  await Notifications.setNotificationChannelAsync(CHANNELS.CALLS, {
-    name: "Incoming Calls",
-    description: "Notifications for incoming voice and video calls",
-    importance: Notifications.AndroidImportance.MAX,
-    sound: "default", // In production, use custom ringtone
-    vibrationPattern: [0, 500, 200, 500, 200, 500],
-    lightColor: "#22c55e",
-    enableVibrate: true,
-    enableLights: true,
-    showBadge: true,
-    bypassDnd: true,
-    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-  });
-
-  // Messages channel - high priority
-  await Notifications.setNotificationChannelAsync(CHANNELS.MESSAGES, {
-    name: "Messages",
-    description: "Notifications for new messages",
-    importance: Notifications.AndroidImportance.HIGH,
-    sound: "default",
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor: "#16a34a",
-    enableVibrate: true,
-    enableLights: true,
-    showBadge: true,
-  });
-
-  // Activities channel - default priority
-  await Notifications.setNotificationChannelAsync(CHANNELS.ACTIVITIES, {
-    name: "Activities",
-    description: "Notifications for likes, comments, and friend requests",
-    importance: Notifications.AndroidImportance.DEFAULT,
-    sound: "default",
-    vibrationPattern: [0, 100],
-    lightColor: "#f59e0b",
-    enableVibrate: true,
-    showBadge: true,
-  });
-
-  console.log("[Push] Notification channels created");
-}
 
 // Request notification permissions
 export async function requestPushPermissions(): Promise<boolean> {
@@ -157,86 +72,6 @@ export async function getExpoPushToken(): Promise<string | null> {
     console.error("[Push] Failed to get push token:", error);
     return null;
   }
-}
-
-// Handle notification response (when user taps notification)
-export function handleNotificationResponse(response: Notifications.NotificationResponse): void {
-  const data = response.notification.request.content.data as unknown as NotificationData;
-  
-  if (!data?.type) return;
-
-  switch (data.type) {
-    case "incoming_call":
-      // Navigate to call screen
-      router.push({
-        pathname: "/call",
-        params: {
-          mode: "incoming",
-          callId: data.callId,
-          callType: data.callType,
-          userId: data.callerId,
-          userName: data.callerName,
-          userPhoto: data.callerPhoto || "",
-        },
-      });
-      break;
-
-    case "new_message":
-      // Navigate to conversation
-      router.push({
-        pathname: "/chat" as any,
-        params: {
-          recipientId: data.senderId,
-          recipientName: data.senderName,
-        },
-      });
-      break;
-
-    case "activity":
-      if (data.activityType === "friend_request" || data.activityType === "friend_accepted") {
-        // Navigate to user profile
-        router.push({
-          pathname: `/user/${data.actorId}` as any,
-        });
-      } else if (data.postId) {
-        // Navigate to the post detail page
-        router.push({
-          pathname: `/post/${data.postId}` as any,
-        });
-      } else {
-        // Default to activities tab
-        router.push("/activities");
-      }
-      break;
-  }
-}
-
-// Set up notification listeners
-export function setupNotificationListeners(): () => void {
-  // Handle notification taps
-  const responseSubscription = Notifications.addNotificationResponseReceivedListener(
-    handleNotificationResponse
-  );
-
-  // Handle foreground notifications (optional - for custom handling)
-  const notificationSubscription = Notifications.addNotificationReceivedListener(
-    (notification) => {
-      const data = notification.request.content.data as unknown as NotificationData;
-      console.log("[Push] Received notification:", data?.type);
-      
-      // For incoming calls in foreground, you might want to show a custom UI
-      if (data?.type === "incoming_call") {
-        // Could show an in-app call UI here
-        console.log("[Push] Incoming call from:", data.callerName);
-      }
-    }
-  );
-
-  // Return cleanup function
-  return () => {
-    responseSubscription.remove();
-    notificationSubscription.remove();
-  };
 }
 
 // Show local notification for incoming call

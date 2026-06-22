@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 import { useTranslation } from "react-i18next";
 
 interface SocialLinksModalProps {
@@ -68,7 +69,7 @@ export default function SocialLinksModal({
           <View style={styles.header}>
             <Text style={styles.title}>{t("profile.editSocialLinks", "Edit Social Links")}</Text>
             <Pressable onPress={onClose}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
 
@@ -76,7 +77,7 @@ export default function SocialLinksModal({
             {SOCIAL_PLATFORMS.map((platform) => (
               <View key={platform.key} style={styles.inputRow}>
                 <View style={styles.platformLabel}>
-                  <Ionicons name={platform.icon as any} size={20} color="#000000" />
+                  <Ionicons name={platform.icon as any} size={20} color={COLORS.primaryDark} />
                   <Text style={styles.platformText}>{platform.label}</Text>
                 </View>
                 <TextInput
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   content: {
     padding: 16,
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   footer: {
     flexDirection: "row",
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
   },
   saveText: {

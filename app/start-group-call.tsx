@@ -12,12 +12,15 @@ import {
   ScrollView,
   Image,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { COLORS } from "../lib/designTokens";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
@@ -106,7 +109,7 @@ export default function StartGroupCallScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000000" />
+          <ActivityIndicator size="large" color={COLORS.primaryDark} />
         </View>
       </SafeAreaView>
     );
@@ -114,10 +117,11 @@ export default function StartGroupCallScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#000000" />
+          <Ionicons name="chevron-back" size={24} color={COLORS.primaryDark} />
         </Pressable>
         <Text style={styles.headerTitle}>{t("call.startGroupCall") || "Start Group Call"}</Text>
         <View style={{ width: 40 }} />
@@ -287,7 +291,7 @@ export default function StartGroupCallScreen() {
           disabled={selectedFriends.length === 0 || starting}
         >
           <LinearGradient
-            colors={selectedFriends.length > 0 ? ["#000000", "#FFD700"] : ["#9ca3af", "#9ca3af"]}
+            colors={selectedFriends.length > 0 ? [COLORS.primaryDark, "#FFD700"] : ["#9ca3af", "#9ca3af"]}
             style={styles.startButtonGradient}
           >
             {starting ? (
@@ -310,6 +314,7 @@ export default function StartGroupCallScreen() {
           </LinearGradient>
         </Pressable>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -317,7 +322,7 @@ export default function StartGroupCallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
   },
   loadingContainer: {
     flex: 1,
@@ -344,7 +349,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   callTypeSection: {
     padding: 16,
@@ -372,8 +377,8 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   callTypeBtnActive: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
   },
   callTypeText: {
     fontSize: 16,
@@ -395,7 +400,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   selectedSection: {
     paddingHorizontal: 16,
@@ -422,7 +427,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -433,7 +438,7 @@ const styles = StyleSheet.create({
   },
   selectedName: {
     fontSize: 14,
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontWeight: "500",
     maxWidth: 80,
   },
@@ -453,7 +458,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   friendsList: {
     flex: 1,
@@ -510,7 +515,7 @@ const styles = StyleSheet.create({
   friendName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   friendLocation: {
     fontSize: 13,
@@ -527,8 +532,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkboxSelected: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
   },
   footer: {
     padding: 16,

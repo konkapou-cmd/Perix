@@ -4,6 +4,7 @@ import { StyleSheet, View, Text, Pressable, Platform, Image } from "react-native
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental } from "../lib/api";
+import { formatEventDate } from "../lib/formatDate";
 
 type MapMarker = {
   id: string;
@@ -45,6 +46,7 @@ type Props = {
   height?: number;
   disabled?: boolean;
   disabledHint?: string;
+  staticMode?: boolean;
 };
 
 // Helper function to determine if business is currently open
@@ -92,6 +94,7 @@ export default function BusinessMap({
   height,
   disabled = false,
   disabledHint = "Tap to enable location",
+  staticMode = false,
 }: Props) {
   const mapMarkers: MapMarker[] = markers ?? [
     ...businesses.map((business) => ({
@@ -111,7 +114,7 @@ export default function BusinessMap({
         latitude: event.latitude!,
         longitude: event.longitude!,
         title: event.title,
-        description: event.location || new Date(event.start_time).toLocaleDateString(),
+        description: event.location || formatEventDate(event.start_time),
         type: "event" as const,
         pinColor: "#FFD700" as const,
       })),
@@ -254,6 +257,10 @@ export default function BusinessMap({
         customMapStyle={mapStyle}
         onRegionChangeComplete={handleRegionChangeComplete}
         onPress={handleMapPress}
+        scrollEnabled={!staticMode}
+        zoomEnabled={!staticMode}
+        pitchEnabled={!staticMode}
+        rotateEnabled={!staticMode}
       >
         {mapMarkers.map((marker) => (
           <Marker

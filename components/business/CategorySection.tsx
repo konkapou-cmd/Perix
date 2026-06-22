@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import { translateCategory } from "../../lib/categoryTranslation";
 
 type Props = {
@@ -28,7 +29,7 @@ export default function CategorySection({
       </View>
       <View style={styles.categoryInfo}>
         <View style={styles.categoryRow}>
-          <Ionicons name="grid-outline" size={20} color="#000000" />
+          <Ionicons name="grid-outline" size={20} color={COLORS.primaryDark} />
           <View style={styles.categoryTextContainer}>
             <Text style={styles.categoryLabel}>{t("business.rootCategory")}</Text>
             <Text style={styles.categoryValue}>
@@ -59,7 +60,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 10,
   },
   sectionHeader: {
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
     fontSize: 13,
   },
@@ -103,6 +104,6 @@ const styles = StyleSheet.create({
   categoryValue: {
     fontSize: 15,
     fontWeight: "500",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
 });

@@ -53,6 +53,10 @@ function JobsTabIcon({ color, size, filled }: { color: string; size: number; fil
   return <Ionicons name={filled ? "briefcase" : "briefcase-outline"} size={size} color={color} />;
 }
 
+function CameraTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
+  return <Ionicons name={filled ? "camera" : "camera-outline"} size={size} color={color} />;
+}
+
 export default function TabsLayout() {
   const { t } = useTranslation();
   const { isDesktop } = useResponsiveLayout();
@@ -135,6 +139,15 @@ export default function TabsLayout() {
             options={{
               tabBarIcon: ({ color, size, focused }) => (
                 <JobsTabIcon color={color} size={size} filled={focused} />
+              ),
+              lazy: true,
+            }}
+          />
+          <Tabs.Screen
+            name="create"
+            options={{
+              tabBarIcon: ({ color, size, focused }) => (
+                <CameraTabIcon color={color} size={size} filled={focused} />
               ),
               lazy: true,
             }}

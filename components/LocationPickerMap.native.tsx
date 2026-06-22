@@ -1,6 +1,7 @@
 import MapView, { Marker, MapPressEvent, Region } from "react-native-maps";
 import { StyleSheet, View, Text, TextInput, Pressable, ActivityIndicator, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 import { useState, useCallback } from "react";
 import Constants from "expo-constants";
 
@@ -129,7 +130,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
             }}
             onFocus={() => predictions.length > 0 && setShowPredictions(true)}
           />
-          {searching && <ActivityIndicator size="small" color="#000000" />}
+          {searching && <ActivityIndicator size="small" color={COLORS.primaryDark} />}
           {searchQuery.length > 0 && !searching && (
             <Pressable 
               onPress={() => {
@@ -157,7 +158,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
                   style={styles.predictionItem}
                   onPress={() => selectPlace(item.place_id, item.description)}
                 >
-                  <Ionicons name="location-outline" size={18} color="#000000" />
+                  <Ionicons name="location-outline" size={18} color={COLORS.primaryDark} />
                   <Text style={styles.predictionText} numberOfLines={2}>
                     {item.description}
                   </Text>
@@ -181,13 +182,13 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
               coordinate={{ latitude: location.latitude, longitude: location.longitude }}
               draggable
               onDragEnd={handleMarkerDragEnd}
-              pinColor="#000000"
+              pinColor={COLORS.primaryDark}
             />
           )}
         </MapView>
         {!location && (
           <View style={styles.overlay}>
-            <Ionicons name="location" size={32} color="#000000" />
+            <Ionicons name="location" size={32} color={COLORS.primaryDark} />
             <Text style={styles.overlayText}>Tap on the map to set location</Text>
           </View>
         )}
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
   searchInputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderRadius: 12,
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   predictionsContainer: {
     position: "absolute",

@@ -22,6 +22,7 @@ import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } fro
 import LocatorCard from "../../components/locator/LocatorCard";
 import LocatorHeader from "../../components/locator/LocatorHeader";
 import LocatorCategoryChips from "../../components/locator/LocatorCategoryChips";
+import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
@@ -48,6 +49,8 @@ import {
   getActivities,
   Rental,
   getRentals,
+  Job,
+  getJobs,
 } from "../../lib/api";
 import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
@@ -86,7 +89,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const itemWidth = (Dimensions.get("window").width - 48) / 3;
 
-type TabType = "events" | "activities" | "businesses";
+type TabType = "events" | "activities" | "businesses" | "rentals" | "jobs";
 
 interface DateFilter {
   startDate: string | null;
@@ -107,6 +110,7 @@ export default function LocatorScreen() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryModal, setCategoryModal] = useState(false);
   const [subcategoryModal, setSubcategoryModal] = useState(false);
@@ -142,6 +146,7 @@ export default function LocatorScreen() {
     { description: string; place_id: string; lat: number | null; lng: number | null }[]
   >([]);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Date filter state
   const [dateFilter, setDateFilter] = useState<DateFilter>({ startDate: null, endDate: null });
@@ -154,6 +159,16 @@ export default function LocatorScreen() {
   const [pendingEventThemeFilter, setPendingEventThemeFilter] = useState<string | null>(null);
   const [activityThemeFilter, setActivityThemeFilter] = useState<string | null>(null);
   const [pendingActivityThemeFilter, setPendingActivityThemeFilter] = useState<string | null>(null);
+  const [rentalTypeFilter, setRentalTypeFilter] = useState<string | null>(null);
+  const [jobTypeFilter, setJobTypeFilter] = useState<string | null>(null);
+
+  // Rental subcategory chips from category tree
+  const rentalSubcategoryChips = useMemo(() => {
+    const rentalRoot = categoryTree.find((cat) => cat.slug === "rentals");
+    if (!rentalRoot) return [];
+    const subs = rentalRoot.groups?.flatMap(g => g.subcategories) ?? [];
+    return subs.map(sub => ({ key: sub.slug, label: translateCategory(sub.slug, t) }));
+  }, [categoryTree, t]);
 
   // Tab-specific search queries
   const [eventSearchQuery, setEventSearchQuery] = useState("");
@@ -350,6 +365,16 @@ export default function LocatorScreen() {
     if (selectedSubcategory === "All") return t('locator.allSubcategories');
     return translateCategory(selectedSubcategory, t);
   }, [selectedSubcategory, t]);
+
+  const filteredRentals = useMemo(() =>
+    rentalTypeFilter ? rentals.filter(r => r.subcategory === rentalTypeFilter) : rentals,
+    [rentals, rentalTypeFilter]
+  );
+
+  const filteredJobs = useMemo(() =>
+    jobTypeFilter ? jobs.filter(j => j.root_category === jobTypeFilter) : jobs,
+    [jobs, jobTypeFilter]
+  );
   const selectedRootLabel = useMemo(() => {
     if (selectedRoot === "All") return t('locator.allCategories');
     return translateCategory(selectedRoot, t);
@@ -411,10 +436,16 @@ export default function LocatorScreen() {
     setActivities(data);
   }, [sessionToken, dateFilter, activityThemeFilter]);
 
-  const loadRentals = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+  const loadRentals = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, subcategoryFilter?: string | null) => {
     if (!sessionToken) return;
-    const data = await getRentals(sessionToken, bounds);
+    const data = await getRentals(sessionToken, bounds, { subcategory: subcategoryFilter || undefined });
     setRentals(data.rentals);
+  }, [sessionToken]);
+
+  const loadJobs = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+    if (!sessionToken) return;
+    const data = await getJobs(sessionToken, bounds);
+    setJobs(data.jobs);
   }, [sessionToken]);
 
   const handleMapRegionChange = useCallback((bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
@@ -436,11 +467,17 @@ export default function LocatorScreen() {
     const timer = setTimeout(() => {
       loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
       if (activeTab === "businesses" && selectedRoot === "rental-real-estate") {
-        loadRentals(mapBounds);
+        loadRentals(mapBounds, rentalTypeFilter);
+      }
+      if (activeTab === "rentals") {
+        loadRentals(mapBounds, rentalTypeFilter);
+      }
+      if (activeTab === "jobs") {
+        loadJobs(mapBounds);
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory]);
+  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory, activeTab, rentalTypeFilter]);
 
   useEffect(() => {
     if (!mapBounds || !sessionToken) return;
@@ -681,6 +718,11 @@ export default function LocatorScreen() {
       {/* Search Bar */}
       <View style={styles.searchBarSection}>
         <View style={styles.searchInputContainer}>
+          {Platform.OS !== "web" && (
+            <Pressable onPress={() => setSidebarOpen(true)} style={{ paddingRight: 4 }}>
+              <Ionicons name="menu" size={20} color={COLORS.primary} />
+            </Pressable>
+          )}
           <Ionicons name="search" size={18} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
@@ -741,8 +783,25 @@ export default function LocatorScreen() {
         )}
       </View>
 
-      {/* Map Section */}
-      <View style={styles.mapSection}>
+      {/* Sidebar + Content */}
+      <View style={styles.sidebarLayout}>
+        {Platform.OS === "web" || sidebarOpen ? (
+          <LocatorSidebar
+            categories={categoryTree}
+            selectedRoot={selectedRoot}
+            selectedSubcategory={selectedSubcategory}
+            onSelectRoot={(slug) => { setSelectedRoot(slug); setSelectedSubcategory("All"); }}
+            onSelectSubcategory={setSelectedSubcategory}
+            onClose={Platform.OS !== "web" ? () => setSidebarOpen(false) : undefined}
+          />
+        ) : null}
+        {Platform.OS !== "web" && sidebarOpen && (
+          <Pressable style={styles.sidebarOverlay} onPress={() => setSidebarOpen(false)} />
+        )}
+
+        <View style={styles.sidebarContent}>
+          {/* Map Section */}
+          <View style={styles.mapSection}>
         <BusinessMap
           location={contextLocation || { latitude: mapBounds?.centerLat || 52.52, longitude: mapBounds?.centerLng || 13.405 }}
           businesses={activeTab === "businesses" ? businesses : []}
@@ -754,7 +813,7 @@ export default function LocatorScreen() {
           onMarkerPress={(id) => {
             if (activeTab === "businesses") {
               const rental = rentals.find(r => r.rental_id === id);
-              if (rental) { router.push(`/rental/${id}` as any); return; }
+              if (rental) { router.push(`/service/${rental.service_id || id}` as any); return; }
               router.push(`/business/${id}` as any); return;
             }
             if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
@@ -825,6 +884,22 @@ export default function LocatorScreen() {
           variant="theme"
         />
       )}
+      {activeTab === "rentals" && (
+        <LocatorCategoryChips
+          chips={rentalSubcategoryChips}
+          selectedKey={rentalTypeFilter}
+          onSelect={setRentalTypeFilter}
+          variant="theme"
+        />
+      )}
+      {activeTab === "jobs" && (
+        <LocatorCategoryChips
+          chips={categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t) }))}
+          selectedKey={jobTypeFilter}
+          onSelect={setJobTypeFilter}
+          variant="theme"
+        />
+      )}
 
       {/* Date filter row */}
       {(activeTab === "events" || activeTab === "activities") && (
@@ -850,7 +925,10 @@ export default function LocatorScreen() {
       {/* Subcategory chips for businesses */}
       {activeTab === "businesses" && selectedRoot !== "All" && selectedRootGroup && (
         <LocatorCategoryChips
-          chips={selectedRootGroup.subcategories.map((sub) => ({ key: sub.slug, label: translateCategory(sub.slug, t) }))}
+          chips={(selectedRootGroup.groups
+            ? selectedRootGroup.groups.flatMap(g => g.subcategories)
+            : (selectedRootGroup.subcategories || [])
+          ).map((sub) => ({ key: sub.slug, label: translateCategory(sub.slug, t) }))}
           selectedKey={selectedSubcategory === "All" ? null : selectedSubcategory}
           onSelect={(key) => setSelectedSubcategory(key || "All")}
         />
@@ -862,21 +940,6 @@ export default function LocatorScreen() {
         contentContainerStyle={styles.cardScrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Sort Row */}
-        <View style={styles.sortRow}>
-          {["nearest", "date", "name"].map((sort) => (
-            <Pressable
-              key={sort}
-              style={[styles.sortChip, sortBy === sort && styles.sortChipActive]}
-              onPress={() => setSortBy(sort as "nearest" | "date" | "name")}
-            >
-              <Text style={[styles.sortChipText, sortBy === sort && styles.sortChipTextActive]}>
-                {sort === "nearest" ? (t('common.nearest') || "Nearest") : sort === "date" ? (t('common.date') || "Date") : (t('common.name') || "Name")}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
         {/* Business List */}
         {activeTab === "businesses" && (
           <View style={styles.list}>
@@ -951,6 +1014,80 @@ export default function LocatorScreen() {
           </View>
         )}
 
+        {/* Rental List */}
+        {activeTab === "rentals" && (
+          <View style={styles.list}>
+            <Text style={styles.listTitle}>{filteredRentals.length} {t('tabs.rentals')}</Text>
+            {filteredRentals.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>{t('rentals.noRentals') || "No rentals found"}</Text>
+              </View>
+            )}
+            {filteredRentals.map((rental) => {
+              const dist = getDistance(rental.latitude, rental.longitude);
+              return (
+                <LocatorCard
+                  key={rental.rental_id}
+                  type="business"
+                  data={{
+                    business_id: rental.rental_id,
+                    name: rental.title,
+                    root_category: rental.root_category || "Rental",
+                    subcategory: rental.subcategory || "Real Estate",
+                    address: rental.address,
+                    latitude: rental.latitude,
+                    longitude: rental.longitude,
+                    cover_image: rental.cover_image || (rental.gallery_images?.[0]),
+                    logo_image: rental.business_logo,
+                    profile_photo: rental.cover_image,
+                    description: rental.description,
+                  } as any}
+                  distance={dist !== null ? formatDistance(dist) : null}
+                  isOpen={null}
+                  onPress={() => router.push(`/service/${rental.service_id || rental.rental_id}` as any)}
+                />
+              );
+            })}
+          </View>
+        )}
+
+        {/* Job List */}
+        {activeTab === "jobs" && (
+          <View style={styles.list}>
+            <Text style={styles.listTitle}>{filteredJobs.length} {t('tabs.jobs')}</Text>
+            {filteredJobs.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>{t('jobs.noJobs') || "No jobs found"}</Text>
+              </View>
+            )}
+            {filteredJobs.map((job) => {
+              const dist = getDistance(job.latitude, job.longitude);
+              return (
+                <LocatorCard
+                  key={job.job_id}
+                  type="business"
+                  data={{
+                    business_id: job.job_id,
+                    name: job.title,
+                    root_category: "Jobs",
+                    subcategory: job.job_type || "Full-time",
+                    address: job.location,
+                    latitude: job.latitude,
+                    longitude: job.longitude,
+                    cover_image: job.cover_image,
+                    logo_image: job.business_logo,
+                    profile_photo: job.cover_image,
+                    description: job.description,
+                  } as any}
+                  distance={dist !== null ? formatDistance(dist) : null}
+                  isOpen={null}
+                  onPress={() => router.push(`/job/${job.job_id}` as any)}
+                />
+              );
+            })}
+          </View>
+        )}
+
         <View style={{ height: 80 }} />
       </ScrollView>
 
@@ -1012,7 +1149,7 @@ export default function LocatorScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t('locator.selectCategory')}</Text>
             <Pressable onPress={() => setCategoryModal(false)}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
           <ScrollView>
@@ -1058,7 +1195,7 @@ export default function LocatorScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t('locator.selectSubcategory')}</Text>
             <Pressable onPress={() => setSubcategoryModal(false)}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
           <ScrollView>
@@ -1073,11 +1210,12 @@ export default function LocatorScreen() {
                 <Text style={styles.modalItemText}>{t('locator.allSubcategories')}</Text>
               </Pressable>
             ) : null}
-            {(
-              (subcategoryTarget === "filter"
-                ? selectedRootGroup?.subcategories
-                : formRootGroup?.subcategories) || []
-            ).map((subcategory) => (
+            {((): any[] => {
+              const group = subcategoryTarget === "filter" ? selectedRootGroup : formRootGroup;
+              if (!group) return [];
+              if (group.groups) return group.groups.flatMap(g => g.subcategories);
+              return group.subcategories || [];
+            })().map((subcategory) => (
               <Pressable
                 key={subcategory.slug}
                 style={styles.modalItem}
@@ -1117,7 +1255,7 @@ export default function LocatorScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t('locator.addBusiness')}</Text>
             <Pressable onPress={() => setAddModal(false)}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
@@ -1173,7 +1311,7 @@ export default function LocatorScreen() {
             ) : null}
             {form.subcategory ? (
               <View style={styles.moduleRow}>
-                {(formRootGroup?.subcategories.find(
+                {(formRootGroup?.subcategories?.find(
                   (sub) => sub.slug === form.subcategory
                 )?.tools || []).map((tool) => (
                   <View key={tool} style={styles.moduleChip}>
@@ -1201,7 +1339,7 @@ export default function LocatorScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t('locator.businessSubscription')}</Text>
             <Pressable onPress={() => setSubscriptionModal(false)}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
           <View style={styles.modalBody}>
@@ -1233,7 +1371,7 @@ export default function LocatorScreen() {
                 </Pressable>
               </View>
             ) : (
-              <ActivityIndicator color="#000000" />
+              <ActivityIndicator color={COLORS.primaryDark} />
             )}
             <Pressable
               style={[styles.primaryButton, subscriptionLoading && styles.buttonDisabled]}
@@ -1252,6 +1390,8 @@ export default function LocatorScreen() {
           </View>
         </View>
       </Modal>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -1260,6 +1400,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
+  },
+  sidebarLayout: {
+    flex: 1,
+    flexDirection: "row",
+    position: "relative",
+    overflow: "hidden",
+  },
+  sidebarContent: {
+    flex: 1,
+  },
+  sidebarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    zIndex: 99,
+    // @ts-ignore
+    cursor: "pointer",
   },
 
   // Tab Styles
@@ -1288,12 +1444,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 15 : 14,
     fontWeight: "600",
     color: "#6b7280",
   },
   tabTextActive: {
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   
   // Search Styles
@@ -1309,7 +1465,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 8,
-    shadowColor: "#000",
+    shadowColor: "#2B075F",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -1317,8 +1473,8 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    color: "#111827",
+    fontSize: Platform.OS === "web" ? 16 : 15,
+    color: COLORS.textPrimary,
   },
   
   // Filter Row Styles
@@ -1338,7 +1494,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
-    shadowColor: "#000",
+    shadowColor: "#2B075F",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1346,22 +1502,22 @@ const styles = StyleSheet.create({
   },
   dateButtonText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: Platform.OS === "web" ? 14 : 13,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   thisWeekButton: {
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: COLORS.primaryDark,
   },
   thisWeekButtonText: {
-    fontSize: 13,
+    fontSize: Platform.OS === "web" ? 14 : 13,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   clearButton: {
     padding: 4,
@@ -1385,14 +1541,14 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   themeChipActive: {
-    backgroundColor: "#111827",
-    borderColor: "#111827",
+    backgroundColor: COLORS.textPrimary,
+    borderColor: COLORS.textPrimary,
   },
   themeChipEmoji: {
     fontSize: 14,
   },
   themeChipText: {
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 13 : 12,
     fontWeight: "600",
     color: "#374151",
   },
@@ -1420,7 +1576,7 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   categoryButtonText: {
-    fontSize: 13,
+    fontSize: Platform.OS === "web" ? 14 : 13,
     fontWeight: "600",
     color: "#374151",
   },
@@ -1445,8 +1601,8 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   markerToggleActive: {
-    borderColor: "#000000",
-    backgroundColor: "#f0fdf4",
+    borderColor: COLORS.primaryDark,
+    backgroundColor: COLORS.primaryLight,
   },
   markerDot: {
     width: 10,
@@ -1454,24 +1610,24 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   markerToggleText: {
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 13 : 12,
     fontWeight: "600",
     color: "#6b7280",
   },
   markerToggleTextActive: {
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   
   // Calendar Modal Styles
   calendarModalContainer: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
   },
   calendarModalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
@@ -1489,12 +1645,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   calendarModalTitle: {
-    fontSize: 18,
+    fontSize: Platform.OS === "web" ? 20 : 18,
     fontWeight: "700",
     color: "#fff",
   },
   calendarModalSubtitle: {
-    fontSize: 13,
+    fontSize: Platform.OS === "web" ? 14 : 13,
     color: "rgba(255,255,255,0.85)",
     marginTop: 2,
   },
@@ -1525,10 +1681,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f4f6",
   },
   calendarApplyButton: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
   },
   calendarActionButtonText: {
-    fontSize: 15,
+    fontSize: Platform.OS === "web" ? 16 : 15,
     fontWeight: "600",
     color: "#374151",
   },
@@ -1543,7 +1699,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   subtitle: {
     marginTop: 6,
@@ -1567,8 +1723,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateFilterText: {
-    color: "#000000",
-    fontSize: 13,
+    color: COLORS.primaryDark,
+    fontSize: Platform.OS === "web" ? 14 : 13,
     fontWeight: "600",
     flex: 1,
   },
@@ -1585,7 +1741,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateInputLabel: {
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 13 : 12,
     color: "#6b7280",
     marginBottom: 4,
   },
@@ -1596,7 +1752,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 15 : 14,
   },
   actions: {
     flexDirection: "column",
@@ -1615,14 +1771,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   filterText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
   },
   primaryButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
@@ -1640,7 +1796,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   helperText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
     marginLeft: 6,
   },
@@ -1654,23 +1810,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   webNoticeText: {
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: Platform.OS === "web" ? 18 : 16,
     marginTop: 8,
   },
   webNoticeSubtext: {
     color: "#9ca3af",
-    fontSize: 13,
+    fontSize: Platform.OS === "web" ? 14 : 13,
   },
   list: {
     marginTop: 16,
     paddingHorizontal: 16,
   },
   listTitle: {
-    fontSize: 16,
+    fontSize: Platform.OS === "web" ? 18 : 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   emptyState: {
@@ -1684,7 +1840,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyBackButton: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1706,21 +1862,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   businessPhoto: {
-    width: 56,
-    height: 56,
+    width: Platform.OS === "web" ? 64 : 56,
+    height: Platform.OS === "web" ? 64 : 56,
     marginRight: 12,
   },
   businessPhotoPlaceholder: {
-    width: 56,
-    height: 56,
-    backgroundColor: "#000000",
+    width: Platform.OS === "web" ? 64 : 56,
+    height: Platform.OS === "web" ? 64 : 56,
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
   businessPhotoText: {
     color: "#fff",
-    fontSize: 20,
+    fontSize: Platform.OS === "web" ? 24 : 20,
     fontWeight: "700",
   },
   businessActions: {
@@ -1748,20 +1904,21 @@ const styles = StyleSheet.create({
   },
   businessName: {
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
+    fontSize: Platform.OS === "web" ? 16 : 14,
   },
   businessCategory: {
-    color: "#000000",
-    fontSize: 12,
+    color: COLORS.primaryDark,
+    fontSize: Platform.OS === "web" ? 13 : 12,
   },
   businessAddress: {
     color: "#6b7280",
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 13 : 12,
     marginTop: 2,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
     padding: 20,
   },
   modalHeader: {
@@ -1773,7 +1930,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   modalItem: {
     padding: 14,
@@ -1782,7 +1939,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalItemText: {
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   moduleRow: {
     flexDirection: "row",
@@ -1819,7 +1976,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef2ff",
   },
   subscriptionButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 12,
     fontWeight: "600",
   },
@@ -1837,7 +1994,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f3f4f6",
   },
   suggestionText: {
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   modalBody: {
     padding: 20,
@@ -1859,17 +2016,17 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   planCardActive: {
-    borderColor: "#000000",
+    borderColor: COLORS.primaryDark,
     backgroundColor: "#eef2ff",
   },
   planTitle: {
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   planPrice: {
     marginTop: 6,
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   secondaryButton: {
     marginTop: 12,
@@ -1880,7 +2037,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
   },
   input: {
@@ -1919,7 +2076,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    shadowColor: "#000",
+    shadowColor: "#2B075F",
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
@@ -1951,11 +2108,11 @@ const styles = StyleSheet.create({
   locationName: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginTop: 2,
   },
   locationRadiusBadge: {
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1972,7 +2129,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     margin: 16,
     padding: 16,
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#86efac",
@@ -1992,7 +2149,7 @@ const styles = StyleSheet.create({
   liveLocationTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   liveLocationSubtitle: {
     fontSize: 13,
@@ -2012,7 +2169,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   locationResults: {
     flex: 1,
@@ -2030,7 +2187,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   currentLocationInfo: {
     flexDirection: "row",
@@ -2045,7 +2202,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 13,
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   addressSearchContainer: {
     paddingHorizontal: 16,
@@ -2071,12 +2228,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   toggleButtonActive: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
   },
   toggleText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   toggleTextActive: {
     color: "#fff",
@@ -2095,7 +2252,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    shadowColor: "#000",
+    shadowColor: "#2B075F",
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
@@ -2104,7 +2261,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.textPrimary,
     paddingVertical: 12,
   },
   searchButton: {
@@ -2142,7 +2299,7 @@ const styles = StyleSheet.create({
   searchResultsTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   searchResultsSubtitle: {
     fontSize: 14,
@@ -2153,9 +2310,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   searchSectionTitle: {
-    fontSize: 16,
+    fontSize: Platform.OS === "web" ? 18 : 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   artistCard: {
@@ -2174,7 +2331,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2190,7 +2347,7 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   artistTown: {
     fontSize: 13,
@@ -2210,11 +2367,11 @@ const styles = StyleSheet.create({
   },
   genreChipText: {
     fontSize: 11,
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "500",
   },
   distanceBadge: {
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -2245,14 +2402,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },
   postAuthor: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginLeft: 10,
   },
   postText: {
@@ -2309,7 +2466,7 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontWeight: "600",
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   eventDate: {
     color: "#6b7280",
@@ -2317,7 +2474,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   eventBusiness: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 12,
     marginTop: 2,
   },
@@ -2338,7 +2495,7 @@ const styles = StyleSheet.create({
   attendeesText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   activityCard: {
     backgroundColor: "#fff",
@@ -2365,7 +2522,7 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontWeight: "600",
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   activityDate: {
     color: "#6b7280",
@@ -2373,7 +2530,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   activityLocation: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 12,
     marginTop: 2,
   },
@@ -2384,7 +2541,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   rsvpBadge: {
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -2399,16 +2556,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mapSection: {
-    height: "33%",
+    height: Platform.OS === "web" ? "40%" : "33%",
     width: "100%",
   },
   recenterFab: {
     position: "absolute",
     right: SPACING.md,
     bottom: SPACING.md,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: Platform.OS === "web" ? 48 : 44,
+    height: Platform.OS === "web" ? 48 : 44,
+    borderRadius: Platform.OS === "web" ? 24 : 22,
     backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
@@ -2428,7 +2585,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   locationChipText: {
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 13 : 12,
     color: COLORS.textMuted,
     fontWeight: "500",
   },
@@ -2455,7 +2612,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   sortChipText: {
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 13 : 12,
     fontWeight: "500",
     color: COLORS.textMuted,
   },
@@ -2467,7 +2624,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   dateFilterButtonText: {
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 13 : 12,
     fontWeight: "500",
     color: COLORS.primary,
     flex: 1,
@@ -2486,14 +2643,14 @@ const styles = StyleSheet.create({
     width: itemWidth,
     height: 80,
     borderRadius: 16,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     alignItems: "center",
     justifyContent: "center",
   },
   categoryGridItemSelected: {
-    borderColor: "#111827",
+    borderColor: COLORS.textPrimary,
     backgroundColor: "rgba(17,24,39,0.05)",
   },
   categoryGridIcon: {
@@ -2506,7 +2663,7 @@ const styles = StyleSheet.create({
   categoryGridLabelSelected: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   categoryChipContent: {
     paddingHorizontal: 16,

@@ -45,12 +45,6 @@ export default function PlacesAutocompleteInput({
   const [showPredictions, setShowPredictions] = useState(false);
   const [isAddressConfirmed, setIsAddressConfirmed] = useState(false);
 
-  useEffect(() => {
-    if (value && value.length > 0) {
-      setIsAddressConfirmed(true);
-    }
-  }, []);
-
   const searchPlaces = useCallback(async (query: string) => {
     if (!query || query.length < 2 || isAddressConfirmed) {
       setPredictions([]);

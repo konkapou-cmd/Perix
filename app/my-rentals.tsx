@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Pressable,
@@ -15,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 
 import { useAuth } from "../context/AuthContext";
-import { getMyRentals, deleteRental, Rental } from "../lib/api";
+import { getMyRentals, Rental } from "../lib/api";
 import {
   COLORS,
   SPACING,
@@ -48,37 +47,12 @@ export default function MyRentalsScreen() {
     setLoading(false);
   };
 
-  const handleDelete = async (rentalId: string) => {
-    if (!sessionToken) return;
-    Alert.alert(
-      t("rentals.deleteRental") || "Delete Rental",
-      t("rentals.confirmDelete") || "Are you sure you want to delete this rental?",
-      [
-        { text: t("common.cancel") || "Cancel", style: "cancel" },
-        {
-          text: t("common.delete") || "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteRental(sessionToken, rentalId);
-              setRentals((prev) => prev.filter((r) => r.rental_id !== rentalId));
-            } catch (e) {
-              Alert.alert(t("common.error") || "Error", String(e));
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const translatePropertyType = (slug: string) => {
     const map: Record<string, string> = {
       apartment: t("categories.apartments", "Apartments"),
       house: t("categories.houses", "Houses"),
       studio: t("categories.studios", "Studios"),
       room: t("categories.rooms", "Rooms"),
-      commercial: t("categories.commercial-spaces", "Commercial Spaces"),
-      vacation: t("categories.vacation-rentals", "Vacation Rentals"),
     };
     return map[slug] || slug;
   };
@@ -88,12 +62,12 @@ export default function MyRentalsScreen() {
       <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#111827" />
+            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
           </Pressable>
           <Text style={styles.title}>{t("rentals.myRentals", "My Rentals")}</Text>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator color="#111827" size="large" />
+          <ActivityIndicator color={COLORS.textPrimary} size="large" />
         </View>
       </SafeAreaView>
     );
@@ -103,7 +77,7 @@ export default function MyRentalsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
         <Text style={styles.title}>{t("rentals.myRentals", "My Rentals")}</Text>
       </View>
@@ -120,7 +94,7 @@ export default function MyRentalsScreen() {
           renderItem={({ item }) => (
             <Pressable
               style={styles.rentalCard}
-              onPress={() => router.push(`/rental/${item.rental_id}` as any)}
+              onPress={() => router.push(`/service/${item.service_id || item.rental_id}` as any)}
             >
               {item.cover_image ? (
                 <Image source={{ uri: item.cover_image }} style={styles.rentalImage} />
@@ -152,12 +126,6 @@ export default function MyRentalsScreen() {
                   )}
                 </View>
               </View>
-              <Pressable
-                onPress={(e) => { e.stopPropagation(); handleDelete(item.rental_id); }}
-                style={styles.deleteButton}
-              >
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
-              </Pressable>
             </Pressable>
           )}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
@@ -184,7 +152,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   center: {
     flex: 1,
@@ -223,7 +191,7 @@ const styles = StyleSheet.create({
   rentalTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   rentalPrice: {
     fontSize: 14,

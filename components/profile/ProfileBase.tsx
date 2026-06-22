@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";

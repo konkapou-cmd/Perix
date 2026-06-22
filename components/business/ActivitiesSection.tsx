@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { ActivityItem, ACTIVITY_THEMES } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { formatDate } from "../../lib/formatDate";
 
 type Props = {
   activities: ActivityItem[];
@@ -24,16 +25,6 @@ function getThemeInfo(slug: string | null | undefined) {
   const theme = (ACTIVITY_THEMES as unknown as Record<string, typeof DEFAULT_ACTIVITY_THEME>)[slug];
   if (theme) return { emoji: theme.emoji, label: theme.label, color: theme.color, gradient: theme.gradient };
   return DEFAULT_ACTIVITY_THEME;
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  } catch {
-    return dateStr;
-  }
 }
 
 export default function ActivitiesSection({
@@ -121,7 +112,7 @@ export default function ActivitiesSection({
                     <View style={s.metaRow}>
                       <Ionicons name="calendar-outline" size={12} color={secondaryColor} />
                       <Text style={[s.metaText, { color: secondaryColor }]}>
-                        {activity.date}{activity.time ? ` · ${activity.time}` : ""}
+                        {formatDate(activity.date)}{activity.time ? ` · ${activity.time}` : ""}
                       </Text>
                     </View>
                     {activity.location && (

@@ -24,6 +24,7 @@ interface UseFeedDataParams {
   userLocation: { latitude: number; longitude: number } | null;
   user: { latitude?: number | null; longitude?: number | null } | null;
   refreshKey?: number;
+  friendsOnly?: boolean;
 }
 
 interface UseFeedDataResult {
@@ -109,7 +110,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
     try {
       const feedPromise = getHomeFeed(sessionToken, undefined, undefined, {
         minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng,
-      });
+      }, undefined, (paramsRef.current as any).friendsOnly);
       const eventsPromise = getEvents(sessionToken, undefined, undefined, bounds);
       const activitiesPromise = getActivities(sessionToken, bounds);
       const businessesPromise = getNearbyBusinesses(sessionToken, userLat, userLng, undefined, undefined, bounds);

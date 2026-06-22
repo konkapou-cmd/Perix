@@ -12,6 +12,7 @@ import {
   TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { uploadMedia, UploadProgress, GalleryItem, updateGalleryCaption } from "../lib/api";
@@ -312,10 +313,10 @@ export default function VideoGalleryUpload({
               disabled={uploading}
             >
               {uploading ? (
-                <ActivityIndicator size="small" color="#000000" />
+                <ActivityIndicator size="small" color={COLORS.primaryDark} />
               ) : (
                 <>
-                  <Ionicons name="add" size={18} color="#000000" />
+                  <Ionicons name="add" size={18} color={COLORS.primaryDark} />
                   <Text style={styles.addButtonText}>{t("gallery.addVideo") || "Add"}</Text>
                 </>
               )}
@@ -385,7 +386,7 @@ export default function VideoGalleryUpload({
                   <Ionicons 
                     name={videoItem.caption ? "text" : "text-outline"} 
                     size={14} 
-                    color={videoItem.caption ? "#000000" : "#9ca3af"} 
+                    color={videoItem.caption ? COLORS.primaryDark : "#9ca3af"} 
                   />
                   <Text 
                     style={[styles.captionText, !videoItem.caption && styles.captionTextEmpty]} 
@@ -404,7 +405,7 @@ export default function VideoGalleryUpload({
                     onPress={() => handleMoveLeft(index)}
                     disabled={index === 0}
                   >
-                    <Ionicons name="chevron-back" size={16} color={index === 0 ? "#d1d5db" : "#000000"} />
+                    <Ionicons name="chevron-back" size={16} color={index === 0 ? "#d1d5db" : COLORS.primaryDark} />
                   </Pressable>
                   <Pressable
                     style={styles.deleteButtonSmall}
@@ -417,7 +418,7 @@ export default function VideoGalleryUpload({
                     onPress={() => handleMoveRight(index)}
                     disabled={index === normalizedVideos.length - 1}
                   >
-                    <Ionicons name="chevron-forward" size={16} color={index === normalizedVideos.length - 1 ? "#d1d5db" : "#000000"} />
+                    <Ionicons name="chevron-forward" size={16} color={index === normalizedVideos.length - 1 ? "#d1d5db" : COLORS.primaryDark} />
                   </Pressable>
                 </View>
               )}
@@ -600,7 +601,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   editModeButtonActive: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
   },
   editModeText: {
     fontSize: 12,
@@ -625,7 +626,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   progressContainer: {
     marginBottom: 12,
@@ -638,7 +639,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     borderRadius: 2,
   },
   progressText: {
@@ -650,7 +651,7 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: "center",
     paddingVertical: 32,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
@@ -665,7 +666,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     borderRadius: 20,
   },
   emptyAddButtonText: {
@@ -690,7 +691,7 @@ const styles = StyleSheet.create({
   },
   videoThumbnailEditMode: {
     borderWidth: 2,
-    borderColor: "#000000",
+    borderColor: COLORS.primaryDark,
   },
   videoPreview: {
     width: "100%",
@@ -819,7 +820,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 8,
     maxWidth: THUMBNAIL_SIZE,
     gap: 4,
@@ -869,7 +870,7 @@ const styles = StyleSheet.create({
   captionModalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   captionInput: {
     borderWidth: 1,
@@ -877,10 +878,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
     minHeight: 100,
     textAlignVertical: "top",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   captionCharCount: {
     fontSize: 12,
@@ -910,7 +911,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
   },
   captionSaveButtonDisabled: {

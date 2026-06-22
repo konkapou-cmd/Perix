@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import { setStoredLanguage } from '../i18n';
+import { COLORS } from '../lib/designTokens';
 
 interface LanguageOption {
   code: string;
@@ -40,15 +42,7 @@ export const LanguagePicker: React.FC<LanguagePickerProps> = ({ visible, onClose
   const currentLanguage = i18n.language;
 
   const handleChangeLanguage = (languageCode: string) => {
-    i18n.changeLanguage(languageCode);
-    // Save to localStorage if available
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem('preferredLanguage', languageCode);
-      }
-    } catch (e) {
-      // localStorage might not be available in React Native
-    }
+    setStoredLanguage(languageCode);
     onClose();
   };
 
@@ -64,7 +58,7 @@ export const LanguagePicker: React.FC<LanguagePickerProps> = ({ visible, onClose
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{t('profile.selectLanguage', 'Select Language')}</Text>
           <Pressable onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#111827" />
+            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
           </Pressable>
         </View>
 
@@ -85,7 +79,7 @@ export const LanguagePicker: React.FC<LanguagePickerProps> = ({ visible, onClose
               </View>
               {currentLanguage === lang.code && (
                 <View style={styles.checkmark}>
-                  <Ionicons name="checkmark-circle" size={24} color="#000000" />
+                  <Ionicons name="checkmark-circle" size={24} color={COLORS.primaryDark} />
                 </View>
               )}
             </Pressable>
@@ -99,7 +93,7 @@ export const LanguagePicker: React.FC<LanguagePickerProps> = ({ visible, onClose
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: COLORS.primaryLight,
   },
   header: {
     flexDirection: 'row',
@@ -137,7 +131,7 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   languageItemSelected: {
-    backgroundColor: '#f0fdf4',
+    backgroundColor: COLORS.primaryLight,
     borderColor: '#000000',
   },
   languageContent: {

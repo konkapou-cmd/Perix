@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 
 interface SearchItem {
   id: string;
@@ -52,7 +53,7 @@ export default function DropdownSearch<T extends SearchItem>({
               <Text style={styles.logoText}>B</Text>
             </View>
           ) : selected ? (
-            <Ionicons name="business" size={16} color="#000000" />
+            <Ionicons name="business" size={16} color={COLORS.primaryDark} />
           ) : (
             <Ionicons name="add-circle-outline" size={16} color="#6b7280" />
           )}
@@ -69,7 +70,7 @@ export default function DropdownSearch<T extends SearchItem>({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{label || "Select"}</Text>
               <Pressable onPress={() => setVisible(false)}>
-                <Ionicons name="close" size={22} color="#111827" />
+                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
               </Pressable>
             </View>
 
@@ -109,13 +110,13 @@ export default function DropdownSearch<T extends SearchItem>({
                       <Text style={styles.logoTextSmall}>B</Text>
                     </View>
                   ) : (
-                    <Ionicons name="business" size={20} color="#000000" />
+                    <Ionicons name="business" size={20} color={COLORS.primaryDark} />
                   )}
                   <Text style={[styles.itemText, selectedId === item.id && styles.itemTextSelected]}>
                     {item.name}
                   </Text>
                   {selectedId === item.id && (
-                    <Ionicons name="checkmark" size={20} color="#000000" />
+                    <Ionicons name="checkmark" size={20} color={COLORS.primaryDark} />
                   )}
                 </Pressable>
               ))}
@@ -167,16 +168,16 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   logoTextSmall: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   triggerText: {
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
     flex: 1,
   },
   triggerPlaceholder: {
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   searchInput: {
     backgroundColor: "#f3f4f6",
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f3f4f6",
   },
   itemSelected: {
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
   },
   itemLogo: {
     width: 28,
@@ -241,12 +242,12 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
     flex: 1,
   },
   itemTextSelected: {
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
   },
   emptyText: {
     textAlign: "center",

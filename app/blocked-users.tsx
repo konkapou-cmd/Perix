@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { COLORS } from "../lib/designTokens";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../lib/api/core";
 
@@ -76,7 +77,7 @@ export default function BlockedUsersScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+          <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>{t("settings.blockedUsers") || "Blocked Users"}</Text>
         <View style={{ width: 40 }} />
@@ -84,7 +85,7 @@ export default function BlockedUsersScreen() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#111827" />
+          <ActivityIndicator size="large" color={COLORS.textPrimary} />
         </View>
       ) : blockedUsers.length === 0 ? (
         <View style={styles.centered}>
@@ -123,7 +124,7 @@ export default function BlockedUsersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fb" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.textPrimary },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyText: { fontSize: 16, color: "#9ca3af", marginTop: 12 },
   scrollView: { flex: 1 },
@@ -164,8 +165,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: { fontSize: 16, fontWeight: "600", color: "#111827" },
-  userName: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: "500", color: "#111827" },
+  avatarText: { fontSize: 16, fontWeight: "600", color: COLORS.textPrimary },
+  userName: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: "500", color: COLORS.textPrimary },
   unblockButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,

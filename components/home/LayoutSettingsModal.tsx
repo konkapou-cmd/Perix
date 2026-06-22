@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   scroll: {
     padding: 16,
@@ -128,11 +128,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   sortButtonActive: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
   },
   sortButtonText: {
     fontSize: 12,
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   toggleButtonActive: {
     backgroundColor: "#10b981",

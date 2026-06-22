@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useBadge } from "../context/BadgeContext";
+import { COLORS } from "../lib/designTokens";
 
 export default function TopNavbar() {
   const { t } = useTranslation();
@@ -47,7 +48,7 @@ export default function TopNavbar() {
           data-testid="navbar-logo"
         >
           <View style={styles.logoIcon}>
-            <Ionicons name="location" size={20} color="#fff" />
+            <Ionicons name="location" size={20} color={COLORS.background} />
           </View>
           <Text style={styles.logoText}>Perix</Text>
         </Pressable>
@@ -96,7 +97,7 @@ export default function TopNavbar() {
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-create"
           >
-            <Ionicons name="add" size={18} color="#fff" />
+            <Ionicons name="add" size={18} color={COLORS.background} />
             <Text style={styles.createButtonText}>Create</Text>
           </Pressable>
 
@@ -111,7 +112,7 @@ export default function TopNavbar() {
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-messages"
           >
-            <Ionicons name="chatbubble-outline" size={22} color="#374151" />
+            <Ionicons name="chatbubble-outline" size={22} color={COLORS.textSecondary} />
             {unreadMessageCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
@@ -127,12 +128,12 @@ export default function TopNavbar() {
               styles.iconButton,
               hoveredItem === "notifications" && styles.iconButtonHover,
             ]}
-            onPress={() => router.push("/notifications" as any)}
+            onPress={() => router.push("/(tabs)/messages" as any)}
             onHoverIn={() => setHoveredItem("notifications")}
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-notifications"
           >
-            <Ionicons name="notifications-outline" size={22} color="#374151" />
+            <Ionicons name="notifications-outline" size={22} color={COLORS.textSecondary} />
             {activityCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
@@ -140,6 +141,20 @@ export default function TopNavbar() {
                 </Text>
               </View>
             )}
+          </Pressable>
+
+          {/* Create Post */}
+          <Pressable
+            style={[
+              styles.iconButton,
+              hoveredItem === "camera" && styles.iconButtonHover,
+            ]}
+            onPress={() => router.push("/camera" as any)}
+            onHoverIn={() => setHoveredItem("camera")}
+            onHoverOut={() => setHoveredItem(null)}
+            data-testid="navbar-camera"
+          >
+            <Ionicons name="camera-outline" size={22} color={COLORS.primary} />
           </Pressable>
 
           {/* User Menu */}
@@ -153,7 +168,7 @@ export default function TopNavbar() {
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-user"
           >
-            <Ionicons name="menu" size={16} color="#374151" />
+            <Ionicons name="menu" size={16} color={COLORS.textSecondary} />
             {user?.profile_photo ? (
               <Image
                 source={{ uri: user.profile_photo }}
@@ -161,7 +176,7 @@ export default function TopNavbar() {
               />
             ) : (
               <View style={styles.userAvatarPlaceholder}>
-                <Ionicons name="person" size={16} color="#6b7280" />
+                <Ionicons name="person" size={16} color={COLORS.textMuted} />
               </View>
             )}
           </Pressable>
@@ -173,9 +188,9 @@ export default function TopNavbar() {
 
 const styles = StyleSheet.create({
   navbar: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: COLORS.border,
     ...Platform.select({
       web: {
         position: "sticky" as any,
@@ -206,14 +221,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },
   logoText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#000000",
+    color: COLORS.primaryDark,
     letterSpacing: -0.3,
   },
   navLinks: {
@@ -234,18 +249,18 @@ const styles = StyleSheet.create({
     }),
   },
   navLinkActive: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.divider,
   },
   navLinkHover: {
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   navLinkText: {
     fontSize: 15,
     fontWeight: "500",
-    color: "#6b7280",
+    color: COLORS.textMuted,
   },
   navLinkTextActive: {
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontWeight: "600",
   },
   activeIndicator: {
@@ -255,7 +270,7 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -12 }],
     width: 24,
     height: 2,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     borderRadius: 1,
   },
   rightSection: {
@@ -267,7 +282,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primary,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 24,
@@ -279,11 +294,11 @@ const styles = StyleSheet.create({
     }),
   },
   createButtonHover: {
-    backgroundColor: "#3b5bdb",
+    backgroundColor: COLORS.primaryHover,
     transform: [{ scale: 1.02 }],
   },
   createButtonText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -302,13 +317,13 @@ const styles = StyleSheet.create({
     }),
   },
   iconButtonHover: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.divider,
   },
   badge: {
     position: "absolute",
     top: 4,
     right: 4,
-    backgroundColor: "#ef4444",
+    backgroundColor: COLORS.danger,
     borderRadius: 10,
     minWidth: 18,
     height: 18,
@@ -317,7 +332,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 10,
     fontWeight: "700",
   },
@@ -330,7 +345,7 @@ const styles = StyleSheet.create({
     paddingRight: 6,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.border,
     ...Platform.select({
       web: {
         cursor: "pointer" as any,
@@ -350,7 +365,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.divider,
     alignItems: "center",
     justifyContent: "center",
   },

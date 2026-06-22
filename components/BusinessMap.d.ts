@@ -36,6 +36,7 @@ type Props = {
   height?: number;
   disabled?: boolean;
   disabledHint?: string;
+  staticMode?: boolean;
 };
 
 declare const BusinessMap: React.FC<Props>;

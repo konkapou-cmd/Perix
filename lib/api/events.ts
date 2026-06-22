@@ -101,6 +101,7 @@ export const createEvent = async (
     gallery_videos?: string[];
     is_private?: boolean;
     password?: string | null;
+    tagged_artist_ids?: string[];
   }
 ): Promise<EventItem> => {
   return apiRequest<EventItem>("/events", "POST", token, payload);
@@ -125,6 +126,7 @@ export const updateEvent = async (
     gallery_videos?: string[] | null;
     is_private?: boolean;
     password?: string | null;
+    tagged_artist_ids?: string[] | null;
   }
 ): Promise<EventItem> => {
   return apiRequest<EventItem>(`/events/${eventId}`, "PUT", token, payload);

@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
+import { COLORS } from "../lib/designTokens";
 import {
   FriendRequest,
   getReceivedFriendRequests,
@@ -146,7 +147,7 @@ export default function FriendRequestsScreen() {
         
         <View style={styles.actionButtons}>
           {isProcessing ? (
-            <ActivityIndicator color="#000000" />
+            <ActivityIndicator color={COLORS.primaryDark} />
           ) : (
             <>
               <Pressable
@@ -154,7 +155,7 @@ export default function FriendRequestsScreen() {
                 onPress={() => handleAccept(item.request_id)}
               >
                 <LinearGradient
-                  colors={["#000000", "#FFD700"]}
+                  colors={[COLORS.primaryDark, "#FFD700"]}
                   style={styles.acceptButtonGradient}
                 >
                   <Ionicons name="checkmark" size={20} color="#fff" />
@@ -249,7 +250,7 @@ export default function FriendRequestsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+          <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
         <Text style={styles.title}>{t("friends.friendRequests") || "Friend Requests"}</Text>
         <View style={{ width: 40 }} />
@@ -288,7 +289,7 @@ export default function FriendRequestsScreen() {
       {/* Content */}
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#000000" />
+          <ActivityIndicator size="large" color={COLORS.primaryDark} />
         </View>
       ) : currentRequests.length === 0 ? (
         <View style={styles.emptyState}>
@@ -315,7 +316,7 @@ export default function FriendRequestsScreen() {
               onPress={() => router.navigate("/(tabs)/locator" as any)}
             >
               <LinearGradient
-                colors={["#000000", "#FFD700"]}
+                colors={[COLORS.primaryDark, "#FFD700"]}
                 style={styles.findFriendsGradient}
               >
                 <Ionicons name="search" size={20} color="#fff" />
@@ -342,7 +343,7 @@ export default function FriendRequestsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
   },
   header: {
     flexDirection: "row",
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   tabs: {
     flexDirection: "row",
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tabActive: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
   },
   tabText: {
     fontSize: 15,
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   timeAgo: {
     fontSize: 13,

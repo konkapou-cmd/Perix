@@ -64,7 +64,7 @@ export default function PlanScreen() {
         <Text style={s.headerTitle}>{t("subscription.plan") || "Plan"}</Text>
         <View style={{ width: 40 }} />
       </View>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
         <View style={[s.planCard, { backgroundColor: cColor }]}>
           <View style={s.planHeader}>

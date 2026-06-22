@@ -28,6 +28,7 @@ import { useNotifications } from "../../context/NotificationContext";
 import { useSocket, useSocketEvent } from "../../context/SocketContext";
 
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
+import { formatDate, formatTime } from "../../lib/formatDate";
 import AdaptiveImage from "../../components/AdaptiveImage";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
@@ -300,7 +301,7 @@ export default function ActivityDetailPage() {
     
     let message = `${activity.title}\n`;
     message += `${t("activities.by")} ${organizer}\n`;
-    message += `${activityDate.toLocaleDateString()} ${t("common.at")} ${activity.time}\n`;
+    message += `${formatDate(activity.date)} ${t("common.at")} ${activity.time}\n`;
     if (location) message += `${location}\n`;
     
     if (activity.is_private && activity.invitation_code) {
@@ -324,7 +325,7 @@ export default function ActivityDetailPage() {
     let message = `${t("activities.invitationMessage", { 
       title: activity.title, 
       organizer,
-      date: activityDate.toLocaleDateString(),
+      date: formatDate(activity.date),
       time: activity.time,
       location 
     })}`;
@@ -361,7 +362,7 @@ export default function ActivityDetailPage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator color={"#111827"} size="large" />
+        <ActivityIndicator color={COLORS.textPrimary} size="large" />
       </SafeAreaView>
     );
   }
@@ -371,7 +372,7 @@ export default function ActivityDetailPage() {
       <SafeAreaView style={styles.centered}>
         <Ionicons name="people-outline" size={48} color="#9ca3af" />
         <Text style={styles.errorText}>{t("activities.activityNotFound")}</Text>
-        <Pressable style={[styles.primaryButton, { backgroundColor: "#111827" }]} onPress={() => router.back()}>
+        <Pressable style={[styles.primaryButton, { backgroundColor: COLORS.textPrimary }]} onPress={() => router.back()}>
           <Text style={styles.primaryButtonText}>{t("common.back")}</Text>
         </Pressable>
       </SafeAreaView>
@@ -386,11 +387,24 @@ export default function ActivityDetailPage() {
 
   const buildActivityMediaItems = (act: any): MediaItem[] => {
     const items: MediaItem[] = [];
-    if (act.video_url) items.push({ type: "video", uri: act.video_url });
-    if (act.cover_image_url) items.push({ type: "image", uri: act.cover_image_url });
-    (act.image_urls || []).forEach((u: string) => items.push({ type: "image", uri: u }));
-    (act.gallery_images || []).forEach((u: string) => items.push({ type: "image", uri: u }));
-    (act.gallery_videos || []).forEach((u: string) => items.push({ type: "video", uri: u }));
+    const seen = new Set<string>();
+    if (act.video_url) {
+      seen.add(act.video_url);
+      items.push({ type: "video", uri: act.video_url });
+    }
+    if (act.cover_image_url && !seen.has(act.cover_image_url)) {
+      seen.add(act.cover_image_url);
+      items.push({ type: "image", uri: act.cover_image_url });
+    }
+    (act.image_urls || []).forEach((u: string) => {
+      if (!seen.has(u)) { seen.add(u); items.push({ type: "image", uri: u }); }
+    });
+    (act.gallery_images || []).forEach((u: string) => {
+      if (!seen.has(u)) { seen.add(u); items.push({ type: "image", uri: u }); }
+    });
+    (act.gallery_videos || []).forEach((u: string) => {
+      if (!seen.has(u)) { seen.add(u); items.push({ type: "video", uri: u }); }
+    });
     return items;
   };
 
@@ -423,7 +437,7 @@ export default function ActivityDetailPage() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 30}
       >
         <ScrollView 
-          style={styles.flex1}
+          style={[styles.flex1, Platform.OS === "web" ? { width: "100%", maxWidth: 914, alignSelf: "center" } as any : undefined]}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
@@ -437,7 +451,6 @@ export default function ActivityDetailPage() {
                 autoPlay={true}
                 initialMuted={true}
                 showMuteButton={true}
-                pauseWhenNotVisible={true}
                 onPress={() => {
                   const items = buildActivityMediaItems(activity);
                   setViewerMedia(items);
@@ -538,19 +551,19 @@ export default function ActivityDetailPage() {
 
           {/* Invitation Code Section - Only for creator of private activities */}
           {activity.is_private && activity.is_creator && activity.invitation_code && (
-            <View style={[styles.invitationCodeCard, { borderColor: "#111827" }]}>
+            <View style={[styles.invitationCodeCard, { borderColor: COLORS.textPrimary }]}>
               <View style={styles.invitationCodeHeader}>
-                <Ionicons name="key" size={20} color={"#111827"} />
+                <Ionicons name="key" size={20} color={COLORS.textPrimary} />
                 <Text style={styles.invitationCodeTitle}>
                   {t("activities.invitationCode") || "Invitation Code"}
                 </Text>
               </View>
               <View style={styles.invitationCodeRow}>
-                <Text style={[styles.invitationCode, { color: "#111827" }]}>
+                <Text style={[styles.invitationCode, { color: COLORS.textPrimary }]}>
                   {activity.invitation_code}
                 </Text>
                 <Pressable style={styles.copyButton} onPress={copyInvitationCode}>
-                  <Ionicons name="copy-outline" size={18} color={"#111827"} />
+                  <Ionicons name="copy-outline" size={18} color={COLORS.textPrimary} />
                 </Pressable>
               </View>
               <Text style={styles.invitationCodeHint}>
@@ -573,7 +586,7 @@ export default function ActivityDetailPage() {
               )}
               <View style={styles.taggedBusinessInfo}>
                 <Text style={styles.taggedBusinessLabel}>{t("activities.venue") || "Venue"}</Text>
-                <Text style={[styles.taggedBusinessName, { color: "#111827" }]}>
+                <Text style={[styles.taggedBusinessName, { color: COLORS.textPrimary }]}>
                   {activity.tagged_business.name}
                 </Text>
               </View>
@@ -590,7 +603,7 @@ export default function ActivityDetailPage() {
               <View>
                 <Text style={styles.quickInfoLabel}>{t("activities.date")}</Text>
                 <Text style={styles.quickInfoValue}>
-                  {activityDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {formatDate(activity.date)}
                 </Text>
               </View>
             </View>
@@ -674,7 +687,7 @@ export default function ActivityDetailPage() {
                           ratio={1}
                           maxHeight={200}
                           borderRadius={8}
-                          fallbackColor="#111827"
+                          fallbackColor={COLORS.textPrimary}
                           showFallbackIcon={false}
                         />
                         <View style={styles.videoPlayOverlaySmall}>
@@ -1013,7 +1026,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 12,
     padding: 12,
   },
@@ -1348,7 +1361,7 @@ const styles = StyleSheet.create({
   },
   chatInput: {
     flex: 1,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -1539,7 +1552,7 @@ const styles = StyleSheet.create({
   cardHeaderText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   descriptionText: {
     fontSize: 14,
@@ -1558,7 +1571,7 @@ const styles = StyleSheet.create({
   galleryTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 8,
   },
   rsvpButton: {

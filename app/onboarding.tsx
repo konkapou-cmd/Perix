@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import { COLORS } from "../lib/designTokens";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { useAuth } from "../context/AuthContext";
@@ -180,9 +181,17 @@ export default function OnboardingScreen() {
 
   const requiredGranted = permissions.filter((p) => !p.optional).every((p) => p.granted);
 
+  // Auto-complete when all required permissions are granted
+  useEffect(() => {
+    if (requiredGranted) {
+      const timer = setTimeout(() => completeOnboarding(), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [requiredGranted]);
+
   return (
     <SafeAreaView style={s.container}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
@@ -204,7 +213,7 @@ export default function OnboardingScreen() {
                     disabled={perm.granted || permissionLoading === perm.id}
                   >
                     <View style={[s.cardIconBg, perm.granted && s.cardIconBgGranted]}>
-                      <Ionicons name={perm.granted ? "checkmark" : perm.icon} size={22} color={perm.granted ? "#fff" : "#111827"} />
+                      <Ionicons name={perm.granted ? "checkmark" : perm.icon} size={22} color={perm.granted ? "#fff" : COLORS.textPrimary} />
                     </View>
                     <View style={s.cardInfo}>
                       <View style={s.cardHeader}>
@@ -214,7 +223,7 @@ export default function OnboardingScreen() {
                       <Text style={s.cardDesc}>{perm.description}</Text>
                     </View>
                     {permissionLoading === perm.id ? (
-                      <ActivityIndicator size="small" color="#111827" />
+                      <ActivityIndicator size="small" color={COLORS.textPrimary} />
                     ) : !perm.granted ? (
                       <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
                     ) : null}
@@ -226,8 +235,8 @@ export default function OnboardingScreen() {
                 <Pressable onPress={skipOnboarding}>
                   <Text style={s.skipText}>{t("onboarding.skip") || "Skip"}</Text>
                 </Pressable>
-                <Pressable style={[s.primaryBtn, !requiredGranted && s.btnDisabled]} onPress={() => setCurrentStep("profile")}>
-                  <LinearGradient colors={requiredGranted ? ["#000000", "#FFD700"] : ["#9ca3af", "#9ca3af"]} style={s.primaryBtnInner}>
+                <Pressable style={[s.primaryBtn, !requiredGranted && s.btnDisabled]} onPress={() => completeOnboarding()}>
+                  <LinearGradient colors={requiredGranted ? [COLORS.primaryDark, "#FFD700"] : ["#9ca3af", "#9ca3af"]} style={s.primaryBtnInner}>
                     <Text style={s.primaryBtnText}>{t("onboarding.continue") || "Continue"}</Text>
                     <Ionicons name="chevron-forward" size={18} color="#fff" />
                   </LinearGradient>
@@ -250,7 +259,7 @@ export default function OnboardingScreen() {
                 <Pressable style={s.photoWrap} onPress={pickProfilePhoto} disabled={uploadingPhoto}>
                   <View style={s.photoCircle}>
                     {uploadingPhoto ? (
-                      <ActivityIndicator size="large" color="#111827" />
+                      <ActivityIndicator size="large" color={COLORS.textPrimary} />
                     ) : profilePhoto ? (
                       <Image source={{ uri: profilePhoto }} style={s.photoImg} />
                     ) : (
@@ -298,7 +307,7 @@ export default function OnboardingScreen() {
                     <Text style={s.skipText}>{t("onboarding.skipForNow") || "Skip for now"}</Text>
                   </Pressable>
                   <Pressable style={s.primaryBtn} onPress={saveProfile} disabled={savingProfile}>
-                    <LinearGradient colors={["#000000", "#FFD700"]} style={s.primaryBtnInner}>
+                    <LinearGradient colors={[COLORS.primaryDark, "#FFD700"]} style={s.primaryBtnInner}>
                       {savingProfile ? (
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
@@ -316,7 +325,7 @@ export default function OnboardingScreen() {
 
           {currentStep === "complete" && (
             <View style={s.completeWrap}>
-              <LinearGradient colors={["#000000", "#FFD700"]} style={s.completeIcon}>
+              <LinearGradient colors={[COLORS.primaryDark, "#FFD700"]} style={s.completeIcon}>
                 <Ionicons name="checkmark-circle" size={72} color="#fff" />
               </LinearGradient>
               <Text style={s.completeTitle}>{t("onboarding.allSetTitle") || "You're All Set!"}</Text>
@@ -328,7 +337,7 @@ export default function OnboardingScreen() {
               </View>
 
               <Pressable style={s.getStartedBtn} onPress={completeOnboarding}>
-                <LinearGradient colors={["#000000", "#FFD700"]} style={s.primaryBtnInner}>
+                <LinearGradient colors={[COLORS.primaryDark, "#FFD700"]} style={s.primaryBtnInner}>
                   <Text style={s.primaryBtnText}>{t("onboarding.getStarted") || "Get Started"}</Text>
                   <Ionicons name="arrow-forward" size={20} color="#fff" />
                 </LinearGradient>
@@ -343,13 +352,13 @@ export default function OnboardingScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fb" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   scroll: { flexGrow: 1 },
   inner: { flex: 1, paddingHorizontal: 24, paddingVertical: 24 },
 
   // Step header
   stepHeader: { marginBottom: 24 },
-  stepTitle: { fontSize: 24, fontWeight: "700", color: "#111827", marginBottom: 8 },
+  stepTitle: { fontSize: 24, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 8 },
   stepSubtitle: { fontSize: 15, color: "#6b7280", lineHeight: 22 },
 
   // Cards (permissions)
@@ -368,7 +377,7 @@ const s = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  cardGranted: { borderColor: "#10b981", backgroundColor: "#f0fdf4" },
+  cardGranted: { borderColor: "#10b981", backgroundColor: COLORS.primaryLight },
   cardIconBg: {
     width: 44,
     height: 44,
@@ -381,7 +390,7 @@ const s = StyleSheet.create({
   cardIconBgGranted: { backgroundColor: "#10b981" },
   cardInfo: { flex: 1 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
-  cardName: { fontSize: 15, fontWeight: "600", color: "#111827" },
+  cardName: { fontSize: 15, fontWeight: "600", color: COLORS.textPrimary },
   optionalBadge: {
     fontSize: 10,
     color: "#6b7280",
@@ -394,7 +403,7 @@ const s = StyleSheet.create({
 
   // Profile
   profileContent: { flex: 1, alignItems: "center" },
-  nameDisplay: { fontSize: 18, fontWeight: "700", color: "#111827", marginBottom: 16 },
+  nameDisplay: { fontSize: 18, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 16 },
   photoWrap: { alignItems: "center", marginBottom: 24 },
   photoCircle: {
     width: 120,
@@ -408,7 +417,7 @@ const s = StyleSheet.create({
     overflow: "hidden",
   },
   photoImg: { width: 120, height: 120, borderRadius: 60 },
-  photoLabel: { marginTop: 10, fontSize: 14, fontWeight: "600", color: "#111827" },
+  photoLabel: { marginTop: 10, fontSize: 14, fontWeight: "600", color: COLORS.textPrimary },
 
   inputGroup: { width: "100%", marginBottom: 16 },
   inputLabel: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 6 },
@@ -420,7 +429,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: Platform.select({ ios: 14, android: 12 }),
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   charCount: { fontSize: 11, color: "#9ca3af", textAlign: "right", marginTop: 4 },
   hint: { fontSize: 12, color: "#9ca3af", textAlign: "center", marginTop: 8 },
@@ -456,7 +465,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 28,
   },
-  completeTitle: { fontSize: 28, fontWeight: "800", color: "#111827", marginBottom: 12, textAlign: "center" },
+  completeTitle: { fontSize: 28, fontWeight: "800", color: COLORS.textPrimary, marginBottom: 12, textAlign: "center" },
   completeDesc: { fontSize: 15, color: "#6b7280", textAlign: "center", lineHeight: 24, marginBottom: 28 },
   tipCard: {
     flexDirection: "row",

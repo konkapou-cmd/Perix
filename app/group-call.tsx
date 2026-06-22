@@ -23,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../lib/designTokens";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -199,7 +200,7 @@ export default function GroupCallScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000000" />
+          <ActivityIndicator size="large" color={COLORS.primaryDark} />
           <Text style={styles.loadingText}>{t("call.connecting") || "Connecting..."}</Text>
         </View>
       </SafeAreaView>
@@ -264,7 +265,7 @@ export default function GroupCallScreen() {
                 </Text>
                 {callData?.call_type === "voice" && (
                   <View style={styles.voiceCallIndicator}>
-                    <Ionicons name="mic" size={32} color="#000000" />
+                    <Ionicons name="mic" size={32} color={COLORS.primaryDark} />
                   </View>
                 )}
               </LinearGradient>
@@ -449,7 +450,7 @@ export default function GroupCallScreen() {
                       )}
                     </View>
                     <Text style={styles.friendName}>{item.name}</Text>
-                    <Ionicons name="add-circle" size={24} color="#000000" />
+                    <Ionicons name="add-circle" size={24} color={COLORS.primaryDark} />
                   </Pressable>
                 )}
               />

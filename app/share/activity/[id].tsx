@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../../context/AuthContext";
+import { COLORS } from "../../../lib/designTokens";
 import Constants from "expo-constants";
 
 const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || "https://api.perixapp.com";
@@ -108,7 +109,7 @@ export default function ShareActivityPage() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color={COLORS.primaryDark} />
       </View>
     );
   }
@@ -229,7 +230,7 @@ export default function ShareActivityPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
   },
   content: {
     padding: 20,
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#000000",
+    color: COLORS.primaryDark,
     marginLeft: 10,
   },
   errorCard: {
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 12,
@@ -370,7 +371,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   secondaryButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontSize: 14,
     fontWeight: "600",
   },

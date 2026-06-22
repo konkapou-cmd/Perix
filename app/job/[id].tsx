@@ -140,7 +140,7 @@ export default function JobDetailPage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered} edges={["top"]}>
-        <ActivityIndicator size="large" color="#111827" />
+        <ActivityIndicator size="large" color={COLORS.textPrimary} />
       </SafeAreaView>
     );
   }
@@ -150,7 +150,7 @@ export default function JobDetailPage() {
       <SafeAreaView style={styles.centered} edges={["top"]}>
         <Text style={styles.errorText}>{t("jobs.noJobs") || "Job not found"}</Text>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#111827" />
+          <Ionicons name="chevron-back" size={20} color={COLORS.textPrimary} />
           <Text style={styles.backText}>{t("common.back")}</Text>
         </Pressable>
       </SafeAreaView>
@@ -170,7 +170,7 @@ export default function JobDetailPage() {
           keyboardShouldPersistTaps="handled"
         >
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color="#111827" />
+            <Ionicons name="chevron-back" size={20} color={COLORS.textPrimary} />
             <Text style={styles.backText}>{t("common.back")}</Text>
           </Pressable>
 
@@ -245,7 +245,7 @@ export default function JobDetailPage() {
           {job.location && (
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="location" size={18} color="#111827" />
+                <Ionicons name="location" size={18} color={COLORS.textPrimary} />
                 <Text style={styles.cardTitle}>{t("jobs.location") || "Location"}</Text>
               </View>
               <Pressable style={styles.locationRow} onPress={openMap}>
@@ -276,7 +276,7 @@ export default function JobDetailPage() {
 
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Ionicons name="document-text" size={18} color="#111827" />
+              <Ionicons name="document-text" size={18} color={COLORS.textPrimary} />
               <Text style={styles.cardTitle}>{t("jobs.jobDescription") || "Description"}</Text>
             </View>
             <Text style={styles.description}>{job.description}</Text>
@@ -285,7 +285,7 @@ export default function JobDetailPage() {
           {job.requirements && (
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="checkmark-circle-outline" size={18} color="#111827" />
+                <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.textPrimary} />
                 <Text style={styles.cardTitle}>{t("jobs.requirements") || "Requirements"}</Text>
               </View>
               {job.requirements.split("\n").filter((r: string) => r.trim()).map((req: string, i: number) => (
@@ -307,11 +307,11 @@ export default function JobDetailPage() {
               onPress={handleToggleSave}
               disabled={savingItem}
             >
-              <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={20} color={isSaved ? COLORS.gold : "#111827"} />
+              <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={20} color={isSaved ? COLORS.gold : COLORS.textPrimary} />
               <Text style={styles.shareButtonText}>{isSaved ? t("common.saved") || "Saved" : t("jobs.save") || "Save"}</Text>
             </Pressable>
             <Pressable style={styles.shareButton} onPress={() => setShowShareModal(true)}>
-              <Ionicons name="share-outline" size={20} color="#111827" />
+              <Ionicons name="share-outline" size={20} color={COLORS.textPrimary} />
               <Text style={styles.shareButtonText}>{t("common.share") || "Share"}</Text>
             </Pressable>
           </View>
@@ -337,7 +337,7 @@ export default function JobDetailPage() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Pressable onPress={() => setApplyModalVisible(false)}>
-              <Ionicons name="close" size={28} color="#111827" />
+              <Ionicons name="close" size={28} color={COLORS.textPrimary} />
             </Pressable>
             <Text style={styles.modalTitle}>{t("jobs.apply") || "Apply"}</Text>
             <View style={{ width: 28 }} />
@@ -356,13 +356,13 @@ export default function JobDetailPage() {
 
             <Text style={styles.inputLabel}>{t("jobs.uploadCV") || "Upload CV"}</Text>
             <Pressable style={styles.uploadButton} onPress={() => pickDocument("cv")}>
-              <Ionicons name="document-attach" size={20} color="#111827" />
+              <Ionicons name="document-attach" size={20} color={COLORS.textPrimary} />
               <Text style={styles.uploadButtonText}>{cvUrl ? "CV uploaded" : t("jobs.uploadCV") || "Upload CV"}</Text>
             </Pressable>
 
             <Text style={styles.inputLabel}>{t("jobs.uploadCoverLetter") || "Cover Letter"}</Text>
             <Pressable style={styles.uploadButton} onPress={() => pickDocument("coverLetter")}>
-              <Ionicons name="document-attach" size={20} color="#111827" />
+              <Ionicons name="document-attach" size={20} color={COLORS.textPrimary} />
               <Text style={styles.uploadButtonText}>{coverLetterUrl ? "Cover letter uploaded" : t("jobs.uploadCoverLetter") || "Upload Cover Letter"}</Text>
             </Pressable>
 
@@ -388,7 +388,7 @@ export default function JobDetailPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
   },
   flex1: {
     flex: 1,
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
   },
   content: {
     padding: 16,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginLeft: 4,
   },
   heroContainer: {
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 8,
   },
   businessRow: {
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginTop: 2,
   },
   card: {
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   locationRow: {
     flexDirection: "row",
@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.textPrimary,
     paddingVertical: 12,
     borderRadius: 8,
     gap: 8,
@@ -689,7 +689,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   shareButtonText: {
-    color: "#111827",
+    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   modalBody: {
     flex: 1,
@@ -725,13 +725,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   messageInput: {
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.textPrimary,
     minHeight: 120,
     textAlignVertical: "top",
   },
@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderStyle: "dashed",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   uploadButtonText: {
     fontSize: 14,
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.textPrimary,
     paddingVertical: 14,
     borderRadius: 12,
     marginTop: 24,

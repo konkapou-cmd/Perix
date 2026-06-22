@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { CalendarList } from "react-native-calendars";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { ActivityItem, ACTIVITY_THEMES } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
@@ -84,20 +85,18 @@ function formToMedia(form: ActivityForm): MediaItem[] {
 
 function mediaToForm(media: MediaItem[], base: ActivityForm): ActivityForm {
   const coverIsVideo = media.length > 0 && media[0].type === "video";
+  const images = media.filter((m) => m.type === "image").map((m) => m.uri);
+  const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
   if (coverIsVideo) {
-    const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
-    const images = media.filter((m) => m.type === "image").map((m) => m.uri);
     return {
       ...base,
       cover_image_url: undefined,
       image_urls: images,
       video_url: videos[0] || undefined,
-      gallery_images: images,
+      gallery_images: images.slice(1),
       gallery_videos: videos.slice(1),
     };
   }
-  const images = media.filter((m) => m.type === "image").map((m) => m.uri);
-  const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
   return {
     ...base,
     cover_image_url: images[0] || undefined,
@@ -152,6 +151,14 @@ export default function ActivityModal({
     }
   }, [activityEditing]);
 
+  const [showCalendar, setShowCalendar] = useState(false);
+
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const formatDateShort = (dateStr: string) => {
+    if (!dateStr) return t("activities.selectDate", "Select date");
+    const [y, m, d] = dateStr.split("-");
+    return `${d}.${m}.${y}`;
+  };
   const formatDate = (date: Date) =>
     date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
   const formatTime = (date: Date) =>
@@ -165,7 +172,7 @@ export default function ActivityModal({
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={s.modalContainer} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={s.header}>
           <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
             <Ionicons name="close" size={24} color={COLORS.textPrimary} />
@@ -206,8 +213,10 @@ export default function ActivityModal({
           <View style={s.row}>
             <View style={s.halfWidth}>
               <Text style={s.label}><Text style={s.required}>* </Text>{t("activities.date")}</Text>
-              <Pressable style={s.selector} onPress={() => onShowDatePicker(true)}>
-                <Text style={s.selectorTextSelected}>{formatDate(activityDate)}</Text>
+              <Pressable style={s.selector} onPress={() => setShowCalendar(true)}>
+                <Text style={s.selectorTextSelected}>
+                  {activityForm.date ? formatDateShort(activityForm.date) : t("activities.selectDate", "Select date")}
+                </Text>
                 <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
               </Pressable>
             </View>
@@ -220,16 +229,38 @@ export default function ActivityModal({
             </View>
           </View>
 
-          {showActivityDatePicker && (
-            <View>
-              {Platform.OS === "ios" && (
-                <Pressable style={s.pickerDoneBtn} onPress={() => onShowDatePicker(false)}>
-                  <Text style={s.pickerDoneText}>{t("common.done") || "Done"}</Text>
-                </Pressable>
-              )}
-              <DateTimePicker value={activityDate} mode="date" display={Platform.OS === "ios" ? "spinner" : "default"} onChange={onDateChange} />
+          <Modal visible={showCalendar} animationType="slide" transparent>
+            <View style={s.calendarOverlay}>
+              <View style={s.calendarContainer}>
+                <View style={s.calendarHeader}>
+                  <Pressable onPress={() => setShowCalendar(false)}>
+                    <Text style={s.calendarDoneText}>{t("common.done", "Done")}</Text>
+                  </Pressable>
+                </View>
+                <CalendarList
+                  onDayPress={(day) => {
+                    const dateStr = day.dateString;
+                    onFormChange({ ...activityForm, date: dateStr });
+                    onDateChange(null, new Date(dateStr + "T00:00:00"));
+                    setShowCalendar(false);
+                  }}
+                  markedDates={activityForm.date ? { [activityForm.date]: { selected: true, selectedColor: COLORS.primary } } : {}}
+                  firstDay={1}
+                  style={s.calendar}
+                  theme={{
+                    todayTextColor: COLORS.primary,
+                    selectedDayBackgroundColor: COLORS.primary,
+                    selectedDayTextColor: "#fff",
+                    dayTextColor: COLORS.textPrimary,
+                    textDisabledColor: COLORS.textDisabled,
+                    arrowColor: COLORS.primary,
+                    monthTextColor: COLORS.textPrimary,
+                  }}
+                />
+              </View>
             </View>
-          )}
+          </Modal>
+
           {showActivityTimePicker && (
             <View>
               {Platform.OS === "ios" && (
@@ -507,5 +538,32 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.primary,
+  },
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  calendarContainer: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: BORDER_RADIUS.xl,
+    borderTopRightRadius: BORDER_RADIUS.xl,
+    maxHeight: "70%",
+    paddingBottom: 20,
+  },
+  calendarHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  calendarDoneText: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.primary,
+  },
+  calendar: {
+    height: 320,
   },
 });

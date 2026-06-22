@@ -280,8 +280,7 @@
     "real-estate-agencies": "Agences Immobilières",
     "studios": "Studios",
     "rooms": "Chambres",
-    "commercial-spaces": "Espaces Commerciaux",
-    "vacation-rentals": "Locations de Vacances",
+
     "co-living-spaces": "Espaces Colocation",
     "commercial-real-estate": "Immobilier Commercial",
     "property-management": "Gestion Immobilière"
@@ -329,11 +328,20 @@
     "passwordTooShort": "Le mot de passe doit contenir au moins 4 caractères",
     "login": "Se connecter",
     "loginRequired": "Connexion requise",
-    "signInRequired": "Vous devez être connecté"
+    "signInRequired": "Vous devez être connecté",
+    "iAm": "Je suis...",
+    "individual": "Particulier",
+    "business": "Entreprise",
+    "businessName": "Nom de l'entreprise",
+    "rootCategory": "Slug de catégorie (ex. food-dining)",
+    "subcategory": "Slug de sous-catégorie (ex. italian)",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "city": "Ville"
   },
   "brand": {
     "title": "Perix",
-    "subtitle": "Carte de la Ville"
+    "subtitle": "Votre ville préférée entre vos mains !"
   },
   "tabs": {
     "home": "Accueil",
@@ -435,7 +443,9 @@
     "noLocationSet": "Veuillez définir votre localisation dans votre profil pour voir le contenu à proximité.",
     "postFailed": "Échec de la création de la publication",
     "upcomingActivities": "Activités à venir",
-    "videoUploadFailed": "Échec du téléchargement de la vidéo"
+    "videoUploadFailed": "Échec du téléchargement de la vidéo",
+    "nearby": "À proximité",
+    "following": "Abonnements"
   },
   "profile": {
     "title": "Profil",
@@ -685,7 +695,6 @@
     "location": "Lieu",
     "locationPlaceholder": "Rechercher une adresse...",
     "eventImage": "Image de l'événement",
-    "gallery": "Galerie",
     "galleryHint": "Ajouter des images à la galerie (jusqu'à 20)",
     "private": "Privé",
     "privateHint": "Seules les personnes avec le mot de passe peuvent rejoindre",
@@ -840,7 +849,9 @@
     "chat": "Chat",
     "noChatMessages": "Pas encore de messages",
     "startConversation": "Lancez la conversation !",
-    "typeMessage": "Tapez un message..."
+    "typeMessage": "Tapez un message...",
+    "tagArtists": "Taguer des artistes",
+    "searchArtists": "Rechercher des artistes..."
   },
   "messages": {
     "title": "Messages",
@@ -983,7 +994,6 @@
     "searchActivities": "Rechercher des activités...",
     "setReminder": "Définir un rappel",
     "shareCodeHint": "Partagez ce code avec vos amis pour les inviter",
-    "tagVenue": "Étiqueter un lieu (optionnel)",
     "timeRequired": "Veuillez sélectionner une heure",
     "useCodeToJoin": "Utiliser un code pour rejoindre",
     "venue": "Lieu",
@@ -1321,8 +1331,7 @@
     "callFailed": "L'appel a échoué. Veuillez réessayer.",
     "businessClosed": "Le commerce est actuellement fermé. Veuillez appeler pendant les heures d'ouverture."
   },
-
-    "cityAd": {
+  "cityAd": {
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",
@@ -1901,10 +1910,101 @@
     "unblockFailed": "Échec du déblocage de l'utilisateur",
     "unblockUser": "Débloquer l'utilisateur",
     "version": "Version",
-    "viewProfile": "Voir le profil"
+    "viewProfile": "Voir le profil",
+    "editProfile": "Modifier le profil",
+    "editProfileDesc": "Nom, biographie, emplacement, photo",
+    "changePassword": "Changer le mot de passe",
+    "changePasswordDesc": "Mettez à jour votre mot de passe",
+    "clearCache": "Vider le cache",
+    "clearCacheDesc": "Libérez de l'espace de stockage",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "passwordFieldsRequired": "Veuillez remplir les deux champs",
+    "passwordChanged": "Mot de passe changé avec succès",
+    "passwordChangeFailed": "Échec du changement de mot de passe",
+    "cacheCleared": "Cache vidé avec succès",
+    "cacheClearFailed": "Échec du vidage du cache"
   },
   "time": {
     "justNow": "à l'instant"
+  },
+  "services": {
+    "noServices": "Aucun service disponible pour le moment",
+    "addMenuItem": "Ajouter un élément au menu",
+    "add": "Ajouter un service",
+    "menu": "Menu",
+    "rooms": "Chambres",
+    "listings": "Annonces",
+    "title": "Services"
+  },
+  "menu": {
+    "starter": "Entrées",
+    "main": "Plats principaux",
+    "dessert": "Desserts",
+    "drink": "Boissons",
+    "side": "Accompagnements",
+    "other": "Autres"
+  },
+  "upgrade": {
+    "title": "Débloquez votre entreprise",
+    "withBusiness": "Avec un profil d'entreprise, vous pouvez :",
+    "freeTrial": "Essai gratuit de 90 jours",
+    "noPayment": "Aucun paiement requis. Annulez à tout moment.",
+    "categoryTitle": "Choisissez la catégorie de votre entreprise",
+    "rootCategory": "Catégorie (ex. food-dining)",
+    "subcategory": "Sous-catégorie (ex. italian)",
+    "businessName": "Nom de l'entreprise",
+    "startTrial": "Démarrer l'essai gratuit",
+    "selectCategory": "Veuillez sélectionner une catégorie et une sous-catégorie",
+    "success": "Succès",
+    "upgraded": "Votre profil d'entreprise a été créé ! Essai gratuit de 90 jours activé.",
+    "failed": "Échec de la création de l'entreprise"
+  },
+  "help": {
+    "title": "Aide et Support",
+    "faq": "Questions fréquemment posées",
+    "createEventQ": "Comment créer un événement ?",
+    "createEventA": "Allez dans votre profil, passez en identité d'entreprise et appuyez sur '+ Créer un événement'.",
+    "changePasswordQ": "Comment changer mon mot de passe ?",
+    "changePasswordA": "Allez dans Paramètres → Compte → Changer le mot de passe.",
+    "reportContentQ": "Comment signaler un contenu inapproprié ?",
+    "reportContentA": "Sur n'importe quelle publication, événement ou profil, appuyez sur le menu à trois points et sélectionnez 'Signaler'.",
+    "deleteAccountQ": "Comment supprimer mon compte ?",
+    "deleteAccountA": "Allez dans Paramètres et appuyez sur 'Supprimer le compte' dans la zone de danger.",
+    "businessQ": "Comment créer un profil d'entreprise ?",
+    "businessA": "Depuis votre profil, appuyez sur le menu déroulant d'identité et sélectionnez 'Passer en entreprise'.",
+    "subscriptionQ": "Que se passe-t-il après l'essai gratuit ?",
+    "subscriptionA": "Après l'essai, vous pouvez vous abonner à un plan payant.",
+    "privacyQ": "Comment mes données sont-elles protégées ?",
+    "privacyA": "Toutes les données sont cryptées. Nous ne vendons jamais vos données personnelles.",
+    "stillNeedHelp": "Besoin d'aide supplémentaire ?",
+    "contactDesc": "Contactez notre équipe de support et nous vous répondrons dans les 24 heures.",
+    "emailUs": "Email de support"
+  },
+  "terms": {
+    "title": "Conditions d'utilisation",
+    "lastUpdated": "Dernière mise à jour : Juin 2026",
+    "acceptance": "Acceptation des conditions",
+    "acceptanceContent": "En utilisant Perix, vous acceptez ces conditions.",
+    "eligibility": "Éligibilité",
+    "eligibilityContent": "Vous devez avoir au moins 16 ans.",
+    "userContent": "Contenu utilisateur",
+    "userContentContent": "Vous conservez la propriété du contenu que vous publiez.",
+    "acceptableUse": "Utilisation acceptable",
+    "acceptableUseContent": "Ne publiez pas de contenu nuisible ou illégal.",
+    "intellectualProperty": "Propriété intellectuelle",
+    "intellectualPropertyContent": "Le contenu de Perix est protégé par le droit d'auteur.",
+    "termination": "Résiliation",
+    "terminationContent": "Nous pouvons suspendre les comptes qui violent ces conditions.",
+    "disclaimers": "Avertissements",
+    "disclaimersContent": "Perix est fourni 'tel quel' sans garanties.",
+    "liability": "Limitation de responsabilité",
+    "liabilityContent": "Perix n'est pas responsable des dommages résultant de l'utilisation du service.",
+    "governingLaw": "Loi applicable",
+    "governingLawContent": "Ces conditions sont régies par le droit allemand.",
+    "changes": "Modifications",
+    "changesContent": "Nous pouvons mettre à jour ces conditions. L'utilisation continue signifie l'acceptation.",
+    "contact": "Contact",
+    "contactContent": "Email support@perix.app"
   }
 }
-

@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, TextInput, Pressable, Linking, ActivityIndicator, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 import { useState, useCallback } from "react";
 import Constants from "expo-constants";
 
@@ -147,7 +148,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
             }}
             onFocus={() => predictions.length > 0 && setShowPredictions(true)}
           />
-          {searching && <ActivityIndicator size="small" color="#000000" />}
+          {searching && <ActivityIndicator size="small" color={COLORS.primaryDark} />}
           {searchQuery.length > 0 && !searching && (
             <Pressable 
               onPress={() => {
@@ -170,7 +171,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
                 style={styles.predictionItem}
                 onPress={() => selectPlace(item.place_id, item.description, item.lat, item.lon)}
               >
-                <Ionicons name="location-outline" size={18} color="#000000" />
+                <Ionicons name="location-outline" size={18} color={COLORS.primaryDark} />
                 <Text style={styles.predictionText} numberOfLines={2}>
                   {item.description}
                 </Text>
@@ -210,7 +211,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
           <Text style={styles.applyButtonText}>Apply Coordinates</Text>
         </Pressable>
         <Pressable style={styles.mapsButton} onPress={openGoogleMaps}>
-          <Ionicons name="map-outline" size={18} color="#000000" />
+          <Ionicons name="map-outline" size={18} color={COLORS.primaryDark} />
           <Text style={styles.mapsButtonText}>Open Maps</Text>
         </Pressable>
       </View>
@@ -230,7 +231,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
 const styles = StyleSheet.create({
   wrapper: {
     marginVertical: 16,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 16,
     padding: 16,
   },
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   predictionsContainer: {
     position: "absolute",
@@ -326,7 +327,7 @@ const styles = StyleSheet.create({
   },
   applyButton: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   mapsButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
   },
   preview: {

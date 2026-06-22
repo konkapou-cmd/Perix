@@ -15,7 +15,7 @@ type AuthContextValue = {
   sessionToken: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (firstName: string, lastName: string, email: string, password: string, city: string, latitude?: number, longitude?: number) => Promise<void>;
+  register: (firstName: string, lastName: string, email: string, password: string, city: string, role: string, rootCategory?: string, subcategory?: string, businessName?: string, latitude?: number, longitude?: number) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   activeIdentity: {
@@ -121,22 +121,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const response = await loginUser(email, password);
     setUser(response.user);
     await persistSession(response.session_token);
+    const isBiz = response.user.role === "business" && response.business;
     await persistIdentity({
-      type: "user",
-      id: response.user.user_id,
-      name: response.user.name,
+      type: isBiz ? "business" : "user",
+      id: isBiz && response.business ? response.business.business_id : response.user.user_id,
+      name: isBiz && response.business ? response.business.name : response.user.name,
       avatar: response.user.profile_photo || response.user.picture || null,
     });
   };
 
-  const register = async (firstName: string, lastName: string, email: string, password: string, city: string, latitude?: number, longitude?: number) => {
-    const response = await registerUser(firstName, lastName, email, password, city, latitude, longitude);
+  const register = async (firstName: string, lastName: string, email: string, password: string, city: string, role: string, rootCategory?: string, subcategory?: string, businessName?: string, latitude?: number, longitude?: number) => {
+    const response = await registerUser(firstName, lastName, email, password, city, role, rootCategory, subcategory, businessName, latitude, longitude);
     setUser(response.user);
     await persistSession(response.session_token);
+    const isBiz = response.user.role === "business" && response.business;
     await persistIdentity({
-      type: "user",
-      id: response.user.user_id,
-      name: response.user.name,
+      type: isBiz ? "business" : "user",
+      id: isBiz && response.business ? response.business.business_id : response.user.user_id,
+      name: isBiz && response.business ? response.business.name : response.user.name,
       avatar: response.user.profile_photo || response.user.picture || null,
     });
   };

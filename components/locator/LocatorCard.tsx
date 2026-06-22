@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
 import type { Business, EventItem, ActivityItem } from "../../lib/api";
+import { formatEventDate } from "../../lib/formatDate";
 
 type BusinessCardProps = {
   type: "business";
@@ -28,15 +29,6 @@ type ActivityCardProps = {
 };
 
 type LocatorCardProps = BusinessCardProps | EventCardProps | ActivityCardProps;
-
-function formatEventDate(startTime: string): { day: string; month: string; full: string } {
-  const d = new Date(startTime);
-  return {
-    day: d.getDate().toString(),
-    month: d.toLocaleString("default", { month: "short" }).toUpperCase(),
-    full: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-  };
-}
 
 export default function LocatorCard(props: LocatorCardProps) {
   if (props.type === "business") return <BusinessCard {...props} />;
@@ -98,7 +90,7 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
   const themeColors = getThemeColors((data as any).profile_theme as any);
   const primaryColor = themeColors.primaryColor;
   const coverImage = data.cover_image_url || data.image_urls?.[0] || data.gallery_images?.[0];
-  const eventDate = formatEventDate(data.start_time);
+  const formattedDate = formatEventDate(data.start_time);
   const businessName = data.business?.name || data.creator?.name || "";
 
   return (
@@ -107,16 +99,16 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
         <View style={styles.eventImageContainer}>
           <Image source={{ uri: coverImage }} style={styles.eventCoverImage} resizeMode="cover" />
           <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
-            <Text style={styles.dateBadgeMonth}>{eventDate.month}</Text>
-            <Text style={styles.dateBadgeDay}>{eventDate.day}</Text>
+            <Text style={styles.dateBadgeDay}>{formattedDate.split("/")[0]}</Text>
+            <Text style={styles.dateBadgeMonth}>{`/${formattedDate.split("/")[1]}`}</Text>
           </View>
         </View>
       ) : (
         <View style={[styles.eventImageContainer, styles.eventImagePlaceholder, { backgroundColor: primaryColor + "15" }]}>
           <Ionicons name="calendar-outline" size={28} color={primaryColor} />
           <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
-            <Text style={styles.dateBadgeMonth}>{eventDate.month}</Text>
-            <Text style={styles.dateBadgeDay}>{eventDate.day}</Text>
+            <Text style={styles.dateBadgeDay}>{formattedDate.split("/")[0]}</Text>
+            <Text style={styles.dateBadgeMonth}>{`/${formattedDate.split("/")[1]}`}</Text>
           </View>
         </View>
       )}
@@ -216,19 +208,19 @@ const styles = StyleSheet.create({
   },
   // Business
   businessAvatar: {
-    width: 52,
-    height: 52,
+    width: Platform.OS === "web" ? 60 : 52,
+    height: Platform.OS === "web" ? 60 : 52,
     borderRadius: BORDER_RADIUS.md,
   },
   businessAvatarPlaceholder: {
-    width: 52,
-    height: 52,
+    width: Platform.OS === "web" ? 60 : 52,
+    height: Platform.OS === "web" ? 60 : 52,
     borderRadius: BORDER_RADIUS.md,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
-    fontSize: FONT_SIZES.h3,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.h2 : FONT_SIZES.h3,
     fontWeight: FONT_WEIGHTS.bold as any,
   },
   // Card body (shared by business & activity)
@@ -237,11 +229,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   cardTitle: {
-    fontSize: FONT_SIZES.body,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.h4 : FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   cardSubtitle: {
-    fontSize: FONT_SIZES.small,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
     marginTop: 1,
   },
   cardMetaRow: {
@@ -251,7 +243,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   cardMetaText: {
-    fontSize: FONT_SIZES.small,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
     color: COLORS.textMuted,
   },
   // Card end (right side badges)
@@ -286,7 +278,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.danger,
   },
   statusText: {
-    fontSize: FONT_SIZES.micro,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   statusTextOpen: {
@@ -296,7 +288,7 @@ const styles = StyleSheet.create({
     color: "#991b1b",
   },
   distanceText: {
-    fontSize: FONT_SIZES.micro,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.medium as any,
     color: COLORS.success,
   },
@@ -304,11 +296,11 @@ const styles = StyleSheet.create({
   eventImageContainer: {
     position: "relative",
     width: "100%",
-    height: 120,
+    height: Platform.OS === "web" ? 160 : 120,
   },
   eventCoverImage: {
     width: "100%",
-    height: 120,
+    height: Platform.OS === "web" ? 160 : 120,
   },
   eventImagePlaceholder: {
     alignItems: "center",
@@ -325,13 +317,13 @@ const styles = StyleSheet.create({
   },
   dateBadgeMonth: {
     color: "#fff",
-    fontSize: 10,
+    fontSize: Platform.OS === "web" ? 11 : 10,
     fontWeight: FONT_WEIGHTS.bold as any,
     letterSpacing: 0.5,
   },
   dateBadgeDay: {
     color: "#fff",
-    fontSize: FONT_SIZES.body,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.h4 : FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.bold as any,
     lineHeight: 16,
   },
@@ -344,7 +336,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   eventMetaText: {
-    fontSize: FONT_SIZES.small,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
     color: COLORS.textMuted,
   },
   eventBottomRow: {
@@ -362,18 +354,18 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   attendeesText: {
-    fontSize: FONT_SIZES.micro,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   // Activity card
   activityAvatar: {
-    width: 56,
-    height: 56,
+    width: Platform.OS === "web" ? 64 : 56,
+    height: Platform.OS === "web" ? 64 : 56,
     borderRadius: BORDER_RADIUS.md,
   },
   activityAvatarPlaceholder: {
-    width: 56,
-    height: 56,
+    width: Platform.OS === "web" ? 64 : 56,
+    height: Platform.OS === "web" ? 64 : 56,
     borderRadius: BORDER_RADIUS.md,
     alignItems: "center",
     justifyContent: "center",
@@ -388,12 +380,12 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   rsvpText: {
-    fontSize: FONT_SIZES.micro,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#166534",
   },
   spotsText: {
-    fontSize: FONT_SIZES.micro,
+    fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,
     color: COLORS.textMuted,
     fontWeight: FONT_WEIGHTS.medium as any,
   },

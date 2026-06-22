@@ -25,6 +25,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../lib/designTokens";
+import { formatDate, formatTime } from "../lib/formatDate";
 import BusinessMap from "../components/BusinessMap";
 import AdaptiveImage from "../components/AdaptiveImage";
 import DropdownSearch from "../components/DropdownSearch";
@@ -360,12 +361,8 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
 
   // WhatsApp share for activities
   const shareActivityToWhatsApp = async (activity: ActivityItem) => {
-    const activityDate = activity.start_time 
-      ? new Date(activity.start_time).toLocaleDateString() 
-      : "";
-    const activityTime = activity.start_time 
-      ? new Date(activity.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) 
-      : "";
+    const activityDate = activity.start_time ? formatDate(activity.start_time) : "";
+    const activityTime = activity.start_time ? formatTime(activity.start_time) : "";
     const location = activity.location || "";
     
     // Use /share/ prefix for public deep links
@@ -478,7 +475,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
         <View style={styles.mapPromptContainer}>
           <View style={styles.mapPromptCard}>
             <View style={styles.mapPromptIconContainer}>
-              <Ionicons name="map" size={48} color="#000000" />
+              <Ionicons name="map" size={48} color={COLORS.primaryDark} />
             </View>
             <Text style={styles.mapPromptTitle}>{t('home.setLocationTitle', { defaultValue: 'Set Your Area' })}</Text>
             <Text style={styles.mapPromptText}>
@@ -615,7 +612,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
 
       {loading ? (
         <View style={styles.loading}>
-          <ActivityIndicator color="#000000" />
+          <ActivityIndicator color={COLORS.primaryDark} />
         </View>
       ) : (
         <ScrollView
@@ -624,8 +621,8 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={["#000000"]}
-              tintColor="#000000"
+              colors={[COLORS.primaryDark]}
+              tintColor={COLORS.primaryDark}
             />
           }
         >
@@ -664,7 +661,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                     longitude: activity.longitude!,
                     title: activity.is_private ? "🔒 " + activity.title : activity.title,
                     description: activity.location || activity.date,
-                    pinColor: activity.is_private ? "#9ca3af" : "#000000",
+                    pinColor: activity.is_private ? "#9ca3af" : COLORS.primaryDark,
                   }))}
               />
             </View>
@@ -686,7 +683,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
             }).map((activity) => (
               <Pressable 
                 key={activity.activity_id} 
-                style={[styles.airbnbCard, activity.is_private && { opacity: 0.9, backgroundColor: "#f9fafb" }]}
+                style={[styles.airbnbCard, activity.is_private && { opacity: 0.9, backgroundColor: COLORS.surfaceSoft }]}
                 onPress={() => router.push(`/activity/${activity.activity_id}`)}
               >
                 <View style={styles.airbnbImageContainer}>
@@ -723,12 +720,12 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                   {/* Activity action buttons */}
                   <View style={styles.airbnbActions}>
                     <Pressable style={styles.airbnbActionBtn} onPress={() => openChat(activity)}>
-                      <Ionicons name="chatbubble-outline" size={14} color="#000000" />
+                      <Ionicons name="chatbubble-outline" size={14} color={COLORS.primaryDark} />
                     </Pressable>
                     {activity.is_creator && (
                       <>
                         <Pressable style={styles.airbnbActionBtn} onPress={() => openEditActivity(activity)}>
-                          <Ionicons name="create-outline" size={14} color="#000000" />
+                          <Ionicons name="create-outline" size={14} color={COLORS.primaryDark} />
                         </Pressable>
                         <Pressable style={styles.airbnbActionBtn} onPress={() => handleDeleteActivity(activity.activity_id)}>
                           <Ionicons name="trash-outline" size={14} color="#ef4444" />
@@ -756,7 +753,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                  {t('activities.createActivity')}
                </Text>
                <Pressable onPress={() => setCreateModal(false)}>
-                 <Ionicons name="close" size={22} color="#111827" />
+                 <Ionicons name="close" size={22} color={COLORS.textPrimary} />
                </Pressable>
              </View>
             <ScrollView 
@@ -809,7 +806,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                 style={styles.pickerButton}
                 onPress={() => setShowTimePicker(true)}
               >
-                <Ionicons name="time-outline" size={18} color="#000000" />
+                <Ionicons name="time-outline" size={18} color={COLORS.primaryDark} />
                 <Text style={styles.pickerText}>
                   {form.time || t('activities.activityTime')}
                 </Text>
@@ -850,7 +847,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                 ))}
                 {activityImages.length < 6 && (
                   <Pressable style={styles.addImageBtn} onPress={pickActivityImages}>
-                    <Ionicons name="add" size={28} color="#000000" />
+                    <Ionicons name="add" size={28} color={COLORS.primaryDark} />
                     <Text style={styles.addImageText}>Add Photo</Text>
                   </Pressable>
                 )}
@@ -868,7 +865,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                 ))}
                 {form.gallery_images.length < 20 && (
                   <Pressable style={styles.addImageBtn} onPress={pickGalleryImages}>
-                    <Ionicons name="add" size={28} color="#000000" />
+                    <Ionicons name="add" size={28} color={COLORS.primaryDark} />
                     <Text style={styles.addImageText}>Gallery</Text>
                   </Pressable>
                 )}
@@ -1003,7 +1000,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t('activities.editActivity')}</Text>
             <Pressable onPress={() => setEditModal(false)}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.modalBody}>
@@ -1057,7 +1054,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
               {chatActivity ? chatActivity.title : t('activities.chat')}
             </Text>
             <Pressable onPress={() => setChatModal(false)}>
-              <Ionicons name="close" size={22} color="#111827" />
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.chatBody}>
@@ -1108,7 +1105,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: "center",
     width: "100%",
-    shadowColor: "#000000",
+    shadowColor: COLORS.primaryDark,
     shadowOpacity: 0.15,
     shadowRadius: 24,
     elevation: 8,
@@ -1145,7 +1142,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 24,
     gap: 10,
-    shadowColor: "#000000",
+    shadowColor: COLORS.primaryDark,
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 4,
@@ -1443,7 +1440,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
   },
   addImageText: {
     color: COLORS.primary,
@@ -1551,7 +1548,7 @@ const styles = StyleSheet.create({
   },
   iconAction: {
     padding: 10,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 12,
     marginLeft: 8,
   },
@@ -1652,7 +1649,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f3f4f6",
   },
   themeOptionSelected: {
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
   },
   themeOptionText: {
     fontSize: 15,
@@ -1731,7 +1728,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 20,
     gap: 8,
-    shadowColor: "#000000",
+    shadowColor: COLORS.primaryDark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1807,7 +1804,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
@@ -1858,7 +1855,7 @@ const styles = StyleSheet.create({
   joinByCodeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -1956,7 +1953,7 @@ const styles = StyleSheet.create({
   },
   segmentButtonActive: {
     backgroundColor: COLORS.primary,
-    shadowColor: "#000000",
+    shadowColor: COLORS.primaryDark,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -1975,7 +1972,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#f0fdf4",
+    backgroundColor: COLORS.primaryLight,
     borderColor: COLORS.primary,
     borderWidth: 1,
     borderRadius: 12,

@@ -280,8 +280,7 @@
     "real-estate-agencies": "Agenzie Immobiliari",
     "studios": "Studi",
     "rooms": "Camere",
-    "commercial-spaces": "Spazi Commerciali",
-    "vacation-rentals": "Affitti Vacanze",
+
     "co-living-spaces": "Spazi Co-Living",
     "commercial-real-estate": "Immobili Commerciali",
     "property-management": "Gestione Immobiliare"
@@ -329,11 +328,20 @@
     "passwordTooShort": "La password deve avere almeno 4 caratteri",
     "login": "Accedi",
     "loginRequired": "Accesso richiesto",
-    "signInRequired": "Devi aver effettuato l'accesso"
+    "signInRequired": "Devi aver effettuato l'accesso",
+    "iAm": "Sono...",
+    "individual": "Privato",
+    "business": "Attività",
+    "businessName": "Nome attività",
+    "rootCategory": "Slug categoria (es. food-dining)",
+    "subcategory": "Slug sottocategoria (es. italian)",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "city": "Città"
   },
   "brand": {
     "title": "Perix",
-    "subtitle": "Mappa della Città"
+    "subtitle": "La tua città preferita nelle tue mani!"
   },
   "tabs": {
     "home": "Home",
@@ -435,7 +443,9 @@
     "mediaPermissionMessage": "Per favore consenti l'accesso alla tua libreria foto per aggiungere immagini.",
     "noLocationSet": "Imposta la tua posizione nel profilo per vedere i contenuti vicini.",
     "postFailed": "Creazione post fallita",
-    "upcomingActivities": "Prossime Attività"
+    "upcomingActivities": "Prossime Attività",
+    "nearby": "Vicino",
+    "following": "Seguiti"
   },
   "profile": {
     "title": "Profilo",
@@ -685,7 +695,6 @@
     "location": "Posizione",
     "locationPlaceholder": "Cerca un indirizzo...",
     "eventImage": "Immagine Evento",
-    "gallery": "Galleria",
     "galleryHint": "Aggiungi immagini alla galleria (max 20)",
     "private": "Privato",
     "privateHint": "Solo le persone con la password possono partecipare",
@@ -823,7 +832,9 @@
     "rsvpHere": "Conferma qui",
     "searchEvents": "Cerca eventi...",
     "setReminder": "Imposta Promemoria",
-    "yourResponse": "La Tua Risposta"
+    "yourResponse": "La Tua Risposta",
+    "tagArtists": "Tagga artisti",
+    "searchArtists": "Cerca artisti..."
   },
   "messages": {
     "title": "Messaggi",
@@ -1288,8 +1299,7 @@
     "callFailed": "Chiamata fallita. Per favore riprova.",
     "businessClosed": "L'attività è attualmente chiusa. Per favore chiama durante gli orari di apertura."
   },
-
-    "cityAd": {
+  "cityAd": {
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",
@@ -1868,11 +1878,101 @@
     "unblockFailed": "Sblocco utente fallito",
     "unblockUser": "Sblocca Utente",
     "version": "Versione",
-    "viewProfile": "Vedi Profilo"
+    "viewProfile": "Vedi Profilo",
+    "editProfile": "Modifica profilo",
+    "editProfileDesc": "Nome, biografia, posizione, foto",
+    "changePassword": "Cambia password",
+    "changePasswordDesc": "Aggiorna la tua password",
+    "clearCache": "Svuota cache",
+    "clearCacheDesc": "Libera spazio di archiviazione",
+    "currentPassword": "Password attuale",
+    "newPassword": "Nuova password",
+    "passwordFieldsRequired": "Compila entrambi i campi",
+    "passwordChanged": "Password cambiata con successo",
+    "passwordChangeFailed": "Errore nel cambio password",
+    "cacheCleared": "Cache svuotata con successo",
+    "cacheClearFailed": "Errore nello svuotamento della cache"
   },
   "time": {
     "justNow": "adesso"
+  },
+  "services": {
+    "noServices": "Nessun servizio disponibile al momento",
+    "addMenuItem": "Aggiungi elemento al menu",
+    "add": "Aggiungi servizio",
+    "menu": "Menu",
+    "rooms": "Camere",
+    "listings": "Annunci",
+    "title": "Servizi"
+  },
+  "menu": {
+    "starter": "Antipasti",
+    "main": "Piatti principali",
+    "dessert": "Dessert",
+    "drink": "Bevande",
+    "side": "Contorni",
+    "other": "Altri"
+  },
+  "upgrade": {
+    "title": "Sblocca la tua attività",
+    "withBusiness": "Con un profilo attività puoi:",
+    "freeTrial": "Prova gratuita di 90 giorni",
+    "noPayment": "Nessun pagamento richiesto. Annulla in qualsiasi momento.",
+    "categoryTitle": "Scegli la categoria della tua attività",
+    "rootCategory": "Categoria (es. food-dining)",
+    "subcategory": "Sottocategoria (es. italian)",
+    "businessName": "Nome attività",
+    "startTrial": "Inizia prova gratuita",
+    "selectCategory": "Seleziona categoria e sottocategoria",
+    "success": "Successo",
+    "upgraded": "Il tuo profilo attività è stato creato! Prova gratuita di 90 giorni attivata.",
+    "failed": "Errore nella creazione dell'attività"
+  },
+  "help": {
+    "title": "Aiuto e Supporto",
+    "faq": "Domande frequenti",
+    "createEventQ": "Come creo un evento?",
+    "createEventA": "Vai al tuo profilo, passa all'identità attività e tocca '+ Crea evento'.",
+    "changePasswordQ": "Come cambio la mia password?",
+    "changePasswordA": "Vai su Impostazioni → Account → Cambia password.",
+    "reportContentQ": "Come segnalo contenuti inappropriati?",
+    "reportContentA": "Su qualsiasi pubblicazione, evento o profilo, tocca il menu a tre punti e seleziona 'Segnala'.",
+    "deleteAccountQ": "Come elimino il mio account?",
+    "deleteAccountA": "Vai su Impostazioni e tocca 'Elimina account' nella zona pericolosa.",
+    "businessQ": "Come creo un profilo attività?",
+    "businessA": "Dal tuo profilo, tocca il menu a tendina identità e seleziona 'Aggiorna ad attività'.",
+    "subscriptionQ": "Cosa succede dopo la prova gratuita?",
+    "subscriptionA": "Dopo la prova, puoi abbonarti a un piano a pagamento.",
+    "privacyQ": "Come sono protetti i miei dati?",
+    "privacyA": "Tutti i dati sono crittografati. Non vendiamo mai i tuoi dati personali.",
+    "stillNeedHelp": "Hai ancora bisogno di aiuto?",
+    "contactDesc": "Contatta il nostro team di supporto e ti risponderemo entro 24 ore.",
+    "emailUs": "Email di supporto"
+  },
+  "terms": {
+    "title": "Termini di servizio",
+    "lastUpdated": "Ultimo aggiornamento: Giugno 2026",
+    "acceptance": "Accettazione dei termini",
+    "acceptanceContent": "Utilizzando Perix, accetti questi termini.",
+    "eligibility": "Idoneità",
+    "eligibilityContent": "Devi avere almeno 16 anni.",
+    "userContent": "Contenuto utente",
+    "userContentContent": "Conservi la proprietà del contenuto che pubblichi.",
+    "acceptableUse": "Uso accettabile",
+    "acceptableUseContent": "Non pubblicare contenuti dannosi o illegali.",
+    "intellectualProperty": "Proprietà intellettuale",
+    "intellectualPropertyContent": "Il contenuto di Perix è protetto da copyright.",
+    "termination": "Risoluzione",
+    "terminationContent": "Possiamo sospendere account che violano questi termini.",
+    "disclaimers": "Disclaimer",
+    "disclaimersContent": "Perix è fornito 'così com'è' senza garanzie.",
+    "liability": "Limitazione di responsabilità",
+    "liabilityContent": "Perix non è responsabile per danni derivanti dall'uso del servizio.",
+    "governingLaw": "Legge applicabile",
+    "governingLawContent": "Questi termini sono regolati dalla legge tedesca.",
+    "changes": "Modifiche",
+    "changesContent": "Possiamo aggiornare questi termini. L'uso continuo significa accettazione.",
+    "contact": "Contatto",
+    "contactContent": "Email support@perix.app"
   }
 }
-
-

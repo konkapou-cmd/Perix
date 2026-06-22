@@ -2,7 +2,8 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Job } from "../../lib/api";
-import { FONT_SIZES, FONT_WEIGHTS } from "../../lib/designTokens";
+import { COLORS, FONT_SIZES, FONT_WEIGHTS } from "../../lib/designTokens";
+import { formatDate } from "../../lib/formatDate";
 
 type Props = {
   jobs: Job[];
@@ -33,14 +34,14 @@ export default function JobsSection({ jobs, readOnly = false, onAddJob, onEditJo
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.eventTitle}>{job.title}</Text>
               <Text style={styles.eventMeta}>
-                {job.expires_at ? `${t("jobs.expiresAt")}: ${job.expires_at.split("T")[0]}` : ""}
+                {job.expires_at ? `${t("jobs.expiresAt")}: ${formatDate(job.expires_at)}` : ""}
               </Text>
             </View>
             {!readOnly && onDeleteJob && (
               <View style={{ flexDirection: "row", gap: 4 }}>
                 {onEditJob && (
                   <Pressable style={styles.iconButton} onPress={() => onEditJob(job)}>
-                    <Ionicons name="create-outline" size={18} color="#111827" />
+                    <Ionicons name="create-outline" size={18} color={COLORS.textPrimary} />
                   </Pressable>
                 )}
                 <Pressable style={styles.iconButton} onPress={() => onDeleteJob(job.job_id)}>
@@ -55,7 +56,7 @@ export default function JobsSection({ jobs, readOnly = false, onAddJob, onEditJo
   );
 }
 
-const styles = StyleSheet.create({
+const styles: Record<string, any> = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   eventRow: {
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   eventMeta: {
     fontSize: FONT_SIZES.small,

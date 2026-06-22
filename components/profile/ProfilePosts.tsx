@@ -5,12 +5,12 @@ import {
   StyleSheet,
   Image,
   Pressable,
-  FlatList,
   TextInput,
   KeyboardAvoidingView,
   Platform,
   Modal,
   Alert,
+  ActivityIndicator,
   TextStyle,
   ScrollView,
 } from "react-native";
@@ -23,9 +23,12 @@ import { CommentSection } from "../CommentSection";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import { Post, togglePostLike as apiTogglePostLike } from "../../lib/api";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
+import { formatRelativeDate } from "../../lib/formatDate";
+import useResponsiveLayout from "../../hooks/useResponsiveLayout";
 
 interface ProfilePostsProps {
   posts: Post[];
@@ -61,6 +64,8 @@ interface ProfilePostsProps {
   onSelectMention?: (item: { id: string; name: string; type: 'user' | 'business' }) => void;
   pendingMentionIds?: string[];
   isOwnProfile?: boolean;
+  isPosting?: boolean;
+  uploadPercent?: number;
   onCreateStory?: () => void;
 }
 
@@ -116,14 +121,19 @@ export const ProfilePosts: React.FC<ProfilePostsProps> = ({
 pendingMentionIds = [],
   onRefreshPosts,
   isOwnProfile = false,
+  isPosting = false,
+  uploadPercent = 0,
   onCreateStory,
 }) => {
   const { t } = useTranslation();
+  const { contentMaxWidth } = useResponsiveLayout();
   const { sessionToken, activeIdentity } = useAuth();
   const router = useRouter();
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
+
+  const isWeb = Platform.OS === "web";
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [editText, setEditText] = useState("");
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -277,12 +287,12 @@ pendingMentionIds = [],
             <Text style={[styles.postAuthor, { color: textColor }, themeStyles as any]}>
               {post.actor_name || "User"}
             </Text>
-            <Text style={[styles.postDate, { color: textSecondaryColor }, themeStyles as any]}>{formatDate(post.created_at)}</Text>
+            <Text style={[styles.postDate, { color: textSecondaryColor }, themeStyles as any]}>{formatRelativeDate(post.created_at)}</Text>
           </View>
           {ownPost && (
             <View style={styles.postActions}>
               <Pressable style={styles.postActionBtn} onPress={() => handleEditPress(post)}>
-                <Ionicons name="create-outline" size={20} color="#000000" />
+                <Ionicons name="create-outline" size={20} color={COLORS.primaryDark} />
               </Pressable>
               <Pressable style={styles.postActionBtn} onPress={() => handleDeletePost(post)}>
                 <Ionicons name="trash-outline" size={20} color="#ef4444" />
@@ -297,27 +307,26 @@ pendingMentionIds = [],
             textStyle={[styles.postText, { color: textColor }, themeStyles as any]}
             taggedUsers={post.tagged_user_ids?.map(id => ({ id, name: getFriendName(id) }))}
             taggedBusinesses={post.tagged_business_ids?.map(id => ({ id, name: getBizName(id) }))}
+            taggedArtists={(post as any).tagged_artist_ids?.map((id: string) => ({ id, name: id }))}
           />
         )}
 
         {post.video_url ? (
-          <View style={styles.postVideoContainer}>
+          <View style={styles.postMediaWrapper}>
             <AdaptiveVideo
               uri={post.video_url}
-              style={styles.postVideo}
-      autoPlay={true}
-                      showMuteButton={true}
-                      initialMuted={true}
-                      pauseWhenNotVisible={true}
-                      resizeMode="contain"
-                      ratio={post.media_ratio || undefined}
-              maxHeight={470}
-              borderRadius={8}
+              showMuteButton={true}
+              initialMuted={true}
+              resizeMode="cover"
+              coverPhoto={post.mux_thumbnail_url || undefined}
+              ratio={1}
+              maxHeight={1200}
+              borderRadius={0}
               videoStatus={post.video_status}
               muxThumbnailUrl={post.mux_thumbnail_url || undefined}
               onPress={() => {
                 const items: MediaItem[] = [];
-                if (post.video_url) items.push({ type: "video", uri: post.video_url, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
+                if (post.video_url) items.push({ type: "video", uri: post.video_url, ratio: post.media_ratio || undefined, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
                 if (post.image_url) items.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
                 setViewerMedia(items);
                 setViewerIndex(0);
@@ -326,17 +335,16 @@ pendingMentionIds = [],
             />
           </View>
         ) : post.image_url ? (
-          <View style={styles.postImages}>
+          <View style={styles.postMediaWrapper}>
             <AdaptiveImage
               uri={post.image_url}
-              ratio={post.media_ratio || undefined}
-              maxHeight={470}
-              borderRadius={8}
-              style={styles.postImageSingle}
+              ratio={1}
+              maxHeight={1200}
+              borderRadius={0}
               onPress={() => {
                 const items: MediaItem[] = [];
                 if (post.image_url) items.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
-                if (post.video_url) items.push({ type: "video", uri: post.video_url, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
+                if (post.video_url) items.push({ type: "video", uri: post.video_url, ratio: post.media_ratio || undefined, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
                 setViewerMedia(items);
                 setViewerIndex(0);
                 setViewerOpen(true);
@@ -372,7 +380,7 @@ pendingMentionIds = [],
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
     <View style={styles.container}>
       {!readOnly && (
         <View style={[styles.createPost, { backgroundColor: cardColor }]}>
@@ -460,10 +468,17 @@ pendingMentionIds = [],
             <View style={{ flex: 1 }} />
             {(postText.trim() || postImage || postVideoPreview) && (
               <Pressable
-                style={[styles.createPostSubmit, { backgroundColor: primaryColor }]}
+                style={[styles.createPostSubmit, { backgroundColor: primaryColor }, (isPosting || uploadPercent > 0) && { opacity: 0.7 }]}
                 onPress={handleCreatePost}
+                disabled={isPosting || uploadPercent > 0}
               >
-                <Ionicons name="send" size={16} color="#fff" />
+                {isPosting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : uploadPercent > 0 ? (
+                  <Text style={styles.uploadPercentText}>{Math.round(uploadPercent)}%</Text>
+                ) : (
+                  <Ionicons name="send" size={16} color="#fff" />
+                )}
               </Pressable>
             )}
           </View>
@@ -477,14 +492,65 @@ pendingMentionIds = [],
             {t("profile.noPosts", "No posts yet")}
           </Text>
         </View>
+      ) : isWeb ? (
+        <View style={styles.postGrid}>
+          {postsData.map((post) => (
+            <Pressable
+              key={post.post_id}
+              style={styles.gridCard}
+              onPress={() => router.push(`/post/${post.post_id}` as any)}
+            >
+              {post.video_url || post.image_url ? (
+                <View style={styles.gridMedia}>
+                  {post.video_url ? (
+                    <AdaptiveVideo
+                      uri={post.video_url}
+                      style={{ width: "100%", height: "100%" }}
+                      showMuteButton={true}
+                      ratio={1}
+                      maxHeight={1200}
+                      borderRadius={0}
+                      videoStatus={post.video_status}
+                      muxThumbnailUrl={post.mux_thumbnail_url || undefined}
+                    />
+                  ) : (
+                    <AdaptiveImage
+                      uri={post.image_url || ""}
+                      style={{ width: "100%", height: "100%" }}
+                      ratio={1}
+                      maxHeight={1200}
+                      borderRadius={0}
+                    />
+                  )}
+                  <View style={styles.gridOverlay}>
+                    <Ionicons name="heart" size={14} color="#fff" />
+                    <Text style={styles.gridOverlayText}>{post.likes_count || 0}</Text>
+                    {post.comments_count ? (
+                      <>
+                        <Ionicons name="chatbubble" size={12} color="#fff" style={{ marginLeft: 8 }} />
+                        <Text style={styles.gridOverlayText}>{post.comments_count}</Text>
+                      </>
+                    ) : null}
+                  </View>
+                </View>
+              ) : (
+                <View style={[styles.gridMedia, styles.gridTextCard]}>
+                  <Text style={styles.gridTextPreview} numberOfLines={6}>
+                    {post.text || ""}
+                  </Text>
+                  <View style={styles.gridOverlay}>
+                    <Ionicons name="heart" size={14} color="#fff" />
+                    <Text style={styles.gridOverlayText}>{post.likes_count || 0}</Text>
+                  </View>
+                </View>
+              )}
+            </Pressable>
+          ))}
+        </View>
       ) : (
-        <FlatList
-          data={postsData}
-          renderItem={renderPost}
-          keyExtractor={(item) => item.post_id}
-          scrollEnabled={false}
-          contentContainerStyle={{ gap: 12, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 24 }}
-        />
+        <View style={{ gap: 12, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 24 }}>
+          {postsData.map((post) => <View key={post.post_id}>{renderPost({ item: post })}</View>)}
+        </View>
       )}
 
       <Modal
@@ -535,7 +601,7 @@ pendingMentionIds = [],
   );
 };
 
-const styles = StyleSheet.create({
+const styles: Record<string, any> = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -584,8 +650,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
+  },
+  uploadPercentText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
   },
   createPostAvatar: {
     width: 40,
@@ -651,14 +722,16 @@ const styles = StyleSheet.create({
   },
   postCard: {
     borderRadius: PROFILE.CARD_RADIUS,
-    padding: 16,
+    overflow: "hidden",
     marginHorizontal: 4,
     marginBottom: 8,
+    ...Platform.select({ web: { maxWidth: 720, alignSelf: "center", cursor: "pointer", transition: "box-shadow 0.2s" } as any, default: {} }),
   },
   postHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
+    paddingHorizontal: 16,
   },
   postAvatarPlaceholder: {
     width: 40,
@@ -679,11 +752,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   postAuthor: {
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 16 : 14,
     fontWeight: "600",
   },
   postDate: {
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 13 : 12,
     color: PROFILE_COLORS.TEXT_SECONDARY,
     marginTop: 1,
   },
@@ -695,31 +768,24 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   postText: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: Platform.OS === "web" ? 16 : 14,
+    lineHeight: Platform.OS === "web" ? 24 : 20,
     marginBottom: 10,
+    paddingHorizontal: 16,
   },
-  postImages: {
-    marginBottom: 8,
-  },
-  postImageSingle: {
+  postMediaWrapper: {
     width: "100%",
-    borderRadius: 8,
-  },
-  postVideoContainer: {
-    marginBottom: 8,
-    borderRadius: 8,
+    aspectRatio: 1,
     overflow: "hidden",
-    maxHeight: 470,
-  },
-  postVideo: {
-    width: "100%",
+    backgroundColor: COLORS.textPrimary,
+    marginBottom: 8,
   },
   postFooter: {
     flexDirection: "row",
     gap: 24,
     marginTop: 8,
     paddingTop: 8,
+    paddingHorizontal: 16,
     borderTopWidth: 1,
     borderTopColor: PROFILE_COLORS.BORDER,
   },
@@ -729,7 +795,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   postStatText: {
-    fontSize: 13,
+    fontSize: Platform.OS === "web" ? 14 : 13,
     color: PROFILE_COLORS.TEXT_SECONDARY,
   },
   emptyState: {
@@ -828,5 +894,52 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "600",
     color: "#ffffff",
+  },
+  postGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    paddingHorizontal: 8,
+    paddingTop: 12,
+    paddingBottom: 24,
+  },
+  gridCard: {
+    width: "calc(33.33% - 8px)",
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: COLORS.textPrimary,
+    ...Platform.select({ web: { cursor: "pointer" } as any, default: {} }),
+  },
+  gridMedia: {
+    width: "100%",
+    height: "100%",
+  },
+  gridTextCard: {
+    backgroundColor: "#1f2937",
+    padding: 12,
+    justifyContent: "flex-start",
+  },
+  gridTextPreview: {
+    color: "#d1d5db",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  gridOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  gridOverlayText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

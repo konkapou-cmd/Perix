@@ -34,7 +34,7 @@ function AuthGuard() {
 
   useEffect(() => {
     if (loading) return;
-    const inAuthGroup = segments[0] === "(auth)" || segments[0] === "onboarding";
+    const inAuthGroup = segments[0] === "(auth)";
     if (!user && !inAuthGroup) {
       router.replace("/login");
     } else if (user && inAuthGroup) {
@@ -68,7 +68,7 @@ function BackButtonHandler() {
         currentPath === '/(tabs)/home' || 
         currentPath === '/home' || 
         currentPath.endsWith('/home') ||
-        (segments.length === 2 && segments[0] === '(tabs)' && segments[1] === 'home');
+        (segments.length >= 2 && segments[0] === '(tabs)' && (segments as any)[1] === 'home');
       
       if (isOnHomeTab) {
         const now = Date.now();
@@ -181,12 +181,30 @@ function PushNotificationManager() {
             break;
 
           case "activity":
-            router.push({
-              pathname: "/activities",
-            });
+            if (data.activityType === "like" || data.activityType === "comment") {
+              if (data.postId) {
+                router.push(`/post/${data.postId}`);
+              } else {
+                router.push("/activities");
+              }
+            } else if (data.activityType === "friend_request" || data.activityType === "friend_accepted") {
+              if (data.actorId) {
+                router.push(`/user/${data.actorId}`);
+              } else {
+                router.push("/activities");
+              }
+            } else {
+              router.push("/activities");
+            }
             break;
 
           case "event":
+            if (data.eventId) {
+              router.push(`/event/${data.eventId}`);
+            }
+            break;
+
+          case "event_reminder":
             if (data.eventId) {
               router.push(`/event/${data.eventId}`);
             }
@@ -201,6 +219,14 @@ function PushNotificationManager() {
 
           case "friend_request":
             router.push("/friend-requests");
+            break;
+
+          case "friend_accepted":
+            if (data.accepterId) {
+              router.push(`/user/${data.accepterId}`);
+            } else if (data.actorId) {
+              router.push(`/user/${data.actorId}`);
+            }
             break;
         }
       }
@@ -245,7 +271,6 @@ export default function RootLayout() {
                     <DeepLinkHandler />
                     <PushNotificationManager />
                     <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
-                      <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
                       <Stack.Screen name="call" options={{ gestureEnabled: false }} />
                       <Stack.Screen name="incoming-call" options={{ gestureEnabled: false }} />
                     </Stack>

@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Clipboard from "expo-clipboard";
@@ -59,7 +60,7 @@ const SHARE_OPTIONS: ShareOption[] = [
   { id: "twitter", name: "X (Twitter)", icon: "logo-twitter", color: "#1DA1F2", gradient: ["#1DA1F2", "#0D8BD9"] },
   { id: "telegram", name: "Telegram", icon: "paper-plane", color: "#0088CC", gradient: ["#0088CC", "#006699"] },
   { id: "copy", name: "Copy Link", icon: "copy-outline", color: "#6b7280", gradient: ["#6b7280", "#4b5563"] },
-  { id: "more", name: "More", icon: "share-outline", color: "#000000", gradient: ["#000000", "#FFD700"] },
+  { id: "more", name: "More", icon: "share-outline", color: COLORS.primaryDark, gradient: [COLORS.primaryDark, "#FFD700"] },
 ];
 
 export default function ShareContent({
@@ -362,12 +363,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   previewCard: {
     marginHorizontal: 20,
     marginBottom: 20,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -379,7 +380,7 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   previewDesc: {
     fontSize: 14,
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
   },
   previewUrl: {
     fontSize: 12,
-    color: "#000000",
+    color: COLORS.primaryDark,
     marginTop: 4,
   },
   optionsGrid: {

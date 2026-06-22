@@ -91,3 +91,40 @@ export const deleteRental = async (
 ): Promise<{ success: boolean; message: string }> => {
   return apiRequest<{ success: boolean; message: string }>(`/rentals/${rentalId}`, "DELETE", token);
 };
+
+export type RentalInquiryResponse = {
+  success: boolean;
+  message_id: string;
+  conversation_id: string;
+  media_count: number;
+};
+
+export const sendRentalInquiry = async (
+  token: string,
+  serviceId: string,
+  name: string,
+  email: string,
+  message: string,
+  files?: { uri: string; name: string; type: string }[]
+): Promise<RentalInquiryResponse> => {
+  const formData = new FormData();
+  formData.append("service_id", serviceId);
+  formData.append("name", name);
+  formData.append("email", email);
+  formData.append("message", message);
+  if (files) {
+    for (const file of files) {
+      formData.append("files", file as any);
+    }
+  }
+  const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/rentals/inquiry`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to send inquiry" }));
+    throw new Error(err.detail || "Failed to send inquiry");
+  }
+  return res.json();
+};

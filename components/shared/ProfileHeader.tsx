@@ -1,5 +1,6 @@
 import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../../lib/designTokens";
 import { useTranslation } from "react-i18next";
 
 type ProfileHeaderProps = {
@@ -38,7 +39,7 @@ export const ProfileHeader = ({
   return (
     <View style={styles.container}>
       <Pressable style={styles.backButton} onPress={onBack}>
-        <Ionicons name="chevron-back" size={20} color="#000000" />
+        <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
         <Text style={styles.backText}>{t("common.back")}</Text>
       </Pressable>
 
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   backText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "500",
     marginLeft: 4,
   },
@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
   },
   avatarFallback: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 4,
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   subtitle: {
     fontSize: 14,

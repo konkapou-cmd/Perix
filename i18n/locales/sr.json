@@ -280,8 +280,7 @@
     "real-estate-agencies": "Agencije za Nekretnine",
     "studios": "Studiji",
     "rooms": "Sobe",
-    "commercial-spaces": "Poslovni Prostori",
-    "vacation-rentals": "Vikend Izdavanja",
+
     "co-living-spaces": "Co-Living Prostori",
     "commercial-real-estate": "Poslovne Nekretnine",
     "property-management": "Upravljanje Nekretninama"
@@ -329,11 +328,20 @@
     "passwordTooShort": "Lozinka mora imati najmanje 4 karaktera",
     "login": "Prijavi se",
     "loginRequired": "Potrebna prijava",
-    "signInRequired": "Morate biti prijavljeni"
+    "signInRequired": "Morate biti prijavljeni",
+    "iAm": "Ја сам...",
+    "individual": "Појединац",
+    "business": "Бизнис",
+    "businessName": "Назив бизниса",
+    "rootCategory": "Slug категорије (нпр. food-dining)",
+    "subcategory": "Slug подкатегорије (нпр. italian)",
+    "firstName": "Име",
+    "lastName": "Презиме",
+    "city": "Град"
   },
   "brand": {
     "title": "Perix",
-    "subtitle": "Mapa gradskog života"
+    "subtitle": "Твој омиљени град у твојим рукама!"
   },
   "tabs": {
     "home": "Početna",
@@ -435,7 +443,9 @@
     "mediaPermissionMessage": "Molimo dozvolite pristup biblioteci fotografija da biste dodali slike.",
     "noLocationSet": "Molimo postavite lokaciju u profilu da vidite sadržaj u blizini.",
     "postFailed": "Kreiranje objave nije uspelo",
-    "upcomingActivities": "Predstojeće aktivnosti"
+    "upcomingActivities": "Predstojeće aktivnosti",
+    "nearby": "У близини",
+    "following": "Пратим"
   },
   "profile": {
     "title": "Profil",
@@ -685,7 +695,6 @@
     "location": "Lokacija",
     "locationPlaceholder": "Pretraži adresu...",
     "eventImage": "Slika događaja",
-    "gallery": "Galerija",
     "galleryHint": "Dodajte slike u galeriju (do 20)",
     "private": "Privatno",
     "privateHint": "Samo osobe sa lozinkom mogu da se pridruže",
@@ -836,7 +845,9 @@
     "invitationMessage": "Pozivamo vas na {{title}} od {{organizer}}! Datum: {{date}} u {{time}}. Lokacija: {{location}}",
     "chat": "Ćaskanje",
     "noChatMessages": "Još nema poruka",
-    "startConversation": "Započnite razgovor!"
+    "startConversation": "Započnite razgovor!",
+    "tagArtists": "Означи уметнике",
+    "searchArtists": "Претражи уметнике..."
   },
   "messages": {
     "title": "Poruke",
@@ -987,7 +998,6 @@
     "edit": "Izmeni",
     "delete": "Obriši",
     "createNew": "Kreiraj novu aktivnost",
-    "create": "Kreiraj",
     "invitationMessage": "Pozivamo vas na {{title}} od {{organizer}}! Datum: {{date}} u {{time}}. Lokacija: {{location}}"
   },
   "jobs": {
@@ -1315,8 +1325,7 @@
     "callFailed": "Poziv nije uspeo. Molimo pokušajte ponovo.",
     "businessClosed": "Biznis je trenutno zatvoren. Molimo pozovite tokom radnog vremena."
   },
-
-    "cityAd": {
+  "cityAd": {
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",
@@ -1898,10 +1907,101 @@
     "unblockFailed": "Odblokiranje korisnika nije uspelo",
     "unblockUser": "Odblokiraj korisnika",
     "version": "Verzija",
-    "viewProfile": "Pogledaj profil"
+    "viewProfile": "Pogledaj profil",
+    "editProfile": "Измени профил",
+    "editProfileDesc": "Име, биографија, локација, фотографија",
+    "changePassword": "Промени лозинку",
+    "changePasswordDesc": "Ажурирај своју лозинку",
+    "clearCache": "Очисти кеш",
+    "clearCacheDesc": "Ослободи простор за складиштење",
+    "currentPassword": "Тренутна лозинка",
+    "newPassword": "Нова лозинка",
+    "passwordFieldsRequired": "Попуни оба поља",
+    "passwordChanged": "Лозинка успешно промењена",
+    "passwordChangeFailed": "Грешка при промени лозинке",
+    "cacheCleared": "Кеш успешно очишћен",
+    "cacheClearFailed": "Грешка при чишћењу кеша"
   },
   "time": {
     "justNow": "upravo sada"
+  },
+  "services": {
+    "noServices": "Нема доступних услуга у овом тренутку",
+    "addMenuItem": "Додај ставку у мени",
+    "add": "Додај услугу",
+    "menu": "Мени",
+    "rooms": "Собе",
+    "listings": "Огласи",
+    "title": "Услуге"
+  },
+  "menu": {
+    "starter": "Предјела",
+    "main": "Главна јела",
+    "dessert": "Десерти",
+    "drink": "Пића",
+    "side": "Прилози",
+    "other": "Остало"
+  },
+  "upgrade": {
+    "title": "Откључај свој бизнис",
+    "withBusiness": "Са бизнис профилoм можеш:",
+    "freeTrial": "Бесплатна проба 90 дана",
+    "noPayment": "Не захтева се плаћање. Откажи у било ком тренутку.",
+    "categoryTitle": "Изабери категорију свог бизниса",
+    "rootCategory": "Категорија (нпр. food-dining)",
+    "subcategory": "Подкатегорија (нпр. italian)",
+    "businessName": "Назив бизниса",
+    "startTrial": "Започни бесплатну пробу",
+    "selectCategory": "Изабери категорију и подкатегорију",
+    "success": "Успех",
+    "upgraded": "Твој бизнис профил је креиран! Бесплатна проба 90 дана активирана.",
+    "failed": "Грешка при креирању бизниса"
+  },
+  "help": {
+    "title": "Помоћ и Подршка",
+    "faq": "Често постављана питања",
+    "createEventQ": "Како креирам догађај?",
+    "createEventA": "Иди на свој профил, пређи на бизнис идентитет и додирни '+ Креирај догађај'.",
+    "changePasswordQ": "Како мењам лозинку?",
+    "changePasswordA": "Иди на Подешавања → Налог → Промени лозинку.",
+    "reportContentQ": "Како пријавим непримерен садржај?",
+    "reportContentA": "На било којој објави, догађају или профилу, додирни мени са три тачке и изабери 'Пријави'.",
+    "deleteAccountQ": "Како бришем свој налог?",
+    "deleteAccountA": "Иди на Подешавања и додирни 'Обриши налог' у зони опасности.",
+    "businessQ": "Како креирам бизнис профил?",
+    "businessA": "Са свог профила, додирни падајући мени идентитета и изабери 'Ажурирај у бизнис'.",
+    "subscriptionQ": "Шта се дешава након бесплатне пробе?",
+    "subscriptionA": "Након пробе, можеш се претплатити на план са плаћањем.",
+    "privacyQ": "Како су моји подаци заштићени?",
+    "privacyA": "Сви подаци су шифровани. Никада не продајемо твоје личне податке.",
+    "stillNeedHelp": "Треба ти још помоћи?",
+    "contactDesc": "Контактирај наш тим за подршку и одговорићемо ти у року од 24 сата.",
+    "emailUs": "Email подршка"
+  },
+  "terms": {
+    "title": "Услови коришћења",
+    "lastUpdated": "Последње ажурирање: Јун 2026",
+    "acceptance": "Прихватање услова",
+    "acceptanceContent": "Коришћењем Perix-а, прихваташ ове услове.",
+    "eligibility": "Подобност",
+    "eligibilityContent": "Мораш имати најмање 16 година.",
+    "userContent": "Садржај корисника",
+    "userContentContent": "Задржаваш власништво над садржајем који објављујеш.",
+    "acceptableUse": "Прихватљиво коришћење",
+    "acceptableUseContent": "Не објављуј штетан или илегални садржај.",
+    "intellectualProperty": "Интелектуална својина",
+    "intellectualPropertyContent": "Садржај Perix-а је заштићен ауторским правима.",
+    "termination": "Раскид",
+    "terminationContent": "Можемо суспендовати налоге који крше ове услове.",
+    "disclaimers": "Одрицања од одговорности",
+    "disclaimersContent": "Perix се пружа 'као што је' без гаранција.",
+    "liability": "Ограничење одговорности",
+    "liabilityContent": "Perix није одговоран за штете од коришћења услуге.",
+    "governingLaw": "Меродавно право",
+    "governingLawContent": "Ови услови се регулишу немачким правом.",
+    "changes": "Измене",
+    "changesContent": "Можемо ажурирати ове услове. Наставак коришћења значи прихватање.",
+    "contact": "Контакт",
+    "contactContent": "Email support@perix.app"
   }
 }
-

@@ -16,9 +16,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../context/AuthContext";
 import { LANGUAGES, setStoredLanguage } from "../../i18n";
+import { COLORS } from "../../lib/designTokens";
+import { apiRequest, CategoryGroup } from "../../lib/api";
 import CityAutocompleteInput from "../../components/CityAutocompleteInput";
 
 export default function RegisterScreen() {
@@ -40,6 +41,24 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [role, setRole] = useState<"user" | "business">("user");
+  const [rootCategory, setRootCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
+  const [businessName, setBusinessName] = useState("");
+
+  const [categories, setCategories] = useState<CategoryGroup[]>([]);
+  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
+  const [pickerStep, setPickerStep] = useState<"root" | "sub">("root");
+  const [selectedRoot, setSelectedRoot] = useState<CategoryGroup | null>(null);
+
+  useEffect(() => {
+    apiRequest<{ categories: CategoryGroup[] }>("/businesses/category-tree", "GET", null)
+      .then((res) => setCategories(res.categories || []))
+      .catch(() => {});
+  }, []);
+
+  const getSubsForRoot = (root: CategoryGroup) =>
+    root.subcategories ?? root.groups?.flatMap((g) => g.subcategories ?? []) ?? [];
 
   const currentLanguage = LANGUAGES.find((lang) => lang.code === i18n.language) || LANGUAGES[0];
 
@@ -68,12 +87,13 @@ export default function RegisterScreen() {
         email.trim(),
         password,
         city.trim(),
+        role,
+        rootCategory || undefined,
+        subcategory || undefined,
+        businessName || undefined,
         cityLat,
         cityLng
       );
-      if (city.trim()) await AsyncStorage.setItem("@onboarding_city", city.trim());
-      const done = await AsyncStorage.getItem("@onboarding_complete");
-      router.replace(done === "true" ? "/(tabs)/home" : "/onboarding");
     } catch (error) {
       const message = error instanceof Error ? error.message : t("auth.checkCredentials");
       console.error("[Register] Failed:", message, error);
@@ -85,8 +105,8 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           {/* Language Selector */}
           <Pressable
@@ -94,7 +114,7 @@ export default function RegisterScreen() {
             onPress={() => setLanguageModalVisible(true)}
             data-testid="language-selector-register"
           >
-            <Ionicons name="globe-outline" size={18} color="#000000" />
+            <Ionicons name="globe-outline" size={18} color={COLORS.primaryDark} />
             <Text style={styles.languageSelectorText}>{currentLanguage.nativeName}</Text>
             <Ionicons name="chevron-down" size={16} color="#6b7280" />
           </Pressable>
@@ -102,6 +122,77 @@ export default function RegisterScreen() {
           <View style={styles.formCard}>
             <Text style={styles.sectionTitle}>{t("auth.createAccount")}</Text>
             <Text style={styles.subtitle}>{t("brand.subtitle")}</Text>
+
+            {/* Role Selector */}
+            <Text style={styles.fieldLabel}>{t("auth.iAm", "I am a...")}</Text>
+            <View style={styles.roleRow}>
+              <Pressable
+                style={[styles.roleCard, role === "user" && styles.roleCardActive]}
+                onPress={() => setRole("user")}
+              >
+                <Ionicons name="person" size={24} color={role === "user" ? "#fff" : "#000"} />
+                <Text style={[styles.roleLabel, role === "user" && styles.roleLabelActive]}>
+                  {t("auth.individual", "Individual")}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.roleCard, role === "business" && styles.roleCardActive]}
+                onPress={() => setRole("business")}
+              >
+                <Ionicons name="business" size={24} color={role === "business" ? "#fff" : "#000"} />
+                <Text style={[styles.roleLabel, role === "business" && styles.roleLabelActive]}>
+                  {t("auth.business", "Business")}
+                </Text>
+              </Pressable>
+            </View>
+
+            {role === "business" && (
+              <>
+                <View style={styles.inputRow}>
+                  <Ionicons name="business-outline" size={20} color="#6b7280" />
+                  <TextInput
+                    value={businessName}
+                    onChangeText={setBusinessName}
+                    placeholder={t("auth.businessName", "Business Name")}
+                    style={styles.input}
+                  />
+                </View>
+                <Pressable
+                  style={styles.inputRow}
+                  onPress={() => { setPickerStep("root"); setSelectedRoot(null); setCategoryPickerVisible(true); }}
+                >
+                  <Ionicons name="grid-outline" size={20} color="#6b7280" />
+                  <Text style={[styles.input, !rootCategory && { color: "#9ca3af" }]} numberOfLines={1}>
+                    {rootCategory
+                      ? categories.find((c) => c.slug === rootCategory)?.name || rootCategory
+                      : t("auth.selectCategory", "Select Category")}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                </Pressable>
+                <Pressable
+                  style={styles.inputRow}
+                  onPress={() => {
+                    if (rootCategory) {
+                      const rc = categories.find((c) => c.slug === rootCategory);
+                      if (rc) { setSelectedRoot(rc); setPickerStep("sub"); setCategoryPickerVisible(true); }
+                    }
+                  }}
+                >
+                  <Ionicons name="options-outline" size={20} color="#6b7280" />
+                  <Text style={[styles.input, !subcategory && { color: "#9ca3af" }]} numberOfLines={1}>
+                    {subcategory
+                      ? (() => {
+                          const rc = categories.find((c) => c.slug === rootCategory);
+                          if (!rc) return subcategory;
+                          const subs = getSubsForRoot(rc);
+                          return subs.find((s) => s.slug === subcategory)?.name || subcategory;
+                        })()
+                      : t("auth.selectSubcategory", "Select Subcategory")}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                </Pressable>
+              </>
+            )}
 
             <View style={styles.nameRow}>
               <View style={[styles.inputRow, styles.nameInput]}>
@@ -235,15 +326,104 @@ export default function RegisterScreen() {
                     {lang.nativeName}
                   </Text>
                   {i18n.language === lang.code && (
-                    <Ionicons name="checkmark" size={20} color="#000000" />
+                    <Ionicons name="checkmark" size={20} color={COLORS.primaryDark} />
                   )}
                 </Pressable>
               ))}
             </View>
           </Pressable>
         </Modal>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+
+        {/* Category Picker Modal */}
+        <Modal
+          visible={categoryPickerVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setCategoryPickerVisible(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setCategoryPickerVisible(false)}
+          >
+            <Pressable style={styles.modalContent} onPress={() => {}}>
+              <Text style={styles.modalTitle}>
+                {pickerStep === "root"
+                  ? t("auth.selectCategory", "Select Category")
+                  : t("auth.selectSubcategory", "Select Subcategory")}
+              </Text>
+              {pickerStep === "root" ? (
+                <ScrollView style={{ maxHeight: 400 }}>
+                  {categories.map((cat) => (
+                    <Pressable
+                      key={cat.slug}
+                      style={[
+                        styles.languageOption,
+                        rootCategory === cat.slug && styles.languageOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setRootCategory(cat.slug);
+                        setSubcategory("");
+                        setSelectedRoot(cat);
+                        setPickerStep("sub");
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.languageOptionText,
+                          rootCategory === cat.slug && styles.languageOptionTextSelected,
+                        ]}
+                      >
+                        {cat.name}
+                      </Text>
+                      {rootCategory === cat.slug && (
+                        <Ionicons name="checkmark" size={20} color={COLORS.primaryDark} />
+                      )}
+                      <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              ) : (
+                <ScrollView style={{ maxHeight: 400 }}>
+                  {getSubsForRoot(selectedRoot!).map((sub) => (
+                    <Pressable
+                      key={sub.slug}
+                      style={[
+                        styles.languageOption,
+                        subcategory === sub.slug && styles.languageOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setSubcategory(sub.slug);
+                        setCategoryPickerVisible(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.languageOptionText,
+                          subcategory === sub.slug && styles.languageOptionTextSelected,
+                        ]}
+                      >
+                        {sub.name}
+                      </Text>
+                      {subcategory === sub.slug && (
+                        <Ionicons name="checkmark" size={20} color={COLORS.primaryDark} />
+                      )}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
+              {pickerStep === "sub" && (
+                <Pressable
+                  style={[styles.primaryButton, { marginTop: 12, backgroundColor: "#6b7280" }]}
+                  onPress={() => setPickerStep("root")}
+                >
+                  <Text style={styles.primaryButtonText}>{t("common.back", "Back")}</Text>
+                </Pressable>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -251,14 +431,14 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 24,
-    backgroundColor: "#f5f6fb",
+    backgroundColor: COLORS.backgroundPage,
     justifyContent: "center",
   },
   formCard: {
     backgroundColor: "#ffffff",
     borderRadius: 18,
     padding: 20,
-    shadowColor: "#111827",
+    shadowColor: COLORS.textPrimary,
     shadowOpacity: 0.08,
     shadowRadius: 18,
     elevation: 4,
@@ -266,7 +446,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   subtitle: {
     marginTop: 6,
@@ -297,11 +477,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
     ...Platform.select({ web: { pointerEvents: "auto" } }),
   },
   primaryButton: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -322,7 +502,7 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   footerLink: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
   },
   errorText: {
@@ -342,7 +522,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   languageSelectorText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
     fontSize: 14,
   },
@@ -362,7 +542,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 16,
     textAlign: "center",
   },
@@ -374,7 +554,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.surfaceSoft,
   },
   languageOptionSelected: {
     backgroundColor: "#eef2ff",
@@ -384,7 +564,42 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   languageOptionTextSelected: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  roleRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  roleCard: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    backgroundColor: COLORS.surfaceSoft,
+  },
+  roleCardActive: {
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
+  },
+  roleLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.primaryDark,
+  },
+  roleLabelActive: {
+    color: "#ffffff",
   },
 });

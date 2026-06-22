@@ -18,6 +18,7 @@ import { useAudioPlayer } from "expo-audio";
 import { useAuth } from "../context/AuthContext";
 import { useSocketEvent } from "../context/SocketContext";
 import { answerCall, rejectCall } from "../lib/api";
+import { COLORS } from "../lib/designTokens";
 
 export default function IncomingCallScreen() {
   const { t } = useTranslation();
@@ -35,10 +36,8 @@ export default function IncomingCallScreen() {
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   // Ringtone player
-  const ringtoneUri = require("../../assets/sounds/ringtone.mp3");
-  const ringtonePlayer = useAudioPlayer(ringtoneUri, {
-    audioMode: { playsInSilentMode: true },
-  });
+  const ringtoneUri = require("../assets/sounds/ringtone.mp3");
+  const ringtonePlayer = useAudioPlayer(ringtoneUri);
 
   // Pulse animation for avatar
   useEffect(() => {
@@ -280,13 +279,13 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: "#000000",
+    borderColor: COLORS.primaryDark,
   },
   avatarPlaceholder: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,

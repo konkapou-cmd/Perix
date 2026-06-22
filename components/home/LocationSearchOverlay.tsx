@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    shadowColor: "#000",
+    shadowColor: "#2B075F",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.textPrimary,
     paddingVertical: 0,
   },
   loader: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 15,
-    color: "#111827",
+    color: COLORS.textPrimary,
     flex: 1,
   },
 });

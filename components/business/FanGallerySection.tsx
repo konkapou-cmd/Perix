@@ -1,6 +1,7 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import { Post } from "../../lib/api";
 
 type Props = {
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginLeft: 8,
   },
   galleryHeader: {

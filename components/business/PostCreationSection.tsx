@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import AdaptiveImage from "../AdaptiveImage";
 import AdaptiveVideo from "../AdaptiveVideo";
+import { COLORS } from "../../lib/designTokens";
 
 export type TaggedEntity = {
   id: string;
@@ -179,15 +180,15 @@ export default function PostCreationSection({
 
       <View style={styles.postActions}>
         <Pressable style={styles.iconButton} onPress={onPickImage}>
-          <Ionicons name="image-outline" size={18} color="#000000" />
+          <Ionicons name="image-outline" size={18} color={COLORS.primaryDark} />
           <Text style={styles.iconButtonText}>{t("common.photo")}</Text>
         </Pressable>
         <Pressable style={styles.iconButton} onPress={onPickVideo}>
-          <Ionicons name="videocam-outline" size={18} color="#000000" />
+          <Ionicons name="videocam-outline" size={18} color={COLORS.primaryDark} />
           <Text style={styles.iconButtonText}>{t("common.video")}</Text>
         </Pressable>
         <Pressable style={styles.iconButton} onPress={onTagClick}>
-          <Ionicons name="pricetag-outline" size={18} color="#000000" />
+          <Ionicons name="pricetag-outline" size={18} color={COLORS.primaryDark} />
           <Text style={styles.iconButtonText}>{t("common.tag")}</Text>
         </Pressable>
         <Pressable style={styles.postButton} onPress={handlePost}>
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: "600",
-    color: "#111827",
+    color: COLORS.textPrimary,
     marginBottom: 10,
   },
   input: {
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 12,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   tagContainer: {
     marginBottom: 12,
@@ -230,8 +231,8 @@ const styles = StyleSheet.create({
   tagChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0fdf4",
-    borderColor: "#000000",
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primaryDark,
     borderWidth: 1,
     borderRadius: 16,
     paddingHorizontal: 12,
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#000000",
+    color: COLORS.primaryDark,
     marginRight: 6,
   },
   removeTagButton: {
@@ -267,13 +268,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   iconButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
     marginLeft: 6,
     fontSize: 12,
   },
   primaryButton: {
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 12,
@@ -287,13 +288,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 24,
     gap: 8,
     minWidth: 100,
-    shadowColor: "#000000",
+    shadowColor: COLORS.primaryDark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   secondaryButtonText: {
-    color: "#000000",
+    color: COLORS.primaryDark,
     fontWeight: "600",
   },
   mediaLinkRow: {
@@ -332,8 +333,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   mediaLinkToggleActive: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
   },
   mediaLinkToggleText: {
     fontSize: 12,
@@ -353,7 +354,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 13,
-    color: "#111827",
+    color: COLORS.textPrimary,
   },
   mediaLinkError: {
     fontSize: 11,

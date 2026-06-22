@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../../context/AuthContext";
+import { COLORS } from "../../../lib/designTokens";
 import Constants from "expo-constants";
 
 const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || "https://api.perixapp.com";
@@ -102,7 +103,7 @@ export default function ShareEventPage() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color={COLORS.primaryDark} />
       </View>
     );
   }
@@ -218,11 +219,11 @@ export default function ShareEventPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fb" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   content: { padding: 20, paddingBottom: 40 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 24, paddingTop: 20 },
   logo: { width: 40, height: 40, borderRadius: 10 },
-  brandName: { fontSize: 24, fontWeight: "700", color: "#000000", marginLeft: 10 },
+  brandName: { fontSize: 24, fontWeight: "700", color: COLORS.primaryDark, marginLeft: 10 },
   errorCard: { backgroundColor: "#fff", borderRadius: 16, padding: 32, alignItems: "center", margin: 20 },
   errorTitle: { fontSize: 18, fontWeight: "600", color: "#111827", marginTop: 16, marginBottom: 8 },
   errorText: { fontSize: 14, color: "#6b7280", textAlign: "center", marginBottom: 24 },
@@ -230,7 +231,7 @@ const styles = StyleSheet.create({
   coverImage: { width: "100%", height: 200, backgroundColor: "#e5e7eb" },
   cardContent: { padding: 20 },
   themeBadge: { backgroundColor: "#f0f4ff", paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, alignSelf: "flex-start", marginBottom: 12 },
-  themeBadgeText: { fontSize: 12, fontWeight: "600", color: "#000000" },
+  themeBadgeText: { fontSize: 12, fontWeight: "600", color: COLORS.primaryDark },
   eventTitle: { fontSize: 22, fontWeight: "700", color: "#111827", marginBottom: 16 },
   infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 10 },
   infoText: { fontSize: 14, color: "#6b7280", flex: 1 },
@@ -238,10 +239,10 @@ const styles = StyleSheet.create({
   ctaSection: { marginTop: 24, alignItems: "center" },
   ctaTitle: { fontSize: 18, fontWeight: "600", color: "#111827", marginBottom: 8, textAlign: "center" },
   ctaText: { fontSize: 14, color: "#6b7280", textAlign: "center", marginBottom: 20 },
-  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#000000", paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, gap: 8, width: "100%", maxWidth: 300 },
+  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: COLORS.primaryDark, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, gap: 8, width: "100%", maxWidth: 300 },
   primaryButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   secondaryButton: { marginTop: 12, paddingVertical: 12, paddingHorizontal: 24 },
-  secondaryButtonText: { color: "#000000", fontSize: 14, fontWeight: "600" },
+  secondaryButtonText: { color: COLORS.primaryDark, fontSize: 14, fontWeight: "600" },
   footer: { marginTop: 40, alignItems: "center" },
   footerText: { fontSize: 12, color: "#9ca3af" },
 });

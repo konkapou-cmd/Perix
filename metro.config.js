@@ -13,6 +13,14 @@ config.cacheStores = [
 
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
+// Stub react-native-agora — native module not available in Expo Go
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'react-native-agora') {
+    return { type: 'empty' };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 // Patch .js.flow files
 const reactNativeSrc = path.join(__dirname, 'node_modules/react-native/src');
 const rndevtoolsDir = path.join(reactNativeSrc, 'private/devsupport/rndevtools');

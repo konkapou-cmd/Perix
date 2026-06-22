@@ -5,12 +5,16 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
   Alert,
   Share,
   Pressable,
   Dimensions,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { User, UserPublic, GalleryItem, Post, APP_URL, ActivityItem, isUpcomingActivity } from "../../lib/api";
@@ -82,6 +86,8 @@ interface UserProfilePremiumProps {
   pickPostVideo?: () => void;
   onDiscardMedia?: () => void;
   handleCreatePost?: () => void;
+  isPosting?: boolean;
+  uploadPercent?: number;
   isOwnProfile?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -105,6 +111,7 @@ interface UserProfilePremiumProps {
   isSaved?: boolean;
   savingItem?: boolean;
   onCreateStory?: () => void;
+  onOpenBookings?: () => void;
 }
 
 export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
@@ -151,6 +158,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   pickPostVideo,
   onDiscardMedia,
   handleCreatePost,
+  isPosting = false,
+  uploadPercent = 0,
   isOwnProfile = false,
   identityPicker,
   avatarUri,
@@ -168,6 +177,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   refreshing,
   onRefresh,
   onCreateStory,
+  onOpenBookings,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -182,12 +192,17 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
       base.push({ key: "activities", label: t("userProfile.activities", "Activities"), icon: "people-outline", count: userActivities.length });
     }
     base.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: userPosts.length });
-    base.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
+    if (galleryImages.length + galleryVideos.length > 0) {
+      base.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
+    }
     if (!hasActiveActivities) {
       base.push({ key: "activities", label: t("userProfile.activities", "Activities"), icon: "people-outline", count: userActivities.length });
     }
+    if (onOpenBookings) {
+      base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
+    }
     return base;
-  }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, t]);
+  }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t]);
 
   const theme = user.theme;
   const { themeStyles, themeColors } = useThemeStyles(theme);
@@ -229,7 +244,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -328,6 +343,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
               pickPostVideo={pickPostVideo}
               onDiscardMedia={onDiscardMedia}
               handleCreatePost={handleCreatePost}
+              isPosting={isPosting}
+              uploadPercent={uploadPercent}
               onDeletePost={onDeletePost}
               onEditPost={onEditPost}
               currentUserId={currentUserId}
@@ -355,8 +372,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
               cardColor={cardColor}
               textColor={textColor}
               readOnly={readOnly}
-              onAddPhoto={handleAddPhoto}
-              onAddVideo={handleAddVideo}
               onDeleteItem={(source, type, uri) => {
                 if (source === "post") {
                   const post = userPosts.find(p => p.image_url === uri || p.video_url === uri);
@@ -373,6 +388,19 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
               }}
             />
           )}
+          {activeTab === "bookings" && (
+            <View style={styles.bookingTab}>
+              <Text style={[styles.bookingTabTitle, { color: textColor }]}>{t("services.myBookings", "My Bookings")}</Text>
+              <Text style={[styles.bookingTabDesc, { color: secondaryColor }]}>{t("services.myBookingsDesc", "View and manage your booked services")}</Text>
+              <Pressable
+                style={[styles.bookingTabBtn, { backgroundColor: primaryColor }]}
+                onPress={() => { onOpenBookings?.(); setActiveTab("posts"); }}
+              >
+                <Ionicons name="calendar" size={18} color="#fff" />
+                <Text style={styles.bookingTabBtnText}>{t("services.viewBookings", "View My Bookings")}</Text>
+              </Pressable>
+            </View>
+          )}
           {activeTab === "activities" && (
             <ActivitiesSection
               activities={userActivities}
@@ -388,7 +416,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           )}
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -411,6 +439,34 @@ const styles = StyleSheet.create({
   highlightsSection: {
     paddingHorizontal: 16,
     paddingTop: 12,
+  },
+  bookingTab: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 12,
+  },
+  bookingTabTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  bookingTabDesc: {
+    fontSize: 14,
+    textAlign: "center",
+    paddingHorizontal: 32,
+  },
+  bookingTabBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  bookingTabBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#fff",
   },
   
 });
