@@ -13,6 +13,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
+import AdaptiveImage from "../AdaptiveImage";
+import FocalImage from "../FocalImage";
+import AdaptiveVideo from "../AdaptiveVideo";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
@@ -57,6 +60,8 @@ export const ProfileBase: React.FC<ProfileBaseProps> = ({
 interface ProfileHeaderProps {
   identityPicker?: React.ReactNode;
   coverUri?: string | null;
+  coverVideoUri?: string | null;
+  coverFocalPoint?: { x: number; y: number } | null;
   avatarUri?: string | null;
   avatarInitial?: string;
   name: string;
@@ -71,6 +76,7 @@ interface ProfileHeaderProps {
   themeStyles?: ThemeStyles;
   readOnly?: boolean;
   onEditCover?: () => void;
+  onRepositionCover?: () => void;
   onEditAvatar?: () => void;
   onShare?: () => void;
   onSettings?: () => void;
@@ -90,13 +96,15 @@ interface ProfileHeaderProps {
   onSavePress?: () => void;
   isSaved?: boolean;
   savingItem?: boolean;
-  stats?: { label: string; count: number }[];
+  stats?: { label: string; count: number; onPress?: () => void }[];
   completenessItems?: { label: string; done: boolean }[];
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   identityPicker,
   coverUri,
+  coverVideoUri,
+  coverFocalPoint,
   avatarUri,
   avatarInitial = "?",
   name,
@@ -111,6 +119,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   themeStyles,
   readOnly = false,
   onEditCover,
+  onRepositionCover,
   onEditAvatar,
   onShare,
   onSettings,
@@ -153,8 +162,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         style={styles.coverContainer}
         onPress={!readOnly ? onEditCover : undefined}
       >
-        {coverUri ? (
-          <Image source={{ uri: coverUri }} style={styles.coverImage} />
+        {coverVideoUri ? (
+          <AdaptiveVideo
+            uri={coverVideoUri}
+            style={styles.coverImage}
+            borderRadius={0}
+            isLooping
+            initialMuted
+          />
+        ) : coverUri ? (
+          <FocalImage uri={coverUri} aspectRatio={3} focalPoint={coverFocalPoint ?? { x: 0.5, y: 0.5 }} style={styles.coverImage} />
         ) : (
           <View style={[styles.coverPlaceholder, { backgroundColor: cardColor }]}>
             {!readOnly && (
@@ -163,9 +180,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </View>
         )}
         {!readOnly && (
-          <View style={[styles.coverEditBadge, { backgroundColor: primaryColor }]}>
+          <Pressable
+            style={[styles.coverEditBadge, { backgroundColor: primaryColor }]}
+            onPress={coverUri || coverVideoUri ? onRepositionCover : onEditCover}
+          >
             <Ionicons name="camera" size={14} color="#fff" />
-          </View>
+          </Pressable>
         )}
         {identityPicker && (
           <View style={styles.identityOverlay}>
@@ -231,10 +251,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {stats && stats.length > 0 && (
         <View style={styles.statsRow}>
           {stats.map((s, i) => (
-            <View key={i} style={styles.statItem}>
-              <Text style={[styles.statCount, { color: textColor }, themeStyles as TextStyle]}>{s.count}</Text>
-              <Text style={[styles.statLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>{s.label}</Text>
-            </View>
+            s.onPress ? (
+              <Pressable key={i} style={styles.statItem} onPress={s.onPress}>
+                <Text style={[styles.statCount, { color: textColor }, themeStyles as TextStyle]}>{s.count}</Text>
+                <Text style={[styles.statLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>{s.label}</Text>
+              </Pressable>
+            ) : (
+              <View key={i} style={styles.statItem}>
+                <Text style={[styles.statCount, { color: textColor }, themeStyles as TextStyle]}>{s.count}</Text>
+                <Text style={[styles.statLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>{s.label}</Text>
+              </View>
+            )
           ))}
         </View>
       )}
@@ -337,11 +364,24 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               )}
               {showFollowButton && onFollowPress && (
                 <Pressable
-                  style={[styles.primaryBtn, { backgroundColor: primaryColor }]}
+                  style={[styles.primaryBtn, {
+                    backgroundColor: friendStatus === "friends" ? cardColor : primaryColor,
+                    borderWidth: friendStatus === "friends" ? 1 : 0,
+                    borderColor: friendStatus === "friends" ? borderColor : primaryColor,
+                  }]}
                   onPress={onFollowPress}
                 >
-                  <Ionicons name="heart-outline" size={16} color="#fff" />
-                  <Text style={styles.primaryBtnText}>{t("profile.follow", "Follow")}</Text>
+                  <Ionicons
+                    name={friendStatus === "friends" ? "people" : "person-add-outline"}
+                    size={16}
+                    color={friendStatus === "friends" ? textColor : "#fff"}
+                  />
+                  <Text style={[styles.primaryBtnText, { color: friendStatus === "friends" ? textColor : "#fff" }]}>
+                    {friendStatus === "friends" ? t("profile.friends", "Friends") :
+                     friendStatus === "request_sent" ? t("profile.pending", "Pending") :
+                     friendStatus === "request_received" ? t("profile.acceptRequest", "Accept") :
+                     t("profile.addFriend", "Add Friend")}
+                  </Text>
                 </Pressable>
               )}
             </View>
@@ -398,7 +438,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
         return (
           <Pressable
             key={tab.key}
-            style={[styles.tabButton, isActive && { borderBottomColor: primaryColor, borderBottomWidth: 2 }]}
+            style={[styles.tabButton, isActive && { borderBottomColor: primaryColor, borderBottomWidth: 3 }]}
             onPress={() => onTabChange(tab.key)}
           >
             <Ionicons
@@ -428,9 +468,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   coverContainer: {
-    width: SCREEN_WIDTH,
-    height: PROFILE.COVER_HEIGHT,
+    width: "100%",
+    aspectRatio: PROFILE.COVER_ASPECT_RATIO,
     position: "relative",
+    overflow: "hidden",
   },
   coverImage: {
     width: "100%",
@@ -446,9 +487,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 12,
     right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -502,7 +543,7 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     paddingHorizontal: PROFILE.HORIZONTAL_PADDING,
-    marginTop: 8,
+    marginTop: 24,
   },
   headerName: {
     fontSize: 22,
@@ -536,7 +577,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     paddingHorizontal: PROFILE.HORIZONTAL_PADDING,
-    marginTop: 10,
+    marginTop: 24,
     gap: 4,
   },
   statItem: {
@@ -591,7 +632,7 @@ const styles = StyleSheet.create({
   },
   primaryActions: {
     flexDirection: "row",
-    gap: 8,
+    gap: 16,
   },
   primaryBtn: {
     flex: 1,
@@ -599,7 +640,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 10,
+    paddingVertical: 18,
     borderRadius: PROFILE.BUTTON_RADIUS,
   },
   primaryBtnText: {
@@ -628,16 +669,17 @@ const styles = StyleSheet.create({
   },
   tabsScroll: {
     flexDirection: "row",
-    paddingHorizontal: 4,
-    gap: 8,
+    paddingHorizontal: 24,
+    gap: 24,
+    marginBottom: 20,
   },
   tabButton: {
     minWidth: 80,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 14,
+    gap: 8,
+    paddingVertical: 18,
     paddingHorizontal: 8,
   },
   tabLabel: {

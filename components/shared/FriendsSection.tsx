@@ -3,20 +3,25 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../lib/designTokens";
-
-type Friend = {
-  user_id: string;
-  name: string;
-  profile_photo?: string | null;
-};
+import { FriendProfile } from "../../lib/api";
 
 type FriendsSectionProps = {
-  friends: Friend[];
+  friends: FriendProfile[];
   isFriend: boolean;
   onToggleFriend: () => void;
   isLoading?: boolean;
   showMakeButton?: boolean;
   showFriendRequests?: boolean;
+};
+
+const navigateToProfile = (fp: FriendProfile, router: any) => {
+  if (fp.entity_type === "user") {
+    router.push(`/user/${fp.entity_id}`);
+  } else if (fp.entity_type === "business") {
+    router.push(`/business/${fp.entity_id}`);
+  } else if (fp.entity_type === "artist") {
+    router.push(`/artist/${fp.entity_id}`);
+  }
 };
 
 export const FriendsSection = ({
@@ -68,13 +73,13 @@ export const FriendsSection = ({
         <View style={styles.friendsList}>
           {friends.slice(0, 5).map((friend) => (
             <Pressable
-              key={friend.user_id}
+              key={`${friend.entity_type}-${friend.entity_id}`}
               style={styles.friendItem}
-              onPress={() => router.push(`/user/${friend.user_id}`)}
+              onPress={() => navigateToProfile(friend, router)}
             >
-              {friend.profile_photo ? (
+              {friend.image ? (
                 <Image
-                  source={{ uri: friend.profile_photo }}
+                  source={{ uri: friend.image }}
                   style={styles.friendAvatar}
                 />
               ) : (

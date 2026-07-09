@@ -63,22 +63,22 @@ export function LocationSearchOverlay({ visible, sessionToken, onClose, onSelect
       <View style={styles.backdrop}>
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={20} color="#9ca3af" />
+            <Ionicons name="search" size={20} color={COLORS.textPlaceholder} />
             <TextInput
               style={styles.input}
               placeholder="Search city or location..."
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={COLORS.textPlaceholder}
               value={query}
               onChangeText={searchPlaces}
               autoFocus
             />
             {query.length > 0 && (
               <Pressable onPress={() => { setQuery(""); setSuggestions([]); }}>
-                <Ionicons name="close-circle" size={20} color="#9ca3af" />
+                <Ionicons name="close-circle" size={20} color={COLORS.textPlaceholder} />
               </Pressable>
             )}
             <Pressable onPress={handleClose}>
-              <Ionicons name="close" size={22} color="#374151" />
+              <Ionicons name="close" size={22} color={COLORS.textDark} />
             </Pressable>
           </View>
           {loading && <ActivityIndicator style={styles.loader} size="small" color={COLORS.primary} />}
@@ -104,13 +104,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   searchContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    shadowColor: "#2B075F",
+    shadowColor: COLORS.primaryDark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.surfaceGray,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 48,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: COLORS.borderGray,
   },
   suggestionText: {
     fontSize: 15,

@@ -7,6 +7,7 @@ import {
   getStories,
   getEvents,
   getActivities,
+  getNearbyServices,
   batchCheckSaved,
   Post,
   EventItem,
@@ -15,6 +16,7 @@ import {
   Rental,
   ActivityItem,
   GroupedStory,
+  Service,
 } from "../lib/api";
 import type { MapBounds } from "../context/MapBoundsContext";
 
@@ -41,6 +43,8 @@ interface UseFeedDataResult {
   savedJobIds: Set<string>;
   savedPostIds: Set<string>;
   savedRentalIds: Set<string>;
+  savedServiceIds: Set<string>;
+  services: Service[];
   feedError: boolean;
   loading: boolean;
   backgroundLoading: boolean;
@@ -71,7 +75,7 @@ function computeBounds(
   return DEFAULT_BOUNDS;
 }
 
-export function useFeedData({ sessionToken, mapBounds, userLocation, user, refreshKey }: UseFeedDataParams): UseFeedDataResult {
+export function useFeedData({ sessionToken, mapBounds, userLocation, user, refreshKey, friendsOnly }: UseFeedDataParams): UseFeedDataResult {
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -85,13 +89,15 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
   const [savedRentalIds, setSavedRentalIds] = useState<Set<string>>(new Set());
+  const [services, setServices] = useState<Service[]>([]);
+  const [savedServiceIds, setSavedServiceIds] = useState<Set<string>>(new Set());
   const [feedError, setFeedError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const isInitialRef = useRef(true);
 
-  const paramsRef = useRef({ sessionToken, mapBounds, userLocation, user });
-  paramsRef.current = { sessionToken, mapBounds, userLocation, user };
+  const paramsRef = useRef({ sessionToken, mapBounds, userLocation, user, friendsOnly });
+  paramsRef.current = { sessionToken, mapBounds, userLocation, user, friendsOnly };
 
   const loadData = useCallback(async () => {
     const { sessionToken, mapBounds, userLocation, user } = paramsRef.current;
@@ -116,18 +122,20 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
       const businessesPromise = getNearbyBusinesses(sessionToken, userLat, userLng, undefined, undefined, bounds);
       const jobsPromise = getJobs(sessionToken, bounds, { latitude: userLat, longitude: userLng });
       const rentalsPromise = getRentals(sessionToken, bounds, { latitude: userLat, longitude: userLng });
+      const servicesPromise = getNearbyServices(sessionToken, bounds, { latitude: userLat, longitude: userLng });
       const storiesPromise = getStories(sessionToken, { minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng });
 
       const results = await Promise.allSettled([
-        feedPromise, eventsPromise, activitiesPromise, businessesPromise, jobsPromise, rentalsPromise, storiesPromise,
+        feedPromise, eventsPromise, activitiesPromise, businessesPromise, jobsPromise, rentalsPromise, servicesPromise, storiesPromise,
       ]);
-      const [feedResult, eventsResult, activitiesResult, bizResult, jobsResult, rentalsResult, storiesResult] = results as [
+      const [feedResult, eventsResult, activitiesResult, bizResult, jobsResult, rentalsResult, servicesResult, storiesResult] = results as [
         PromiseSettledResult<Awaited<typeof feedPromise>>,
         PromiseSettledResult<Awaited<typeof eventsPromise>>,
         PromiseSettledResult<Awaited<typeof activitiesPromise>>,
         PromiseSettledResult<Awaited<typeof businessesPromise>>,
         PromiseSettledResult<Awaited<typeof jobsPromise>>,
         PromiseSettledResult<Awaited<typeof rentalsPromise>>,
+        PromiseSettledResult<Awaited<typeof servicesPromise>>,
         PromiseSettledResult<Awaited<typeof storiesPromise>>,
       ];
 
@@ -201,6 +209,17 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         console.error("Rentals load failed:", rentalsResult.reason);
       }
 
+      if (servicesResult.status === "fulfilled") {
+        const sv = servicesResult.value as any;
+        const serviceList: Service[] = Array.isArray(sv) ? sv : (sv.services || []);
+        setServices(serviceList);
+        if (serviceList.length > 0) {
+          batchCheckSaved(sessionToken, "service", serviceList.map((s: Service) => s.service_id)).then((r: { saved_ids: string[] }) => setSavedServiceIds(new Set(r.saved_ids))).catch(() => {});
+        }
+      } else {
+        console.error("Services load failed:", servicesResult.reason);
+      }
+
       if (storiesResult.status === "fulfilled") {
         const sv = storiesResult.value as any;
         setStoryGroups(Array.isArray(sv) ? sv : (sv.stories || sv || []));
@@ -226,8 +245,8 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
   }, [sessionToken, refreshKey]);
 
   return {
-    posts, events, businesses, jobs, rentals, activities, storyGroups,
-    savedEventIds, savedActivityIds, savedBusinessIds, savedJobIds, savedPostIds, savedRentalIds,
+    posts, events, businesses, jobs, rentals, activities, services, storyGroups,
+    savedEventIds, savedActivityIds, savedBusinessIds, savedJobIds, savedPostIds, savedRentalIds, savedServiceIds,
     feedError, loading, backgroundLoading, refresh: loadData,
   };
 }

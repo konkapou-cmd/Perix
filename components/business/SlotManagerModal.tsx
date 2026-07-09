@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView, Platform, ActivityIndicator, Alert } from "react-native";
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView, Platform, ActivityIndicator, Alert, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CalendarList } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
-import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { TimeSlot } from "../../lib/api/core";
 import { getSlots, createSlot, deleteSlot } from "../../lib/api/services";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -255,24 +255,25 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
 
   return (
     <Modal visible={visible} animationType="slide">
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={onClose} style={styles.headerBtn}>
-            <Ionicons name="close" size={28} color={COLORS.textPrimary} />
+      <SafeAreaView style={s.container} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <View style={s.header}>
+          <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
+            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
           </Pressable>
-          <Text style={styles.headerTitle}>{t("services.manageSlots", "Manage Time Slots")}</Text>
+          <Text style={s.headerTitle}>{t("services.manageSlots", "Manage Time Slots")}</Text>
           <Pressable
             onPress={() => { setBlockMode(!blockMode); setBlockStart(null); setBlockEnd(null); }}
-            style={[styles.headerBtn, blockMode && { backgroundColor: COLORS.danger + "20", borderRadius: 8 }]}
+            style={[s.headerBtn, blockMode && { backgroundColor: COLORS.danger + "20", borderRadius: BORDER_RADIUS.md }]}
           >
             <Ionicons name={blockMode ? "close-circle" : "lock-closed"} size={22} color={blockMode ? COLORS.danger : COLORS.textMuted} />
           </Pressable>
         </View>
 
         {blockMode && (
-          <View style={styles.blockBanner}>
+          <View style={s.blockBanner}>
             <Ionicons name="lock-closed" size={16} color="#fff" />
-            <Text style={styles.blockBannerText}>
+            <Text style={s.blockBannerText}>
               {blockStart && blockEnd
                 ? `${t("slotManager.blocking", "Blocking")}: ${blockStart} - ${blockEnd}`
                 : blockStart
@@ -280,8 +281,8 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
                   : t("slotManager.tapStartDate", "Tap a date to start block range")}
             </Text>
             {blockStart && blockEnd && (
-              <Pressable style={styles.blockApplyBtn} onPress={handleBlockRange} disabled={loading}>
-                <Text style={styles.blockApplyText}>{t("common.apply", "Apply")}</Text>
+              <Pressable style={s.blockApplyBtn} onPress={handleBlockRange} disabled={loading}>
+                <Text style={s.blockApplyText}>{t("common.apply", "Apply")}</Text>
               </Pressable>
             )}
           </View>
@@ -294,52 +295,52 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
           pastScrollRange={1}
           futureScrollRange={6}
           firstDay={1}
-          style={styles.calendar}
+          style={s.calendar}
           theme={{
-            backgroundColor: "#ffffff",
-            calendarBackground: "#ffffff",
-            textSectionTitleColor: "#6b7280",
+            backgroundColor: COLORS.background,
+            calendarBackground: COLORS.background,
+            textSectionTitleColor: COLORS.textMuted,
             selectedDayBackgroundColor: COLORS.primaryDark,
-            selectedDayTextColor: "#ffffff",
+            selectedDayTextColor: "#fff",
             todayTextColor: COLORS.primaryDark,
-            dayTextColor: "#374151",
-            textDisabledColor: "#d1d5db",
+            dayTextColor: COLORS.textPrimary,
+            textDisabledColor: COLORS.textDisabled,
             dotColor: COLORS.success,
-            selectedDotColor: "#ffffff",
+            selectedDotColor: "#fff",
             arrowColor: COLORS.primaryDark,
             monthTextColor: COLORS.textPrimary,
-            textDayFontWeight: "500",
-            textMonthFontWeight: "700",
-            textDayFontSize: 14,
+            textDayFontWeight: FONT_WEIGHTS.medium as any,
+            textMonthFontWeight: FONT_WEIGHTS.bold as any,
+            textDayFontSize: FONT_SIZES.caption,
           }}
         />
 
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: COLORS.success }]} />
-            <Text style={styles.legendText}>{t("slotManager.available", "Available")}</Text>
+        <View style={s.legendRow}>
+          <View style={s.legendItem}>
+            <View style={[s.legendDot, { backgroundColor: COLORS.success }]} />
+            <Text style={s.legendText}>{t("slotManager.available", "Available")}</Text>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: COLORS.textMuted }]} />
-            <Text style={styles.legendText}>{t("slotManager.booked", "Booked")}</Text>
+          <View style={s.legendItem}>
+            <View style={[s.legendDot, { backgroundColor: COLORS.textMuted }]} />
+            <Text style={s.legendText}>{t("slotManager.booked", "Booked")}</Text>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: COLORS.danger }]} />
-            <Text style={styles.legendText}>{t("slotManager.blocked", "Blocked")}</Text>
+          <View style={s.legendItem}>
+            <View style={[s.legendDot, { backgroundColor: COLORS.danger }]} />
+            <Text style={s.legendText}>{t("slotManager.blocked", "Blocked")}</Text>
           </View>
         </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>{selectedDate} ({selDayName})</Text>
+        <View style={s.panel}>
+          <Text style={s.panelTitle}>{selectedDate} ({selDayName})</Text>
 
           {dateSlots.length === 0 && !loading && (
-            <Text style={styles.emptySlots}>{t("slotManager.noSlotsDate", "No slots for this date")}</Text>
+            <Text style={s.emptySlots}>{t("slotManager.noSlotsDate", "No slots for this date")}</Text>
           )}
 
           {dateSlots.map((slot) => (
-            <View key={slot.slot_id} style={styles.slotRow}>
+            <View key={slot.slot_id} style={s.slotRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.slotInfo}>
+                <Text style={s.slotInfo}>
                   {slot.is_recurring ? "Recurring" : "Specific"} {slot.start_time} - {slot.end_time}
                   {slot.is_blocked ? ` (${t("slotManager.blocked", "blocked")})` : ""}
                   {slot.is_booked ? ` (${t("slotManager.booked", "booked")})` : ""}
@@ -351,51 +352,51 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
             </View>
           ))}
 
-          <Text style={styles.quickLabel}>{t("slotManager.addSlotDate", "Add slot for this date")}</Text>
-          <View style={styles.quickRow}>
-            <Pressable style={styles.timeChip} onPress={() => setTimePickerTarget("quickStart")}>
-              <Text style={styles.timeChipText}>{quickStart || "09:00"}</Text>
+          <Text style={s.quickLabel}>{t("slotManager.addSlotDate", "Add slot for this date")}</Text>
+          <View style={s.quickRow}>
+            <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("quickStart")}>
+              <Text style={s.timeChipText}>{quickStart || "09:00"}</Text>
             </Pressable>
-            <Text style={styles.timeSep}>-</Text>
-            <Pressable style={styles.timeChip} onPress={() => setTimePickerTarget("quickEnd")}>
-              <Text style={styles.timeChipText}>{quickEnd || "10:00"}</Text>
+            <Text style={s.timeSep}>-</Text>
+            <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("quickEnd")}>
+              <Text style={s.timeChipText}>{quickEnd || "10:00"}</Text>
             </Pressable>
-            <Pressable style={styles.quickAddBtn} onPress={handleCreateQuickSlot} disabled={loading}>
+            <Pressable style={s.quickAddBtn} onPress={handleCreateQuickSlot} disabled={loading}>
               <Ionicons name="add" size={20} color="#fff" />
             </Pressable>
           </View>
-          {loading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 8 }} />}
+          {loading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: SPACING.small }} />}
         </View>
 
-        <ScrollView style={styles.bottomSection} contentContainerStyle={{ paddingBottom: 20 }}>
-          <Text style={styles.sectionTitle}>{t("services.weeklyRecurring", "Weekly Recurring")}</Text>
-          <View style={styles.dayRow}>
+        <ScrollView style={s.bottomSection} contentContainerStyle={{ paddingBottom: SPACING.section }}>
+          <Text style={s.sectionTitle}>{t("services.weeklyRecurring", "Weekly Recurring")}</Text>
+          <View style={s.dayRow}>
             {DAYS.map((day, idx) => (
               <Pressable
                 key={idx}
-                style={[styles.dayChip, selectedDays.includes(idx) && styles.dayChipSelected]}
+                style={[s.dayChip, selectedDays.includes(idx) && s.dayChipSelected]}
                 onPress={() => setSelectedDays((prev) => prev.includes(idx) ? prev.filter((d) => d !== idx) : [...prev, idx])}
               >
-                <Text style={[styles.dayText, selectedDays.includes(idx) && styles.dayTextSelected]}>{day.slice(0, 3)}</Text>
+                <Text style={[s.dayText, selectedDays.includes(idx) && s.dayTextSelected]}>{day.slice(0, 3)}</Text>
               </Pressable>
             ))}
           </View>
-          <View style={styles.timeRow}>
-            <Pressable style={styles.timeChip} onPress={() => setTimePickerTarget("weeklyStart")}>
-              <Text style={styles.timeChipText}>{weeklyStart}</Text>
+          <View style={s.timeRow}>
+            <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("weeklyStart")}>
+              <Text style={s.timeChipText}>{weeklyStart}</Text>
             </Pressable>
-            <Text style={styles.timeSep}>-</Text>
-            <Pressable style={styles.timeChip} onPress={() => setTimePickerTarget("weeklyEnd")}>
-              <Text style={styles.timeChipText}>{weeklyEnd}</Text>
+            <Text style={s.timeSep}>-</Text>
+            <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("weeklyEnd")}>
+              <Text style={s.timeChipText}>{weeklyEnd}</Text>
             </Pressable>
           </View>
-          <Pressable style={styles.createBtn} onPress={handleCreateWeekly} disabled={loading}>
-            <Text style={styles.createBtnText}>{t("slotManager.createSlots", "Create Weekly Slots")}</Text>
+          <Pressable style={s.createBtn} onPress={handleCreateWeekly} disabled={loading}>
+            <Text style={s.createBtnText}>{t("slotManager.createSlots", "Create Weekly Slots")}</Text>
           </Pressable>
         </ScrollView>
 
         {timePickerTarget && (
-          <View style={styles.pickerOverlay}>
+          <View style={s.pickerOverlay}>
             <DateTimePicker
               value={toDate(
                 timePickerTarget === "quickStart" ? quickStart :
@@ -407,12 +408,13 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
               onChange={handleTimeChange}
             />
             {Platform.OS === "ios" && (
-              <Pressable style={styles.pickerDoneBtn} onPress={() => setTimePickerTarget(null)}>
-                <Text style={styles.pickerDoneText}>{t("common.done", "Done")}</Text>
+              <Pressable style={s.pickerDoneBtn} onPress={() => setTimePickerTarget(null)}>
+                <Text style={s.pickerDoneText}>{t("common.done", "Done")}</Text>
               </Pressable>
             )}
           </View>
         )}
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -429,43 +431,50 @@ function toDate(time: string): Date {
   return d;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
   headerBtn: { padding: 6, width: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: COLORS.textPrimary },
-  blockBanner: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: COLORS.danger },
-  blockBannerText: { flex: 1, fontSize: 13, color: "#fff", fontWeight: "600" },
-  blockApplyBtn: { backgroundColor: "#fff", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
-  blockApplyText: { fontSize: 13, fontWeight: "700", color: COLORS.danger },
+  headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  blockBanner: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, backgroundColor: COLORS.danger },
+  blockBannerText: { flex: 1, fontSize: FONT_SIZES.small, color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
+  blockApplyBtn: { backgroundColor: "#fff", paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full },
+  blockApplyText: { fontSize: FONT_SIZES.small, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.danger },
   calendar: { height: 320, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  legendRow: { flexDirection: "row", justifyContent: "center", gap: 20, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  legendRow: { flexDirection: "row", justifyContent: "center", gap: SPACING.section, paddingVertical: SPACING.small, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: SPACING.tiny },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 11, color: COLORS.textMuted },
-  panel: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  panelTitle: { fontSize: 14, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 6 },
-  emptySlots: { fontSize: 13, color: COLORS.textMuted, fontStyle: "italic", marginBottom: 8 },
-  slotRow: { flexDirection: "row", alignItems: "center", paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border },
-  slotInfo: { fontSize: 13, color: COLORS.textPrimary },
-  quickLabel: { fontSize: 12, fontWeight: "600", color: COLORS.textMuted, marginTop: 8, marginBottom: 4 },
-  quickRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendText: { fontSize: FONT_SIZES.micro, color: COLORS.textMuted },
+  panel: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  panelTitle: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary, marginBottom: SPACING.small },
+  emptySlots: { fontSize: FONT_SIZES.small, color: COLORS.textMuted, fontStyle: "italic", marginBottom: SPACING.small },
+  slotRow: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.small, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border },
+  slotInfo: { fontSize: FONT_SIZES.small, color: COLORS.textPrimary },
+  quickLabel: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textMuted, marginTop: SPACING.small, marginBottom: SPACING.tiny },
+  quickRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small },
   quickAddBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
-  bottomSection: { flex: 1, paddingHorizontal: 16, paddingTop: 10 },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 8 },
-  dayRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 },
-  dayChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: "#fff" },
+  bottomSection: { flex: 1, paddingHorizontal: SPACING.std, paddingTop: SPACING.small },
+  sectionTitle: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary, marginBottom: SPACING.small },
+  dayRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: SPACING.compact },
+  dayChip: { paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
   dayChipSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  dayText: { fontSize: 12, color: COLORS.textPrimary },
-  dayTextSelected: { color: "#fff", fontWeight: "600" },
-  timeRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12 },
-  timeInput: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: COLORS.textPrimary, flex: 1, textAlign: "center" },
-  timeChip: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: COLORS.primary + "10", flex: 1, alignItems: "center" },
-  timeChipText: { fontSize: 15, fontWeight: "600", color: COLORS.primary },
-  timeSep: { fontSize: 14, color: COLORS.textMuted },
-  createBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: 14, alignItems: "center", marginTop: 4 },
-  createBtnText: { fontSize: 15, fontWeight: "700", color: "#fff" },
-  pickerOverlay: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: COLORS.border, paddingBottom: 20 },
-  pickerDoneBtn: { alignItems: "center", paddingVertical: 12, marginHorizontal: 16, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.primary },
-  pickerDoneText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  dayText: { fontSize: FONT_SIZES.micro, color: COLORS.textPrimary },
+  dayTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
+  timeRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, marginBottom: SPACING.compact },
+  timeChip: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, backgroundColor: COLORS.primary + "10", flex: 1, alignItems: "center" },
+  timeChipText: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.primary },
+  timeSep: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted },
+  createBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.small, alignItems: "center", marginTop: SPACING.tiny },
+  createBtnText: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
+  pickerOverlay: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border, paddingBottom: SPACING.section },
+  pickerDoneBtn: { alignItems: "center", paddingVertical: SPACING.compact, marginHorizontal: SPACING.std, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.primary },
+  pickerDoneText: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
 });

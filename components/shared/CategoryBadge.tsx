@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
 import { translateCategory } from "../../lib/categoryTranslation";
 
 type CategoryBadgeProps = {
@@ -55,18 +56,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   rootText: {
-    color: "#6b7280",
+    color: COLORS.textGray,
     fontSize: 14,
   },
   subText: {
-    color: "#6b7280",
+    color: COLORS.textGray,
     fontSize: 14,
   },
   textSmall: {
     fontSize: 12,
   },
   inlineText: {
-    color: "#6b7280",
+    color: COLORS.textGray,
     fontSize: 14,
   },
 });

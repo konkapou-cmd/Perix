@@ -115,16 +115,23 @@ export default function FriendRequestsScreen() {
   const renderReceivedRequest = ({ item }: { item: FriendRequest }) => {
     const user = item.from_user;
     const isProcessing = processingId === item.request_id;
+    const isFromEntity = item.from_entity_type && item.from_entity_type !== "user";
+    const displayName = isFromEntity ? (item.from_entity_name || user?.name || "Unknown") : (user?.name || "Unknown");
+    const displayImage = isFromEntity ? (item.from_entity_image || user?.profile_photo || user?.picture) : (user?.profile_photo || user?.picture);
+    let navTarget = `/user/${user?.user_id}`;
+    if (isFromEntity && item.from_entity_type === "business" && item.from_entity_id) {
+      navTarget = `/business/${item.from_entity_id}`;
+    }
     
     return (
       <View style={styles.requestCard}>
         <Pressable 
           style={styles.userInfo}
-          onPress={() => user?.user_id && router.push(`/user/${user.user_id}`)}
+          onPress={() => router.push(navTarget as any)}
         >
-          {user?.profile_photo || user?.picture ? (
+          {displayImage ? (
             <Image 
-              source={{ uri: (user?.profile_photo || user?.picture) || undefined }} 
+              source={{ uri: displayImage }} 
               style={styles.avatar} 
             />
           ) : (
@@ -133,12 +140,17 @@ export default function FriendRequestsScreen() {
               style={styles.avatarPlaceholder}
             >
               <Text style={styles.avatarText}>
-                {user?.name?.charAt(0) || "?"}
+                {displayName?.charAt(0) || "?"}
               </Text>
             </LinearGradient>
           )}
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>{user?.name || "Unknown"}</Text>
+            <Text style={styles.userName}>{displayName}</Text>
+            {isFromEntity && (
+              <Text style={styles.timeAgo}>
+                {item.from_entity_type === "business" ? "Business" : "Artist"}
+              </Text>
+            )}
             <Text style={styles.timeAgo}>
               {formatTimeAgo(item.created_at)}
             </Text>
@@ -180,12 +192,17 @@ export default function FriendRequestsScreen() {
   const renderSentRequest = ({ item }: { item: FriendRequest }) => {
     const displayName = item.to_user?.name || item.to_entity_name || "Unknown";
     const displayImage = item.to_user?.profile_photo || item.to_user?.picture || item.to_entity_image;
+    const targetUserId = item.to_user?.user_id || item.entity_id;
+    const isToEntity = item.entity_type && item.entity_type !== "user";
+    let navPath = `/user/${targetUserId}`;
+    if (isToEntity && item.entity_type === "business") navPath = `/business/${item.entity_id}`;
+    else if (isToEntity && item.entity_type === "artist") navPath = `/artist/${item.entity_id}`;
     
     return (
       <View style={styles.requestCard}>
         <Pressable 
           style={styles.userInfo}
-          onPress={() => (item.to_user?.user_id || item.entity_id) && router.push(`/user/${item.to_user?.user_id || item.entity_id}`)}
+          onPress={() => router.push(navPath as any)}
         >
           {displayImage ? (
             <Image 
@@ -204,6 +221,11 @@ export default function FriendRequestsScreen() {
           )}
           <View style={styles.userDetails}>
             <Text style={styles.userName}>{displayName}</Text>
+            {isToEntity && (
+              <Text style={styles.timeAgo}>
+                {item.entity_type === "business" ? "Business" : "Artist"}
+              </Text>
+            )}
             <Text style={styles.statusText}>
               {t("friends.pendingRequest") || "Pending"}
             </Text>

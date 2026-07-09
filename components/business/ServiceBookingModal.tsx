@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Platfo
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, CATEGORY_SERVICE_TYPES, CategoryServiceType, getServiceTypeConfig, getBookingMode, BookingMode } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES, CategoryServiceType, getServiceTypeConfig, getBookingMode, BookingMode } from "../../lib/designTokens";
 import { Service, TimeSlot } from "../../lib/api/core";
 import { getSlots, createBooking, getAvailability } from "../../lib/api/services";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
@@ -44,6 +44,7 @@ export default function ServiceBookingModal({
   const [pickupLocation, setPickupLocation] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
 
+  const [allSlots, setAllSlots] = useState<TimeSlot[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const typeConfig = service ? getServiceTypeConfig(
@@ -61,6 +62,7 @@ export default function ServiceBookingModal({
       setPetType("");
       setReasonForVisit("");
       setPickupLocation("");
+      getSlots(service.service_id).then(setAllSlots).catch(() => setAllSlots([]));
     }
   }, [visible, service]);
 
@@ -106,6 +108,18 @@ export default function ServiceBookingModal({
     const d = new Date(dateStr + "T00:00:00");
     return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   };
+
+  const availableDates = dates.filter((dateStr) => {
+    const dateObj = new Date(dateStr + "T00:00:00");
+    const dayOfWeek = dateObj.getDay();
+    return allSlots.some((s) => {
+      if (s.is_blocked || s.is_booked) return false;
+      if (s.date === dateStr) return true;
+      if (s.is_recurring && s.day_of_week === dayOfWeek) return true;
+      return false;
+    });
+  });
+  const displayDates = allSlots.length > 0 ? availableDates : dates;
 
   const handleBook = async () => {
     if (!service || !name.trim()) {
@@ -175,31 +189,31 @@ export default function ServiceBookingModal({
 
   return (
     <Modal visible={visible} animationType="slide">
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={onClose} style={styles.headerBtn}>
-            <Ionicons name="close" size={28} color={COLORS.textPrimary} />
+      <SafeAreaView style={s.container} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <View style={s.header}>
+          <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
+            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
           </Pressable>
-          <Text style={styles.headerTitle}>
+          <Text style={s.headerTitle}>
             {bookingMode === "browse_only" ? t("services.askAbout", "Ask about this") :
              bookingMode === "booking_request" ? t("services.requestBooking", "Request Booking") :
              t("services.bookNow", "Book Now")}
           </Text>
-          <View style={styles.headerBtn} />
+          <View style={s.headerBtn} />
         </View>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        <ScrollView style={s.body} contentContainerStyle={{ paddingBottom: SPACING.large }} keyboardShouldPersistTaps="handled">
           {service && (
-            <View style={[styles.summaryCard, { backgroundColor: COLORS.surfaceSoft }]}>
+            <View style={[s.summaryCard, { backgroundColor: COLORS.surfaceSoft }]}>
               {(service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0]) && (
-                <AdaptiveImage uri={service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0]} style={styles.summaryImage} borderRadius={BORDER_RADIUS.md} />
+                <AdaptiveImage uri={service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0]} style={s.summaryImage} borderRadius={BORDER_RADIUS.md} />
               )}
-              <Text style={styles.summaryName}>{service.name}</Text>
+              <Text style={s.summaryName}>{service.name}</Text>
               {service.duration_minutes && (
-                <Text style={styles.summaryDetail}>{formatDuration(service.duration_minutes)}</Text>
+                <Text style={s.summaryDetail}>{formatDuration(service.duration_minutes)}</Text>
               )}
               {service.price && (
-                <Text style={styles.summaryPrice}>{formatPrice(service.price)}</Text>
+                <Text style={s.summaryPrice}>{formatPrice(service.price)}</Text>
               )}
             </View>
           )}
@@ -212,17 +226,17 @@ export default function ServiceBookingModal({
             />
           )}
 
-          <Text style={styles.sectionTitle}>{t("services.selectDate", "Select a date")}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateRow}>
-            {dates.map((d) => {
+          <Text style={s.sectionTitle}>{t("services.selectDate", "Select a date")}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.dateRow}>
+            {displayDates.map((d) => {
               const isSelected = d === selectedDate;
               return (
                 <Pressable
                   key={d}
-                  style={[styles.dateCard, isSelected && styles.dateSelected]}
+                  style={[s.dateCard, isSelected && s.dateSelected]}
                   onPress={() => { setSelectedDate(d); setSelectedSlot(null); }}
                 >
-                  <Text style={[styles.dateText, isSelected && styles.dateTextSelected]}>{formatDate(d)}</Text>
+                  <Text style={[s.dateText, isSelected && s.dateTextSelected]}>{formatDate(d)}</Text>
                 </Pressable>
               );
             })}
@@ -230,24 +244,24 @@ export default function ServiceBookingModal({
 
           {bookingMode === "booking_slots" && selectedDate && (
             <>
-              <Text style={styles.sectionTitle}>{t("services.selectSlot", "Select a time slot")}</Text>
+              <Text style={s.sectionTitle}>{t("services.selectSlot", "Select a time slot")}</Text>
               {loadingSlots ? (
-                <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 20 }} />
+                <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: SPACING.section }} />
               ) : slots.length === 0 ? (
-                <Text style={styles.emptyText}>{t("services.noSlots", "No available slots for this date")}</Text>
+                <Text style={s.emptyText}>{t("services.noSlots", "No available slots for this date")}</Text>
               ) : (
-                <View style={styles.slotRow}>
+                <View style={s.slotRow}>
                   {slots.map((slot) => {
                     const avail = availabilities[slot.slot_id];
                     const isFull = avail?.is_full ?? false;
-                    const spotsText = avail != null ? ` • ${avail.available_spots}/${avail.capacity}` : "";
+                    const spotsText = avail != null ? ` \u2022 ${avail.available_spots}/${avail.capacity}` : "";
                     return (
                       <Pressable
                         key={slot.slot_id}
-                        style={[styles.slotCard, selectedSlot?.slot_id === slot.slot_id && styles.slotSelected, isFull && styles.slotCardFull]}
+                        style={[s.slotCard, selectedSlot?.slot_id === slot.slot_id && s.slotSelected, isFull && s.slotCardFull]}
                         onPress={() => !isFull && setSelectedSlot(slot)}
                       >
-                        <Text style={[styles.slotText, selectedSlot?.slot_id === slot.slot_id && styles.slotTextSelected, isFull && styles.slotTextFull]}>
+                        <Text style={[s.slotText, selectedSlot?.slot_id === slot.slot_id && s.slotTextSelected, isFull && s.slotTextFull]}>
                           {slot.start_time} - {slot.end_time}{spotsText}
                         </Text>
                       </Pressable>
@@ -260,135 +274,187 @@ export default function ServiceBookingModal({
 
           {bookingMode === "booking_request" && selectedDate && (
             <>
-              <Text style={styles.sectionTitle}>Preferred time (optional)</Text>
+              <Text style={s.sectionTitle}>Preferred time (optional)</Text>
               <TextInput
-                style={styles.input}
-                placeholder="e.g. Morning, 10:00–12:00"
+                style={s.input}
+                placeholder="e.g. Morning, 10:00\u201312:00"
                 value={preferredTime}
                 onChangeText={setPreferredTime}
+                placeholderTextColor={COLORS.textDisabled}
               />
-              <Text style={styles.sectionTitle}>Message / notes</Text>
+              <Text style={s.sectionTitle}>Message / notes</Text>
               <TextInput
-                style={[styles.input, { height: 80 }]}
+                style={[s.input, { height: 80 }]}
                 multiline
                 placeholder="Tell the business what you need..."
                 value={notes}
                 onChangeText={setNotes}
+                placeholderTextColor={COLORS.textDisabled}
               />
             </>
           )}
 
           {bookingMode === "browse_only" && (
-            <View style={{ alignItems: "center", paddingVertical: 20 }}>
-              <Text style={{ fontSize: 15, color: COLORS.textMuted, textAlign: "center", marginBottom: 16 }}>
+            <View style={{ alignItems: "center", paddingVertical: SPACING.section }}>
+              <Text style={{ fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, textAlign: "center", marginBottom: SPACING.std }}>
                 This service is available for viewing. Send a message to ask the business about it.
               </Text>
               <Pressable
-                style={[styles.bookBtn, { backgroundColor: COLORS.primary }]}
+                style={[s.bookBtn, { backgroundColor: COLORS.primary }]}
                 onPress={() => { onAskAbout?.(service?.business_id || ""); onClose(); }}
               >
                 <Ionicons name="chatbubble-ellipses-outline" size={16} color="#fff" />
-                <Text style={styles.bookBtnText}>Ask about this</Text>
+                <Text style={s.bookBtnText}>Ask about this</Text>
               </Pressable>
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>{t("services.guests", "Guests")}</Text>
-          <View style={styles.stepperRow}>
-            <Pressable style={styles.stepperBtn} onPress={() => setGuests(Math.max(1, guests - 1))}>
+          <Text style={s.sectionTitle}>{t("services.guests", "Guests")}</Text>
+          <View style={s.stepperRow}>
+            <Pressable style={s.stepperBtn} onPress={() => setGuests(Math.max(1, guests - 1))}>
               <Ionicons name="remove" size={20} color={COLORS.textPrimary} />
             </Pressable>
-            <Text style={styles.stepperValue}>{guests}</Text>
-            <Pressable style={styles.stepperBtn} onPress={() => setGuests(guests + 1)}>
+            <Text style={s.stepperValue}>{guests}</Text>
+            <Pressable style={s.stepperBtn} onPress={() => setGuests(guests + 1)}>
               <Ionicons name="add" size={20} color={COLORS.textPrimary} />
             </Pressable>
           </View>
 
-          <Text style={styles.sectionTitle}>{t("services.yourName", "Your name")} *</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="John Doe" />
+          <Text style={s.sectionTitle}>{t("services.yourName", "Your name")} *</Text>
+          <TextInput style={s.input} value={name} onChangeText={setName} placeholder="John Doe" placeholderTextColor={COLORS.textDisabled} />
 
-          <Text style={styles.sectionTitle}>{t("services.yourEmail", "Your email")}</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="john@example.com" keyboardType="email-address" />
+          <Text style={s.sectionTitle}>{t("services.yourEmail", "Your email")}</Text>
+          <TextInput style={s.input} value={email} onChangeText={setEmail} placeholder="john@example.com" keyboardType="email-address" placeholderTextColor={COLORS.textDisabled} />
 
           {showPets && (
             <>
-              <Text style={styles.sectionTitle}>{t("services.petName", "Pet name")}</Text>
-              <TextInput style={styles.input} value={petName} onChangeText={setPetName} placeholder="Max" />
-              <Text style={styles.sectionTitle}>{t("services.petType", "Pet type")}</Text>
-              <TextInput style={styles.input} value={petType} onChangeText={setPetType} placeholder="Dog / Cat" />
+              <Text style={s.sectionTitle}>{t("services.petName", "Pet name")}</Text>
+              <TextInput style={s.input} value={petName} onChangeText={setPetName} placeholder="Max" placeholderTextColor={COLORS.textDisabled} />
+              <Text style={s.sectionTitle}>{t("services.petType", "Pet type")}</Text>
+              <TextInput style={s.input} value={petType} onChangeText={setPetType} placeholder="Dog / Cat" placeholderTextColor={COLORS.textDisabled} />
             </>
           )}
 
           {showHealthcare && (
             <>
-              <Text style={styles.sectionTitle}>{t("services.reasonForVisit", "Reason for visit")}</Text>
-              <TextInput style={[styles.input, { height: 80 }]} value={reasonForVisit} onChangeText={setReasonForVisit} placeholder="Describe your symptoms..." multiline />
+              <Text style={s.sectionTitle}>{t("services.reasonForVisit", "Reason for visit")}</Text>
+              <TextInput style={[s.input, { height: 80 }]} value={reasonForVisit} onChangeText={setReasonForVisit} placeholder="Describe your symptoms..." multiline placeholderTextColor={COLORS.textDisabled} />
             </>
           )}
 
           {showAutoRental && (
             <>
-              <Text style={styles.sectionTitle}>{t("services.pickupLocation", "Pickup location")}</Text>
-              <TextInput style={styles.input} value={pickupLocation} onChangeText={setPickupLocation} placeholder="Address" />
+              <Text style={s.sectionTitle}>{t("services.pickupLocation", "Pickup location")}</Text>
+              <TextInput style={s.input} value={pickupLocation} onChangeText={setPickupLocation} placeholder="Address" placeholderTextColor={COLORS.textDisabled} />
             </>
           )}
 
           {bookingMode !== "browse_only" && (
             <>
-              <Text style={styles.sectionTitle}>{t("services.notes", "Notes / Special requests")}</Text>
-              <TextInput style={[styles.input, { height: 80 }]} value={notes} onChangeText={setNotes} placeholder="Any special requests..." multiline />
-
-              <Pressable
-                style={[styles.bookBtn, (!selectedDate || submitting || (bookingMode === "booking_slots" && !selectedSlot)) && { opacity: 0.5 }]}
-                onPress={handleBook}
-                disabled={!selectedDate || submitting || (bookingMode === "booking_slots" && !selectedSlot)}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.bookBtnText}>
-                    {bookingMode === "booking_slots" ? t("services.bookNow", "Book Now") : t("services.requestBooking", "Send Request")}
-                  </Text>
-                )}
-              </Pressable>
+              <Text style={s.sectionTitle}>{t("services.notes", "Notes / Special requests")}</Text>
+              <TextInput style={[s.input, { height: 80 }]} value={notes} onChangeText={setNotes} placeholder="Any special requests..." multiline placeholderTextColor={COLORS.textDisabled} />
             </>
           )}
+
+          <View style={{ height: SPACING.large }} />
         </ScrollView>
+
+        {bookingMode !== "browse_only" && (
+          <View style={s.footer}>
+            <Pressable style={s.cancelBtn} onPress={onClose}>
+              <Text style={s.cancelBtnText}>{t("common.cancel", "Cancel")}</Text>
+            </Pressable>
+            <Pressable
+              style={[s.saveBtn, (!selectedDate || submitting || (bookingMode === "booking_slots" && !selectedSlot)) && { opacity: 0.5 }]}
+              onPress={handleBook}
+              disabled={!selectedDate || submitting || (bookingMode === "booking_slots" && !selectedSlot)}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={s.saveBtnText}>
+                  {bookingMode === "booking_slots" ? t("services.bookNow", "Book Now") : t("services.requestBooking", "Send Request")}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        )}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  headerBtn: { padding: 4, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.textPrimary },
-  body: { flex: 1, padding: 16 },
-  summaryCard: { padding: 16, borderRadius: BORDER_RADIUS.lg, marginBottom: 20, alignItems: "center" },
-  summaryImage: { width: 120, height: 90, borderRadius: BORDER_RADIUS.md, marginBottom: 8 },
-  summaryName: { fontSize: 18, fontWeight: "700", color: COLORS.textPrimary },
-  summaryDetail: { fontSize: 14, color: COLORS.textMuted, marginTop: 2 },
-  summaryPrice: { fontSize: 16, fontWeight: "700", color: COLORS.success, marginTop: 4 },
-  sectionTitle: { fontSize: 15, fontWeight: "600", color: COLORS.textPrimary, marginTop: 16, marginBottom: 8 },
-  dateRow: { flexDirection: "row", marginBottom: 8 },
-  dateCard: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, marginRight: 8, backgroundColor: "#fff" },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  headerBtn: { padding: 4, width: 40, alignItems: "center" },
+  headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  body: { flex: 1, paddingHorizontal: SPACING.std },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: SPACING.small,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  cancelBtn: {
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.section,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cancelBtnText: {
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.textSecondary,
+  },
+  saveBtn: {
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.section,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.primary,
+  },
+  saveBtnText: {
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#fff",
+  },
+  summaryCard: { padding: SPACING.std, borderRadius: BORDER_RADIUS.lg, marginBottom: SPACING.section, alignItems: "center" },
+  summaryImage: { width: 120, height: 90, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.small },
+  summaryName: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  summaryDetail: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, marginTop: SPACING.tiny },
+  summaryPrice: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success, marginTop: SPACING.tiny },
+  sectionTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textPrimary, marginTop: SPACING.std, marginBottom: SPACING.small },
+  dateRow: { flexDirection: "row", marginBottom: SPACING.small },
+  dateCard: { paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, marginRight: SPACING.small, backgroundColor: COLORS.background },
   dateSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  dateText: { fontSize: 13, color: COLORS.textPrimary },
-  dateTextSelected: { color: "#fff", fontWeight: "600" },
-  slotRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  slotCard: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: "#fff" },
+  dateText: { fontSize: FONT_SIZES.small, color: COLORS.textPrimary },
+  dateTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
+  slotRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small },
+  slotCard: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
   slotSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   slotCardFull: { opacity: 0.4, borderColor: COLORS.danger },
-  slotText: { fontSize: 14, color: COLORS.textPrimary },
-  slotTextSelected: { color: "#fff", fontWeight: "600" },
+  slotText: { fontSize: FONT_SIZES.caption, color: COLORS.textPrimary },
+  slotTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
   slotTextFull: { textDecorationLine: "line-through" },
-  emptyText: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", marginVertical: 20 },
-  stepperRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  emptyText: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, textAlign: "center", marginVertical: SPACING.section },
+  stepperRow: { flexDirection: "row", alignItems: "center", gap: SPACING.std },
   stepperBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" },
-  stepperValue: { fontSize: 18, fontWeight: "700", color: COLORS.textPrimary, minWidth: 30, textAlign: "center" },
-  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: COLORS.textPrimary, marginBottom: 8 },
-  bookBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: 16, alignItems: "center", marginTop: 24 },
-  bookBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  stepperValue: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary, minWidth: 30, textAlign: "center" },
+  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, marginBottom: SPACING.small },
+  bookBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.section },
+  bookBtnText: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
 });

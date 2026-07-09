@@ -1,7 +1,8 @@
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { useRouter } from "expo-router";
+import { COLORS, SPACING } from "../../lib/designTokens";
 
 interface FilterOption {
   key: string;
@@ -11,7 +12,8 @@ interface FilterOption {
 interface CarouselSectionProps {
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
-  seeAllRoute?: string;
+  color?: string;
+  seeAllRoute?: any;
   filters?: {
     options: FilterOption[];
     activeKey: string;
@@ -21,23 +23,25 @@ interface CarouselSectionProps {
   children: React.ReactNode;
 }
 
-export function CarouselSection({ title, icon, seeAllRoute, filters, emptyMessage = "No items", children }: CarouselSectionProps) {
+export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage = "No items", children }: CarouselSectionProps) {
+  const router = useRouter();
   const hasContent = React.Children.count(children) > 0;
+  const accent = color || COLORS.primaryDark;
 
   return (
     <View style={styles.card}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitle}>
-          <View style={styles.iconContainer}>
-            <Ionicons name={icon} size={18} color="#ffffff" />
+          <View style={[styles.iconContainer, { backgroundColor: accent }]}>
+            <Ionicons name={icon} size={18} color={COLORS.textLight} />
           </View>
           <Text style={styles.cardTitle}>{title}</Text>
         </View>
         <View style={styles.sectionHeaderRight}>
           {seeAllRoute && (
-            <Pressable style={styles.seeAllButton}>
+            <Pressable style={[styles.seeAllButton, { backgroundColor: accent }]} onPress={() => router.navigate(seeAllRoute as any)}>
               <Text style={styles.seeAllButtonText}>See All</Text>
-              <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+              <Ionicons name="chevron-forward" size={14} color={COLORS.textLight} />
             </Pressable>
           )}
         </View>
@@ -48,10 +52,10 @@ export function CarouselSection({ title, icon, seeAllRoute, filters, emptyMessag
           {filters.options.map(opt => (
             <Pressable
               key={opt.key}
-              style={[styles.filterChip, filters.activeKey === opt.key && styles.filterChipActive]}
+              style={[styles.filterChip, filters.activeKey === opt.key && { backgroundColor: accent, borderColor: accent }]}
               onPress={() => filters.onChange(opt.key)}
             >
-              <Text style={[styles.filterChipText, filters.activeKey === opt.key && styles.filterChipTextActive]}>
+              <Text style={[styles.filterChipText, filters.activeKey === opt.key && { color: COLORS.textLight, fontWeight: "600" }]}>
                 {opt.label}
               </Text>
             </Pressable>
@@ -74,10 +78,10 @@ export function CarouselSection({ title, icon, seeAllRoute, filters, emptyMessag
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     marginHorizontal: 0,
     marginBottom: 10,
-    padding: 12,
+    padding: SPACING.small,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -120,7 +124,7 @@ const styles = StyleSheet.create({
   seeAllButtonText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#ffffff",
+    color: COLORS.textLight,
   },
   filterChipRow: {
     flexDirection: "row",
@@ -136,18 +140,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     backgroundColor: COLORS.background,
   },
-  filterChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
   filterChipText: {
     fontSize: 12,
     fontWeight: "500",
     color: COLORS.textMuted,
-  },
-  filterChipTextActive: {
-    color: COLORS.background,
-    fontWeight: "600",
   },
   emptyState: {
     width: 120,
@@ -156,7 +152,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 12,
-    color: "#6b7280",
+    color: COLORS.textGray,
     textAlign: "center",
   },
 });

@@ -11,7 +11,7 @@ interface InviteFriendsModalProps {
   userName?: string;
 }
 
-const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || "https://api.perixapp.com";
+const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || "http://10.208.154.177:8000";
 const APP_URL = BACKEND_URL.replace('/api', '').replace('api.', '');
 
 export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({

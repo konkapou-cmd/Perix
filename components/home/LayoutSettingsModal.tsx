@@ -14,7 +14,7 @@ interface LayoutSettingsModalProps {
 }
 
 const SORT_OPTIONS = ["engagement", "distance", "chronological", "random"] as const;
-const SORTABLE_TYPES = ["posts", "events", "activities", "businesses"] as const;
+const SORTABLE_TYPES = ["posts", "events", "activities", "businesses", "services"] as const;
 
 export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSection, onSetSorting }: LayoutSettingsModalProps) {
   const { t } = useTranslation();
@@ -26,7 +26,7 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
           <View style={styles.header}>
             <Text style={styles.title}>{t("home.layoutSettings")}</Text>
             <Pressable onPress={onClose}>
-              <Ionicons name="close-circle" size={32} color="#9ca3af" />
+              <Ionicons name="close-circle" size={32} color={COLORS.textPlaceholder} />
             </Pressable>
           </View>
           <ScrollView style={styles.scroll}>
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   content: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "80%",
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: COLORS.borderGray,
   },
   title: {
     fontSize: 20,
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#374151",
+    color: COLORS.textDark,
     marginTop: 16,
     marginBottom: 12,
   },
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#6b7280",
+    color: COLORS.textGray,
     marginBottom: 8,
   },
   sortButtons: {
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     backgroundColor: COLORS.surfaceSoft,
   },
   sortButtonActive: {
@@ -136,28 +136,28 @@ const styles = StyleSheet.create({
   },
   sortButtonText: {
     fontSize: 12,
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   sortButtonTextActive: {
-    color: "#ffffff",
+    color: COLORS.textLight,
   },
   toggleButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     backgroundColor: COLORS.surfaceSoft,
   },
   toggleButtonActive: {
-    backgroundColor: "#10b981",
-    borderColor: "#10b981",
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.success,
   },
   toggleButtonText: {
     fontSize: 14,
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   toggleButtonTextActive: {
-    color: "#ffffff",
+    color: COLORS.textLight,
   },
 });

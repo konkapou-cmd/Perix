@@ -228,6 +228,14 @@ function PushNotificationManager() {
               router.push(`/user/${data.actorId}`);
             }
             break;
+
+          case "friend_declined":
+            if (data.declinerId) {
+              router.push(`/user/${data.declinerId}`);
+            } else if (data.userId) {
+              router.push(`/user/${data.userId}`);
+            }
+            break;
         }
       }
     );

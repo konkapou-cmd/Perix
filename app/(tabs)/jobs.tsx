@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -17,16 +15,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import * as DocumentPicker from "expo-document-picker";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 
 import { useAuth } from "../../context/AuthContext";
 import {
   getJobs,
-  getJob,
-  applyToJob,
-  uploadMedia,
   Job,
   CategoryGroup,
   getBusinessCategories,
@@ -68,16 +62,7 @@ export default function JobsScreen() {
   const [jobsTotal, setJobsTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Job detail modal
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-
-  // Application modal
-  const [applyModalVisible, setApplyModalVisible] = useState(false);
-  const [applicationMessage, setApplicationMessage] = useState("");
-  const [cvFile, setCvFile] = useState<{ name: string; uri: string } | null>(null);
-  const [coverLetterFile, setCoverLetterFile] = useState<{ name: string; uri: string } | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  // Application modal state removed — applications handled on job detail page
 
   const selectedRootGroup = useMemo(
     () => categories.find((c) => c.slug === rootCategory),
@@ -213,86 +198,7 @@ export default function JobsScreen() {
     }
   };
 
-  const openJobDetail = async (job: Job) => {
-    if (!sessionToken) return;
-    try {
-      const fullJob = await getJob(sessionToken, job.job_id);
-      setSelectedJob(fullJob);
-      setDetailModalVisible(true);
-    } catch (error) {
-      console.error("Failed to load job details:", error);
-    }
-  };
-
-  const openApplyModal = () => {
-    setApplyModalVisible(true);
-    setApplicationMessage("");
-    setCvFile(null);
-    setCoverLetterFile(null);
-  };
-
-  const pickDocument = async (type: "cv" | "coverLetter") => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "application/pdf",
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const file = { name: result.assets[0].name, uri: result.assets[0].uri };
-        if (type === "cv") {
-          setCvFile(file);
-        } else {
-          setCoverLetterFile(file);
-        }
-      }
-    } catch (error) {
-      console.error("Document picker error:", error);
-    }
-  };
-
-  const submitApplication = async () => {
-    if (!sessionToken || !selectedJob || !applicationMessage.trim()) {
-      Alert.alert(t("common.error"), t("jobs.yourMessage") + " is required");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      let cvUrl: string | undefined;
-      let coverLetterUrl: string | undefined;
-
-      // Upload CV if selected
-      if (cvFile) {
-        const uploaded = await uploadMedia(sessionToken, cvFile.uri, "document", () => {});
-        cvUrl = uploaded;
-      }
-
-      // Upload cover letter if selected
-      if (coverLetterFile) {
-        const uploaded = await uploadMedia(sessionToken, coverLetterFile.uri, "document", () => {});
-        coverLetterUrl = uploaded;
-      }
-
-      await applyToJob(sessionToken, selectedJob.job_id, {
-        message: applicationMessage,
-        cv_url: cvUrl,
-        cover_letter_url: coverLetterUrl,
-      });
-
-      Alert.alert(t("common.success"), t("jobs.applicationSuccess"));
-      setApplyModalVisible(false);
-      setDetailModalVisible(false);
-    } catch (error: any) {
-      const message = error?.message || String(error);
-      if (message.includes("Already applied")) {
-        Alert.alert(t("common.error"), t("jobs.alreadyApplied"));
-      } else {
-        Alert.alert(t("common.error"), message);
-      }
-    }
-    setSubmitting(false);
-  };
+  // Apply functions removed — applications handled on job detail page
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -410,7 +316,7 @@ export default function JobsScreen() {
           renderItem={({ item }) => (
             <Pressable
               style={styles.jobCard}
-              onPress={() => openJobDetail(item)}
+              onPress={() => router.push(`/job/${item.job_id}`)}
               data-testid={`job-card-${item.job_id}`}
             >
               {item.cover_image ? (
@@ -548,136 +454,7 @@ export default function JobsScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* Job Detail Modal */}
-      <Modal visible={detailModalVisible} animationType="slide" onRequestClose={() => setDetailModalVisible(false)}>
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Pressable onPress={() => setDetailModalVisible(false)}>
-              <Ionicons name="close" size={28} color={COLORS.textPrimary} />
-            </Pressable>
-            <Text style={styles.modalTitle}>{t("jobs.title")}</Text>
-            <View style={{ width: 28 }} />
-          </View>
-
-          {selectedJob && (
-            <ScrollView style={styles.modalBody}>
-              {selectedJob.cover_image ? (
-                <Image source={{ uri: selectedJob.cover_image }} style={styles.detailImage} />
-              ) : (
-                <View style={[styles.detailImage, styles.detailImagePlaceholder]}>
-                  <Ionicons name="briefcase" size={64} color="#9ca3af" />
-                </View>
-              )}
-
-              <View style={styles.detailContent}>
-                <Text style={styles.detailTitle}>{selectedJob.title}</Text>
-                
-                <Pressable style={styles.detailRow} onPress={() => {
-                    if (selectedJob.business_id) router.push(`/business/${selectedJob.business_id}`);
-                  }}>
-                  {selectedJob.business_logo && (
-                    <Image source={{ uri: selectedJob.business_logo }} style={styles.businessLogo} />
-                  )}
-                  <Text style={[styles.detailBusiness, { color: '#0066cc' }]}>{selectedJob.business_name}</Text>
-                  <Ionicons name="open-outline" size={14} color="#0066cc" />
-                </Pressable>
-
-                <View style={styles.detailRow}>
-                  <Ionicons name="location-outline" size={18} color={COLORS.primaryDark} />
-                  <Text style={styles.detailLocation}>{selectedJob.location}</Text>
-                </View>
-
-                {selectedJob.latitude && selectedJob.longitude && (
-                  <View style={styles.detailMapContainer}>
-                    <BusinessMap
-                      location={{ latitude: selectedJob.latitude, longitude: selectedJob.longitude }}
-                      markers={[{
-                        id: selectedJob.job_id,
-                        latitude: selectedJob.latitude,
-                        longitude: selectedJob.longitude,
-                        title: selectedJob.title,
-                        description: selectedJob.business_name || "",
-                      }]}
-                    />
-                  </View>
-                )}
-
-                <Text style={styles.detailSectionTitle}>{t("jobs.jobDescription")}</Text>
-                <Text style={styles.detailDescription}>{selectedJob.description}</Text>
-
-                <Pressable
-                  style={styles.applyButton}
-                  onPress={openApplyModal}
-                  data-testid="apply-job-btn"
-                >
-                  <Ionicons name="paper-plane" size={20} color="#fff" />
-                  <Text style={styles.applyButtonText}>{t("jobs.apply")}</Text>
-                </Pressable>
-              </View>
-            </ScrollView>
-          )}
-        </SafeAreaView>
-      </Modal>
-
-      {/* Apply Modal */}
-      <Modal visible={applyModalVisible} animationType="slide" onRequestClose={() => setApplyModalVisible(false)}>
-        <SafeAreaView style={styles.modalContainer}>
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={styles.modalHeader}>
-            <Pressable onPress={() => setApplyModalVisible(false)}>
-              <Ionicons name="close" size={28} color={COLORS.textPrimary} />
-            </Pressable>
-            <Text style={styles.modalTitle}>{t("jobs.apply")}</Text>
-            <View style={{ width: 28 }} />
-          </View>
-
-          <ScrollView style={styles.modalBody} contentContainerStyle={styles.applyContent}>
-            <Text style={styles.inputLabel}>{t("jobs.yourMessage")} *</Text>
-            <TextInput
-              style={styles.messageInput}
-              placeholder={t("jobs.yourMessage")}
-              value={applicationMessage}
-              onChangeText={setApplicationMessage}
-              multiline
-              numberOfLines={5}
-              textAlignVertical="top"
-            />
-
-            <Text style={styles.inputLabel}>{t("jobs.uploadCV")}</Text>
-            <Pressable style={styles.uploadButton} onPress={() => pickDocument("cv")}>
-              <Ionicons name="document-attach" size={20} color={COLORS.primaryDark} />
-              <Text style={styles.uploadButtonText}>
-                {cvFile ? cvFile.name : t("jobs.uploadCV")}
-              </Text>
-            </Pressable>
-
-            <Text style={styles.inputLabel}>{t("jobs.uploadCoverLetter")}</Text>
-            <Pressable style={styles.uploadButton} onPress={() => pickDocument("coverLetter")}>
-              <Ionicons name="document-attach" size={20} color={COLORS.primaryDark} />
-              <Text style={styles.uploadButtonText}>
-                {coverLetterFile ? coverLetterFile.name : t("jobs.uploadCoverLetter")}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
-              onPress={submitApplication}
-              disabled={submitting}
-              data-testid="submit-application-btn"
-            >
-              {submitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="send" size={20} color="#fff" />
-                  <Text style={styles.submitButtonText}>{t("jobs.submitApplication")}</Text>
-                </>
-              )}
-            </Pressable>
-          </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </Modal>
+      {/* Detail and apply modals removed — now navigates to /job/:id */}
     </SafeAreaView>
   );
 }
@@ -998,18 +775,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   searchContainer: {
-    paddingHorizontal: SPACING.xl,
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.std,
+    marginTop: SPACING.small,
+    marginBottom: SPACING.small,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.backgroundPage,
     borderRadius: BORDER_RADIUS.lg,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     height: 40,
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   searchInput: {
     flex: 1,
@@ -1021,12 +798,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 4,
-    gap: SPACING.xs,
+    gap: SPACING.tiny,
     flexWrap: "wrap",
   },
   jobTypeBadge: {
     backgroundColor: "#e0e7ff",
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -1037,7 +814,7 @@ const styles = StyleSheet.create({
   },
   jobSalaryBadge: {
     backgroundColor: "#fef3c7",
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -1048,6 +825,6 @@ const styles = StyleSheet.create({
   },
   jobCardActions: {
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
 });

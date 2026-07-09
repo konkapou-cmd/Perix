@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { apiRequest } from "../../lib/api/core";
 
 type Props = {
@@ -201,10 +201,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     width: "48%",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    ...SHADOWS.subtle,
   },
   benefitIcon: {
     width: 36,

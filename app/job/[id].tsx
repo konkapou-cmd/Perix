@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -20,10 +19,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as DocumentPicker from "expo-document-picker";
 import { useAuth } from "../../context/AuthContext";
-import BusinessMap from "../../components/BusinessMap";
 import ShareContent from "../../components/ShareContent";
 import { getJob, applyToJob, uploadMedia, Job, toggleSaved, checkSaved } from "../../lib/api";
-import { COLORS } from "../../lib/designTokens";
+import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
+import { InfoCard } from "../../components/shared/InfoCard";
+import { LocationCard } from "../../components/shared/LocationCard";
+import { ChecklistCard } from "../../components/shared/ChecklistCard";
+import { ShareSection } from "../../components/shared/ShareSection";
+import { BottomCTA } from "../../components/shared/BottomCTA";
+import { EntityHeader } from "../../components/shared/EntityHeader";
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 
 export default function JobDetailPage() {
   const { t } = useTranslation();
@@ -130,8 +135,7 @@ export default function JobDetailPage() {
 
   const openMap = () => {
     if (job?.latitude && job?.longitude) {
-      const url = `https://maps.google.com/maps?q=${job.latitude},${job.longitude}`;
-      Linking.openURL(url);
+      Linking.openURL(`https://maps.google.com/maps?q=${job.latitude},${job.longitude}`);
     } else if (job?.location) {
       Linking.openURL(`https://maps.google.com/maps?q=${encodeURIComponent(job.location)}`);
     }
@@ -139,26 +143,33 @@ export default function JobDetailPage() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered} edges={["top"]}>
-        <ActivityIndicator size="large" color={COLORS.textPrimary} />
+      <SafeAreaView style={styles.centered} edges={["top", "bottom"]}>
+        <ActivityIndicator size="large" color={COLORS.jobsAccent} />
       </SafeAreaView>
     );
   }
 
   if (!job) {
     return (
-      <SafeAreaView style={styles.centered} edges={["top"]}>
+      <SafeAreaView style={styles.centered} edges={["top", "bottom"]}>
         <Text style={styles.errorText}>{t("jobs.noJobs") || "Job not found"}</Text>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color={COLORS.textPrimary} />
+        <Pressable style={styles.notFoundBack} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color={COLORS.jobsAccent} />
           <Text style={styles.backText}>{t("common.back")}</Text>
         </Pressable>
       </SafeAreaView>
     );
   }
 
+  const mediaItems = [
+    ...(job.cover_image ? [{ uri: job.cover_image, type: "image" as const }] : []),
+    ...(job.image_urls || []).map((uri: string) => ({ uri, type: "image" as const })),
+    ...(job.gallery_images || []).map((uri: string) => ({ uri, type: "image" as const })),
+    ...(job.gallery_videos || []).map((uri: string) => ({ uri, type: "video" as const })),
+  ];
+
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         style={styles.flex1}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -169,169 +180,136 @@ export default function JobDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color={COLORS.textPrimary} />
-            <Text style={styles.backText}>{t("common.back")}</Text>
-          </Pressable>
+          <ContentHero
+            coverImageUrl={job.cover_image}
+            videoUrl={job.video_url}
+            isCoverVideo={!job.cover_image && !!job.video_url}
+            coverFocalPoint={job.cover_focal_point}
+            imageUrls={job.image_urls || []}
+            title={job.title}
+            badges={job.job_type ? [{ icon: "briefcase", text: job.job_type, color: COLORS.jobsAccent }] : []}
+            subtitle={job.business_name ? { text: job.business_name, icon: "business-outline" } : undefined}
+            mediaItems={mediaItems}
+          />
 
-          <View style={styles.heroContainer}>
-            {job.cover_image ? (
-              <Image source={{ uri: job.cover_image }} style={styles.heroMedia} />
-            ) : (
-              <View style={styles.heroPlaceholder}>
-                <View style={styles.heroIconContainer}>
-                  <Ionicons name="briefcase" size={32} color="#fff" />
-                </View>
-              </View>
-            )}
-
-            <View style={styles.badgeRow}>
-              <View style={styles.typeBadge}>
-                <View style={styles.badgeIconContainer}>
-                  <Ionicons name="briefcase" size={14} color="#fff" />
-                </View>
-                <Text style={styles.badgeText}>{job.job_type || "Full-time"}</Text>
-              </View>
-              {job.salary_range && (
-                <View style={styles.salaryBadge}>
-                  <View style={styles.badgeIconContainerGold}>
-                    <Ionicons name="cash" size={12} color="#fff" />
-                  </View>
-                  <Text style={styles.badgeText}>{job.salary_range}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.header}>
-            <Text style={styles.title}>{job.title}</Text>
-            {job.business_name && (
-              <Pressable
-                style={styles.businessRow}
-                onPress={() => {
-                  if (job.business_id) router.push(`/business/${job.business_id}`);
-                }}
-              >
-                {job.business_logo ? (
-                  <Image source={{ uri: job.business_logo }} style={styles.businessLogo} />
-                ) : (
-                  <View style={styles.businessLogoPlaceholder}>
-                    <Ionicons name="business" size={16} color="#6b7280" />
-                  </View>
-                )}
-                <Text style={styles.businessName}>{t("jobs.at") || "at"} {job.business_name}</Text>
-                <Ionicons name="chevron-forward" size={16} color="#6b7280" />
-              </Pressable>
-            )}
-          </View>
+          <EntityHeader
+            title={job.title}
+            subtitle={job.business_name || ""}
+            subtitlePrefix="bei"
+            avatarUrl={job.business_logo}
+            accentColor={COLORS.jobsAccent}
+            onPress={job.business_id ? () => router.push(`/business/${job.business_id}`) : undefined}
+          />
 
           <View style={styles.infoRow}>
-            <View style={styles.infoCard}>
-              <View style={styles.infoIconContainer}>
-                <Ionicons name="briefcase-outline" size={18} color="#fff" />
-              </View>
-              <Text style={styles.infoLabel}>{t("jobs.jobType") || "Type"}</Text>
-              <Text style={styles.infoValue}>{job.job_type || "—"}</Text>
-            </View>
-            <View style={styles.infoCard}>
-              <View style={styles.infoIconContainerGold}>
-                <Ionicons name="cash-outline" size={18} color="#fff" />
-              </View>
-              <Text style={styles.infoLabel}>{t("jobs.salary") || "Salary"}</Text>
-              <Text style={styles.infoValue}>{job.salary_range || "—"}</Text>
-            </View>
+            <InfoCard
+              icon="briefcase-outline"
+              label={t("jobs.jobType") || "Art"}
+              value={job.job_type || "—"}
+              accentColor={COLORS.jobsAccent}
+            />
+            <InfoCard
+              icon="cash-outline"
+              label={t("jobs.salary") || "Gehalt"}
+              value={job.salary_range || "—"}
+              accentColor={COLORS.warning}
+            />
           </View>
 
           {job.location && (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Ionicons name="location" size={18} color={COLORS.textPrimary} />
-                <Text style={styles.cardTitle}>{t("jobs.location") || "Location"}</Text>
-              </View>
-              <Pressable style={styles.locationRow} onPress={openMap}>
-                <Ionicons name="navigate-circle-outline" size={18} color="#3b82f6" />
-                <Text style={styles.locationText}>{job.location}</Text>
-              </Pressable>
-            </View>
+            <LocationCard
+              label={t("jobs.location") || "Standort"}
+              address={job.location}
+              accentColor={COLORS.jobsAccent}
+              onPress={openMap}
+            />
           )}
 
           {job.latitude && job.longitude && (
-            <View style={styles.mapContainer}>
-              <BusinessMap
-                location={{ latitude: job.latitude, longitude: job.longitude }}
-                markers={[{
-                  id: job.job_id,
-                  latitude: job.latitude,
-                  longitude: job.longitude,
-                  title: job.title,
-                  description: job.business_name || "",
-                }]}
-              />
-              <Pressable style={styles.mapOverlay} onPress={openMap}>
-                <Ionicons name="map" size={16} color="#fff" />
-                <Text style={styles.mapOverlayText}>{t("events.openInMaps") || "Open in Maps"}</Text>
-              </Pressable>
-            </View>
+            <ContentMap
+              latitude={job.latitude}
+              longitude={job.longitude}
+              title={job.title}
+              address={job.location}
+              interactive
+            />
           )}
 
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="document-text" size={18} color={COLORS.textPrimary} />
-              <Text style={styles.cardTitle}>{t("jobs.jobDescription") || "Description"}</Text>
-            </View>
+          <ContentSection icon="document-text" title={t("jobs.jobDescription") || "Beschreibung"}>
             <Text style={styles.description}>{job.description}</Text>
-          </View>
+          </ContentSection>
 
           {job.requirements && (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.textPrimary} />
-                <Text style={styles.cardTitle}>{t("jobs.requirements") || "Requirements"}</Text>
-              </View>
-              {job.requirements.split("\n").filter((r: string) => r.trim()).map((req: string, i: number) => (
-                <View key={i} style={styles.requirementRow}>
-                  <Ionicons name="checkmark" size={14} color={COLORS.success} />
-                  <Text style={styles.requirementText}>{req.trim()}</Text>
-                </View>
-              ))}
-            </View>
+            <ChecklistCard
+              icon="checkmark-circle-outline"
+              title={t("jobs.requirements") || "Anforderungen"}
+              items={job.requirements.split("\n").filter((r: string) => r.trim()).map((r: string) => r.trim())}
+              accentColor={COLORS.jobsAccent}
+            />
           )}
 
-          <View style={styles.actionSection}>
-            <Pressable style={styles.applyButton} onPress={() => setApplyModalVisible(true)}>
-              <Ionicons name="paper-plane" size={20} color="#fff" />
-              <Text style={styles.applyButtonText}>{t("jobs.apply") || "Apply"}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.shareButton, isSaved && { backgroundColor: `${COLORS.gold}15`, borderColor: COLORS.gold }]}
-              onPress={handleToggleSave}
-              disabled={savingItem}
-            >
-              <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={20} color={isSaved ? COLORS.gold : COLORS.textPrimary} />
-              <Text style={styles.shareButtonText}>{isSaved ? t("common.saved") || "Saved" : t("jobs.save") || "Save"}</Text>
-            </Pressable>
-            <Pressable style={styles.shareButton} onPress={() => setShowShareModal(true)}>
-              <Ionicons name="share-outline" size={20} color={COLORS.textPrimary} />
-              <Text style={styles.shareButtonText}>{t("common.share") || "Share"}</Text>
-            </Pressable>
-          </View>
+          {(job.image_urls || job.gallery_images || job.gallery_videos) && (
+            <ContentGallery
+              mediaItems={[
+                ...(job.image_urls || []).map(uri => ({ uri, type: "image" as const })),
+                ...(job.gallery_images || []).map(uri => ({ uri, type: "image" as const })),
+                ...(job.gallery_videos || []).map(uri => ({ uri, type: "video" as const })),
+              ]}
+              title="Galerie"
+            />
+          )}
 
-          <ShareContent
-            visible={showShareModal}
-            onClose={() => setShowShareModal(false)}
-            contentType="job"
-            contentId={job.job_id}
-            title={job.title}
-            description={job.description}
-            imageUrl={job.cover_image || undefined}
-            extraData={{
-              location: job.location || undefined,
-              businessName: job.business_name || undefined,
-              salary: job.salary_range || undefined,
-            }}
+          {job.business_id && job.business_name && (
+            <Pressable
+              style={styles.businessRow}
+              onPress={() => router.push(`/business/${job.business_id}`)}
+            >
+              {job.business_logo ? (
+                <Image source={{ uri: job.business_logo }} style={styles.businessLogoSm} />
+              ) : (
+                <View style={styles.businessLogoPlaceholderSm}>
+                  <Ionicons name="business" size={16} color={COLORS.textSecondary} />
+                </View>
+              )}
+              <Text style={styles.businessRowText}>{t("services.viewBusiness") || "Unternehmen ansehen"}</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textSecondary} />
+            </Pressable>
+          )}
+
+          <ShareSection
+            accentColor={COLORS.jobsAccent}
+            saved={isSaved}
+            onWhatsApp={() => setShowShareModal(true)}
+            onShare={() => setShowShareModal(true)}
+            onSave={handleToggleSave}
+          />
+
+          <BottomCTA
+            primaryLabel={t("jobs.apply") || "Jetzt bewerben"}
+            primaryIcon="paper-plane"
+            accentColor={COLORS.jobsAccent}
+            onPrimary={() => setApplyModalVisible(true)}
+            saved={isSaved}
+            onSave={handleToggleSave}
+            onShare={() => setShowShareModal(true)}
           />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ShareContent
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        contentType="job"
+        contentId={job.job_id}
+        title={job.title}
+        description={job.description}
+        imageUrl={job.cover_image || undefined}
+        extraData={{
+          location: job.location || undefined,
+          businessName: job.business_name || undefined,
+          salary: job.salary_range || undefined,
+        }}
+      />
 
       <Modal visible={applyModalVisible} animationType="slide" onRequestClose={() => setApplyModalVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>
@@ -386,350 +364,52 @@ export default function JobDetailPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.backgroundPage,
-  },
-  flex1: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: COLORS.backgroundPage,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#6b7280",
-    marginBottom: 16,
-  },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 16,
-  },
-  backText: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    marginLeft: 4,
-  },
-  heroContainer: {
-    marginHorizontal: 16,
-    borderRadius: 8,
-    overflow: "hidden",
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  heroMedia: {
-    width: "100%",
-    height: 160,
-  },
-  heroPlaceholder: {
-    width: "100%",
-    height: 160,
-    backgroundColor: "#f3f4f6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  heroIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: COLORS.info,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  badgeRow: {
-    flexDirection: "row",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  typeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#eff6ff",
-    borderRadius: 20,
-    paddingLeft: 4,
-    paddingRight: 10,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  salaryBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fefce8",
-    borderRadius: 20,
-    paddingLeft: 4,
-    paddingRight: 10,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  badgeIconContainer: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: COLORS.info,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  badgeIconContainerGold: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: COLORS.warning,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-    marginBottom: 8,
-  },
-  businessRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 4,
-  },
-  businessLogo: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  businessLogoPlaceholder: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#f3f4f6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  businessName: {
-    fontSize: 14,
-    color: "#3b82f6",
-    fontWeight: "500",
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage, overflow: "hidden" },
+  flex1: { flex: 1 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.backgroundPage },
+  content: { paddingBottom: 60 },
+  errorText: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 16 },
+  notFoundBack: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.small },
+  backText: { fontSize: FONT_SIZES.body, color: COLORS.jobsAccent, marginLeft: 4 },
   infoRow: {
     flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    gap: SPACING.compact,
+    marginTop: SPACING.small,
+    paddingHorizontal: SPACING.page,
   },
-  infoCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+  description: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textSecondary, lineHeight: 24 },
+  businessRow: {
+    flexDirection: "row", alignItems: "center", gap: SPACING.small,
+    backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.card,
+    padding: SPACING.section, marginHorizontal: SPACING.page,
+    ...SHADOWS.subtle,
   },
-  infoIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: COLORS.info,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
+  businessLogoSm: { width: 28, height: 28, borderRadius: 14 },
+  businessLogoPlaceholderSm: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: COLORS.surfaceGray, alignItems: "center", justifyContent: "center",
   },
-  infoIconContainerGold: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: COLORS.warning,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  infoLabel: {
-    fontSize: 11,
-    color: "#9ca3af",
-    fontWeight: "500",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
-    marginTop: 2,
-  },
-  card: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 10,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  locationText: {
-    fontSize: 14,
-    color: "#4b5563",
-    flex: 1,
-  },
-  mapContainer: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 16,
-    overflow: "hidden",
-    height: 200,
-    position: "relative",
-  },
-  mapOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#111827e6",
-    paddingVertical: 10,
-    gap: 6,
-  },
-  mapOverlayText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  description: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: "#4b5563",
-  },
-  requirementRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    marginBottom: 6,
-  },
-  requirementText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#4b5563",
-  },
-  actionSection: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    gap: 12,
-  },
-  applyButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.textPrimary,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  applyButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  shareButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    gap: 6,
-  },
-  shareButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
+  businessRowText: { flex: 1, fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.jobsAccent },
+  modalContainer: { flex: 1, backgroundColor: "#fff" },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.compact,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: COLORS.border,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
-  },
-  modalBody: {
-    flex: 1,
-  },
-  applyContent: {
-    padding: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 6,
-    marginTop: 12,
-  },
+  modalTitle: { fontSize: FONT_SIZES.h4, fontWeight: "600", color: COLORS.textPrimary },
+  modalBody: { flex: 1 },
+  applyContent: { padding: SPACING.section },
+  inputLabel: { fontSize: 14, fontWeight: "600", color: COLORS.textDark, marginBottom: 6, marginTop: SPACING.compact },
   messageInput: {
     backgroundColor: COLORS.surfaceSoft,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    padding: 12,
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.compact,
     fontSize: 16,
     color: COLORS.textPrimary,
     minHeight: 120,
@@ -738,35 +418,25 @@ const styles = StyleSheet.create({
   uploadButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: SPACING.small,
     padding: 14,
-    borderRadius: 10,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.border,
     borderStyle: "dashed",
     backgroundColor: COLORS.surfaceSoft,
   },
-  uploadButtonText: {
-    fontSize: 14,
-    color: "#6b7280",
-    fontWeight: "500",
-  },
+  uploadButtonText: { fontSize: 14, color: COLORS.textSecondary, fontWeight: "500" },
   submitApplyButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.textPrimary,
+    backgroundColor: COLORS.jobsAccent,
     paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 24,
-    gap: 8,
+    borderRadius: BORDER_RADIUS.button,
+    marginTop: SPACING.page,
+    gap: SPACING.small,
   },
-  submitApplyText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
+  submitApplyText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "600" },
+  disabledButton: { opacity: 0.5 },
 });

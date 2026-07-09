@@ -16,7 +16,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { COLORS } from "../../../lib/designTokens";
 import Constants from "expo-constants";
 
-const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || "https://api.perixapp.com";
+const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || "http://10.208.154.177:8000";
 const API_BASE = `${BACKEND_URL}/api`;
 
 // App store links (placeholder until real links are available)

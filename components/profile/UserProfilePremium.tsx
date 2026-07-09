@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
-import { User, UserPublic, GalleryItem, Post, APP_URL, ActivityItem, isUpcomingActivity } from "../../lib/api";
+import { User, UserPublic, GalleryItem, Post, APP_URL, ActivityItem, isUpcomingActivity, updateProfileMedia } from "../../lib/api";
 import { ActivitiesSection } from "../business";
 
 import {
@@ -32,8 +32,11 @@ import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
+import FriendsCarousel from "../FriendsCarousel";
+import { FriendsSection } from "../shared/FriendsSection";
+import CoverPositionEditor from "../CoverPositionEditor";
 
-import { FriendshipStatus } from "../../lib/api";
+import { FriendshipStatus, FriendProfile } from "../../lib/api";
 
 interface UserProfilePremiumProps {
   user: User | UserPublic;
@@ -112,6 +115,7 @@ interface UserProfilePremiumProps {
   savingItem?: boolean;
   onCreateStory?: () => void;
   onOpenBookings?: () => void;
+  onViewFriends?: () => void;
 }
 
 export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
@@ -178,11 +182,13 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   onRefresh,
   onCreateStory,
   onOpenBookings,
+  onViewFriends,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ProfileTab>("posts");
   const [copied, setCopied] = useState(false);
+  const [showCoverReposition, setShowCoverReposition] = useState(false);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
 
@@ -257,6 +263,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         <ProfileHeader
           identityPicker={identityPicker}
           coverUri={user.cover_photo}
+          coverVideoUri={(!user.cover_photo && (user as any).video_url) ? (user as any).video_url : undefined}
+          coverFocalPoint={user.cover_focal_point}
           avatarUri={(user.profile_photo || user.picture) as string}
           avatarInitial={user.name?.charAt(0)?.toUpperCase() || "?"}
           name={user.name}
@@ -271,6 +279,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           themeStyles={themeStyles}
           readOnly={readOnly}
           onEditCover={handleUpdateCoverPhoto}
+          onRepositionCover={() => setShowCoverReposition(true)}
           onEditAvatar={handleUpdateProfilePhoto}
           onShare={onShare || handleShare}
           onViewPublic={handleViewPublic}
@@ -289,7 +298,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           savingItem={readOnly ? savingItem : undefined}
           stats={[
             { label: t("profile.posts", "Posts"), count: userPosts.length },
-            { label: t("profile.friends", "Friends"), count: friends.length },
+            { label: t("profile.friends", "Friends"), count: friends.length, onPress: onViewFriends },
             { label: t("userProfile.activities", "Activities"), count: userActivities.length },
           ]}
           completenessItems={
@@ -313,6 +322,26 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           onEditProfile={onEditProfile}
           themeStyles={themeStyles}
         />
+
+        {isOwnProfile && (
+          <FriendsCarousel
+            friends={friends as FriendProfile[]}
+            showAddButton={true}
+            currentUserId={currentUserId}
+            currentUserName={user.name}
+          />
+        )}
+
+        {readOnly && (
+          <FriendsSection
+            friends={friends as FriendProfile[]}
+            isFriend={friendStatus === "friends" || friendStatus === "request_sent"}
+            onToggleFriend={onFriendPress || (() => {})}
+            isLoading={false}
+            showMakeButton={true}
+            showFriendRequests={false}
+          />
+        )}
 
         <ProfileTabs
           activeTab={activeTab}
@@ -416,6 +445,23 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           )}
         </View>
       </ScrollView>
+
+      {user.cover_photo && (
+        <CoverPositionEditor
+          visible={showCoverReposition}
+          uri={user.cover_photo}
+          initialFocalPoint={user.cover_focal_point ?? { x: 0.5, y: 0.5 }}
+          aspectRatio={3}
+          onCancel={() => setShowCoverReposition(false)}
+          onSave={async (fp) => {
+            if (sessionToken) {
+              await updateProfileMedia(sessionToken, { cover_focal_point: fp });
+            }
+            setShowCoverReposition(false);
+            refreshUser?.();
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };

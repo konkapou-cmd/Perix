@@ -161,16 +161,16 @@ export const ProfileAboutInline: React.FC<Props> = ({
 const s = StyleSheet.create({
   container: {
     paddingHorizontal: PROFILE.HORIZONTAL_PADDING,
-    marginTop: SPACING.sm,
+    marginTop: SPACING.small,
   },
   bio: {
     fontSize: FONT_SIZES.body,
     lineHeight: 20,
-    marginTop: SPACING.xs,
+    marginTop: SPACING.tiny,
   },
   hoursCard: {
-    marginTop: SPACING.md,
-    padding: SPACING.md,
+    marginTop: SPACING.small,
+    padding: SPACING.small,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
   },
@@ -182,11 +182,11 @@ const s = StyleSheet.create({
   hoursBadgeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: SPACING.small,
     flex: 1,
   },
   openBadge: {
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.full,
   },
@@ -200,13 +200,13 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.medium as any,
   },
   hoursExpanded: {
-    marginTop: SPACING.md,
-    gap: SPACING.xs,
+    marginTop: SPACING.small,
+    gap: SPACING.tiny,
   },
   hoursRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: SPACING.xs,
+    paddingVertical: SPACING.tiny,
   },
   hoursDay: {
     fontSize: FONT_SIZES.small,
@@ -218,8 +218,8 @@ const s = StyleSheet.create({
   hoursEditBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.xs,
-    marginTop: SPACING.sm,
+    gap: SPACING.tiny,
+    marginTop: SPACING.small,
     alignSelf: "flex-end",
   },
   hoursEditText: {
@@ -228,8 +228,8 @@ const s = StyleSheet.create({
   },
   contactRow: {
     flexDirection: "row",
-    gap: SPACING.sm,
-    marginTop: SPACING.md,
+    gap: SPACING.small,
+    marginTop: SPACING.small,
   },
   contactIcon: {
     width: 36,
@@ -242,11 +242,11 @@ const s = StyleSheet.create({
   editBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.xs,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
+    gap: SPACING.tiny,
+    paddingHorizontal: SPACING.compact,
+    paddingVertical: SPACING.small,
     borderRadius: BORDER_RADIUS.full,
-    marginTop: SPACING.md,
+    marginTop: SPACING.small,
     alignSelf: "flex-start",
   },
   editBtnText: {

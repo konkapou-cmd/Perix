@@ -177,7 +177,7 @@ function ActivityCard({ data, distance, onPress }: ActivityCardProps) {
         <View style={styles.cardEnd}>
           {(data as any).my_status ? (
             <View style={styles.rsvpPill}>
-              <Ionicons name="checkmark-circle" size={12} color="#166534" />
+              <Ionicons name="checkmark-circle" size={12} color={COLORS.statusOpenText} />
               <Text style={styles.rsvpText}>{(data as any).my_status}</Text>
             </View>
           ) : (data as any).max_attendees ? (
@@ -197,14 +197,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
     ...SHADOWS.subtle,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
     overflow: "hidden",
   },
   cardRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: SPACING.xl,
-    gap: SPACING.md,
+    padding: SPACING.std,
+    gap: SPACING.small,
   },
   // Business
   businessAvatar: {
@@ -249,22 +249,22 @@ const styles = StyleSheet.create({
   // Card end (right side badges)
   cardEnd: {
     alignItems: "flex-end",
-    gap: SPACING.xs,
+    gap: SPACING.tiny,
   },
   // Status badges
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 3,
     borderRadius: BORDER_RADIUS.full,
   },
   statusOpen: {
-    backgroundColor: "#dcfce7",
+    backgroundColor: COLORS.statusOpenBg,
   },
   statusClosed: {
-    backgroundColor: "#fee2e2",
+    backgroundColor: COLORS.statusClosedBg,
   },
   statusDot: {
     width: 6,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   statusDotOpen: {
-    backgroundColor: "#22c55e",
+    backgroundColor: COLORS.statusOpenDot,
   },
   statusDotClosed: {
     backgroundColor: COLORS.danger,
@@ -282,10 +282,10 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   statusTextOpen: {
-    color: "#166534",
+    color: COLORS.statusOpenText,
   },
   statusTextClosed: {
-    color: "#991b1b",
+    color: COLORS.statusClosedText,
   },
   distanceText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,
@@ -308,27 +308,27 @@ const styles = StyleSheet.create({
   },
   dateBadge: {
     position: "absolute",
-    top: SPACING.md,
-    left: SPACING.md,
+    top: SPACING.small,
+    left: SPACING.small,
     borderRadius: BORDER_RADIUS.sm,
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     alignItems: "center",
   },
   dateBadgeMonth: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: Platform.OS === "web" ? 11 : 10,
     fontWeight: FONT_WEIGHTS.bold as any,
     letterSpacing: 0.5,
   },
   dateBadgeDay: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: Platform.OS === "web" ? FONT_SIZES.h4 : FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.bold as any,
     lineHeight: 16,
   },
   eventCardBody: {
-    padding: SPACING.md,
+    padding: SPACING.small,
     gap: 2,
   },
   eventMetaRow: {
@@ -343,13 +343,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: SPACING.xs,
+    marginTop: SPACING.tiny,
   },
   attendeesChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.full,
   },
@@ -374,15 +374,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    backgroundColor: "#dcfce7",
-    paddingHorizontal: SPACING.md,
+    backgroundColor: COLORS.statusOpenBg,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 3,
     borderRadius: BORDER_RADIUS.full,
   },
   rsvpText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: "#166534",
+    color: COLORS.statusOpenText,
   },
   spotsText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,

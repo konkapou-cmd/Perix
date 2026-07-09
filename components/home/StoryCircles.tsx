@@ -40,7 +40,7 @@ export function StoryCircles({ user, storyGroups, onYourStoryPress, onStoryPress
                 </View>
               )}
               <View style={styles.plus}>
-                <Ionicons name="add" size={10} color="#fff" />
+                <Ionicons name="add" size={10} color={COLORS.textLight} />
               </View>
             </View>
           </View>
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: {
-    color: "#fff",
+    color: COLORS.textLight,
     fontSize: 18,
     fontWeight: FONT_WEIGHTS.bold as any,
   },

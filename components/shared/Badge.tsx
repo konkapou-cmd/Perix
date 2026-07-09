@@ -40,8 +40,8 @@ export const Badge = ({
         styles.badge,
         {
           backgroundColor: colors.bg,
-          paddingHorizontal: isSmall ? SPACING.sm : SPACING.md,
-          paddingVertical: isSmall ? 2 : SPACING.xs,
+          paddingHorizontal: isSmall ? SPACING.small : SPACING.small,
+          paddingVertical: isSmall ? 2 : SPACING.tiny,
         },
         style,
       ]}

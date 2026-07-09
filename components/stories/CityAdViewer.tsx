@@ -14,9 +14,11 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { GroupedStory, viewStory, markStorySeen } from "../../lib/api";
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from "../../lib/designTokens";
+import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const AD_DURATION = 30; // max seconds per ad video
+const IMAGE_DURATION_MS = MEDIA_LIMITS.cityAd.imageDisplayMs;
+const MAX_VIDEO_DURATION_MS = MEDIA_LIMITS.cityAd.maxDurationSeconds * 1000;
 
 export function CityAdViewer({
   groups,
@@ -44,7 +46,7 @@ export function CityAdViewer({
     viewStory(sessionToken, currentStory.story_id).catch(() => {});
     return () => {
       const watchDuration = (Date.now() - storyStartTimeRef.current) / 1000;
-      const duration = isVideo ? AD_DURATION : 5;
+      const duration = isVideo ? MEDIA_LIMITS.cityAd.maxDurationSeconds : (MEDIA_LIMITS.cityAd.imageDisplayMs / 1000);
       markStorySeen(sessionToken, currentStory.story_id, {
         watch_duration: watchDuration,
         completed: watchDuration >= duration * 0.8,
@@ -83,7 +85,8 @@ export function CityAdViewer({
   // Auto-advance timer
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(goNext, AD_DURATION * 1000);
+    const advanceMs = isVideo ? MEDIA_LIMITS.cityAd.maxDurationSeconds * 1000 : MEDIA_LIMITS.cityAd.imageDisplayMs;
+    timerRef.current = setTimeout(goNext, advanceMs);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
@@ -100,9 +103,9 @@ export function CityAdViewer({
   // Auto-advance on video end
   useEffect(() => {
     if (status === "idle" && currentStory?.media_url) {
-      player.play();
+      goNext();
     }
-  }, [currentStory?.media_url]);
+  }, [currentStory?.media_url, status, goNext]);
 
   return (
     <View style={styles.container}>

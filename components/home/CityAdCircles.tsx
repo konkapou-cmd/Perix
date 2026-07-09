@@ -54,7 +54,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitle}>
           <View style={styles.iconContainer}>
-            <Ionicons name="videocam" size={18} color="#fff" />
+            <Ionicons name="videocam" size={18} color={COLORS.textLight} />
           </View>
           <Text style={styles.cardTitle}>{t("cityAd.sectionTitle") || "City Ads"}</Text>
         </View>
@@ -106,7 +106,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
               )}
               {!group.has_unseen && (
                 <View style={styles.seenOverlay}>
-                  <Ionicons name="checkmark" size={16} color="#fff" />
+                  <Ionicons name="checkmark" size={16} color={COLORS.textLight} />
                 </View>
               )}
             </View>
@@ -123,8 +123,8 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.background,
-    paddingVertical: SPACING.xl,
-    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.std,
+    paddingHorizontal: SPACING.small,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLORS.border,
   },
@@ -132,18 +132,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.compact,
   },
   sectionTitle: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   iconContainer: {
     width: 28,
     height: 28,
     borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: COLORS.primaryDark,
+    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -154,11 +154,11 @@ const styles = StyleSheet.create({
   },
   adCard: {
     width: CARD_WIDTH,
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.background,
     marginRight: 12,
     marginBottom: 4,
     borderRadius: 12,
-    shadowColor: "#2B075F",
+    shadowColor: COLORS.primaryDark,
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
@@ -215,8 +215,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: SPACING.sm,
-    shadowColor: "#2B075F",
+    marginBottom: SPACING.small,
+    shadowColor: COLORS.primaryDark,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     width: CARD_WIDTH,
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.small,
     alignItems: "center",
   },
   emptyText: {

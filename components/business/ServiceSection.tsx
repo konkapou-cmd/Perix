@@ -1,10 +1,10 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, DimensionValue } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Service } from "../../lib/api/core";
-import { COLORS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES, CategoryServiceType } from "../../lib/designTokens";
-import { getServiceSingular } from "../../lib/serviceLabels";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES } from "../../lib/designTokens";
+import { EmptyState } from "../shared";
 import CategoryServiceCard from "./CategoryServiceCard";
 
 type Props = {
@@ -16,11 +16,11 @@ type Props = {
   onEditService?: (service: Service) => void;
   onDeleteService?: (serviceId: string) => void;
   onOpenSlotManager?: (serviceId: string) => void;
+  primaryColor?: string;
   cardColor?: string;
   textColor?: string;
+  secondaryColor?: string;
 };
-
-const MENU_CATEGORY_ORDER = ["starter", "main", "dessert", "drink", "side"];
 
 function getTabLabel(rootCategory: string): string {
   switch (rootCategory) {
@@ -37,69 +37,16 @@ function getTabLabel(rootCategory: string): string {
   }
 }
 
-function snakeToPascal(s: string): string {
-  return s.replace(/_([a-z])/g, (_, c) => c.toUpperCase()).replace(/^[a-z]/, (c) => c.toUpperCase());
-}
-
-const TYPE_LABEL_OVERRIDES: Record<string, string> = {
-  "tailoring_alteration": "services.typeTailoring",
-};
-
-function getTypeLabelKey(type: string): string {
-  if (TYPE_LABEL_OVERRIDES[type]) return TYPE_LABEL_OVERRIDES[type];
-  return `services.type${snakeToPascal(type)}`;
-}
-
-export default function ServiceSection({ services, rootCategory, readOnly, onAddService, onServicePress, onEditService, onDeleteService, onOpenSlotManager, cardColor = "#fff" }: Props) {
+export default function ServiceSection({
+  services, rootCategory, readOnly, onAddService, onServicePress, onEditService, onDeleteService, onOpenSlotManager, primaryColor = COLORS.primary, cardColor = "#fff", textColor = COLORS.textPrimary, secondaryColor = COLORS.textSecondary,
+}: Props) {
   const { t } = useTranslation();
-  const { width: windowWidth } = useWindowDimensions();
-  const isFood = rootCategory === "food-dining";
-  const isRental = rootCategory === "rentals" || rootCategory === "rental-real-estate";
   const tabLabel = getTabLabel(rootCategory);
-  const isWeb = Platform.OS === "web";
 
   const typeDefs = rootCategory ? CATEGORY_SERVICE_TYPES[rootCategory] || [] : [];
-  const typeDefMap: Record<string, CategoryServiceType> = {};
+  const typeDefMap: Record<string, { label: string; icon: string }> = {};
   typeDefs.forEach((td) => { typeDefMap[td.type] = td; });
 
-  const getCardWidth = () => {
-    if (isFood || isRental) return isWeb ? "calc(50% - 5px)" : (windowWidth - 32 - 10) / 2;
-    return isWeb ? "calc(33.33% - 7px)" : (windowWidth - 32 - 20) / 3;
-  };
-
-  if (services.length === 0 && readOnly) {
-    return (
-      <View style={styles.emptyState}>
-        <Ionicons name={isFood ? "restaurant" : "grid"} size={48} color="#d1d5db" />
-        <Text style={styles.emptyText}>{t("services.noServices", `No ${tabLabel.toLowerCase()} available yet`)}</Text>
-      </View>
-    );
-  }
-
-  const renderEditActions = (item: Service) => {
-    if (readOnly || (!onEditService && !onDeleteService && !onOpenSlotManager)) return null;
-    return (
-      <View style={styles.actionRow}>
-        {onOpenSlotManager && (
-          <Pressable onPress={() => onOpenSlotManager(item.service_id)} hitSlop={8} style={styles.actionBtn}>
-            <Ionicons name="time-outline" size={14} color={COLORS.primary} />
-          </Pressable>
-        )}
-        {onEditService && (
-          <Pressable onPress={() => onEditService(item)} hitSlop={8} style={styles.actionBtn}>
-            <Ionicons name="pencil" size={14} color={COLORS.textMuted} />
-          </Pressable>
-        )}
-        {onDeleteService && (
-          <Pressable onPress={() => onDeleteService(item.service_id)} hitSlop={8} style={styles.actionBtn}>
-            <Ionicons name="trash-outline" size={14} color={COLORS.danger} />
-          </Pressable>
-        )}
-      </View>
-    );
-  };
-
-  // Unified: group services by their type field
   const groupedByType: Record<string, Service[]> = {};
   services.forEach((s) => {
     const key = s.type || "other";
@@ -107,58 +54,73 @@ export default function ServiceSection({ services, rootCategory, readOnly, onAdd
     groupedByType[key].push(s);
   });
 
+  const typeEntries = Object.entries(groupedByType);
+
+  if (services.length === 0 && readOnly) {
+    return (
+      <EmptyState icon="grid" message={t("services.noServices")} subMessage={readOnly ? undefined : t("services.addFirstService")} />
+    );
+  }
+
+  if (services.length === 0) {
+    return (
+      <EmptyState icon="grid" message={t("services.noServices")} subMessage={readOnly ? undefined : t("services.addFirstService")} />
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {Object.entries(groupedByType).map(([type, items]) => {
+    <View style={s.container}>
+      {typeEntries.map(([type, items]) => {
         const info = typeDefMap[type];
-        const heading = info?.publicTabLabel || info?.label || type;
-        const addLabel = info?.publicTabLabel?.replace(/s$/, "") || info?.label || type;
+        const addLabel = info?.label || type;
+
         return (
-          <View key={type} style={styles.typeGroup}>
-            <View style={styles.typeHeader}>
-              {info && <Ionicons name={info.icon as any} size={16} color={COLORS.primary} style={{ marginRight: 6 }} />}
-              <Text style={styles.categoryTitle}>{heading}</Text>
-            </View>
-            {!readOnly && onAddService && (
-              <Pressable style={[styles.addBtn, { backgroundColor: cardColor }]} onPress={() => onAddService(type)}>
-                <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
-                <Text style={styles.addBtnText}>{t("services.add", "Add")} {addLabel}</Text>
-              </Pressable>
-            )}
-            {type === "menu_item" ? (
-              // Menu items: sub-group by menu_category
-              (() => {
-                const menuGrouped: Record<string, Service[]> = {};
-                MENU_CATEGORY_ORDER.forEach((cat) => {
-                  const catItems = items.filter((s) => s.menu_category === cat);
-                  if (catItems.length > 0) menuGrouped[cat] = catItems;
-                });
-                const uncategorized = items.filter((s) => !s.menu_category || !MENU_CATEGORY_ORDER.includes(s.menu_category));
-                if (uncategorized.length > 0) menuGrouped["other"] = uncategorized;
-                return Object.entries(menuGrouped).map(([cat, catItems]) => (
-                  <View key={cat}>
-                    <Text style={styles.categoryTitle}>{t(`menu.${cat}`, cat.charAt(0).toUpperCase() + cat.slice(1) + "s")}</Text>
-                    <View style={styles.cardGrid}>
-                      {catItems.map((item) => (
-                        <View key={item.service_id} style={{ width: getCardWidth() as DimensionValue }}>
-                          <CategoryServiceCard service={item} rootCategory={rootCategory} onPress={onServicePress} cardWidth="100%" />
-                          {renderEditActions(item)}
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                ));
-              })()
-            ) : (
-              <View style={styles.cardGrid}>
-                {items.map((item) => (
-                  <View key={item.service_id} style={{ width: getCardWidth() as DimensionValue }}>
-                    <CategoryServiceCard service={item} rootCategory={rootCategory} onPress={onServicePress} cardWidth="100%" />
-                    {renderEditActions(item)}
-                  </View>
-                ))}
+          <View key={type}>
+            {typeEntries.length > 1 && (
+              <View style={s.typeHeader}>
+                {info && <Ionicons name={info.icon as any} size={16} color={primaryColor} style={{ marginRight: SPACING.small }} />}
+                <Text style={[s.categoryTitle, { color: textColor }]}>{info?.publicTabLabel || info?.label || type}</Text>
               </View>
             )}
+            {!readOnly && onAddService && (
+              <Pressable style={[s.addBtn, { backgroundColor: cardColor, borderColor: primaryColor }]} onPress={() => onAddService(type)}>
+                <Ionicons name="add-circle-outline" size={18} color={primaryColor} />
+                <Text style={[s.addBtnText, { color: primaryColor }]}>{t("services.add", "Add")} {addLabel}</Text>
+              </Pressable>
+            )}
+            <View style={s.grid}>
+              {items.map((item) => (
+                <View key={item.service_id}>
+                  <CategoryServiceCard
+                    service={item}
+                    rootCategory={rootCategory}
+                    onPress={onServicePress}
+                    primaryColor={primaryColor}
+                    textColor={textColor}
+                    secondaryColor={secondaryColor}
+                  />
+                  {!readOnly && (onEditService || onDeleteService || onOpenSlotManager) && (
+                    <View style={s.actionRow}>
+                      {onOpenSlotManager && (
+                        <Pressable onPress={() => onOpenSlotManager(item.service_id)} hitSlop={8} style={s.actionBtn}>
+                          <Ionicons name="time-outline" size={16} color={primaryColor} />
+                        </Pressable>
+                      )}
+                      {onEditService && (
+                        <Pressable onPress={() => onEditService(item)} hitSlop={8} style={s.actionBtn}>
+                          <Ionicons name="create-outline" size={16} color={primaryColor} />
+                        </Pressable>
+                      )}
+                      {onDeleteService && (
+                        <Pressable onPress={() => onDeleteService(item.service_id)} hitSlop={8} style={s.actionBtn}>
+                          <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
+                        </Pressable>
+                      )}
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
           </View>
         );
       })}
@@ -166,16 +128,46 @@ export default function ServiceSection({ services, rootCategory, readOnly, onAdd
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  emptyState: { alignItems: "center", paddingVertical: 60, gap: 12 },
-  emptyText: { fontSize: 15, color: COLORS.textMuted },
-  addBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: BORDER_RADIUS.md, marginBottom: 12 },
-  addBtnText: { fontSize: 13, fontWeight: "500", color: COLORS.primary },
-  categoryTitle: { fontSize: 16, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 10, marginTop: 8 },
-  cardGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  typeGroup: { marginBottom: 8 },
-  typeHeader: { flexDirection: "row", alignItems: "center", marginTop: 8 },
-  actionRow: { flexDirection: "row", justifyContent: "flex-end", gap: 8, paddingTop: 4, paddingRight: 4 },
-  actionBtn: { padding: 4 },
+const s = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  typeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: SPACING.compact,
+    marginBottom: SPACING.small,
+  },
+  categoryTitle: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: FONT_WEIGHTS.bold as any,
+  },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: SPACING.small,
+    paddingVertical: SPACING.small,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    marginBottom: SPACING.small,
+  },
+  addBtnText: {
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+  },
+  grid: {
+    gap: SPACING.small,
+  },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: SPACING.small,
+    paddingTop: SPACING.tiny,
+    paddingBottom: SPACING.small,
+    paddingRight: SPACING.tiny,
+  },
+  actionBtn: {
+    padding: SPACING.tiny,
+  },
 });

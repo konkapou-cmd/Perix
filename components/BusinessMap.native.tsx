@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import MapView, { Marker, Region } from "react-native-maps";
-import { StyleSheet, View, Text, Pressable, Platform, Image } from "react-native";
+import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental } from "../lib/api";
+import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Service } from "../lib/api";
 import { formatEventDate } from "../lib/formatDate";
+import { COLORS } from "../lib/designTokens";
 
 type MapMarker = {
   id: string;
@@ -14,7 +15,7 @@ type MapMarker = {
   description?: string;
   isOpen?: boolean;
   pinColor?: string;
-  type?: "business" | "event" | "activity" | "artist" | "job" | "rental";
+  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service";
 };
 
 type MapBounds = {
@@ -85,6 +86,8 @@ export default function BusinessMap({
   activities = [],
   artists = [],
   rentals = [],
+  jobs = [] as Job[],
+  services = [] as Service[],
   markers,
   showUserLocation = false,
   onRegionChange,
@@ -97,7 +100,9 @@ export default function BusinessMap({
   staticMode = false,
 }: Props) {
   const mapMarkers: MapMarker[] = markers ?? [
-    ...businesses.map((business) => ({
+    ...businesses
+      .filter(b => b.latitude != null && b.longitude != null)
+      .map((business) => ({
       id: business.business_id,
       latitude: business.latitude,
       longitude: business.longitude,
@@ -105,7 +110,7 @@ export default function BusinessMap({
       description: business.category,
       isOpen: isBusinessOpen(business),
       type: "business" as const,
-      pinColor: isBusinessOpen(business) ? "#FFD700" : "#000000",
+      pinColor: isBusinessOpen(business) ? COLORS.pinBusiness : COLORS.pinClosed,
     })),
       ...events
       .filter(e => e.latitude != null && e.longitude != null)
@@ -116,7 +121,7 @@ export default function BusinessMap({
         title: event.title,
         description: event.location || formatEventDate(event.start_time),
         type: "event" as const,
-        pinColor: "#FFD700" as const,
+        pinColor: COLORS.pinEvent,
       })),
     ...activities
       .filter(a => a.latitude != null && a.longitude != null)
@@ -127,7 +132,7 @@ export default function BusinessMap({
         title: activity.title,
         description: activity.location || `${activity.date} ${activity.time || ''}`,
         type: "activity" as const,
-        pinColor: "#FFD700" as const,
+        pinColor: COLORS.pinActivity,
       })),
     ...artists
       .filter(a => a.latitude != null && a.longitude != null)
@@ -138,7 +143,7 @@ export default function BusinessMap({
         title: artist.name,
         description: artist.town || artist.genres?.join(", ") || "",
         type: "artist" as const,
-        pinColor: "#000000" as const,
+        pinColor: COLORS.pinClosed,
       })),
     ...rentals
       .filter(r => r.latitude != null && r.longitude != null)
@@ -149,7 +154,29 @@ export default function BusinessMap({
         title: rental.title,
         description: rental.rent_price || rental.address || "",
         type: "rental" as const,
-        pinColor: "#4f46e5" as const,
+        pinColor: COLORS.pinRental,
+      })),
+    ...jobs
+      .filter(j => j.latitude != null && j.longitude != null)
+      .map((job) => ({
+        id: job.job_id,
+        latitude: job.latitude!,
+        longitude: job.longitude!,
+        title: job.title,
+        description: job.work_location || "",
+        type: "job" as const,
+        pinColor: COLORS.pinJob,
+      })),
+    ...services
+      .filter(s => s.latitude != null && s.longitude != null && s.root_category !== "rentals" && s.root_category !== "rental-real-estate")
+      .map((service) => ({
+        id: service.service_id,
+        latitude: service.latitude!,
+        longitude: service.longitude!,
+        title: service.name,
+        description: service.address || "",
+        type: "service" as const,
+        pinColor: COLORS.servicesAccent,
       })),
   ];
 
@@ -163,6 +190,25 @@ export default function BusinessMap({
   const mapRef = useRef<MapView>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLocationRef = useRef<string>("");
+  const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
+
+  const groupedMarkers = useMemo(() => {
+    const groups = new Map<string, MapMarker[]>();
+    mapMarkers.forEach((m) => {
+      const key = `${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(m);
+    });
+    return Array.from(groups.entries()).map(([key, items]) => ({
+      key,
+      items,
+      latitude: items[0].latitude,
+      longitude: items[0].longitude,
+      count: items.length,
+      pinColor: items.length === 1 ? items[0].pinColor : items.every(i => i.pinColor === items[0].pinColor) ? items[0].pinColor : '#555',
+      type: items[0].type,
+    }));
+  }, [mapMarkers]);
 
   useEffect(() => {
     if (!location || !mapRef.current) return;
@@ -219,7 +265,7 @@ export default function BusinessMap({
       >
         <View style={styles.disabledOverlay}>
           <View style={styles.disabledContent}>
-            <Ionicons name="location" size={40} color="#000000" />
+            <Ionicons name="location" size={40} color={COLORS.pinClosed} />
             <Text style={styles.disabledText}>{disabledHint}</Text>
           </View>
         </View>
@@ -262,17 +308,46 @@ export default function BusinessMap({
         pitchEnabled={!staticMode}
         rotateEnabled={!staticMode}
       >
-        {mapMarkers.map((marker) => (
+        {groupedMarkers.map((group) => (
           <Marker
-            key={marker.id}
-            coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
-            title={marker.title}
-            description={marker.description}
-            pinColor={marker.pinColor || "#000000"}
-            onPress={() => onMarkerPress?.(marker.id)}
-          />
+            key={group.key}
+            coordinate={{ latitude: group.latitude, longitude: group.longitude }}
+            onPress={() => {
+              if (group.count === 1) {
+                onMarkerPress?.(group.items[0].id);
+              } else {
+                setSelectedGroup(group.items);
+              }
+            }}
+          >
+            <View style={[group.count > 1 ? styles.groupPin : styles.customPin, { backgroundColor: group.pinColor || COLORS.pinClosed }]}>
+              {group.count > 1 && (
+                <Text style={styles.groupPinText}>{group.count}</Text>
+              )}
+            </View>
+          </Marker>
         ))}
       </MapView>
+      <Modal visible={selectedGroup !== null} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
+        <Pressable style={styles.sheetOverlay} onPress={() => setSelectedGroup(null)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>{selectedGroup ? selectedGroup.length : 0} items at this location</Text>
+            <ScrollView style={styles.sheetList}>
+              {(selectedGroup || []).map((item) => (
+                <TouchableOpacity key={item.id} style={styles.sheetItem} onPress={() => { setSelectedGroup(null); onMarkerPress?.(item.id); }}>
+                  <View style={[styles.sheetDot, { backgroundColor: item.pinColor || COLORS.pinClosed }]} />
+                  <View style={styles.sheetItemInfo}>
+                    <Text style={styles.sheetItemName}>{item.title}</Text>
+                    <Text style={styles.sheetItemType}>{item.type}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.textPlaceholder} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -292,7 +367,7 @@ const styles = StyleSheet.create({
   },
   disabledOverlay: {
     flex: 1,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: COLORS.borderGray,
     justifyContent: "center",
     alignItems: "center",
     ...Platform.select({
@@ -307,7 +382,93 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     fontSize: 15,
-    color: "#6b7280",
+    color: COLORS.textGray,
     fontWeight: "500",
+  },
+  customPin: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  groupPin: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  groupPinText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    maxHeight: '60%',
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#ddd',
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#02022A',
+    marginBottom: 16,
+  },
+  sheetList: {
+    maxHeight: 300,
+  },
+  sheetItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#eee',
+    gap: 12,
+  },
+  sheetDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  sheetItemInfo: {
+    flex: 1,
+  },
+  sheetItemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#02022A',
+  },
+  sheetItemType: {
+    fontSize: 12,
+    color: '#5A6276',
+    marginTop: 2,
   },
 });

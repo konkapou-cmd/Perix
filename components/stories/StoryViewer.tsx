@@ -23,11 +23,13 @@ import {
   markStorySeen,
 } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS } from "../../lib/designTokens";
+import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const STORY_DURATION = 5000;
-const MAX_VIDEO_DURATION = 60000;
-const VIDEO_FALLBACK_DURATION = 15000;
+const STORY_DURATION = MEDIA_LIMITS.story.imageDisplayMs;
+const MAX_VIDEO_DURATION = MEDIA_LIMITS.story.maxDurationSeconds * 1000;
+const VIDEO_FALLBACK_DURATION = MEDIA_LIMITS.story.videoFallbackMs;
+const ERROR_FALLBACK_DURATION = MEDIA_LIMITS.story.errorFallbackMs;
 const PROGRESS_HEIGHT = 3;
 
 type StoryViewerProps = {
@@ -129,7 +131,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
           : VIDEO_FALLBACK_DURATION;
         startVideoTimer(videoDurationMs);
       } else if (status === "error" || !story.media_url) {
-        timerRef.current = setTimeout(goNext, 3000);
+        timerRef.current = setTimeout(goNext, ERROR_FALLBACK_DURATION);
       }
     }
 
@@ -304,9 +306,9 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     flexDirection: "row",
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.small,
     paddingTop: 50,
-    gap: SPACING.xs,
+    gap: SPACING.tiny,
   },
   progressTrack: {
     flex: 1,
@@ -324,8 +326,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
+    paddingHorizontal: SPACING.small,
+    paddingTop: SPACING.small,
     position: "absolute",
     top: 56,
     left: 0,
@@ -335,7 +337,7 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: SPACING.small,
     flex: 1,
   },
   headerAvatar: {
@@ -367,10 +369,10 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     flexDirection: "row",
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   headerBtn: {
-    padding: SPACING.xs,
+    padding: SPACING.tiny,
   },
   tapLeft: {
     position: "absolute",
@@ -405,8 +407,8 @@ const styles = StyleSheet.create({
   textOverlay: {
     position: "absolute",
     bottom: 120,
-    left: SPACING.xl,
-    right: SPACING.xl,
+    left: SPACING.std,
+    right: SPACING.std,
   },
   storyText: {
     color: "#fff",
@@ -428,12 +430,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: 24,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.xs,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.small,
+    gap: SPACING.tiny,
   },
   reactionBtn: {
-    padding: SPACING.sm,
+    padding: SPACING.small,
   },
   reactionEmoji: {
     fontSize: 24,

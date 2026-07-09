@@ -271,14 +271,14 @@ const styles = StyleSheet.create({
   chatSection: {
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
-    marginTop: SPACING.xl,
+    marginTop: SPACING.std,
     overflow: "hidden",
     ...SHADOWS.subtle,
   },
   chatHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: SPACING.xl,
+    padding: SPACING.std,
   },
   chatIconContainer: {
     width: 40,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.sm,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: SPACING.lg,
+    marginRight: SPACING.compact,
   },
   chatHeaderInfo: {
     flex: 1,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   chatToggle: {
-    padding: SPACING.sm,
+    padding: SPACING.small,
   },
   fullChatButton: {
     width: 36,
@@ -311,15 +311,15 @@ const styles = StyleSheet.create({
     backgroundColor: `${COLORS.primary}15`,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: SPACING.sm,
+    marginLeft: SPACING.small,
   },
   chatMessages: {
     maxHeight: 300,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.std,
   },
   emptyChat: {
     alignItems: "center",
-    paddingVertical: SPACING.huge,
+    paddingVertical: SPACING.large,
   },
   emptyChatIcon: {
     width: 56,
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.compact,
   },
   emptyChatText: {
     fontSize: FONT_SIZES.body,
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chatBubble: {
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.compact,
     maxWidth: "80%",
   },
   chatBubbleMe: {
@@ -352,8 +352,8 @@ const styles = StyleSheet.create({
   chatBubbleMeGradient: {
     borderRadius: BORDER_RADIUS.lg,
     borderBottomRightRadius: 4,
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.compact,
+    paddingHorizontal: SPACING.std,
   },
   chatBubbleName: {
     fontSize: FONT_SIZES.caption,
@@ -383,13 +383,13 @@ const styles = StyleSheet.create({
   chatInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: SPACING.lg,
+    padding: SPACING.compact,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
   chatPhotoBtn: {
-    marginRight: SPACING.sm,
-    padding: SPACING.md,
+    marginRight: SPACING.small,
+    padding: SPACING.small,
     borderRadius: BORDER_RADIUS.md,
   },
   chatPhotoBtnDisabled: {
@@ -399,14 +399,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.backgroundPage,
     borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.compact,
     fontSize: FONT_SIZES.body,
     color: COLORS.textPrimary,
     maxHeight: 80,
   },
   chatSendBtn: {
-    marginLeft: SPACING.lg,
+    marginLeft: SPACING.compact,
     borderRadius: BORDER_RADIUS.md,
     overflow: "hidden",
   },
@@ -422,9 +422,9 @@ const styles = StyleSheet.create({
   loginPrompt: {
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.xxxl,
+    padding: SPACING.page,
     alignItems: "center",
-    marginTop: SPACING.xl,
+    marginTop: SPACING.std,
     ...SHADOWS.subtle,
   },
   loginPromptIcon: {
@@ -433,21 +433,21 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.compact,
   },
   loginPromptText: {
     fontSize: FONT_SIZES.body,
     color: COLORS.textMuted,
     textAlign: "center",
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.std,
   },
   loginButton: {
     borderRadius: BORDER_RADIUS.md,
     overflow: "hidden",
   },
   loginButtonInner: {
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xxxl,
+    paddingVertical: SPACING.compact,
+    paddingHorizontal: SPACING.page,
     alignItems: "center",
   },
   loginButtonText: {
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   chatMediaContainer: {
     borderRadius: BORDER_RADIUS.md,
     overflow: "hidden",
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.tiny,
   },
   chatMediaImage: {
     width: 200,

@@ -99,7 +99,6 @@ export default function ImageZoomModal({
             uri={item.uri}
             style={styles.video}
             autoPlay
-            showMuteButton={true}
             initialMuted={isMuted}
             onMuteChange={setIsMuted}
             useNativeControls={true}

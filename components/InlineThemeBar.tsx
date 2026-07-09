@@ -15,14 +15,18 @@ import { COLORS } from '../lib/designTokens';
 
 // Color presets optimized for quick selection
 const QUICK_PRESETS = [
-  { id: 'ocean', colors: ['#0a192f', '#64ffda'], name: 'Ocean' },
-  { id: 'sunset', colors: ['#1a1a2e', '#e94560'], name: 'Sunset' },
-  { id: 'forest', colors: ['#1b2d1b', '#4ade80'], name: 'Forest' },
-  { id: 'royal', colors: ['#1e1e3f', '#a855f7'], name: 'Royal' },
-  { id: 'flame', colors: ['#1f1f1f', '#f59e0b'], name: 'Flame' },
-  { id: 'midnight', colors: ['#0f0f23', '#3b82f6'], name: 'Midnight' },
-  { id: 'rose', colors: ['#2d1f2d', '#ec4899'], name: 'Rose' },
-  { id: 'neon', colors: ['#0a0a0a', '#00ff88'], name: 'Neon' },
+  { id: 'royal',   colors: ['#F3E8FF', '#6A11CB', '#C77DFF'], name: 'Royal' },
+  { id: 'gold',    colors: ['#111111', '#D4AF37', '#FFF3CC'], name: 'Gold' },
+  { id: 'ocean',   colors: ['#CAF0F8', '#0077B6', '#90E0EF'], name: 'Ocean' },
+  { id: 'emerald', colors: ['#D1FAE5', '#27AE60', '#A8E6CF'], name: 'Emerald' },
+  { id: 'sunset',  colors: ['#FFF5E1', '#FF6B35', '#FEE9A6'], name: 'Sunset' },
+  { id: 'rose',    colors: ['#FCE4EC', '#E91E63', '#F8BBD0'], name: 'Rose' },
+  { id: 'teal',    colors: ['#E0FBFC', '#008080', '#94D2BD'], name: 'Teal' },
+  { id: 'violet',  colors: ['#E6CCFF', '#7B2CBF', '#C77DFF'], name: 'Violet' },
+  { id: 'earthy',  colors: ['#F5EFE6', '#8B5E3C', '#D7B999'], name: 'Earthy' },
+  { id: 'ice',     colors: ['#F0FBFC', '#00C4CC', '#CAF0F8'], name: 'Ice' },
+  { id: 'red',     colors: ['#FFF5F5', '#C1121F', '#FDF0D5'], name: 'Red' },
+  { id: 'lavender',colors: ['#F8F4FF', '#9381FF', '#EADBF8'], name: 'Lavender' },
 ];
 
 // Quick color palette for individual color selection

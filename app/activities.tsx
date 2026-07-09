@@ -235,7 +235,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
           time: form.time,
           location: form.location || "",
           cover_image_url: activityImages[0] || undefined,
-          image_urls: activityImages,
+          image_urls: activityImages.slice(1),
           video_url: undefined,
           latitude: form.latitude ?? null,
           longitude: form.longitude ?? null,
@@ -309,7 +309,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
           time: form.time || undefined,
           location: form.location || undefined,
           cover_image_url: activityImages[0] || undefined,
-          image_urls: activityImages,
+          image_urls: activityImages.slice(1),
           video_url: undefined,
           latitude: form.latitude || undefined,
           longitude: form.longitude || undefined,
@@ -710,7 +710,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                     {activity.title}
                   </Text>
                   <Text style={styles.airbnbMeta}>
-                    <Ionicons name="calendar-outline" size={12} color="#6b7280" /> {activity.date} · {activity.time}
+                    <Ionicons name="calendar-outline" size={12} color="#6b7280" /> {formatDate(activity.date)} · {activity.time}
                   </Text>
                   {activity.location && (
                     <Text style={styles.airbnbLocation} numberOfLines={1}>

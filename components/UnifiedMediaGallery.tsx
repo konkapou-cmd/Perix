@@ -1,18 +1,27 @@
 import { useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import AdaptiveVideo from "./AdaptiveVideo";
 import AdaptiveImage from "./AdaptiveImage";
+import FocalImage from "./FocalImage";
+import CoverPositionEditor from "./CoverPositionEditor";
 import GalleryUploadSlot from "./GalleryUploadSlot";
 import { uploadMedia, uploadVideoMux, UploadProgress } from "../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
+import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
 
 export type MediaItem = {
   uri: string;
   type: "image" | "video";
+  isCoverImage?: boolean;
+  isCoverVideo?: boolean;
+  focalPoint?: { x: number; y: number } | null;
+  posterUrl?: string | null;
 };
+
+type MediaContext = "cover" | "gallery" | "post" | "story" | "cityAd";
 
 type Props = {
   media: MediaItem[];
@@ -21,7 +30,37 @@ type Props = {
   maxItems?: number;
   label?: string;
   isCreator?: boolean;
+  onCoverFocalPointChange?: (focalPoint: { x: number; y: number }) => void;
+  mediaContext?: MediaContext;
 };
+
+function getCoverItem(media: MediaItem[]): MediaItem | undefined {
+  return media.find((m) => m.isCoverImage) || media.find((m) => m.isCoverVideo) || media[0];
+}
+
+function getMuxThumbnailFromUri(uri: string): string | null {
+  const match = uri.match(/stream\.mux\.com\/([a-zA-Z0-9]+)/);
+  return match ? `https://image.mux.com/${match[1]}/thumbnail.jpg` : null;
+}
+
+function setExplicitCover(
+  media: MediaItem[],
+  targetIndex: number,
+  coverType: "image" | "video"
+): MediaItem[] {
+  return media.map((item, i) => {
+    if (i === targetIndex) {
+      if (coverType === "image") {
+        return { ...item, isCoverImage: true, isCoverVideo: false };
+      }
+      return { ...item, isCoverVideo: true, isCoverImage: false };
+    }
+    if (item.isCoverImage || item.isCoverVideo) {
+      return { ...item, isCoverImage: false, isCoverVideo: false };
+    }
+    return item;
+  });
+}
 
 export default function UnifiedMediaGallery({
   media,
@@ -30,12 +69,27 @@ export default function UnifiedMediaGallery({
   maxItems = 20,
   label,
   isCreator = true,
+  onCoverFocalPointChange,
+  mediaContext = "cover",
 }: Props) {
   const { t } = useTranslation();
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [itemProgress, setItemProgress] = useState<Record<number, UploadProgress>>({});
+  const [menuIndex, setMenuIndex] = useState<number | null>(null);
+  const [coverEditorVisible, setCoverEditorVisible] = useState(false);
 
-  const coverItem = media[0];
+  const { width: screenWidth } = useWindowDimensions();
+  const itemGap = SPACING.gap;
+  const NUM_COLS = 3;
+  const itemSize = (screenWidth - SPACING.page * 2 - itemGap * (NUM_COLS - 1)) / NUM_COLS;
+
+  const galleryLimits = mediaContext === "cover"
+    ? MEDIA_LIMITS.coverGallery
+    : MEDIA_LIMITS.gallery;
+
+  const maxItemsResolved = maxItems ?? galleryLimits.maxItems;
+
+  const coverItem = getCoverItem(media);
 
   const addImages = async () => {
     if (!sessionToken) {
@@ -70,14 +124,16 @@ export default function UnifiedMediaGallery({
       }
     }
     if (newItems.length > 0) {
-      onChange([...media, ...newItems].slice(0, maxItems));
+      const resetItems = newItems.map(item => ({ ...item, focalPoint: item.focalPoint ?? { x: 0.5, y: 0.5 } }));
+      const combined = Array.from(new Set([...media, ...resetItems]));
+      onChange(combined.slice(0, maxItemsResolved));
     }
     setUploadingIndex(null);
     setItemProgress({});
     if (failCount > 0) {
       Alert.alert(
-        t("common.error") || "Error",
-        `${failCount} image(s) failed to upload. ${newItems.length} succeeded.`
+        t("upload.failedTitle") || "Upload fehlgeschlagen",
+        `${failCount} ${t("upload.imagesFailed") || "Bilder konnten nicht hochgeladen werden"}. ${newItems.length} ${t("upload.imagesSucceeded") || "erfolgreich"}.`
       );
     }
   };
@@ -89,31 +145,56 @@ export default function UnifiedMediaGallery({
       quality: 0.7,
     });
     if (result.canceled || !result.assets || !result.assets[0]?.uri) return;
+    const asset = result.assets[0];
+
+    const maxDur = galleryLimits.maxVideoDurationSeconds;
+    const maxSizeBytes = galleryLimits.maxVideoFileSizeBytes;
+    const maxSizeMb = galleryLimits.maxVideoFileSizeMb;
+
+    if (asset.fileSize && asset.fileSize > maxSizeBytes) {
+      Alert.alert(
+        t("upload.videoTooLargeTitle") || "Video zu groß",
+        t("upload.videoTooLargeMsg") || `Das Video ist zu groß. Maximal erlaubt sind ${maxSizeMb} MB.`
+      );
+      return;
+    }
+    const durationSeconds = asset.duration != null ? (asset.duration > 1000 ? asset.duration / 1000 : asset.duration) : 0;
+    if (durationSeconds > maxDur) {
+      Alert.alert(
+        t("upload.videoTooLongTitle") || "Video zu lang",
+        t("upload.videoTooLongMsg") || `Das Video ist zu lang. Bitte kürze es auf maximal ${maxDur} Sekunden.`
+      );
+      return;
+    }
+
     const idx = media.length;
     try {
       setUploadingIndex(idx);
       setItemProgress((prev) => ({ ...prev, [idx]: { phase: "preparing", progress: 0 } }));
-      const muxResult = await uploadVideoMux(sessionToken, result.assets[0].uri, undefined, (p) => {
+      const muxResult = await uploadVideoMux(sessionToken, asset.uri, undefined, (p) => {
         setItemProgress((prev) => ({ ...prev, [idx]: p }));
       });
       const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
       if (!videoUrl && !muxResult.mux_upload_id) throw new Error("Video upload failed - no URL returned");
       const newItems: MediaItem[] = [];
-      if (videoUrl) newItems.push({ uri: videoUrl, type: "video" });
-      if (muxResult.mux_thumbnail_url && !media.some((m) => m.uri === muxResult.mux_thumbnail_url)) {
-        newItems.push({ uri: muxResult.mux_thumbnail_url, type: "image" });
-      }
+      if (videoUrl) newItems.push({
+        uri: videoUrl,
+        type: "video",
+        posterUrl: muxResult.mux_thumbnail_url || null,
+        focalPoint: { x: 0.5, y: 0.5 },
+      });
       if (newItems.length > 0) {
         setItemProgress((prev) => ({ ...prev, [idx]: { phase: "complete", progress: 100 } }));
-        onChange([...media, ...newItems].slice(0, maxItems));
+        const combined = Array.from(new Set([...media, ...newItems]));
+        onChange(setExplicitCover(combined, combined.length - 1, "video").slice(0, maxItemsResolved));
       } else {
         throw new Error("Video upload completed but no playable URL was returned");
       }
     } catch (e: any) {
       setItemProgress((prev) => ({ ...prev, [idx]: { phase: "preparing", progress: 0 } }));
       Alert.alert(
-        t("common.error") || "Error",
-        e?.message || t("upload.failed") || "Video upload failed"
+        t("upload.failedTitle") || "Upload fehlgeschlagen",
+        t("upload.failedVideoMsg") || "Das Video konnte nicht hochgeladen werden. Dein altes Titelbild bleibt erhalten."
       );
     } finally {
       setUploadingIndex(null);
@@ -121,11 +202,30 @@ export default function UnifiedMediaGallery({
     }
   };
 
+  const updatedCoverFocalPoint = (nextFp: { x: number; y: number }) => {
+    const updated = media.map((item) =>
+      (item.isCoverImage || item.isCoverVideo) ? { ...item, focalPoint: nextFp } : item
+    );
+    onChange(updated);
+    onCoverFocalPointChange?.(nextFp);
+  };
+
   const removeItem = (index: number) => {
     onChange(media.filter((_, i) => i !== index));
+    setMenuIndex(null);
   };
 
   const gridItems = media.slice(1);
+
+  const handleSetCoverImage = (realIdx: number) => {
+    onChange(setExplicitCover(media, realIdx, "image"));
+    setMenuIndex(null);
+  };
+
+  const handleSetCoverVideo = (realIdx: number) => {
+    onChange(setExplicitCover(media, realIdx, "video"));
+    setMenuIndex(null);
+  };
 
   return (
     <View>
@@ -134,9 +234,19 @@ export default function UnifiedMediaGallery({
       <Pressable style={s.heroContainer} onPress={media.length === 0 && isCreator ? addImages : undefined}>
         {coverItem ? (
           coverItem.type === "video" ? (
-            <AdaptiveVideo uri={coverItem.uri} style={s.heroImage} resizeMode="contain" isLooping={false} initialMuted />
+            <View>
+              <FocalImage
+                uri={coverItem.posterUrl ?? getMuxThumbnailFromUri(coverItem.uri)}
+                aspectRatio={16 / 9}
+                focalPoint={coverItem.focalPoint ?? { x: 0.5, y: 0.5 }}
+                borderRadius={BORDER_RADIUS.lg}
+                style={s.heroImage}
+                showLoader={false}
+              />
+              <AdaptiveVideo uri={coverItem.uri} autoPlay style={StyleSheet.absoluteFill} resizeMode="cover" isLooping={false} />
+            </View>
           ) : (
-            <Image source={{ uri: coverItem.uri }} style={s.heroImage} resizeMode="cover" />
+            <FocalImage uri={coverItem.uri} aspectRatio={16 / 9} focalPoint={coverItem.focalPoint ?? { x: 0.5, y: 0.5 }} borderRadius={BORDER_RADIUS.lg} style={s.heroImage} showLoader={false} />
           )
         ) : (
           <View style={s.heroPlaceholder}>
@@ -145,11 +255,19 @@ export default function UnifiedMediaGallery({
           </View>
         )}
         {coverItem && (
-          <View style={s.heroOverlay}>
-            <Ionicons name="camera" size={18} color="#fff" />
-          </View>
+          <Pressable style={s.heroOverlay} onPress={() => setCoverEditorVisible(true)}>
+            <Ionicons name="camera" size={18} color={COLORS.textLight} />
+          </Pressable>
         )}
-        {coverItem && <View style={s.coverBadge}><Text style={s.coverBadgeText}>Cover</Text></View>}
+        {coverItem && coverItem.isCoverImage && (
+          <View style={s.coverBadge}><Text style={s.coverBadgeText}>Cover</Text></View>
+        )}
+        {coverItem && coverItem.isCoverVideo && (
+          <View style={[s.coverBadge, { backgroundColor: "#8b5cf6" }]}><Text style={s.coverBadgeText}>Video</Text></View>
+        )}
+        {coverItem && !coverItem.isCoverImage && !coverItem.isCoverVideo && (
+          <View style={[s.coverBadge, { backgroundColor: COLORS.textDisabled }]}><Text style={s.coverBadgeText}>Item 1</Text></View>
+        )}
         {coverItem && isCreator && (
           <Pressable style={s.removeHeroBtn} onPress={() => removeItem(0)}>
             <Ionicons name="close-circle" size={22} color={COLORS.danger} />
@@ -158,41 +276,88 @@ export default function UnifiedMediaGallery({
       </Pressable>
 
       {gridItems.length > 0 && (
-        <View style={s.grid}>
+        <View style={[s.grid, { gap: itemGap }]}>
           {gridItems.map((item, idx) => {
             const realIdx = idx + 1;
-            const progress = itemProgress[realIdx];
-            const isUploading = uploadingIndex === realIdx;
-            return (
-              <View key={`m-${realIdx}`} style={s.gridItem}>
-                {isUploading || progress ? (
+
+            // ... (rest of the item rendering)
+            if (isUploading || progress) {
+              return (
+                <View key={`m-${realIdx}`} style={[s.gridItem, { width: itemSize, height: itemSize }]}>
                   <GalleryUploadSlot
                     uri={item.uri}
                     type={item.type}
                     progress={progress}
                     onPress={() => {}}
                     onRemove={isCreator ? () => removeItem(realIdx) : undefined}
-                    size={gridItemSize}
+                    size={itemSize}
                   />
-                ) : item.type === "video" ? (
-                  <AdaptiveVideo uri={item.uri} style={s.gridImage} resizeMode="contain" isLooping={false} initialMuted />
+                </View>
+              );
+            }
+
+            // Regular media items
+            const showMenu = menuIndex === realIdx;
+            const mediaItem = item; // Prevent variable shadowing
+
+            return (
+              <View key={`m-${realIdx}`} style={[s.gridItem, { width: itemSize, height: itemSize }]}>
+                {mediaItem.type === "video" ? (
+                  <AdaptiveVideo
+                    uri={mediaItem.uri}
+                    autoPlay
+                    style={s.gridImage}
+                    resizeMode="cover"
+                    isLooping={false}
+                    initialMuted
+                  />
                 ) : (
-                  <AdaptiveImage uri={item.uri} style={s.gridImage} resizeMode="contain" />
+                  <AdaptiveImage uri={mediaItem.uri} style={s.gridImage} resizeMode="cover" />
                 )}
-                {!isUploading && !progress && isCreator && (
+                {mediaItem.isCoverImage && (
+                  <View style={s.gridCoverBadge}>
+                    <Ionicons name="image" size={12} color={COLORS.textLight} />
+                  </View>
+                )}
+                {mediaItem.isCoverVideo && (
+                  <View style={[s.gridCoverBadge, { backgroundColor: "#8b5cf6" }]}>
+                    <Ionicons name="videocam" size={12} color={COLORS.textLight} />
+                  </View>
+                )}
+                {isCreator && (
                   <View style={s.gridActions}>
-                    {media.length > 1 && realIdx !== 0 && (
-                      <Pressable style={s.setCoverBtn} onPress={() => {
-                        const newMedia = [item, ...media.filter((_, i) => i !== realIdx)];
-                        onChange(newMedia);
-                      }}>
-                        <Ionicons name="star-outline" size={14} color="#fff" />
-                      </Pressable>
-                    )}
-                    <Pressable style={s.removeGridBtn} onPress={() => removeItem(realIdx)}>
-                      <Ionicons name="close-circle" size={20} color={COLORS.danger} />
+                    {showMenu ? (
+                      <View style={s.menuContainer}>
+                        {mediaItem.type === "image" && (
+                          <Pressable style={s.menuItem} onPress={() => handleSetCoverImage(realIdx)}>
+                            <Ionicons name="image-outline" size={12} color={COLORS.textPrimary} />
+                            <Text style={s.menuItemText}>{t("gallery.setCoverImage") || "Cover Image"}</Text>
+                          </Pressable>
+                        )}
+                        {mediaItem.type === "video" && (
+                          <Pressable style={s.menuItem} onPress={() => handleSetCoverVideo(realIdx)}>
+                            <Ionicons name="videocam-outline" size={12} color={COLORS.textPrimary} />
+                            <Text style={s.menuItemText}>{t("gallery.setCoverVideo") || "Cover Video"}</Text>
+                          </Pressable>
+                        )}
+                        <Pressable style={s.menuItem} onPress={() => removeItem(realIdx)}>
+                          <Ionicons name="trash-outline" size={12} color={COLORS.error} />
+                          <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("common.delete") || "Remove"}</Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
+                    <Pressable
+                      style={s.menuTriggerBtn}
+                      onPress={() => setMenuIndex(showMenu ? null : realIdx)}
+                    >
+                      <Ionicons name="ellipsis-horizontal" size={14} color="#fff" />
                     </Pressable>
                   </View>
+                )}
+                {!isCreator && (
+                  <Pressable style={s.removeGridBtn} onPress={() => removeItem(realIdx)}>
+                    <Ionicons name="close" size={14} color="#fff" />
+                  </Pressable>
                 )}
               </View>
             );
@@ -200,7 +365,7 @@ export default function UnifiedMediaGallery({
         </View>
       )}
 
-      {isCreator && media.length < maxItems && (
+      {isCreator && media.length < maxItemsResolved && (
         <View style={s.addRow}>
           <Pressable style={s.addBtn} onPress={addImages} disabled={uploadingIndex !== null}>
             <Ionicons name="image-outline" size={20} color={COLORS.primary} />
@@ -222,24 +387,38 @@ export default function UnifiedMediaGallery({
         </View>
       )}
     </View>
+
+    {coverItem && (
+      <CoverPositionEditor
+        visible={coverEditorVisible}
+        uri={coverItem.uri}
+        initialFocalPoint={coverItem.focalPoint ?? { x: 0.5, y: 0.5 }}
+        aspectRatio={16 / 9}
+        onCancel={() => setCoverEditorVisible(false)}
+        onSave={(nextFp) => {
+          updatedCoverFocalPoint(nextFp);
+          setCoverEditorVisible(false);
+        }}
+      />
+    )}
   );
 }
 
-const gridItemSize = 80;
+const NUM_COLS = 3;
 
 const s = StyleSheet.create({
   label: {
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-    marginTop: SPACING.xl,
+    marginBottom: SPACING.tiny,
+    marginTop: SPACING.std,
   },
   heroContainer: {
     position: "relative",
     width: "100%",
-    height: 160,
-    marginTop: SPACING.sm,
+    aspectRatio: 16 / 9,
+    marginTop: SPACING.small,
     borderRadius: BORDER_RADIUS.lg,
     overflow: "hidden",
   },
@@ -262,12 +441,12 @@ const s = StyleSheet.create({
   heroPlaceholderText: {
     fontSize: FONT_SIZES.small,
     color: COLORS.textDisabled,
-    marginTop: SPACING.xs,
+    marginTop: SPACING.tiny,
   },
   heroOverlay: {
     position: "absolute",
-    bottom: SPACING.md,
-    right: SPACING.md,
+    bottom: SPACING.small,
+    right: SPACING.small,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -280,13 +459,13 @@ const s = StyleSheet.create({
     top: 4,
     left: 4,
     backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.xs,
+    paddingHorizontal: SPACING.tiny,
     paddingVertical: 1,
     borderRadius: 4,
   },
   coverBadgeText: {
     fontSize: FONT_SIZES.micro,
-    color: "#fff",
+    color: COLORS.textLight,
     fontWeight: FONT_WEIGHTS.bold as any,
   },
   removeHeroBtn: {
@@ -299,16 +478,12 @@ const s = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.sm,
-    marginVertical: SPACING.sm,
+    marginVertical: SPACING.small,
   },
   gridItem: {
     position: "relative",
-    width: "31%",
-    height: gridItemSize,
-    overflow: "hidden",
-    backgroundColor: "#1f2937",
+    overflow: "visible",
+    backgroundColor: COLORS.surfaceDark,
     borderRadius: BORDER_RADIUS.md,
     justifyContent: "center",
     alignItems: "center",
@@ -317,38 +492,72 @@ const s = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  removeGridBtn: {
-    padding: 4,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    borderRadius: 10,
-  },
   gridActions: {
     position: "absolute",
     top: 2,
     right: 2,
-    flexDirection: "row",
-    gap: 4,
+    zIndex: 10,
   },
-  setCoverBtn: {
+  menuTriggerBtn: {
     backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 12,
+    borderRadius: 10,
     width: 22,
     height: 22,
     alignItems: "center",
     justifyContent: "center",
   },
+  menuContainer: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    minWidth: 120,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  menuItemText: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textPrimary,
+    fontWeight: FONT_WEIGHTS.medium as any,
+  },
+  gridCoverBadge: {
+    position: "absolute",
+    top: 2,
+    left: 2,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    width: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  removeGridBtn: {
+    padding: 4,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 10,
+  },
   addRow: {
     flexDirection: "row",
-    gap: SPACING.md,
-    marginTop: SPACING.sm,
+    gap: SPACING.small,
+    marginTop: SPACING.small,
   },
   addBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: SPACING.sm,
-    paddingVertical: SPACING.mdLg,
+    gap: SPACING.small,
+    paddingVertical: SPACING.compact,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.border,

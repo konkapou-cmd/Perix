@@ -233,7 +233,7 @@ const blockingS = StyleSheet.create({
   card: {
     backgroundColor: COLORS.primaryLight,
     borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.xxxl,
+    padding: SPACING.page,
     width: "80%",
     maxWidth: 320,
     alignItems: "center",
@@ -246,7 +246,7 @@ const blockingS = StyleSheet.create({
     backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.compact,
   },
   checkCircle: {
     width: 64,
@@ -260,7 +260,7 @@ const blockingS = StyleSheet.create({
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#fff",
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
     textAlign: "center",
   },
   progressBarBg: {
@@ -269,7 +269,7 @@ const blockingS = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
     borderRadius: 4,
     overflow: "hidden",
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
   },
   progressBar: {
     height: "100%",
@@ -283,18 +283,18 @@ const blockingS = StyleSheet.create({
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.gold,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
   },
   hintText: {
     fontSize: FONT_SIZES.small,
     color: COLORS.textMuted,
     textAlign: "center",
-    marginTop: SPACING.xs,
+    marginTop: SPACING.tiny,
   },
   dismissBtn: {
-    marginTop: SPACING.md,
-    paddingHorizontal: SPACING.xxl,
-    paddingVertical: SPACING.md,
+    marginTop: SPACING.small,
+    paddingHorizontal: SPACING.section,
+    paddingVertical: SPACING.small,
     backgroundColor: COLORS.success,
     borderRadius: BORDER_RADIUS.md,
   },
@@ -308,9 +308,9 @@ const blockingS = StyleSheet.create({
 const inlineS = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: SPACING.xxxl,
-    left: SPACING.lg,
-    right: SPACING.lg,
+    bottom: SPACING.page,
+    left: SPACING.compact,
+    right: SPACING.compact,
     zIndex: 9999,
   },
   inner: {
@@ -318,9 +318,9 @@ const inlineS = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
-    paddingVertical: SPACING.mdLg,
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.md,
+    paddingVertical: SPACING.compact,
+    paddingHorizontal: SPACING.compact,
+    gap: SPACING.small,
     ...SHADOWS.medium,
   },
   iconContainer: {
@@ -339,7 +339,7 @@ const inlineS = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    gap: SPACING.xs,
+    gap: SPACING.tiny,
   },
   label: {
     fontSize: FONT_SIZES.small,

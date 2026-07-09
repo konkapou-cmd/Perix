@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  FlatList,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -54,14 +55,15 @@ import {
   BACKEND_URL,
   MAX_VIDEO_SIZE_BYTES,
 } from "../../lib/api";
+import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 import { COLORS } from "../../lib/designTokens";
 import { formatEventDate } from "../../lib/formatDate";
 import ShareContent from "../../components/ShareContent";
 import * as Location from "expo-location";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory } from "../../lib/categoryTranslation";
-import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
-import { SkeletonBox } from "../../components/shared";
+import { getThemeColors } from "../../hooks/useThemeStyles";
+import { SkeletonBox, CarouselCard } from "../../components/shared";
 import { CityAdViewer } from "../../components/stories/CityAdViewer";
 import { SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 
@@ -69,6 +71,7 @@ import { useFeedData } from "../../hooks/useFeedData";
 import { useContentSorting } from "../../hooks/useContentSorting";
 import { useLayoutPreferences } from "../../hooks/useLayoutPreferences";
 import { CityAdCircles } from "../../components/home/CityAdCircles";
+import { CarouselSection } from "../../components/home/CarouselSection";
 import { MapSection } from "../../components/home/MapSection";
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
 import { PostCard } from "../../components/home/PostCard";
@@ -76,14 +79,14 @@ import { LayoutSettingsModal } from "../../components/home/LayoutSettingsModal";
 
 function HomeSkeleton() {
   return (
-    <ScrollView contentContainerStyle={{ padding: SPACING.xl, paddingBottom: 40 }} style={{ backgroundColor: COLORS.backgroundPage }}>
-      <SkeletonBox width="100%" height={200} borderRadius={8} style={{ marginBottom: SPACING.xxl }} />
+    <ScrollView contentContainerStyle={{ padding: SPACING.std, paddingBottom: 40 }} style={{ backgroundColor: COLORS.backgroundPage }}>
+      <SkeletonBox width="100%" height={200} borderRadius={8} style={{ marginBottom: SPACING.section }} />
       {[0, 1, 2].map((i) => (
-        <View key={i} style={{ marginBottom: SPACING.xl }}>
-          <SkeletonBox width={120} height={20} style={{ marginBottom: SPACING.md }} />
+        <View key={i} style={{ marginBottom: SPACING.std }}>
+          <SkeletonBox width={120} height={20} style={{ marginBottom: SPACING.small }} />
           <View style={{ flexDirection: "row" }}>
             {[0, 1, 2, 3].map((j) => (
-              <SkeletonBox key={j} width={140} height={160} borderRadius={8} style={{ marginRight: SPACING.lg }} />
+              <SkeletonBox key={j} width={140} height={160} borderRadius={8} style={{ marginRight: SPACING.compact }} />
             ))}
           </View>
         </View>
@@ -94,7 +97,7 @@ function HomeSkeleton() {
 
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const { user, sessionToken, activeIdentity } = useAuth();
+  const { user, sessionToken, activeIdentity, logout } = useAuth();
   const { location: globalLocation } = useLocation();
   const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
   const router = useRouter();
@@ -123,8 +126,8 @@ export default function HomeScreen() {
 
   const posts = localPosts;
   const savedPostIds = localSavedPostIds ?? feedData.savedPostIds;
-  const { events, businesses, jobs, rentals, activities, storyGroups,
-    savedEventIds, savedActivityIds, savedBusinessIds, savedJobIds, savedRentalIds,
+  const { events, businesses, jobs, rentals, activities, storyGroups, services,
+    savedEventIds, savedActivityIds, savedBusinessIds, savedJobIds, savedRentalIds, savedServiceIds,
     feedError, loading: feedLoading, backgroundLoading, refresh: refreshFeed,
   } = feedData;
 
@@ -136,11 +139,21 @@ export default function HomeScreen() {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
+  const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
+  const scrollRef = useRef<FlatList<Post>>(null);
+  const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 50, minimumViewTime: 300 }).current;
+  const onViewableItemsChangedRef = useRef(({ viewableItems }: { viewableItems: { key: string }[] }) => {
+    if (viewableItems.length > 0) {
+      setVisiblePostId(viewableItems[0].key);
+    } else {
+      setVisiblePostId(null);
+    }
+  }).current;
 
   const { homeLayout, toggleSection, setSorting } = useLayoutPreferences();
 
-  const { sortedEvents, sortedBusinesses, sortedJobs, sortedActivities, sortedPosts, sortedRentals } = useContentSorting({
-    posts, events, businesses, jobs, activities, rentals,
+  const { sortedEvents, sortedBusinesses, sortedJobs, sortedActivities, sortedPosts, sortedRentals, sortedServices } = useContentSorting({
+    posts, events, businesses, jobs, activities, rentals, services,
     sorting: homeLayout.sorting,
     userLocation,
     mapBounds,
@@ -206,13 +219,6 @@ export default function HomeScreen() {
       console.log("Error loading more posts:", e);
     } finally {
       setLoadingMorePosts(false);
-    }
-  };
-
-  const handleScroll = ({ nativeEvent }: any) => {
-    const paddingToBottom = 1500;
-    if (nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height - paddingToBottom) {
-      loadMorePosts();
     }
   };
 
@@ -314,7 +320,8 @@ export default function HomeScreen() {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [shareContentId, setShareContentId] = useState<string>("");
   const [shareContentTitle, setShareContentTitle] = useState<string>("");
-  const [globalMuted, setGlobalMuted] = useState(false);
+  const isAnyModalOpen = commentModal || editModal || calendarOpen || activitiesCalendarOpen || showThemeFilter || showBusinessTagModal || showLayoutSettings || showLocationSearch || shareModalVisible;
+  const [userWantsSound, setUserWantsSound] = useState(true);
   const [friends, setFriends] = useState<any[]>([]);
 
   const brandOpacity = useRef(new Animated.Value(1)).current;
@@ -358,7 +365,11 @@ export default function HomeScreen() {
     if (!result.canceled && result.assets?.[0]?.uri) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
-        Alert.alert(t("common.error"), t("home.videoTooLarge") || `Video must be under 300MB.`);
+        Alert.alert(t("common.error"), `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
+        return;
+      }
+      if (asset.duration != null && asset.duration > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
+        Alert.alert("Video zu lang", `Videos dürfen maximal ${MEDIA_LIMITS.post.maxVideoDurationSeconds} Sekunden lang sein.`);
         return;
       }
       setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
@@ -605,7 +616,7 @@ export default function HomeScreen() {
             <Text style={styles.mapPromptTitle}>{t("home.setLocationTitle", { defaultValue: "Set Your Area" })}</Text>
             <Text style={styles.mapPromptText}>{t("home.setLocationDescription", { defaultValue: "To see content from nearby businesses, please first set your location area on the map." })}</Text>
             <Pressable style={styles.mapPromptButton} onPress={handleRecenterOnMe} data-testid="recenter-btn">
-              <Ionicons name="locate" size={20} color="#fff" />
+              <Ionicons name="locate" size={20} color={COLORS.textLight} />
               <Text style={styles.mapPromptButtonText}>{t("home.useMyLocation", { defaultValue: "Use My Location" })}</Text>
             </Pressable>
             <Pressable style={[styles.mapPromptButton, styles.mapPromptButtonSecondary]} onPress={() => router.navigate("/(tabs)/locator" as any)} data-testid="go-to-map-btn">
@@ -626,11 +637,14 @@ export default function HomeScreen() {
           <Text style={styles.stickyHeaderSub}>{t("home.discoverNearby", "Discover nearby")}</Text>
         </View>
         <View style={styles.stickyHeaderRight}>
-          <Pressable style={styles.stickyHeaderIcon} onPress={() => setShowLocationSearch(true)}>
+          <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.primaryLight }]} onPress={() => setShowLocationSearch(true)}>
             <Ionicons name="search" size={22} color={COLORS.primary} />
           </Pressable>
-          <Pressable style={styles.stickyHeaderIcon} onPress={() => setShowLayoutSettings(true)}>
-            <Ionicons name="options-outline" size={22} color={COLORS.primary} />
+          <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.filterIconBg }]} onPress={() => setShowLayoutSettings(true)}>
+            <Ionicons name="options-outline" size={22} color={COLORS.filterIcon} />
+          </Pressable>
+          <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.errorBorder }]} onPress={async () => { await logout(); }}>
+            <Text style={{ color: COLORS.errorText, fontWeight: "700", fontSize: 11 }}>CLR</Text>
           </Pressable>
         </View>
       </View>
@@ -645,19 +659,43 @@ export default function HomeScreen() {
         }}
       />
 
-      <ScrollView
-        refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingBottom: 52 + insets.bottom + 20 }}
-        onScroll={handleScroll}
-        scrollEventThrottle={400}
-      >
+      <FlatList
+        ref={scrollRef}
+        data={homeLayout.sections.find(s => s.id === "posts")?.enabled !== false ? sortedPosts : []}
+        keyExtractor={(item) => item.post_id}
+        renderItem={({ item }) => (
+          <View style={{ paddingHorizontal: SPACING.small }}>
+          <View key={item.post_id}>
+          <PostCard
+            post={item}
+            isSaved={savedPostIds.has(item.post_id)}
+            onLike={() => handleToggleLike(item)}
+            onComment={() => openComments(item)}
+            onSave={async () => {
+              if (!sessionToken) return;
+              try {
+                const { is_saved } = await toggleSaved(sessionToken, "post", item.post_id);
+                setLocalSavedPostIds(prev => { const next = new Set(prev); is_saved ? next.add(item.post_id) : next.delete(item.post_id); return next; });
+              } catch (e) { console.warn("toggleSaved failed:", e); }
+            }}
+            sessionToken={sessionToken}
+            autoPlay={item.post_id === visiblePostId && !isAnyModalOpen}
+            showMuteButton
+            muted={!(userWantsSound && item.post_id === visiblePostId && !isAnyModalOpen)}
+            onMuteChange={setUserWantsSound}
+          />
+          </View>
+          </View>
+        )}
+        ListHeaderComponent={
+          <>
         {feedError && posts.length === 0 && (
-          <View style={{ margin: SPACING.xl, padding: SPACING.lg, backgroundColor: "#FEF2F2", borderRadius: BORDER_RADIUS.lg, alignItems: "center" }}>
-            <Ionicons name="alert-circle" size={32} color="#DC2626" style={{ marginBottom: SPACING.sm }} />
-            <Text style={{ fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.semibold, color: "#991B1B", marginBottom: SPACING.xs }}>{t("home.feedErrorTitle") || "Unable to load feed"}</Text>
-            <Text style={{ fontSize: FONT_SIZES.small, color: "#B91C1C", textAlign: "center", marginBottom: SPACING.sm }}>{t("home.feedErrorMessage") || "There was a problem loading posts and activities. Please try again."}</Text>
-            <Pressable style={{ paddingHorizontal: SPACING.xl, paddingVertical: SPACING.sm, backgroundColor: "#DC2626", borderRadius: BORDER_RADIUS.md }} onPress={onRefresh}>
-              <Text style={{ color: "#fff", fontWeight: FONT_WEIGHTS.semibold, fontSize: FONT_SIZES.small }}>{t("common.retry") || "Retry"}</Text>
+          <View style={{ margin: SPACING.small, padding: SPACING.compact, backgroundColor: COLORS.errorBg, borderRadius: BORDER_RADIUS.lg, alignItems: "center" }}>
+            <Ionicons name="alert-circle" size={32} color={COLORS.errorText} style={{ marginBottom: SPACING.small }} />
+            <Text style={{ fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.semibold, color: COLORS.errorTitle, marginBottom: SPACING.tiny }}>{t("home.feedErrorTitle") || "Unable to load feed"}</Text>
+            <Text style={{ fontSize: FONT_SIZES.small, color: COLORS.errorDark, textAlign: "center", marginBottom: SPACING.small }}>{t("home.feedErrorMessage") || "There was a problem loading posts and activities. Please try again."}</Text>
+            <Pressable style={{ paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, backgroundColor: COLORS.errorText, borderRadius: BORDER_RADIUS.md }} onPress={onRefresh}>
+              <Text style={{ color: COLORS.textLight, fontWeight: FONT_WEIGHTS.semibold, fontSize: FONT_SIZES.small }}>{t("common.retry") || "Retry"}</Text>
             </Pressable>
           </View>
         )}
@@ -677,6 +715,7 @@ export default function HomeScreen() {
             events={events}
             activities={activities}
             rentals={rentals}
+            services={sortedServices}
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
             }}
@@ -688,245 +727,234 @@ export default function HomeScreen() {
         )}
 
         {homeLayout.sections.find(s => s.id === "events")?.enabled !== false && (
-          <View style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.activitiesSectionTitle}>
-                <View style={[styles.activitiesIconContainer, { backgroundColor: COLORS.primaryDark }]}>
-                  <Ionicons name="calendar" size={18} color="#ffffff" />
-                </View>
-                <Text style={styles.cardTitle}>{t("home.events")}</Text>
-              </View>
-              <Pressable style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]} onPress={() => router.navigate({ pathname: "/(tabs)/locator" as any, params: { tab: "events" } })}>
-                <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t("common.seeAll")}</Text>
-                <Ionicons name="chevron-forward" size={14} color="#ffffff" />
-              </Pressable>
-            </View>
-            <View style={styles.filterChipRow}>
-              {[{ key: "all", label: t("common.all", "All") }, { key: "attending", label: t("home.attending", "Attending") }, { key: "mine", label: t("home.mine", "Mine") }].map(opt => (
-                <Pressable key={opt.key} style={[styles.filterChip, eventsFilter === opt.key && styles.filterChipActive]} onPress={() => setEventsFilter(opt.key as "all" | "attending" | "mine")}>
-                  <Text style={[styles.filterChipText, eventsFilter === opt.key && styles.filterChipTextActive]}>{opt.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={Platform.OS === "web" ? 192 : 157} decelerationRate="fast">
-              {sortedEvents.length === 0 ? (
-                <View style={styles.storyEmpty}><Text style={styles.storyEmptyText}>{t("home.noEvents")}</Text></View>
-              ) : sortedEvents.map((event) => {
-                const eventTheme = (event as any).profile_theme;
-                const themeColors = getThemeColors(eventTheme);
-                const themeStyles = getThemeStyles(eventTheme);
-                const textColor = themeColors.textColor;
-                const eventImg = event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0];
-                return (
-                  <Pressable key={`${event.event_id}-${mapRefreshKey}`} style={[styles.artistCard, { backgroundColor: "#ffffff" }]} onPress={() => router.push(`/event/${event.event_id}`)} data-testid={`event-card-${event.event_id}`}>
-                    <View style={styles.contentCardImage}>
-                      {event.video_url ? (
-                        <AdaptiveVideo uri={event.video_url} style={styles.artistAvatarImage} autoPlay isLooping initialMuted />
-                      ) : eventImg ? (
-                        <Image source={{ uri: eventImg }} style={styles.artistAvatarImage} resizeMode="cover" />
-                      ) : (
-                        <View style={styles.contentCardFallback}><Ionicons name="calendar" style={styles.contentCardFallbackIcon} size={32} color="#9ca3af" /></View>
+          <CarouselSection
+            title={t("home.events")}
+            icon="calendar"
+            color={COLORS.eventsAccent}
+            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "events" } } as any}
+            filters={{
+              options: [
+                { key: "all", label: t("common.all", "All") },
+                { key: "attending", label: t("home.attending", "Attending") },
+                { key: "mine", label: t("home.mine", "Mine") },
+              ],
+              activeKey: eventsFilter,
+              onChange: (k) => setEventsFilter(k as "all" | "attending" | "mine"),
+            }}
+            emptyMessage={t("home.noEvents")}
+          >
+            {sortedEvents.map((event) => {
+              const eventTheme = (event as any).profile_theme;
+              const themeColors = getThemeColors(eventTheme);
+              const textColor = themeColors.textColor;
+              const eventImg = event.cover_image_url || (!event.video_url ? (event.image_urls?.[0] || event.gallery_images?.[0]) : undefined);
+              const going = event.is_attending;
+              const yours = event.is_creator && !event.is_attending;
+              return (
+                <CarouselCard
+                  key={`${event.event_id}-${mapRefreshKey}`}
+                  imageUrl={eventImg}
+                  videoUrl={event.video_url}
+                  title={event.title}
+                  subtitle={event.creator?.name || event.business?.name || event.artist?.name || ""}
+                  thirdLine={formatEventDate(event.start_time)}
+                  onPress={() => router.push(`/event/${event.event_id}`)}
+                  isSaved={savedEventIds.has(event.event_id)}
+                  textColor={textColor}
+                  fallbackIcon="calendar"
+                  overlay={
+                    <>
+                      {going && (
+                        <View style={styles.goingBadge}>
+                          <Ionicons name="checkmark-circle" size={10} color={COLORS.textLight} />
+                          <Text style={styles.goingText}>{t("home.going", "Going")}</Text>
+                        </View>
                       )}
-                      {savedEventIds.has(event.event_id) && (<View style={styles.savedBadge}><Ionicons name="bookmark" size={14} color={COLORS.gold} /></View>)}
-                      {event.is_attending && (<View style={styles.goingBadge}><Ionicons name="checkmark-circle" size={10} color="#ffffff" /><Text style={styles.goingText}>{t("home.going", "Going")}</Text></View>)}
-                      {event.is_creator && !event.is_attending && (<View style={styles.ownerBadge}><Ionicons name="star" size={10} color="#ffffff" /><Text style={styles.ownerText}>{t("home.yours", "Yours")}</Text></View>)}
-                    </View>
-                    <View style={styles.contentCardText}>
-                      <Text style={applyThemeToText(styles.contentCardTitle, themeStyles, textColor)} numberOfLines={1}>{event.title}</Text>
-                      <Text style={applyThemeToText(styles.contentCardSub, themeStyles, textColor)} numberOfLines={1}>{event.creator?.name || event.business?.name || event.artist?.name || ""}</Text>
-                      <Text style={applyThemeToText(styles.contentCardSub, themeStyles, textColor)}>{formatEventDate(event.start_time)}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+                      {yours && (
+                        <View style={styles.ownerBadge}>
+                          <Ionicons name="star" size={10} color={COLORS.textLight} />
+                          <Text style={styles.ownerText}>{t("home.yours", "Yours")}</Text>
+                        </View>
+                      )}
+                    </>
+                  }
+                />
+              );
+            })}
+          </CarouselSection>
         )}
 
         {homeLayout.sections.find(s => s.id === "activities")?.enabled !== false && (
-          <View style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.activitiesSectionTitle}>
-                <View style={[styles.activitiesIconContainer, { backgroundColor: COLORS.primaryDark }]}>
-                  <Ionicons name="people" size={18} color="#ffffff" />
-                </View>
-                <Text style={styles.cardTitle}>{t("tabs.activities")}</Text>
-              </View>
-              <Pressable style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]} onPress={() => router.navigate({ pathname: "/(tabs)/locator" as any, params: { tab: "activities" } })}>
-                <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t("common.seeAll")}</Text>
-                <Ionicons name="chevron-forward" size={14} color="#ffffff" />
-              </Pressable>
-            </View>
-            <View style={styles.filterChipRow}>
-              {[{ key: "all", label: t("common.all", "All") }, { key: "attending", label: t("home.going", "Going") }, { key: "mine", label: t("home.mine", "Mine") }].map(opt => (
-                <Pressable key={opt.key} style={[styles.filterChip, activitiesFilter === opt.key && styles.filterChipActive]} onPress={() => setActivitiesFilter(opt.key as "all" | "attending" | "mine")}>
-                  <Text style={[styles.filterChipText, activitiesFilter === opt.key && styles.filterChipTextActive]}>{opt.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={Platform.OS === "web" ? 192 : 157} decelerationRate="fast">
-              {sortedActivities.length === 0 ? (
-                <View style={styles.storyEmpty}><Text style={styles.storyEmptyText}>{t("activities.noActivities")}</Text></View>
-              ) : sortedActivities.map((activity) => {
-                const activityTheme = (activity as any).profile_theme;
-                const themeColors = getThemeColors(activityTheme);
-                const themeStyles = getThemeStyles(activityTheme);
-                const textColor = themeColors.textColor;
-                const activityImg = activity.cover_image_url || activity.image_urls?.[0] || activity.gallery_images?.[0];
-                return (
-                  <Pressable key={`${activity.activity_id}-${mapRefreshKey}`} style={[styles.artistCard, { backgroundColor: "#ffffff" }]} onPress={() => router.push(`/activity/${activity.activity_id}`)} data-testid={`activity-card-${activity.activity_id}`}>
-                    <View style={styles.contentCardImage}>
-                      {activityImg ? (
-                        <Image source={{ uri: activityImg }} style={styles.artistAvatarImage} resizeMode="cover" />
-                      ) : (
-                        <View style={styles.contentCardFallback}><Ionicons name="people" style={styles.contentCardFallbackIcon} size={32} color="#9ca3af" /></View>
+          <CarouselSection
+            title={t("tabs.activities")}
+            icon="people"
+            color={COLORS.activitiesAccent}
+            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "activities" } } as any}
+            filters={{
+              options: [
+                { key: "all", label: t("common.all", "All") },
+                { key: "attending", label: t("home.going", "Going") },
+                { key: "mine", label: t("home.mine", "Mine") },
+              ],
+              activeKey: activitiesFilter,
+              onChange: (k) => setActivitiesFilter(k as "all" | "attending" | "mine"),
+            }}
+            emptyMessage={t("activities.noActivities")}
+          >
+            {sortedActivities.map((activity) => {
+              const activityTheme = (activity as any).profile_theme;
+              const themeColors = getThemeColors(activityTheme);
+              const textColor = themeColors.textColor;
+              const activityImg = activity.cover_image_url || (!activity.video_url ? (activity.image_urls?.[0] || activity.gallery_images?.[0]) : undefined);
+              const going = activity.my_status === "accepted" || activity.my_status === "going";
+              const yours = activity.is_creator && !going;
+              return (
+                <CarouselCard
+                  key={`${activity.activity_id}-${mapRefreshKey}`}
+                  imageUrl={activityImg}
+                  videoUrl={activity.video_url}
+                  title={activity.title}
+                  subtitle={activity.creator?.name || ""}
+                  thirdLine={formatEventDate(activity.date)}
+                  onPress={() => router.push(`/activity/${activity.activity_id}`)}
+                  isSaved={savedActivityIds.has(activity.activity_id)}
+                  textColor={textColor}
+                  fallbackIcon="people"
+                  overlay={
+                    <>
+                      {going && (
+                        <View style={styles.goingBadge}>
+                          <Ionicons name="checkmark-circle" size={10} color={COLORS.textLight} />
+                          <Text style={styles.goingText}>{t("home.going", "Going")}</Text>
+                        </View>
                       )}
-                      {savedActivityIds.has(activity.activity_id) && (<View style={styles.savedBadge}><Ionicons name="bookmark" size={14} color={COLORS.gold} /></View>)}
-                      {(activity.my_status === "accepted" || activity.my_status === "going") && (<View style={styles.goingBadge}><Ionicons name="checkmark-circle" size={10} color="#ffffff" /><Text style={styles.goingText}>{t("home.going", "Going")}</Text></View>)}
-                      {activity.is_creator && activity.my_status !== "accepted" && activity.my_status !== "going" && (<View style={styles.ownerBadge}><Ionicons name="star" size={10} color="#ffffff" /><Text style={styles.ownerText}>{t("home.yours", "Yours")}</Text></View>)}
-                    </View>
-                    <View style={styles.contentCardText}>
-                      <Text style={applyThemeToText(styles.contentCardTitle, themeStyles, textColor)} numberOfLines={1}>{activity.title}</Text>
-                      <Text style={applyThemeToText(styles.contentCardSub, themeStyles, textColor)} numberOfLines={1}>{activity.creator?.name || ""}</Text>
-                      <Text style={applyThemeToText(styles.contentCardSub, themeStyles, textColor)}>{activity.date}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+                      {yours && (
+                        <View style={styles.ownerBadge}>
+                          <Ionicons name="star" size={10} color={COLORS.textLight} />
+                          <Text style={styles.ownerText}>{t("home.yours", "Yours")}</Text>
+                        </View>
+                      )}
+                    </>
+                  }
+                />
+              );
+            })}
+          </CarouselSection>
         )}
 
         {homeLayout.sections.find(s => s.id === "businesses")?.enabled !== false && (
-          <View style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.activitiesSectionTitle}>
-                <View style={[styles.activitiesIconContainer, { backgroundColor: COLORS.primaryDark }]}>
-                  <Ionicons name="business" size={18} color="#ffffff" />
-                </View>
-                <Text style={styles.cardTitle}>{t("home.businesses")}</Text>
-              </View>
-              <Pressable style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]} onPress={() => router.navigate({ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } })}>
-                <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t("common.seeAll")}</Text>
-                <Ionicons name="chevron-forward" size={14} color="#ffffff" />
-              </Pressable>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={Platform.OS === "web" ? 192 : 157} decelerationRate="fast">
-              {sortedBusinesses.map((business) => {
-                const businessTheme = business.theme;
-                const themeColors = getThemeColors(businessTheme);
-                const themeStyles = getThemeStyles(businessTheme);
-                const primaryColor = themeColors.primaryColor;
-                const bizImg = business.logo_image || business.profile_photo || business.cover_image;
-                const bizInitial = (business.name || "B").charAt(0).toUpperCase();
-                return (
-                  <Pressable key={`${business.business_id}-${mapRefreshKey}`} style={[styles.artistCard, { backgroundColor: "#ffffff" }]} onPress={() => router.push(`/business/${business.business_id}`)}>
-                    <View style={styles.contentCardImage}>
-                      {bizImg ? (
-                        <Image source={{ uri: bizImg }} style={styles.artistAvatarImage} resizeMode="cover" />
-                      ) : (
-                        <View style={[styles.contentCardFallback, { backgroundColor: "#e0e7ff" }]}><Text style={{ fontSize: 36, fontWeight: "700", color: "#4f46e5" }}>{bizInitial}</Text></View>
-                      )}
-                      {savedBusinessIds.has(business.business_id) && (<View style={styles.savedBadge}><Ionicons name="bookmark" size={14} color={COLORS.gold} /></View>)}
-                    </View>
-                    <View style={styles.contentCardText}>
-                      <Text style={applyThemeToText(styles.contentCardTitle, themeStyles, primaryColor)} numberOfLines={1}>{business.name}</Text>
-                      <Text style={applyThemeToText(styles.contentCardSub, themeStyles, primaryColor)} numberOfLines={1}>{translateCategory(business.subcategory, t)}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+          <CarouselSection
+            title={t("home.businesses")}
+            icon="business"
+            color={COLORS.businessesAccent}
+            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
+          >
+            {sortedBusinesses.map((business) => {
+              const businessTheme = business.theme;
+              const themeColors = getThemeColors(businessTheme);
+              const primaryColor = themeColors.primaryColor;
+              const bizImg = business.logo_image || business.profile_photo || business.cover_image;
+              return (
+                <CarouselCard
+                  key={`${business.business_id}-${mapRefreshKey}`}
+                  imageUrl={bizImg}
+                  title={business.name}
+                  subtitle={translateCategory(business.subcategory, t)}
+                  onPress={() => router.push(`/business/${business.business_id}`)}
+                  isSaved={savedBusinessIds.has(business.business_id)}
+                  textColor={primaryColor}
+                  fallbackIcon="business"
+                />
+              );
+            })}
+          </CarouselSection>
+        )}
+
+        {homeLayout.sections.find(s => s.id === "services")?.enabled !== false && (
+          <CarouselSection
+            title={t("modules.services") || "Services"}
+            icon="briefcase"
+            color={COLORS.servicesAccent}
+            seeAllRoute="/services"
+            emptyMessage={t("services.noServices") || "No services nearby"}
+          >
+            {sortedServices.filter(s => s.type !== "rental_property").map((service) => {
+              const serviceImg = service.cover_image_url || (!service.video_url ? (service.image_urls?.[0] || service.gallery_images?.[0]) : undefined);
+              return (
+                <CarouselCard
+                  key={service.service_id}
+                  imageUrl={serviceImg}
+                  videoUrl={service.video_url}
+                  title={service.name}
+                  subtitle={service.type}
+                  onPress={() => router.push(`/service/${service.service_id}` as any)}
+                  isSaved={savedServiceIds.has(service.service_id)}
+                  fallbackIcon="briefcase"
+                />
+              );
+            })}
+          </CarouselSection>
         )}
 
         {homeLayout.sections.find(s => s.id === "rentals")?.enabled !== false && (
-          <View style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.activitiesSectionTitle}>
-                <View style={[styles.activitiesIconContainer, { backgroundColor: COLORS.primaryDark }]}>
-                  <Ionicons name="home" size={18} color="#ffffff" />
-                </View>
-                <Text style={styles.cardTitle}>{t("rentals.rentals") || "Rentals"}</Text>
-              </View>
-              <Pressable style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]} onPress={() => router.push("/rentals" as any)}>
-                <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t("common.seeAll")}</Text>
-                <Ionicons name="chevron-forward" size={14} color="#ffffff" />
-              </Pressable>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={Platform.OS === "web" ? 192 : 157} decelerationRate="fast">
-              {sortedRentals.length === 0 ? (
-                <View style={styles.storyEmpty}><Text style={styles.storyEmptyText}>{t("rentals.noRentals") || "No rentals nearby"}</Text></View>
-              ) : sortedRentals.map((rental) => {
-                const rentalImg = rental.cover_image || rental.gallery_images?.[0];
-                return (
-                  <Pressable key={rental.rental_id} style={[styles.artistCard, { backgroundColor: "#ffffff" }]} onPress={() => router.push(`/service/${rental.service_id || rental.rental_id}` as any)}>
-                    <View style={styles.contentCardImage}>
-                      {rentalImg ? (
-                        <Image source={{ uri: rentalImg }} style={styles.artistAvatarImage} resizeMode="cover" />
-                      ) : (
-                        <View style={styles.contentCardFallback}><Ionicons name="home" style={styles.contentCardFallbackIcon} size={32} color="#9ca3af" /></View>
-                      )}
-                      {savedRentalIds.has(rental.rental_id) && (<View style={styles.savedBadge}><Ionicons name="bookmark" size={14} color={COLORS.gold} /></View>)}
-                    </View>
-                    <View style={styles.contentCardText}>
-                      <Text style={styles.contentCardTitle} numberOfLines={1}>{rental.title}</Text>
-                      <Text style={styles.contentCardSub} numberOfLines={1}>{rental.rent_price || rental.rooms_size || ""}</Text>
-                      <Text style={styles.contentCardSub} numberOfLines={1}>{rental.address || ""}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+          <CarouselSection
+            title={t("rentals.rentals") || "Rentals"}
+            icon="home"
+            color={COLORS.rentalsAccent}
+            seeAllRoute="/rentals"
+            emptyMessage={t("rentals.noRentals") || "No rentals nearby"}
+          >
+            {sortedRentals.map((rental) => {
+              const rentalImg = rental.cover_image || (!(rental as any).video_url ? rental.gallery_images?.[0] : undefined);
+              return (
+                <CarouselCard
+                  key={rental.rental_id}
+                  imageUrl={rentalImg}
+                  videoUrl={rental.video_url}
+                  title={rental.title}
+                  subtitle={rental.rent_price || rental.rooms_size || ""}
+                  thirdLine={rental.address || ""}
+                  onPress={() => router.push(`/service/${rental.service_id || rental.rental_id}` as any)}
+                  isSaved={savedRentalIds.has(rental.rental_id)}
+                  fallbackIcon="home"
+                />
+              );
+            })}
+          </CarouselSection>
         )}
 
         {homeLayout.sections.find(s => s.id === "jobs")?.enabled !== false && (
-          <View style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.activitiesSectionTitle}>
-                <View style={[styles.activitiesIconContainer, { backgroundColor: COLORS.primaryDark }]}>
-                  <Ionicons name="briefcase" size={18} color="#ffffff" />
-                </View>
-                <Text style={styles.cardTitle}>{t("home.jobs") || "Jobs"}</Text>
-              </View>
-              <Pressable style={[styles.seeAllButton, { backgroundColor: "#1a1a1a" }]} onPress={() => router.navigate("/(tabs)/jobs" as any)}>
-                <Text style={[styles.seeAllButtonText, { color: "#ffffff" }]}>{t("common.seeAll")}</Text>
-                <Ionicons name="chevron-forward" size={14} color="#ffffff" />
-              </Pressable>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={Platform.OS === "web" ? 192 : 157} decelerationRate="fast">
-              {sortedJobs.length === 0 ? (
-                <View style={styles.storyEmpty}><Text style={styles.storyEmptyText}>{t("jobs.noJobs") || "No jobs nearby"}</Text></View>
-              ) : sortedJobs.map((job) => {
-                const jobImg = job.business_logo || job.cover_image;
-                return (
-                  <Pressable key={job.job_id} style={[styles.artistCard, { backgroundColor: "#ffffff" }]} onPress={() => router.push(`/job/${job.job_id}`)}>
-                    <View style={styles.contentCardImage}>
-                      {jobImg ? (
-                        <Image source={{ uri: jobImg }} style={styles.artistAvatarImage} resizeMode="cover" />
-                      ) : (
-                        <View style={styles.contentCardFallback}><Ionicons name="briefcase" style={styles.contentCardFallbackIcon} size={32} color="#9ca3af" /></View>
-                      )}
-                      {savedJobIds.has(job.job_id) && (<View style={styles.savedBadge}><Ionicons name="bookmark" size={14} color={COLORS.gold} /></View>)}
-                    </View>
-                    <View style={styles.contentCardText}>
-                      <Text style={styles.contentCardTitle} numberOfLines={1}>{job.title}</Text>
-                      <Text style={styles.contentCardSub} numberOfLines={1}>{job.business_name || job.location || ""}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+          <CarouselSection
+            title={t("home.jobs") || "Jobs"}
+            icon="briefcase"
+            color={COLORS.jobsAccent}
+            seeAllRoute="/(tabs)/jobs"
+            emptyMessage={t("jobs.noJobs") || "No jobs nearby"}
+          >
+            {sortedJobs.map((job) => {
+              const jobImg = job.cover_image || (!job.video_url ? (job.image_urls?.[0] || job.gallery_images?.[0] || job.business_logo) : undefined);
+              return (
+                <CarouselCard
+                  key={job.job_id}
+                  imageUrl={jobImg}
+                  videoUrl={job.video_url}
+                  title={job.title}
+                  subtitle={job.business_name || job.location || ""}
+                  onPress={() => router.push(`/job/${job.job_id}`)}
+                  isSaved={savedJobIds.has(job.job_id)}
+                  fallbackIcon="briefcase"
+                />
+              );
+            })}
+          </CarouselSection>
         )}
 
         {homeLayout.sections.find(s => s.id === "posts")?.enabled !== false && (
           <View style={styles.card}>
             <View style={styles.sectionHeader}>
               <View style={styles.activitiesSectionTitle}>
-                <View style={[styles.activitiesIconContainer, { backgroundColor: COLORS.primaryDark }]}>
-                  <Ionicons name="newspaper" size={18} color="#ffffff" />
+                <View style={[styles.activitiesIconContainer, { backgroundColor: COLORS.primary }]}>
+                  <Ionicons name="newspaper" size={18} color={COLORS.textLight} />
                 </View>
                 <Text style={styles.cardTitle}>{t("home.posts") || "Posts"}</Text>
               </View>
@@ -944,96 +972,74 @@ export default function HomeScreen() {
                   onPress={() => setFeedMode("following")}
                 >
                   <Text style={[styles.feedToggleText, feedMode === "following" && styles.feedToggleTextActive]}>
-                    {t("home.following") || "Following"}
+                    {t("home.friends") || "Friends"}
                   </Text>
                 </Pressable>
               </View>
             </View>
-            {sortedPosts.length === 0 ? (
-              <View style={styles.storyEmpty}><Text style={styles.storyEmptyText}>{t("home.noPosts") || "No posts yet"}</Text></View>
-            ) : isDesktop ? (
-              <View style={{ alignItems: "center" }}>
-                {sortedPosts.map((post) => (
-                  <PostCard
-                      key={post.post_id}
-                      post={post}
-                      isSaved={savedPostIds.has(post.post_id)}
-                      onLike={() => handleToggleLike(post)}
-                      onComment={() => openComments(post)}
-                      onSave={async () => {
-                        if (!sessionToken) return;
-                        try {
-                          const { is_saved } = await toggleSaved(sessionToken, "post", post.post_id);
-                          setLocalSavedPostIds(prev => { const next = new Set(prev); is_saved ? next.add(post.post_id) : next.delete(post.post_id); return next; });
-                        } catch (e) { console.warn("toggleSaved failed:", e); }
-                      }}
-                      sessionToken={sessionToken}
-                    />
-                ))}
-              </View>
-            ) : (
-            sortedPosts.map((post) => (
-              <PostCard
-                key={post.post_id}
-                post={post}
-                isSaved={savedPostIds.has(post.post_id)}
-                onLike={() => handleToggleLike(post)}
-                onComment={() => openComments(post)}
-                onSave={async () => {
-                  if (!sessionToken) return;
-                  try {
-                    const { is_saved } = await toggleSaved(sessionToken, "post", post.post_id);
-                    setLocalSavedPostIds(prev => { const next = new Set(prev); is_saved ? next.add(post.post_id) : next.delete(post.post_id); return next; });
-                  } catch (e) { console.warn("toggleSaved failed:", e); }
-                }}
-                sessionToken={sessionToken}
-              />
-            )))}
-            {loadingMorePosts && (
-              <View style={{ paddingVertical: 20, alignItems: "center", justifyContent: "center" }}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-                <Text style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 8 }}>Loading more...</Text>
-              </View>
-            )}
           </View>
         )}
-
+          </>
+        }
+        ListFooterComponent={
+          <>
+        {loadingMorePosts && sortedPosts.length > 0 && (
+          <View style={{ paddingVertical: 20, alignItems: "center", justifyContent: "center" }}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 8 }}>Loading more...</Text>
+          </View>
+        )}
         {showNoLocationMessage && (
           <View style={[styles.emptyState, { marginHorizontal: 16, marginVertical: 20 }]}>
             <Text style={styles.emptyText}>{t("home.noLocationSet") || "Please set your location in your profile to see nearby content"}</Text>
           </View>
         )}
-
         <View style={{ height: 100 }} />
-      </ScrollView>
+          </>
+        }
+        ListEmptyComponent={
+          homeLayout.sections.find(s => s.id === "posts")?.enabled !== false ? (
+            <View style={styles.storyEmpty}><Text style={styles.storyEmptyText}>{t("home.noPosts") || "No posts yet"}</Text></View>
+          ) : null
+        }
+        refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} />}
+        contentContainerStyle={{ paddingBottom: 52 + insets.bottom + 20 }}
+        onViewableItemsChanged={onViewableItemsChangedRef}
+        viewabilityConfig={viewabilityConfigRef}
+        onEndReached={loadMorePosts}
+        onEndReachedThreshold={2}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+      />
 
       <Modal visible={calendarOpen} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.calendarModalHeader}>
             <View style={styles.calendarHeaderContent}>
-              <View style={styles.calendarHeaderIcon}><Ionicons name="calendar" size={24} color="#fff" /></View>
+              <View style={styles.calendarHeaderIcon}><Ionicons name="calendar" size={24} color={COLORS.textLight} /></View>
               <View>
                 <Text style={styles.calendarModalTitle}>{t("home.eventsCalendar")}</Text>
                 <Text style={styles.calendarModalSubtitle}>{calendarDate ? calendarDate : t("home.upcomingEvents")}</Text>
               </View>
             </View>
-            <Pressable style={styles.calendarCloseButton} onPress={() => setCalendarOpen(false)}><Ionicons name="close-circle" size={32} color="#9ca3af" /></Pressable>
+            <Pressable style={styles.calendarCloseButton} onPress={() => setCalendarOpen(false)}><Ionicons name="close-circle" size={32} color={COLORS.textPlaceholder} /></Pressable>
           </View>
           <View style={{ flex: 1, backgroundColor: "#fafafa" }}>
-            <CalendarList onDayPress={(day) => setCalendarDate(day.dateString)} markedDates={{ ...markedDates, ...(calendarDate ? { [calendarDate]: { selected: true, selectedColor: COLORS.primaryDark, selectedTextColor: "#fff" } } : {}) }} pastScrollRange={3} futureScrollRange={6} style={styles.calendarList} theme={{ backgroundColor: "#ffffff", calendarBackground: "#ffffff", textSectionTitleColor: "#6b7280", selectedDayBackgroundColor: COLORS.primaryDark, selectedDayTextColor: "#ffffff", todayTextColor: COLORS.primaryDark, dayTextColor: "#374151", textDisabledColor: "#d1d5db", dotColor: COLORS.primaryDark, selectedDotColor: "#ffffff", arrowColor: COLORS.primaryDark, monthTextColor: COLORS.textPrimary, textDayFontWeight: "500", textMonthFontWeight: "700", textDayFontSize: 14 }} />
+            <CalendarList onDayPress={(day) => setCalendarDate(day.dateString)} markedDates={{ ...markedDates, ...(calendarDate ? { [calendarDate]: { selected: true, selectedColor: COLORS.primaryDark, selectedTextColor: COLORS.textLight } } : {}) }} pastScrollRange={3} futureScrollRange={6} style={styles.calendarList} theme={{ backgroundColor: COLORS.background, calendarBackground: COLORS.background, textSectionTitleColor: COLORS.textGray, selectedDayBackgroundColor: COLORS.primaryDark, selectedDayTextColor: COLORS.textLight, todayTextColor: COLORS.primaryDark, dayTextColor: COLORS.textDark, textDisabledColor: COLORS.borderLight, dotColor: COLORS.primaryDark, selectedDotColor: COLORS.textLight, arrowColor: COLORS.primaryDark, monthTextColor: COLORS.textPrimary, textDayFontWeight: "500", textMonthFontWeight: "700", textDayFontSize: 14 }} />
           </View>
           <View style={styles.themeFilterContainer}>
             <Pressable style={styles.themeFilterButton} onPress={() => setShowThemeFilter(true)} data-testid="calendar-theme-filter">
               <Ionicons name="musical-notes" size={18} color={COLORS.primaryDark} />
               <Text style={styles.themeFilterText}>{selectedTheme ? getThemeLabel(selectedTheme) : t("events.allThemes")}</Text>
-              <Ionicons name="chevron-down" size={16} color="#6b7280" />
+              <Ionicons name="chevron-down" size={16} color={COLORS.textGray} />
             </Pressable>
           </View>
           <View style={styles.calendarEventsSection}>
             <Text style={styles.calendarEventsTitle}>{calendarDate ? t("home.eventsOn", { date: calendarDate }) : t("home.upcomingEvents")}</Text>
             <ScrollView style={{ maxHeight: 180 }}>
               {eventsForDate.length === 0 ? (
-                <View style={styles.emptyEventState}><Ionicons name="calendar-outline" size={40} color="#d1d5db" /><Text style={styles.emptyText}>{t("common.noEventsDate")}</Text></View>
+                <View style={styles.emptyEventState}><Ionicons name="calendar-outline" size={40} color={COLORS.borderLight} /><Text style={styles.emptyText}>{t("common.noEventsDate")}</Text></View>
               ) : eventsForDate.map((event) => (
                 <Pressable key={event.event_id} style={styles.calendarEventCard} onPress={() => { setCalendarOpen(false); router.push(`/event/${event.event_id}`); }}>
                   <View style={styles.eventThumbContainer}>
@@ -1045,10 +1051,10 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.eventInfo}>
                     <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-                    <View style={styles.eventMetaRow}><Ionicons name="business" size={12} color="#6b7280" /><Text style={styles.eventMeta}>{event.business?.name || event.artist?.name || "Event"}</Text></View>
+                    <View style={styles.eventMetaRow}><Ionicons name="business" size={12} color={COLORS.textGray} /><Text style={styles.eventMeta}>{event.business?.name || event.artist?.name || "Event"}</Text></View>
                     <View style={styles.eventMetaRow}><Ionicons name="calendar-outline" size={12} color={COLORS.primaryDark} /><Text style={[styles.eventMeta, { color: COLORS.primaryDark }]}>{formatEventDate(event.start_time)}</Text>{event.theme && (<View style={styles.eventThemeBadge}><Text style={styles.eventThemeText}>{getThemeLabel(event.theme)}</Text></View>)}</View>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+                  <Ionicons name="chevron-forward" size={20} color={COLORS.borderLight} />
                 </Pressable>
               ))}
             </ScrollView>
@@ -1076,7 +1082,7 @@ export default function HomeScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.activitiesCalendarModalHeader}>
             <View style={styles.calendarHeaderContent}>
-              <View style={styles.activitiesCalendarHeaderIcon}><Ionicons name="people" size={24} color="#fff" /></View>
+              <View style={styles.activitiesCalendarHeaderIcon}><Ionicons name="people" size={24} color={COLORS.textLight} /></View>
               <View>
                 <Text style={styles.calendarModalTitle}>{t("home.activitiesCalendar")}</Text>
                 <Text style={styles.activitiesCalendarModalSubtitle}>{activitiesCalendarDate ? activitiesCalendarDate : t("home.upcomingActivities")}</Text>
@@ -1085,7 +1091,7 @@ export default function HomeScreen() {
             <Pressable style={styles.calendarCloseButton} onPress={() => setActivitiesCalendarOpen(false)}><Ionicons name="close-circle" size={32} color="#c4b5fd" /></Pressable>
           </View>
           <View style={{ flex: 1, backgroundColor: "#fafafa" }}>
-            <CalendarList onDayPress={(day) => setActivitiesCalendarDate(day.dateString)} markedDates={{ ...activitiesMarkedDates, ...(activitiesCalendarDate ? { [activitiesCalendarDate]: { selected: true, selectedColor: COLORS.primaryDark, selectedTextColor: "#fff" } } : {}) }} pastScrollRange={3} futureScrollRange={6} style={styles.calendarList} theme={{ backgroundColor: "#ffffff", calendarBackground: "#ffffff", textSectionTitleColor: "#6b7280", selectedDayBackgroundColor: COLORS.primaryDark, selectedDayTextColor: "#ffffff", todayTextColor: COLORS.primaryDark, dayTextColor: "#374151", textDisabledColor: "#d1d5db", dotColor: COLORS.primaryDark, selectedDotColor: "#ffffff", arrowColor: COLORS.primaryDark, monthTextColor: COLORS.textPrimary, textDayFontWeight: "500", textMonthFontWeight: "700", textDayFontSize: 14 }} />
+            <CalendarList onDayPress={(day) => setActivitiesCalendarDate(day.dateString)} markedDates={{ ...activitiesMarkedDates, ...(activitiesCalendarDate ? { [activitiesCalendarDate]: { selected: true, selectedColor: COLORS.primaryDark, selectedTextColor: COLORS.textLight } } : {}) }} pastScrollRange={3} futureScrollRange={6} style={styles.calendarList} theme={{ backgroundColor: COLORS.background, calendarBackground: COLORS.background, textSectionTitleColor: COLORS.textGray, selectedDayBackgroundColor: COLORS.primaryDark, selectedDayTextColor: COLORS.textLight, todayTextColor: COLORS.primaryDark, dayTextColor: COLORS.textDark, textDisabledColor: COLORS.borderLight, dotColor: COLORS.primaryDark, selectedDotColor: COLORS.textLight, arrowColor: COLORS.primaryDark, monthTextColor: COLORS.textPrimary, textDayFontWeight: "500", textMonthFontWeight: "700", textDayFontSize: 14 }} />
           </View>
           <View style={[styles.calendarEventsSection, { backgroundColor: "#f5f3ff" }]}>
             <Text style={[styles.calendarEventsTitle, { color: COLORS.primaryDark }]}>{activitiesCalendarDate ? t("home.activitiesOn", { date: activitiesCalendarDate }) : t("home.upcomingActivities")}</Text>
@@ -1095,14 +1101,16 @@ export default function HomeScreen() {
               ) : activitiesForDate.map((activity) => (
                 <Pressable key={activity.activity_id} style={[styles.calendarEventCard, { borderColor: "#e9d5ff" }]} onPress={() => { setActivitiesCalendarOpen(false); router.push(`/activity/${activity.activity_id}`); }}>
                   <View style={styles.eventThumbContainer}>
-                    {(activity.cover_image_url || activity.image_urls?.[0] || activity.gallery_images?.[0]) ? (
+                    {activity.video_url ? (
+                      <AdaptiveVideo uri={activity.video_url} style={styles.eventThumbCard} autoPlay isLooping initialMuted />
+                    ) : (activity.cover_image_url || activity.image_urls?.[0] || activity.gallery_images?.[0]) ? (
                       <AdaptiveImage uri={activity.cover_image_url ?? activity.image_urls?.[0] ?? activity.gallery_images?.[0] ?? ""} style={styles.eventThumbCard} fallbackColor={COLORS.primaryDark} />
                     ) : (<View style={[styles.eventThumbCard, { backgroundColor: "#f3e8ff" }]}><Ionicons name="people" size={20} color={COLORS.primaryDark} /></View>)}
                   </View>
                   <View style={styles.eventInfo}>
                     <Text style={styles.eventTitle} numberOfLines={1}>{activity.title}</Text>
-                    <View style={styles.eventMetaRow}><Ionicons name="time-outline" size={12} color="#6b7280" /><Text style={styles.eventMeta}>{activity.date}</Text></View>
-                    {activity.is_private && (<View style={styles.eventThemeBadge}><Ionicons name="lock-closed" size={10} color="#d97706" /><Text style={[styles.eventThemeText, { color: "#d97706" }]}>{t("activities.private")}</Text></View>)}
+                    <View style={styles.eventMetaRow}><Ionicons name="time-outline" size={12} color={COLORS.textGray} /><Text style={styles.eventMeta}>{activity.date}</Text></View>
+                    {activity.is_private && (<View style={styles.eventThemeBadge}><Ionicons name="lock-closed" size={10} color={COLORS.warning} /><Text style={[styles.eventThemeText, { color: COLORS.warning }]}>{t("activities.private")}</Text></View>)}
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#c4b5fd" />
                 </Pressable>
@@ -1139,7 +1147,7 @@ export default function HomeScreen() {
           </ScrollView>
           <View style={styles.commentInputRow}>
             <TextInput placeholder={t("home.addComment")} value={commentText} onChangeText={setCommentText} style={styles.commentInput} />
-            <Pressable style={styles.commentButton} onPress={handleAddComment}><Ionicons name="send" size={18} color="#fff" /></Pressable>
+            <Pressable style={styles.commentButton} onPress={handleAddComment}><Ionicons name="send" size={18} color={COLORS.textLight} /></Pressable>
           </View>
         </SafeAreaView>
       </Modal>
@@ -1150,7 +1158,7 @@ export default function HomeScreen() {
           <ScrollView contentContainerStyle={styles.modalBody}>
             <TextInput value={editText} onChangeText={setEditText} style={[styles.modalInput, styles.modalTextarea]} multiline />
             {editImage ? (<AdaptiveImage uri={editImage} style={styles.postImagePreview} ratio={editMediaRatio || undefined} />) : null}
-            {editVideoPreview ? (<AdaptiveVideo uri={editVideoPreview} style={styles.videoPreview} ratio={editMediaRatio || undefined} />) : null}
+            {editVideoPreview ? (<AdaptiveVideo autoPlay uri={editVideoPreview} style={styles.videoPreview} ratio={editMediaRatio || undefined} />) : null}
             <View style={styles.postActions}>
               <Pressable style={styles.iconButton} onPress={pickEditImage}><Ionicons name="image-outline" size={18} color={COLORS.primaryDark} /><Text style={styles.iconButtonText}>{t("common.photo")}</Text></Pressable>
               <Pressable style={styles.iconButton} onPress={pickEditVideo}><Ionicons name="videocam-outline" size={18} color={COLORS.primaryDark} /><Text style={styles.iconButtonText}>{t("common.video")}</Text></Pressable>
@@ -1198,8 +1206,8 @@ export default function HomeScreen() {
           alignItems: "center", justifyContent: "center",
           zIndex: 1000,
         }}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={{ color: "#fff", fontSize: 16, marginTop: 12, fontWeight: "600" }}>
+          <ActivityIndicator size="large" color={COLORS.textLight} />
+          <Text style={{ color: COLORS.textLight, fontSize: 16, marginTop: 12, fontWeight: "600" }}>
             {t("cityAd.uploadingAd") || "Uploading your ad..."}
           </Text>
         </View>
@@ -1230,18 +1238,18 @@ const styles = StyleSheet.create({
   header: { padding: 20 },
   headerTitle: { fontSize: 24, fontWeight: "700", color: COLORS.textPrimary },
   headerSubtitle: { marginTop: 6, color: COLORS.textMuted },
-  card: { backgroundColor: COLORS.background, marginHorizontal: 0, marginBottom: 10, paddingTop: 12, paddingHorizontal: 12, paddingBottom: 8 },
+  card: { backgroundColor: COLORS.background, marginHorizontal: 0, marginBottom: 10, paddingTop: 12, paddingHorizontal: SPACING.small, paddingBottom: 8 },
   cardTitle: { fontSize: Platform.OS === "web" ? 18 : 16, fontWeight: "600", color: COLORS.textPrimary, marginBottom: 8 },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   sectionHeaderRight: { flexDirection: "row", alignItems: "center", gap: 8 },
   seeAllButton: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   seeAllButtonText: { fontSize: Platform.OS === "web" ? 14 : 13, fontWeight: "600" },
-  artistCard: { width: Platform.OS === "web" ? 180 : 145, backgroundColor: COLORS.background, marginRight: 12, marginBottom: 4, borderRadius: 12,     shadowColor: "#2B075F", shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  artistCard: { width: Platform.OS === "web" ? 180 : 145, backgroundColor: COLORS.background, marginRight: 12, marginBottom: 4, borderRadius: 12,     shadowColor: COLORS.primaryDark, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
   contentCardImage: { width: Platform.OS === "web" ? 180 : 145, height: Platform.OS === "web" ? 135 : 110, backgroundColor: COLORS.divider, alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-  contentCardFallback: { width: "100%", height: "100%", backgroundColor: "#f0f0f0", alignItems: "center", justifyContent: "center" },
+  contentCardFallback: { width: "100%", height: "100%", backgroundColor: COLORS.surfaceMuted, alignItems: "center", justifyContent: "center" },
   contentCardFallbackIcon: { fontSize: 32, color: COLORS.textDisabled },
   contentCardText: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 8 },
-  contentCardTitle: { fontSize: Platform.OS === "web" ? 15 : 13, fontWeight: "600", color: "#1a1a1a" },
+  contentCardTitle: { fontSize: Platform.OS === "web" ? 15 : 13, fontWeight: "600", color: COLORS.textPrimary },
   contentCardSub: { fontSize: Platform.OS === "web" ? 13 : 11, color: COLORS.textDisabled, marginTop: 1 },
   savedBadge: { position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center", zIndex: 10 },
   goingBadge: { position: "absolute", top: 6, left: 6, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 8, backgroundColor: COLORS.success, zIndex: 5 },
@@ -1255,7 +1263,7 @@ const styles = StyleSheet.create({
   activitiesIconContainer: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   feedToggle: { flexDirection: "row", backgroundColor: COLORS.divider, borderRadius: 8, padding: 2 },
   feedToggleBtn: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 6 },
-  feedToggleBtnActive: { backgroundColor: COLORS.background,     shadowColor: "#2B075F", shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  feedToggleBtnActive: { backgroundColor: COLORS.background,     shadowColor: COLORS.primaryDark, shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   feedToggleText: { fontSize: 13, fontWeight: "500", color: COLORS.textMuted },
   feedToggleTextActive: { color: COLORS.textPrimary, fontWeight: "600" },
   filterChipRow: { flexDirection: "row", gap: 8, marginBottom: 12, marginTop: 4 },
@@ -1270,7 +1278,7 @@ const styles = StyleSheet.create({
   postCard: { backgroundColor: COLORS.background, borderRadius: 12, padding: 16, marginBottom: 12 },
   postHeader: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   postAvatar: { width: 36, height: 36, borderRadius: 18 },
-  postAvatarFallback: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#e0e7ff", justifyContent: "center", alignItems: "center" },
+  postAvatarFallback: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryTint, justifyContent: "center", alignItems: "center" },
   postAvatarText: { fontSize: 14, fontWeight: "600", color: COLORS.primaryDark },
   postAuthorInfo: { marginLeft: 10 },
   postAuthorName: { fontSize: 14, fontWeight: "600", color: COLORS.textPrimary },
@@ -1280,7 +1288,7 @@ const styles = StyleSheet.create({
   postStats: { flexDirection: "row", gap: 16 },
   postStatItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   postStatText: { fontSize: 13, color: COLORS.textMuted },
-  stickyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 10, backgroundColor: COLORS.background, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border, zIndex: 10 },
+  stickyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACING.small, paddingVertical: 10, backgroundColor: COLORS.background, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border, zIndex: 10 },
   stickyHeaderLeft: { flexDirection: "row", alignItems: "baseline", gap: 8 },
   stickyHeaderBrand: { fontSize: 22, fontWeight: "800", color: COLORS.primary, letterSpacing: -0.5 },
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
@@ -1297,12 +1305,12 @@ const styles = StyleSheet.create({
   iconButtonText: { color: COLORS.primaryDark, fontWeight: "600", marginLeft: 4, fontSize: 13 },
   primaryButton: { backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, alignItems: "center", justifyContent: "center", marginLeft: "auto" },
   primaryButtonText: { color: COLORS.background, fontWeight: "600", fontSize: 15 },
-  secondaryButton: { borderWidth: 1, borderColor: "#d1d5db", paddingVertical: 10, borderRadius: 12, alignItems: "center", marginTop: 8 },
+  secondaryButton: { borderWidth: 1, borderColor: COLORS.borderLight, paddingVertical: 10, borderRadius: 12, alignItems: "center", marginTop: 8 },
   deleteButton: { borderColor: COLORS.errorLight },
   deleteButtonText: { color: COLORS.danger, fontWeight: "600" },
   videoPreview: { width: "100%", borderRadius: 14, marginBottom: 8 },
   commentRow: { flexDirection: "row", marginBottom: 12 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#e0e7ff", alignItems: "center", justifyContent: "center", marginRight: 10 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primaryTint, alignItems: "center", justifyContent: "center", marginRight: 10 },
   commentAvatarImage: { width: 32, height: 32, borderRadius: 16 },
   commentAvatarText: { color: COLORS.primaryDark, fontWeight: "600" },
   commentBody: { flex: 1 },
@@ -1322,7 +1330,7 @@ const styles = StyleSheet.create({
   activitiesCalendarHeaderIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
   calendarModalTitle: { fontSize: 20, fontWeight: "700", color: COLORS.background },
   calendarModalSubtitle: { fontSize: 13, color: "#d1fae5", marginTop: 2 },
-  activitiesCalendarModalSubtitle: { fontSize: 13, color: "#ede9fe", marginTop: 2 },
+  activitiesCalendarModalSubtitle: { fontSize: 13, color: COLORS.primaryLight, marginTop: 2 },
   calendarCloseButton: { position: "absolute", top: 16, right: 20 },
   calendarList: { maxHeight: 350, backgroundColor: COLORS.background },
   themeFilterContainer: { paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 1, borderTopColor: COLORS.border },
@@ -1347,7 +1355,7 @@ const styles = StyleSheet.create({
   eventMeta: { color: COLORS.textMuted, fontSize: 12 },
   eventMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   eventThemeBadge: { backgroundColor: COLORS.warningLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginLeft: 4 },
-  eventThemeText: { fontSize: 10, fontWeight: "600", color: "#d97706" },
+  eventThemeText: { fontSize: 10, fontWeight: "600", color: COLORS.warning },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
   tagBusinessModal: { backgroundColor: COLORS.background, borderRadius: 16, width: "90%", maxHeight: "70%", overflow: "hidden" },
   searchInput: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, marginHorizontal: 16, marginBottom: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15 },

@@ -13,8 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import * as ImagePicker from "expo-image-picker";
-import { COLORS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES } from "../../lib/designTokens";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
 import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect } from "react";
@@ -284,48 +283,49 @@ function getCategoryPlaceholders(rootCategory?: string) {
 
 function formToMedia(form: ServiceForm): MediaItem[] {
   const items: MediaItem[] = [];
+  const seen = new Set<string>();
   if (form.cover_image_url) {
-    items.push({ uri: form.cover_image_url, type: "image" });
+    seen.add(form.cover_image_url);
+    items.push({ uri: form.cover_image_url, type: "image", isCoverImage: true, focalPoint: (form as any).cover_focal_point ?? { x: 0.5, y: 0.5 } });
   } else if (form.video_url) {
-    items.push({ uri: form.video_url, type: "video" });
+    seen.add(form.video_url);
+    items.push({ uri: form.video_url, type: "video", isCoverVideo: true, focalPoint: (form as any).cover_focal_point ?? { x: 0.5, y: 0.5 } });
   }
   form.image_urls.forEach((u) => {
-    if (u !== form.cover_image_url) items.push({ uri: u, type: "image" });
+    if (!seen.has(u)) { seen.add(u); items.push({ uri: u, type: "image" }); }
   });
-  if (form.video_url && items.length > 0 && items[0].uri !== form.video_url) {
+  if (form.video_url && !seen.has(form.video_url)) {
+    seen.add(form.video_url);
     items.push({ uri: form.video_url, type: "video" });
   }
   form.gallery_images.forEach((u) => {
-    if (!items.some((m) => m.uri === u)) items.push({ uri: u, type: "image" });
+    if (!seen.has(u)) { seen.add(u); items.push({ uri: u, type: "image" }); }
   });
   form.gallery_videos.forEach((u) => {
-    if (!items.some((m) => m.uri === u)) items.push({ uri: u, type: "video" });
+    if (!seen.has(u)) { seen.add(u); items.push({ uri: u, type: "video" }); }
   });
   return items;
 }
 
 function mediaToForm(media: MediaItem[], base: ServiceForm): ServiceForm {
-  const coverIsVideo = media.length > 0 && media[0].type === "video";
+  const coverImageItem = media.find((m) => m.isCoverImage && m.type === "image");
+  const coverVideoItem = media.find((m) => m.isCoverVideo && m.type === "video");
+  const coverItem = coverImageItem || coverVideoItem;
   const images = media.filter((m) => m.type === "image").map((m) => m.uri);
   const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
-  if (coverIsVideo) {
-    return {
-      ...base,
-      cover_image_url: "",
-      image_urls: images,
-      video_url: videos[0] || "",
-      gallery_images: images.slice(1),
-      gallery_videos: videos.slice(1),
-    };
-  }
   return {
     ...base,
-    cover_image_url: images[0] || "",
+    cover_image_url: coverImageItem?.uri || (coverVideoItem ? "" : images[0]) || "",
     image_urls: images,
-    video_url: videos[0] || "",
-    gallery_images: images.slice(1),
-    gallery_videos: videos.slice(1),
-  };
+    video_url: coverVideoItem?.uri || videos[0] || "",
+    gallery_images: coverImageItem
+      ? images.filter((u) => u !== coverImageItem.uri)
+      : images.slice(1),
+    gallery_videos: coverVideoItem
+      ? videos.filter((u) => u !== coverVideoItem.uri)
+      : videos.slice(1),
+    cover_focal_point: coverItem?.focalPoint ?? { x: 0.5, y: 0.5 },
+  } as any;
 }
 
 export default function ServiceModal({
@@ -570,21 +570,15 @@ export default function ServiceModal({
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.modalContainer}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "padding"}>
           <View style={styles.modalHeader}>
             <Pressable onPress={onClose} style={styles.headerButton}>
               <Ionicons name="close" size={28} color={COLORS.textPrimary} />
             </Pressable>
             <Text style={styles.modalTitle}>{modalTitle}</Text>
-            <Pressable onPress={handleSaveWithValidation} disabled={isSaving} style={styles.headerButton}>
-              {isSaving ? (
-                <ActivityIndicator size="small" color={COLORS.primaryDark} />
-              ) : (
-                <Ionicons name="checkmark" size={28} color={COLORS.primaryDark} />
-              )}
-            </Pressable>
+            <View style={styles.headerButton} />
           </View>
-          <ScrollView style={styles.modalBody} contentContainerStyle={{ paddingBottom: 40 }}>
+          <ScrollView style={styles.modalBody} contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
             <Text style={styles.label}>{t("services.serviceType", "Type")} *</Text>
             <View style={styles.pickerRow}>
               {filteredTypes.map((tpe) => (
@@ -593,7 +587,7 @@ export default function ServiceModal({
                   style={[styles.chip, form.type === tpe.key && styles.chipSelected]}
                   onPress={() => updateField("type", tpe.key)}
                 >
-                  <Ionicons name={tpe.icon as any} size={16} color={form.type === tpe.key ? "#fff" : "#374151"} />
+                  <Ionicons name={tpe.icon as any} size={16} color={form.type === tpe.key ? "#fff" : COLORS.textSecondary} />
                   <Text style={[styles.chipText, form.type === tpe.key && styles.chipTextSelected]}>
                     {t(tpe.labelKey, tpe.key)}
                   </Text>
@@ -640,29 +634,6 @@ export default function ServiceModal({
             {hasField("address") && renderFieldInput("address")}
             {hasField("deposit") && renderFieldInput("deposit")}
 
-            {/* Status selector */}
-            {form.type && (
-              <>
-                <Text style={styles.label}>Status</Text>
-                <View style={styles.chipRow}>
-                  {(["draft", "published", "hidden"] as const).map((s) => (
-                    <Pressable
-                      key={s}
-                      style={[styles.chip, form.status === s && styles.chipSelected]}
-                      onPress={() => updateField("status", s)}
-                    >
-                      <Text style={[styles.chipText, form.status === s && styles.chipTextSelected]}>
-                        {s.charAt(0).toUpperCase() + s.slice(1)}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {coverPhotoError && (
-                  <Text style={{ color: COLORS.danger, fontSize: 13, marginTop: 4 }}>{coverPhotoError}</Text>
-                )}
-              </>
-            )}
-
             {/* Date picker modal */}
             <Modal visible={showDatePicker} animationType="slide" transparent>
               <View style={styles.datePickerOverlay}>
@@ -691,6 +662,19 @@ export default function ServiceModal({
               </View>
             </Modal>
           </ScrollView>
+
+          <View style={styles.footer}>
+            <Pressable style={styles.cancelBtn} onPress={onClose}>
+              <Text style={styles.cancelBtnText}>{t("common.cancel") || "Abbrechen"}</Text>
+            </Pressable>
+            <Pressable style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]} onPress={handleSaveWithValidation} disabled={isSaving}>
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveBtnText}>{t("common.save") || "Speichern"}</Text>
+              )}
+            </Pressable>
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -698,36 +682,72 @@ export default function ServiceModal({
 }
 
 const styles = StyleSheet.create({
-  modalContainer: { flex: 1, backgroundColor: "#fff" },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
-  headerButton: { padding: 4 },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: COLORS.textPrimary },
-  modalBody: { flex: 1, padding: 16 },
-  label: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 6, marginTop: 12 },
-  input: { borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: COLORS.textPrimary },
-  dateText: { fontSize: 16, color: COLORS.textPrimary },
-  dateTextPlaceholder: { color: "#9ca3af" },
+  modalContainer: { flex: 1, backgroundColor: COLORS.background },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: SPACING.std, paddingTop: SPACING.small, paddingBottom: SPACING.small, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  headerButton: { padding: SPACING.tiny },
+  modalTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  modalBody: { flex: 1, padding: SPACING.std },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: SPACING.small,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  cancelBtn: {
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.section,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cancelBtnText: {
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.textSecondary,
+  },
+  saveBtn: {
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.section,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.primary,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  saveBtnDisabled: { opacity: 0.6 },
+  saveBtnText: {
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#fff",
+  },
+  label: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textSecondary, marginBottom: SPACING.tiny, marginTop: SPACING.std },
+  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.compact, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, backgroundColor: COLORS.backgroundPage },
+  dateText: { fontSize: FONT_SIZES.body, color: COLORS.textPrimary },
+  dateTextPlaceholder: { color: COLORS.textDisabled },
   datePickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  datePickerContainer: { backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "70%" },
-  datePickerHeader: { flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
-  datePickerDone: { fontSize: 16, fontWeight: "600", color: COLORS.primary },
-  row: { flexDirection: "row", gap: 12 },
-  pickerRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 },
-  chipWideRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: "#e5e7eb", backgroundColor: "#fff" },
+  datePickerContainer: { backgroundColor: COLORS.background, borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl, maxHeight: "70%" },
+  datePickerHeader: { flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  datePickerDone: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.primary },
+  row: { flexDirection: "row", gap: SPACING.compact },
+  pickerRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: SPACING.tiny },
+  chipWideRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small },
+  chip: { flexDirection: "row", alignItems: "center", gap: SPACING.tiny, paddingHorizontal: SPACING.compact, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
   chipSelected: { backgroundColor: COLORS.primaryDark, borderColor: COLORS.primaryDark },
-  chipText: { fontSize: 14, color: "#374151" },
+  chipText: { fontSize: FONT_SIZES.caption, color: COLORS.textSecondary },
   chipTextSelected: { color: "#fff" },
-  imagePicker: { marginTop: 4 },
-  coverImage: { width: "100%", height: 180, borderRadius: 10 },
-  imagePlaceholder: { width: "100%", height: 120, borderRadius: 10, borderWidth: 1, borderColor: "#e5e7eb", borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
-  imagePlaceholderText: { fontSize: 13, color: "#999", marginTop: 4 },
-  galleryRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
+  imagePicker: { marginTop: SPACING.tiny },
+  coverImage: { width: "100%", height: 180, borderRadius: BORDER_RADIUS.md },
+  imagePlaceholder: { width: "100%", height: 120, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border, borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
+  imagePlaceholderText: { fontSize: FONT_SIZES.small, color: COLORS.textDisabled, marginTop: SPACING.tiny },
+  galleryRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginTop: SPACING.tiny },
   galleryItem: { width: 70, height: 70, position: "relative" },
-  galleryImage: { width: 70, height: 70, borderRadius: 6 },
+  galleryImage: { width: 70, height: 70, borderRadius: BORDER_RADIUS.sm },
   galleryRemove: { position: "absolute", top: -6, right: -6 },
-  galleryAdd: { width: 70, height: 70, borderRadius: 6, borderWidth: 1, borderColor: "#e5e7eb", borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
-  toggleBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10, marginTop: 8 },
+  galleryAdd: { width: 70, height: 70, borderRadius: BORDER_RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
+  toggleBtn: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.compact, marginTop: SPACING.small },
   toggleBtnActive: {},
-  toggleLabel: { fontSize: 15, color: COLORS.textPrimary },
+  toggleLabel: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
 });

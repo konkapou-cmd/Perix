@@ -81,7 +81,7 @@ export default function LocatorHeader({ activeTab, onTabChange, locationName, t 
                 <Ionicons
                   name={icon as any}
                   size={15}
-                  color={isActive ? "#fff" : COLORS.textMuted}
+                  color={isActive ? COLORS.background : COLORS.textMuted}
                 />
                 <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
                   {t(labelKey, fallback)}
@@ -111,16 +111,16 @@ export default function LocatorHeader({ activeTab, onTabChange, locationName, t 
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.md,
+    paddingHorizontal: SPACING.std,
+    paddingTop: SPACING.small,
+    paddingBottom: SPACING.small,
     backgroundColor: COLORS.background,
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
   },
   locationText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    paddingVertical: Platform.OS === "web" ? SPACING.mdLg : SPACING.md,
-    paddingHorizontal: SPACING.md,
+    paddingVertical: Platform.OS === "web" ? SPACING.compact : SPACING.small,
+    paddingHorizontal: SPACING.small,
     borderRadius: BORDER_RADIUS.sm,
     minWidth: TAB_WIDTH,
   },
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   tabTextActive: {
-    color: "#fff",
+    color: COLORS.background,
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   arrowBtn: {

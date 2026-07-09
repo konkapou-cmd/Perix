@@ -75,7 +75,8 @@
     "ok": "OK",
     "permissionRequired": "Berechtigung erforderlich",
     "savedSuccessfully": "Erfolgreich gespeichert",
-    "tag": "Tag"
+    "tag": "Tag",
+    "status": "Status"
   },
   "dashboard": {
     "analyticsOverview": "Statistikübersicht",
@@ -179,7 +180,7 @@
   },
   "categories": {
     "sports-fitness-wellness": "Sport, Fitness & Wellness",
-    "fashion-accessories": "Mode & Accessoires",
+    "fashion-accessories": "Modeaccessoires",
     "entertainment-events": "Unterhaltung & Veranstaltungen",
     "nightlife-social": "Nachtleben & Soziales",
     "professional-services": "Professionelle Dienstleistungen",
@@ -225,7 +226,6 @@
     "jewelry": "Schmuck",
     "watches": "Uhren",
     "sunglasses": "Sonnenbrillen",
-    "fashion-accessories": "Modeaccessoires",
     "tailoring-custom": "Schneiderei & Maßanfertigung",
     "bags-leather-goods": "Taschen & Lederwaren",
     "luxury-fashion": "Luxusmode",
@@ -351,7 +351,13 @@
     "chunks": "Teil {{current}} von {{total}}",
     "pleaseWait": "Bitte warten, App nicht schließen",
     "failed": "Upload fehlgeschlagen",
-    "retry": "Bitte erneut versuchen"
+    "retry": "Bitte erneut versuchen",
+    "failedTitle": "Upload fehlgeschlagen",
+    "failedVideoMsg": "Das Video konnte nicht hochgeladen werden. Dein altes Titelbild bleibt erhalten.",
+    "imagesFailed": "Bilder konnten nicht hochgeladen werden",
+    "imagesSucceeded": "erfolgreich",
+    "videoTooLongTitle": "Video zu lang",
+    "videoTooLongMsg": "Das Video ist zu lang. Bitte kürze es auf maximal 30 Sekunden."
   },
   "modules": {
     "events": "Veranstaltungen",
@@ -480,7 +486,7 @@
     "mine": "Meine",
     "yours": "Deins",
     "nearby": "In der Nähe",
-    "following": "Abonniert",
+    "friends": "Freunde",
     "seeAllArtists": "Alle anzeigen",
     "layoutSettings": "Layout-Einstellungen",
     "sortContent": "Inhalte sortieren",
@@ -717,7 +723,6 @@
     "createStory": "Story erstellen",
     "chooseSource": "Quelle wählen",
     "camera": "Kamera",
-    "gallery": "Galerie",
     "uploadFailed": "Hochladen fehlgeschlagen",
     "pleaseTryAgain": "Bitte versuchen Sie es erneut.",
     "fileTooLarge": "Datei zu groß",
@@ -1034,7 +1039,6 @@
     "images": "Bilder",
     "addPhoto": "Foto hinzufügen",
     "save": "Speichern",
-    "going": "Dabei",
     "yours": "Deins",
     "hosting": "Gastgeber",
     "joined": "Beigetreten",
@@ -1109,7 +1113,15 @@
     "confirmDelete": "Möchtest du diesen Job wirklich löschen?",
     "jobType": "Art",
     "location": "Standort",
-    "requirements": "Anforderungen"
+    "requirements": "Anforderungen",
+    "salaryRange": "Gehalt",
+    "salaryPlaceholder": "z.B. 3.000 €",
+    "workLocation": "Arbeitsort",
+    "locationPlaceholder": "z.B. Berlin, Deutschland oder Remote",
+    "selectExpiry": "Ablaufdatum wählen",
+    "requirementsPlaceholder": "Welche Qualifikationen werden benötigt?",
+    "descriptionPlaceholder": "Beschreibe die Stelle und den idealen Kandidaten...",
+    "jobTitlePlaceholder": "z.B. Senior Software Engineer"
   },
   "languages": {
     "en": "English",
@@ -2003,7 +2015,7 @@
     "floor": "Etage",
     "furnished": "Möbliert",
     "availableFrom": "Verfügbar ab",
-    "selectDate": "TT.MM.JJJJ",
+    "selectDate": "Datum wählen",
     "leaseDuration": "Mietdauer",
     "maxGuests": "Max. Gäste",
     "address": "Adresse",
@@ -2027,7 +2039,6 @@
     "addImage": "Bild hinzufügen",
     "imagePickNotAvailable": "Bildauswahl nicht verfügbar",
     "bookNow": "Jetzt buchen",
-    "selectDate": "Datum wählen",
     "selectTime": "Uhrzeit wählen",
     "selectSlot": "Zeitfenster wählen",
     "noSlots": "Keine verfügbaren Zeitfenster",
@@ -2201,4 +2212,3 @@
     "contactContent": "Bei Fragen zu diesen Bedingungen kontaktiere uns:\n\n• In der App über Einstellungen → Hilfe & Support\n• Per E-Mail an support@perix.app"
   }
 }
-

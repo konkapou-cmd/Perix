@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 import {
   Gesture,
   GestureDetector,
@@ -128,7 +129,7 @@ function MediaPlayer({ item }: { item: MediaItem }) {
       <View style={styles.videoContainer}>
         {item.muxThumbnailUrl && <RNImage source={{ uri: item.muxThumbnailUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
         <View style={styles.processingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color={COLORS.textLight} />
           <Text style={styles.processingText}>Processing video...</Text>
         </View>
       </View>
@@ -142,7 +143,7 @@ function MediaPlayer({ item }: { item: MediaItem }) {
         {!isPlaying && (
           <View style={styles.playIconOverlay}>
             <View style={styles.playIconCircle}>
-              <Ionicons name="play" size={48} color="#fff" />
+              <Ionicons name="play" size={48} color={COLORS.textLight} />
             </View>
           </View>
         )}
@@ -172,7 +173,7 @@ export default function MediaViewer({ visible, media, initialIndex = 0, onClose 
         <View style={styles.overlay}>
           <StatusBar barStyle="light-content" />
           <Pressable style={styles.closeArea} onPress={onClose}>
-            <View style={styles.closeButton}><Ionicons name="close" size={28} color="#fff" /></View>
+            <View style={styles.closeButton}><Ionicons name="close" size={28} color={COLORS.textLight} /></View>
           </Pressable>
           <View style={styles.mediaArea}>
             {currentItem?.type === "video" && playerStarted ? (
@@ -211,11 +212,11 @@ const styles = StyleSheet.create({
   playIconOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center" },
   playIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
   processingOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", gap: 8 },
-  processingText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  processingText: { color: COLORS.textLight, fontSize: 14, fontWeight: "600" },
   sideTapZone: { position: "absolute", top: 0, bottom: 0, width: SCREEN_WIDTH / 3, justifyContent: "center", alignItems: "center", zIndex: 10 },
   sideTapZoneLeft: { left: 0 },
   sideTapZoneRight: { right: 0 },
   sideArrowHint: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "center", alignItems: "center" },
   counter: { position: "absolute", bottom: 80, alignSelf: "center", backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
-  counterText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  counterText: { color: COLORS.textLight, fontSize: 14, fontWeight: "600" },
 });

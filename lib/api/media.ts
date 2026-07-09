@@ -2,10 +2,13 @@ import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import { apiRequest, API_BASE, UploadProgress } from "./core";
 import { uploadVideoToMux, MuxVideoUploadResult } from "./mux";
+import { MEDIA_LIMITS } from "../constants/mediaLimits";
 
-export const MAX_VIDEO_SIZE_MB = 300;
-export const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
-export const MAX_STORY_VIDEO_SIZE_MB = 200;
+export const MAX_VIDEO_SIZE_MB = MEDIA_LIMITS.video.maxFileSizeMb;
+export const MAX_VIDEO_SIZE_BYTES = MEDIA_LIMITS.video.maxFileSizeBytes;
+export const MAX_STORY_VIDEO_SIZE_MB = MEDIA_LIMITS.story.maxFileSizeMb;
+export const MAX_STORY_VIDEO_SIZE_BYTES = MEDIA_LIMITS.story.maxFileSizeBytes;
+export const UPLOAD_TIMEOUT_MS = MEDIA_LIMITS.upload.timeoutMs;
 
 export type VideoUploadResult = {
   url: string | null;
@@ -62,7 +65,7 @@ export const uploadMedia = async (
       formData.append("resource_type", resourceType);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000);
+      const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
 
       const response = await fetch(`${API_BASE}/media/upload`, {
         method: "POST",

@@ -12,14 +12,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { UserPublic } from "../lib/api";
+import { FriendProfile } from "../lib/api";
 import Constants from "expo-constants";
 
 const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || 
   process.env.EXPO_PUBLIC_BACKEND_URL;
 
 interface FriendsCarouselProps {
-  friends: UserPublic[];
+  friends: FriendProfile[];
   onAddFriend?: () => void;
   showAddButton?: boolean;
   currentUserId?: string;
@@ -37,7 +37,6 @@ export default function FriendsCarousel({
   const router = useRouter();
 
   const handleShareInvite = async () => {
-    // Create shareable profile link
     const profileUrl = currentUserId 
       ? `${BACKEND_URL?.replace('/api', '')}/share/user/${currentUserId}`
       : `${BACKEND_URL?.replace('/api', '')}/share/app`;
@@ -52,15 +51,24 @@ export default function FriendsCarousel({
     }
   };
 
-  const renderFriend = ({ item }: { item: UserPublic }) => {
-    const avatarUrl = item.profile_photo || item.picture;
+  const navigateToProfile = (fp: FriendProfile) => {
+    if (fp.entity_type === "user") {
+      router.push(`/user/${fp.entity_id}`);
+    } else if (fp.entity_type === "business") {
+      router.push(`/business/${fp.entity_id}`);
+    } else if (fp.entity_type === "artist") {
+      router.push(`/artist/${fp.entity_id}`);
+    }
+  };
+
+  const renderFriend = ({ item }: { item: FriendProfile }) => {
+    const avatarUrl = item.image;
     const initials = item.name?.charAt(0)?.toUpperCase() || "?";
 
     return (
       <Pressable
         style={styles.friendItem}
-        onPress={() => router.push(`/user/${item.user_id}`)}
-        data-testid={`friend-${item.user_id}`}
+        onPress={() => navigateToProfile(item)}
       >
         <View style={styles.avatarContainer}>
           {avatarUrl ? (
@@ -73,8 +81,15 @@ export default function FriendsCarousel({
               <Text style={styles.avatarText}>{initials}</Text>
             </LinearGradient>
           )}
-          {/* Online indicator (can be dynamic based on status) */}
-          <View style={styles.onlineIndicator} />
+          {item.entity_type !== "user" && (
+            <View style={styles.typeIndicator}>
+              <Ionicons
+                name={item.entity_type === "business" ? "briefcase" : "musical-note"}
+                size={8}
+                color="#fff"
+              />
+            </View>
+          )}
         </View>
         <Text style={styles.friendName} numberOfLines={1}>
           {item.name?.split(" ")[0] || "Friend"}
@@ -90,7 +105,6 @@ export default function FriendsCarousel({
       <Pressable
         style={styles.friendItem}
         onPress={handleShareInvite}
-        data-testid="add-friend-btn"
       >
         <View style={styles.addButtonContainer}>
           <LinearGradient
@@ -113,10 +127,10 @@ export default function FriendsCarousel({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t("friends.myFriends") || "Friends"}</Text>
-        {friends.length > 0 && (
+        {friends.length > 0 && currentUserId && (
           <Pressable 
             style={styles.seeAllButton}
-            onPress={() => router.navigate("/(tabs)/profile" as any)}
+            onPress={() => router.push(`/friends/${currentUserId}` as any)}
           >
             <Text style={styles.seeAllText}>{t("common.seeAll") || "See All"}</Text>
             <Ionicons name="chevron-forward" size={16} color="#000000" />
@@ -127,7 +141,7 @@ export default function FriendsCarousel({
       <FlatList
         data={friends}
         renderItem={renderFriend}
-        keyExtractor={(item) => item.user_id}
+        keyExtractor={(item) => `${item.entity_type}-${item.entity_id}`}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
@@ -205,14 +219,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
   },
-  onlineIndicator: {
+  typeIndicator: {
     position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#22c55e",
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#374151",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
     borderColor: "#fff",
   },
