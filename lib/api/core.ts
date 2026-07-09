@@ -4,7 +4,7 @@ import { Platform, Alert } from "react-native";
 export const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL ||
-  "http://10.208.154.177:8000";
+  "https://backend-production-1968.up.railway.app";
 
 export const API_BASE = `${BACKEND_URL}/api`;
 

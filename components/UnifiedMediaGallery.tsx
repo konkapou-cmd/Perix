@@ -10,7 +10,7 @@ import CoverPositionEditor from "./CoverPositionEditor";
 import GalleryUploadSlot from "./GalleryUploadSlot";
 import { uploadMedia, uploadVideoMux, UploadProgress } from "../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
-import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
+import { MEDIA_LIMITS, normalizeDurationSeconds } from "../lib/constants/mediaLimits";
 
 export type MediaItem = {
   uri: string;
@@ -158,7 +158,7 @@ export default function UnifiedMediaGallery({
       );
       return;
     }
-    const durationSeconds = asset.duration != null ? (asset.duration > 1000 ? asset.duration / 1000 : asset.duration) : 0;
+    const durationSeconds = normalizeDurationSeconds(asset.duration);
     if (durationSeconds > maxDur) {
       Alert.alert(
         t("upload.videoTooLongTitle") || "Video zu lang",
@@ -386,21 +386,21 @@ export default function UnifiedMediaGallery({
           </Pressable>
         </View>
       )}
-    </View>
 
-    {coverItem && (
-      <CoverPositionEditor
-        visible={coverEditorVisible}
-        uri={coverItem.uri}
-        initialFocalPoint={coverItem.focalPoint ?? { x: 0.5, y: 0.5 }}
-        aspectRatio={16 / 9}
-        onCancel={() => setCoverEditorVisible(false)}
-        onSave={(nextFp) => {
-          updatedCoverFocalPoint(nextFp);
-          setCoverEditorVisible(false);
-        }}
-      />
-    )}
+      {coverItem && (
+        <CoverPositionEditor
+          visible={coverEditorVisible}
+          uri={coverItem.uri}
+          initialFocalPoint={coverItem.focalPoint ?? { x: 0.5, y: 0.5 }}
+          aspectRatio={16 / 9}
+          onCancel={() => setCoverEditorVisible(false)}
+          onSave={(nextFp) => {
+            updatedCoverFocalPoint(nextFp);
+            setCoverEditorVisible(false);
+          }}
+        />
+      )}
+    </View>
   );
 }
 

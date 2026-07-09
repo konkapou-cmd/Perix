@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 
 type Props = {
   events: EventItem[];

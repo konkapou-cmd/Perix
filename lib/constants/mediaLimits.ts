@@ -74,3 +74,9 @@ export const MEDIA_LIMITS = {
     timeoutMs: 10 * 60 * 1000, // 10 minutes
   },
 } as const;
+
+/** Normalize a duration value from seconds or milliseconds to seconds. */
+export function normalizeDurationSeconds(duration?: number | null): number {
+  if (duration == null || Number.isNaN(duration)) return 0;
+  return duration > 1000 ? duration / 1000 : duration;
+}

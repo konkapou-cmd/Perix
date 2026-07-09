@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { createPost, createStory, uploadMedia, uploadImageToCloudinary, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends } from "../lib/api";
+import { createPost, createStory, uploadMedia, uploadImageToCloudinary, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL } from "../lib/api";
 import UploadProgressSheet from "../components/UploadProgressSheet";
 import * as FileSystem from "expo-file-system/legacy";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
@@ -33,6 +33,7 @@ export default function MediaEditor() {
   const [caption, setCaption] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
+  const [uploadContext, setUploadContext] = useState<"image" | "video">("image");
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({ phase: "preparing", progress: 0 });
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState(maxDurationSeconds);
@@ -128,13 +129,13 @@ export default function MediaEditor() {
   };
 
   const publishAsPost = async () => {
-    if (!sessionToken) return;
+    if (!sessionToken || publishing) return;
     setPublishing(true);
+    console.log("[media-editor] publishAsPost start:", { type, isVideo, mode, captionLength: caption.length });
     try {
       const actor = activeIdentity ? { type: activeIdentity.type, id: activeIdentity.id } : undefined;
       const businessId = activeIdentity?.type === "business" ? activeIdentity.id : undefined;
 
-      // Build tagging payload
       const tagUserArray = pendingMentionIds.filter(id =>
         allMentionables.find(m => m.id === id && m.type === "user")
       );
@@ -144,36 +145,46 @@ export default function MediaEditor() {
       const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
 
       if (isVideo) {
+        setShowUploadProgress(true);
+        setUploadContext("video");
+        setUploadProgress({ phase: "preparing", progress: 0 });
         const isRemote = decodedUri.startsWith("http");
+        let videoUrl: string | null = null;
+        let muxPlaybackId: string | null | undefined = undefined;
+        let muxThumbnail: string | null | undefined = undefined;
+
         if (isRemote) {
           const muxId = decodedUri.match(/stream\.mux\.com\/([a-zA-Z0-9]+)\.m3u8/)?.[1];
-          await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, null, tagUserArray, firstBusinessId, null, null, decodedUri, null, null, muxId || undefined, muxId || undefined, "ready");
+          videoUrl = decodedUri;
+          muxPlaybackId = muxId;
         } else {
-          setShowUploadProgress(true);
-          const post = await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, null, tagUserArray, firstBusinessId, null, null, null, null, null);
-          try {
-            const muxResult = await uploadVideoMux(sessionToken, decodedUri, `post:${post.post_id}`, setUploadProgress);
-            setShowUploadProgress(false);
-            const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : undefined);
-            await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ""}/api/posts/${post.post_id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionToken}` },
-              body: JSON.stringify({ video_url: videoUrl, mux_playback_id: muxResult.mux_playback_id, mux_thumbnail_url: muxResult.mux_thumbnail_url, video_status: "ready" }),
-            });
-          } catch (uploadError) {
-            try { await deletePost(sessionToken, post.post_id); } catch (_) {}
-            throw uploadError;
+          const muxResult = await uploadVideoMux(sessionToken, decodedUri, undefined, setUploadProgress);
+          videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+          muxPlaybackId = muxResult.mux_playback_id || undefined;
+          muxThumbnail = muxResult.mux_thumbnail_url || undefined;
+          if (!videoUrl && !muxPlaybackId) {
+            throw new Error("Video-Upload fehlgeschlagen.");
           }
         }
+        setShowUploadProgress(false);
+        console.log("[media-editor] creating post with video:", { videoUrl, muxPlaybackId });
+        await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, null, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, "ready");
       } else {
         setShowUploadProgress(true);
-        const imageUrl = await uploadImageToCloudinary(sessionToken, decodedUri);
+        setUploadContext("image");
+        setUploadProgress({ phase: "preparing", progress: 0 });
+        const isRemote = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
+        const imageUrl = isRemote
+          ? await uploadImageToCloudinary(sessionToken, decodedUri)
+          : await uploadMedia(sessionToken, decodedUri, "image", (p) => setUploadProgress(p));
         setShowUploadProgress(false);
+        console.log("[media-editor] creating post with image:", { imageUrl });
         await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, null, tagUserArray, firstBusinessId, null, imageUrl, null, null, null);
       }
       Alert.alert(t("editor.success", "Success!"), t("editor.postPublished", "Your post has been published!"), [{ text: t("common.ok"), onPress: () => router.back() }]);
-    } catch (error) {
-      Alert.alert(t("common.error"), t("editor.publishFailed", "Failed to publish"));
+    } catch (error: any) {
+      console.error("[media-editor] publishAsPost failed:", error?.message, error);
+      Alert.alert(t("common.error"), error?.message || t("editor.publishFailed", "Failed to publish"));
     } finally {
       setPublishing(false);
       setShowUploadProgress(false);
@@ -181,27 +192,32 @@ export default function MediaEditor() {
   };
 
   const publishAsCityAd = async () => {
-    if (!sessionToken || activeIdentity?.type !== "business") return;
+    if (!sessionToken || activeIdentity?.type !== "business" || publishing) return;
     setPublishing(true);
+    setUploadContext(isVideo ? "video" : "photo");
     try {
       if (isVideo) {
         const info = await FileSystem.getInfoAsync(decodedUri);
         if (info.exists && info.size) {
           if (info.size > MEDIA_LIMITS.cityAd.maxFileSizeBytes) {
             Alert.alert(t("common.error"), `City Ads dürfen maximal ${MEDIA_LIMITS.cityAd.maxFileSizeMb} MB groß sein.`);
+            setPublishing(false);
             return;
           }
           if (originalDuration > MEDIA_LIMITS.cityAd.maxDurationSeconds) {
             Alert.alert(t("common.error"), `City Ads dürfen maximal ${MEDIA_LIMITS.cityAd.maxDurationSeconds} Sekunden lang sein.`);
+            setPublishing(false);
             return;
           }
         }
       }
-      const mediaUrl = isVideo ? decodedUri : await uploadImageToCloudinary(sessionToken, decodedUri);
+      const isRemote = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
+      const mediaUrl = isVideo ? decodedUri : (isRemote ? await uploadImageToCloudinary(sessionToken, decodedUri) : await uploadMedia(sessionToken, decodedUri, "image"));
       await createStory(sessionToken, { media_url: mediaUrl, media_type: isVideo ? "video" : "image", text: caption, actor_id: activeIdentity.id, actor_type: activeIdentity.type as "business" });
       Alert.alert(t("editor.success", "Success!"), t("editor.cityAdPublished", "Your city ad has been published!"), [{ text: t("common.ok"), onPress: () => router.back() }]);
-    } catch (error) {
-      Alert.alert(t("common.error"), t("editor.publishFailed", "Failed to publish"));
+    } catch (error: any) {
+      console.error("[media-editor] publishAsCityAd failed:", error?.message, error);
+      Alert.alert(t("common.error"), error?.message || t("editor.publishFailed", "Failed to publish"));
     } finally {
       setPublishing(false);
     }
@@ -336,7 +352,7 @@ export default function MediaEditor() {
         </View>
       </KeyboardAvoidingView>
 
-      <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} />
+      <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={uploadContext === "video" ? "video" : "photo"} />
     </SafeAreaView>
   );
 }
