@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { Business } from "../../lib/api";
 import { COLORS } from "../../lib/designTokens";
+import { PROFILE_COLORS } from "./ProfileDesign";
 
 const { width } = Dimensions.get("window");
 
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#ffffff",
+    color: PROFILE_COLORS.CARD,
     marginLeft: 8,
     maxWidth: 150,
   },
@@ -219,13 +220,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "#ffffff",
+    backgroundColor: PROFILE_COLORS.CARD,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "transparent",
   },
   identityItemActive: {
-    backgroundColor: "#ffffff",
+    backgroundColor: PROFILE_COLORS.CARD,
     borderColor: "#e5e7eb",
   },
   itemAvatar: {
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "#ffffff",
+    backgroundColor: PROFILE_COLORS.CARD,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
     borderStyle: "dashed",

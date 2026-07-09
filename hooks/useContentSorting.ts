@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Post, EventItem, Business, Job, ActivityItem, Rental } from "../lib/api";
+import { Post, EventItem, Business, Job, ActivityItem, Rental, Service } from "../lib/api";
 import { isUpcomingEvent } from "../lib/api/events";
 import { isUpcomingActivity } from "../lib/api/events";
 
@@ -9,6 +9,7 @@ interface SortingConfig {
   businesses: "chronological" | "distance" | "engagement" | "random" | "custom";
   jobs: "chronological" | "distance" | "random" | "custom";
   rentals: "chronological" | "distance" | "random" | "custom";
+  services: "chronological" | "distance" | "engagement" | "random" | "custom";
 }
 
 interface UseContentSortingParams {
@@ -18,6 +19,7 @@ interface UseContentSortingParams {
   jobs: Job[];
   activities: ActivityItem[];
   rentals: Rental[];
+  services: Service[];
   sorting: SortingConfig;
   userLocation: { latitude: number; longitude: number } | null;
   mapBounds: { centerLat?: number; centerLng?: number } | null;
@@ -56,7 +58,7 @@ function sortByDistance<T extends { latitude?: number | null; longitude?: number
 }
 
 export function useContentSorting({
-  posts = [], events = [], businesses = [], jobs = [], activities = [], rentals = [],
+  posts = [], events = [], businesses = [], jobs = [], activities = [], rentals = [], services = [],
   sorting, userLocation, mapBounds, eventsFilter, activitiesFilter, mapRefreshKey,
 }: UseContentSortingParams) {
   const userLat = userLocation?.latitude || mapBounds?.centerLat || 52.52;
@@ -114,5 +116,14 @@ export function useContentSorting({
     }
   }, [rentals, mapRefreshKey, sorting.rentals, userLocation, mapBounds]);
 
-  return { sortedEvents, sortedBusinesses, sortedJobs, sortedActivities, sortedPosts, sortedRentals };
+  const sortedServices = useMemo(() => {
+    switch (sorting.services) {
+      case "distance": return sortByDistance(services as any[], userLat, userLng);
+      case "chronological": return [...services].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case "engagement": return [...services].sort((a, b) => (b.capacity || 0) - (a.capacity || 0));
+      default: return shuffle(services);
+    }
+  }, [services, mapRefreshKey, sorting.services, userLocation, mapBounds]);
+
+  return { sortedEvents, sortedBusinesses, sortedJobs, sortedActivities, sortedPosts, sortedRentals, sortedServices };
 }

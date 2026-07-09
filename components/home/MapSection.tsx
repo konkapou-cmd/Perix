@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 import BusinessMap from "../../components/BusinessMap";
 import { MapBounds } from "../../context/MapBoundsContext";
-import { Business, EventItem, ActivityItem, Rental } from "../../lib/api";
+import { Business, EventItem, ActivityItem, Rental, Service } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 
 interface MapSectionProps {
@@ -14,11 +14,12 @@ interface MapSectionProps {
   events: EventItem[];
   activities: ActivityItem[];
   rentals: Rental[];
+  services: Service[];
   onRegionChange: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
   onRecenter?: (lat: number, lng: number) => void;
 }
 
-export function MapSection({ mapBounds, businesses, events, activities, rentals, onRegionChange, onRecenter }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, events, activities, rentals, services, onRegionChange, onRecenter }: MapSectionProps) {
   const router = useRouter();
 
   const handleMarkerPress = (id: string) => {
@@ -30,6 +31,8 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
     if (act) { router.push(`/activity/${id}` as any); return; }
     const rental = rentals.find(r => r.rental_id === id);
     if (rental) { router.push(`/service/${rental.service_id || id}` as any); return; }
+    const service = services.find(s => s.service_id === id);
+    if (service) { router.push(`/service/${id}` as any); return; }
   };
 
   const handleRecenter = async () => {
@@ -52,6 +55,7 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
           events={events}
           activities={activities}
           rentals={rentals}
+          services={services}
           onRegionChangeComplete={(bounds: any) => {
             onRegionChange({ minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng });
           }}
@@ -69,7 +73,7 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
 const styles = StyleSheet.create({
   container: {
     marginBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     paddingTop: 0,
     paddingHorizontal: 0,
     paddingBottom: 12,
@@ -85,11 +89,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
     elevation: 4,
-    shadowColor: "#2B075F",
+    shadowColor: COLORS.primaryDark,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

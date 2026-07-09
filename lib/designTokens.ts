@@ -1,77 +1,144 @@
 // Design System Tokens
-// Version 3.0 — Purple/Yellow palette per Perix brand spec
+// Version 6.0 — Spec-aligned palette: blue #096BFF, orange #FF7A1A, purple #7B3FF2
 
 export const COLORS = {
-  // Brand — Purple
-  primary: "#5B16C9",
-  primaryHover: "#8B35E8",
-  primaryDark: "#2B075F",
-  primaryLight: "#EEE6FF",
-  secondary: "#8B35E8",
+  // Brand — Blue
+  primary: "#096BFF",
+  primaryHover: "#2B8CFF",
+  primaryDark: "#02169E",
+  primaryLight: "#EAF5FF",
+  secondary: "#2B8CFF",
 
-  // Brand — Yellow accent
+  // Accent — Gold (for badges, bookmarks)
   accent: "#FFC400",
   accentSoft: "#FFF1B8",
   accentDark: "#9A6A00",
 
   // Text
-  textPrimary: "#120A35",
-  textSecondary: "#5D5575",
-  textMuted: "#6E6688",
+  textPrimary: "#070A2E",
+  textSecondary: "#6B7280",
+  textMuted: "#6B7280",
   textDisabled: "#C8C2D4",
+  textDark: "#374151",
+  textGray: "#6B7280",
+  textPlaceholder: "#9ca3af",
   textLight: "#FFFFFF",
 
   // Backgrounds
   background: "#FFFFFF",
-  backgroundPage: "#FBF8FF",
-  surfaceSoft: "#F5EEFF",
+  backgroundPage: "#F6F8FC",
+  surfaceSoft: "#F6F8FC",
+  surfaceMuted: "#f0f0f0",
+  surfaceGray: "#f3f4f6",
+  surfaceDark: "#1f2937",
 
   // Borders
-  border: "#E7DFF2",
-  divider: "#E7DFF2",
+  border: "#E7EAF0",
+  borderGray: "#e5e7eb",
+  borderLight: "#d1d5db",
+  divider: "#E7EAF0",
+
+  // Primary tints (for avatar fallback, chip backgrounds)
+  primaryTint: "#EAF5FF",
+  primaryTintDark: "#EAF5FF",
+  indigoText: "#3730a3",
 
   // Semantic
-  danger: "#ef4444",
+  danger: "#DA4024",
   dangerLight: "#fee2e2",
-  error: "#ef4444",
+  error: "#DA4024",
   errorLight: "#fecaca",
+  errorBg: "#FDEBE8",
+  errorText: "#DA4024",
+  errorTitle: "#991B1B",
+  errorDark: "#B91C1C",
+  errorBorder: "#FDEBE8",
   warning: "#FFC400",
   warningLight: "#FFF1B8",
-  info: "#5B16C9",
-  success: "#10b981",
+  info: "#096BFF",
+  success: "#22C55E",
 
-  // Status
+  // Header icon specific
+  filterIcon: "#22C55E",
+  filterIconBg: "#E6FCE9",
+
+  // Status — badges
   online: "#35D05A",
   offline: "#C8C2D4",
+  statusOpenBg: "#dcfce7",
+  statusOpenText: "#166534",
+  statusOpenDot: "#22c55e",
+  statusClosedBg: "#fee2e2",
+  statusClosedText: "#991b1b",
 
-  // Entity accents
-  eventAccent: "#8B35E8",
-  activityAccent: "#5B16C9",
+  // Entity accents — generic
+  eventAccent: "#FF7A1A",
+  activityAccent: "#FF7A1A",
   gold: "#FFC400",
+
+  // Per-category accent colors
+  eventsAccent: "#FF7A1A",
+  activitiesAccent: "#FF7A1A",
+  businessesAccent: "#096BFF",
+  servicesAccent: "#7B3FF2",
+  rentalsAccent: "#02A28E",
+  jobsAccent: "#096BFF",
+  postsAccent: "#096BFF",
+
+  // Per-category background tints
+  eventsBg: "#FFF5ED",
+  activitiesBg: "#FFF5ED",
+  businessesBg: "#F0F8FE",
+  servicesBg: "#F5F0FE",
+  rentalsBg: "#EEFDFB",
+  jobsBg: "#F0F6FF",
+  postsBg: "#F1F8FE",
+
+  // Map pins
+  pinBusiness: "#096BFF",
+  pinEvent: "#FF7A1A",
+  pinActivity: "#FF7A1A",
+  pinJob: "#096BFF",
+  pinRental: "#02A28E",
+  pinClosed: "#000000",
+
+  // Detail page — checklist green
+  detailSuccess: "#22C55E",
+
+  // Content / post accents
+  mentionBlue: "#1d9bf0",
+  textOnlyBg: "#f8f9fb",
+  textOnlyBorder: "#e5e7eb",
+  soundcloudOrange: "#FF5500",
+
+  // Photo placeholders
+  accentCoral: "#FF6B6B",
+  accentViolet: "#7c3aed",
+  liveGreenBorder: "#86efac",
 
   // Dark mode
   dark: {
-    bgBase: "#0f0a1a",
-    bgSurface: "#1a1030",
-    bgElevated: "#2d1f40",
+    bgBase: "#02022A",
+    bgSurface: "#0A0A2E",
+    bgElevated: "#12123A",
     textPrimary: "#f9fafb",
     textSecondary: "#cbd5e1",
     textTertiary: "#94a3b8",
-    border: "#2d1f40",
-    divider: "#1a1030",
+    border: "#1E1E4A",
+    divider: "#0A0A2E",
   },
 } as const;
 
 export const SPACING = {
-  xs: 4,
-  sm: 6,
-  md: 8,
-  mdLg: 10,
-  lg: 12,
-  xl: 16,
-  xxl: 20,
-  xxxl: 24,
-  huge: 32,
+  tiny: 4,
+  small: 8,
+  gap: 10,
+  compact: 12,
+  std: 16,
+  section: 20,
+  page: 24,
+  large: 32,
+  major: 40,
 } as const;
 
 export const ICON_SIZES = {
@@ -110,28 +177,51 @@ export const BORDER_RADIUS = {
   xl: 20,
   xxl: 24,
   full: 9999,
+  card: 20,
+  button: 16,
 } as const;
 
 export const SHADOWS = {
   subtle: {
-    shadowColor: "#2B075F",
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: "#0A143C",
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
+    shadowRadius: 20,
+    elevation: 3,
   },
   medium: {
-    shadowColor: "#2B075F",
+    shadowColor: "#0A143C",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.10,
     shadowRadius: 24,
     elevation: 6,
   },
   strong: {
-    shadowColor: "#2B075F",
+    shadowColor: "#0A143C",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
     shadowRadius: 24,
+    elevation: 10,
+  },
+  card: {
+    shadowColor: "#0A143C",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 3,
+  },
+  cardLight: {
+    shadowColor: "#0A143C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  overlay: {
+    shadowColor: "#0A143C",
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
     elevation: 10,
   },
 } as const;
@@ -176,10 +266,10 @@ export const CATEGORY_SERVICE_TYPES: Record<string, CategoryServiceType[]> = {
     { type: "table_reservation", label: "Table", publicTabLabel: "Table Reservations", icon: "calendar", requiresBooking: true, requiresSlots: true, requiresCoverPhoto: true, fields: ["duration_minutes", "capacity"] },
   ],
   "rentals": [
-    { type: "rental_property", label: "Property", publicTabLabel: "Rental Properties", icon: "home", requiresBooking: true, requiresSlots: false, requiresCoverPhoto: true, fields: ["bedrooms", "bathrooms", "size_sqm", "floor", "furnished", "available_from", "lease_duration", "max_guests"] },
+    { type: "rental_property", label: "Property", publicTabLabel: "Rental Properties", icon: "home", requiresBooking: true, requiresSlots: false, requiresCoverPhoto: true, fields: ["bedrooms", "bathrooms", "size_sqm", "floor", "furnished", "available_from", "lease_duration", "max_guests", "address"] },
   ],
   "rental-real-estate": [
-    { type: "rental_property", label: "Property", publicTabLabel: "Rental Properties", icon: "home", requiresBooking: true, requiresSlots: false, requiresCoverPhoto: true, fields: ["bedrooms", "bathrooms", "size_sqm", "floor", "furnished", "available_from", "lease_duration", "max_guests"] },
+    { type: "rental_property", label: "Property", publicTabLabel: "Rental Properties", icon: "home", requiresBooking: true, requiresSlots: false, requiresCoverPhoto: true, fields: ["bedrooms", "bathrooms", "size_sqm", "floor", "furnished", "available_from", "lease_duration", "max_guests", "address"] },
   ],
   "nightlife-social": [
     { type: "table_reservation", label: "Table", publicTabLabel: "Table Reservations", icon: "calendar", requiresBooking: true, requiresSlots: true, requiresCoverPhoto: true, fields: ["max_guests", "special_requests"] },
@@ -195,7 +285,7 @@ export const CATEGORY_SERVICE_TYPES: Record<string, CategoryServiceType[]> = {
   ],
   "fashion-accessories": [
     { type: "retail_product", label: "Product", publicTabLabel: "Products", icon: "shirt", requiresBooking: false, requiresSlots: false, requiresCoverPhoto: true, fields: ["brand", "stock_status", "condition"] },
-    { type: "tailoring_alteration", label: "Tailoring", publicTabLabel: "Tailoring", icon: "cut", requiresBooking: true, requiresSlots: true, requiresCoverPhoto: true, fields: ["duration_minutes"] },
+    { type: "tailoring_alteration", label: "Tailoring", publicTabLabel: "Tailoring", icon: "cut", requiresBooking: true, requiresSlots: false, requiresCoverPhoto: true, fields: ["duration_minutes"] },
     { type: "custom_order", label: "Custom", publicTabLabel: "Custom Orders", icon: "create", requiresBooking: false, requiresSlots: false, requiresCoverPhoto: true, fields: ["brand", "condition"] },
   ],
   "automotive": [

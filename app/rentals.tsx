@@ -516,18 +516,18 @@ const styles = StyleSheet.create({
     color: "#ffffff",
   },
   searchContainer: {
-    paddingHorizontal: SPACING.xl,
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.std,
+    marginTop: SPACING.small,
+    marginBottom: SPACING.small,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.backgroundPage,
     borderRadius: BORDER_RADIUS.lg,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     height: 40,
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   searchInput: {
     flex: 1,
@@ -624,12 +624,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 4,
-    gap: SPACING.xs,
+    gap: SPACING.tiny,
     flexWrap: "wrap",
   },
   propertyBadge: {
     backgroundColor: "#d1fae5",
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
   },
   priceBadge: {
     backgroundColor: "#fef3c7",
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   },
   rentalCardActions: {
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   categoryModalContainer: {
     flex: 1,

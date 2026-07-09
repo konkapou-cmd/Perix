@@ -1,4 +1,4 @@
-import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental } from "../lib/api";
+import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Service } from "../lib/api";
 
 type MapMarker = {
   id: string;
@@ -8,7 +8,7 @@ type MapMarker = {
   description?: string;
   isOpen?: boolean;
   pinColor?: string;
-  type?: "business" | "event" | "activity" | "artist" | "job" | "rental";
+  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service";
 };
 
 type MapBounds = {
@@ -27,6 +27,8 @@ type Props = {
   activities?: ActivityItem[];
   artists?: ArtistSearchResult[];
   rentals?: Rental[];
+  jobs?: Job[];
+  services?: Service[];
   markers?: MapMarker[];
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;

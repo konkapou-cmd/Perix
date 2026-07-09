@@ -11,6 +11,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -18,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { getPost, togglePostLike, addPostComment, Post, PostComment, toggleSaved, checkSaved } from "../../lib/api";
-import { COLORS } from "../../lib/designTokens";
+import { COLORS, SPACING } from "../../lib/designTokens";
 import { CommentSection } from "../../components/CommentSection";
 import PostContent from "../../components/PostContent";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
@@ -194,13 +195,14 @@ export default function PostDetail() {
             <View style={styles.postVideoContainer}>
               <AdaptiveVideo
                 uri={post.video_url}
+                autoPlay
                 style={styles.postVideo}
-                showMuteButton={true}
-                initialMuted={true}
-                resizeMode="contain"
+                initialMuted
+                showMuteButton
+                resizeMode="cover"
                 coverPhoto={post.mux_thumbnail_url || undefined}
                 ratio={post.media_ratio || undefined}
-                maxHeight={600}
+                maxHeight={Dimensions.get("window").height * 0.65}
                 borderRadius={8}
                 videoStatus={post.video_status}
                 muxThumbnailUrl={post.mux_thumbnail_url || undefined}
@@ -218,7 +220,7 @@ export default function PostDetail() {
             <AdaptiveImage
               uri={post.image_url}
               ratio={post.media_ratio || undefined}
-              maxHeight={600}
+              maxHeight={Dimensions.get("window").height * 0.65}
               borderRadius={8}
               style={styles.postImage}
               onPress={() => {
@@ -303,6 +305,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingHorizontal: SPACING.page,
+    paddingBottom: 60,
   },
   errorContainer: {
     flex: 1,
@@ -364,7 +368,6 @@ postImage: {
   },
   postVideoContainer: {
     width: "100%",
-    maxHeight: 600,
     borderRadius: 8,
     overflow: "hidden",
     backgroundColor: "transparent",

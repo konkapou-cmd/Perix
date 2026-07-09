@@ -17,13 +17,10 @@ import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { uploadMedia, UploadProgress, GalleryItem, updateGalleryCaption } from "../lib/api";
 import { useTranslation } from "react-i18next";
+import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const THUMBNAIL_SIZE = (SCREEN_WIDTH - 64) / 3;
-
-// No video size limit - streaming upload handles any size
-const MAX_VIDEO_SIZE_MB = 300;
-const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
 
 // Props can accept either simple string[] or GalleryItem[] with captions
 interface VideoGalleryProps {
@@ -68,7 +65,7 @@ export default function VideoGalleryUpload({
   videos,
   onVideosChange,
   sessionToken,
-  maxVideos = 10,
+  maxVideos = MEDIA_LIMITS.gallery.maxVideos,
   editable = true,
   title,
   emptyText,
@@ -125,7 +122,7 @@ export default function VideoGalleryUpload({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
         allowsEditing: false,
         quality: 0.8,
-        videoMaxDuration: 180,
+        videoMaxDuration: MEDIA_LIMITS.gallery.maxVideoDurationSeconds,
       });
 
       if (result.canceled || !result.assets || result.assets.length === 0) {
@@ -300,7 +297,7 @@ export default function VideoGalleryUpload({
               style={[styles.editModeButton, editMode && styles.editModeButtonActive]}
               onPress={() => setEditMode(!editMode)}
             >
-              <Ionicons name={editMode ? "checkmark" : "swap-horizontal"} size={16} color={editMode ? "#fff" : "#6b7280"} />
+              <Ionicons name={editMode ? "checkmark" : "swap-horizontal"} size={16} color={editMode ? COLORS.textLight : COLORS.textGray} />
               <Text style={[styles.editModeText, editMode && styles.editModeTextActive]}>
                 {editMode ? (t("common.done") || "Done") : (t("gallery.reorder") || "Reorder")}
               </Text>
@@ -340,7 +337,7 @@ export default function VideoGalleryUpload({
       {/* Video Grid */}
       {normalizedVideos.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="videocam-outline" size={40} color="#d1d5db" />
+          <Ionicons name="videocam-outline" size={40} color={COLORS.borderLight} />
           <Text style={styles.emptyText}>
             {emptyText || t("gallery.noVideos") || "No videos yet"}
           </Text>
@@ -386,7 +383,7 @@ export default function VideoGalleryUpload({
                   <Ionicons 
                     name={videoItem.caption ? "text" : "text-outline"} 
                     size={14} 
-                    color={videoItem.caption ? COLORS.primaryDark : "#9ca3af"} 
+                    color={videoItem.caption ? COLORS.primaryDark : COLORS.textPlaceholder} 
                   />
                   <Text 
                     style={[styles.captionText, !videoItem.caption && styles.captionTextEmpty]} 
@@ -405,20 +402,20 @@ export default function VideoGalleryUpload({
                     onPress={() => handleMoveLeft(index)}
                     disabled={index === 0}
                   >
-                    <Ionicons name="chevron-back" size={16} color={index === 0 ? "#d1d5db" : COLORS.primaryDark} />
+                    <Ionicons name="chevron-back" size={16} color={index === 0 ? COLORS.borderLight : COLORS.primaryDark} />
                   </Pressable>
                   <Pressable
                     style={styles.deleteButtonSmall}
                     onPress={() => handleDeleteVideo(index)}
                   >
-                    <Ionicons name="trash" size={14} color="#ef4444" />
+                    <Ionicons name="trash" size={14} color={COLORS.danger} />
                   </Pressable>
                   <Pressable
                     style={[styles.reorderButton, index === normalizedVideos.length - 1 && styles.reorderButtonDisabled]}
                     onPress={() => handleMoveRight(index)}
                     disabled={index === normalizedVideos.length - 1}
                   >
-                    <Ionicons name="chevron-forward" size={16} color={index === normalizedVideos.length - 1 ? "#d1d5db" : COLORS.primaryDark} />
+                    <Ionicons name="chevron-forward" size={16} color={index === normalizedVideos.length - 1 ? COLORS.borderLight : COLORS.primaryDark} />
                   </Pressable>
                 </View>
               )}
@@ -429,7 +426,7 @@ export default function VideoGalleryUpload({
                   style={styles.deleteButton}
                   onPress={() => handleDeleteVideo(index)}
                 >
-                  <Ionicons name="close-circle" size={22} color="#ef4444" />
+                  <Ionicons name="close-circle" size={22} color={COLORS.danger} />
                 </Pressable>
               )}
             </View>
@@ -458,7 +455,7 @@ export default function VideoGalleryUpload({
                 style={styles.modalCloseButton}
                 onPress={() => setVideoModalVisible(false)}
               >
-                <Ionicons name="close" size={28} color="#fff" />
+                <Ionicons name="close" size={28} color={COLORS.textLight} />
               </Pressable>
             </View>
             {selectedVideo && (
@@ -490,7 +487,7 @@ export default function VideoGalleryUpload({
                   }}
                   disabled={selectedIndex === 0}
                 >
-                  <Ionicons name="chevron-back" size={32} color={selectedIndex === 0 ? "#666" : "#fff"} />
+                  <Ionicons name="chevron-back" size={32} color={selectedIndex === 0 ? "#666" : COLORS.textLight} />
                 </Pressable>
                 <Pressable
                   style={[styles.modalNavButton, selectedIndex === normalizedVideos.length - 1 && styles.modalNavButtonDisabled]}
@@ -502,7 +499,7 @@ export default function VideoGalleryUpload({
                   }}
                   disabled={selectedIndex === normalizedVideos.length - 1}
                 >
-                  <Ionicons name="chevron-forward" size={32} color={selectedIndex === normalizedVideos.length - 1 ? "#666" : "#fff"} />
+                  <Ionicons name="chevron-forward" size={32} color={selectedIndex === normalizedVideos.length - 1 ? "#666" : COLORS.textLight} />
                 </Pressable>
               </View>
             )}
@@ -524,7 +521,7 @@ export default function VideoGalleryUpload({
                 {t("gallery.editCaption") || "Edit Caption"}
               </Text>
               <Pressable onPress={() => setCaptionModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#6b7280" />
+                <Ionicons name="close" size={24} color={COLORS.textGray} />
               </Pressable>
             </View>
             <TextInput
@@ -532,9 +529,9 @@ export default function VideoGalleryUpload({
               value={editingCaption}
               onChangeText={setEditingCaption}
               placeholder={t("gallery.enterCaption") || "Enter a caption..."}
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={COLORS.textPlaceholder}
               multiline
-              maxLength={200}
+              maxLength={MEDIA_LIMITS.story.captionMaxLength}
               autoFocus
             />
             <Text style={styles.captionCharCount}>
@@ -553,7 +550,7 @@ export default function VideoGalleryUpload({
                 disabled={savingCaption}
               >
                 {savingCaption ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={COLORS.textLight} />
                 ) : (
                   <Text style={styles.captionSaveText}>{t("common.save") || "Save"}</Text>
                 )}
@@ -579,12 +576,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1f2937",
+    color: COLORS.surfaceDark,
   },
   countBadge: {
     fontSize: 14,
     fontWeight: "400",
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   headerActions: {
     flexDirection: "row",
@@ -594,7 +591,7 @@ const styles = StyleSheet.create({
   editModeButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.surfaceGray,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -606,15 +603,15 @@ const styles = StyleSheet.create({
   editModeText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   editModeTextActive: {
-    color: "#fff",
+    color: COLORS.textLight,
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f4ff",
+    backgroundColor: COLORS.primaryTintDark,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -633,7 +630,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 4,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: COLORS.borderGray,
     borderRadius: 2,
     overflow: "hidden",
   },
@@ -644,7 +641,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: "#6b7280",
+    color: COLORS.textGray,
     marginTop: 4,
     textAlign: "center",
   },
@@ -654,12 +651,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSoft,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     borderStyle: "dashed",
   },
   emptyText: {
     fontSize: 14,
-    color: "#9ca3af",
+    color: COLORS.textPlaceholder,
     marginTop: 8,
   },
   emptyAddButton: {
@@ -672,7 +669,7 @@ const styles = StyleSheet.create({
   emptyAddButtonText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#fff",
+    color: COLORS.textLight,
   },
   videoGrid: {
     paddingVertical: 4,
@@ -687,7 +684,7 @@ const styles = StyleSheet.create({
     height: THUMBNAIL_SIZE,
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#1f2937",
+    backgroundColor: COLORS.surfaceDark,
   },
   videoThumbnailEditMode: {
     borderWidth: 2,
@@ -712,7 +709,7 @@ const styles = StyleSheet.create({
   indexBadge: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#fff",
+    color: COLORS.textLight,
     textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
@@ -728,18 +725,18 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#f0f4ff",
+    backgroundColor: COLORS.primaryTintDark,
     justifyContent: "center",
     alignItems: "center",
   },
   reorderButtonDisabled: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.surfaceGray,
   },
   deleteButtonSmall: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#fef2f2",
+    backgroundColor: COLORS.errorBg,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -747,7 +744,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -6,
     right: -6,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -784,7 +781,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
+    color: COLORS.textLight,
   },
   modalCloseButton: {
     padding: 8,
@@ -827,11 +824,11 @@ const styles = StyleSheet.create({
   },
   captionText: {
     fontSize: 11,
-    color: "#374151",
+    color: COLORS.textDark,
     flex: 1,
   },
   captionTextEmpty: {
-    color: "#9ca3af",
+    color: COLORS.textPlaceholder,
     fontStyle: "italic",
   },
   modalCaptionContainer: {
@@ -844,18 +841,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   modalCaptionText: {
-    color: "#fff",
+    color: COLORS.textLight,
     fontSize: 14,
     textAlign: "center",
   },
-  // Caption edit modal styles
   captionModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   captionModalContent: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -874,7 +870,7 @@ const styles = StyleSheet.create({
   },
   captionInput: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
@@ -885,7 +881,7 @@ const styles = StyleSheet.create({
   },
   captionCharCount: {
     fontSize: 12,
-    color: "#9ca3af",
+    color: COLORS.textPlaceholder,
     textAlign: "right",
     marginTop: 4,
   },
@@ -899,13 +895,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.surfaceGray,
     alignItems: "center",
   },
   captionCancelText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   captionSaveButton: {
     flex: 1,
@@ -920,6 +916,6 @@ const styles = StyleSheet.create({
   captionSaveText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#fff",
+    color: COLORS.textLight,
   },
 });

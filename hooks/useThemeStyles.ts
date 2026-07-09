@@ -79,12 +79,12 @@ export interface UseThemeStylesResult {
 
 const DEFAULT_COLORS = {
   backgroundColor: '#ffffff',
-  primaryColor: '#5B16C9',
-  textColor: '#120A35',
-  secondaryColor: '#6E6688',
+  primaryColor: '#025EF2',
+  textColor: '#02022A',
+  secondaryColor: '#5A6276',
   cardColor: '#ffffff',
-  borderColor: '#E7DFF2',
-  accentColor: '#5B16C9',
+  borderColor: '#E6EAF0',
+  accentColor: '#025EF2',
 };
 
 export function useThemeStyles(theme?: ProfileTheme | null): UseThemeStylesResult {

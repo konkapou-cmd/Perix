@@ -75,6 +75,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           api.getMyBusinesses(storedToken).catch(() => [] as any[]),
           api.getMyArtist(storedToken).catch(() => null),
         ]);
+
+        const stillHasToken = await AsyncStorage.getItem("session_token");
+        if (!stillHasToken) {
+          setLoading(false);
+          return;
+        }
+
         setUser(profile);
         setSessionToken(storedToken);
 

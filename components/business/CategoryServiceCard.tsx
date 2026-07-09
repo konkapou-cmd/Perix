@@ -2,31 +2,33 @@ import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Service } from "../../lib/api";
-import { COLORS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES, getServiceTypeConfig, getBookingMode, BookingMode } from "../../lib/designTokens";
+import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES, FONT_WEIGHTS, SHADOWS, CATEGORY_SERVICE_TYPES, getServiceTypeConfig, getBookingMode, BookingMode } from "../../lib/designTokens";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { FIELD_REGISTRY } from "../../lib/fieldRegistry";
 import AdaptiveImage from "../AdaptiveImage";
+import AdaptiveVideo from "../AdaptiveVideo";
+import FocalImage from "../FocalImage";
 
-function MediaWithOverlay({ service, style, placeholderIcon }: { service: Service; style: any; placeholderIcon: string }) {
+function MediaWithOverlay({ service, placeholderIcon }: { service: Service; placeholderIcon: string }) {
   const imageUri = service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0];
+  const hasVideo = !!service.video_url;
   const galleryCount = (service.gallery_images?.length || 0) + (service.image_urls?.length || 0) - 1;
   return (
-    <View style={styles.mediaWrapper}>
-      {imageUri ? (
-        <AdaptiveImage uri={imageUri} style={style} borderRadius={0} />
+    <View style={s.mediaWrapper}>
+      {service.cover_image_url ? (
+        <FocalImage uri={service.cover_image_url} focalPoint={service.cover_focal_point} style={s.image} showLoader={false} />
+      ) : hasVideo ? (
+        <AdaptiveVideo uri={service.video_url!} autoPlay style={s.image} isLooping initialMuted />
+      ) : imageUri ? (
+        <FocalImage uri={imageUri} focalPoint={service.cover_focal_point} style={s.image} showLoader={false} />
       ) : (
-        <View style={[style, { backgroundColor: COLORS.border, alignItems: "center", justifyContent: "center" }]}>
-          <Ionicons name={placeholderIcon as any} size={28} color={COLORS.textMuted} />
-        </View>
-      )}
-      {service.video_url && (
-        <View style={styles.videoOverlay}>
-          <Ionicons name="play-circle" size={32} color="#fff" />
+        <View style={[s.image, s.imagePlaceholder]}>
+          <Ionicons name={placeholderIcon as any} size={32} color={COLORS.textMuted} />
         </View>
       )}
       {galleryCount > 0 && (
-        <View style={styles.galleryBadge}>
-          <Text style={styles.galleryBadgeText}>{galleryCount + 1}</Text>
+        <View style={s.galleryBadge}>
+          <Text style={s.galleryBadgeText}>+{galleryCount}</Text>
         </View>
       )}
     </View>
@@ -37,7 +39,9 @@ type Props = {
   service: Service;
   rootCategory: string;
   onPress?: (service: Service) => void;
-  cardWidth?: number | string;
+  primaryColor?: string;
+  textColor?: string;
+  secondaryColor?: string;
 };
 
 function getTypeIcon(type: string): string {
@@ -49,12 +53,7 @@ function getTypeIcon(type: string): string {
   return "help-circle";
 }
 
-export default function CategoryServiceCard({ service, rootCategory, onPress, cardWidth = "100%" }: Props) {
-  const isRental = rootCategory === "rentals" || rootCategory === "rental-real-estate";
-  const isAuto = rootCategory === "automotive";
-  const isFood = rootCategory === "food-dining";
-  const isProfessional = rootCategory === "professional-services";
-
+export default function CategoryServiceCard({ service, rootCategory, onPress, primaryColor = COLORS.primary, textColor = COLORS.textPrimary, secondaryColor = COLORS.textSecondary }: Props) {
   const getFieldsForType = (): string[] => {
     const types = CATEGORY_SERVICE_TYPES[rootCategory] || [];
     const match = types.find((t) => t.type === service.type);
@@ -78,15 +77,19 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, ca
     if (value === null || value === undefined) return null;
 
     if (config.displayFormat === "duration") {
-      return <Text key={fieldName} style={styles.meta}>{formatDuration(Number(value))}</Text>;
+      return <Text key={fieldName} style={s.meta}>{formatDuration(Number(value))}</Text>;
+    }
+
+    if (fieldName === "available_from") {
+      return <Text key={fieldName} style={s.meta}>Ab {String(value).split("-").reverse().join(".")}</Text>;
     }
 
     switch (config.component) {
       case "chips": {
         const label = String(value).charAt(0).toUpperCase() + String(value).slice(1).replace(/_/g, " ");
         return (
-          <View key={fieldName} style={styles.chipSmall}>
-            <Text style={styles.chipSmallText}>{label}</Text>
+          <View key={fieldName} style={s.chipSmall}>
+            <Text style={s.chipSmallText}>{label}</Text>
           </View>
         );
       }
@@ -94,63 +97,60 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, ca
         const arr = Array.isArray(value) ? value : [];
         if (arr.length === 0) return null;
         return (
-          <View key={fieldName} style={styles.tagRow}>
+          <View key={fieldName} style={s.tagRow}>
             {arr.map((item: string) => (
-              <Text key={item} style={styles.facilityTag}>{item.charAt(0).toUpperCase() + item.slice(1).replace(/_/g, " ")}</Text>
+              <Text key={item} style={s.facilityTag}>{item.charAt(0).toUpperCase() + item.slice(1).replace(/_/g, " ")}</Text>
             ))}
           </View>
         );
       }
       case "toggle":
         return value ? (
-          <Text key={fieldName} style={styles.meta}>
+          <Text key={fieldName} style={s.meta}>
             <Ionicons name="checkmark-circle" size={12} color={COLORS.success} /> {String(value)}
           </Text>
         ) : null;
       case "number":
+        if (fieldName === "size_sqm") {
+          return <Text key={fieldName} style={s.meta}>{value} m²</Text>;
+        }
         if (fieldName === "mileage_km") {
-          return <Text key={fieldName} style={styles.meta}>{Number(value).toLocaleString()} km</Text>;
+          return <Text key={fieldName} style={s.meta}>{Number(value).toLocaleString()} km</Text>;
         }
         if (fieldName === "calories") {
-          return <Text key={fieldName} style={styles.meta}>{value} cal</Text>;
+          return <Text key={fieldName} style={s.meta}>{value} cal</Text>;
         }
         if (fieldName === "spice_level") {
-          return <Text key={fieldName} style={styles.meta}>Spice: {value}/5</Text>;
+          return <Text key={fieldName} style={s.meta}>Spice: {value}/5</Text>;
         }
         if (fieldName === "capacity") {
-          return <Text key={fieldName} style={styles.meta}>Cap: {value}</Text>;
+          return <Text key={fieldName} style={s.meta}>Cap: {value}</Text>;
         }
         if (fieldName === "max_guests") {
-          return <Text key={fieldName} style={styles.meta}>Up to {value} guests</Text>;
+          return <Text key={fieldName} style={s.meta}>Up to {value} guests</Text>;
         }
         if (fieldName === "deposit") {
-          return <Text key={fieldName} style={styles.meta}>Kaution: {value}</Text>;
+          return <Text key={fieldName} style={s.meta}>Kaution: {value}</Text>;
         }
-        if (fieldName === "available_from") {
-          return <Text key={fieldName} style={styles.meta}>Ab {String(value).split("-").reverse().join(".")}</Text>;
-        }
-        return <Text key={fieldName} style={styles.meta}>{value}</Text>;
+        return <Text key={fieldName} style={s.meta}>{value}</Text>;
       default:
         if (fieldName === "instructor" || fieldName === "specialist_name") {
-          return <Text key={fieldName} style={styles.meta}><Ionicons name="person" size={12} /> {value}</Text>;
+          return <Text key={fieldName} style={s.meta}><Ionicons name="person" size={12} /> {value}</Text>;
         }
         if (fieldName === "stock_status") {
           const statusStr = String(value).replace(/_/g, " ");
           const isInStock = String(value) === "in_stock";
           return (
-            <View key={fieldName} style={[styles.stockBadge, { backgroundColor: isInStock ? COLORS.success + "20" : COLORS.warning + "20" }]}>
-              <Text style={[styles.stockText, { color: isInStock ? COLORS.success : COLORS.warning }]}>{statusStr}</Text>
+            <View key={fieldName} style={[s.stockBadge, { backgroundColor: isInStock ? COLORS.success + "20" : COLORS.warning + "20" }]}>
+              <Text style={[s.stockText, { color: isInStock ? COLORS.success : COLORS.warning }]}>{statusStr}</Text>
             </View>
           );
         }
-        return <Text key={fieldName} style={styles.meta}>{String(value)}</Text>;
+        return <Text key={fieldName} style={s.meta}>{String(value)}</Text>;
     }
   };
 
   const cardFields = getFieldsForType().filter((f) => hasCardField(f) && f !== "price");
-  const showRentalLayout = isRental || isAuto;
-  const showFoodLayout = isFood;
-  const showProLayout = isProfessional;
   const typeIcon = getTypeIcon(service.type);
 
   const typeConfig = getServiceTypeConfig(rootCategory, service.type);
@@ -158,109 +158,141 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, ca
   const ctaLabel = bookingMode === "booking_slots" ? "Book" : bookingMode === "booking_request" ? "Request" : "View";
   const ctaColor = bookingMode === "booking_slots" ? COLORS.success : bookingMode === "booking_request" ? COLORS.primary : COLORS.textMuted;
 
-  if (showRentalLayout) {
-    return (
-      <Pressable
-        style={[styles.card, typeof cardWidth === "number" ? { width: cardWidth } : { width: cardWidth as any }]}
-        onPress={() => onPress?.(service)}
-      >
-        <View style={styles.rentalRow}>
-          <MediaWithOverlay service={service} style={styles.rentalImage} placeholderIcon={typeIcon} />
-          <View style={styles.rentalInfo}>
-            <Text style={styles.name} numberOfLines={1}>
-              {isAuto && service.make ? `${service.make} ${service.model || ""}` : service.name}
-            </Text>
-            {service.description ? <Text style={styles.desc} numberOfLines={1}>{service.description}</Text> : null}
-            {cardFields.map(renderCardField)}
-            {service.price ? <Text style={styles.price}>{formatPrice(service.price)}{isRental ? "/night" : ""}</Text> : null}
-          </View>
-        </View>
-      </Pressable>
-    );
-  }
-
-  if (showProLayout) {
-    return (
-      <Pressable
-        style={[styles.card, typeof cardWidth === "number" ? { width: cardWidth } : { width: cardWidth as any }]}
-        onPress={() => onPress?.(service)}
-      >
-        <View style={styles.proRow}>
-          <View style={styles.proIcon}>
-            <Ionicons name={typeIcon as any} size={22} color={COLORS.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name} numberOfLines={1}>{service.name}</Text>
-            {service.description ? <Text style={styles.desc} numberOfLines={2}>{service.description}</Text> : null}
-            {cardFields.map(renderCardField)}
-          </View>
-          {service.price ? <Text style={styles.price}>{formatPrice(service.price)}</Text> : null}
-        </View>
-      </Pressable>
-    );
-  }
+  const typeName = typeConfig?.publicTabLabel || typeConfig?.label || service.type;
 
   return (
-    <Pressable
-      style={[styles.card, typeof cardWidth === "number" ? { width: cardWidth } : { width: cardWidth as any }]}
-      onPress={() => onPress?.(service)}
-    >
-      <MediaWithOverlay
-        service={service}
-        style={showFoodLayout ? styles.menuImage : styles.serviceImage}
-        placeholderIcon={showFoodLayout ? "restaurant" : typeIcon}
-      />
-      <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>{service.name}</Text>
-        {service.description ? <Text style={styles.desc} numberOfLines={2}>{service.description}</Text> : null}
+    <Pressable style={s.card} onPress={() => onPress?.(service)}>
+      <MediaWithOverlay service={service} placeholderIcon={typeIcon} />
+      <View style={s.imageBadges}>
+        <View style={[s.typeBadge, { backgroundColor: primaryColor }]}>
+          <Ionicons name={typeIcon as any} size={10} color="#fff" />
+          <Text style={s.typeBadgeText}>{typeName}</Text>
+        </View>
+        <View style={[s.ctaPill, { backgroundColor: ctaColor + "20" }]}>
+          <Text style={[s.ctaText, { color: ctaColor }]}>{ctaLabel}</Text>
+        </View>
+      </View>
+      <View style={s.info}>
+        <Text style={[s.name, { color: textColor }]} numberOfLines={1}>
+          {service.name}
+        </Text>
+        {service.description ? <Text style={s.desc} numberOfLines={2}>{service.description}</Text> : null}
         {cardFields.map(renderCardField)}
         {service.price ? (
-          <View style={styles.bottomRow}>
-            <Text style={styles.price}>{formatPrice(service.price)}</Text>
-            <View style={[styles.ctaPill, { backgroundColor: ctaColor + "20" }]}>
-              <Text style={[styles.ctaText, { color: ctaColor }]}>{ctaLabel}</Text>
-            </View>
-          </View>
-        ) : (
-          <View style={[styles.ctaPill, { backgroundColor: ctaColor + "20", alignSelf: "flex-start", marginTop: 6 }]}>
-            <Text style={[styles.ctaText, { color: ctaColor }]}>{ctaLabel}</Text>
-          </View>
-        )}
+          <Text style={s.price}>{formatPrice(service.price)}</Text>
+        ) : null}
       </View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: "#fff", borderRadius: BORDER_RADIUS.lg, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  info: { padding: 10 },
-  name: { fontSize: 14, fontWeight: "600", color: COLORS.textPrimary },
-  desc: { fontSize: 12, color: COLORS.textMuted, marginTop: 4, lineHeight: 16 },
-  meta: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
-  price: { fontSize: 14, fontWeight: "700", color: COLORS.success, marginTop: 2 },
-  bottomRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
-  tagRow: { flexDirection: "row", gap: 3, flexWrap: "wrap", marginTop: 4 },
-  chipSmall: { backgroundColor: COLORS.primary + "15", paddingHorizontal: 8, paddingVertical: 2, borderRadius: BORDER_RADIUS.full, alignSelf: "flex-start", marginTop: 4 },
-  chipSmallText: { fontSize: 10, fontWeight: "600", color: COLORS.primary },
-  // Food
-  menuImage: { width: "100%", aspectRatio: 4 / 3 },
-  dietaryPill: { backgroundColor: COLORS.success + "15", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
-  dietaryText: { fontSize: 9, fontWeight: "700", color: COLORS.success },
-  // Service
-  serviceImage: { width: "100%", aspectRatio: 1 },
-  // Rental
-  rentalRow: { flexDirection: "row" },
-  rentalImage: { width: 120, height: 120 },
-  rentalInfo: { flex: 1, padding: 10 },
-  facilityTag: { fontSize: 10, color: COLORS.textMuted, backgroundColor: COLORS.backgroundPage, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, overflow: "hidden" },
-  // Professional
-  proRow: { flexDirection: "row", alignItems: "center", padding: 12, gap: 12 },
-  proIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center" },
-  // Retail stock
-  stockBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: "flex-start", marginTop: 4 },
-  stockText: { fontSize: 10, fontWeight: "600" },
-  // Video overlay
-  mediaWrapper: { position: "relative" },
+const s = StyleSheet.create({
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: BORDER_RADIUS.card,
+    marginHorizontal: SPACING.page,
+    overflow: "hidden",
+    ...SHADOWS.subtle,
+  },
+  mediaWrapper: {
+    position: "relative",
+    height: 140,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  imagePlaceholder: {
+    backgroundColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageBadges: {
+    position: "absolute",
+    top: SPACING.small,
+    left: SPACING.small,
+    right: SPACING.small,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  typeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 2,
+  },
+  typeBadgeText: {
+    color: "#fff",
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+  },
+  info: {
+    padding: SPACING.section,
+  },
+  name: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    marginBottom: SPACING.tiny,
+  },
+  desc: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textMuted,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  meta: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  price: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    color: COLORS.success,
+    marginTop: SPACING.tiny,
+  },
+  tagRow: {
+    flexDirection: "row",
+    gap: 3,
+    flexWrap: "wrap",
+    marginTop: 4,
+  },
+  chipSmall: {
+    backgroundColor: COLORS.primary + "15",
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.full,
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
+  chipSmallText: {
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.primary,
+  },
+  facilityTag: {
+    fontSize: FONT_SIZES.micro,
+    color: COLORS.textMuted,
+    backgroundColor: COLORS.backgroundPage,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.sm,
+    overflow: "hidden",
+  },
+  stockBadge: {
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.sm,
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
+  stockText: {
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+  },
   videoOverlay: {
     position: "absolute",
     top: 0, left: 0, right: 0, bottom: 0,
@@ -270,25 +302,25 @@ const styles = StyleSheet.create({
   },
   galleryBadge: {
     position: "absolute",
-    top: 6,
-    right: 6,
+    top: SPACING.small,
+    right: SPACING.small,
     backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: 10,
-    paddingHorizontal: 6,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
   },
   galleryBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.bold as any,
     color: "#fff",
   },
   ctaPill: {
-    paddingHorizontal: 8,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.full,
   },
   ctaText: {
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.bold as any,
   },
 });

@@ -55,7 +55,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
   showAddButtons = true,
   primaryColor = COLORS.primaryDark,
   textColor = COLORS.textPrimary,
-  cardColor = "#ffffff",
+  cardColor = COLORS.background,
 }) => {
   const { t } = useTranslation();
   const [zoomVisible, setZoomVisible] = useState(false);
@@ -115,8 +115,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 >
                   <AdaptiveVideo
                     uri={item.uri?.includes('mux.com') ? item.uri.replace('stream.mux.com', 'image.mux.com').replace('.m3u8', '/thumbnail.jpg?time=0&width=300') : item.uri?.replace('/upload/', '/upload/so_0,vc_00,w_300/')}
+                    autoPlay
                     style={styles.videoThumbVideo}
-                    autoPlay={false}
                     showMuteButton={false}
                   />
                   <View style={styles.playOverlay}>

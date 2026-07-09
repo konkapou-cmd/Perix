@@ -3,8 +3,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { ActivityItem, ACTIVITY_THEMES } from "../../lib/api";
-import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { formatDate } from "../../lib/formatDate";
+import { EmptyState } from "../shared";
+import AdaptiveVideo from "../AdaptiveVideo";
+import FocalImage from "../FocalImage";
 
 type Props = {
   activities: ActivityItem[];
@@ -54,20 +57,13 @@ export default function ActivitiesSection({
       </View>
 
       {activities.length === 0 ? (
-        <View style={s.emptyState}>
-          <View style={[s.emptyIcon, { backgroundColor: `${primaryColor}20` }]}>
-            <Ionicons name="people" size={32} color={primaryColor} />
-          </View>
-          <Text style={[s.emptyTitle, { color: textColor }]}>{t("profile.noActivitiesYet", "No Activities Yet")}</Text>
-          <Text style={[s.emptySubtitle, { color: secondaryColor }]}>
-            {t("profile.activitiesWillAppear", "Activities you create or join will appear here")}
-          </Text>
-        </View>
+        <EmptyState icon="people" message={t("userProfile.noActivities")} subMessage={!readOnly ? t("userProfile.addFirstActivity") : undefined} />
       ) : (
         <View style={s.grid}>
           {activities.map((activity) => {
             const theme = getThemeInfo(activity.theme);
-            const imageUrl = activity.gallery_images?.[0] || activity.cover_image_url || activity.image_urls?.[0];
+            const imageUrl = activity.cover_image_url || activity.gallery_images?.[0] || activity.image_urls?.[0];
+            const hasVideo = !!activity.video_url;
 
             return (
               <View key={activity.activity_id} style={[s.card, { backgroundColor: cardColor }]}>
@@ -76,8 +72,12 @@ export default function ActivitiesSection({
                   onPress={() => router.push(`/activity/${activity.activity_id}`)}
                 >
                   <View style={s.imageContainer}>
-                    {imageUrl ? (
-                      <Image source={{ uri: imageUrl }} style={s.image} resizeMode="cover" />
+                    {activity.cover_image_url ? (
+                      <FocalImage uri={activity.cover_image_url} focalPoint={activity.cover_focal_point} style={s.image} showLoader={false} />
+                    ) : hasVideo ? (
+                      <AdaptiveVideo uri={activity.video_url || ""} autoPlay style={s.image} isLooping initialMuted />
+                    ) : imageUrl ? (
+                      <FocalImage uri={imageUrl} focalPoint={activity.cover_focal_point} style={s.image} showLoader={false} />
                     ) : (
                       <View style={[s.imagePlaceholder, { backgroundColor: `${theme.color}30` }]}>
                         <Text style={s.themeEmoji}>{theme.emoji}</Text>
@@ -151,13 +151,13 @@ export default function ActivitiesSection({
 
 const s = StyleSheet.create({
   container: {
-    paddingTop: SPACING.sm,
+    paddingTop: SPACING.small,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
   },
   cardTitle: {
     fontSize: FONT_SIZES.h3,
@@ -167,49 +167,23 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xxl,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.full,
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   addButtonText: {
     color: "#fff",
     fontWeight: FONT_WEIGHTS.semibold as any,
     fontSize: FONT_SIZES.bodySmall,
   },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: SPACING.huge,
-    paddingHorizontal: SPACING.xl,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.md,
-  },
-  emptyTitle: {
-    fontSize: FONT_SIZES.h3,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-    marginBottom: SPACING.xs,
-  },
-  emptySubtitle: {
-    fontSize: FONT_SIZES.bodySmall,
-    textAlign: "center",
-    lineHeight: 20,
-  },
   grid: {
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   card: {
     borderRadius: BORDER_RADIUS.lg,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    ...SHADOWS.subtle,
   },
   cardContent: {
     flex: 1,
@@ -233,21 +207,21 @@ const s = StyleSheet.create({
   },
   privateBadge: {
     position: "absolute",
-    top: SPACING.sm,
-    right: SPACING.sm,
+    top: SPACING.small,
+    right: SPACING.small,
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 12,
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
   },
   goingBadge: {
     position: "absolute",
-    bottom: SPACING.sm,
-    left: SPACING.sm,
+    bottom: SPACING.small,
+    left: SPACING.small,
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: "#10b981",
@@ -259,12 +233,12 @@ const s = StyleSheet.create({
   },
   ownerBadge: {
     position: "absolute",
-    bottom: SPACING.sm,
-    left: SPACING.sm,
+    bottom: SPACING.small,
+    left: SPACING.small,
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: "#f59e0b",
@@ -276,10 +250,10 @@ const s = StyleSheet.create({
   },
   themeBadge: {
     position: "absolute",
-    top: SPACING.sm,
-    left: SPACING.sm,
+    top: SPACING.small,
+    left: SPACING.small,
     borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     flexDirection: "row",
     alignItems: "center",
@@ -294,17 +268,17 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   info: {
-    padding: SPACING.md,
+    padding: SPACING.small,
   },
   title: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.tiny,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.xs,
+    gap: SPACING.tiny,
     marginBottom: 2,
   },
   metaText: {
@@ -312,10 +286,10 @@ const s = StyleSheet.create({
   },
   statusBadge: {
     alignSelf: "flex-start",
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.tiny,
     borderRadius: BORDER_RADIUS.md,
-    marginTop: SPACING.xs,
+    marginTop: SPACING.tiny,
   },
   statusText: {
     fontSize: FONT_SIZES.small,
@@ -324,11 +298,11 @@ const s = StyleSheet.create({
   actions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
-    paddingBottom: SPACING.sm,
+    paddingHorizontal: SPACING.small,
+    gap: SPACING.small,
+    paddingBottom: SPACING.small,
   },
   actionBtn: {
-    padding: SPACING.xs,
+    padding: SPACING.tiny,
   },
 });

@@ -5,6 +5,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { Alert, Platform } from "react-native";
 import { uploadMedia, uploadImageToCloudinary, uploadVideoMux } from "./api";
+import { MEDIA_LIMITS } from "./constants/mediaLimits";
 
 export interface UploadResult {
   url: string;
@@ -31,12 +32,12 @@ const DEFAULT_IMAGE_OPTIONS: UploadOptions = {
   mediaTypes: ImagePicker.MediaTypeOptions.Images,
   allowsEditing: true,
   aspect: [4, 5],
-  quality: 0.5,
+  quality: MEDIA_LIMITS.image.pickerQuality,
 };
 
 const DEFAULT_VIDEO_OPTIONS: UploadOptions = {
   mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-  quality: 0.5,
+  quality: MEDIA_LIMITS.video.pickerQuality,
 };
 
 /**

@@ -35,6 +35,9 @@ export type NotificationPrefs = {
   friendRequests: boolean;
   calls: boolean;
   marketing: boolean;
+  messages_quiet_hours_mode?: string;
+  messages_quiet_hours_start?: string;
+  messages_quiet_hours_end?: string;
 };
 
 export const getNotificationPreferences = async (token: string): Promise<NotificationPrefs> => {

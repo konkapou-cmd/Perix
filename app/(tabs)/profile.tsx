@@ -15,7 +15,7 @@ import {
   Image,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,7 +35,7 @@ import {
   createBusiness,
   getCategoryTree,
   getMyBusinesses,
-  getMyFriends,
+  getMyFriendProfiles,
   getBusinesses,
   updateProfileGallery,
   updateProfileMedia,
@@ -83,6 +83,7 @@ import {
   getUserPublicProfile,
   ActivityItem,
 } from "../../lib/api";
+import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
 import { LanguagePicker } from "../../components/LanguagePicker";
@@ -216,13 +217,14 @@ export default function ProfileScreen() {
   const { user, logout, sessionToken, activeIdentity, setActiveIdentity, refreshUser } = useAuth();
   const { clearMapBounds } = useMapBounds();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string }>();
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   // -- GLOBAL USER STATE --
   const [isAdmin, setIsAdmin] = useState(false);
-  const [friends, setFriends] = useState<User[]>([]);
+  const [friends, setFriends] = useState<any[]>([]);
   const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
@@ -305,7 +307,7 @@ export default function ProfileScreen() {
   const [showEventDatePicker, setShowEventDatePicker] = useState(false);
   const [showEventTimePicker, setShowEventTimePicker] = useState(false);
   const [jobModalVisible, setJobModalVisible] = useState(false);
-  const [jobForm, setJobForm] = useState<{title: string; description: string; cover_image: string; job_type: string; requirements: string; salary_range: string; work_location: string; expires_at: string}>({ title: "", description: "", cover_image: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "" });
+  const [jobForm, setJobForm] = useState<{title: string; description: string; cover_image: string; image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url: string; job_type: string; requirements: string; salary_range: string; work_location: string; expires_at: string; status: "draft" | "published"}>({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
   const [jobSaving, setJobSaving] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [activityModalVisible, setActivityModalVisible] = useState(false);
@@ -349,7 +351,7 @@ export default function ProfileScreen() {
       setIsAdmin(adminRes.is_admin);
 
       const [friendRes, bizRes] = await Promise.all([
-        getMyFriends(sessionToken),
+        getMyFriendProfiles(sessionToken),
         getMyBusinesses(sessionToken),
       ]);
       
@@ -433,6 +435,23 @@ export default function ProfileScreen() {
     }
   }, [identities, activeIdentity, setActiveIdentity]);
 
+  // Watch for business action params from BusinessActionsModal
+  useEffect(() => {
+    if (params.openEvent === "1") {
+      setEventModalVisible(true);
+    }
+    if (params.openJob === "1") {
+      setEditingJobId(null);
+      setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
+      setJobModalVisible(true);
+    }
+    if (params.openService === "1") {
+      handleAddService();
+    }
+    if (params.openBookings === "1") {
+      setBookingListVisible(true);
+    }
+  }, [params.openEvent, params.openJob, params.openService, params.openBookings]);
 
   // ---------------------------------------------------------------------------
   // 2. USER VIEW STATE & HANDLERS
@@ -530,7 +549,11 @@ export default function ProfileScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
-        Alert.alert(t("common.error"), t("home.videoTooLarge") || "Video must be under 300MB.");
+        Alert.alert(t("common.error"), `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
+        return;
+      }
+      if (asset.duration != null && asset.duration > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
+        Alert.alert("Video zu lang", `Videos dürfen maximal ${MEDIA_LIMITS.post.maxVideoDurationSeconds} Sekunden lang sein.`);
         return;
       }
       setPostVideoPreview(asset.uri);
@@ -584,7 +607,7 @@ export default function ProfileScreen() {
         await updateEvent(sessionToken, eventEditing.event_id, {
           title: eventForm.title,
           description: eventForm.description || null,
-          cover_image_url: eventForm.cover_image_url || null,
+          cover_image_url: eventForm.cover_image_url,
           image_urls: eventForm.image_urls,
           video_url: eventForm.video_url || null,
           start_time: startISO,
@@ -602,7 +625,7 @@ export default function ProfileScreen() {
         const payload: any = {
           title: eventForm.title,
           description: eventForm.description || null,
-          cover_image_url: eventForm.cover_image_url || null,
+          cover_image_url: eventForm.cover_image_url,
           image_urls: eventForm.image_urls,
           video_url: eventForm.video_url || null,
           start_time: startISO,
@@ -644,7 +667,7 @@ export default function ProfileScreen() {
           date: activityForm.date,
           time: activityForm.time,
           location: activityForm.location || undefined,
-          cover_image_url: activityForm.cover_image_url || undefined,
+          cover_image_url: activityForm.cover_image_url,
           image_urls: activityForm.image_urls,
           video_url: activityForm.video_url || undefined,
           latitude: activityForm.latitude,
@@ -663,7 +686,7 @@ export default function ProfileScreen() {
           date: activityForm.date,
           time: activityForm.time,
           location: activityForm.location || "",
-          cover_image_url: activityForm.cover_image_url || undefined,
+          cover_image_url: activityForm.cover_image_url,
           image_urls: activityForm.image_urls,
           video_url: activityForm.video_url || undefined,
           latitude: activityForm.latitude ?? null,
@@ -729,7 +752,7 @@ export default function ProfileScreen() {
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
       const uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      const updated = await updateProfileMedia(sessionToken, { cover_photo: uri });
+      const updated = await updateProfileMedia(sessionToken, { cover_photo: uri, cover_focal_point: { x: 0.5, y: 0.5 } });
       setCoverPhoto(updated.cover_photo || null);
       refreshUser();
     }
@@ -1267,7 +1290,7 @@ const handleUpdateSlug = async (newSlug: string) => {
         menu_category: serviceForm.menu_category || undefined,
         dietary_tags: serviceForm.dietary_tags,
         image_urls: serviceForm.image_urls,
-        cover_image_url: coverImageUrl || undefined,
+        cover_image_url: coverImageUrl,
         gallery_images: galleryImages,
         gallery_videos: serviceForm.gallery_videos,
         video_url: serviceForm.video_url || undefined,
@@ -1470,7 +1493,7 @@ const handleUpdateSlug = async (newSlug: string) => {
           setUploadProgress({ phase: "uploading", progress: 30 + progress.progress * 0.6 });
         });
         setUploadProgress({ phase: "processing", progress: 95 });
-        await updateBusiness(sessionToken, activeIdentity.id, { cover_image: imageUrl });
+        await updateBusiness(sessionToken, activeIdentity.id, { cover_image: imageUrl, cover_focal_point: { x: 0.5, y: 0.5 } });
         await loadBusinessFullData(activeIdentity.id);
         setShowUploadProgress(false);
         setUploadProgress(null);
@@ -1936,11 +1959,12 @@ postText={postText}
                   pendingMentionIds={pendingMentionIds}
                   onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
                   onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
-                  onOpenBookings={handleOpenUserBookings}
-                />
-              )}
+                   onOpenBookings={handleOpenUserBookings}
+                   onViewFriends={() => router.push(`/friends/${user?.user_id}` as any)}
+                 />
+               )}
 
-         {activeIdentity?.type === 'business' && businessDetail && (
+          {activeIdentity?.type === 'business' && businessDetail && (
            <BusinessProfilePremium
               business={businessDetail}
               sessionToken={sessionToken || ""}
@@ -1991,21 +2015,26 @@ postText={postText}
                 onSelectMention={selectMention}
                 pendingMentionIds={pendingMentionIds}
                 jobs={bizJobs}
-               handleEditJob={(job) => {
-                 setJobForm({
-                   title: job.title || "",
-                   description: job.description || "",
-                   cover_image: job.cover_image || "",
-                   job_type: job.job_type || "",
-                   requirements: job.requirements || "",
-                   salary_range: job.salary_range || "",
-                   work_location: job.work_location || "",
-                   expires_at: job.expires_at || "",
-                 });
-                 setEditingJobId(job.job_id || null);
-                 setJobModalVisible(true);
-               }}
-               openJobModal={() => setJobModalVisible(true)}
+                handleEditJob={(job) => {
+                  setJobForm({
+                    title: job.title || "",
+                    description: job.description || "",
+                    cover_image: job.cover_image || "",
+                    image_urls: (job as any).image_urls || [],
+                    gallery_images: (job as any).gallery_images || [],
+                    gallery_videos: (job as any).gallery_videos || [],
+                    video_url: (job as any).video_url || "",
+                    job_type: job.job_type || "",
+                    requirements: job.requirements || "",
+                    salary_range: job.salary_range || "",
+                    work_location: job.work_location || "",
+                    expires_at: job.expires_at ? job.expires_at.split("T")[0] : "",
+                    status: (job as any).status || "published",
+                  });
+                  setEditingJobId(job.job_id || null);
+                  setJobModalVisible(true);
+                }}
+                openJobModal={() => { setEditingJobId(null); setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" }); setJobModalVisible(true); }}
                handleDeleteJob={(jobId) => {
                  Alert.alert(
                    t("jobs.deleteJob") || "Delete Job",
@@ -2107,9 +2136,10 @@ currentUserId={businessDetail?.business?.business_id}
                   handleDeleteService={handleDeleteService}
                   openBookingModal={handleOpenBooking}
                   onOpenSlotManager={handleOpenSlotManager}
-                  onOpenBookingList={handleOpenBookingList}
-                />
-             )}
+                   onOpenBookingList={handleOpenBookingList}
+                   onViewFriends={() => router.push(`/friends/${businessDetail?.business?.business_id}` as any)}
+                 />
+              )}
         </View>
       <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={uploadContext} mode="inline" onDismiss={() => { setShowUploadProgress(false); setUploadProgress(null); }} />
       <Modal visible={themedAlertVisible} transparent animationType="fade">
@@ -2201,7 +2231,7 @@ currentUserId={businessDetail?.business?.business_id}
         />
         <JobModal
           visible={jobModalVisible}
-          onClose={() => { setJobModalVisible(false); setJobForm({ title: "", description: "", cover_image: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "" }); }}
+          onClose={() => { setJobModalVisible(false); setEditingJobId(null); setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" }); }}
           jobForm={jobForm}
           onFormChange={setJobForm}
           onSave={async () => {
@@ -2212,7 +2242,11 @@ currentUserId={businessDetail?.business?.business_id}
               const jobData = {
                 title: jobForm.title,
                 description: jobForm.description,
-                cover_image: jobForm.cover_image || undefined,
+                cover_image: jobForm.cover_image,
+                image_urls: jobForm.image_urls || [],
+                gallery_images: jobForm.gallery_images || [],
+                gallery_videos: jobForm.gallery_videos || [],
+                video_url: jobForm.video_url || undefined,
                 root_category: businessDetail?.business.root_category || "other",
                 subcategory: businessDetail?.business.subcategory || "",
                 job_type: jobForm.job_type || undefined,
@@ -2220,6 +2254,7 @@ currentUserId={businessDetail?.business?.business_id}
                 salary_range: jobForm.salary_range || undefined,
                 work_location: jobForm.work_location || undefined,
                 expires_at: jobForm.expires_at || undefined,
+                status: jobForm.status || "published",
               };
               if (editingJobId) {
                 await updateJob(sessionToken, editingJobId, jobData);
@@ -2228,7 +2263,7 @@ currentUserId={businessDetail?.business?.business_id}
               }
               setJobModalVisible(false);
               setEditingJobId(null);
-              setJobForm({ title: "", description: "", cover_image: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "" });
+              setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
               loadBusinessProfile();
             } catch (error) {
               console.error("Failed to save job:", error);
@@ -2236,6 +2271,8 @@ currentUserId={businessDetail?.business?.business_id}
             setJobSaving(false);
           }}
           isSaving={jobSaving}
+          editingId={editingJobId}
+          sessionToken={sessionToken || ""}
           nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
           nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}
           businessAddress={businessDetail?.business.address ?? undefined}

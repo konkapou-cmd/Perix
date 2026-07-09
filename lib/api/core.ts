@@ -4,7 +4,7 @@ import { Platform, Alert } from "react-native";
 export const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL ||
-  "http://192.168.178.56:8000";
+  "http://10.208.154.177:8000";
 
 export const API_BASE = `${BACKEND_URL}/api`;
 
@@ -21,6 +21,8 @@ export const APP_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_APP_URL ||
   process.env.EXPO_PUBLIC_APP_URL ||
   "https://perix.app";
+
+export type FocalPoint = { x: number; y: number };
 
 export type ProfileTheme = {
   background_color?: string | null;
@@ -61,6 +63,7 @@ export type User = {
   latitude?: number | null;
   longitude?: number | null;
   cover_photo?: string | null;
+  cover_focal_point?: FocalPoint | null;
   theme?: ProfileTheme | null;
   created_at: string;
   gallery_images?: string[];
@@ -89,6 +92,7 @@ export type UserPublic = {
   gallery_videos?: string[];
   gallery_items?: GalleryItem[];
   cover_photo?: string | null;
+  cover_focal_point?: FocalPoint | null;
   theme?: ProfileTheme | null;
   post_count?: number;
   friend_count?: number;
@@ -210,6 +214,7 @@ export type Artist = {
   youtube_links?: string[];
   profile_photo?: string | null;
   cover_photo?: string | null;
+  cover_focal_point?: FocalPoint | null;
   created_at: string;
   theme?: ProfileTheme | null;
 };
@@ -244,6 +249,7 @@ export type EventItem = {
   profile_theme?: any;
   mux_thumbnail_url?: string | null;
   video_status?: string | null;
+  cover_focal_point?: FocalPoint | null;
 };
 
 export type ArtistDetail = {
@@ -442,8 +448,12 @@ export type FriendRequest = {
   to_user?: UserPublic;
   entity_type?: "user" | "business" | "artist";
   entity_id?: string;
+  from_entity_type?: "user" | "business" | "artist";
+  from_entity_id?: string;
   to_entity_name?: string;
   to_entity_image?: string;
+  from_entity_name?: string;
+  from_entity_image?: string;
 };
 
 export type EventReminder = {
@@ -481,6 +491,7 @@ export type Business = {
   logo_image?: string | null;
   profile_photo?: string | null;
   cover_image?: string | null;
+  cover_focal_point?: FocalPoint | null;
   phone?: string | null;
   website?: string | null;
   email?: string | null;
@@ -500,6 +511,7 @@ export type Business = {
   subscription_expires_at?: string | null;
   favorites_count?: number;
   followers_count?: number;
+  friends_count?: number;
   theme?: ProfileTheme | null;
 };
 
@@ -565,11 +577,15 @@ export type Rental = {
   deposit?: string | null;
   property_type?: string | null;
   gallery_images?: string[];
+  gallery_videos?: string[];
+  video_url?: string | null;
+  image_urls?: string[];
   is_active?: boolean;
   created_at: string;
   root_category?: string | null;
   subcategory?: string | null;
   distance_km?: number | null;
+  cover_focal_point?: FocalPoint | null;
 };
 
 export type UserAttendance = {
@@ -909,6 +925,10 @@ export type Job = {
   title: string;
   description: string;
   cover_image?: string;
+  image_urls?: string[];
+  gallery_images?: string[];
+  gallery_videos?: string[];
+  video_url?: string | null;
   job_type?: string | null;
   requirements?: string | null;
   salary_range?: string | null;
@@ -924,6 +944,7 @@ export type Job = {
   business_name?: string;
   business_logo?: string;
   distance_km?: number;
+  cover_focal_point?: FocalPoint | null;
 };
 
 export type JobApplication = {
@@ -1049,6 +1070,7 @@ export type Service = {
   video_url?: string | null;
   mux_thumbnail_url?: string | null;
   video_status?: string | null;
+  cover_focal_point?: FocalPoint | null;
   status?: "draft" | "published" | "hidden";
   sort_order?: number;
   is_active: boolean;

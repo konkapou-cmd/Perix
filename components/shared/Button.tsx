@@ -33,9 +33,9 @@ type ButtonProps = {
 };
 
 const SIZE_MAP = {
-  small: { py: SPACING.sm, px: SPACING.lg, font: FONT_SIZES.small, icon: 14 },
-  medium: { py: SPACING.md + 2, px: SPACING.xl, font: FONT_SIZES.bodySmall, icon: 16 },
-  large: { py: SPACING.lg + 2, px: SPACING.xxl, font: FONT_SIZES.h4, icon: 20 },
+  small: { py: SPACING.small, px: SPACING.compact, font: FONT_SIZES.small, icon: 14 },
+  medium: { py: 18, px: SPACING.std, font: FONT_SIZES.bodySmall, icon: 16 },
+  large: { py: 18, px: SPACING.section, font: FONT_SIZES.h4, icon: 20 },
 } as const;
 
 const VARIANT_BG: Record<ButtonVariant, string> = {
@@ -135,8 +135,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: BORDER_RADIUS.md,
-    gap: SPACING.sm,
+    borderRadius: BORDER_RADIUS.button,
+    gap: SPACING.small,
   },
   text: {
     fontWeight: FONT_WEIGHTS.semibold,

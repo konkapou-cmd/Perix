@@ -12,8 +12,8 @@ type CardProps = {
 
 export const Card = ({
   children,
-  padding = SPACING.xl,
-  radius = BORDER_RADIUS.lg,
+  padding = SPACING.std,
+  radius = BORDER_RADIUS.card,
   shadow = true,
   style,
 }: CardProps) => {

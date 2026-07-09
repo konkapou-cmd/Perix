@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { DimensionValue, Image, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 
 type AdaptiveImageProps = {
   uri: string;
@@ -21,9 +22,9 @@ export default React.memo(function AdaptiveImage({
   style,
   resizeMode = "cover",
   ratio,
-  fallbackColor = "#1f2937",
+  fallbackColor = COLORS.surfaceDark,
   maxHeight = DEFAULT_MAX_HEIGHT,
-  borderRadius = 8,
+  borderRadius = 12,
   onPress,
   showFallbackIcon = false,
 }: AdaptiveImageProps) {
@@ -59,11 +60,12 @@ export default React.memo(function AdaptiveImage({
   }, []);
 
   const containerStyle: ViewStyle = {
+    width: "100%",
     aspectRatio,
     maxHeight,
     borderRadius,
     overflow: "hidden",
-    backgroundColor: hasError || !isValidUri ? fallbackColor : "#1f2937",
+    backgroundColor: hasError || !isValidUri ? fallbackColor : COLORS.surfaceDark,
   };
 
   const imageResizeMode = resizeMode as any;
@@ -81,7 +83,7 @@ export default React.memo(function AdaptiveImage({
       ) : (
         showFallbackIcon && (
           <View style={styles.fallback}>
-            <Ionicons name="image-outline" size={32} color="#9ca3af" />
+            <Ionicons name="image-outline" size={32} color={COLORS.textPlaceholder} />
           </View>
         )
       )}

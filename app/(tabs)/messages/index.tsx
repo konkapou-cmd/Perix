@@ -257,7 +257,7 @@ export default function MessagesScreen() {
             style={styles.skeletonRow}
           >
             <SkeletonBox width={42} height={42} borderRadius={21} />
-            <View style={{ flex: 1, gap: SPACING.sm }}>
+            <View style={{ flex: 1, gap: SPACING.small }}>
               <SkeletonBox width={140} height={12} borderRadius={4} />
               <SkeletonBox width={100} height={12} borderRadius={4} />
             </View>
@@ -384,11 +384,12 @@ export default function MessagesScreen() {
             ...filteredConversations.map(c => ({
               id: c.other_user?.user_id || c.conversation_id || "",
               type: "direct" as const,
-              name: c.other_user?.name || c.other_user?.display_name || "",
+              name: c.name || c.other_user?.name || c.other_user?.display_name || "",
               image: c.other_user?.profile_photo || c.other_user?.picture || null,
               lastMessage: typeof c.last_message === "string" ? c.last_message : (c.last_message as any)?.text || "",
               lastMessageTime: typeof c.last_message === "object" && c.last_message ? (c.last_message as any)?.created_at || "" : "",
               unreadCount: c.unread_count || 0,
+              entityType: c.entity_type,
               conv: c,
             })),
             ...filteredGroupConversations.map(c => ({
@@ -422,7 +423,7 @@ export default function MessagesScreen() {
               style={styles.chatCard}
               onPress={() => {
                 if (item.type === "direct") {
-                  router.push(`/messages/${item.id}` as any);
+                  router.push({ pathname: `/messages/${item.id}`, params: { name: item.name, entityType: item.entityType || "user" } } as any);
                 } else if (item.type === "activity") {
                   if (sessionToken) markGroupRead(sessionToken, item.id, "activity").catch(() => {});
                   router.push(`/group-chat/activity/${item.id}` as any);
@@ -492,7 +493,7 @@ export default function MessagesScreen() {
         onRequestClose={() => setShowFriendPicker(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { paddingBottom: SPACING.xxxl + insets.bottom }]}>
+          <View style={[styles.modalContent, { paddingBottom: SPACING.page + insets.bottom }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t("messages.newMessage")}</Text>
               <Pressable onPress={() => { setShowFriendPicker(false); setSelectedFriend(null); setMessage(""); setErrorMessage(""); }}>
@@ -588,17 +589,17 @@ const styles = StyleSheet.create({
   skeletonRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.xl,
-    marginHorizontal: SPACING.xl,
-    marginBottom: SPACING.xl,
+    gap: SPACING.std,
+    marginHorizontal: SPACING.std,
+    marginBottom: SPACING.std,
     padding: 14,
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
   },
   header: {
-    paddingHorizontal: SPACING.xxl,
-    paddingTop: SPACING.xxl,
-    paddingBottom: SPACING.md,
+    paddingHorizontal: SPACING.section,
+    paddingTop: SPACING.section,
+    paddingBottom: SPACING.small,
   },
   headerRow: {
     flexDirection: "row",
@@ -608,7 +609,7 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.mdLg,
+    gap: SPACING.compact,
   },
   headerIconButton: {
     width: 36,
@@ -634,22 +635,22 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   subtitle: {
-    marginTop: SPACING.xs,
+    marginTop: SPACING.tiny,
     color: COLORS.textMuted,
     fontSize: FONT_SIZES.caption,
   },
   searchContainer: {
-    paddingHorizontal: SPACING.xxl,
-    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.section,
+    marginBottom: SPACING.small,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.backgroundPage,
     borderRadius: BORDER_RADIUS.lg,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     height: 40,
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   searchInput: {
     flex: 1,
@@ -658,23 +659,23 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   card: {
-    marginHorizontal: SPACING.xl,
+    marginHorizontal: SPACING.std,
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.xl,
-    marginBottom: SPACING.xl,
+    padding: SPACING.std,
+    marginBottom: SPACING.std,
     ...SHADOWS.subtle,
   },
   cardTitle: {
     fontSize: FONT_SIZES.h4,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.textPrimary,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
   },
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
   },
   badge: {
     backgroundColor: COLORS.primary,
@@ -683,8 +684,8 @@ const styles = StyleSheet.create({
     height: 20,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: SPACING.md,
-    marginLeft: SPACING.sm,
+    paddingHorizontal: SPACING.small,
+    marginLeft: SPACING.small,
   },
   badgeText: {
     color: "#fff",
@@ -694,10 +695,10 @@ const styles = StyleSheet.create({
   friendRequestItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.small,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   friendRequestInfo: {
     flex: 1,
@@ -715,12 +716,12 @@ const styles = StyleSheet.create({
   friendRequestActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   acceptButton: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
     borderRadius: BORDER_RADIUS.sm,
   },
   acceptButtonText: {
@@ -729,7 +730,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.caption,
   },
   declineButton: {
-    padding: SPACING.md,
+    padding: SPACING.small,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -737,10 +738,10 @@ const styles = StyleSheet.create({
   chatCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.md,
+    gap: SPACING.small,
     backgroundColor: COLORS.background,
-    marginHorizontal: SPACING.xl,
-    marginBottom: SPACING.md,
+    marginHorizontal: SPACING.std,
+    marginBottom: SPACING.small,
     padding: 14,
     borderRadius: BORDER_RADIUS.lg,
     ...SHADOWS.subtle,
@@ -782,12 +783,12 @@ const styles = StyleSheet.create({
   chatTime: {
     fontSize: FONT_SIZES.small,
     color: COLORS.textMuted,
-    marginLeft: SPACING.sm,
+    marginLeft: SPACING.small,
   },
   chatMessageRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   chatMessage: {
     flex: 1,
@@ -801,7 +802,7 @@ const styles = StyleSheet.create({
     height: 20,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
   },
   unreadText: {
     color: "#fff",
@@ -810,11 +811,11 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     backgroundColor: COLORS.background,
-    marginHorizontal: SPACING.xl,
-    padding: SPACING.huge,
+    marginHorizontal: SPACING.std,
+    padding: SPACING.large,
     borderRadius: BORDER_RADIUS.lg,
     alignItems: "center",
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   emptyText: {
     color: COLORS.textDisabled,
@@ -824,16 +825,16 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.small,
     color: COLORS.textDisabled,
     textAlign: "center",
-    marginTop: SPACING.xs,
+    marginTop: SPACING.tiny,
   },
   errorText: {
     color: COLORS.danger,
     textAlign: "center",
-    marginTop: SPACING.sm,
+    marginTop: SPACING.small,
     fontSize: FONT_SIZES.caption,
   },
   typeBadge: {
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -850,7 +851,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: "absolute",
-    right: SPACING.xxl,
+    right: SPACING.section,
     bottom: 24,
     width: 56,
     height: 56,
@@ -870,13 +871,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BORDER_RADIUS.xxl,
     borderTopRightRadius: BORDER_RADIUS.xxl,
     maxHeight: "85%",
-    paddingBottom: SPACING.xxxl,
+    paddingBottom: SPACING.page,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: SPACING.xxl,
+    padding: SPACING.section,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -886,24 +887,24 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   searchInputModal: {
-    margin: SPACING.xl,
+    margin: SPACING.std,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
+    padding: SPACING.small,
     fontSize: FONT_SIZES.bodySmall,
     backgroundColor: COLORS.backgroundPage,
     color: COLORS.textPrimary,
   },
   friendList: {
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.std,
   },
   friendItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: SPACING.md,
+    padding: SPACING.small,
     borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.small,
     backgroundColor: COLORS.backgroundPage,
   },
   friendItemSelected: {
@@ -913,7 +914,7 @@ const styles = StyleSheet.create({
   },
   friendInfo: {
     flex: 1,
-    marginLeft: SPACING.md,
+    marginLeft: SPACING.small,
   },
   friendName: {
     fontSize: FONT_SIZES.body,
@@ -928,7 +929,7 @@ const styles = StyleSheet.create({
   emptyFriendsState: {
     alignItems: "center",
     paddingVertical: 40,
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   emptyFriendsText: {
     fontSize: FONT_SIZES.bodySmall,
@@ -938,9 +939,9 @@ const styles = StyleSheet.create({
   composeSection: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    gap: SPACING.small,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
@@ -949,8 +950,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.lg,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
     fontSize: FONT_SIZES.bodySmall,
     color: COLORS.textPrimary,
     maxHeight: 80,

@@ -3,6 +3,7 @@ import { Text, StyleSheet, View, StyleProp, ViewStyle, TextStyle, Image, Pressab
 import { useRouter } from "expo-router";
 import AdaptiveVideo from "./AdaptiveVideo";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../lib/designTokens";
 
 interface PostContentProps {
   text: string;
@@ -113,7 +114,7 @@ function SoundCloudEmbed({ url }: { url: string }) {
   return (
     <Pressable style={styles.soundcloudCard} onPress={handlePress}>
       <View style={styles.soundcloudIconContainer}>
-        <Ionicons name="cloud" size={40} color="#FF5500" />
+        <Ionicons name="cloud" size={40} color={COLORS.soundcloudOrange} />
       </View>
       <View style={styles.soundcloudInfo}>
         <Text style={styles.soundcloudLabel}>SoundCloud</Text>
@@ -238,8 +239,8 @@ export default React.memo(function PostContent({
         <View style={styles.videoContainer}>
           <AdaptiveVideo
             uri={youtubeLink}
+            autoPlay
             style={[styles.video, videoStyle]}
-            autoPlay={false}
             isLooping={false}
             showMuteButton={true}
             initialMuted={globalMuted}
@@ -261,8 +262,8 @@ export default React.memo(function PostContent({
             <View key={`youtube-${index}`} style={styles.videoContainer}>
               <AdaptiveVideo
                 uri={segment.content}
+                autoPlay
                 style={[styles.video, videoStyle]}
-                autoPlay={false}
                 isLooping={false}
                 showMuteButton={true}
                 initialMuted={globalMuted}
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mention: {
-    color: "#1d9bf0",
+    color: COLORS.mentionBlue,
     fontWeight: "500",
   },
   videoContainer: {
@@ -323,11 +324,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    shadowColor: '#FF5500',
+    shadowColor: COLORS.soundcloudOrange,
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 2,
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
   soundcloudLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF5500',
+    color: COLORS.soundcloudOrange,
   },
   soundcloudUrl: {
     fontSize: 12,

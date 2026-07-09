@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View, Platform, Pressable, Modal, Image as RNImage, Linking, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental } from "../lib/api";
+import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Service } from "../lib/api";
 import { formatEventDate } from "../lib/formatDate";
+import { COLORS } from "../lib/designTokens";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 
@@ -28,6 +29,8 @@ type Props = {
   activities?: ActivityItem[];
   artists?: ArtistSearchResult[];
   rentals?: Rental[];
+  jobs?: Job[];
+  services?: Service[];
   markers?: MapMarker[];
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;
@@ -73,6 +76,8 @@ export default function BusinessMap({
   activities = [],
   artists = [],
   rentals = [],
+  jobs = [],
+  services = [],
   markers,
   showUserLocation,
   onRegionChange,
@@ -139,6 +144,15 @@ export default function BusinessMap({
         title: rental.title,
         description: rental.rent_price || rental.address || "",
       })),
+    ...services
+      .filter(s => s.latitude != null && s.longitude != null && s.root_category !== "rentals" && s.root_category !== "rental-real-estate")
+      .map((service) => ({
+        id: service.service_id,
+        latitude: service.latitude!,
+        longitude: service.longitude!,
+        title: service.name,
+        description: service.address || "",
+      })),
   ];
 
   // Init map
@@ -200,7 +214,7 @@ export default function BusinessMap({
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 10,
-          fillColor: "#10b981",
+          fillColor: COLORS.success,
           fillOpacity: 1,
           strokeColor: "white",
           strokeWeight: 2,
@@ -228,7 +242,7 @@ export default function BusinessMap({
     return (
       <View style={[s.wrap, { height }]}>
         <View style={s.disabledOverlay}>
-          <Ionicons name="location" size={40} color="#000000" />
+          <Ionicons name="location" size={40} color={COLORS.pinClosed} />
           <Text style={s.disabledText}>{disabledHint}</Text>
         </View>
       </View>
@@ -252,7 +266,7 @@ export default function BusinessMap({
         <Pressable style={s.modalOverlay} onPress={() => setSelectedBusiness(null)}>
           <Pressable style={s.card} onPress={(e) => e.stopPropagation()}>
             <Pressable style={s.cardClose} onPress={() => setSelectedBusiness(null)}>
-              <Ionicons name="close" size={20} color="#6b7280" />
+              <Ionicons name="close" size={20} color={COLORS.textGray} />
             </Pressable>
             <View style={s.cardHead}>
               {selectedBusiness?.logo_image || selectedBusiness?.profile_photo ? (
@@ -267,7 +281,7 @@ export default function BusinessMap({
             </View>
             {selectedBusiness?.address && (
               <View style={s.cardAddr}>
-                <Ionicons name="location-outline" size={14} color="#6b7280" />
+                <Ionicons name="location-outline" size={14} color={COLORS.textGray} />
                 <Text style={s.cardAddrText}>{selectedBusiness.address}</Text>
               </View>
             )}
@@ -276,7 +290,7 @@ export default function BusinessMap({
             )}
             <View style={s.cardActions}>
               <Pressable style={s.cardBtn2} onPress={() => { if (selectedBusiness) Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${selectedBusiness.latitude},${selectedBusiness.longitude}&travelmode=driving`); }}>
-                <Ionicons name="navigate-outline" size={18} color="#000000" />
+                <Ionicons name="navigate-outline" size={18} color={COLORS.pinClosed} />
                 <Text style={s.cardBtn2T}>Directions</Text>
               </Pressable>
               <Pressable style={s.cardBtn1} onPress={() => { if (selectedBusiness) { router.push(`/business/${selectedBusiness.business_id}`); setSelectedBusiness(null); } }}>
@@ -292,8 +306,8 @@ export default function BusinessMap({
 
 const s = StyleSheet.create({
   wrap: { marginHorizontal: 16, borderRadius: 16, backgroundColor: "#fff", overflow: "hidden" },
-  disabledOverlay: { flex: 1, backgroundColor: "#e5e7eb", justifyContent: "center", alignItems: "center", gap: 12 },
-  disabledText: { fontSize: 15, color: "#6b7280", fontWeight: "500" },
+  disabledOverlay: { flex: 1, backgroundColor: COLORS.borderGray, justifyContent: "center", alignItems: "center", gap: 12 },
+  disabledText: { fontSize: 15, color: COLORS.textGray, fontWeight: "500" },
   loading: { ...StyleSheet.absoluteFillObject as any, justifyContent: "center", alignItems: "center", backgroundColor: "#f3f4f6", zIndex: 10 },
   errorText: { color: "#ef4444", fontSize: 13, marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 20 },
@@ -301,16 +315,16 @@ const s = StyleSheet.create({
   cardClose: { position: "absolute", top: 12, right: 12, width: 28, height: 28, borderRadius: 14, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" },
   cardHead: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 14 },
   cardLogo: { width: 52, height: 52, borderRadius: 26 },
-  cardLogoPl: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#000000", alignItems: "center", justifyContent: "center" },
+  cardLogoPl: { width: 52, height: 52, borderRadius: 26, backgroundColor: COLORS.pinClosed, alignItems: "center", justifyContent: "center" },
   cardLogoT: { color: "#fff", fontSize: 20, fontWeight: "bold" },
   cardName: { fontSize: 18, fontWeight: "700", color: "#111827" },
-  cardCat: { fontSize: 13, color: "#000000", marginTop: 2 },
+  cardCat: { fontSize: 13, color: COLORS.pinClosed, marginTop: 2 },
   cardAddr: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12 },
-  cardAddrText: { fontSize: 13, color: "#6b7280", flex: 1 },
-  cardDesc: { fontSize: 14, color: "#374151", lineHeight: 20, marginBottom: 16 },
+  cardAddrText: { fontSize: 13, color: COLORS.textGray, flex: 1 },
+  cardDesc: { fontSize: 14, color: COLORS.textDark, lineHeight: 20, marginBottom: 16 },
   cardActions: { flexDirection: "row", gap: 10 },
-  cardBtn1: { flex: 1, alignItems: "center", paddingVertical: 12, borderRadius: 12, backgroundColor: "#000000" },
+  cardBtn1: { flex: 1, alignItems: "center", paddingVertical: 12, borderRadius: 12, backgroundColor: COLORS.pinClosed },
   cardBtn1T: { fontSize: 14, fontWeight: "600", color: "#fff" },
-  cardBtn2: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderRadius: 12, backgroundColor: "#eef2ff" },
-  cardBtn2T: { fontSize: 14, fontWeight: "600", color: "#000000" },
+  cardBtn2: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderRadius: 12, backgroundColor: COLORS.primaryTintDark },
+  cardBtn2T: { fontSize: 14, fontWeight: "600", color: COLORS.pinClosed },
 });

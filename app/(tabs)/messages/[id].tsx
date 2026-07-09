@@ -154,7 +154,8 @@ function VoiceMessageBubble({ uri, isMine }: { uri: string; isMine: boolean }) {
 
 export default function ChatScreen() {
   const { t } = useTranslation();
-  const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+  const { id, name, entityType } = useLocalSearchParams<{ id: string; name?: string; entityType?: string }>();
+  const convEntityType = (entityType || "user") as "user" | "business" | "artist";
   const pathname = usePathname();
   const router = useRouter();
   const { sessionToken, user } = useAuth();
@@ -182,23 +183,25 @@ export default function ChatScreen() {
 
   const loadMessages = useCallback(async () => {
     if (!sessionToken || !id) return;
-    const data = await getMessagesWith(sessionToken, id);
+    const data = await getMessagesWith(sessionToken, id, convEntityType);
     
     // Check for new messages from the other user
-    const newMessagesFromOther = data.filter(
-      (msg: Message) => msg.from_user_id === id
-    );
+    const isOtherParticipant = (msg: Message) => {
+      if (convEntityType === "business") return msg.to_business_id === id && msg.from_user_id !== user?.user_id;
+      if (convEntityType === "artist") return msg.to_artist_id === id && msg.from_user_id !== user?.user_id;
+      return msg.from_user_id === id;
+    };
+    const newMessagesFromOther = data.filter(isOtherParticipant);
     
     // If we have more messages from the other user than before, show notification
     if (lastMessageCountRef.current > 0 && 
         newMessagesFromOther.length > lastMessageCountRef.current) {
-      const latestMessage = data[data.length - 1];
-      if (latestMessage && latestMessage.from_user_id === id) {
-        // Only show notification if this screen is not focused
+      const latestMessage = newMessagesFromOther[newMessagesFromOther.length - 1];
+      if (latestMessage) {
         showLocalNotification(
           name || t("messages.newMessage"),
           latestMessage.text?.substring(0, 100) || t("messages.newMessage"),
-          { type: "message", from_user_id: id }
+          { type: "message", from_user_id: latestMessage.from_user_id }
         );
       }
     }
@@ -208,23 +211,23 @@ export default function ChatScreen() {
     
     // Mark messages from this user as read
     try {
-      await markMessagesRead(sessionToken, id);
+      await markMessagesRead(sessionToken, id, convEntityType);
       refreshUnreadCount();
     } catch (e) {
       console.log("[Chat] Failed to mark messages as read:", e);
     }
-  }, [sessionToken, id, refreshUnreadCount, name, showLocalNotification, t]);
+  }, [sessionToken, id, convEntityType, user, refreshUnreadCount, name, showLocalNotification, t]);
 
   // Check if other user is typing
   const checkTypingStatus = useCallback(async () => {
-    if (!sessionToken || !id) return;
+    if (!sessionToken || !id || convEntityType !== "user") return;
     try {
       const result = await getTypingStatus(sessionToken, id);
       setOtherUserTyping(result.is_typing);
     } catch (e) {
       // Silent fail
     }
-  }, [sessionToken, id]);
+  }, [sessionToken, id, convEntityType]);
 
   useEffect(() => {
     if (!sessionToken || !id) return;
@@ -236,10 +239,16 @@ export default function ChatScreen() {
   const { connected: wsConnected } = useSocket();
 
   useSocketEvent("new_message", useCallback((data: any) => {
-    if (data?.message && (data.message.from_user_id === id || data.message.to_user_id === id)) {
-      loadMessages();
+    if (data?.message) {
+      const msg = data.message;
+      const matchesUser = msg.from_user_id === id || msg.to_user_id === id;
+      const matchesBusiness = convEntityType === "business" && msg.to_business_id === id;
+      const matchesArtist = convEntityType === "artist" && msg.to_artist_id === id;
+      if (matchesUser || matchesBusiness || matchesArtist) {
+        loadMessages();
+      }
     }
-  }, [id, loadMessages]));
+  }, [id, convEntityType, loadMessages]));
 
   useSocketEvent("typing_indicator", useCallback((data: any) => {
     if (data?.from_user_id === id) {
@@ -268,8 +277,8 @@ export default function ChatScreen() {
     setText(value);
     setErrorMessage("");
     
-    // Send typing status
-    if (sessionToken && id && value.trim()) {
+    // Send typing status (user conversations only)
+    if (sessionToken && id && value.trim() && convEntityType === "user") {
       if (!isTyping) {
         setIsTyping(true);
         setTypingStatus(sessionToken, id, true).catch(e => console.warn("Typing status failed:", e));
@@ -296,11 +305,11 @@ export default function ChatScreen() {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      if (sessionToken && id) {
+      if (sessionToken && id && convEntityType === "user") {
         setTypingStatus(sessionToken, id, false).catch(e => console.warn("Typing status cleanup failed:", e));
       }
     };
-  }, [sessionToken, id]);
+  }, [sessionToken, id, convEntityType]);
 
   // Handle media picker
   const handlePickMedia = async (mediaType: "image" | "video") => {
@@ -344,7 +353,7 @@ export default function ChatScreen() {
             mediaUrl = await uploadMedia(sessionToken, result.assets[0].uri, mediaType);
           }
 
-          const newMessage = await sendMediaMessage(sessionToken, id, mediaUrl, mediaType, text.trim() || undefined);
+          const newMessage = await sendMediaMessage(sessionToken, id, mediaUrl, mediaType, text.trim() || undefined, convEntityType);
           setMessages([...messages, newMessage]);
           setText("");
         } catch (error) {
@@ -366,12 +375,19 @@ export default function ChatScreen() {
       setErrorMessage("");
       // Clear typing status
       setIsTyping(false);
-      setTypingStatus(sessionToken, id, false).catch(e => console.warn("Typing status failed:", e));
+      if (convEntityType === "user") {
+        setTypingStatus(sessionToken, id, false).catch(e => console.warn("Typing status failed:", e));
+      }
       
-      const newMessage = await sendMessage(sessionToken, {
-        to_user_id: id,
-        text: text.trim(),
-      });
+      let payload: Record<string, string>;
+      if (convEntityType === "business") {
+        payload = { to_business_id: id, entity_type: "business", text: text.trim() };
+      } else if (convEntityType === "artist") {
+        payload = { to_artist_id: id, entity_type: "artist", text: text.trim() };
+      } else {
+        payload = { to_user_id: id, text: text.trim() };
+      }
+      const newMessage = await sendMessage(sessionToken, payload as any);
       setMessages([...messages, newMessage]);
       setText("");
     } catch (error) {
@@ -453,7 +469,7 @@ export default function ChatScreen() {
           const mediaUrl = await uploadMedia(sessionToken, uri, "audio");
           
           // Send voice message
-          const newMessage = await sendMediaMessage(sessionToken, id, mediaUrl, "audio", undefined);
+          const newMessage = await sendMediaMessage(sessionToken, id, mediaUrl, "audio", undefined, convEntityType);
           setMessages([...messages, newMessage]);
         } catch (error) {
           const errMsg = error instanceof Error ? error.message : t("messages.voiceUploadFailed");
@@ -573,8 +589,7 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <View style={styles.header}>
@@ -584,7 +599,7 @@ export default function ChatScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{name || t("messages.chat")}</Text>
         </View>
-        {id !== user?.user_id && (
+        {id !== user?.user_id && convEntityType === "user" && (
           <View style={styles.headerActions}>
             <Pressable
               style={styles.headerIcon}
@@ -646,6 +661,7 @@ export default function ChatScreen() {
                     {hasMedia && message.media_type === "video" && (
                       <AdaptiveVideo
                         uri={message.media_url}
+                        autoPlay
                         style={styles.messageVideo}
                         useNativeControls
                         isLooping={false}
@@ -699,7 +715,7 @@ export default function ChatScreen() {
 
       {/* Voice Recording Bar */}
       {isRecording && (
-        <View style={styles.recordingBar}>
+        <View style={[styles.recordingBar, { paddingBottom: insets.bottom || 8 }]}>
           <View style={styles.recordingIndicator}>
             <View style={styles.recordingDot} />
             <Text style={styles.recordingText}>{t("messages.recording") || "Recording"}</Text>
@@ -717,7 +733,7 @@ export default function ChatScreen() {
       )}
 
       {!isRecording && (
-        <View style={[styles.inputBar, { paddingBottom: 52 + insets.bottom }]}>
+        <View style={[styles.inputBar, { paddingBottom: insets.bottom || 8 }]}>
           <Pressable
             style={styles.mediaButton}
             onPress={() => handlePickMedia("image")}
@@ -825,9 +841,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.md,
+    paddingHorizontal: SPACING.std,
+    paddingTop: SPACING.std,
+    paddingBottom: SPACING.small,
     backgroundColor: COLORS.background,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
@@ -839,7 +855,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: SPACING.xl,
+    marginRight: SPACING.std,
   },
   headerTitle: {
     fontSize: FONT_SIZES.h4,
@@ -848,7 +864,7 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: "row",
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   headerIcon: {
     width: 36,
@@ -867,8 +883,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatContent: {
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
   },
   emptyText: {
     color: COLORS.textDisabled,
@@ -879,8 +895,8 @@ const styles = StyleSheet.create({
   dateSeparator: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: SPACING.md,
-    gap: SPACING.md,
+    marginVertical: SPACING.small,
+    gap: SPACING.small,
   },
   dateLine: {
     flex: 1,
@@ -894,9 +910,9 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: "75%",
-    padding: SPACING.md,
+    padding: SPACING.small,
     borderRadius: BORDER_RADIUS.lg,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
     overflow: "hidden",
   },
   myBubble: {
@@ -925,8 +941,8 @@ const styles = StyleSheet.create({
   messageFooter: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: SPACING.xs,
-    gap: SPACING.md,
+    marginTop: SPACING.tiny,
+    gap: SPACING.small,
   },
   myTimeText: {
     color: "rgba(255, 255, 255, 0.7)",
@@ -937,14 +953,14 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   readReceipt: {
-    marginLeft: SPACING.xs,
+    marginLeft: SPACING.tiny,
   },
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: SPACING.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+    gap: SPACING.small,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
     backgroundColor: COLORS.background,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
@@ -954,8 +970,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.lg,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
     fontSize: FONT_SIZES.bodySmall,
     color: COLORS.textPrimary,
     maxHeight: 80,
@@ -971,7 +987,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: COLORS.danger,
     textAlign: "center",
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
     fontSize: FONT_SIZES.caption,
   },
   buttonDisabled: {
@@ -982,12 +998,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    padding: SPACING.xxl,
+    padding: SPACING.section,
   },
   editModal: {
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.xxl,
+    padding: SPACING.section,
     width: "100%",
     maxWidth: 400,
   },
@@ -995,14 +1011,14 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.h3,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.textPrimary,
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.std,
     textAlign: "center",
   },
   editInput: {
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
+    padding: SPACING.small,
     fontSize: FONT_SIZES.bodySmall,
     minHeight: 80,
     textAlignVertical: "top",
@@ -1011,12 +1027,12 @@ const styles = StyleSheet.create({
   editModalActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: SPACING.md,
-    marginTop: SPACING.xl,
+    gap: SPACING.small,
+    marginTop: SPACING.std,
   },
   editCancelButton: {
     paddingVertical: 10,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.std,
   },
   editCancelText: {
     color: COLORS.textMuted,
@@ -1025,7 +1041,7 @@ const styles = StyleSheet.create({
   editSaveButton: {
     backgroundColor: COLORS.primary,
     paddingVertical: 10,
-    paddingHorizontal: SPACING.xxl,
+    paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.sm,
   },
   editSaveText: {
@@ -1036,13 +1052,13 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.tiny,
   },
   messageVideo: {
     width: 200,
     height: 150,
     borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.tiny,
   },
   mediaButton: {
     width: 36,
@@ -1065,19 +1081,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
     borderBottomLeftRadius: 4,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
+    marginBottom: SPACING.small,
     ...SHADOWS.subtle,
   },
   typingName: {
     fontSize: FONT_SIZES.micro,
     color: COLORS.textMuted,
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.tiny,
   },
   typingDotsRow: {
     flexDirection: "row",
-    gap: SPACING.xs,
+    gap: SPACING.tiny,
   },
   typingDot: {
     width: 6,
@@ -1088,11 +1104,11 @@ const styles = StyleSheet.create({
   voiceBubble: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.md,
+    gap: SPACING.small,
     backgroundColor: COLORS.backgroundPage,
     borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
     minWidth: 140,
   },
   voiceBubbleMine: {
@@ -1124,8 +1140,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: SPACING.sm,
-    gap: SPACING.sm,
+    paddingVertical: SPACING.small,
+    gap: SPACING.small,
     backgroundColor: COLORS.backgroundPage,
   },
   uploadingText: {
@@ -1137,15 +1153,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: COLORS.dangerLight,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
     borderTopWidth: 1,
     borderTopColor: COLORS.errorLight,
   },
   recordingIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   recordingDot: {
     width: 10,
@@ -1161,12 +1177,12 @@ const styles = StyleSheet.create({
   recordingDuration: {
     fontSize: FONT_SIZES.bodySmall,
     color: COLORS.textMuted,
-    marginLeft: SPACING.sm,
+    marginLeft: SPACING.small,
   },
   recordingActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   cancelRecordButton: {
     width: 36,

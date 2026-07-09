@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import {
   BusinessDetail,
@@ -27,15 +26,15 @@ import {
   BusinessAnalytics,
   APP_URL,
   isUpcomingEvent,
+  updateBusiness,
 } from "../../lib/api";
 import { translateCategory } from "../../lib/categoryTranslation";
 import {
   EventsSection,
   JobsSection,
-  SubscriptionTab,
   ServiceSection,
 } from "../business";
-import BusinessMap from "../BusinessMap";
+import { ContentMap } from "../shared";
 import {
   ProfileHeader,
   ProfileTabs,
@@ -50,6 +49,9 @@ import { PROFILE_COLORS } from "./ProfileDesign";
 import { COLORS, CATEGORY_SERVICE_TYPES, resolveCategory, getServiceTypeConfig } from "../../lib/designTokens";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import useResponsiveLayout from "../../hooks/useResponsiveLayout";
+import FriendsCarousel from "../FriendsCarousel";
+import { FriendsSection } from "../shared/FriendsSection";
+import CoverPositionEditor from "../CoverPositionEditor";
 
 
 interface BusinessProfilePremiumProps {
@@ -114,7 +116,7 @@ interface BusinessProfilePremiumProps {
   identityPicker?: React.ReactNode;
   showMessageButton?: boolean;
   onMessagePress?: () => void;
-  isFollowing?: boolean;
+  friendStatus?: "friends" | "request_sent" | "request_received" | "none";
   onFollowPress?: () => void;
   onShare?: () => void;
   onSavePress?: () => void;
@@ -141,6 +143,7 @@ interface BusinessProfilePremiumProps {
   openBookingModal?: (service: Service) => void;
   onOpenSlotManager?: (serviceId: string) => void;
   onOpenBookingList?: () => void;
+  onViewFriends?: () => void;
 }
 
 export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
@@ -203,7 +206,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   identityPicker,
   showMessageButton,
   onMessagePress,
-  isFollowing,
+  friendStatus,
   onFollowPress,
   onShare,
   onSavePress,
@@ -222,6 +225,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   openBookingModal,
   onOpenSlotManager,
   onOpenBookingList,
+  onViewFriends,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -229,6 +233,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 
   const [activeTab, setActiveTab] = useState("posts");
   const [privateActiveTab, setPrivateActiveTab] = useState("posts");
+  const [showCoverReposition, setShowCoverReposition] = useState(false);
+  const [coverRepositionFp, setCoverRepositionFp] = useState(detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 });
 
   const publicTabs: TabDefinition[] = useMemo(() => {
     const tabs: TabDefinition[] = [];
@@ -272,26 +278,45 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 
   const privateTabs: TabDefinition[] = useMemo(() => {
     const tabs: TabDefinition[] = [];
+    // 1. Posts
     tabs.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: businessPosts.length });
-    if (galleryImages.length + galleryVideos.length > 0) {
-      tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
+    // 2. Service type tabs — one per categoryKey:serviceType (same as publicTabs)
+    const mod = detail.business.enabled_modules;
+    const hasServiceModule = mod?.services || mod?.menu || mod?.gym || mod?.rentals;
+    if (hasServiceModule) {
+      const seen = new Set<string>();
+      (services || []).filter(s => s.is_active).forEach(s => {
+        const cat = resolveCategory(s.root_category || "");
+        const tabKey = `svc:${cat}:${s.type}`;
+        if (!seen.has(tabKey)) {
+          seen.add(tabKey);
+          const config = getServiceTypeConfig(cat, s.type);
+          const count = (services || []).filter(sv =>
+            resolveCategory(sv.root_category || "") === cat &&
+            sv.type === s.type &&
+            sv.is_active
+          ).length;
+          tabs.push({
+            key: tabKey,
+            label: config?.publicTabLabel || s.type,
+            icon: config?.icon || "grid",
+            count,
+          });
+        }
+      });
     }
+    // 3. Events
     if (events.length > 0) {
       tabs.push({ key: "events", label: t("events.title", "Events"), icon: "calendar", count: events.length });
     }
+    // 4. Jobs
     if (jobs.length > 0) {
       tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
     }
-    const privateSvcIcon = detail.business.root_category === "food-dining" ? "restaurant" : "grid";
-    const privateSvcLabel = detail.business.root_category === "food-dining" ? t("services.menu", "Menu") : t("services.title", "Services");
-    tabs.push({ key: "services", label: privateSvcLabel, icon: privateSvcIcon, count: services.length });
-    tabs.push({ key: "subscription", label: t("subscription.plan", "Plan"), icon: "star", count: 0 });
+    // 5. Media (always visible for owner)
+    tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
     return tabs;
-  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, t]);
-
-  const isSubActive = detail.business.subscription_status === "active"
-    || (detail.business.subscription_status === "trial" && detail.business.trial_expires_at && new Date(detail.business.trial_expires_at) > new Date());
-  const profileLocked = isOwnProfile && !isSubActive;
+  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t]);
 
   const theme = detail.business.theme;
   const { themeStyles, themeColors, isDark } = useThemeStyles(theme);
@@ -388,6 +413,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         <ProfileHeader
           identityPicker={identityPicker}
           coverUri={detail.business.cover_image}
+          coverVideoUri={(!detail.business.cover_image && (detail.business as any).video_url) ? (detail.business as any).video_url : undefined}
+          coverFocalPoint={detail.business.cover_focal_point}
+          onRepositionCover={() => setShowCoverReposition(true)}
           avatarUri={detail.business.logo_image}
           avatarInitial={detail.business.name?.charAt(0)?.toUpperCase() || "B"}
           name={detail.business.name}
@@ -418,9 +446,10 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           onSavePress={onSavePress}
           isSaved={isSaved}
           savingItem={savingItem}
-          friendStatus={isFollowing ? "friends" : "none"}
+          friendStatus={friendStatus || "none"}
           stats={[
             { label: t("profile.posts", "Posts"), count: businessPosts.length },
+            { label: t("profile.friends", "Friends"), count: detail.business.friends_count ?? friends.length, onPress: onViewFriends },
             { label: t("business.events", "Events"), count: events.length },
             { label: t("jobs.myJobs", "Jobs"), count: jobs.length },
           ]}
@@ -460,75 +489,33 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 
         {/* Business Map - hidden for own profile */}
         {!isOwnProfile && detail.business.latitude && detail.business.longitude && (
-          <Pressable
-            style={styles.businessMapContainer}
-            onPress={() => {
-              const url = `https://www.google.com/maps/search/?api=1&query=${detail.business.latitude},${detail.business.longitude}`;
-              require("react-native").Linking.openURL(url);
-            }}
-          >
-            <BusinessMap
-              location={{ latitude: detail.business.latitude, longitude: detail.business.longitude }}
-              markers={[{
-                id: detail.business.business_id,
-                latitude: detail.business.latitude,
-                longitude: detail.business.longitude,
-                title: detail.business.name,
-                type: "business",
-              }]}
-              staticMode
-            />
-            <View style={styles.mapOverlay}>
-              <Ionicons name="navigate-outline" size={14} color="#fff" />
-              <Text style={styles.mapOverlayText}>{t("profile.aboutInline.directions", "Directions")}</Text>
-            </View>
-          </Pressable>
+          <ContentMap
+            latitude={detail.business.latitude}
+            longitude={detail.business.longitude}
+            title={detail.business.name}
+            address={detail.business.address}
+            interactive={false}
+          />
         )}
 
-        {/* City Ad upload button for business owners */}
-        {isOwnProfile && onUploadCityAd && (
-          <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-            <Pressable
-              style={styles.primaryActionBtn}
-              onPress={onUploadCityAd}
-            >
-              <Ionicons name="videocam" size={18} color={COLORS.primaryDark} />
-              <Text style={styles.primaryActionText}>{t("cityAd.createAd") || "Create City Ad"}</Text>
-            </Pressable>
-          </View>
+        {/* Friends section */}
+        {isOwnProfile && !readOnly && (
+          <FriendsCarousel
+            friends={friends as any}
+            showAddButton={false}
+            currentUserId={currentUserId}
+            currentUserName={detail.business.name}
+          />
         )}
 
-        {/* Create Event, Job, Rental buttons for business owner */}
-        {isOwnProfile && (
-          <View style={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
-            {openEventModal && (
-              <Pressable
-                style={styles.primaryActionBtn}
-                onPress={() => openEventModal()}
-              >
-                <Ionicons name="calendar-outline" size={18} color={COLORS.primaryDark} />
-                <Text style={styles.primaryActionText}>{t("business.createEvent") || "Create Event"}</Text>
-              </Pressable>
-            )}
-            {openJobModal && (
-              <Pressable
-                style={styles.primaryActionBtn}
-                onPress={openJobModal}
-              >
-                <Ionicons name="briefcase-outline" size={18} color={COLORS.primaryDark} />
-                <Text style={styles.primaryActionText}>{t("business.createJob") || "Create Job"}</Text>
-              </Pressable>
-            )}
-            {onAddService && (
-              <Pressable
-                style={styles.primaryActionBtn}
-                onPress={onAddService}
-              >
-                <Ionicons name="add-circle-outline" size={18} color={COLORS.primaryDark} />
-                <Text style={styles.primaryActionText}>{t("services.addService", "Add Service")}</Text>
-              </Pressable>
-            )}
-          </View>
+        {readOnly && (
+          <FriendsSection
+            friends={friends as any}
+            isFriend={friendStatus === "friends"}
+            onToggleFriend={onFollowPress || (() => {})}
+            showMakeButton={false}
+            showFriendRequests={false}
+          />
         )}
 
         {/* Public profile: tab-based layout */}
@@ -604,7 +591,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                 })()
               )}
               {activeTab === "jobs" && (
-                <JobsSection jobs={jobs} readOnly={true} />
+                <JobsSection jobs={jobs} readOnly={true} primaryColor={primaryColor} cardColor={cardColor} textColor={textColor} secondaryColor={secondaryColor} />
               )}
             </View>
           </>
@@ -698,53 +685,56 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   onAddJob={openJobModal ?? (() => {})}
                   onEditJob={handleEditJob}
                   onDeleteJob={handleDeleteJob ?? (() => {})}
-                />
-              )}
-              {privateActiveTab === "services" && (
-                <>
-                  {onOpenBookingList && (
-                    <View style={styles.manageRow}>
-                      <Pressable
-                        style={[styles.manageBtn, { borderColor: primaryColor }]}
-                        onPress={onOpenBookingList}
-                      >
-                        <Ionicons name="calendar" size={16} color={primaryColor} />
-                        <Text style={[styles.manageBtnText, { color: primaryColor }]}>
-                          {t("services.manageBookings", "Manage Bookings")}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  )}
-                  <ServiceSection
-                    services={services}
-                    rootCategory={detail.business.root_category}
-                    readOnly={false}
-                    onAddService={onAddService}
-                    onEditService={handleEditService}
-                    onDeleteService={handleDeleteService}
-                    onOpenSlotManager={onOpenSlotManager}
-                    onServicePress={(service) => router.push(`/service/${service.service_id}` as any)}
-                    cardColor={cardColor}
-                    textColor={textColor}
-                  />
-                </>
-              )}
-              {privateActiveTab === "subscription" && (
-                <SubscriptionTab
-                  sessionToken={sessionToken}
-                  businessId={detail.business.business_id}
-                  subscriptionStatus={detail.business.subscription_status}
-                  planType={(detail.business as any).plan_type}
                   primaryColor={primaryColor}
                   cardColor={cardColor}
                   textColor={textColor}
+                  secondaryColor={secondaryColor}
                 />
+              )}
+              {privateActiveTab.startsWith("svc:") && (
+                (() => {
+                  const [, cat, type] = privateActiveTab.split(":");
+                  const filteredServices = (services || []).filter(s =>
+                    resolveCategory(s.root_category || "") === cat &&
+                    s.type === type &&
+                    s.is_active
+                  );
+                  return (
+                    <ServiceSection
+                      key={privateActiveTab}
+                      services={filteredServices}
+                      rootCategory={cat}
+                      readOnly={false}
+                      onAddService={onAddService}
+                      onEditService={handleEditService}
+                      onDeleteService={handleDeleteService}
+                      onOpenSlotManager={onOpenSlotManager}
+                      onServicePress={(service) => router.push(`/service/${service.service_id}` as any)}
+                      cardColor={cardColor}
+                      textColor={textColor}
+                    />
+                  );
+                })()
               )}
             </View>
           </>
         )}
       </ScrollView>
 
+      {detail.business?.cover_image && (
+        <CoverPositionEditor
+          visible={showCoverReposition}
+          uri={detail.business.cover_image}
+          initialFocalPoint={detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 }}
+          aspectRatio={3}
+          onCancel={() => setShowCoverReposition(false)}
+          onSave={async (fp) => {
+            await updateBusiness(sessionToken, detail.business.business_id, { cover_focal_point: fp });
+            setShowCoverReposition(false);
+            onRefresh?.();
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -765,32 +755,7 @@ const styles = StyleSheet.create({
   tabSection: {
     paddingTop: 12,
   },
-  businessMapContainer: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  businessMap: {
-    height: 140,
-  },
-  mapOverlay: {
-    position: "absolute",
-    bottom: 10,
-    right: 10,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  mapOverlayText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
+
   highlightsSection: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -897,25 +862,5 @@ const styles = StyleSheet.create({
   carouselSubtitle: {
     fontSize: 12,
     color: "#6b7280",
-  },
-  manageRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 8,
-  },
-  manageBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    backgroundColor: "#fff",
-  },
-  manageBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
   },
 });

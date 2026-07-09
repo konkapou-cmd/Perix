@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View, ActivityIndicator, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Post, BACKEND_URL } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
@@ -20,9 +20,13 @@ interface PostCardProps {
   onComment: () => void;
   onSave: () => void;
   sessionToken: string | null;
+  autoPlay?: boolean;
+  showMuteButton?: boolean;
+  muted?: boolean;
+  onMuteChange?: (m: boolean) => void;
 }
 
-export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToken }: PostCardProps) {
+export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToken, autoPlay = false, showMuteButton, muted, onMuteChange }: PostCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -115,7 +119,7 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
           <Text style={styles.postTextContent} numberOfLines={3}>{post.text}</Text>
         ) : (
           <View style={styles.textOnlyPreview}>
-            <Ionicons name="chatbubble-ellipses" size={16} color="#d1d5db" style={{ marginBottom: 8 }} />
+            <Ionicons name="chatbubble-ellipses" size={16} color={COLORS.borderLight} style={{ marginBottom: 8 }} />
             <Text style={styles.textOnlyContent} numberOfLines={8}>{post.text}</Text>
           </View>
         )
@@ -125,13 +129,14 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
         <View style={styles.postMediaWrapper}>
           <AdaptiveVideo
             uri={post.video_url}
-            autoPlay
+            ratio={post.media_ratio || undefined}
+            autoPlay={autoPlay && !viewerOpen}
             isLooping
-            initialMuted={true}
+            initialMuted={muted !== false}
+            showMuteButton={showMuteButton !== false}
+            onMuteChange={onMuteChange}
             resizeMode="cover"
             coverPhoto={post.mux_thumbnail_url || undefined}
-            ratio={1}
-            maxHeight={1200}
             borderRadius={0}
             videoStatus={post.video_status}
             muxThumbnailUrl={post.mux_thumbnail_url || undefined}
@@ -142,8 +147,7 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
         <View style={styles.postMediaWrapper}>
           <AdaptiveImage
             uri={post.image_url}
-            ratio={1}
-            maxHeight={1200}
+            maxHeight={Dimensions.get("window").height * 0.7}
             borderRadius={0}
             onPress={() => setViewerOpen(true)}
           />
@@ -198,10 +202,11 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
 
 const styles = StyleSheet.create({
   postCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    marginHorizontal: 0,
+    backgroundColor: COLORS.background,
+    borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
-    marginBottom: 12,
+    marginBottom: SPACING.compact,
     ...Platform.select({ web: { width: "100%", maxWidth: 720, alignSelf: "center", cursor: "pointer", transition: "box-shadow 0.2s" } as any, default: {} }),
   },
   postHeader: {
@@ -211,15 +216,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   postAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   postAvatarFallback: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#e0e7ff",
+    backgroundColor: COLORS.primaryTint,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -229,7 +234,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryDark,
   },
   postAuthorInfo: {
-    marginLeft: 10,
+    marginLeft: 12,
   },
   postAuthorName: {
     fontSize: Platform.OS === "web" ? 16 : 14,
@@ -238,11 +243,11 @@ const styles = StyleSheet.create({
   },
   postTimeText: {
     fontSize: Platform.OS === "web" ? 13 : 12,
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   postTextContent: {
     fontSize: Platform.OS === "web" ? 16 : 14,
-    color: "#374151",
+    color: COLORS.textDark,
     lineHeight: Platform.OS === "web" ? 24 : 20,
     marginBottom: 8,
     paddingHorizontal: 16,
@@ -251,21 +256,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     padding: 16,
-    backgroundColor: "#f8f9fb",
+    backgroundColor: COLORS.textOnlyBg,
     borderRadius: 10,
     borderLeftWidth: 3,
-    borderLeftColor: "#e5e7eb",
+    borderLeftColor: COLORS.borderGray,
   },
   textOnlyContent: {
     fontSize: Platform.OS === "web" ? 16 : 14,
-    color: "#374151",
+    color: COLORS.textDark,
     lineHeight: Platform.OS === "web" ? 24 : 20,
   },
   postMediaWrapper: {
     width: "100%",
-    aspectRatio: 1,
     overflow: "hidden",
-    backgroundColor: COLORS.textPrimary,
+    backgroundColor: "transparent",
     marginBottom: 8,
   },
   savedBadge: {
@@ -292,6 +296,6 @@ const styles = StyleSheet.create({
   },
   postStatText: {
     fontSize: Platform.OS === "web" ? 14 : 13,
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
 });

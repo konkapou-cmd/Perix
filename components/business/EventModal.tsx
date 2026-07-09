@@ -74,48 +74,58 @@ const themesMap = EVENT_THEMES;
 
 function formToMedia(form: EventForm): MediaItem[] {
   const items: MediaItem[] = [];
+  const seen = new Set<string>();
   if (form.cover_image_url) {
-    items.push({ uri: form.cover_image_url, type: "image" });
+    seen.add(form.cover_image_url);
+    items.push({ uri: form.cover_image_url, type: "image", isCoverImage: true, focalPoint: (form as any).cover_focal_point ?? { x: 0.5, y: 0.5 } });
   } else if (form.video_url) {
-    items.push({ uri: form.video_url, type: "video" });
+    seen.add(form.video_url);
+    items.push({ uri: form.video_url, type: "video", isCoverVideo: true, focalPoint: (form as any).cover_focal_point ?? { x: 0.5, y: 0.5 } });
   }
   form.image_urls.forEach((u) => {
-    if (u !== form.cover_image_url) items.push({ uri: u, type: "image" });
+    if (!seen.has(u)) {
+      seen.add(u);
+      items.push({ uri: u, type: "image" });
+    }
   });
-  if (form.video_url && items.length > 0 && items[0].uri !== form.video_url) {
+  if (form.video_url && !seen.has(form.video_url)) {
+    seen.add(form.video_url);
     items.push({ uri: form.video_url, type: "video" });
   }
   form.gallery_images.forEach((u) => {
-    if (!items.some((m) => m.uri === u)) items.push({ uri: u, type: "image" });
+    if (!seen.has(u)) {
+      seen.add(u);
+      items.push({ uri: u, type: "image" });
+    }
   });
   form.gallery_videos.forEach((u) => {
-    if (!items.some((m) => m.uri === u)) items.push({ uri: u, type: "video" });
+    if (!seen.has(u)) {
+      seen.add(u);
+      items.push({ uri: u, type: "video" });
+    }
   });
   return items;
 }
 
 function mediaToForm(media: MediaItem[], base: EventForm): EventForm {
-  const coverIsVideo = media.length > 0 && media[0].type === "video";
+  const coverImageItem = media.find((m) => m.isCoverImage && m.type === "image");
+  const coverVideoItem = media.find((m) => m.isCoverVideo && m.type === "video");
+  const coverItem = coverImageItem || coverVideoItem;
   const images = media.filter((m) => m.type === "image").map((m) => m.uri);
   const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
-  if (coverIsVideo) {
-    return {
-      ...base,
-      cover_image_url: undefined,
-      image_urls: images,
-      video_url: videos[0] || undefined,
-      gallery_images: images.slice(1),
-      gallery_videos: videos.slice(1),
-    };
-  }
   return {
     ...base,
-    cover_image_url: images[0] || undefined,
+    cover_image_url: coverImageItem?.uri || (coverVideoItem ? "" : images[0]) || "",
     image_urls: images,
-    video_url: videos[0] || undefined,
-    gallery_images: images.slice(1),
-    gallery_videos: videos.slice(1),
-  };
+    video_url: coverVideoItem?.uri || videos[0] || undefined,
+    gallery_images: coverImageItem
+      ? images.filter((u) => u !== coverImageItem.uri)
+      : images.slice(1),
+    gallery_videos: coverVideoItem
+      ? videos.filter((u) => u !== coverVideoItem.uri)
+      : videos.slice(1),
+    cover_focal_point: coverItem?.focalPoint ?? { x: 0.5, y: 0.5 },
+  } as any;
 }
 
 export default function EventModal({
@@ -408,7 +418,7 @@ export default function EventModal({
             </>
           )}
 
-          <View style={{ height: SPACING.huge }} />
+          <View style={{ height: 140 }} />
         </ScrollView>
 
         <View style={s.footer}>
@@ -436,8 +446,8 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -452,21 +462,21 @@ const s = StyleSheet.create({
   },
   body: {
     flex: 1,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.std,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: SPACING.md,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    gap: SPACING.small,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.background,
   },
   cancelBtn: {
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xxl,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -477,8 +487,8 @@ const s = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   saveBtn: {
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xxl,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.primary,
   },
@@ -491,8 +501,8 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-    marginTop: SPACING.xl,
+    marginBottom: SPACING.tiny,
+    marginTop: SPACING.std,
   },
   required: {
     color: COLORS.danger,
@@ -508,14 +518,14 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.micro,
     color: COLORS.textDisabled,
     marginTop: -2,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.small,
   },
   input: {
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.mdLg,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.compact,
     fontSize: FONT_SIZES.body,
     color: COLORS.textPrimary,
     backgroundColor: COLORS.backgroundPage,
@@ -526,7 +536,7 @@ const s = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   halfWidth: {
     flex: 1,
@@ -538,8 +548,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.mdLg,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.compact,
     backgroundColor: COLORS.backgroundPage,
   },
   selectorText: {
@@ -556,15 +566,15 @@ const s = StyleSheet.create({
     gap: 4,
   },
   themeChipsRow: {
-    gap: SPACING.sm,
-    paddingVertical: SPACING.xs,
+    gap: SPACING.small,
+    paddingVertical: SPACING.tiny,
   },
   themeChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -586,7 +596,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: SPACING.sm,
+    paddingVertical: SPACING.small,
   },
   privateLabelContainer: {
     flex: 1,
@@ -613,9 +623,9 @@ const s = StyleSheet.create({
   },
   pickerDoneBtn: {
     alignSelf: "flex-end",
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.tiny,
+    marginTop: SPACING.small,
   },
   pickerDoneText: {
     fontSize: FONT_SIZES.body,
@@ -624,7 +634,7 @@ const s = StyleSheet.create({
   },
   // Artist tagging
   artistSection: {
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.small,
   },
   taggedArtistsRow: {
     flexDirection: "row",
@@ -662,7 +672,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.sm,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     paddingVertical: Platform.OS === "web" ? 8 : 6,
     backgroundColor: COLORS.background,
   },

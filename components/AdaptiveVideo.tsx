@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle, Text, Image as RNImage, ActivityIndicator } from "react-native";
+import { AppState, AppStateStatus, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle, Text, Image as RNImage, ActivityIndicator } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -42,7 +42,7 @@ export default function AdaptiveVideo({
   isLooping = false,
   ratio,
   autoPlay = false,
-  showMuteButton = false,
+  showMuteButton = true,
   initialMuted = false,
   onMuteChange,
   onPlay,
@@ -57,134 +57,47 @@ export default function AdaptiveVideo({
 }: AdaptiveVideoProps) {
   const videoUri = uri || source?.uri || "";
   const isProcessing = videoStatus === "processing" || isMuxProcessingPlaceholder(videoUri);
-  const [playerActive, setPlayerActive] = useState(autoPlay || false);
+  const [isMuted, setIsMuted] = useState(initialMuted);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
   const [coverFailed, setCoverFailed] = useState(false);
   const [coverRatio, setCoverRatio] = useState<number | null>(ratio || null);
+  const containerRef = useRef<View>(null);
+  const playedRef = useRef(false);
+  const player = useVideoPlayer(isProcessing ? null : videoUri, (p) => {
+    p.loop = isLooping;
+    p.muted = initialMuted;
+  });
 
   useEffect(() => {
     setCoverFailed(false);
   }, [coverPhoto, videoUri]);
 
+  useEffect(() => {
+    if (!player || autoPlay) return;
+    player.muted = true;
+    player.pause();
+  }, [autoPlay, player]);
+
   const coverUrl = coverPhoto || muxThumbnailUrl || getMuxThumbnail(videoUri);
 
+  const styleHasHeight = !!(style && typeof style === 'object' && 'height' in style);
+
   const containerStyle: ViewStyle = {
-    aspectRatio: ratio || coverRatio || 16 / 9,
-    maxHeight,
-    borderRadius,
+    width: "100%",
+    aspectRatio: styleHasHeight ? undefined : (ratio || coverRatio || undefined),
     overflow: "hidden",
-    backgroundColor: "#111827",
+    backgroundColor: "transparent",
   };
 
-  if (isProcessing) {
-    const thumbUri = muxThumbnailUrl || null;
-    return (
-      <View style={[containerStyle, style]}>
-        {thumbUri && <RNImage source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
-        <View style={styles.overlayCenter}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.processingText}>Processing video...</Text>
-        </View>
-      </View>
+  useEffect(() => {
+    if (!coverUrl || ratio) return;
+    RNImage.getSize(
+      coverUrl,
+      (w, h) => { setCoverRatio(w / h); },
+      () => {}
     );
-  }
-
-  if (!videoUri) {
-    return <View style={[containerStyle, style]} />;
-  }
-
-  if (!playerActive) {
-    return (
-      <Pressable
-        onPress={() => setPlayerActive(true)}
-        accessibilityRole="button"
-        accessibilityLabel="Play video"
-        style={[containerStyle, style]}
-      >
-        {coverUrl && !coverFailed ? (
-          <RNImage
-            source={{ uri: coverUrl }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            onError={() => setCoverFailed(true)}
-            onLoad={(e: any) => {
-              const s = e.nativeEvent?.source;
-              if (!ratio && s?.width && s?.height) {
-                setCoverRatio(s.width / s.height);
-              }
-            }}
-          />
-        ) : null}
-        <View style={styles.overlayCenter}>
-          <View style={styles.playCircle}>
-            <Ionicons name="play" size={36} color="#fff" />
-          </View>
-        </View>
-      </Pressable>
-    );
-  }
-
-  return (
-    <PlayerCore
-      videoUri={videoUri}
-      isProcessing={isProcessing}
-      isLooping={isLooping}
-      initialMuted={initialMuted}
-      showMuteButton={showMuteButton}
-      resizeMode={resizeMode}
-      useNativeControls={useNativeControls}
-      ratio={ratio}
-      onMuteChange={onMuteChange}
-      onPlay={onPlay}
-      onPress={onPress}
-      containerStyle={containerStyle}
-      style={style}
-    />
-  );
-}
-
-// ─── Inner player — only mounted after first play tap ───
-
-type PlayerCoreProps = {
-  videoUri: string;
-  isProcessing: boolean;
-  isLooping: boolean;
-  initialMuted: boolean;
-  showMuteButton: boolean;
-  resizeMode: "contain" | "cover";
-  useNativeControls: boolean;
-  ratio?: number;
-  onMuteChange?: (muted: boolean) => void;
-  onPlay?: () => void;
-  onPress?: () => void;
-  containerStyle: ViewStyle;
-  style?: StyleProp<ViewStyle>;
-};
-
-function PlayerCore({
-  videoUri,
-  isProcessing,
-  isLooping,
-  initialMuted,
-  showMuteButton,
-  resizeMode,
-  useNativeControls,
-  ratio,
-  onMuteChange,
-  onPlay,
-  onPress,
-  containerStyle,
-  style,
-}: PlayerCoreProps) {
-  const player = useVideoPlayer(videoUri || null, (p) => {
-    p.loop = isLooping;
-    p.muted = initialMuted;
-  });
-
-  const containerRef = useRef<View>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(initialMuted);
-  const [naturalAspect, setNaturalAspect] = useState<number | null>(ratio || null);
-  const playedRef = useRef(false);
+  }, [coverUrl, ratio]);
 
   useEffect(() => {
     if (player) player.muted = isMuted;
@@ -238,15 +151,26 @@ function PlayerCore({
   }, [ratio, naturalAspect]);
 
   useEffect(() => {
-    if (!player || isProcessing || !videoUri) return;
-    const t = setTimeout(() => {
-      try {
-        player.muted = initialMuted;
+    if (!player || isProcessing || !videoUri || !autoPlay) return;
+    try {
+      player.muted = initialMuted;
+      player.play();
+    } catch (_) {}
+  }, [player, isProcessing, videoUri, initialMuted, autoPlay]);
+
+  useEffect(() => {
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (!player) return;
+      if (nextState === "active" && autoPlay && videoUri && !isProcessing) {
+        player.muted = true;
         player.play();
-      } catch (_) {}
-    }, 200);
-    return () => clearTimeout(t);
-  }, [player, isProcessing, videoUri, initialMuted]);
+      } else if (nextState === "background" || nextState === "inactive") {
+        player.pause();
+      }
+    };
+    const sub = AppState.addEventListener("change", handleAppStateChange);
+    return () => { sub.remove(); };
+  }, [player, autoPlay, videoUri, isProcessing]);
 
   const toggleMute = () => {
     const newMuted = !isMuted;
@@ -274,34 +198,38 @@ function PlayerCore({
 
   const effectiveStyle: ViewStyle = {
     ...containerStyle,
-    aspectRatio: ratio || naturalAspect || containerStyle.aspectRatio,
+    aspectRatio: styleHasHeight ? undefined : (ratio || naturalAspect || undefined),
   };
 
   return (
-    <Pressable onPress={handlePress} accessibilityRole="button" accessibilityLabel="Play video">
-      <View ref={containerRef} style={[effectiveStyle, style, { position: "relative" }]}>
-        {player && (
-          <VideoView
-            player={player}
-            style={{ width: "100%", height: "100%" }}
-            contentFit={resizeMode}
-            nativeControls={useNativeControls}
-          />
-        )}
-        {showMuteButton && (
-          <Pressable style={styles.muteButton} onPress={toggleMute}>
-            <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
-          </Pressable>
-        )}
-        {!isPlaying && (
-          <View style={styles.overlayCenter}>
-            <View style={styles.playCircle}>
-              <Ionicons name="play" size={36} color="#fff" />
-            </View>
-          </View>
-        )}
-      </View>
-    </Pressable>
+    <View ref={containerRef} style={[effectiveStyle, style]}>
+      {coverUrl && (
+        <RNImage
+          source={{ uri: coverUrl }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        />
+      )}
+      {player && (
+        <VideoView
+          player={player}
+          style={StyleSheet.absoluteFill}
+          contentFit={resizeMode}
+          nativeControls={useNativeControls}
+        />
+      )}
+      <Pressable
+        onPress={handlePress}
+        style={StyleSheet.absoluteFill}
+        accessibilityRole="button"
+        accessibilityLabel="Play video"
+      />
+      {showMuteButton && (
+        <Pressable style={styles.muteButton} onPress={toggleMute}>
+          <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
+        </Pressable>
+      )}
+    </View>
   );
 }
 
@@ -320,14 +248,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.15)",
-  },
-  playCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    justifyContent: "center",
-    alignItems: "center",
   },
   processingText: {
     color: "#fff",

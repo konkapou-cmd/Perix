@@ -305,9 +305,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
+    paddingHorizontal: SPACING.std,
+    paddingTop: SPACING.small,
+    paddingBottom: SPACING.compact,
     backgroundColor: COLORS.background,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: SPACING.lg,
+    marginRight: SPACING.compact,
   },
   headerInfo: {
     flex: 1,
@@ -346,8 +346,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatContent: {
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.compact,
   },
   emptyText: {
     color: COLORS.textMuted,
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.body,
   },
   chatBubble: {
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.compact,
     maxWidth: "80%",
   },
   chatBubbleMe: {
@@ -368,8 +368,8 @@ const styles = StyleSheet.create({
   chatBubbleMeGradient: {
     borderRadius: BORDER_RADIUS.lg,
     borderBottomRightRadius: 4,
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.compact,
+    paddingHorizontal: SPACING.std,
   },
   chatBubbleName: {
     fontSize: FONT_SIZES.caption,
@@ -401,8 +401,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: SPACING.lg,
-    gap: SPACING.lg,
+    paddingVertical: SPACING.compact,
+    gap: SPACING.compact,
     backgroundColor: COLORS.background,
   },
   uploadingText: {
@@ -412,10 +412,10 @@ const styles = StyleSheet.create({
   inputBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.lg,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    paddingBottom: SPACING.md,
+    gap: SPACING.compact,
+    paddingHorizontal: SPACING.compact,
+    paddingVertical: SPACING.small,
+    paddingBottom: SPACING.small,
     backgroundColor: COLORS.background,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
@@ -424,8 +424,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.backgroundPage,
     borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.compact,
     fontSize: FONT_SIZES.body,
     color: COLORS.textPrimary,
     maxHeight: 80,

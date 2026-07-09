@@ -16,21 +16,25 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
+import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const MAX_VIDEO_DURATION = 30; // 30 seconds max like Instagram
 
-type CameraMode = "picture" | "video";
+type CameraViewMode = "picture" | "video";
 
 export default function CameraScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { mode: initialMode, returnTo } = useLocalSearchParams<{ mode?: string; returnTo?: string }>();
-  
+  const { mode, returnTo } = useLocalSearchParams<{ mode?: string; returnTo?: string }>();
+
+  const maxDurationSeconds = mode === "cover"
+    ? MEDIA_LIMITS.camera.coverMaxDurationSeconds
+    : MEDIA_LIMITS.camera.generalMaxDurationSeconds;
+
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
   const [facing, setFacing] = useState<CameraType>("back");
-  const [cameraMode, setCameraMode] = useState<CameraMode>(initialMode === "video" ? "video" : "picture");
+  const [cameraMode, setCameraMode] = useState<CameraViewMode>(mode === "video" ? "video" : "picture");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [flash, setFlash] = useState<"off" | "on">("off");
@@ -58,7 +62,7 @@ export default function CameraScreen() {
       // Start progress animation
       Animated.timing(progressAnim, {
         toValue: 1,
-        duration: MAX_VIDEO_DURATION * 1000,
+        duration: maxDurationSeconds * 1000,
         useNativeDriver: false,
       }).start();
 
@@ -82,7 +86,7 @@ export default function CameraScreen() {
       // Update timer every second
       recordingTimerRef.current = setInterval(() => {
         setRecordingTime((prev) => {
-          if (prev >= MAX_VIDEO_DURATION - 1) {
+          if (prev >= maxDurationSeconds - 1) {
             stopRecording();
             return prev;
           }
@@ -129,7 +133,7 @@ export default function CameraScreen() {
         // Navigate to editor with the photo
         router.push({
           pathname: "/media-editor",
-          params: { uri: encodeURIComponent(photo.uri), type: "image" },
+          params: { uri: encodeURIComponent(photo.uri), type: "image", mode: recordContext },
         });
       }
     } catch (error) {
@@ -144,14 +148,14 @@ export default function CameraScreen() {
     try {
       setIsRecording(true);
       const video = await cameraRef.current.recordAsync({
-        maxDuration: MAX_VIDEO_DURATION,
+        maxDuration: maxDurationSeconds,
       });
       
       if (video?.uri) {
         // Navigate to editor with the video
         router.push({
           pathname: "/media-editor",
-          params: { uri: encodeURIComponent(video.uri), type: "video" },
+          params: { uri: encodeURIComponent(video.uri), type: "video", mode: recordContext },
         });
       }
     } catch (error) {
@@ -207,7 +211,7 @@ export default function CameraScreen() {
       const type = asset.type === "video" ? "video" : "image";
       router.push({
         pathname: "/media-editor",
-        params: { uri: encodeURIComponent(asset.uri), type },
+        params: { uri: encodeURIComponent(asset.uri), type, mode: recordContext },
       });
     }
   };
@@ -254,7 +258,7 @@ export default function CameraScreen() {
         <SafeAreaView style={styles.topControls} edges={["top"]}>
           {/* Close Button */}
           <Pressable style={styles.controlButton} onPress={() => router.back()}>
-            <Ionicons name="close" size={28} color="#fff" />
+            <Ionicons name="close" size={28} color={COLORS.textLight} />
           </Pressable>
 
           {/* Recording Timer */}
@@ -262,7 +266,7 @@ export default function CameraScreen() {
             <View style={styles.recordingBadge}>
               <Animated.View style={[styles.recordingDot, { transform: [{ scale: pulseAnim }] }]} />
               <Text style={styles.recordingTime}>{formatTime(recordingTime)}</Text>
-              <Text style={styles.maxDuration}>/ {formatTime(MAX_VIDEO_DURATION)}</Text>
+              <Text style={styles.maxDuration}>/ {formatTime(maxDurationSeconds)}</Text>
             </View>
           )}
 
@@ -271,7 +275,7 @@ export default function CameraScreen() {
             <Ionicons 
               name={flash === "on" ? "flash" : "flash-off"} 
               size={24} 
-              color="#fff" 
+              color={COLORS.textLight} 
             />
           </Pressable>
         </SafeAreaView>
@@ -309,7 +313,7 @@ export default function CameraScreen() {
           <View style={styles.controlsRow}>
             {/* Gallery Button */}
             <Pressable style={styles.sideButton} onPress={openGallery} disabled={isRecording}>
-              <Ionicons name="images-outline" size={28} color={isRecording ? "#666" : "#fff"} />
+              <Ionicons name="images-outline" size={28} color={isRecording ? "#666" : COLORS.textLight} />
             </Pressable>
 
             {/* Capture Button */}
@@ -332,7 +336,7 @@ export default function CameraScreen() {
 
             {/* Flip Camera Button */}
             <Pressable style={styles.sideButton} onPress={toggleCameraFacing} disabled={isRecording}>
-              <Ionicons name="camera-reverse-outline" size={28} color={isRecording ? "#666" : "#fff"} />
+              <Ionicons name="camera-reverse-outline" size={28} color={isRecording ? "#666" : COLORS.textLight} />
             </Pressable>
           </View>
 
@@ -341,7 +345,7 @@ export default function CameraScreen() {
             {cameraMode === "video" 
               ? (isRecording 
                 ? (t("camera.tapToStop") || "Tap to stop recording")
-                : (t("camera.tapToRecord") || "Tap to record (max 30s)"))
+                : (t("camera.tapToRecord") || `Tap to record (max ${maxDurationSeconds}s)`))
               : (t("camera.tapToCapture") || "Tap to capture, hold for video")}
           </Text>
         </SafeAreaView>
@@ -363,29 +367,29 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
-    padding: SPACING.huge,
+    padding: SPACING.large,
   },
   permissionTitle: {
     color: COLORS.background,
     fontSize: FONT_SIZES.h3,
     fontWeight: FONT_WEIGHTS.semibold,
-    marginTop: SPACING.xxxl,
-    marginBottom: SPACING.lg,
+    marginTop: SPACING.page,
+    marginBottom: SPACING.compact,
     textAlign: "center",
   },
   permissionText: {
     color: COLORS.textMuted,
     fontSize: FONT_SIZES.bodySmall,
     textAlign: "center",
-    marginBottom: SPACING.xxxl,
+    marginBottom: SPACING.page,
     lineHeight: 20,
   },
   permissionButton: {
     backgroundColor: COLORS.primaryDark,
-    paddingHorizontal: SPACING.huge,
+    paddingHorizontal: SPACING.large,
     paddingVertical: 14,
     borderRadius: BORDER_RADIUS.xxl,
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.std,
   },
   permissionButtonText: {
     color: COLORS.background,
@@ -393,7 +397,7 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold,
   },
   backButton: {
-    padding: SPACING.lg,
+    padding: SPACING.compact,
   },
   backButtonText: {
     color: COLORS.primaryDark,
@@ -403,8 +407,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.md,
+    paddingHorizontal: SPACING.std,
+    paddingTop: SPACING.small,
   },
   controlButton: {
     width: 44,
@@ -418,8 +422,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.6)",
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
     borderRadius: BORDER_RADIUS.xl,
   },
   recordingDot: {
@@ -427,7 +431,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: COLORS.danger,
-    marginRight: SPACING.md,
+    marginRight: SPACING.small,
   },
   recordingTime: {
     color: COLORS.background,
@@ -438,7 +442,7 @@ const styles = StyleSheet.create({
   maxDuration: {
     color: COLORS.textMuted,
     fontSize: FONT_SIZES.bodySmall,
-    marginLeft: SPACING.xs,
+    marginLeft: SPACING.tiny,
   },
   progressBarContainer: {
     position: "absolute",
@@ -457,17 +461,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: SPACING.xxxl,
+    paddingBottom: SPACING.page,
   },
   modeSwitcher: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: SPACING.xxxl,
-    gap: SPACING.xxxl,
+    marginBottom: SPACING.page,
+    gap: SPACING.page,
   },
   modeButton: {
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
   },
   modeButtonActive: {
     borderBottomWidth: 2,
@@ -487,7 +491,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 40,
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.std,
   },
   sideButton: {
     width: 50,

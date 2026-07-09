@@ -51,11 +51,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.small,
     height: 44,
   },
   icon: {
-    marginRight: SPACING.sm,
+    marginRight: SPACING.small,
   },
   input: {
     flex: 1,

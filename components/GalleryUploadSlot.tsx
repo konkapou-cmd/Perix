@@ -76,7 +76,7 @@ export default function GalleryUploadSlot({
       <View style={s.thumbnailContainer} />
       {type === "video" && (
         <View style={s.videoBadge}>
-          <Ionicons name="play" size={10} color="#fff" />
+          <Ionicons name="play" size={10} color={COLORS.textLight} />
         </View>
       )}
       {onRemove && (
@@ -124,8 +124,8 @@ const s = StyleSheet.create({
   },
   videoBadge: {
     position: "absolute",
-    top: SPACING.xs,
-    right: SPACING.xs,
+    top: SPACING.tiny,
+    right: SPACING.tiny,
     width: 18,
     height: 18,
     borderRadius: 9,
@@ -140,17 +140,17 @@ const s = StyleSheet.create({
   },
   percentBadge: {
     position: "absolute",
-    bottom: SPACING.xs,
-    right: SPACING.xs,
+    bottom: SPACING.tiny,
+    right: SPACING.tiny,
     backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: BORDER_RADIUS.sm,
-    paddingHorizontal: SPACING.xs,
+    paddingHorizontal: SPACING.tiny,
     paddingVertical: 1,
   },
   percentText: {
     fontSize: FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.bold as any,
-    color: "#fff",
+    color: COLORS.textLight,
   },
   removeBtn: {
     position: "absolute",

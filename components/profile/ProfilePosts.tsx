@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   TextStyle,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AdaptiveVideo from "../AdaptiveVideo";
@@ -150,14 +151,21 @@ pendingMentionIds = [],
     setLikedPosts(initialLiked);
   }, [posts]);
 
-  const getFriendName = (id: string) => friends.find((f: any) => f.user_id === id)?.name || friends.find((f: any) => f.user_id === id)?.user_id || id;
-  const getFriendAvatar = (id: string) => friends.find((f: any) => f.user_id === id)?.profile_photo || friends.find((f: any) => f.user_id === id)?.picture || null;
+  const matchFriend = (id: string) => friends.find((f: any) => f.user_id === id || f.entity_id === id);
+  const getFriendName = (id: string) => {
+    const f = matchFriend(id);
+    return f?.name || f?.user_id || f?.entity_id || id;
+  };
+  const getFriendAvatar = (id: string) => {
+    const f = matchFriend(id);
+    return f?.profile_photo || f?.picture || f?.image || null;
+  };
   const getBizName = (id: string) => businesses.find((b: any) => b.business_id === id)?.name || id;
   const getBizAvatar = (id: string) => businesses.find((b: any) => b.business_id === id)?.logo_image || null;
   
   const getMentionName = (id: string) => {
-    const friend = friends.find((f: any) => f.user_id === id);
-    if (friend) return friend.name || friend.user_id;
+    const f = matchFriend(id);
+    if (f) return f.name || f.user_id || f.entity_id;
     const biz = businesses.find((b: any) => b.business_id === id);
     if (biz) return biz.name;
     return id;
@@ -280,7 +288,7 @@ pendingMentionIds = [],
             {post.actor_avatar ? (
               <Image source={{ uri: post.actor_avatar }} style={styles.avatarImage} />
             ) : (
-              <Ionicons name="person" size={20} color="#ffffff" />
+              <Ionicons name="person" size={20} color={PROFILE_COLORS.CARD} />
             )}
           </View>
           <View style={styles.postMeta}>
@@ -315,12 +323,13 @@ pendingMentionIds = [],
           <View style={styles.postMediaWrapper}>
             <AdaptiveVideo
               uri={post.video_url}
-              showMuteButton={true}
+              autoPlay
+              ratio={post.media_ratio || undefined}
               initialMuted={true}
+              showMuteButton
               resizeMode="cover"
               coverPhoto={post.mux_thumbnail_url || undefined}
-              ratio={1}
-              maxHeight={1200}
+              maxHeight={Dimensions.get("window").height * 0.7}
               borderRadius={0}
               videoStatus={post.video_status}
               muxThumbnailUrl={post.mux_thumbnail_url || undefined}
@@ -338,8 +347,7 @@ pendingMentionIds = [],
           <View style={styles.postMediaWrapper}>
             <AdaptiveImage
               uri={post.image_url}
-              ratio={1}
-              maxHeight={1200}
+              maxHeight={Dimensions.get("window").height * 0.7}
               borderRadius={0}
               onPress={() => {
                 const items: MediaItem[] = [];
@@ -505,8 +513,8 @@ pendingMentionIds = [],
                   {post.video_url ? (
                     <AdaptiveVideo
                       uri={post.video_url}
+                      autoPlay
                       style={{ width: "100%", height: "100%" }}
-                      showMuteButton={true}
                       ratio={1}
                       maxHeight={1200}
                       borderRadius={0}
@@ -775,9 +783,8 @@ const styles: Record<string, any> = StyleSheet.create({
   },
   postMediaWrapper: {
     width: "100%",
-    aspectRatio: 1,
     overflow: "hidden",
-    backgroundColor: COLORS.textPrimary,
+    backgroundColor: "transparent",
     marginBottom: 8,
   },
   postFooter: {
@@ -893,7 +900,7 @@ const styles: Record<string, any> = StyleSheet.create({
   tagAvatarText: {
     fontSize: 9,
     fontWeight: "600",
-    color: "#ffffff",
+    color: PROFILE_COLORS.CARD,
   },
   postGrid: {
     flexDirection: "row",

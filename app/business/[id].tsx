@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { buildMediaItems } from "../../lib/api/mediaUtils";
 import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
 import {
@@ -30,11 +31,12 @@ import {
   MAX_VIDEO_SIZE_BYTES,
   reportBusiness,
   getFriendshipStatus,
-  toggleFollow,
+  toggleFriend,
   toggleSaved,
   checkSaved,
   APP_URL,
 } from "../../lib/api";
+import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 import { useAuth } from "../../context/AuthContext";
 import { COLORS } from "../../lib/designTokens";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
@@ -77,9 +79,9 @@ export default function BusinessDetailScreen() {
   const [reportReason, setReportReason] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
 
-  // Follow State
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
+// Friend State
+const [friendStatus, setFriendStatus] = useState<"friends" | "request_sent" | "request_received" | "none">("none");
+const [followLoading, setFollowLoading] = useState(false);
 
   // Save State
   const [isSaved, setIsSaved] = useState(false);
@@ -128,10 +130,10 @@ export default function BusinessDetailScreen() {
     if (!sessionToken || !id) return;
     try {
       const data = await getFriendshipStatus(sessionToken, "business", id);
-      setIsFollowing(data.status === "friends");
+      setFriendStatus(data.status);
     } catch (error) {
       console.error("Failed to load follow status:", error);
-      setIsFollowing(false);
+      setFriendStatus("none");
     }
   }, [sessionToken, id]);
 
@@ -144,10 +146,10 @@ export default function BusinessDetailScreen() {
     if (!sessionToken || !id) return;
     setFollowLoading(true);
     try {
-      const result = await toggleFollow(sessionToken, "business", id);
-      setIsFollowing(result.is_following);
+      const result = await toggleFriend(sessionToken, "business", id);
+      setFriendStatus(result.is_friend ? "friends" : "none");
     } catch (error) {
-      console.error("Failed to toggle follow:", error);
+      console.error("Failed to toggle friend:", error);
     } finally {
       setFollowLoading(false);
     }
@@ -224,7 +226,11 @@ export default function BusinessDetailScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
-        Alert.alert(t("common.error") || "Error", t("home.videoTooLarge") || "Video must be under 300MB.");
+        Alert.alert(t("common.error") || "Error", `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
+        return;
+      }
+      if (asset.duration != null && asset.duration > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
+        Alert.alert("Video zu lang", `Videos dürfen maximal ${MEDIA_LIMITS.post.maxVideoDurationSeconds} Sekunden lang sein.`);
         return;
       }
       const uri = asset.uri;
@@ -317,22 +323,20 @@ export default function BusinessDetailScreen() {
     }
   };
 
-  const buildBusinessMediaItems = (biz: BusinessDetail): MediaItem[] => {
-    const items: MediaItem[] = [];
-    (biz.business.gallery_images || []).forEach(u => items.push({ type: "image", uri: u }));
-    (biz.business.gallery_videos || []).forEach(u => items.push({ type: "video", uri: u }));
-    (biz.posts || []).forEach((p: any) => {
-      if (p.image_url) items.push({ type: "image", uri: p.image_url, ratio: p.media_ratio || undefined });
-      if (p.video_url) items.push({ type: "video", uri: p.video_url });
+  const allMediaItems = useMemo(() => {
+    if (!businessDetail) return [];
+    const items = buildMediaItems(businessDetail.business);
+    (businessDetail.posts || []).forEach((p: any) => {
+      if (p.image_url && !items.some(i => i.uri === p.image_url)) items.push({ type: "image", uri: p.image_url });
+      if (p.video_url && !items.some(i => i.uri === p.video_url)) items.push({ type: "video", uri: p.video_url });
     });
     return items;
-  };
+  }, [businessDetail]);
 
   const openMediaViewer = (uri: string, type: "image" | "video") => {
     if (!businessDetail) return;
-    const items = buildBusinessMediaItems(businessDetail);
-    const index = items.findIndex(item => item.uri === uri);
-    setMediaViewerItems(items);
+    const index = allMediaItems.findIndex(item => item.uri === uri);
+    setMediaViewerItems(allMediaItems);
     setMediaViewerIndex(index >= 0 ? index : 0);
     setMediaViewerVisible(true);
   };
@@ -447,7 +451,7 @@ export default function BusinessDetailScreen() {
           onMessagePress={handleOpenChat}
           onShare={handleShareBusiness}
           slug={id}
-          isFollowing={isFollowing}
+          friendStatus={friendStatus}
           onFollowPress={handleFollowPress}
           onSavePress={handleToggleSave}
           isSaved={isSaved}

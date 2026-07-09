@@ -17,7 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { UserPublicProfile, getUserPublicProfile, getPosts, reportUser, getFriendshipStatus, toggleFollow, sendFriendRequest, cancelFriendRequest, acceptFriendRequest, FriendshipStatus, toggleSaved, checkSaved, APP_URL, getUserActivities, ActivityItem } from "../../lib/api";
+import { UserPublicProfile, getUserPublicProfile, getPosts, reportUser, getFriendshipStatus, toggleFriend, sendFriendRequest, cancelFriendRequest, acceptFriendRequest, FriendshipStatus, toggleSaved, checkSaved, APP_URL, getUserActivities, ActivityItem, getUserFriends, FriendProfile } from "../../lib/api";
 import { COLORS } from "../../lib/designTokens";
 import { useAuth } from "../../context/AuthContext";
 
@@ -51,6 +51,9 @@ export default function UserProfileScreen() {
   const [isSaved, setIsSaved] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
 
+  // Friends List State
+  const [friendProfiles, setFriendProfiles] = useState<FriendProfile[]>([]);
+
   const loadProfile = useCallback(async () => {
     if (!sessionToken || !id) return;
     setLoading(true);
@@ -73,6 +76,13 @@ export default function UserProfileScreen() {
         setUserActivities(activities);
       } catch (e) {
         console.log("Failed to load user activities:", e);
+      }
+
+      try {
+        const friendsData = await getUserFriends(sessionToken, id);
+        setFriendProfiles(friendsData);
+      } catch (e) {
+        console.log("Failed to load user friends:", e);
       }
       
       // Track profile view analytics
@@ -140,7 +150,7 @@ export default function UserProfileScreen() {
               style: "destructive",
               onPress: async () => {
                 try {
-                  await toggleFollow(sessionToken, "user", id);
+                  await toggleFriend(sessionToken, "user", id);
                   setFriendStatus("none");
                   setFriendRequestId(null);
                 } catch (error) {
@@ -277,7 +287,7 @@ export default function UserProfileScreen() {
           setLocation={() => {}}
           savingInfo={false}
           handleSaveProfileInfo={() => {}}
-          friends={[]}
+          friends={friendProfiles}
           setInviteModalVisible={() => {}}
           galleryImages={profile.user.gallery_images || []}
           galleryVideos={profile.user.gallery_videos || []}
@@ -317,6 +327,7 @@ export default function UserProfileScreen() {
           onSavePress={handleToggleSave}
           isSaved={isSaved}
           savingItem={savingItem}
+          onViewFriends={() => router.push(`/friends/${id}` as any)}
           slug={id}
           avatarUri={profile.user.profile_photo || profile.user.picture || null}
         />

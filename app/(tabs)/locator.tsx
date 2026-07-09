@@ -697,7 +697,7 @@ export default function LocatorScreen() {
           <SkeletonBox width="100%" height={200} borderRadius={12} style={{ marginHorizontal: 16, marginTop: 12 }} />
           <SkeletonBox width={100} height={18} style={{ marginHorizontal: 16, marginTop: 16 }} />
           {[0, 1, 2, 3].map((i) => (
-            <View key={i} style={{ backgroundColor: "#fff", borderRadius: 8, padding: 14, marginHorizontal: 16, marginBottom: 12 }}>
+            <View key={i} style={{ backgroundColor: COLORS.background, borderRadius: 8, padding: 14, marginHorizontal: 16, marginBottom: 12 }}>
               <View style={{ flexDirection: "row" }}>
                 <SkeletonBox width={56} height={56} borderRadius={12} />
                 <View style={{ marginLeft: 12, justifyContent: "center", gap: 6 }}>
@@ -1097,7 +1097,7 @@ export default function LocatorScreen() {
           <View style={styles.calendarModalHeader}>
             <View style={styles.calendarHeaderContent}>
               <View style={styles.calendarHeaderIcon}>
-                <Ionicons name="calendar" size={24} color="#fff" />
+                <Ionicons name="calendar" size={24} color={COLORS.background} />
               </View>
               <View>
                 <Text style={styles.calendarModalTitle}>{t('home.eventsCalendar') || 'Select Dates'}</Text>
@@ -1107,7 +1107,7 @@ export default function LocatorScreen() {
               </View>
             </View>
             <Pressable style={styles.calendarCloseButton} onPress={() => setShowCalendar(false)}>
-              <Ionicons name="close" size={24} color="#fff" />
+              <Ionicons name="close" size={24} color={COLORS.background} />
             </Pressable>
           </View>
           <View style={styles.calendarBody}>
@@ -1275,7 +1275,7 @@ export default function LocatorScreen() {
               <Text style={styles.selectorText}>
                 {formRootGroup ? translateCategory(formRootGroup.slug, t) : t('locator.selectCategory')}
               </Text>
-              <Ionicons name="chevron-down" size={18} color="#6b7280" />
+              <Ionicons name="chevron-down" size={18} color={COLORS.textGray} />
             </Pressable>
             <Pressable
               style={styles.selector}
@@ -1285,7 +1285,7 @@ export default function LocatorScreen() {
               }}
             >
               <Text style={styles.selectorText}>{formSubLabel}</Text>
-              <Ionicons name="chevron-down" size={18} color="#6b7280" />
+              <Ionicons name="chevron-down" size={18} color={COLORS.textGray} />
             </Pressable>
             <TextInput
               placeholder={t('locator.address')}
@@ -1399,7 +1399,7 @@ export default function LocatorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.background,
   },
   sidebarLayout: {
     flex: 1,
@@ -1429,12 +1429,12 @@ const styles = StyleSheet.create({
   },
   tab: {
     borderRadius: 8,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.surfaceGray,
   },
   tabActive: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
   },
   tabContent: {
     flexDirection: "row",
@@ -1446,7 +1446,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: Platform.OS === "web" ? 15 : 14,
     fontWeight: "600",
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   tabTextActive: {
     color: COLORS.textPrimary,
@@ -1460,7 +1460,7 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1490,7 +1490,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
@@ -1532,13 +1532,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.surfaceGray,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
   },
   themeChipActive: {
     backgroundColor: COLORS.textPrimary,
@@ -1550,10 +1550,10 @@ const styles = StyleSheet.create({
   themeChipText: {
     fontSize: Platform.OS === "web" ? 13 : 12,
     fontWeight: "600",
-    color: "#374151",
+    color: COLORS.textDark,
   },
   themeChipTextActive: {
-    color: "#ffffff",
+    color: COLORS.textLight,
   },
   
   // Category Filter Styles
@@ -1569,16 +1569,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
   },
   categoryButtonText: {
     fontSize: Platform.OS === "web" ? 14 : 13,
     fontWeight: "600",
-    color: "#374151",
+    color: COLORS.textDark,
   },
   
   // Marker Toggle Styles
@@ -1596,9 +1596,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
   },
   markerToggleActive: {
     borderColor: COLORS.primaryDark,
@@ -1612,7 +1612,7 @@ const styles = StyleSheet.create({
   markerToggleText: {
     fontSize: Platform.OS === "web" ? 13 : 12,
     fontWeight: "600",
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   markerToggleTextActive: {
     color: COLORS.primaryDark,
@@ -1647,7 +1647,7 @@ const styles = StyleSheet.create({
   calendarModalTitle: {
     fontSize: Platform.OS === "web" ? 20 : 18,
     fontWeight: "700",
-    color: "#fff",
+    color: COLORS.background,
   },
   calendarModalSubtitle: {
     fontSize: Platform.OS === "web" ? 14 : 13,
@@ -1659,7 +1659,7 @@ const styles = StyleSheet.create({
   },
   calendarBody: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     marginTop: 8,
   },
   calendarList: {
@@ -1669,16 +1669,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 16,
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: COLORS.borderGray,
   },
   calendarActionButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.surfaceGray,
   },
   calendarApplyButton: {
     backgroundColor: COLORS.primaryDark,
@@ -1686,10 +1686,10 @@ const styles = StyleSheet.create({
   calendarActionButtonText: {
     fontSize: Platform.OS === "web" ? 16 : 15,
     fontWeight: "600",
-    color: "#374151",
+    color: COLORS.textDark,
   },
   calendarApplyButtonText: {
-    color: "#fff",
+    color: COLORS.background,
   },
   
   // Legacy styles (kept for compatibility)
@@ -1703,7 +1703,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: 6,
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   dateFilterContainer: {
     flexDirection: "row",
@@ -1716,7 +1716,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1742,13 +1742,13 @@ const styles = StyleSheet.create({
   },
   dateInputLabel: {
     fontSize: Platform.OS === "web" ? 13 : 12,
-    color: "#6b7280",
+    color: COLORS.textGray,
     marginBottom: 4,
   },
   dateInput: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1765,7 +1765,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 6,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1784,13 +1784,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   primaryButtonText: {
-    color: "#fff",
+    color: COLORS.background,
     fontWeight: "600",
   },
   helperChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -1804,7 +1804,7 @@ const styles = StyleSheet.create({
     height: 200,
     marginHorizontal: 16,
     borderRadius: 16,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
@@ -1816,7 +1816,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   webNoticeSubtext: {
-    color: "#9ca3af",
+    color: COLORS.textPlaceholder,
     fontSize: Platform.OS === "web" ? 14 : 13,
   },
   list: {
@@ -1830,13 +1830,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyState: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     padding: 20,
     borderRadius: 16,
     alignItems: "center",
   },
   emptyText: {
-    color: "#9ca3af",
+    color: COLORS.textPlaceholder,
     marginBottom: 12,
   },
   emptyBackButton: {
@@ -1847,11 +1847,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   emptyBackButtonText: {
-    color: "#fff",
+    color: COLORS.background,
     fontWeight: "600",
   },
   businessCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     padding: 14,
     marginBottom: 12,
     borderRadius: 8,
@@ -1875,7 +1875,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   businessPhotoText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: Platform.OS === "web" ? 24 : 20,
     fontWeight: "700",
   },
@@ -1889,7 +1889,7 @@ const styles = StyleSheet.create({
   whatsappShareButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#dcfce7",
+    backgroundColor: COLORS.statusOpenBg,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1898,7 +1898,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1912,7 +1912,7 @@ const styles = StyleSheet.create({
     fontSize: Platform.OS === "web" ? 13 : 12,
   },
   businessAddress: {
-    color: "#6b7280",
+    color: COLORS.textGray,
     fontSize: Platform.OS === "web" ? 13 : 12,
     marginTop: 2,
   },
@@ -1934,7 +1934,7 @@ const styles = StyleSheet.create({
   },
   modalItem: {
     padding: 14,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderRadius: 12,
     marginBottom: 8,
   },
@@ -1947,7 +1947,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   moduleChip: {
-    backgroundColor: "#e0e7ff",
+    backgroundColor: COLORS.primaryTint,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
@@ -1955,7 +1955,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   moduleChipText: {
-    color: "#3730a3",
+    color: COLORS.indigoText,
     fontSize: 11,
     fontWeight: "600",
   },
@@ -1966,14 +1966,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   subscriptionText: {
-    color: "#6b7280",
+    color: COLORS.textGray,
     fontSize: 12,
   },
   subscriptionButton: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
   },
   subscriptionButtonText: {
     color: COLORS.primaryDark,
@@ -1981,17 +1981,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   suggestionBox: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     marginBottom: 12,
     overflow: "hidden",
   },
   suggestionItem: {
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: COLORS.surfaceGray,
   },
   suggestionText: {
     color: COLORS.textPrimary,
@@ -2000,7 +2000,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalSubtitle: {
-    color: "#6b7280",
+    color: COLORS.textGray,
     marginBottom: 12,
   },
   planRow: {
@@ -2010,14 +2010,14 @@ const styles = StyleSheet.create({
   planCard: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     borderRadius: 12,
     padding: 12,
     marginRight: 10,
   },
   planCardActive: {
     borderColor: COLORS.primaryDark,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
   },
   planTitle: {
     fontWeight: "600",
@@ -2033,7 +2033,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     alignItems: "center",
   },
   secondaryButtonText: {
@@ -2042,25 +2042,25 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
   },
   selector: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     borderRadius: 12,
     marginBottom: 12,
   },
   selectorText: {
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -2072,10 +2072,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 12,
     padding: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     shadowColor: "#2B075F",
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -2085,7 +2085,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2093,7 +2093,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -2103,7 +2103,7 @@ const styles = StyleSheet.create({
   },
   locationLabel: {
     fontSize: 12,
-    color: "#9ca3af",
+    color: COLORS.textPlaceholder,
   },
   locationName: {
     fontSize: 15,
@@ -2121,7 +2121,7 @@ const styles = StyleSheet.create({
   locationRadiusText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#10b981",
+    color: COLORS.success,
   },
   // Location Modal Styles
   liveLocationButton: {
@@ -2132,13 +2132,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#86efac",
+    borderColor: COLORS.liveGreenBorder,
   },
   liveLocationIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#10b981",
+    backgroundColor: COLORS.success,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -2153,7 +2153,7 @@ const styles = StyleSheet.create({
   },
   liveLocationSubtitle: {
     fontSize: 13,
-    color: "#6b7280",
+    color: COLORS.textGray,
     marginTop: 2,
   },
   locationSearchContainer: {
@@ -2161,7 +2161,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 16,
     paddingHorizontal: 12,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.surfaceGray,
     borderRadius: 12,
     height: 48,
   },
@@ -2181,7 +2181,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: COLORS.surfaceGray,
   },
   locationSuggestionText: {
     flex: 1,
@@ -2195,7 +2195,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     borderRadius: 8,
   },
   currentLocationText: {
@@ -2213,7 +2213,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     borderRadius: 12,
     padding: 4,
   },
@@ -2236,7 +2236,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryDark,
   },
   toggleTextActive: {
-    color: "#fff",
+    color: COLORS.background,
   },
   // Artist Search Styles
   artistSearchContainer: {
@@ -2246,12 +2246,12 @@ const styles = StyleSheet.create({
   citySearchBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     shadowColor: "#2B075F",
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -2271,7 +2271,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#10b981",
+    backgroundColor: COLORS.success,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 12,
@@ -2279,13 +2279,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nearMeButtonText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 15,
     fontWeight: "600",
   },
   searchHint: {
     fontSize: 12,
-    color: "#9ca3af",
+    color: COLORS.textPlaceholder,
     marginTop: 8,
     textAlign: "center",
   },
@@ -2303,7 +2303,7 @@ const styles = StyleSheet.create({
   },
   searchResultsSubtitle: {
     fontSize: 14,
-    color: "#6b7280",
+    color: COLORS.textGray,
     marginTop: 4,
   },
   searchSection: {
@@ -2318,7 +2318,7 @@ const styles = StyleSheet.create({
   artistCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     padding: 14,
     marginBottom: 10,
   },
@@ -2336,7 +2336,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   artistPhotoText: {
-    color: "#fff",
+    color: COLORS.background,
     fontSize: 20,
     fontWeight: "700",
   },
@@ -2351,7 +2351,7 @@ const styles = StyleSheet.create({
   },
   artistTown: {
     fontSize: 13,
-    color: "#6b7280",
+    color: COLORS.textGray,
     marginTop: 2,
   },
   genresRow: {
@@ -2361,7 +2361,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   genreChip: {
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
@@ -2378,15 +2378,15 @@ const styles = StyleSheet.create({
   distanceText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#10b981",
+    color: COLORS.success,
   },
   postCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     padding: 14,
     borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
   },
   postHeader: {
     flexDirection: "row",
@@ -2414,7 +2414,7 @@ const styles = StyleSheet.create({
   },
   postText: {
     fontSize: 14,
-    color: "#374151",
+    color: COLORS.textDark,
     lineHeight: 20,
   },
   postStats: {
@@ -2424,7 +2424,7 @@ const styles = StyleSheet.create({
   },
   postStat: {
     fontSize: 12,
-    color: "#6b7280",
+    color: COLORS.textGray,
   },
   noResults: {
     alignItems: "center",
@@ -2433,16 +2433,16 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#374151",
+    color: COLORS.textDark,
     marginTop: 12,
   },
   noResultsHint: {
     fontSize: 14,
-    color: "#9ca3af",
+    color: COLORS.textPlaceholder,
     marginTop: 4,
   },
   eventCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     padding: 14,
     marginBottom: 12,
     borderRadius: 8,
@@ -2459,7 +2459,7 @@ const styles = StyleSheet.create({
   eventPhotoPlaceholder: {
     width: 64,
     height: 64,
-    backgroundColor: "#FF6B6B",
+    backgroundColor: COLORS.accentCoral,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2469,7 +2469,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   eventDate: {
-    color: "#6b7280",
+    color: COLORS.textGray,
     fontSize: 13,
     marginTop: 2,
   },
@@ -2488,7 +2488,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primaryTintDark,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -2498,7 +2498,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryDark,
   },
   activityCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
     padding: 14,
     marginBottom: 12,
     borderRadius: 8,
@@ -2515,7 +2515,7 @@ const styles = StyleSheet.create({
   activityPhotoPlaceholder: {
     width: 64,
     height: 64,
-    backgroundColor: "#7c3aed",
+    backgroundColor: COLORS.accentViolet,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2525,7 +2525,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   activityDate: {
-    color: "#6b7280",
+    color: COLORS.textGray,
     fontSize: 13,
     marginTop: 2,
   },
@@ -2548,7 +2548,7 @@ const styles = StyleSheet.create({
   rsvpText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#10b981",
+    color: COLORS.success,
   },
   artistCardContent: {
     flexDirection: "row",
@@ -2561,8 +2561,8 @@ const styles = StyleSheet.create({
   },
   recenterFab: {
     position: "absolute",
-    right: SPACING.md,
-    bottom: SPACING.md,
+    right: SPACING.small,
+    bottom: SPACING.small,
     width: Platform.OS === "web" ? 48 : 44,
     height: Platform.OS === "web" ? 48 : 44,
     borderRadius: Platform.OS === "web" ? 24 : 22,
@@ -2645,7 +2645,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: COLORS.surfaceSoft,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.borderGray,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2658,7 +2658,7 @@ const styles = StyleSheet.create({
   },
   categoryGridLabel: {
     fontSize: 12,
-    color: "#374151",
+    color: COLORS.textDark,
   },
   categoryGridLabelSelected: {
     fontSize: 12,
@@ -2743,43 +2743,43 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   openBadgeOpen: {
-    backgroundColor: "#dcfce7",
+    backgroundColor: COLORS.statusOpenBg,
   },
   openBadgeClosed: {
-    backgroundColor: "#fee2e2",
+    backgroundColor: COLORS.statusClosedBg,
   },
   openBadgeText: {
     fontSize: 10,
     fontWeight: "600",
   },
   openBadgeTextOpen: {
-    color: "#166534",
+    color: COLORS.statusOpenText,
   },
   openBadgeTextClosed: {
-    color: "#991b1b",
+    color: COLORS.statusClosedText,
   },
   searchBarSection: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.xs,
+    paddingHorizontal: SPACING.small,
+    paddingTop: SPACING.small,
+    paddingBottom: SPACING.tiny,
     backgroundColor: COLORS.background,
   },
   locationSearchDropdown: {
-    marginTop: SPACING.xs,
+    marginTop: SPACING.tiny,
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
     ...SHADOWS.subtle,
   },
   locationSearchBtn: {
-    padding: SPACING.xs,
-    marginLeft: SPACING.xs,
+    padding: SPACING.tiny,
+    marginLeft: SPACING.tiny,
   },
   locationSearchBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-    gap: SPACING.sm,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
+    gap: SPACING.small,
   },
   locationSearchResults: {
     maxHeight: 200,
@@ -2789,9 +2789,9 @@ const styles = StyleSheet.create({
   locationSearchItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+    gap: SPACING.small,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
   },
   locationSearchItemText: {
     fontSize: FONT_SIZES.bodySmall,
@@ -2802,6 +2802,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardScrollContent: {
-    paddingBottom: SPACING.md,
+    paddingBottom: SPACING.small,
   },
 });

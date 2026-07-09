@@ -4,7 +4,31 @@ export const getServices = async (token: string, businessId?: string, type?: str
   const params = new URLSearchParams();
   if (businessId) params.append("business_id", businessId);
   if (type) params.append("type", type);
-  return apiRequest<Service[]>(`/services${params.toString() ? `?${params}` : ""}`, "GET", token);
+  const data = await apiRequest<any>(`/services${params.toString() ? `?${params}` : ""}`, "GET", token);
+  return Array.isArray(data) ? data : (data.services || []);
+};
+
+export const getNearbyServices = async (
+  token: string,
+  bounds?: { minLat?: number; maxLat?: number; minLng?: number; maxLng?: number },
+  location?: { latitude?: number; longitude?: number },
+  skip?: number,
+  limit?: number
+): Promise<{ services: Service[]; total: number }> => {
+  const params = new URLSearchParams();
+  if (bounds) {
+    if (bounds.minLat !== undefined) params.append("min_lat", String(bounds.minLat));
+    if (bounds.maxLat !== undefined) params.append("max_lat", String(bounds.maxLat));
+    if (bounds.minLng !== undefined) params.append("min_lng", String(bounds.minLng));
+    if (bounds.maxLng !== undefined) params.append("max_lng", String(bounds.maxLng));
+  }
+  if (location) {
+    if (location.latitude !== undefined) params.append("latitude", String(location.latitude));
+    if (location.longitude !== undefined) params.append("longitude", String(location.longitude));
+  }
+  if (skip !== undefined) params.append("skip", String(skip));
+  if (limit !== undefined) params.append("limit", String(limit));
+  return apiRequest<{ services: Service[]; total: number }>(`/services?${params.toString()}`, "GET", token);
 };
 
 export const getServiceDetail = async (serviceId: string): Promise<Service> => {

@@ -155,7 +155,7 @@ export default function SubscriptionTab({
         </View>
       </View>
 
-      <View style={{ height: SPACING.huge }} />
+      <View style={{ height: SPACING.large }} />
     </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -167,13 +167,13 @@ const s = StyleSheet.create({
   },
   planCard: {
     borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.xl,
-    marginBottom: SPACING.lg,
+    padding: SPACING.std,
+    marginBottom: SPACING.compact,
   },
   planHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.lg,
+    gap: SPACING.compact,
   },
   planInfo: {
     flex: 1,
@@ -182,16 +182,16 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.textMuted,
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.tiny,
   },
   planBadgeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   planBadge: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.tiny,
     borderRadius: BORDER_RADIUS.full,
   },
   planBadgeText: {
@@ -205,21 +205,21 @@ const s = StyleSheet.create({
   },
   sectionCard: {
     borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.xl,
-    marginBottom: SPACING.lg,
+    padding: SPACING.std,
+    marginBottom: SPACING.compact,
   },
   sectionTitle: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.compact,
   },
   featuresGrid: {
-    gap: SPACING.lg,
+    gap: SPACING.compact,
   },
   featureItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: SPACING.md,
+    gap: SPACING.small,
   },
   featureIconWrap: {
     width: 36,
@@ -231,7 +231,7 @@ const s = StyleSheet.create({
   },
   featureTextWrap: {
     flex: 1,
-    paddingTop: SPACING.xs,
+    paddingTop: SPACING.tiny,
   },
   featureTitle: {
     fontSize: FONT_SIZES.bodySmall,
@@ -247,7 +247,7 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.medium as any,
     color: COLORS.warning,
     backgroundColor: COLORS.warningLight,
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.small,
     paddingVertical: 1,
     borderRadius: BORDER_RADIUS.sm,
     overflow: "hidden",
@@ -256,20 +256,20 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.bodySmall,
     color: COLORS.textSecondary,
     lineHeight: 22,
-    marginBottom: SPACING.xs,
-    paddingLeft: SPACING.lg,
+    marginBottom: SPACING.tiny,
+    paddingLeft: SPACING.compact,
   },
   voucherRow: {
     flexDirection: "row",
-    gap: SPACING.sm,
+    gap: SPACING.small,
   },
   voucherInput: {
     flex: 1,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.mdLg,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.compact,
     fontSize: FONT_SIZES.body,
     color: COLORS.textPrimary,
     backgroundColor: COLORS.backgroundPage,
@@ -277,7 +277,7 @@ const s = StyleSheet.create({
   voucherBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.std,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -292,10 +292,10 @@ const s = StyleSheet.create({
   upgradeCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.lg,
+    gap: SPACING.compact,
     borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.xl,
-    marginBottom: SPACING.lg,
+    padding: SPACING.std,
+    marginBottom: SPACING.compact,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderStyle: "dashed",

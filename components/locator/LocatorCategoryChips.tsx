@@ -120,13 +120,13 @@ export default function LocatorCategoryChips({ chips, selectedKey, onSelect }: P
 const styles = StyleSheet.create({
   wrapper: {
     position: "relative",
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.small,
   },
   container: {
     position: "relative",
   },
   scrollContent: {
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.std,
     gap: Platform.OS === "web" ? 16 : 12,
     alignItems: "center",
     paddingBottom: 8,

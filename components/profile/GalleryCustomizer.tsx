@@ -107,8 +107,8 @@ const DraggableItem: React.FC<DraggableItemProps> = React.memo(({
           <View style={styles.videoWrapper}>
             <AdaptiveVideo
               uri={item.uri}
+              autoPlay
               style={styles.itemImage}
-              autoPlay={false}
               showMuteButton={false}
             />
             <View style={styles.playOverlay}>
@@ -170,7 +170,7 @@ export const GalleryCustomizer: React.FC<GalleryCustomizerProps> = ({
   title,
   primaryColor = COLORS.primaryDark,
   textColor = COLORS.textPrimary,
-  cardColor = "#ffffff",
+  cardColor = COLORS.background,
 }) => {
   const { t } = useTranslation();
   const [zoomVisible, setZoomVisible] = useState(false);

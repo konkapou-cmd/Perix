@@ -9,6 +9,9 @@ import TopNavbar from "../../components/TopNavbar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
 import { useRouter } from "expo-router";
+import { useAuth } from "../../context/AuthContext";
+import { useState } from "react";
+import BusinessActionsModal, { BusinessAction } from "../../components/business/BusinessActionsModal";
 
 function TabBarBackground() {
   return (
@@ -63,6 +66,29 @@ export default function TabsLayout() {
   const showTopNavbar = isDesktop && Platform.OS === "web";
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { activeIdentity } = useAuth();
+  const [showBizActions, setShowBizActions] = useState(false);
+  const isBusiness = activeIdentity?.type === "business";
+
+  const handleBizAction = (action: BusinessAction) => {
+    switch (action) {
+      case "cityad":
+        router.push("/camera");
+        break;
+      case "event":
+        router.replace({ pathname: "/(tabs)/profile", params: { openEvent: "1", t: Date.now().toString() } as any });
+        break;
+      case "job":
+        router.replace({ pathname: "/(tabs)/profile", params: { openJob: "1", t: Date.now().toString() } as any });
+        break;
+      case "service":
+        router.replace({ pathname: "/(tabs)/profile", params: { openService: "1", t: Date.now().toString() } as any });
+        break;
+      case "bookings":
+        router.replace({ pathname: "/(tabs)/profile", params: { openBookings: "1", t: Date.now().toString() } as any });
+        break;
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -76,7 +102,7 @@ export default function TabsLayout() {
           screenOptions={{
             headerShown: false,
             tabBarActiveTintColor: COLORS.primaryDark,
-            tabBarInactiveTintColor: "#666666",
+            tabBarInactiveTintColor: COLORS.textSecondary,
             tabBarStyle: showTopNavbar ? { display: "none" } : {
               position: "absolute",
               bottom: 0,
@@ -137,7 +163,13 @@ export default function TabsLayout() {
           <Tabs.Screen
             name="jobs"
             options={{
-              tabBarIcon: ({ color, size, focused }) => (
+              tabBarItemStyle: !isBusiness ? { display: "none" } : undefined,
+              tabBarButton: isBusiness
+                ? (props: any) => (
+                    <Pressable {...props} onPress={() => setShowBizActions(true)} />
+                  )
+                : undefined,
+              tabBarIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
                 <JobsTabIcon color={color} size={size} filled={focused} />
               ),
               lazy: true,
@@ -146,6 +178,7 @@ export default function TabsLayout() {
           <Tabs.Screen
             name="create"
             options={{
+              tabBarItemStyle: isBusiness ? { display: "none" } : undefined,
               tabBarIcon: ({ color, size, focused }) => (
                 <CameraTabIcon color={color} size={size} filled={focused} />
               ),
@@ -154,6 +187,12 @@ export default function TabsLayout() {
           />
         </Tabs>
       </View>
+
+      <BusinessActionsModal
+        visible={showBizActions}
+        onClose={() => setShowBizActions(false)}
+        onAction={handleBizAction}
+      />
     </View>
   );
 }

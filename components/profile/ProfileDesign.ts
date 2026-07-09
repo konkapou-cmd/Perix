@@ -1,28 +1,30 @@
+import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
+
 export const PROFILE = {
-  COVER_HEIGHT: 200,
-  AVATAR_SIZE: 100,
-  AVATAR_BOTTOM_OFFSET: -50,
-  HEADER_OVERLAP: 50,
-  TAB_BAR_HEIGHT: 48,
-  TAB_ACTIVE_COLOR: "#5B16C9",
-  TAB_INACTIVE_COLOR: "#5D5575",
-  CARD_RADIUS: 16,
-  BUTTON_RADIUS: 12,
+  COVER_ASPECT_RATIO: 3,
+  AVATAR_SIZE: 112,
+  AVATAR_BOTTOM_OFFSET: -56,
+  HEADER_OVERLAP: 56,
+  TAB_BAR_HEIGHT: 56,
+  TAB_ACTIVE_COLOR: COLORS.primary,
+  TAB_INACTIVE_COLOR: COLORS.textSecondary,
+  CARD_RADIUS: BORDER_RADIUS.card,
+  BUTTON_RADIUS: BORDER_RADIUS.button,
   SECTION_GAP: 20,
-  HORIZONTAL_PADDING: 20,
+  HORIZONTAL_PADDING: 24,
 } as const;
 
 export const PROFILE_COLORS = {
-  PRIMARY: "#5B16C9",
-  BG: "#ffffff",
-  CARD: "#ffffff",
-  TEXT: "#120A35",
-  TEXT_SECONDARY: "#6E6688",
-  BORDER: "#E7DFF2",
-  DANGER: "#ef4444",
-  WARNING: "#FFC400",
-  SUCCESS: "#10b981",
-  GOLD: "#FFC400",
+  PRIMARY: COLORS.primary,
+  BG: COLORS.background,
+  CARD: COLORS.background,
+  TEXT: COLORS.textPrimary,
+  TEXT_SECONDARY: COLORS.textSecondary,
+  BORDER: COLORS.border,
+  DANGER: COLORS.danger,
+  WARNING: COLORS.warning,
+  SUCCESS: COLORS.success,
+  GOLD: COLORS.gold,
 } as const;
 
 export type ProfileColors = typeof PROFILE_COLORS;
