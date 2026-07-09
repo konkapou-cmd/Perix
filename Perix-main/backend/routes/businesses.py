@@ -1,4 +1,5 @@
 """Business routes."""
+import asyncio
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional, Dict, Any
 from datetime import timedelta
@@ -15,6 +16,8 @@ from models.business import BusinessCreate, BusinessUpdate, BusinessResponse, Bu
 from models.post import PostResponse
 from models.event import EventResponse
 from routes.jobs import job_response
+from models.service import ServiceResponse
+from routes.rentals import service_to_rental, RENTAL_SERVICE_TYPES
 from utils.helpers import generate_id, now_utc, normalize_datetime
 from routes.dependencies import get_current_user, build_user_public
 
@@ -27,6 +30,7 @@ def build_business_response(business_doc: Dict) -> BusinessResponse:
         "description": None,
         "logo_image": None,
         "cover_image": None,
+        "cover_focal_point": {"x": 0.5, "y": 0.5},
         "phone": None,
         "website": None,
         "email": None,
@@ -42,15 +46,20 @@ def build_business_response(business_doc: Dict) -> BusinessResponse:
             "tickets": False,
             "jobs": False,
             "bookings": False,
+            "services": False,
+            "menu": False,
             "rentals": False,
             "gym": False,
             "salon": False,
+            "service_types": [],
         },
         "subscription_status": business_doc.get("subscription_status", "trial"),
         "trial_expires_at": business_doc.get("trial_expires_at"),
         "plan_type": business_doc.get("plan_type"),
         "subscription_expires_at": business_doc.get("subscription_expires_at"),
         "favorites_count": len(business_doc.get("favorites", [])),
+        "friends": business_doc.get("friends", []),
+        "friends_count": len(business_doc.get("friends", [])),
         "theme": business_doc.get("theme"),
     }
     for key, value in defaults.items():
@@ -106,6 +115,7 @@ async def create_business(
         raise HTTPException(status_code=400, detail="Subcategory does not match root category")
 
     trial_expires_at = now_utc() + timedelta(days=90)
+    modules = category_info.get("modules", {})
     business_doc = {
         "business_id": generate_id("biz"),
         "owner_id": current_user.user_id,
@@ -114,8 +124,10 @@ async def create_business(
         "root_category": category_info["root_slug"],
         "subcategory": category_info["slug"],
         "description": payload.description,
+        "service_types": category_info.get("service_types", []),
         "logo_image": payload.logo_image,
         "cover_image": payload.cover_image,
+        "cover_focal_point": payload.cover_focal_point.dict() if payload.cover_focal_point else {"x": 0.5, "y": 0.5},
         "phone": payload.phone,
         "website": payload.website,
         "email": payload.email,
@@ -132,7 +144,7 @@ async def create_business(
             "coordinates": [payload.longitude, payload.latitude],
         },
         "created_at": now_utc(),
-        "enabled_modules": category_info["modules"],
+        "enabled_modules": modules,
         "subscription_status": "trial",
         "trial_expires_at": trial_expires_at,
         "plan_type": None,
@@ -167,6 +179,7 @@ async def update_business(
         update_data["root_category"] = category_info["root_slug"]
         update_data["category"] = category_info["name"]
         update_data["enabled_modules"] = category_info["modules"]
+        update_data["service_types"] = category_info.get("service_types", [])
     
     if "latitude" in update_data or "longitude" in update_data:
         latitude = update_data.get("latitude", business.get("latitude"))
@@ -328,56 +341,20 @@ async def get_my_business(current_user: UserPublic = Depends(get_current_user)):
 async def get_business(
     business_id: str, current_user: UserPublic = Depends(get_current_user)
 ):
-    business = await db.businesses.find_one({"business_id": business_id}, {"_id": 0})
+    business, events, jobs, rental_services, services, posts = await asyncio.gather(
+        db.businesses.find_one({"business_id": business_id}, {"_id": 0}),
+        db.events.find({"business_id": business_id}, {"_id": 0}).sort("start_time", 1).to_list(100),
+        db.jobs.find({"business_id": business_id, "is_active": True}, {"_id": 0}).sort("created_at", -1).to_list(100),
+        db.services.find({"business_id": business_id, "type": {"$in": list(RENTAL_SERVICE_TYPES)}, "is_active": True}, {"_id": 0}).sort("created_at", -1).to_list(100),
+        db.services.find({"business_id": business_id, "is_active": True}, {"_id": 0}).sort("created_at", -1).to_list(100),
+        db.posts.find({"$or": [{"business_id": business_id}, {"actor_type": "business", "actor_id": business_id}]}, {"_id": 0}).sort("created_at", -1).to_list(100),
+    )
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
-    
-    events = await db.events.find(
-        {"business_id": business_id}, {"_id": 0}
-    ).sort("start_time", 1).to_list(100)
-    
-    jobs = await db.jobs.find(
-        {"business_id": business_id, "is_active": True}, {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
 
-    rentals = await db.rentals.find(
-        {"business_id": business_id}, {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
+    rental_responses = [service_to_rental(s, business) for s in rental_services]
 
-    rental_responses = []
-    for r in rentals:
-        rental_responses.append({
-            "rental_id": r.get("rental_id", ""),
-            "business_id": r.get("business_id", ""),
-            "business_name": r.get("business_name"),
-            "business_logo": r.get("business_logo"),
-            "title": r.get("title", ""),
-            "description": r.get("description"),
-            "cover_image": r.get("cover_image"),
-            "rent_price": r.get("rent_price"),
-            "rooms_size": r.get("rooms_size"),
-            "address": r.get("address"),
-            "latitude": r.get("latitude"),
-            "longitude": r.get("longitude"),
-            "available_from": r.get("available_from"),
-            "deposit": r.get("deposit"),
-            "property_type": r.get("property_type"),
-            "gallery_images": r.get("gallery_images", []),
-            "is_active": r.get("is_active", True),
-            "created_at": str(r.get("created_at", "")),
-            "root_category": r.get("root_category"),
-            "subcategory": r.get("subcategory"),
-        })
-
-    # DEBUG: Log what's being searched for
-    logger.debug(f"[DEBUG] get_business: Searching posts for business_id={business_id}")
-    
-    posts = await db.posts.find(
-        {"$or": [
-            {"business_id": business_id},
-            {"actor_type": "business", "actor_id": business_id}
-        ]}, {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
+    logger.debug(f"[DEBUG] get_business: Found {len(posts)} posts for business_id={business_id}")
     
     logger.debug(f"[DEBUG] get_business: Found {len(posts)} posts for business_id={business_id}")
     for p in posts[:3]:
@@ -425,12 +402,15 @@ async def get_business(
     is_owner = business.get("owner_id") == current_user.user_id
     is_favorited = current_user.user_id in business.get("favorites", [])
     
+    service_responses = [ServiceResponse(**s).model_dump(mode="json") for s in services]
+
     return BusinessDetail(
         business=build_business_response(business),
         events=event_responses,
         posts=post_responses,
         jobs=job_responses,
         rentals=rental_responses,
+        services=service_responses,
         is_owner=is_owner,
         is_favorited=is_favorited,
     )

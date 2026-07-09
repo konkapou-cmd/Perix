@@ -1,45 +1,14 @@
 """Services, Time Slots, and Bookings models."""
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
+from models.focal_point import FocalPoint
 
 
 class ServiceCreate(BaseModel):
     business_id: str
-    type: str  # "room" | "appointment" | "class" | "consultation" | "menu"
-    name: str
-    description: Optional[str] = None
-    price: Optional[str] = None
-    duration_minutes: Optional[int] = None
-    capacity: Optional[int] = None
-    facilities: List[str] = []
-    beds: Optional[int] = None
-    room_size: Optional[str] = None
-    room_number: Optional[str] = None
-    menu_category: Optional[str] = None  # starter | main | dessert | drink | side
-    dietary_tags: List[str] = []
-    images: List[str] = []
-
-
-class ServiceUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    price: Optional[str] = None
-    duration_minutes: Optional[int] = None
-    capacity: Optional[int] = None
-    facilities: Optional[List[str]] = None
-    beds: Optional[int] = None
-    room_size: Optional[str] = None
-    room_number: Optional[str] = None
-    menu_category: Optional[str] = None
-    dietary_tags: Optional[List[str]] = None
-    images: Optional[List[str]] = None
-    is_active: Optional[bool] = None
-
-
-class ServiceResponse(BaseModel):
-    service_id: str
-    business_id: str
+    root_category: Optional[str] = None
+    subcategory: Optional[str] = None
     type: str
     name: str
     description: Optional[str] = None
@@ -52,9 +21,220 @@ class ServiceResponse(BaseModel):
     room_number: Optional[str] = None
     menu_category: Optional[str] = None
     dietary_tags: List[str] = []
-    images: List[str] = []
+    image_urls: List[str] = []
+    cover_image_url: Optional[str] = None
+    gallery_images: List[str] = []
+    gallery_videos: List[str] = []
+    video_url: Optional[str] = None
+    mux_thumbnail_url: Optional[str] = None
+    video_status: Optional[str] = None
+    # Per-category fields
+    instructor: Optional[str] = None
+    difficulty_level: Optional[str] = None
+    specialist_name: Optional[str] = None
+    service_category: Optional[str] = None
+    consultation_type: Optional[str] = None
+    meeting_type: Optional[str] = None
+    bedrooms: Optional[int] = None
+    bathrooms: Optional[int] = None
+    size_sqm: Optional[int] = None
+    floor: Optional[int] = None
+    furnished: Optional[bool] = None
+    available_from: Optional[str] = None
+    lease_duration: Optional[str] = None
+    max_guests: Optional[int] = None
+    property_type: Optional[str] = None
+    deposit: Optional[str] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+    year: Optional[int] = None
+    mileage_km: Optional[int] = None
+    fuel_type: Optional[str] = None
+    transmission: Optional[str] = None
+    stock_status: Optional[str] = None
+    brand: Optional[str] = None
+    condition: Optional[str] = None
+    treatment_type: Optional[str] = None
+    session_type: Optional[str] = None
+    calories: Optional[int] = None
+    allergens: List[str] = []
+    spice_level: Optional[int] = None
+    # Extended per-category fields
+    duration_days: Optional[int] = None
+    duration_months: Optional[int] = None
+    includes: Optional[str] = None
+    visits_included: Optional[int] = None
+    valid_days: Optional[int] = None
+    included_services: Optional[List[str]] = Field(default_factory=list)
+    sessions_count: Optional[int] = None
+    duration_per_session: Optional[int] = None
+    special_requests: Optional[str] = None
+    pickup_location: Optional[str] = None
+    dropoff_location: Optional[str] = None
+    reason_for_visit: Optional[str] = None
+    insurance_info: Optional[str] = None
+    pet_name: Optional[str] = None
+    pet_type: Optional[str] = None
+    status: Optional[str] = None
+    sort_order: Optional[int] = Field(default=0)
+    cover_focal_point: Optional[FocalPoint] = None
+
+
+class ServiceUpdate(BaseModel):
+    root_category: Optional[str] = None
+    subcategory: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    capacity: Optional[int] = None
+    facilities: Optional[List[str]] = None
+    beds: Optional[int] = None
+    room_size: Optional[str] = None
+    room_number: Optional[str] = None
+    menu_category: Optional[str] = None
+    dietary_tags: Optional[List[str]] = None
+    image_urls: Optional[List[str]] = None
+    cover_image_url: Optional[str] = None
+    gallery_images: Optional[List[str]] = None
+    gallery_videos: Optional[List[str]] = None
+    video_url: Optional[str] = None
+    mux_thumbnail_url: Optional[str] = None
+    video_status: Optional[str] = None
+    is_active: Optional[bool] = None
+    instructor: Optional[str] = None
+    difficulty_level: Optional[str] = None
+    specialist_name: Optional[str] = None
+    service_category: Optional[str] = None
+    consultation_type: Optional[str] = None
+    meeting_type: Optional[str] = None
+    bedrooms: Optional[int] = None
+    bathrooms: Optional[int] = None
+    size_sqm: Optional[int] = None
+    floor: Optional[int] = None
+    furnished: Optional[bool] = None
+    available_from: Optional[str] = None
+    lease_duration: Optional[str] = None
+    max_guests: Optional[int] = None
+    property_type: Optional[str] = None
+    deposit: Optional[str] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+    year: Optional[int] = None
+    mileage_km: Optional[int] = None
+    fuel_type: Optional[str] = None
+    transmission: Optional[str] = None
+    stock_status: Optional[str] = None
+    brand: Optional[str] = None
+    condition: Optional[str] = None
+    treatment_type: Optional[str] = None
+    session_type: Optional[str] = None
+    calories: Optional[int] = None
+    allergens: Optional[List[str]] = None
+    spice_level: Optional[int] = None
+    duration_days: Optional[int] = None
+    duration_months: Optional[int] = None
+    includes: Optional[str] = None
+    visits_included: Optional[int] = None
+    valid_days: Optional[int] = None
+    included_services: Optional[List[str]] = Field(default_factory=list)
+    sessions_count: Optional[int] = None
+    duration_per_session: Optional[int] = None
+    special_requests: Optional[str] = None
+    pickup_location: Optional[str] = None
+    dropoff_location: Optional[str] = None
+    reason_for_visit: Optional[str] = None
+    insurance_info: Optional[str] = None
+    pet_name: Optional[str] = None
+    pet_type: Optional[str] = None
+    status: Optional[str] = None
+    sort_order: Optional[int] = None
+    cover_focal_point: Optional[FocalPoint] = None
+
+
+class ServiceResponse(BaseModel):
+    service_id: str
+    business_id: str
+    root_category: Optional[str] = None
+    subcategory: Optional[str] = None
+    type: str
+    name: str
+    description: Optional[str] = None
+    price: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    capacity: Optional[int] = None
+    facilities: List[str] = []
+    beds: Optional[int] = None
+    room_size: Optional[str] = None
+    room_number: Optional[str] = None
+    menu_category: Optional[str] = None
+    dietary_tags: List[str] = []
+    image_urls: List[str] = []
+    cover_image_url: Optional[str] = None
+    gallery_images: List[str] = []
+    gallery_videos: List[str] = []
+    video_url: Optional[str] = None
+    mux_thumbnail_url: Optional[str] = None
+    video_status: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
     is_active: bool = True
     created_at: datetime
+    instructor: Optional[str] = None
+    difficulty_level: Optional[str] = None
+    specialist_name: Optional[str] = None
+    service_category: Optional[str] = None
+    consultation_type: Optional[str] = None
+    meeting_type: Optional[str] = None
+    bedrooms: Optional[int] = None
+    bathrooms: Optional[int] = None
+    size_sqm: Optional[int] = None
+    floor: Optional[int] = None
+    furnished: Optional[bool] = None
+    available_from: Optional[str] = None
+    lease_duration: Optional[str] = None
+    max_guests: Optional[int] = None
+    property_type: Optional[str] = None
+    deposit: Optional[str] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+    year: Optional[int] = None
+    mileage_km: Optional[int] = None
+    fuel_type: Optional[str] = None
+    transmission: Optional[str] = None
+    stock_status: Optional[str] = None
+    brand: Optional[str] = None
+    condition: Optional[str] = None
+    treatment_type: Optional[str] = None
+    session_type: Optional[str] = None
+    calories: Optional[int] = None
+    allergens: List[str] = []
+    spice_level: Optional[int] = None
+    duration_days: Optional[int] = None
+    duration_months: Optional[int] = None
+    includes: Optional[str] = None
+    visits_included: Optional[int] = None
+    valid_days: Optional[int] = None
+    included_services: Optional[List[str]] = Field(default_factory=list)
+    sessions_count: Optional[int] = None
+    duration_per_session: Optional[int] = None
+    special_requests: Optional[str] = None
+    pickup_location: Optional[str] = None
+    dropoff_location: Optional[str] = None
+    reason_for_visit: Optional[str] = None
+    insurance_info: Optional[str] = None
+    pet_name: Optional[str] = None
+    pet_type: Optional[str] = None
+    status: Optional[str] = None
+    sort_order: Optional[int] = 0
 
 
 class TimeSlotCreate(BaseModel):
@@ -96,6 +276,13 @@ class BookingCreate(BaseModel):
     guests: Optional[int] = None
     total_price: Optional[str] = None
     notes: Optional[str] = None
+    pet_name: Optional[str] = None
+    pet_type: Optional[str] = None
+    pickup_location: Optional[str] = None
+    dropoff_location: Optional[str] = None
+    insurance_info: Optional[str] = None
+    reason_for_visit: Optional[str] = None
+    special_requests: Optional[str] = None
 
 
 class BookingResponse(BaseModel):
@@ -117,3 +304,10 @@ class BookingResponse(BaseModel):
     created_at: datetime
     service_name: Optional[str] = None
     business_name: Optional[str] = None
+    pet_name: Optional[str] = None
+    pet_type: Optional[str] = None
+    pickup_location: Optional[str] = None
+    dropoff_location: Optional[str] = None
+    insurance_info: Optional[str] = None
+    reason_for_visit: Optional[str] = None
+    special_requests: Optional[str] = None

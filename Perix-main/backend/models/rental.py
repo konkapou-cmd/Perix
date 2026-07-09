@@ -1,7 +1,8 @@
 """Rental models."""
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from datetime import datetime
+from models.focal_point import FocalPoint
 
 
 class RentalCreate(BaseModel):
@@ -17,6 +18,7 @@ class RentalCreate(BaseModel):
     deposit: Optional[str] = None
     property_type: Optional[str] = None
     gallery_images: List[str] = []
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class RentalUpdate(BaseModel):
@@ -33,6 +35,7 @@ class RentalUpdate(BaseModel):
     property_type: Optional[str] = None
     is_active: Optional[bool] = None
     gallery_images: Optional[List[str]] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class RentalResponse(BaseModel):
@@ -56,3 +59,4 @@ class RentalResponse(BaseModel):
     created_at: datetime
     root_category: Optional[str] = None
     subcategory: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None

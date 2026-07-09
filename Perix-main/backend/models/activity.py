@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from models.user import ThemeSettings
+from models.focal_point import FocalPoint
 
 
 # Predefined activity themes with emojis
@@ -62,6 +63,7 @@ class ActivityCreate(BaseModel):
     gallery_images: List[str] = []
     gallery_videos: List[str] = []
     tagged_business_id: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class ActivityResponse(BaseModel):
@@ -92,6 +94,7 @@ class ActivityResponse(BaseModel):
     gallery_videos: List[str] = []
     profile_theme: Optional[ThemeSettings] = None
     creator: Optional[Dict[str, Any]] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class ActivityUpdate(BaseModel):
@@ -113,6 +116,7 @@ class ActivityUpdate(BaseModel):
     gallery_images: Optional[List[str]] = None
     gallery_videos: Optional[List[str]] = None
     tagged_business_id: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class ActivityRSVP(BaseModel):

@@ -35,6 +35,7 @@ def build_user_public(user_doc: Dict) -> UserPublic:
         "video_items": user_doc.get("video_items", []),
         "profile_photo": user_doc.get("profile_photo"),
         "cover_photo": user_doc.get("cover_photo"),
+        "cover_focal_point": user_doc.get("cover_focal_point", {"x": 0.5, "y": 0.5}),
         "bio": user_doc.get("bio"),
         "location": user_doc.get("location"),
         "friends": normalized_friends,

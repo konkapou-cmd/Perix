@@ -101,6 +101,7 @@ async def create_event(
         "is_private": payload.is_private,
         "password": payload.password,
         "tagged_artist_ids": payload.tagged_artist_ids or [],
+        "cover_focal_point": payload.cover_focal_point or {"x": 0.5, "y": 0.5},
         "created_at": now_utc(),
         "attendees": [],
     }
@@ -271,7 +272,7 @@ async def list_events(
                 profile_theme=business.get("theme") if business else None,
                 gallery_images=event.get("gallery_images", []),
                 gallery_videos=event.get("gallery_videos", []),
-                tagged_artist_ids=event.get("tagged_artist_ids", []),
+                tagged_artist_ids=event.get("tagged_artist_ids") or [],
             )
         )
     return response
@@ -300,7 +301,7 @@ async def get_event_detail(
     attendees = event.get("attendees", [])
     is_attending = current_user.user_id in attendees
     
-    tagged_artist_ids, tagged_artists = await build_tagged_artists(event.get("tagged_artist_ids", []))
+    tagged_artist_ids, tagged_artists = await build_tagged_artists(event.get("tagged_artist_ids") or [])
     
     from routes.businesses import build_business_summary
     return EventResponse(
@@ -423,7 +424,7 @@ async def update_event(
         )
     
     from routes.businesses import build_business_summary
-    tagged_artist_ids, tagged_artists = await build_tagged_artists(event.get("tagged_artist_ids", []))
+    tagged_artist_ids, tagged_artists = await build_tagged_artists(event.get("tagged_artist_ids") or [])
     return EventResponse(
         event_id=event["event_id"],
         business=build_business_summary(business) if business else None,

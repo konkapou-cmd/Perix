@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 from database import db
 from models.user import (
     UserPublic, GalleryUpdate, ProfileMediaUpdate, ProfileInfoUpdate,
-    UserPublicProfile, FriendCommonResponse, UserAttendanceResponse,
+    UserPublicProfile, FriendCommonResponse, FriendProfile, UserAttendanceResponse,
     GalleryCaptionUpdate, GalleryItem, ThemeUpdate
 )
 from models.notification import NotificationPreferences, NotificationPreferencesResponse
@@ -179,6 +179,127 @@ async def get_my_friends(current_user: UserPublic = Depends(get_current_user)):
     return [build_user_public(friend) for friend in friends]
 
 
+@router.get("/friends/me/all", response_model=List[FriendProfile])
+async def get_my_friends_all(current_user: UserPublic = Depends(get_current_user)):
+    """Get all friends across all entity types (users, businesses, artists)."""
+    friend_entries = current_user.friends or []
+    user_ids = []
+    business_ids = []
+    artist_ids = []
+    for f in friend_entries:
+        if isinstance(f, dict):
+            et = f.get("entity_type", "user")
+            eid = f.get("entity_id", "")
+            if et == "user":
+                user_ids.append(eid)
+            elif et == "business":
+                business_ids.append(eid)
+            elif et == "artist":
+                artist_ids.append(eid)
+    
+    result = []
+    if user_ids:
+        users = await db.users.find(
+            {"user_id": {"$in": user_ids}}, {"_id": 0, "password_hash": 0}
+        ).to_list(1000)
+        for u in users:
+            result.append(FriendProfile(
+                entity_type="user",
+                entity_id=u["user_id"],
+                name=u.get("name", ""),
+                image=u.get("profile_photo") or u.get("picture"),
+            ))
+    if business_ids:
+        businesses = await db.businesses.find(
+            {"business_id": {"$in": business_ids}}, {"_id": 0}
+        ).to_list(1000)
+        for b in businesses:
+            result.append(FriendProfile(
+                entity_type="business",
+                entity_id=b["business_id"],
+                name=b.get("name", ""),
+                image=b.get("logo_image"),
+                category=b.get("category"),
+            ))
+    if artist_ids:
+        artists = await db.artists.find(
+            {"artist_id": {"$in": artist_ids}}, {"_id": 0}
+        ).to_list(1000)
+        for a in artists:
+            result.append(FriendProfile(
+                entity_type="artist",
+                entity_id=a["artist_id"],
+                name=a.get("name", ""),
+                image=a.get("profile_photo") or (a.get("gallery_images") or [None])[0],
+            ))
+    return result
+
+
+@router.get("/friends/business/{business_id}", response_model=List[FriendProfile])
+async def get_business_friends(
+    business_id: str,
+    current_user: UserPublic = Depends(get_current_user)
+):
+    """Get a business's friend list. Only the owner can view it."""
+    business = await db.businesses.find_one({"business_id": business_id}, {"_id": 0})
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+    if business.get("owner_id") != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Only the business owner can view friends")
+    
+    friend_entries = business.get("friends", []) or []
+    user_ids = []
+    business_ids = []
+    artist_ids = []
+    for f in friend_entries:
+        if isinstance(f, dict):
+            et = f.get("entity_type", "user")
+            eid = f.get("entity_id", "")
+            if et == "user":
+                user_ids.append(eid)
+            elif et == "business":
+                business_ids.append(eid)
+            elif et == "artist":
+                artist_ids.append(eid)
+    
+    result = []
+    if user_ids:
+        users = await db.users.find(
+            {"user_id": {"$in": user_ids}}, {"_id": 0, "password_hash": 0}
+        ).to_list(1000)
+        for u in users:
+            result.append(FriendProfile(
+                entity_type="user",
+                entity_id=u["user_id"],
+                name=u.get("name", ""),
+                image=u.get("profile_photo") or u.get("picture"),
+            ))
+    if business_ids:
+        businesses = await db.businesses.find(
+            {"business_id": {"$in": business_ids}}, {"_id": 0}
+        ).to_list(1000)
+        for b in businesses:
+            result.append(FriendProfile(
+                entity_type="business",
+                entity_id=b["business_id"],
+                name=b.get("name", ""),
+                image=b.get("logo_image"),
+                category=b.get("category"),
+            ))
+    if artist_ids:
+        artists = await db.artists.find(
+            {"artist_id": {"$in": artist_ids}}, {"_id": 0}
+        ).to_list(1000)
+        for a in artists:
+            result.append(FriendProfile(
+                entity_type="artist",
+                entity_id=a["artist_id"],
+                name=a.get("name", ""),
+                image=a.get("profile_photo") or (a.get("gallery_images") or [None])[0],
+            ))
+    return result
+
+
 @router.get("/friends/common", response_model=FriendCommonResponse)
 async def get_common_friends(
     other_user_id: str, current_user: UserPublic = Depends(get_current_user)
@@ -209,16 +330,78 @@ async def get_common_friends(
     )
 
 
+@router.get("/friends/user/{user_id}", response_model=List[FriendProfile])
+async def get_user_friends(user_id: str):
+    """Get all friends of a specific user across all entity types. Public endpoint."""
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    friend_entries = user.get("friends", []) or []
+    user_ids = []
+    business_ids = []
+    artist_ids = []
+    for f in friend_entries:
+        if isinstance(f, dict):
+            et = f.get("entity_type", "user")
+            eid = f.get("entity_id", "")
+            if et == "user":
+                user_ids.append(eid)
+            elif et == "business":
+                business_ids.append(eid)
+            elif et == "artist":
+                artist_ids.append(eid)
+    
+    result = []
+    if user_ids:
+        users = await db.users.find(
+            {"user_id": {"$in": user_ids}}, {"_id": 0, "password_hash": 0}
+        ).to_list(1000)
+        for u in users:
+            result.append(FriendProfile(
+                entity_type="user",
+                entity_id=u["user_id"],
+                name=u.get("name", ""),
+                image=u.get("profile_photo") or u.get("picture"),
+            ))
+    if business_ids:
+        businesses = await db.businesses.find(
+            {"business_id": {"$in": business_ids}}, {"_id": 0}
+        ).to_list(1000)
+        for b in businesses:
+            result.append(FriendProfile(
+                entity_type="business",
+                entity_id=b["business_id"],
+                name=b.get("name", ""),
+                image=b.get("logo_image"),
+                category=b.get("category"),
+            ))
+    if artist_ids:
+        artists = await db.artists.find(
+            {"artist_id": {"$in": artist_ids}}, {"_id": 0}
+        ).to_list(1000)
+        for a in artists:
+            result.append(FriendProfile(
+                entity_type="artist",
+                entity_id=a["artist_id"],
+                name=a.get("name", ""),
+                image=a.get("profile_photo") or (a.get("gallery_images") or [None])[0],
+            ))
+    return result
+
+
 @router.post("/friends/{entity_type}/{entity_id}/toggle")
 async def toggle_friend(
     entity_type: str,
     entity_id: str,
+    actor_type: Optional[str] = None,
+    actor_id: Optional[str] = None,
     current_user: UserPublic = Depends(get_current_user),
 ):
     """
     Toggle friendship with any entity (user, business, or artist).
-    For users: bidirectional friend relationship.
-    For businesses/artists: follow (one-way, no approval needed).
+    Bidirectional mutual friend for ALL entity types.
+    Supports actor_type/actor_id to toggle "as" a business or artist the user owns.
     """
     if entity_type not in ("user", "business", "artist"):
         raise HTTPException(status_code=400, detail="Invalid entity type")
@@ -240,71 +423,139 @@ async def toggle_friend(
         if not entity:
             raise HTTPException(status_code=404, detail="Artist not found")
     
-    from routes.friend_requests import _is_friend_dict
-    my_entry = {"entity_type": entity_type, "entity_id": entity_id}
+    # Resolve actor (who is doing the toggling)
+    from_entity_type = "user"
+    from_entity_id = current_user.user_id
+    if actor_type == "business" and actor_id:
+        biz = await db.businesses.find_one(
+            {"business_id": actor_id, "owner_id": current_user.user_id}, {"_id": 0}
+        )
+        if not biz:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        from_entity_type = "business"
+        from_entity_id = actor_id
+    elif actor_type == "artist" and actor_id:
+        art = await db.artists.find_one(
+            {"artist_id": actor_id, "owner_id": current_user.user_id}, {"_id": 0}
+        )
+        if not art:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        from_entity_type = "artist"
+        from_entity_id = actor_id
     
-    is_friend = _is_friend_dict(current_user.friends, entity_type, entity_id)
+    from routes.friend_requests import _is_friend_dict
+    
+    # Determine the friend list to check
+    friend_list_to_check = current_user.friends
+    if from_entity_type == "business":
+        biz_doc = await db.businesses.find_one({"business_id": from_entity_id}, {"friends": 1, "_id": 0})
+        friend_list_to_check = biz_doc.get("friends", []) if biz_doc else []
+    elif from_entity_type == "artist":
+        art_doc = await db.artists.find_one({"artist_id": from_entity_id}, {"friends": 1, "_id": 0})
+        friend_list_to_check = art_doc.get("friends", []) if art_doc else []
+    
+    my_entry = {"entity_type": entity_type, "entity_id": entity_id}
+    their_entry = {"entity_type": from_entity_type, "entity_id": from_entity_id}
+    
+    is_friend = _is_friend_dict(friend_list_to_check, entity_type, entity_id)
     
     if is_friend:
-        # Remove from my friends
-        current_friends = [
-            f for f in (current_user.friends or [])
-            if not (isinstance(f, dict) and f.get("entity_type") == entity_type and f.get("entity_id") == entity_id)
-        ]
-        await db.users.update_one(
-            {"user_id": current_user.user_id},
-            {"$set": {"friends": current_friends}}
-        )
-        
-        # Remove from entity's followers (for business/artist)
-        if entity_type == "business":
+        # Remove from sender's friends
+        if from_entity_type == "business":
+            current_friends = await db.businesses.find_one({"business_id": from_entity_id}, {"friends": 1, "_id": 0})
+            updated = [
+                f for f in (current_friends.get("friends") or [])
+                if not (isinstance(f, dict) and f.get("entity_type") == entity_type and f.get("entity_id") == entity_id)
+            ]
             await db.businesses.update_one(
-                {"business_id": entity_id},
-                {"$pull": {"followers": {"entity_type": "user", "entity_id": current_user.user_id}}}
+                {"business_id": from_entity_id},
+                {"$set": {"friends": updated}}
             )
-        elif entity_type == "artist":
+        elif from_entity_type == "artist":
+            current_friends = await db.artists.find_one({"artist_id": from_entity_id}, {"friends": 1, "_id": 0})
+            updated = [
+                f for f in (current_friends.get("friends") or [])
+                if not (isinstance(f, dict) and f.get("entity_type") == entity_type and f.get("entity_id") == entity_id)
+            ]
             await db.artists.update_one(
-                {"artist_id": entity_id},
-                {"$pull": {"followers": {"entity_type": "user", "entity_id": current_user.user_id}}}
+                {"artist_id": from_entity_id},
+                {"$set": {"friends": updated}}
             )
         else:
-            # Remove from the other user's friends
+            current_friends = [
+                f for f in (current_user.friends or [])
+                if not (isinstance(f, dict) and f.get("entity_type") == entity_type and f.get("entity_id") == entity_id)
+            ]
+            await db.users.update_one(
+                {"user_id": current_user.user_id},
+                {"$set": {"friends": current_friends}}
+            )
+        
+        # Remove from target's friends
+        if entity_type == "user":
             other_user_data = await db.users.find_one({"user_id": entity_id}, {"friends": 1})
             other_friends = [
                 f for f in (other_user_data.get("friends") or [])
-                if not (isinstance(f, dict) and f.get("entity_type") == "user" and f.get("entity_id") == current_user.user_id)
+                if not (isinstance(f, dict) and f.get("entity_type") == from_entity_type and f.get("entity_id") == from_entity_id)
             ]
             await db.users.update_one(
                 {"user_id": entity_id},
                 {"$set": {"friends": other_friends}}
             )
+        elif entity_type == "business":
+            current_biz = await db.businesses.find_one({"business_id": entity_id}, {"friends": 1, "_id": 0})
+            updated = [
+                f for f in (current_biz.get("friends") or [])
+                if not (isinstance(f, dict) and f.get("entity_type") == from_entity_type and f.get("entity_id") == from_entity_id)
+            ]
+            await db.businesses.update_one(
+                {"business_id": entity_id},
+                {"$set": {"friends": updated}}
+            )
+        elif entity_type == "artist":
+            current_art = await db.artists.find_one({"artist_id": entity_id}, {"friends": 1, "_id": 0})
+            updated = [
+                f for f in (current_art.get("friends") or [])
+                if not (isinstance(f, dict) and f.get("entity_type") == from_entity_type and f.get("entity_id") == from_entity_id)
+            ]
+            await db.artists.update_one(
+                {"artist_id": entity_id},
+                {"$set": {"friends": updated}}
+            )
         
         return {"is_friend": False}
     else:
-        # Add to my friends
-        current_friends = list(current_user.friends or [])
-        current_friends.append(my_entry)
-        await db.users.update_one(
-            {"user_id": current_user.user_id},
-            {"$addToSet": {"friends": my_entry}}
-        )
+        # Add to sender's friends
+        if from_entity_type == "business":
+            await db.businesses.update_one(
+                {"business_id": from_entity_id},
+                {"$addToSet": {"friends": my_entry}}
+            )
+        elif from_entity_type == "artist":
+            await db.artists.update_one(
+                {"artist_id": from_entity_id},
+                {"$addToSet": {"friends": my_entry}}
+            )
+        else:
+            await db.users.update_one(
+                {"user_id": current_user.user_id},
+                {"$addToSet": {"friends": my_entry}}
+            )
         
-        # Add to entity's followers (for business/artist - one-way follow)
-        if entity_type == "business":
+        # Add to target's friends (bidirectional for ALL entity types)
+        if entity_type == "user":
+            await db.users.update_one(
+                {"user_id": entity_id},
+                {"$addToSet": {"friends": their_entry}}
+            )
+        elif entity_type == "business":
             await db.businesses.update_one(
                 {"business_id": entity_id},
-                {"$addToSet": {"followers": {"entity_type": "user", "entity_id": current_user.user_id}}}
+                {"$addToSet": {"friends": their_entry}}
             )
         elif entity_type == "artist":
             await db.artists.update_one(
                 {"artist_id": entity_id},
-                {"$addToSet": {"followers": {"entity_type": "user", "entity_id": current_user.user_id}}}
-            )
-        else:
-            # Bidirectional for user-user
-            their_entry = {"entity_type": "user", "entity_id": current_user.user_id}
-            await db.users.update_one(
-                {"user_id": entity_id},
                 {"$addToSet": {"friends": their_entry}}
             )
         
@@ -595,6 +846,8 @@ async def update_profile_media(
         update_data["profile_photo"] = payload.profile_photo
     if payload.cover_photo is not None:
         update_data["cover_photo"] = payload.cover_photo
+    if payload.cover_focal_point is not None:
+        update_data["cover_focal_point"] = payload.cover_focal_point.dict() if hasattr(payload.cover_focal_point, 'dict') else payload.cover_focal_point
     
     if update_data:
         await db.users.update_one(
@@ -1078,6 +1331,9 @@ async def get_notification_preferences(
         friendRequests=prefs.get("friendRequests", True),
         calls=prefs.get("calls", True),
         marketing=prefs.get("marketing", False),
+        messages_quiet_hours_mode=prefs.get("messages_quiet_hours_mode", "off"),
+        messages_quiet_hours_start=prefs.get("messages_quiet_hours_start"),
+        messages_quiet_hours_end=prefs.get("messages_quiet_hours_end"),
     )
 
 

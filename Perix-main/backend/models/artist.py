@@ -1,9 +1,10 @@
 """Artist-related Pydantic models."""
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 from datetime import datetime
 from models.user import ThemeSettings
 from models.post import PostResponse
+from models.focal_point import FocalPoint
 
 
 class ArtistCreate(BaseModel):
@@ -20,6 +21,7 @@ class ArtistCreate(BaseModel):
     video_urls: List[str] = []
     profile_photo: Optional[str] = None
     cover_photo: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class ArtistResponse(BaseModel):
@@ -38,9 +40,11 @@ class ArtistResponse(BaseModel):
     video_urls: List[str]
     profile_photo: Optional[str] = None
     cover_photo: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
     created_at: datetime
-    followers_count: int = 0
     theme: Optional[ThemeSettings] = None  # Profile theme customization
+    friends: List[dict] = Field(default_factory=list)
+    friends_count: int = 0
 
 
 class ArtistUpdate(BaseModel):
@@ -55,6 +59,7 @@ class ArtistUpdate(BaseModel):
     video_urls: Optional[List[str]] = None
     profile_photo: Optional[str] = None
     cover_photo: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
     hidden_fan_posts: Optional[List[str]] = None
 
 

@@ -9,6 +9,7 @@ from database import db
 from routes.dependencies import get_current_user, UserPublic
 from routes.uploads import upload_to_cloudinary
 from routes.ws import ws_broadcast_notification
+from models.focal_point import FocalPoint
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -17,24 +18,43 @@ class JobCreate(BaseModel):
     title: str
     description: str
     cover_image: Optional[str] = None
+    image_urls: List[str] = []
+    gallery_images: List[str] = []
+    gallery_videos: List[str] = []
+    video_url: Optional[str] = None
     root_category: str
     subcategory: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    status: Optional[str] = None
     expires_at: Optional[str] = None
     job_type: Optional[str] = None
     requirements: Optional[str] = None
     salary_range: Optional[str] = None
     work_location: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class JobUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     cover_image: Optional[str] = None
+    image_urls: Optional[List[str]] = None
+    gallery_images: Optional[List[str]] = None
+    gallery_videos: Optional[List[str]] = None
+    video_url: Optional[str] = None
+    root_category: Optional[str] = None
+    subcategory: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    status: Optional[str] = None
     is_active: Optional[bool] = None
     job_type: Optional[str] = None
     requirements: Optional[str] = None
     salary_range: Optional[str] = None
     work_location: Optional[str] = None
+    expires_at: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class JobApplicationCreate(BaseModel):
@@ -51,6 +71,11 @@ def job_response(job: dict, business: dict = None) -> dict:
         "title": job.get("title"),
         "description": job.get("description"),
         "cover_image": job.get("cover_image"),
+        "image_urls": job.get("image_urls", []),
+        "gallery_images": job.get("gallery_images", []),
+        "gallery_videos": job.get("gallery_videos", []),
+        "video_url": job.get("video_url"),
+        "status": job.get("status", "published"),
         "job_type": job.get("job_type"),
         "requirements": job.get("requirements"),
         "salary_range": job.get("salary_range"),
@@ -65,6 +90,7 @@ def job_response(job: dict, business: dict = None) -> dict:
         "expires_at": job.get("expires_at"),
         "business_name": business.get("name") if business else job.get("business_name"),
         "business_logo": business.get("profile_photo") if business else job.get("business_logo"),
+        "cover_focal_point": job.get("cover_focal_point", {"x": 0.5, "y": 0.5}),
     }
 
 
@@ -118,6 +144,9 @@ async def create_job(
         "title": job_data.title,
         "description": job_data.description,
         "cover_image": job_data.cover_image,
+        "image_urls": job_data.image_urls,
+        "gallery_images": job_data.gallery_images,
+        "gallery_videos": job_data.gallery_videos,
         "job_type": job_data.job_type,
         "requirements": job_data.requirements,
         "salary_range": job_data.salary_range,
@@ -132,6 +161,7 @@ async def create_job(
         "expires_at": expires_at.isoformat(),
         "business_name": business.get("name"),
         "business_logo": business.get("profile_photo"),
+        "cover_focal_point": job_data.cover_focal_point or {"x": 0.5, "y": 0.5},
     }
     
     await db.jobs.insert_one(job)

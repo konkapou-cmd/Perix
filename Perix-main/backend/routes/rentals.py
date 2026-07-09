@@ -1,90 +1,68 @@
-"""Rental routes."""
-from fastapi import APIRouter, Depends, HTTPException
-from typing import Optional, List
+"""Rental routes — all rentals are service-based."""
+import asyncio
+import base64
 import logging
+import os
+import tempfile
+from typing import List, Optional
+
+import cloudinary.uploader
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from database import db
-from models.rental import RentalCreate, RentalUpdate, RentalResponse
-from utils.helpers import generate_id, now_utc
 from routes.dependencies import get_current_user, UserPublic
-from routes.ws import ws_broadcast_notification
+from routes.ws import ws_broadcast_new_message, ws_broadcast_conversation_update
+from utils.helpers import generate_id, now_utc
+from utils.push_notifications import send_message_notification
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/rentals", tags=["Rentals"])
 
-RENTAL_CATEGORIES = {"rental-real-estate"}
+RENTAL_CATEGORIES = {"rental-real-estate", "rentals"}
+RENTAL_SERVICE_TYPES = {"rental_property"}
 
 
-def rental_response(rental: dict, business: dict = None) -> dict:
+def service_to_rental(service: dict, business: dict = None) -> dict:
+    images = service.get("image_urls", [])
+    cover = service.get("cover_image_url") or (images[0] if images else None)
+    gallery = service.get("gallery_images", [])
+    if not gallery and len(images) > 1:
+        gallery = images[1:]
+    svc_property_type = service.get("property_type")
+    if not svc_property_type:
+        svc_property_type = "apartment"
     return {
-        "rental_id": rental.get("rental_id"),
-        "business_id": rental.get("business_id"),
-        "business_name": business.get("name") if business else rental.get("business_name"),
-        "business_logo": business.get("profile_photo") or business.get("logo_image") if business else rental.get("business_logo"),
-        "title": rental.get("title"),
-        "description": rental.get("description"),
-        "cover_image": rental.get("cover_image"),
-        "rent_price": rental.get("rent_price"),
-        "rooms_size": rental.get("rooms_size"),
-        "address": rental.get("address"),
-        "latitude": rental.get("latitude"),
-        "longitude": rental.get("longitude"),
-        "available_from": rental.get("available_from"),
-        "deposit": rental.get("deposit"),
-        "property_type": rental.get("property_type"),
-        "gallery_images": rental.get("gallery_images", []),
-        "is_active": rental.get("is_active", True),
-        "created_at": rental.get("created_at"),
-        "root_category": rental.get("root_category"),
-        "subcategory": rental.get("subcategory"),
+        "rental_id": f"svc_{service.get('service_id', '')}",
+        "service_id": service.get("service_id"),
+        "business_id": service.get("business_id"),
+        "business_name": business.get("name") if business else service.get("business_name"),
+        "business_logo": business.get("profile_photo") or business.get("logo_image") if business else None,
+        "title": service.get("name"),
+        "description": service.get("description"),
+        "cover_image": cover,
+        "rent_price": service.get("price"),
+        "rooms_size": service.get("room_size"),
+        "address": service.get("address") or (business.get("address") if business else None),
+        "latitude": service.get("latitude") if service.get("latitude") is not None else (business.get("latitude") if business else None),
+        "longitude": service.get("longitude") if service.get("longitude") is not None else (business.get("longitude") if business else None),
+        "available_from": service.get("available_from"),
+        "deposit": service.get("deposit"),
+        "property_type": svc_property_type,
+        "gallery_images": gallery,
+        "gallery_videos": service.get("gallery_videos", []),
+        "video_url": service.get("video_url"),
+        "image_urls": service.get("image_urls", []),
+        "is_active": service.get("is_active", True),
+        "created_at": service.get("created_at"),
+        "root_category": service.get("root_category") or (business.get("root_category") if business else None),
+        "subcategory": service.get("subcategory") or svc_property_type,
+        "bedrooms": service.get("bedrooms"),
+        "bathrooms": service.get("bathrooms"),
+        "size_sqm": service.get("size_sqm"),
+        "furnished": service.get("furnished"),
+        "lease_duration": service.get("lease_duration"),
+        "cover_focal_point": service.get("cover_focal_point", {"x": 0.5, "y": 0.5}),
     }
-
-
-@router.post("", response_model=RentalResponse)
-async def create_rental(payload: RentalCreate, current_user: UserPublic = Depends(get_current_user)):
-    business = await db.businesses.find_one(
-        {"owner_id": current_user.user_id, "root_category": {"$in": list(RENTAL_CATEGORIES)}},
-        {"_id": 0}
-    )
-    if not business:
-        raise HTTPException(status_code=403, detail="Only real estate businesses can post rentals")
-
-    rental_doc = {
-        "rental_id": generate_id("rental"),
-        "business_id": business["business_id"],
-        "business_name": business.get("name"),
-        "business_logo": business.get("profile_photo") or business.get("logo_image"),
-        "title": payload.title,
-        "description": payload.description,
-        "cover_image": payload.cover_image,
-        "rent_price": payload.rent_price,
-        "rooms_size": payload.rooms_size,
-        "address": payload.address,
-        "latitude": payload.latitude if payload.latitude is not None else business.get("latitude"),
-        "longitude": payload.longitude if payload.longitude is not None else business.get("longitude"),
-        "available_from": payload.available_from,
-        "deposit": payload.deposit,
-        "property_type": payload.property_type,
-        "gallery_images": payload.gallery_images,
-        "is_active": True,
-        "created_at": now_utc().isoformat(),
-        "root_category": business.get("root_category"),
-        "subcategory": business.get("subcategory"),
-    }
-
-    await db.rentals.insert_one(rental_doc)
-
-    try:
-        await ws_broadcast_notification(
-            db,
-            event="new_rental",
-            data={"rental_id": rental_doc["rental_id"], "business_id": business["business_id"], "title": payload.title},
-            exclude_user_id=current_user.user_id,
-        )
-    except Exception:
-        pass
-
-    return rental_response(rental_doc, business)
 
 
 @router.get("")
@@ -103,16 +81,38 @@ async def get_rentals(
     limit: int = 20,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    query = {"is_active": True}
+    svc_query: dict = {"is_active": True, "type": {"$in": list(RENTAL_SERVICE_TYPES)}}
     if root_category:
-        query["root_category"] = root_category
-    if subcategory:
-        query["subcategory"] = subcategory
-    if property_type:
-        query["property_type"] = property_type
+        matching_bizs = await db.businesses.find(
+            {"root_category": root_category},
+            {"_id": 0, "business_id": 1}
+        ).to_list(200)
+        matching_biz_ids = [b["business_id"] for b in matching_bizs]
+        if matching_biz_ids:
+            svc_query["business_id"] = {"$in": matching_biz_ids}
+        else:
+            svc_query["business_id"] = {"$in": []}
+    rental_services = await db.services.find(svc_query, {"_id": 0}).to_list(100)
 
-    total = await db.rentals.count_documents(query)
-    rentals = await db.rentals.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    rentals = []
+    if rental_services:
+        svc_biz_ids = list({s["business_id"] for s in rental_services})
+        biz_cursor = db.businesses.find({"business_id": {"$in": svc_biz_ids}}, {"_id": 0})
+        biz_map = {}
+        async for b in biz_cursor:
+            biz_map[b["business_id"]] = b
+        for s in rental_services:
+            biz = biz_map.get(s["business_id"])
+            if biz:
+                rc = biz.get("root_category", "")
+                s["root_category"] = rc
+                s["subcategory"] = biz.get("subcategory", s.get("type"))
+            rental_obj = service_to_rental(s, biz)
+            if property_type and rental_obj.get("property_type") != property_type:
+                continue
+            if subcategory and rental_obj.get("subcategory") != subcategory:
+                continue
+            rentals.append(rental_obj)
 
     use_bounds = all([min_lat, max_lat, min_lng, max_lng])
     if use_bounds:
@@ -143,66 +143,144 @@ async def get_rentals(
         filtered.sort(key=lambda x: x.get("distance_km", 999))
         rentals = filtered
 
-    return {"rentals": [rental_response(r) for r in rentals], "total": total}
+    return {"rentals": rentals, "total": len(rentals)}
 
 
 @router.get("/my")
 async def get_my_rentals(current_user: UserPublic = Depends(get_current_user)):
     businesses = await db.businesses.find(
-        {"owner_id": current_user.user_id, "root_category": {"$in": list(RENTAL_CATEGORIES)}},
-        {"_id": 0, "business_id": 1}
-    ).to_list(10)
-    biz_ids = [b["business_id"] for b in businesses]
-    rentals = await db.rentals.find(
-        {"business_id": {"$in": biz_ids}},
+        {"owner_id": current_user.user_id},
+        {"_id": 0, "business_id": 1, "name": 1, "profile_photo": 1, "logo_image": 1, "root_category": 1, "subcategory": 1}
+    ).to_list(100)
+    biz_map = {b["business_id"]: b for b in businesses}
+
+    rental_biz_ids = [b["business_id"] for b in businesses if b.get("root_category") in RENTAL_CATEGORIES]
+    if not rental_biz_ids:
+        return []
+
+    services = await db.services.find(
+        {"business_id": {"$in": rental_biz_ids}, "type": {"$in": list(RENTAL_SERVICE_TYPES)}, "is_active": True},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
-    return [rental_response(r) for r in rentals]
+
+    return [service_to_rental(s, biz_map.get(s["business_id"])) for s in services]
 
 
-@router.get("/{rental_id}", response_model=RentalResponse)
+@router.get("/{rental_id}")
 async def get_rental(rental_id: str, current_user: UserPublic = Depends(get_current_user)):
-    rental = await db.rentals.find_one({"rental_id": rental_id}, {"_id": 0})
-    if not rental:
-        raise HTTPException(status_code=404, detail="Rental not found")
+    if not rental_id.startswith("svc_"):
+        raise HTTPException(status_code=404, detail="Rental not found (native rentals removed)")
+    service_id = rental_id[4:]
+    service = await db.services.find_one({"service_id": service_id}, {"_id": 0})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
     business = await db.businesses.find_one(
-        {"business_id": rental["business_id"]},
+        {"business_id": service["business_id"]},
         {"_id": 0, "name": 1, "profile_photo": 1, "logo_image": 1}
     )
-    return rental_response(rental, business)
+    return service_to_rental(service, business)
 
 
-@router.put("/{rental_id}", response_model=RentalResponse)
-async def update_rental(rental_id: str, payload: RentalUpdate, current_user: UserPublic = Depends(get_current_user)):
-    rental = await db.rentals.find_one({"rental_id": rental_id}, {"_id": 0})
-    if not rental:
-        raise HTTPException(status_code=404, detail="Rental not found")
-    business = await db.businesses.find_one(
-        {"business_id": rental["business_id"], "owner_id": current_user.user_id},
-        {"_id": 0}
-    )
+@router.post("/inquiry")
+async def send_rental_inquiry(
+    service_id: str = Form(...),
+    name: str = Form(...),
+    email: str = Form(...),
+    message: str = Form(...),
+    files: List[UploadFile] = File(None),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Send a rental inquiry as a message to the business owner with optional file attachments."""
+    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    business_id = service.get("business_id")
+    business = await db.businesses.find_one({"business_id": business_id}, {"_id": 0})
     if not business:
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=404, detail="Business not found")
 
-    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
-    if updates:
-        await db.rentals.update_one({"rental_id": rental_id}, {"$set": updates})
+    owner_id = business.get("owner_id")
+    if not owner_id:
+        raise HTTPException(status_code=404, detail="Business owner not found")
 
-    updated = await db.rentals.find_one({"rental_id": rental_id}, {"_id": 0})
-    return rental_response(updated, business)
+    # Upload files and collect media URLs
+    media_items = []
+    if files:
+        for file in files:
+            if file.filename:
+                content = await file.read()
+                if not content:
+                    continue
+                is_image = (file.content_type or "").startswith("image/")
+                resource_type = "image" if is_image else "raw"
+                ext = os.path.splitext(file.filename)[1] or ".bin"
+                with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+                    tmp.write(content)
+                    tmp_path = tmp.name
+                try:
+                    upload_opts = {
+                        "resource_type": resource_type,
+                        "folder": "perix/inquiries",
+                        "public_id": f"{generate_id('inq')}_{file.filename}",
+                    }
+                    result = await asyncio.to_thread(
+                        cloudinary.uploader.upload, tmp_path, **upload_opts
+                    )
+                    url = result.get("secure_url", "")
+                    if url:
+                        media_items.append({
+                            "url": url,
+                            "media_type": "image" if is_image else "file",
+                            "filename": file.filename,
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to upload file {file.filename}: {e}")
+                finally:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
 
+    # Build the inquiry message text
+    inquiry_text = f"**Rental Inquiry: {service.get('name')}**\n\nFrom: {name} ({email})\n\n{message}"
+    if media_items:
+        inquiry_text += f"\n\nAttachments ({len(media_items)}):"
+        for item in media_items:
+            inquiry_text += f"\n- {item['filename']}: {item['url']}"
 
-@router.delete("/{rental_id}")
-async def delete_rental(rental_id: str, current_user: UserPublic = Depends(get_current_user)):
-    rental = await db.rentals.find_one({"rental_id": rental_id}, {"_id": 0})
-    if not rental:
-        raise HTTPException(status_code=404, detail="Rental not found")
-    business = await db.businesses.find_one(
-        {"business_id": rental["business_id"], "owner_id": current_user.user_id},
-        {"_id": 0}
+    # Send message to business owner
+    message_doc = {
+        "message_id": generate_id("msg"),
+        "from_user_id": current_user.user_id,
+        "to_user_id": owner_id,
+        "to_business_id": business_id,
+        "entity_type": "business",
+        "text": inquiry_text,
+        "read": False,
+        "created_at": now_utc(),
+    }
+    await db.messages.insert_one(message_doc)
+
+    # Send notification
+    asyncio.create_task(
+        send_message_notification(
+            recipient_user_id=owner_id,
+            sender_name=current_user.name,
+            sender_id=current_user.user_id,
+            sender_photo=current_user.profile_photo,
+            conversation_id=business_id,
+            message_preview=inquiry_text[:100],
+        )
     )
-    if not business:
-        raise HTTPException(status_code=403, detail="Not authorized")
 
-    await db.rentals.delete_one({"rental_id": rental_id})
-    return {"success": True, "message": "Rental deleted"}
+    # Broadcast via WebSocket
+    await ws_broadcast_new_message(owner_id, message_doc)
+    await ws_broadcast_new_message(current_user.user_id, message_doc)
+    await ws_broadcast_conversation_update(owner_id, {"conversation_id": business_id, "last_message": message_doc})
+    await ws_broadcast_conversation_update(current_user.user_id, {"conversation_id": business_id, "last_message": message_doc})
+
+    return {
+        "success": True,
+        "message_id": message_doc["message_id"],
+        "conversation_id": business_id,
+        "media_count": len(media_items),
+    }

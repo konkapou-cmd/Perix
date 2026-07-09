@@ -87,6 +87,7 @@ async def create_artist(
         "video_urls": payload.video_urls,
         "profile_photo": payload.profile_photo,
         "cover_photo": payload.cover_photo,
+        "cover_focal_point": payload.cover_focal_point.dict() if payload.cover_focal_point else {"x": 0.5, "y": 0.5},
         "created_at": now_utc(),
     }
     await db.artists.insert_one(artist_doc)

@@ -2,6 +2,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict
 from datetime import datetime
+from models.focal_point import FocalPoint
 
 
 class ThemeSettings(BaseModel):
@@ -43,6 +44,7 @@ class UserPublic(BaseModel):
     video_items: List[GalleryItem] = []  # New: videos with captions
     profile_photo: Optional[str] = None
     cover_photo: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
     bio: Optional[str] = None
     location: Optional[str] = None
     latitude: Optional[float] = None
@@ -108,6 +110,15 @@ class FriendEntry(BaseModel):
     entity_id: str
 
 
+class FriendProfile(BaseModel):
+    """A resolved friend profile with display info."""
+    entity_type: str  # "user" | "business" | "artist"
+    entity_id: str
+    name: str
+    image: Optional[str] = None
+    category: Optional[str] = None  # For businesses
+
+
 class GalleryUpdate(BaseModel):
     images: List[str] = []
     videos: List[str] = []
@@ -128,6 +139,7 @@ class GalleryCaptionUpdate(BaseModel):
 class ProfileMediaUpdate(BaseModel):
     profile_photo: Optional[str] = None
     cover_photo: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class ProfileInfoUpdate(BaseModel):

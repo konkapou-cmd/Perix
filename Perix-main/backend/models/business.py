@@ -2,6 +2,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from models.focal_point import FocalPoint
 from models.user import ThemeSettings
 
 
@@ -15,6 +16,7 @@ class BusinessModules(BaseModel):
     rentals: bool = False
     gym: bool = False
     salon: bool = False
+    service_types: List[str] = []
 
 
 class BusinessCreate(BaseModel):
@@ -24,6 +26,7 @@ class BusinessCreate(BaseModel):
     description: Optional[str] = None
     logo_image: Optional[str] = None
     cover_image: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
     phone: Optional[str] = None
     website: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -42,6 +45,7 @@ class BusinessUpdate(BaseModel):
     description: Optional[str] = None
     logo_image: Optional[str] = None
     cover_image: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
     phone: Optional[str] = None
     website: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -68,6 +72,7 @@ class BusinessResponse(BaseModel):
     description: Optional[str] = None
     logo_image: Optional[str] = None
     cover_image: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
     phone: Optional[str] = None
     website: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -86,7 +91,8 @@ class BusinessResponse(BaseModel):
     plan_type: Optional[str] = None
     subscription_expires_at: Optional[datetime] = None
     favorites_count: int = 0
-    followers_count: int = 0
+    friends: List[dict] = []
+    friends_count: int = 0
     theme: Optional[ThemeSettings] = None  # Profile theme customization
 
 
@@ -109,6 +115,7 @@ class BusinessDetail(BaseModel):
     posts: List["PostResponse"] = []
     jobs: List[dict] = []
     rentals: List[dict] = []
+    services: List[dict] = []
     is_owner: bool
     is_favorited: bool
 

@@ -110,6 +110,7 @@ async def build_activity_response(activity_doc: dict, current_user: UserPublic) 
         gallery_images=activity_doc.get("gallery_images", []),
         gallery_videos=activity_doc.get("gallery_videos", []),
         video_url=activity_doc.get("video_url"),
+        cover_focal_point=activity_doc.get("cover_focal_point", {"x": 0.5, "y": 0.5}),
         profile_theme=creator_profile_theme,
         creator=creator_info,
     )
@@ -173,6 +174,7 @@ async def create_activity(
         "gallery_videos": payload.gallery_videos or [],
         "video_url": payload.video_url,
         "tagged_business_id": payload.tagged_business_id,
+        "cover_focal_point": payload.cover_focal_point or {"x": 0.5, "y": 0.5},
     }
     await db.activities.insert_one(activity_doc)
     

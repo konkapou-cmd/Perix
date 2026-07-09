@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from models.user import ThemeSettings
+from models.focal_point import FocalPoint
 
 # Event theme options
 EVENT_THEMES = [
@@ -57,6 +58,7 @@ class EventCreate(BaseModel):
     tagged_artist_ids: List[str] = []
     is_private: bool = False
     password: Optional[str] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class EventResponse(BaseModel):
@@ -83,6 +85,7 @@ class EventResponse(BaseModel):
     gallery_videos: List[str] = []
     tagged_artist_ids: List[str] = []
     tagged_artists: Optional[List[Dict[str, Any]]] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class EventPublicResponse(BaseModel):
@@ -128,6 +131,7 @@ class EventUpdate(BaseModel):
     is_private: Optional[bool] = None
     password: Optional[str] = None
     tagged_artist_ids: Optional[List[str]] = None
+    cover_focal_point: Optional[FocalPoint] = None
 
 
 class EventAttendRequest(BaseModel):
