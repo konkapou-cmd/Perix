@@ -133,7 +133,7 @@ export default function CameraScreen() {
         // Navigate to editor with the photo
         router.push({
           pathname: "/media-editor",
-          params: { uri: encodeURIComponent(photo.uri), type: "image", mode: recordContext },
+          params: { uri: encodeURIComponent(photo.uri), type: "image", mode: mode },
         });
       }
     } catch (error) {
@@ -155,7 +155,7 @@ export default function CameraScreen() {
         // Navigate to editor with the video
         router.push({
           pathname: "/media-editor",
-          params: { uri: encodeURIComponent(video.uri), type: "video", mode: recordContext },
+          params: { uri: encodeURIComponent(video.uri), type: "video", mode: mode },
         });
       }
     } catch (error) {
@@ -211,7 +211,7 @@ export default function CameraScreen() {
       const type = asset.type === "video" ? "video" : "image";
       router.push({
         pathname: "/media-editor",
-        params: { uri: encodeURIComponent(asset.uri), type, mode: recordContext },
+        params: { uri: encodeURIComponent(asset.uri), type, mode: mode },
       });
     }
   };

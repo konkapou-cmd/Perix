@@ -55,7 +55,7 @@ import {
   BACKEND_URL,
   MAX_VIDEO_SIZE_BYTES,
 } from "../../lib/api";
-import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
+import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/mediaLimits";
 import { COLORS } from "../../lib/designTokens";
 import { formatEventDate } from "../../lib/formatDate";
 import ShareContent from "../../components/ShareContent";
@@ -368,7 +368,7 @@ export default function HomeScreen() {
         Alert.alert(t("common.error"), `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
         return;
       }
-      if (asset.duration != null && asset.duration > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
+      if (normalizeDurationSeconds(asset.duration) > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
         Alert.alert("Video zu lang", `Videos dürfen maximal ${MEDIA_LIMITS.post.maxVideoDurationSeconds} Sekunden lang sein.`);
         return;
       }

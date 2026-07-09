@@ -83,7 +83,7 @@ import {
   getUserPublicProfile,
   ActivityItem,
 } from "../../lib/api";
-import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
+import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/mediaLimits";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
 import { LanguagePicker } from "../../components/LanguagePicker";
@@ -552,7 +552,7 @@ export default function ProfileScreen() {
         Alert.alert(t("common.error"), `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
         return;
       }
-      if (asset.duration != null && asset.duration > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
+      if (normalizeDurationSeconds(asset.duration) > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
         Alert.alert("Video zu lang", `Videos dürfen maximal ${MEDIA_LIMITS.post.maxVideoDurationSeconds} Sekunden lang sein.`);
         return;
       }
