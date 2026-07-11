@@ -53,6 +53,7 @@ import {
   isUpcomingActivity,
   toggleSaved,
   EVENT_THEMES,
+  ACTIVITY_TYPES,
   BACKEND_URL,
   MAX_VIDEO_SIZE_BYTES,
 } from "../../lib/api";
@@ -817,7 +818,7 @@ export default function HomeScreen() {
                   imageUrl={activityImg}
                   videoUrl={activity.video_url}
                   title={activity.title}
-                  subtitle={activity.creator?.name || ""}
+                  subtitle={`${activity.theme && ACTIVITY_TYPES[activity.theme] ? ACTIVITY_TYPES[activity.theme].label + " · " : ""}${activity.creator?.name || ""}`}
                   thirdLine={formatEventDate(activity.date)}
                   onPress={() => router.push(`/activity/${activity.activity_id}`)}
                   isSaved={savedActivityIds.has(activity.activity_id)}

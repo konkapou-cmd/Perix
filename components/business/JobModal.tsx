@@ -125,6 +125,12 @@ export default function JobModal({
   const isEditing = !!editingId;
   const modalTitle = isEditing ? t("jobs.editJob", "Edit Job") : t("jobs.createJob", "Create Job");
 
+  useEffect(() => {
+    if (visible && !isEditing && !jobForm.work_location && businessAddress) {
+      onFormChange({ ...jobForm, work_location: businessAddress });
+    }
+  }, [visible]);
+
   const formatDateShort = (dateStr: string) => {
     if (!dateStr) return t("jobs.selectExpiry", "Select expiry date");
     const clean = dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;

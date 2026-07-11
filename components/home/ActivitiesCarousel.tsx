@@ -34,9 +34,9 @@ function getThemeColor(theme?: string | null): string {
 }
 
 function getThemeLabel(theme?: string | null): string {
-  if (!theme) return "";
+  if (!theme) return "Activity";
   const themeData = (ACTIVITY_TYPES as Record<string, any>)[theme];
-  return themeData?.label || "";
+  return themeData?.label || (EVENT_THEMES as Record<string, any>)?.[theme]?.label || theme;
 }
 
 function formatTime(timeStr?: string | null): string {
@@ -444,9 +444,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   activityTypeLabel: {
-    fontSize: 12,
-    fontWeight: "400",
-    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.85)",
     marginBottom: 6,
   },
   metaRow: {
