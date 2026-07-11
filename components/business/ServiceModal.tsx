@@ -142,6 +142,7 @@ type Props = {
   sessionToken?: string;
   nearLat?: number;
   nearLng?: number;
+  businessAddress?: string;
 };
 
 const DEFAULT_FORM: ServiceForm = {
@@ -329,7 +330,7 @@ function mediaToForm(media: MediaItem[], base: ServiceForm): ServiceForm {
 }
 
 export default function ServiceModal({
-  visible, onClose, form, setForm, onSave, isSaving, rootCategory, sessionToken, nearLat, nearLng,
+  visible, onClose, form, setForm, onSave, isSaving, rootCategory, sessionToken, nearLat, nearLng, businessAddress,
 }: Props) {
   const { t } = useTranslation();
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -342,6 +343,12 @@ export default function ServiceModal({
   useEffect(() => {
     if (visible && !form.type && filteredTypes.length > 0) {
       setForm((prev) => ({ ...prev, type: filteredTypes[0].key }));
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (visible && !form.name && !form.address && businessAddress) {
+      setForm((prev) => ({ ...prev, address: businessAddress }));
     }
   }, [visible]);
 

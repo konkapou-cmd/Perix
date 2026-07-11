@@ -67,6 +67,7 @@ type Props = {
   sessionToken?: string;
   nearLat?: number;
   nearLng?: number;
+  businessAddress?: string;
   availableArtists?: ArtistSuggestion[];
 };
 
@@ -149,6 +150,7 @@ export default function EventModal({
   sessionToken,
   nearLat,
   nearLng,
+  businessAddress,
   availableArtists,
 }: Props) {
   const { t } = useTranslation();
@@ -201,6 +203,12 @@ export default function EventModal({
       });
     }
   }, [eventEditing]);
+
+  useEffect(() => {
+    if (visible && !eventEditing && !eventForm.location && businessAddress) {
+      onFormChange({ ...eventForm, location: businessAddress });
+    }
+  }, [visible]);
 
   const formatDate = (date: Date) =>
     date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });

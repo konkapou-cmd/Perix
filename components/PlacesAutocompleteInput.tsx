@@ -102,7 +102,7 @@ export default function PlacesAutocompleteInput({
     } finally {
       setSearching(false);
     }
-  }, [onSuggestionsVisible, nearLat, nearLng]);
+  }, [onSuggestionsVisible, nearLat, nearLng, isAddressConfirmed]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -112,6 +112,10 @@ export default function PlacesAutocompleteInput({
     }, 300);
     return () => clearTimeout(timer);
   }, [value, searchPlaces, isAddressConfirmed]);
+
+  useEffect(() => {
+    if (!value) setIsAddressConfirmed(false);
+  }, [value]);
 
   const handleTextChange = (text: string) => {
     onChangeText(text);

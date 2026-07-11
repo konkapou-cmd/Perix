@@ -350,16 +350,22 @@ export default function ProfileScreen() {
     try {
       const adminRes = await checkAdminStatus(sessionToken);
       setIsAdmin(adminRes.is_admin);
+    } catch (_) {
+      console.log("Failed to load admin status");
+    }
 
-      const [friendRes, bizRes] = await Promise.all([
-        getMyFriendProfiles(sessionToken),
-        getMyBusinesses(sessionToken),
-      ]);
-      
-      setFriends(friendRes);
+    try {
+      const bizRes = await getMyBusinesses(sessionToken);
       setBusinesses(bizRes);
     } catch (e) {
-      console.log("Failed to load initial profile data:", e);
+      console.log("Failed to load businesses:", e?.message || e);
+    }
+
+    try {
+      const friendRes = await getMyFriendProfiles(sessionToken);
+      setFriends(friendRes);
+    } catch (e) {
+      console.log("Failed to load friends:", e?.message || e);
     }
   }, [sessionToken]);
 
@@ -2189,7 +2195,7 @@ currentUserId={businessDetail?.business?.business_id}
         />
         <EventModal
           visible={eventModalVisible}
-          onClose={() => { setEventModalVisible(false); setEventEditing(null); }}
+          onClose={() => { setEventModalVisible(false); setEventEditing(null); setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", gallery_images: [], gallery_videos: [], is_private: false, password: "", tagged_artist_ids: [] }); }}
           eventForm={eventForm}
           onFormChange={setEventForm}
           eventEditing={eventEditing}
@@ -2208,6 +2214,7 @@ currentUserId={businessDetail?.business?.business_id}
           sessionToken={sessionToken || undefined}
           nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
           nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}
+          businessAddress={businessDetail?.business.address ?? undefined}
           availableArtists={[]}
         />
         <ActivityModal
@@ -2228,6 +2235,7 @@ currentUserId={businessDetail?.business?.business_id}
           sessionToken={sessionToken || undefined}
           nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
           nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}
+          businessAddress={businessDetail?.business.address ?? undefined}
         />
         <JobModal
           visible={jobModalVisible}
@@ -2288,6 +2296,7 @@ currentUserId={businessDetail?.business?.business_id}
         sessionToken={sessionToken || ""}
         nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
         nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}
+        businessAddress={businessDetail?.business.address ?? undefined}
       />
 
       <ServiceBookingModal

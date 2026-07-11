@@ -59,6 +59,7 @@ type Props = {
   sessionToken?: string;
   nearLat?: number;
   nearLng?: number;
+  businessAddress?: string;
 };
 
 function formToMedia(form: ActivityForm): MediaItem[] {
@@ -135,6 +136,7 @@ export default function ActivityModal({
   sessionToken,
   nearLat,
   nearLng,
+  businessAddress,
 }: Props) {
   const { t } = useTranslation();
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -160,9 +162,15 @@ export default function ActivityModal({
         gallery_videos: (activityEditing as any).gallery_videos || [],
       });
     } else {
-      onFormChange({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [] });
+      onFormChange({ title: "", description: "", date: "", time: "", location: businessAddress || "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [] });
     }
   }, [activityEditing]);
+
+  useEffect(() => {
+    if (visible && !activityEditing && !activityForm.location && businessAddress) {
+      onFormChange({ ...activityForm, location: businessAddress });
+    }
+  }, [visible]);
 
   const [showCalendar, setShowCalendar] = useState(false);
 
