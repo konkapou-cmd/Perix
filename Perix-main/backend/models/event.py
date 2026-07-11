@@ -7,6 +7,8 @@ from models.focal_point import FocalPoint
 
 # Event theme options
 EVENT_THEMES = [
+    {"slug": "business-event", "label": "Business Event"},
+    {"slug": "arts-event", "label": "Arts Event"},
     {"slug": "hip-hop", "label": "Hip Hop"},
     {"slug": "rnb", "label": "R&B"},
     {"slug": "dance-edm", "label": "Dance / EDM"},

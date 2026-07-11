@@ -291,6 +291,7 @@ async def list_activities(
     max_lng: Optional[float] = None,
     date: Optional[str] = None,
     theme: Optional[str] = None,
+    category: Optional[str] = None,
 ):
     def is_in_bounds(lat: float, lng: float) -> bool:
         if lat is None or lng is None:
@@ -324,9 +325,16 @@ async def list_activities(
         from datetime import date as date_type
         base_query["date"] = {"$gte": date_type.today().isoformat()}
     
-    # Add theme filtering if provided
+    # Add theme/category filtering if provided
     if theme:
         base_query["theme"] = theme
+    elif category:
+        matching = [
+            key for key, val in ACTIVITY_THEMES.items()
+            if val.get("category") == category
+        ]
+        if matching:
+            base_query["theme"] = {"$in": matching}
     
     activities = await db.activities.find(
         base_query,
