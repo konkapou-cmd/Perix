@@ -43,7 +43,9 @@ import {
   rsvpActivity,
   sendActivityMessage,
   updateActivity,
-  ACTIVITY_THEMES,
+  ACTIVITY_TYPES,
+  ACTIVITY_CATEGORIES,
+  ACTIVITY_SUBCATEGORIES,
   joinActivityByCode,
   getMyBusinesses,
   Business,
@@ -63,6 +65,7 @@ export default function ActivitiesScreen() {
   const params = useLocalSearchParams();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'attending' | 'mine'>('all');
+  const [expandedCreateCategory, setExpandedCreateCategory] = useState<string | null>(null);
   const [viewMode] = useState<'activities'>('activities');
   
   useEffect(() => {
@@ -107,7 +110,6 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
       accessCode: "",
       password: "",
       theme: "" as string,
-      customTheme: "",
       gallery_images: [] as string[],
       gallery_videos: [] as string[],
     });
@@ -244,7 +246,6 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
           is_private: form.isPrivate,
           password: form.isPrivate ? (form.password || undefined) : undefined,
           theme: form.theme || undefined,
-          custom_theme: form.customTheme || undefined,
           tagged_business_id: selectedBusinessId || undefined,
           gallery_images: form.gallery_images,
           gallery_videos: form.gallery_videos,
@@ -265,9 +266,8 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
        isPrivate: false,
         accessCode: "",
         password: "",
-         theme: "",
-        customTheme: "",
-         gallery_images: [],
+          theme: "",
+          gallery_images: [],
          gallery_videos: [],
        });
        setActivityImages([]);
@@ -290,9 +290,8 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
         isPrivate: activity.is_private || false,
         accessCode: activity.invitation_code || "",
         password: (activity as any).password || "",
-        theme: activity.theme || "",
-       customTheme: activity.custom_theme || "",
-        gallery_images: activity.gallery_images || [],
+         theme: activity.theme || "",
+         gallery_images: activity.gallery_images || [],
         gallery_videos: (activity as any).gallery_videos || [],
       });
      setActivityImages((activity as any).image_urls || (activity as any).cover_image_url ? [(activity as any).cover_image_url || (activity as any).image_urls?.[0]] : []);
@@ -316,6 +315,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
           max_attendees: form.maxAttendees ? Number(form.maxAttendees) : undefined,
           is_private: form.isPrivate || undefined,
           password: form.isPrivate ? (form.password || undefined) : undefined,
+          theme: form.theme || undefined,
           gallery_images: form.gallery_images.length > 0 ? form.gallery_images : undefined,
           gallery_videos: form.gallery_videos.length > 0 ? form.gallery_videos : undefined,
        });
@@ -883,89 +883,53 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
               
               {/* Theme Selection */}
               <Text style={styles.fieldLabel}>{t('activities.activityType') || 'Activity Type'}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.themeScroll}>
-                {Object.entries(ACTIVITY_THEMES).map(([key, theme]) => (
-                  <Pressable
-                    key={key}
-                    style={[
-                      styles.themeChip,
-                      form.theme === key && { backgroundColor: theme.color, borderColor: theme.color }
-                    ]}
-                    onPress={() => setForm((prev) => ({ ...prev, theme: key }))}
-                  >
-                    <Text style={styles.themeEmoji}>{theme.emoji}</Text>
-                    <Text style={[
-                      styles.themeChipText,
-                      form.theme === key && { color: '#fff' }
-                    ]}>{theme.label}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              
-              {/* Custom Theme Input */}
-              {form.theme === 'custom' && (
-                <TextInput
-                  placeholder={t('activities.customTheme') || 'Enter your custom theme'}
-                  value={form.customTheme}
-                  onChangeText={(value) =>
-                    setForm((prev) => ({ ...prev, customTheme: value }))
-                  }
-                  style={styles.input}
-                />
-              )}
-              
-               {/* Private Activity Toggle */}
-               <Pressable 
-                 style={styles.privateToggle}
-                 onPress={() => setForm((prev) => ({ ...prev, isPrivate: !prev.isPrivate }))}
-               >
-                 <View style={styles.privateToggleLeft}>
-                   <Ionicons 
-                     name={form.isPrivate ? "lock-closed" : "lock-open-outline"} 
-                     size={20} 
-                     color={form.isPrivate ? "#FF6B6B" : "#6b7280"} 
-                   />
-                   <View>
-                     <Text style={styles.privateToggleLabel}>
-                       {t('activities.privateActivity') || 'Private Activity'}
-                     </Text>
-                     <Text style={styles.privateToggleHint}>
-                       {form.isPrivate 
-                         ? (t('activities.onlyInvitedCanJoin') || 'Only people with invitation code can join')
-                         : (t('activities.anyoneCanJoin') || 'Anyone can see and join')
-                       }
-                     </Text>
-                   </View>
-                 </View>
-                 <View style={[styles.toggleSwitch, form.isPrivate && styles.toggleSwitchActive]}>
-                   <View style={[styles.toggleKnob, form.isPrivate && styles.toggleKnobActive]} />
-                 </View>
-               </Pressable>
 
-                {/* Access Code for Private Events/Activities */}
-                {form.isPrivate && (
-                  <>
-                    <TextInput
-                      placeholder={t('activities.accessCode') || 'Enter invitation code (optional)'}
-                      value={form.accessCode}
-                      onChangeText={(value) =>
-                        setForm((prev) => ({ ...prev, accessCode: value.toUpperCase().slice(0, 8) }))
-                      }
-                      maxLength={8}
-                      autoCapitalize="characters"
-                      style={styles.input}
-                    />
-                    <TextInput
-                      placeholder={t('business.passwordPlaceholder') || 'Set an access password'}
-                      value={form.password}
-                      onChangeText={(value) =>
-                        setForm((prev) => ({ ...prev, password: value }))
-                      }
-                      secureTextEntry
-                      style={styles.input}
-                    />
-                  </>
-                )}
+              {Object.entries(ACTIVITY_CATEGORIES).map(([catKey, cat]) => {
+                const isExpanded = expandedCreateCategory === catKey;
+                return (
+                  <View key={catKey} style={styles.createCategorySection}>
+                    <Pressable
+                      style={styles.createCategoryHeader}
+                      onPress={() => setExpandedCreateCategory(isExpanded ? null : catKey)}
+                    >
+                      <Text style={styles.createCategoryEmoji}>{cat.emoji}</Text>
+                      <Text style={styles.createCategoryLabel}>{cat.label}</Text>
+                      <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color={COLORS.textSecondary} />
+                    </Pressable>
+
+                    {isExpanded && (
+                      <View style={styles.createCategoryBody}>
+                        {Object.entries(ACTIVITY_SUBCATEGORIES)
+                          .filter(([_, sub]) => sub.category === catKey)
+                          .map(([subKey, sub]) => (
+                            <View key={subKey} style={styles.createSubcategorySection}>
+                              <Text style={styles.createSubcategoryLabel}>{sub.label}</Text>
+                              <View style={styles.themeChipRow}>
+                                {Object.entries(ACTIVITY_TYPES)
+                                  .filter(([_, t]) => t.subcategory === subKey)
+                                  .map(([typeKey, type]) => (
+                                    <Pressable
+                                      key={typeKey}
+                                      style={[
+                                        styles.themeChip,
+                                        form.theme === typeKey && { backgroundColor: type.color, borderColor: type.color },
+                                      ]}
+                                      onPress={() => setForm((prev) => ({ ...prev, theme: typeKey }))}
+                                    >
+                                      <Text style={styles.themeEmoji}>{type.emoji}</Text>
+                                      <Text style={[styles.themeChipText, form.theme === typeKey && { color: '#fff' }]}>
+                                        {type.shortLabel || type.label}
+                                      </Text>
+                                    </Pressable>
+                                  ))}
+                              </View>
+                            </View>
+                          ))}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
 
               {/* Business/Venue Selection */}
               {myBusinesses.length > 0 && (
@@ -1777,7 +1741,6 @@ const styles = StyleSheet.create({
   // Theme selection styles
   themeScroll: {
     marginBottom: 16,
-    marginLeft: -4,
   },
   themeChip: {
     flexDirection: "row",
@@ -1798,6 +1761,50 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     color: COLORS.textSecondary,
+  },
+  themeChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  createCategorySection: {
+    marginBottom: 10,
+  },
+  createCategoryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.backgroundPage,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  createCategoryEmoji: {
+    fontSize: 18,
+  },
+  createCategoryLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+  },
+  createCategoryBody: {
+    paddingTop: 8,
+    paddingLeft: 8,
+  },
+  createSubcategorySection: {
+    marginBottom: 8,
+  },
+  createSubcategoryLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: COLORS.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   // Private toggle styles
   privateToggle: {

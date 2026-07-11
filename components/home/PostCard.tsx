@@ -24,9 +24,10 @@ interface PostCardProps {
   showMuteButton?: boolean;
   muted?: boolean;
   onMuteChange?: (m: boolean) => void;
+  onCardTap?: () => void;
 }
 
-export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToken, autoPlay = false, showMuteButton, muted, onMuteChange }: PostCardProps) {
+export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToken, autoPlay = false, showMuteButton, muted, onMuteChange, onCardTap }: PostCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -94,6 +95,7 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
   return (
     <Pressable style={styles.postCard} onPress={() => {
       if (skipCardNav.current) { skipCardNav.current = false; return; }
+      onCardTap?.();
       router.push(`/post/${post.post_id}`);
     }}>
       <View style={styles.postHeader}>

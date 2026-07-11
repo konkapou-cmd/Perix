@@ -3,6 +3,8 @@ import { apiRequest, EventItem, EventTheme, EventReminder } from "./core";
 export type { EventItem };
 
 export const EVENT_THEMES: Record<string, { emoji: string; label: string; color: string; gradient: [string, string] }> = {
+  "business-event": { emoji: "💼", label: "Business Event", color: "#096BFF", gradient: ["#096BFF", "#0250CC"] },
+  "arts-event": { emoji: "🎨", label: "Arts Event", color: "#7C4DFF", gradient: ["#7C4DFF", "#651FFF"] },
   "hip-hop": { emoji: "🎤", label: "Hip Hop", color: "#f59e0b", gradient: ["#f59e0b", "#d97706"] },
   "rnb": { emoji: "💜", label: "R&B", color: "#FF6B6B", gradient: ["#FF6B6B", "#7c3aed"] },
   "dance-edm": { emoji: "🎧", label: "Dance / EDM", color: "#06b6d4", gradient: ["#06b6d4", "#0891b2"] },

@@ -2,7 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
-import { ActivityItem, ACTIVITY_THEMES } from "../../lib/api";
+import { ActivityItem, ACTIVITY_TYPES } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { formatDate } from "../../lib/formatDate";
 import { EmptyState } from "../shared";
@@ -21,11 +21,11 @@ type Props = {
   secondaryColor?: string;
 };
 
-const DEFAULT_ACTIVITY_THEME = { emoji: "🎉", label: "Activity", color: "#FF6B6B", gradient: ["#FF6B6B", "#7c3aed"] as [string, string] };
+const DEFAULT_ACTIVITY_THEME = { emoji: "✨", label: "Activity", shortLabel: "Activity", color: "#6B7280", gradient: ["#6B7280", "#4B5563"] };
 
 function getThemeInfo(slug: string | null | undefined) {
   if (!slug) return DEFAULT_ACTIVITY_THEME;
-  const theme = (ACTIVITY_THEMES as unknown as Record<string, typeof DEFAULT_ACTIVITY_THEME>)[slug];
+  const theme = (ACTIVITY_TYPES as unknown as Record<string, any>)[slug];
   if (theme) return { emoji: theme.emoji, label: theme.label, color: theme.color, gradient: theme.gradient };
   return DEFAULT_ACTIVITY_THEME;
 }

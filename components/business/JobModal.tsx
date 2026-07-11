@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -137,8 +137,10 @@ export default function JobModal({
   };
 
   const media = formToMedia(jobForm);
+  const formRef = useRef(jobForm);
+  formRef.current = jobForm;
   const handleMediaChange = (newMedia: MediaItem[]) => {
-    onFormChange(mediaToForm(newMedia, jobForm));
+    onFormChange(mediaToForm(newMedia, formRef.current));
   };
 
   return (

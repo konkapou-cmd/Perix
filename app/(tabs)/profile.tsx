@@ -62,6 +62,7 @@ import {
   deletePost,
   updateBusinessTheme,
   getActivities,
+  getUserActivities,
   createActivity,
   updateActivity,
   deleteActivity,
@@ -488,8 +489,7 @@ export default function ProfileScreen() {
   const loadUserActivities = async () => {
     if (!sessionToken || !user) return;
     try {
-      const activities = await getActivities(sessionToken);
-      const userActivitiesList = activities.filter((a: any) => a.creator_id === user.user_id);
+      const userActivitiesList = await getUserActivities(sessionToken, user.user_id);
       setUserActivities(userActivitiesList);
     } catch (e) {
       console.log("Failed to load user activities:", e);
@@ -721,7 +721,7 @@ export default function ProfileScreen() {
           style: "destructive",
           onPress: async () => {
             await deleteActivity(sessionToken, activityId);
-            loadUserProfile();
+            loadUserActivities();
           },
         },
       ]
@@ -2212,7 +2212,7 @@ currentUserId={businessDetail?.business?.business_id}
         />
         <ActivityModal
           visible={activityModalVisible}
-          onClose={() => { setActivityModalVisible(false); setActivityEditing(null); }}
+          onClose={() => { setActivityModalVisible(false); setActivityEditing(null); setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [] }); }}
           activityForm={activityForm}
           onFormChange={setActivityForm}
           activityEditing={activityEditing}

@@ -106,6 +106,14 @@ const uploadToMuxDirect = async (
     },
     uploadType: FileSystemUploadType.BINARY_CONTENT as any,
     fieldName: "file",
+    uploadCallback: (progressEvent: any) => {
+      const total = progressEvent?.totalBytesExpectedToSend;
+      const sent = progressEvent?.totalBytesSent;
+      if (total && sent && total > 0) {
+        const pct = 15 + Math.round((sent / total) * 70);
+        onProgress?.({ phase: "uploading", progress: Math.min(pct, 85) });
+      }
+    },
   });
 
   if (result.status < 200 || result.status >= 300) {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import {
   ActivityIndicator,
   Alert,
@@ -52,6 +52,7 @@ import {
   isUpcomingEvent,
   isUpcomingActivity,
   toggleSaved,
+  EVENT_THEMES,
   BACKEND_URL,
   MAX_VIDEO_SIZE_BYTES,
 } from "../../lib/api";
@@ -321,6 +322,7 @@ export default function HomeScreen() {
   const [shareContentId, setShareContentId] = useState<string>("");
   const [shareContentTitle, setShareContentTitle] = useState<string>("");
   const isAnyModalOpen = commentModal || editModal || calendarOpen || activitiesCalendarOpen || showThemeFilter || showBusinessTagModal || showLayoutSettings || showLocationSearch || shareModalVisible;
+  const isFocused = useIsFocused();
   const [userWantsSound, setUserWantsSound] = useState(true);
   const [friends, setFriends] = useState<any[]>([]);
 
@@ -679,10 +681,11 @@ export default function HomeScreen() {
               } catch (e) { console.warn("toggleSaved failed:", e); }
             }}
             sessionToken={sessionToken}
-            autoPlay={item.post_id === visiblePostId && !isAnyModalOpen}
+            autoPlay={item.post_id === visiblePostId && !isAnyModalOpen && isFocused}
             showMuteButton
-            muted={!(userWantsSound && item.post_id === visiblePostId && !isAnyModalOpen)}
+            muted={!(userWantsSound && item.post_id === visiblePostId && !isAnyModalOpen && isFocused)}
             onMuteChange={setUserWantsSound}
+            onCardTap={() => setUserWantsSound(false)}
           />
           </View>
           </View>
@@ -756,7 +759,7 @@ export default function HomeScreen() {
                   imageUrl={eventImg}
                   videoUrl={event.video_url}
                   title={event.title}
-                  subtitle={event.creator?.name || event.business?.name || event.artist?.name || ""}
+                  subtitle={`${event.theme && EVENT_THEMES[event.theme] ? EVENT_THEMES[event.theme].label + " · " : ""}${event.creator?.name || event.business?.name || event.artist?.name || ""}`}
                   thirdLine={formatEventDate(event.start_time)}
                   onPress={() => router.push(`/event/${event.event_id}`)}
                   isSaved={savedEventIds.has(event.event_id)}

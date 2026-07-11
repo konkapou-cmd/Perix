@@ -41,7 +41,7 @@ import {
   getActivityMessages,
   rsvpActivity,
   sendActivityMessage,
-  ACTIVITY_THEMES,
+  ACTIVITY_TYPES,
   isUpcomingActivity,
   toggleSaved,
   checkSaved,
@@ -287,7 +287,7 @@ export default function ActivityDetailPage() {
   }
 
   const themeLabel = activity.custom_theme ||
-    (activity.theme ? ACTIVITY_THEMES[activity.theme as keyof typeof ACTIVITY_THEMES]?.label : null);
+    (activity.theme ? (ACTIVITY_TYPES as Record<string, any>)[activity.theme]?.label : null);
   const isPast = !isUpcomingActivity(activity);
   const allMediaItems = activity ? buildMediaItems(activity) : [];
   const organizer = activity.creator?.name || "";
