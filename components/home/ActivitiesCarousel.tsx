@@ -3,18 +3,18 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ActivityItem } from "../../lib/api";
-import { ACTIVITY_THEMES } from "../../lib/api/core";
-import { LinearGradient } from "expo-linear-gradient";
-import { COLORS } from "../../lib/designTokens";
-import { formatDate } from "../../lib/formatDate";
+import { ACTIVITY_TYPES } from "../../lib/api/core";
 
-interface ActivitiesCarouselProps {
-  activities: ActivityItem[];
-  savedActivityIds: Set<string>;
-  filter: "all" | "attending" | "mine";
-  onFilterChange: (filter: "all" | "attending" | "mine") => void;
-  onCalendarOpen: () => void;
-  mapRefreshKey: number;
+function getThemeEmoji(theme?: string | null): string {
+  if (!theme) return "✨";
+  const themeData = (ACTIVITY_TYPES as Record<string, any>)[theme];
+  return themeData?.emoji || "✨";
+}
+
+function getThemeColor(theme?: string | null): string {
+  if (!theme) return "#6B7280";
+  const themeData = (ACTIVITY_TYPES as Record<string, any>)[theme];
+  return themeData?.color || "#6B7280";
 }
 
 const CARD_WIDTH = 220;
@@ -23,14 +23,20 @@ const SNAP_INTERVAL = CARD_WIDTH + 12;
 
 function getThemeEmoji(theme?: string | null): string {
   if (!theme) return "✨";
-  const themeData = ACTIVITY_THEMES[theme as keyof typeof ACTIVITY_THEMES];
+  const themeData = (ACTIVITY_TYPES as Record<string, any>)[theme];
   return themeData?.emoji || "✨";
 }
 
 function getThemeColor(theme?: string | null): string {
-  if (!theme) return "#6b7280";
-  const themeData = ACTIVITY_THEMES[theme as keyof typeof ACTIVITY_THEMES];
-  return themeData?.color || "#6b7280";
+  if (!theme) return "#6B7280";
+  const themeData = (ACTIVITY_TYPES as Record<string, any>)[theme];
+  return themeData?.color || "#6B7280";
+}
+
+function getThemeLabel(theme?: string | null): string {
+  if (!theme) return "";
+  const themeData = (ACTIVITY_TYPES as Record<string, any>)[theme];
+  return themeData?.label || "";
 }
 
 function formatTime(timeStr?: string | null): string {
@@ -183,6 +189,7 @@ export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFil
 
                   <View style={styles.cardContent}>
                     <Text style={styles.activityTitle} numberOfLines={2}>{activity.title}</Text>
+                    <Text style={styles.activityTypeLabel} numberOfLines={1}>{getThemeLabel(activity.theme)}</Text>
                     <View style={styles.metaRow}>
                       <Ionicons name="calendar-outline" size={12} color="#9ca3af" />
                       <Text style={styles.metaText}>{formatDate(activity.date)}</Text>
@@ -431,10 +438,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#ffffff",
-    marginBottom: 4,
+    marginBottom: 2,
     textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  activityTypeLabel: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: "rgba(255,255,255,0.7)",
+    marginBottom: 6,
   },
   metaRow: {
     flexDirection: "row",

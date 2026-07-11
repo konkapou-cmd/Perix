@@ -132,6 +132,7 @@ export type Post = {
   author?: { user_id: string; name: string; profile_photo?: string | null; picture?: string | null } | null;
   tagged_user_ids?: string[];
   tagged_business_ids?: string[];
+  tagged_artist_ids?: string[];
   media_ratio?: number | null;
   youtube_link?: string | null;
   soundcloud_url?: string | null;
@@ -308,19 +309,78 @@ export type TaggedBusinessInActivity = {
   logo_image?: string | null;
 };
 
-export const ACTIVITY_THEMES = {
-  birthday: { emoji: "🎂", label: "Birthday Party", color: "#ec4899", gradient: ["#ec4899", "#db2777"] },
-  dinner: { emoji: "🍽️", label: "Dinner", color: "#f59e0b", gradient: ["#f59e0b", "#d97706"] },
-  cinema: { emoji: "🎬", label: "Cinema Night", color: "#6366f1", gradient: ["#6366f1", "#4f46e5"] },
-  party: { emoji: "🎉", label: "Party", color: "#FF6B6B", gradient: ["#FF6B6B", "#7c3aed"] },
-  sports: { emoji: "🏃", label: "Sports", color: "#10b981", gradient: ["#10b981", "#059669"] },
-  coffee: { emoji: "☕", label: "Coffee/Hangout", color: "#78350f", gradient: ["#92400e", "#78350f"] },
-  travel: { emoji: "✈️", label: "Travel", color: "#0ea5e9", gradient: ["#0ea5e9", "#0284c7"] },
-  game: { emoji: "🎮", label: "Game Night", color: "#dc2626", gradient: ["#dc2626", "#b91c1c"] },
-  music: { emoji: "🎵", label: "Concert/Music", color: "#7c3aed", gradient: ["#7c3aed", "#6d28d9"] },
-  outdoor: { emoji: "🏕️", label: "Outdoor Activity", color: "#059669", gradient: ["#059669", "#047857"] },
-  custom: { emoji: "✨", label: "Custom", color: "#6b7280", gradient: ["#6b7280", "#4b5563"] },
+export type ActivityTypeInfo = {
+  emoji: string;
+  label: string;
+  shortLabel: string;
+  color: string;
+  gradient: [string, string];
+  category: string;
+  subcategory: string;
 };
+
+export const ACTIVITY_TYPES: Record<string, ActivityTypeInfo> = {
+  // Movement & Outdoor — Walking Activities
+  casual_walk_meetup: { emoji: "🚶", label: "Casual Walk Meetup", shortLabel: "Walk", color: "#4CAF50", gradient: ["#4CAF50", "#388E3C"], category: "movement_outdoor", subcategory: "walking_activities" },
+  morning_coffee_walk: { emoji: "☕", label: "Morning Coffee Walk", shortLabel: "Coffee Walk", color: "#8BC34A", gradient: ["#8BC34A", "#689F38"], category: "movement_outdoor", subcategory: "walking_activities" },
+  sunset_walk: { emoji: "🌅", label: "Sunset Walk", shortLabel: "Sunset Walk", color: "#FF9800", gradient: ["#FF9800", "#F57C00"], category: "movement_outdoor", subcategory: "walking_activities" },
+  // Movement & Outdoor — Light Fitness
+  beginner_run_club: { emoji: "🏃", label: "Beginner Run Club", shortLabel: "Run Club", color: "#4CAF50", gradient: ["#4CAF50", "#388E3C"], category: "movement_outdoor", subcategory: "light_fitness" },
+  stretching_in_the_park: { emoji: "🧘", label: "Stretching in the Park", shortLabel: "Stretch", color: "#66BB6A", gradient: ["#66BB6A", "#43A047"], category: "movement_outdoor", subcategory: "light_fitness" },
+  outdoor_workout_circle: { emoji: "💪", label: "Outdoor Workout Circle", shortLabel: "Workout", color: "#43A047", gradient: ["#43A047", "#2E7D32"], category: "movement_outdoor", subcategory: "light_fitness" },
+  // Movement & Outdoor — City Movement
+  bike_ride_meetup: { emoji: "🚲", label: "Bike Ride Meetup", shortLabel: "Bike Ride", color: "#2196F3", gradient: ["#2196F3", "#1976D2"], category: "movement_outdoor", subcategory: "city_movement" },
+  // Simple Sports — Ball Sports
+  casual_football_kickabout: { emoji: "⚽", label: "Casual Football Kickabout", shortLabel: "Football", color: "#FF5722", gradient: ["#FF5722", "#E64A19"], category: "simple_sports", subcategory: "ball_sports" },
+  basketball_shootaround: { emoji: "🏀", label: "Basketball Shootaround", shortLabel: "Basketball", color: "#FF7043", gradient: ["#FF7043", "#F4511E"], category: "simple_sports", subcategory: "ball_sports" },
+  volleyball_circle: { emoji: "🏐", label: "Volleyball Circle", shortLabel: "Volleyball", color: "#FFC107", gradient: ["#FFC107", "#FFA000"], category: "simple_sports", subcategory: "ball_sports" },
+  // Simple Sports — Racket & Easy Games
+  frisbee_in_the_park: { emoji: "🥏", label: "Frisbee in the Park", shortLabel: "Frisbee", color: "#00BCD4", gradient: ["#00BCD4", "#0097A7"], category: "simple_sports", subcategory: "racket_easy_games" },
+  ping_pong_meetup: { emoji: "🏓", label: "Ping Pong Meetup", shortLabel: "Ping Pong", color: "#9C27B0", gradient: ["#9C27B0", "#7B1FA2"], category: "simple_sports", subcategory: "racket_easy_games" },
+  badminton_in_the_park: { emoji: "🏸", label: "Badminton in the Park", shortLabel: "Badminton", color: "#E91E63", gradient: ["#E91E63", "#C2185B"], category: "simple_sports", subcategory: "racket_easy_games" },
+  tennis_wall_practice: { emoji: "🎾", label: "Tennis Wall Practice", shortLabel: "Tennis", color: "#CDDC39", gradient: ["#CDDC39", "#AFB42B"], category: "simple_sports", subcategory: "racket_easy_games" },
+  // Calm & Wellness — Mindfulness
+  meditation_in_the_park: { emoji: "🧘", label: "Meditation in the Park", shortLabel: "Meditation", color: "#7C4DFF", gradient: ["#7C4DFF", "#651FFF"], category: "calm_wellness", subcategory: "mindfulness" },
+  gratitude_walk: { emoji: "🙏", label: "Gratitude Walk", shortLabel: "Gratitude Walk", color: "#B388FF", gradient: ["#B388FF", "#9575CD"], category: "calm_wellness", subcategory: "mindfulness" },
+  digital_detox_meetup: { emoji: "📵", label: "Digital Detox Meetup", shortLabel: "Detox", color: "#5C6BC0", gradient: ["#5C6BC0", "#3F51B5"], category: "calm_wellness", subcategory: "mindfulness" },
+  // Calm & Wellness — Nature & Slow Living
+  nature_sit: { emoji: "🌳", label: "Nature Sit", shortLabel: "Nature Sit", color: "#2E7D32", gradient: ["#2E7D32", "#1B5E20"], category: "calm_wellness", subcategory: "nature_slow_living" },
+  sunrise_meetup: { emoji: "🌄", label: "Sunrise Meetup", shortLabel: "Sunrise", color: "#FF8F00", gradient: ["#FF8F00", "#FF6F00"], category: "calm_wellness", subcategory: "nature_slow_living" },
+  slow_sunday_walk: { emoji: "🐌", label: "Slow Sunday Walk", shortLabel: "Sunday Walk", color: "#A5D6A7", gradient: ["#A5D6A7", "#81C784"], category: "calm_wellness", subcategory: "nature_slow_living" },
+  // Social Meetups — Simple Hangouts
+  sit_in_the_park_meetup: { emoji: "🪑", label: "Sit in the Park Meetup", shortLabel: "Park Hang", color: "#FF7043", gradient: ["#FF7043", "#F4511E"], category: "social_meetups", subcategory: "simple_hangouts" },
+  one_hour_hangout: { emoji: "⏰", label: "One-Hour Hangout", shortLabel: "Hangout", color: "#FFA726", gradient: ["#FFA726", "#FB8C00"], category: "social_meetups", subcategory: "simple_hangouts" },
+  bring_your_own_drink_meetup: { emoji: "🥤", label: "Bring Your Own Drink", shortLabel: "BYO Drink", color: "#26C6DA", gradient: ["#26C6DA", "#00BCD4"], category: "social_meetups", subcategory: "simple_hangouts" },
+  // Social Meetups — Easy Social Walks
+  dog_walk_meetup: { emoji: "🐕", label: "Dog Walk Meetup", shortLabel: "Dog Walk", color: "#8D6E63", gradient: ["#8D6E63", "#6D4C41"], category: "social_meetups", subcategory: "easy_social_walks" },
+  playlist_walk: { emoji: "🎧", label: "Playlist Walk", shortLabel: "Playlist Walk", color: "#EC407A", gradient: ["#EC407A", "#D81B60"], category: "social_meetups", subcategory: "easy_social_walks" },
+  explore_one_street: { emoji: "🗺️", label: "Explore One Street", shortLabel: "Explore Street", color: "#29B6F6", gradient: ["#29B6F6", "#0288D1"], category: "social_meetups", subcategory: "easy_social_walks" },
+  // Social Meetups — Conversation Meetups
+  no_agenda_meetup: { emoji: "💬", label: "No Agenda Meetup", shortLabel: "No Agenda", color: "#78909C", gradient: ["#78909C", "#546E7A"], category: "social_meetups", subcategory: "conversation_meetups" },
+  bench_talk: { emoji: "🪑", label: "Bench Talk", shortLabel: "Bench Talk", color: "#90A4AE", gradient: ["#90A4AE", "#607D8B"], category: "social_meetups", subcategory: "conversation_meetups" },
+};
+
+export const ACTIVITY_CATEGORIES: Record<string, { emoji: string; label: string }> = {
+  movement_outdoor: { emoji: "🚶", label: "Movement & Outdoor" },
+  simple_sports: { emoji: "⚽", label: "Simple Sports" },
+  calm_wellness: { emoji: "🌿", label: "Calm & Wellness" },
+  social_meetups: { emoji: "💬", label: "Social Meetups" },
+};
+
+export const ACTIVITY_SUBCATEGORIES: Record<string, { label: string; category: string }> = {
+  walking_activities:     { label: "Walking", category: "movement_outdoor" },
+  light_fitness:          { label: "Light Fitness", category: "movement_outdoor" },
+  city_movement:          { label: "City Movement", category: "movement_outdoor" },
+  ball_sports:            { label: "Ball Sports", category: "simple_sports" },
+  racket_easy_games:      { label: "Racket Games", category: "simple_sports" },
+  mindfulness:            { label: "Mindfulness", category: "calm_wellness" },
+  nature_slow_living:     { label: "Nature", category: "calm_wellness" },
+  simple_hangouts:        { label: "Hangouts", category: "social_meetups" },
+  easy_social_walks:      { label: "Walks", category: "social_meetups" },
+  conversation_meetups:   { label: "Conversation", category: "social_meetups" },
+};
+
+export const ACTIVITY_THEMES = ACTIVITY_TYPES;
 
 export type ActivityItem = {
   activity_id: string;

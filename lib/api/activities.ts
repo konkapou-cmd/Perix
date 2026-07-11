@@ -7,6 +7,7 @@ export const getActivities = async (
   options?: {
     date?: string;
     theme?: string;
+    category?: string;
   }
 ): Promise<ActivityItem[]> => {
   const params = new URLSearchParams();
@@ -18,6 +19,7 @@ export const getActivities = async (
   }
   if (options?.date) params.append("date", options.date);
   if (options?.theme) params.append("theme", options.theme);
+  if (options?.category) params.append("category", options.category);
   const query = params.toString() ? `?${params.toString()}` : "";
   return apiRequest<ActivityItem[]>(`/activities${query}`, "GET", token);
 };

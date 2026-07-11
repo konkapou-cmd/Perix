@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -208,8 +208,10 @@ export default function EventModal({
     date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 
   const media = formToMedia(eventForm);
+  const formRef = useRef(eventForm);
+  formRef.current = eventForm;
   const handleMediaChange = (newMedia: MediaItem[]) => {
-    onFormChange(mediaToForm(newMedia, eventForm));
+    onFormChange(mediaToForm(newMedia, formRef.current));
   };
 
   const themeList = eventThemes.length > 0 ? eventThemes : Object.entries(themesMap).map(([slug, t]) => ({ slug, label: t.label, color: t.color, emoji: t.emoji, gradient: t.gradient }));
@@ -390,33 +392,6 @@ export default function EventModal({
               </ScrollView>
             )}
           </View>
-
-          <View style={s.privateRow}>
-            <View style={s.privateLabelContainer}>
-              <Text style={s.labelNoMargin}>{t("events.private") || "Private"}</Text>
-              <Text style={s.labelHint}>{t("business.privateHint") || "Password required to join"}</Text>
-            </View>
-            <Pressable
-              style={[s.toggle, eventForm.is_private && s.toggleActive]}
-              onPress={() => onFormChange({ ...eventForm, is_private: !eventForm.is_private, password: eventForm.is_private ? "" : eventForm.password })}
-            >
-              <View style={[s.toggleKnob, eventForm.is_private && s.toggleKnobActive]} />
-            </Pressable>
-          </View>
-
-          {eventForm.is_private && (
-            <>
-              <Text style={s.label}>{t("business.password") || "Password"}</Text>
-              <TextInput
-                style={s.input}
-                value={eventForm.password}
-                onChangeText={(text) => onFormChange({ ...eventForm, password: text })}
-                placeholder={t("business.passwordPlaceholder") || "Password"}
-                placeholderTextColor={COLORS.textDisabled}
-                secureTextEntry
-              />
-            </>
-          )}
 
           <View style={{ height: 140 }} />
         </ScrollView>

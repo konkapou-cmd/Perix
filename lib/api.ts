@@ -19,6 +19,9 @@ export {
   CHUNKED_UPLOAD_THRESHOLD,
   STORY_REACTIONS,
   ACTIVITY_THEMES,
+  ACTIVITY_TYPES,
+  ACTIVITY_CATEGORIES,
+  ACTIVITY_SUBCATEGORIES,
 } from "./api/core";
 export type {
   ProfileTheme,

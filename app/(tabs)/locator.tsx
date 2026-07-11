@@ -56,7 +56,7 @@ import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
 import { translateCategory } from "../../lib/categoryTranslation";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
-import { ACTIVITY_THEMES } from "../../lib/api";
+import { ACTIVITY_CATEGORIES, ACTIVITY_TYPES } from "../../lib/api";
 
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -157,8 +157,7 @@ export default function LocatorScreen() {
   // Theme filters for events and activities
   const [eventThemeFilter, setEventThemeFilter] = useState<string | null>(null);
   const [pendingEventThemeFilter, setPendingEventThemeFilter] = useState<string | null>(null);
-  const [activityThemeFilter, setActivityThemeFilter] = useState<string | null>(null);
-  const [pendingActivityThemeFilter, setPendingActivityThemeFilter] = useState<string | null>(null);
+  const [activityCategoryFilter, setActivityCategoryFilter] = useState<string | null>(null);
   const [rentalTypeFilter, setRentalTypeFilter] = useState<string | null>(null);
   const [jobTypeFilter, setJobTypeFilter] = useState<string | null>(null);
 
@@ -341,18 +340,21 @@ export default function LocatorScreen() {
      result = result.filter(a => {
        const activityDate = a.date;
        return isDateInRange(activityDate, effectiveDateFilter);
-     });
-     // Filter by theme
-     if (activityThemeFilter) {
-       result = result.filter(a => a.theme === activityThemeFilter);
-     }
+      });
+      // Filter by category
+      if (activityCategoryFilter) {
+        const matchingTypeKeys = Object.entries(ACTIVITY_TYPES)
+          .filter(([_, t]) => t.category === activityCategoryFilter)
+          .map(([key]) => key);
+        result = result.filter(a => matchingTypeKeys.includes(a.theme));
+      }
      // Filter by search query
      if (activitySearchQuery.trim()) {
        const query = activitySearchQuery.toLowerCase();
        result = result.filter(a => a.title.toLowerCase().includes(query));
      }
      return result;
-   }, [activities, mapBounds, dateFilter, activityThemeFilter, activitySearchQuery]);
+   }, [activities, mapBounds, dateFilter, activityCategoryFilter, activitySearchQuery]);
   
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
@@ -431,10 +433,10 @@ export default function LocatorScreen() {
     if (!sessionToken) return;
     const data = await getActivities(sessionToken, bounds, {
       date: dateFilter.startDate || undefined,
-      theme: activityThemeFilter || undefined,
+      category: activityCategoryFilter || undefined,
     });
     setActivities(data);
-  }, [sessionToken, dateFilter, activityThemeFilter]);
+  }, [sessionToken, dateFilter, activityCategoryFilter]);
 
   const loadRentals = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, subcategoryFilter?: string | null) => {
     if (!sessionToken) return;
@@ -878,10 +880,16 @@ export default function LocatorScreen() {
       )}
       {activeTab === "activities" && (
         <LocatorCategoryChips
-          chips={Object.entries(ACTIVITY_THEMES).map(([key, theme]: [string, any]) => ({ key, label: theme.label, color: theme.color }))}
-          selectedKey={activityThemeFilter}
-          onSelect={setActivityThemeFilter}
-          variant="theme"
+          chips={[
+            { key: "All", label: t("common.all") || "All", color: "#6B7280" },
+            ...Object.entries(ACTIVITY_CATEGORIES).map(([key, cat]: [string, any]) => ({
+              key,
+              label: cat.label,
+              color: Object.values(ACTIVITY_TYPES).find(t => t.category === key)?.color || "#6B7280",
+            })),
+          ]}
+          selectedKey={activityCategoryFilter}
+          onSelect={(key) => setActivityCategoryFilter(key === "All" ? null : key)}
         />
       )}
       {activeTab === "rentals" && (

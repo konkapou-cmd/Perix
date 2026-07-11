@@ -875,7 +875,9 @@
       "vip-luxury": "VIP / Luxus Nacht",
       "festival": "Festival-Style Party",
       "greek-music": "Griechische Musik",
-      "international": "Internationale Musik"
+      "international": "Internationale Musik",
+      "business-event": "Business Event",
+      "arts-event": "Kunst-Event"
     },
     "allEvents": "Alle Veranstaltungen",
     "myEvents": "Meine Veranstaltungen",
@@ -1035,7 +1037,7 @@
     "descriptionPlaceholder": "Beschreibe deine Aktivität...",
     "locationPlaceholder": "Ort oder Adresse",
     "maxAttendeesPlaceholder": "Kein Limit",
-    "theme": "Thema",
+    "theme": "Aktivitätstyp",
     "images": "Bilder",
     "addPhoto": "Foto hinzufügen",
     "save": "Speichern",
@@ -1043,11 +1045,11 @@
     "hosting": "Gastgeber",
     "joined": "Beigetreten",
     "media": "Medien",
-    "activityType": "Aktivitätsart",
+    "activityType": "Aktivitätstyp",
     "anyoneCanJoin": "Jeder kann sehen und teilnehmen",
     "at": "um",
     "attending": "Teilnehmend",
-    "customTheme": "Eigenes Thema eingeben",
+    "customTheme": "Eigener Aktivitätstyp",
     "dateRequired": "Bitte wähle ein Datum",
     "gallery": "Galerie",
     "invalidCode": "Ungültiger Einladungscode",
@@ -1067,7 +1069,9 @@
     "tagVenue": "Ort markieren (optional)",
     "timeRequired": "Bitte wähle eine Uhrzeit",
     "useCodeToJoin": "Code zum Beitreten verwenden",
-    "venue": "Ort"
+    "venue": "Ort",
+    "selectActivityType": "Aktivitätstyp wählen",
+    "expandCategory": "Kategorie erweitern"
   },
   "jobs": {
     "title": "Verfügbare Jobs",

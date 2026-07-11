@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { CalendarList } from "react-native-calendars";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { ActivityItem, ACTIVITY_THEMES } from "../../lib/api";
+import { ActivityItem, ACTIVITY_TYPES, ACTIVITY_CATEGORIES, ACTIVITY_SUBCATEGORIES } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
@@ -137,6 +137,7 @@ export default function ActivityModal({
   nearLng,
 }: Props) {
   const { t } = useTranslation();
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     if (activityEditing) {
@@ -158,6 +159,8 @@ export default function ActivityModal({
         gallery_images: (activityEditing as any).gallery_images || [],
         gallery_videos: (activityEditing as any).gallery_videos || [],
       });
+    } else {
+      onFormChange({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [] });
     }
   }, [activityEditing]);
 
@@ -175,8 +178,10 @@ export default function ActivityModal({
     date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 
   const media = formToMedia(activityForm);
+  const formRef = useRef(activityForm);
+  formRef.current = activityForm;
   const handleMediaChange = (newMedia: MediaItem[]) => {
-    onFormChange(mediaToForm(newMedia, activityForm));
+    onFormChange(mediaToForm(newMedia, formRef.current));
   };
 
   return (
@@ -303,46 +308,56 @@ export default function ActivityModal({
             keyboardType="numeric"
           />
 
-          <View style={s.privateRow}>
-            <View style={s.privateLabelContainer}>
-              <Text style={s.labelNoMargin}>{t("activities.private")}</Text>
-              <Text style={s.labelHint}>{t("business.privateHint")}</Text>
-            </View>
-            <Pressable
-              style={[s.toggle, activityForm.is_private && s.toggleActive]}
-              onPress={() => onFormChange({ ...activityForm, is_private: !activityForm.is_private, password: activityForm.is_private ? "" : activityForm.password })}
-            >
-              <View style={[s.toggleKnob, activityForm.is_private && s.toggleKnobActive]} />
-            </Pressable>
-          </View>
+          <Text style={s.label}>{t("activities.theme") || "Activity Type"}</Text>
 
-          {activityForm.is_private && (
-            <>
-              <Text style={s.label}>{t("business.password")}</Text>
-              <TextInput
-                style={s.input}
-                value={activityForm.password}
-                onChangeText={(text) => onFormChange({ ...activityForm, password: text })}
-                placeholder={t("business.passwordPlaceholder")}
-                placeholderTextColor={COLORS.textDisabled}
-                secureTextEntry
-              />
-            </>
-          )}
+          {Object.entries(ACTIVITY_CATEGORIES).map(([catKey, cat]) => {
+            const isExpanded = expandedCategory === catKey;
+            const categoryTypes = Object.entries(ACTIVITY_TYPES).filter(([_, t]) => t.category === catKey);
+            return (
+              <View key={catKey} style={s.categorySection}>
+                <Pressable
+                  style={s.categoryHeader}
+                  onPress={() => setExpandedCategory(isExpanded ? null : catKey)}
+                >
+                  <Text style={s.categoryEmoji}>{cat.emoji}</Text>
+                  <Text style={s.categoryLabel}>{cat.label}</Text>
+                  <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color={COLORS.textSecondary} />
+                </Pressable>
 
-          <Text style={s.label}>{t("activities.theme")}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.themeChipsRow}>
-            {Object.entries(ACTIVITY_THEMES).map(([key, theme]: [string, any]) => (
-              <Pressable
-                key={key}
-                style={[s.themeChip, activityForm.theme === key && { backgroundColor: theme.color, borderColor: theme.color }]}
-                onPress={() => onFormChange({ ...activityForm, theme: activityForm.theme === key ? "" : key })}
-              >
-                <Text style={s.themeChipEmoji}>{theme.emoji}</Text>
-                <Text style={[s.themeChipText, activityForm.theme === key && s.themeChipTextActive]}>{theme.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+                {isExpanded && (
+                  <View style={s.categoryBody}>
+                    {Object.entries(ACTIVITY_SUBCATEGORIES)
+                      .filter(([_, sub]) => sub.category === catKey)
+                      .map(([subKey, sub]) => {
+                        const subTypes = categoryTypes.filter(([_, t]) => t.subcategory === subKey);
+                        return (
+                          <View key={subKey} style={s.subcategorySection}>
+                            <Text style={s.subcategoryLabel}>{sub.label}</Text>
+                            <View style={s.themeChipsRow}>
+                              {subTypes.map(([typeKey, type]) => (
+                                <Pressable
+                                  key={typeKey}
+                                  style={[
+                                    s.themeChip,
+                                    activityForm.theme === typeKey && { backgroundColor: type.color, borderColor: type.color },
+                                  ]}
+                                  onPress={() => onFormChange({ ...activityForm, theme: activityForm.theme === typeKey ? "" : typeKey })}
+                                >
+                                  <Text style={s.themeChipEmoji}>{type.emoji}</Text>
+                                  <Text style={[s.themeChipText, activityForm.theme === typeKey && s.themeChipTextActive]}>
+                                    {type.shortLabel || type.label}
+                                  </Text>
+                                </Pressable>
+                              ))}
+                            </View>
+                          </View>
+                        );
+                      })}
+                  </View>
+                )}
+              </View>
+            );
+          })}
 
           <View style={{ height: 140 }} />
         </ScrollView>
@@ -483,6 +498,8 @@ const s = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   themeChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: SPACING.small,
     paddingVertical: SPACING.tiny,
   },
@@ -508,6 +525,44 @@ const s = StyleSheet.create({
   themeChipTextActive: {
     color: "#fff",
     fontWeight: FONT_WEIGHTS.semibold as any,
+  },
+  categorySection: {
+    marginBottom: SPACING.small,
+  },
+  categoryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.small,
+    paddingVertical: SPACING.compact,
+    paddingHorizontal: SPACING.small,
+    backgroundColor: COLORS.backgroundPage,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  categoryEmoji: {
+    fontSize: FONT_SIZES.body,
+  },
+  categoryLabel: {
+    flex: 1,
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: COLORS.textPrimary,
+  },
+  categoryBody: {
+    paddingTop: SPACING.small,
+    paddingLeft: SPACING.small,
+  },
+  subcategorySection: {
+    marginBottom: SPACING.small,
+  },
+  subcategoryLabel: {
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: COLORS.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: SPACING.tiny,
   },
   privateRow: {
     flexDirection: "row",

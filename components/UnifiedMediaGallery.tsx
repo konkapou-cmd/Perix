@@ -279,8 +279,9 @@ export default function UnifiedMediaGallery({
         <View style={[s.grid, { gap: itemGap }]}>
           {gridItems.map((item, idx) => {
             const realIdx = idx + 1;
+            const progress = itemProgress[realIdx];
+            const isUploading = uploadingIndex === realIdx;
 
-            // ... (rest of the item rendering)
             if (isUploading || progress) {
               return (
                 <View key={`m-${realIdx}`} style={[s.gridItem, { width: itemSize, height: itemSize }]}>
