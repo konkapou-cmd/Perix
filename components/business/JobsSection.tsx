@@ -6,6 +6,7 @@ import { Job } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { formatDate } from "../../lib/formatDate";
 import { EmptyState } from "../shared";
+import StatusBadge from "../ui/StatusBadge";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
 
@@ -74,19 +75,12 @@ export default function JobsSection({
                       </View>
                     )}
                     {job.job_type && (
-                      <View style={[s.typeBadge, { backgroundColor: primaryColor }]}>
-                        <Text style={s.typeBadgeLabel}>{job.job_type}</Text>
-                      </View>
+                      <StatusBadge label={job.job_type} color={primaryColor} size="sm" />
                     )}
                     {job.is_active ? (
-                      <View style={s.activeBadge}>
-                        <Ionicons name="checkmark-circle" size={10} color="#fff" />
-                        <Text style={s.activeText}>{t("jobs.active", "Aktiv")}</Text>
-                      </View>
+                      <StatusBadge label={t("jobs.active", "Aktiv")} variant="active" size="sm" />
                     ) : (
-                      <View style={s.inactiveBadge}>
-                        <Text style={s.inactiveText}>{t("jobs.inactive", "Inactive")}</Text>
-                      </View>
+                      <StatusBadge label={t("jobs.inactive", "Inactive")} variant="draft" size="sm" />
                     )}
                   </View>
                   <View style={s.info}>
@@ -116,11 +110,7 @@ export default function JobsSection({
                         </Text>
                       </View>
                     ) : (
-                      <View style={[s.statusBadge, { backgroundColor: `${COLORS.success}20` }]}>
-                        <Text style={[s.statusText, { color: COLORS.success }]}>
-                          {t("jobs.noExpiry", "No expiry")}
-                        </Text>
-                      </View>
+                      <StatusBadge label={t("jobs.noExpiry", "No expiry")} variant="default" size="sm" />
                     )}
                   </View>
                 </Pressable>

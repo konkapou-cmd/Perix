@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import EmptyState from "../ui/EmptyState";
 import { COLORS, SPACING } from "../../lib/designTokens";
 
 interface FilterOption {
@@ -67,9 +68,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
         {!hasContent ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>{emptyMessage}</Text>
-          </View>
+          <EmptyState message={emptyMessage} muted />
         ) : (
           children
         )}

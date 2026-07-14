@@ -25,6 +25,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 import { Post, togglePostLike as apiTogglePostLike, toggleSaved } from "../../lib/api";
+import EmptyState from "../ui/EmptyState";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
 
@@ -422,12 +423,7 @@ pendingMentionIds = [],
 
       {isWeb ? (
         posts.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="newspaper-outline" size={48} color="#d1d5db" />
-            <Text style={styles.emptyText}>
-              {t("profile.noPosts", "No posts yet")}
-            </Text>
-          </View>
+          <EmptyState icon="newspaper-outline" message={t("profile.noPosts", "No posts yet")} />
         ) : (
           <View style={styles.postGrid}>
             {postsData.map((post) => (
@@ -516,10 +512,7 @@ pendingMentionIds = [],
           }
           ListEmptyComponent={
             postsData.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="newspaper-outline" size={48} color="#d1d5db" />
-                <Text style={styles.emptyText}>{t("profile.noPosts", "No posts yet")}</Text>
-              </View>
+              <EmptyState icon="newspaper-outline" message={t("profile.noPosts", "No posts yet")} />
             ) : null
           }
           refreshControl={
