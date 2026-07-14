@@ -220,7 +220,7 @@ export async function pickAndUploadMedia(
   const pickerOptions = {
     ...options,
     mediaTypes: ImagePicker.MediaTypeOptions.All,
-    quality: options.quality ?? 0.5,
+    quality: options.quality ?? MEDIA_LIMITS.image.pickerQuality,
     base64: true,
     exif: false,
   };

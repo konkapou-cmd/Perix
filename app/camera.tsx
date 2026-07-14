@@ -125,7 +125,7 @@ export default function CameraScreen() {
     
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: MEDIA_LIMITS.image.pickerQuality,
         base64: true,
       });
       
@@ -203,7 +203,7 @@ export default function CameraScreen() {
     
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: mediaType,
-      quality: 0.8,
+      quality: cameraMode === "picture" ? MEDIA_LIMITS.image.pickerQuality : MEDIA_LIMITS.video.pickerQuality,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {

@@ -243,7 +243,7 @@ export default function HomeScreen() {
     if (!sessionToken) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: 0.7,
+      quality: MEDIA_LIMITS.video.pickerQuality,
     });
     if (result.canceled || !result.assets?.[0]?.uri) return;
     try {
@@ -348,7 +348,7 @@ export default function HomeScreen() {
       Alert.alert(t("common.permissionRequired") || "Permission Required", t("home.mediaPermissionMessage") || "Please allow access to your photo library to upload images.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.5, base64: true, allowsEditing: true, aspect: [4, 5], exif: false });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: MEDIA_LIMITS.image.pickerQuality, base64: true, allowsEditing: true, aspect: [4, 5], exif: false });
     if (!result.canceled && result.assets?.[0]?.base64) {
       const asset = result.assets[0];
       setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
@@ -364,7 +364,7 @@ export default function HomeScreen() {
       Alert.alert(t("common.permissionRequired") || "Permission Required", t("home.mediaPermissionMessage") || "Please allow access to your photo library to upload videos.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, quality: 0.5 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, quality: MEDIA_LIMITS.video.pickerQuality });
     if (!result.canceled && result.assets?.[0]?.uri) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
@@ -481,7 +481,7 @@ export default function HomeScreen() {
   const pickEditImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") { Alert.alert(t("common.permissionRequired") || "Permission Required", t("home.mediaPermissionMessage") || "Please allow access to your photo library."); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.5, base64: true });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: MEDIA_LIMITS.image.pickerQuality, base64: true });
     if (!result.canceled && result.assets?.[0]?.base64) {
       const asset = result.assets[0];
       setEditMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
@@ -494,7 +494,7 @@ export default function HomeScreen() {
   const pickEditVideo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") { Alert.alert(t("common.permissionRequired") || "Permission Required", t("home.mediaPermissionMessage") || "Please allow access to your photo library."); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, quality: 0.5 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, quality: MEDIA_LIMITS.video.pickerQuality });
     if (!result.canceled && result.assets?.[0]?.uri) {
       const asset = result.assets[0];
       setEditMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);

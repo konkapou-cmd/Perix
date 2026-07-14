@@ -5,7 +5,7 @@ import { uploadVideoToMux, MuxVideoUploadResult } from "./mux";
 import { MEDIA_LIMITS } from "../constants/mediaLimits";
 
 export const MAX_VIDEO_SIZE_MB = MEDIA_LIMITS.video.maxFileSizeMb;
-export const MAX_VIDEO_SIZE_BYTES = MEDIA_LIMITS.video.maxFileSizeBytes;
+export const MAX_VIDEO_SIZE_BYTES = MEDIA_LIMITS.post.maxVideoFileSizeBytes;
 export const MAX_STORY_VIDEO_SIZE_MB = MEDIA_LIMITS.story.maxFileSizeMb;
 export const MAX_STORY_VIDEO_SIZE_BYTES = MEDIA_LIMITS.story.maxFileSizeBytes;
 export const UPLOAD_TIMEOUT_MS = MEDIA_LIMITS.upload.timeoutMs;
