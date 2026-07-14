@@ -123,7 +123,7 @@ export default function JobModal({
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const isEditing = !!editingId;
-  const modalTitle = isEditing ? t("jobs.editJob", "Edit Job") : t("jobs.createJob", "Create Job");
+  const modalTitle = isEditing ? t("jobs.editJob", "Job bearbeiten") : t("jobs.createJob", "Stellenanzeige erstellen");
 
   useEffect(() => {
     if (visible && !isEditing && !jobForm.work_location && businessAddress) {

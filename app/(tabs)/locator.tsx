@@ -1111,7 +1111,7 @@ export default function LocatorScreen() {
                     business_id: job.job_id,
                     name: job.title,
                     root_category: "Jobs",
-                    subcategory: job.job_type || "Full-time",
+                    subcategory: job.job_type || t("jobs.fullTime", "Vollzeit"),
                     address: job.location,
                     latitude: job.latitude,
                     longitude: job.longitude,

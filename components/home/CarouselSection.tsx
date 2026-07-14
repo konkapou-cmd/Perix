@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { COLORS, SPACING } from "../../lib/designTokens";
 
 interface FilterOption {
@@ -25,6 +26,7 @@ interface CarouselSectionProps {
 
 export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage = "No items", children }: CarouselSectionProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const hasContent = React.Children.count(children) > 0;
   const accent = color || COLORS.primaryDark;
 
@@ -40,7 +42,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
         <View style={styles.sectionHeaderRight}>
           {seeAllRoute && (
             <Pressable style={[styles.seeAllButton, { backgroundColor: accent }]} onPress={() => router.navigate(seeAllRoute as any)}>
-              <Text style={styles.seeAllButtonText}>See All</Text>
+              <Text style={styles.seeAllButtonText}>{t("common.seeAll", "Alle anzeigen")}</Text>
               <Ionicons name="chevron-forward" size={14} color={COLORS.textLight} />
             </Pressable>
           )}

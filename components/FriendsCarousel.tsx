@@ -132,7 +132,7 @@ export default function FriendsCarousel({
             style={styles.seeAllButton}
             onPress={() => router.push(`/friends/${currentUserId}` as any)}
           >
-            <Text style={styles.seeAllText}>{t("common.seeAll") || "See All"}</Text>
+            <Text style={styles.seeAllText}>{t("common.seeAll", "Alle anzeigen")}</Text>
             <Ionicons name="chevron-forward" size={16} color="#000000" />
           </Pressable>
         )}

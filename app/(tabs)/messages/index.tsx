@@ -304,7 +304,7 @@ export default function MessagesScreen() {
           <View style={styles.searchBar}>
             <Ionicons name="search" size={16} color={COLORS.textMuted} />
             <TextInput
-              placeholder={t("messages.searchConversations", "Search conversations")}
+              placeholder={t("messages.searchConversations", "Unterhaltungen suchen")}
               value={searchQuery}
               onChangeText={setSearchQuery}
               style={styles.searchInput}

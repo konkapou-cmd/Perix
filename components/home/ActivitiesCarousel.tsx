@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ActivityItem } from "../../lib/api";
 import { ACTIVITY_TYPES } from "../../lib/api/core";
 
@@ -59,6 +60,7 @@ function getAttendeeCount(activity: ActivityItem): number {
 
 export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFilterChange, onCalendarOpen, mapRefreshKey }: ActivitiesCarouselProps) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const sortedActivities = useMemo(() => {
     let filtered = activities;
@@ -88,7 +90,7 @@ export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFil
             <Ionicons name="calendar-outline" size={16} color="#ffffff" />
           </Pressable>
           <Pressable style={styles.seeAllButton} onPress={() => router.navigate({ pathname: "/(tabs)/locator" as any, params: { tab: "activities" } })}>
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.seeAllText}>{t("common.seeAll", "Alle anzeigen")}</Text>
             <Ionicons name="chevron-forward" size={14} color="#ffffff" />
           </Pressable>
         </View>
