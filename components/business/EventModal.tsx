@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,7 +10,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -21,6 +17,8 @@ import { EventItem, EVENT_THEMES, DEFAULT_EVENT_THEME } from "../../lib/api/even
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
+import FormScreen from "../ui/FormScreen";
+import FormBottomBar from "../ui/FormBottomBar";
 
 type EventForm = {
   title: string;
@@ -69,6 +67,7 @@ type Props = {
   nearLng?: number;
   businessAddress?: string;
   availableArtists?: ArtistSuggestion[];
+  isSaving?: boolean;
 };
 
 const themesMap = EVENT_THEMES;
@@ -152,6 +151,7 @@ export default function EventModal({
   nearLng,
   businessAddress,
   availableArtists,
+  isSaving = false,
 }: Props) {
   const { t } = useTranslation();
   const [artistQuery, setArtistQuery] = useState("");
@@ -225,21 +225,8 @@ export default function EventModal({
   const themeList = eventThemes.length > 0 ? eventThemes : Object.entries(themesMap).map(([slug, t]) => ({ slug, label: t.label, color: t.color, emoji: t.emoji, gradient: t.gradient }));
 
   return (
-    <Modal visible={visible} animationType="slide">
-      <SafeAreaView style={s.modalContainer} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={s.header}>
-          <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
-            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-          </Pressable>
-          <Text style={s.headerTitle}>
-            {eventEditing ? t("events.editEvent") : t("events.createEvent")}
-          </Text>
-          <View style={s.headerBtn} />
-        </View>
-
-        <ScrollView style={s.body} keyboardShouldPersistTaps="handled">
-          <UnifiedMediaGallery
+    <FormScreen title={eventEditing ? t("events.editEvent") : t("events.createEvent")} onClose={onClose}>
+      <UnifiedMediaGallery
             media={media}
             onChange={handleMediaChange}
             sessionToken={sessionToken}
@@ -402,22 +389,14 @@ export default function EventModal({
             )}
           </View>
 
-          <View style={{ height: 140 }} />
-        </ScrollView>
-
-        <View style={s.footer}>
-          <Pressable style={s.cancelBtn} onPress={onClose}>
-            <Text style={s.cancelBtnText}>{t("common.cancel") || "Cancel"}</Text>
-          </Pressable>
-          <Pressable style={s.saveBtn} onPress={onSave}>
-            <Text style={s.saveBtnText}>
-              {eventEditing ? t("common.save") || "Save" : t("common.create") || "Create"}
-            </Text>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
+      <FormBottomBar
+        onCancel={onClose}
+        onSave={onSave}
+        isSaving={isSaving}
+        disabled={!eventForm.title.trim()}
+        saveLabel={eventEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
+      />
+    </FormScreen>
   );
 }
 
