@@ -21,7 +21,7 @@ import { SkeletonBox } from "../../components/shared";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import LocatorCard from "../../components/locator/LocatorCard";
 import LocatorHeader from "../../components/locator/LocatorHeader";
-import LocatorCategoryChips from "../../components/locator/LocatorCategoryChips";
+import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import * as WebBrowser from "expo-web-browser";
@@ -862,83 +862,112 @@ export default function LocatorScreen() {
         t={t}
       />
 
-      {/* Category/Theme Chips */}
+      {/* Filter Picker Rows */}
       {activeTab === "businesses" && (
-        <LocatorCategoryChips
-          chips={categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t), icon: CATEGORY_ICONS[cat.slug] || "grid" }))}
-          selectedKey={selectedRoot === "All" ? null : selectedRoot}
-          onSelect={(key) => { setSelectedRoot(key || "All"); setSelectedSubcategory("All"); }}
-        />
+        <>
+          <ProgressivePicker
+            label={t("common.filter", "Filter")}
+            value={selectedRoot === "All" ? "All" : selectedRoot}
+            options={[
+              { key: "All", label: t("common.all", "Alle Kategorien") },
+              ...categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t), icon: (CATEGORY_ICONS[cat.slug] || "grid") as any })),
+            ]}
+            onChange={(key) => { setSelectedRoot(key); setSelectedSubcategory("All"); }}
+            primaryColor={COLORS.primary}
+            borderColor={COLORS.border ?? "#e5e7eb"}
+          />
+          {selectedRoot !== "All" && selectedRootGroup && (
+            <ProgressivePicker
+              label={t("common.subcategory", "Kategorie")}
+              value={selectedSubcategory === "All" ? "All" : selectedSubcategory}
+              options={[
+                { key: "All", label: t("common.allSubcategories", "Alle Unterkategorien") },
+                ...(selectedRootGroup.groups
+                  ? selectedRootGroup.groups.flatMap(g => g.subcategories)
+                  : (selectedRootGroup.subcategories || [])
+                ).map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t) })),
+              ]}
+              onChange={(key) => setSelectedSubcategory(key === "All" ? "All" : key)}
+              primaryColor={COLORS.primary}
+              borderColor={COLORS.border ?? "#e5e7eb"}
+            />
+          )}
+        </>
       )}
       {activeTab === "events" && (
-        <LocatorCategoryChips
-          chips={Object.entries(EVENT_THEMES).map(([key, theme]: [string, any]) => ({ key, label: theme.label, color: theme.color }))}
-          selectedKey={eventThemeFilter}
-          onSelect={setEventThemeFilter}
-          variant="theme"
-        />
+        <>
+          <ProgressivePicker
+            label={t("common.filter", "Filter")}
+            value={eventThemeFilter ?? "All"}
+            options={[
+              { key: "All", label: t("common.allThemes", "Alle Themen") },
+              ...Object.entries(EVENT_THEMES).map(([key, theme]: [string, any]) => ({ key, label: theme.label })),
+            ]}
+            onChange={(key) => setEventThemeFilter(key === "All" ? null : key)}
+            primaryColor={COLORS.primary}
+            borderColor={COLORS.border ?? "#e5e7eb"}
+          />
+          <ProgressivePicker
+            label={t("common.date", "Datum")}
+            value={dateFilter.startDate ?? "this-week"}
+            displayValue={dateFilter.startDate ? `${dateFilter.startDate} → ${dateFilter.endDate || "..."}` : t("common.thisWeek", "Diese Woche")}
+            onPressOverride={() => setShowCalendar(true)}
+            options={[{ key: "this-week" as any, label: t("common.thisWeek", "Diese Woche") }]}
+            onChange={() => {}}
+            primaryColor={COLORS.primary}
+            borderColor={COLORS.border ?? "#e5e7eb"}
+          />
+        </>
       )}
       {activeTab === "activities" && (
-        <LocatorCategoryChips
-          chips={[
-            { key: "All", label: t("common.all") || "All", color: "#6B7280" },
-            ...Object.entries(ACTIVITY_CATEGORIES).map(([key, cat]: [string, any]) => ({
-              key,
-              label: cat.label,
-              color: Object.values(ACTIVITY_TYPES).find(t => t.category === key)?.color || "#6B7280",
-            })),
-          ]}
-          selectedKey={activityCategoryFilter}
-          onSelect={(key) => setActivityCategoryFilter(key === "All" ? null : key)}
-        />
+        <>
+          <ProgressivePicker
+            label={t("common.filter", "Filter")}
+            value={activityCategoryFilter ?? "All"}
+            options={[
+              { key: "All", label: t("common.allCategories", "Alle Kategorien") },
+              ...Object.entries(ACTIVITY_CATEGORIES).map(([key, cat]: [string, any]) => ({ key, label: cat.label })),
+            ]}
+            onChange={(key) => setActivityCategoryFilter(key === "All" ? null : key)}
+            primaryColor={COLORS.primary}
+            borderColor={COLORS.border ?? "#e5e7eb"}
+          />
+          <ProgressivePicker
+            label={t("common.date", "Datum")}
+            value={dateFilter.startDate ?? "this-week"}
+            displayValue={dateFilter.startDate ? `${dateFilter.startDate} → ${dateFilter.endDate || "..."}` : t("common.thisWeek", "Diese Woche")}
+            onPressOverride={() => setShowCalendar(true)}
+            options={[{ key: "this-week" as any, label: t("common.thisWeek", "Diese Woche") }]}
+            onChange={() => {}}
+            primaryColor={COLORS.primary}
+            borderColor={COLORS.border ?? "#e5e7eb"}
+          />
+        </>
       )}
       {activeTab === "rentals" && (
-        <LocatorCategoryChips
-          chips={rentalSubcategoryChips}
-          selectedKey={rentalTypeFilter}
-          onSelect={setRentalTypeFilter}
-          variant="theme"
+        <ProgressivePicker
+          label={t("common.filter", "Filter")}
+          value={rentalTypeFilter ?? "All"}
+          options={[
+            { key: "All", label: t("common.allTypes", "Alle Typen") },
+            ...rentalSubcategoryChips.map((c: any) => ({ key: c.key, label: c.label })),
+          ]}
+          onChange={(key) => setRentalTypeFilter(key === "All" ? null : key)}
+          primaryColor={COLORS.primary}
+          borderColor={COLORS.border ?? "#e5e7eb"}
         />
       )}
       {activeTab === "jobs" && (
-        <LocatorCategoryChips
-          chips={categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t) }))}
-          selectedKey={jobTypeFilter}
-          onSelect={setJobTypeFilter}
-          variant="theme"
-        />
-      )}
-
-      {/* Date filter row */}
-      {(activeTab === "events" || activeTab === "activities") && (
-        <View style={styles.filterRow}>
-          <Pressable
-            style={styles.dateFilterButton}
-            onPress={() => setShowCalendar(true)}
-          >
-            <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
-            <Text style={styles.dateFilterButtonText}>
-              {dateFilter.startDate ? `${dateFilter.startDate} → ${dateFilter.endDate || "..."}` : t('common.thisWeek') || "This Week"}
-            </Text>
-            <Ionicons name="chevron-down" size={14} color={COLORS.textMuted} />
-          </Pressable>
-          {dateFilter.startDate && (
-            <Pressable style={styles.clearDateButton} onPress={() => { setDateFilter({ startDate: null, endDate: null }); }}>
-              <Ionicons name="close" size={14} color={COLORS.textMuted} />
-            </Pressable>
-          )}
-        </View>
-      )}
-
-      {/* Subcategory chips for businesses */}
-      {activeTab === "businesses" && selectedRoot !== "All" && selectedRootGroup && (
-        <LocatorCategoryChips
-          chips={(selectedRootGroup.groups
-            ? selectedRootGroup.groups.flatMap(g => g.subcategories)
-            : (selectedRootGroup.subcategories || [])
-          ).map((sub) => ({ key: sub.slug, label: translateCategory(sub.slug, t) }))}
-          selectedKey={selectedSubcategory === "All" ? null : selectedSubcategory}
-          onSelect={(key) => setSelectedSubcategory(key || "All")}
+        <ProgressivePicker
+          label={t("common.filter", "Filter")}
+          value={jobTypeFilter ?? "All"}
+          options={[
+            { key: "All", label: t("common.allCategories", "Alle Kategorien") },
+            ...categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t) })),
+          ]}
+          onChange={(key) => setJobTypeFilter(key === "All" ? null : key)}
+          primaryColor={COLORS.primary}
+          borderColor={COLORS.border ?? "#e5e7eb"}
         />
       )}
 
