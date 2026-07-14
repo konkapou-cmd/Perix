@@ -21,7 +21,7 @@ const CANVAS_HEIGHT = SCREEN_WIDTH * 0.75;
 export default function MediaEditor() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { uri, type, mode } = useLocalSearchParams<{ uri: string; type: string; mode?: string }>();
+  const { uri, type, mode, ratio } = useLocalSearchParams<{ uri: string; type: string; mode?: string; ratio?: string }>();
   const { sessionToken, activeIdentity } = useAuth();
   const isVideo = type === "video";
 
@@ -29,6 +29,7 @@ export default function MediaEditor() {
     ? MEDIA_LIMITS.camera.coverMaxDurationSeconds
     : MEDIA_LIMITS.camera.generalMaxDurationSeconds;
   const decodedUri = decodeURIComponent(uri || "");
+  const mediaRatio = ratio ? parseFloat(ratio) : null;
 
   const [caption, setCaption] = useState("");
   const [publishing, setPublishing] = useState(false);
@@ -168,7 +169,7 @@ export default function MediaEditor() {
         }
         setShowUploadProgress(false);
         console.log("[media-editor] creating post with video:", { videoUrl, muxPlaybackId });
-        await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, null, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, "ready");
+        await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, "ready");
       } else {
         setShowUploadProgress(true);
         setUploadContext("image");
@@ -179,7 +180,7 @@ export default function MediaEditor() {
           : await uploadMedia(sessionToken, decodedUri, "image", (p) => setUploadProgress(p));
         setShowUploadProgress(false);
         console.log("[media-editor] creating post with image:", { imageUrl });
-        await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, null, tagUserArray, firstBusinessId, null, imageUrl, null, null, null);
+        await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, imageUrl, null, null, null);
       }
       Alert.alert(t("editor.success", "Success!"), t("editor.postPublished", "Your post has been published!"), [{ text: t("common.ok"), onPress: () => router.back() }]);
     } catch (error: any) {

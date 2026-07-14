@@ -65,6 +65,7 @@ export default function BusinessDetailScreen() {
   const [postImage, setPostImage] = useState<string | null>(null);
   const [postVideo, setPostVideo] = useState<string | null>(null);
   const [postVideoPreview, setPostVideoPreview] = useState<string | null>(null);
+  const [postMediaRatio, setPostMediaRatio] = useState<number | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
@@ -212,7 +213,9 @@ const [followLoading, setFollowLoading] = useState(false);
       base64: false,
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
-      setPostImage(result.assets[0].uri);
+      const asset = result.assets[0];
+      setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
+      setPostImage(asset.uri);
       setPostVideo(null);
       setPostVideoPreview(null);
     }
@@ -225,6 +228,7 @@ const [followLoading, setFollowLoading] = useState(false);
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
       const asset = result.assets[0];
+      setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
       if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
         Alert.alert(t("common.error") || "Error", `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
         return;
@@ -291,7 +295,7 @@ const [followLoading, setFollowLoading] = useState(false);
         undefined,
         businessId,
         { type: "business", id: businessId },
-        undefined,
+        postMediaRatio,
         [],
         undefined,
         undefined,

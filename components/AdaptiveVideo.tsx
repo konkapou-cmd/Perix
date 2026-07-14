@@ -85,7 +85,8 @@ export default function AdaptiveVideo({
 
   const containerStyle: ViewStyle = {
     width: "100%",
-    aspectRatio: styleHasHeight ? undefined : (ratio || coverRatio || 16 / 9),
+    aspectRatio: styleHasHeight ? undefined : (ratio || 16 / 9),
+    maxHeight,
     overflow: "hidden",
     backgroundColor: "transparent",
   };
@@ -199,6 +200,7 @@ export default function AdaptiveVideo({
   const effectiveStyle: ViewStyle = {
     ...containerStyle,
     aspectRatio: styleHasHeight ? undefined : (ratio || naturalAspect || 16 / 9),
+    maxHeight,
   };
 
   return (

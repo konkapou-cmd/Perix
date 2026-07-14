@@ -534,7 +534,9 @@ export default function ProfileScreen() {
       base64: true,
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
-      const uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      const asset = result.assets[0];
+      setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
+      const uri = `data:image/jpeg;base64,${asset.base64}`;
       setPostImage(uri);
       setPostVideo(null);
       setPostVideoPreview(null);
@@ -554,6 +556,7 @@ export default function ProfileScreen() {
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
       const asset = result.assets[0];
+      setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
       if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
         Alert.alert(t("common.error"), `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
         return;
@@ -1095,6 +1098,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [postImage, setPostImage] = useState<string | null>(null);
   const [postVideo, setPostVideo] = useState<string | null>(null);
   const [postVideoPreview, setPostVideoPreview] = useState<string | null>(null);
+  const [postMediaRatio, setPostMediaRatio] = useState<number | null>(null);
   const [isPosting, setIsPosting] = useState(false);
 
   const loadBusinessFullData = async (bizId: string) => {
@@ -1578,7 +1582,7 @@ try {
             null, // video_base64
             null, // business_id
             { type: actorIdentity.type, id: actorIdentity.id }, // actor
-            null, // media_ratio
+            postMediaRatio, // media_ratio
             tagUserArray, // tagged_user_ids
             firstBusinessId, // tagged_business_id (MVP: first selection)
             undefined, // tagged_artist_id

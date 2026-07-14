@@ -10,7 +10,6 @@ import { useTranslation } from "react-i18next";
 import AdaptiveVideo from "../AdaptiveVideo";
 import AdaptiveImage from "../AdaptiveImage";
 import LazyMediaViewer, { MediaItem } from "../LazyMediaViewer";
-import useResponsiveLayout from "../../hooks/useResponsiveLayout";
 import { formatDate } from "../../lib/formatDate";
 
 interface PostCardProps {
@@ -31,7 +30,6 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
   const router = useRouter();
   const { t } = useTranslation();
   const [viewerOpen, setViewerOpen] = useState(false);
-  const { contentMaxWidth } = useResponsiveLayout();
   const skipCardNav = useRef(false);
 
   const displayName = post.actor_name || post.author?.name || "User";
