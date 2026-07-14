@@ -20,6 +20,7 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
+import ProgressivePicker from "../navigation/ProgressivePicker";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -427,39 +428,23 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   borderColor = PROFILE_COLORS.BORDER,
   themeStyles,
 }) => {
+  const { t } = useTranslation();
+
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[styles.tabsScroll, { backgroundColor: bgColor, borderTopColor: borderColor, borderBottomColor: borderColor }]}
-    >
-      {tabs.map((tab) => {
-        const isActive = activeTab === tab.key;
-        return (
-          <Pressable
-            key={tab.key}
-            style={[styles.tabButton, isActive && { borderBottomColor: primaryColor, borderBottomWidth: 3 }]}
-            onPress={() => onTabChange(tab.key)}
-          >
-            <Ionicons
-              name={isActive ? (tab.icon.replace("-outline", "") as any) : tab.icon as any}
-              size={20}
-              color={isActive ? primaryColor : PROFILE_COLORS.TEXT_SECONDARY}
-            />
-            <Text
-              style={[
-                styles.tabLabel,
-                { color: isActive ? primaryColor : PROFILE_COLORS.TEXT_SECONDARY },
-                themeStyles as TextStyle,
-              ]}
-            >
-              {tab.label}
-              {tab.count !== undefined && tab.count > 0 ? ` ${tab.count}` : ""}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+    <ProgressivePicker
+      label={t("navigation.section", "Bereich")}
+      value={activeTab}
+      options={tabs.map((tab) => ({
+        key: tab.key,
+        label: tab.label,
+        icon: tab.icon as any,
+        count: tab.count,
+      }))}
+      onChange={onTabChange}
+      primaryColor={primaryColor}
+      backgroundColor={bgColor}
+      borderColor={borderColor}
+    />
   );
 };
 
