@@ -1,9 +1,6 @@
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +8,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES } from "../../lib/designTokens";
@@ -21,6 +17,8 @@ import { useState, useEffect, useRef } from "react";
 import { CalendarList } from "react-native-calendars";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
+import FormScreen from "../ui/FormScreen";
+import FormBottomBar from "../ui/FormBottomBar";
 
 const SERVICE_TYPES = [
   { key: "gym_class", icon: "fitness", labelKey: "services.typeGymClass" },
@@ -581,19 +579,12 @@ export default function ServiceModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide">
-      <SafeAreaView style={styles.modalContainer}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "padding"}>
-          <View style={styles.modalHeader}>
-            <Pressable onPress={onClose} style={styles.headerButton}>
-              <Ionicons name="close" size={28} color={COLORS.textPrimary} />
-            </Pressable>
-            <Text style={styles.modalTitle}>{modalTitle}</Text>
-            <View style={styles.headerButton} />
-          </View>
-          <ScrollView style={styles.modalBody} contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
-            <Text style={styles.label}>{t("services.serviceType", "Type")} *</Text>
-            <View style={styles.pickerRow}>
+    <FormScreen title={modalTitle} onClose={onClose}>
+      <Text style={styles.label}>
+        {t("services.serviceType", "Type")}
+        <Text style={styles.required}>*</Text>
+      </Text>
+      <View style={styles.pickerRow}>
               {filteredTypes.map((tpe) => (
                 <Pressable
                   key={tpe.key}
@@ -615,10 +606,14 @@ export default function ServiceModal({
               label={t("services.images", "Photos & Videos")}
             />
 
-            <Text style={styles.label}>{t("services.serviceName", "Name")} *</Text>
+            <Text style={styles.label}>
+              {t("services.serviceName", "Name")}
+              <Text style={styles.required}>*</Text>
+            </Text>
             <TextInput
               style={styles.input}
               placeholder={getCategoryPlaceholders(rootCategory).name}
+              placeholderTextColor={COLORS.textDisabled}
               value={form.name}
               onChangeText={(v) => updateField("name", v)}
             />
@@ -627,6 +622,7 @@ export default function ServiceModal({
             <TextInput
               style={[styles.input, { height: 80 }]}
               placeholder={getCategoryPlaceholders(rootCategory).desc}
+              placeholderTextColor={COLORS.textDisabled}
               value={form.description}
               onChangeText={(v) => updateField("description", v)}
               multiline
@@ -637,6 +633,7 @@ export default function ServiceModal({
             <TextInput
               style={styles.input}
               placeholder={getPricePlaceholder()}
+              placeholderTextColor={COLORS.textDisabled}
               value={form.price}
               onChangeText={(v) => updateField("price", v)}
               keyboardType="numeric"
@@ -674,23 +671,14 @@ export default function ServiceModal({
                 </View>
               </View>
             </Modal>
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <Pressable style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.cancelBtnText}>{t("common.cancel") || "Abbrechen"}</Text>
-            </Pressable>
-            <Pressable style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]} onPress={handleSaveWithValidation} disabled={isSaving}>
-              {isSaving ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.saveBtnText}>{t("common.save") || "Speichern"}</Text>
-              )}
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
+      <FormBottomBar
+        onCancel={onClose}
+        onSave={handleSaveWithValidation}
+        saveLabel={isEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
+        isSaving={isSaving}
+        disabled={!form.type || !form.name.trim()}
+      />
+    </FormScreen>
   );
 }
 
@@ -737,7 +725,8 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   label: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textSecondary, marginBottom: SPACING.tiny, marginTop: SPACING.std },
-  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.compact, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, backgroundColor: COLORS.backgroundPage },
+  required: { color: COLORS.danger, fontWeight: FONT_WEIGHTS.bold as any },
+  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, backgroundColor: COLORS.backgroundPage },
   dateText: { fontSize: FONT_SIZES.body, color: COLORS.textPrimary },
   dateTextPlaceholder: { color: COLORS.textDisabled },
   datePickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
