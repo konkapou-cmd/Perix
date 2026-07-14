@@ -118,7 +118,7 @@ export default function ProgressivePicker<T extends string = string>({
         <View style={[styles.modalOverlay, isWeb && styles.modalOverlayWeb]}>
           <Pressable style={styles.modalBackdrop} onPress={close} />
           <View style={[styles.modalSheet, { backgroundColor }, isWeb && styles.modalSheetWeb]}>
-            <SafeAreaView edges={["bottom"]} style={{ flex: 1 }}>
+            <SafeAreaView edges={["bottom"]} style={styles.modalSafeArea}>
               <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
                 <Text style={[styles.modalTitle, { color: textColor }]}>
                   {modalTitle ?? label}
@@ -127,7 +127,7 @@ export default function ProgressivePicker<T extends string = string>({
                   <Ionicons name="close" size={22} color={mutedColor} />
                 </Pressable>
               </View>
-              <ScrollView style={styles.modalList} bounces={false}>
+              <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent} bounces={false}>
                 {options.map((opt) => (
                   <Pressable
                     key={opt.key}
@@ -217,9 +217,11 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.25)",
   },
   modalSheet: {
+    width: "100%",
+    minHeight: 120,
     maxHeight: "70%",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
@@ -228,6 +230,7 @@ const styles = StyleSheet.create({
   modalSheetWeb: {
     width: "90%",
     maxWidth: 480,
+    minHeight: 120,
     maxHeight: "70%",
     borderRadius: 16,
     marginBottom: 0,
@@ -249,7 +252,13 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   modalList: {
-    flex: 1,
+    flexGrow: 0,
+  },
+  modalListContent: {
+    paddingBottom: 8,
+  },
+  modalSafeArea: {
+    flexGrow: 0,
   },
   modalOption: {
     flexDirection: "row",
