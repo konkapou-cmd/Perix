@@ -2376,6 +2376,7 @@ currentUserId={businessDetail?.business?.business_id}
               style={styles.input}
               nearLat={user?.latitude ?? businessDetail?.business.latitude ?? undefined}
               nearLng={user?.longitude ?? businessDetail?.business.longitude ?? undefined}
+              confirmed={!!userEditForm.location}
             />
             {userEditForm.latitude && userEditForm.longitude && (
               <Text style={{ color: '#000000', fontSize: 12, marginTop: 4 }}>
@@ -2455,6 +2456,7 @@ currentUserId={businessDetail?.business?.business_id}
               style={styles.input}
               nearLat={bizEditForm.latitude ?? businessDetail?.business.latitude ?? undefined}
               nearLng={bizEditForm.longitude ?? businessDetail?.business.longitude ?? undefined}
+              confirmed={!!bizEditForm.address}
             />
             {bizEditForm.latitude && bizEditForm.longitude ? (
               <Text style={{ color: '#000000', fontSize: 12, marginTop: 4, marginBottom: 12 }}>
