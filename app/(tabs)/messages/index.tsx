@@ -38,6 +38,7 @@ import {
 } from "../../../lib/api";
 import NotificationBar from "../../../components/NotificationBar";
 import { SkeletonBox, Avatar } from "../../../components/shared";
+import EmptyState from "../../../components/ui/EmptyState";
 import {
   COLORS,
   SPACING,
@@ -410,10 +411,7 @@ export default function MessagesScreen() {
 
           if (unified.length === 0) {
             return (
-              <View style={styles.emptyState}>
-                <Ionicons name="chatbubbles-outline" size={48} color={COLORS.border} />
-                <Text style={styles.emptyText}>{t("messages.noConversations") || "No conversations yet"}</Text>
-              </View>
+              <EmptyState icon="chatbubbles-outline" message={t("messages.noConversations", "No conversations yet")} />
             );
           }
 
