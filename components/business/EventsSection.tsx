@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
+import StatusBadge from "../ui/StatusBadge";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 
 type Props = {
@@ -80,15 +81,17 @@ export default function EventsSection({
                         <Ionicons name="lock-closed" size={12} color="#fff" />
                       </View>
                     )}
-                    <View style={[s.themeBadge, { backgroundColor: theme.color }]}>
-                      <Text style={s.themeBadgeEmoji}>{theme.emoji}</Text>
-                      <Text style={s.themeBadgeLabel}>{theme.label}</Text>
-                    </View>
+                    <StatusBadge
+                      label={theme.label}
+                      color={theme.color}
+                      size="sm"
+                    />
                     {event.is_attending && (
-                      <View style={s.attendingBadge}>
-                        <Ionicons name="checkmark-circle" size={10} color="#fff" />
-                        <Text style={s.attendingText}>{t("events.attending", "Attending")}</Text>
-                      </View>
+                      <StatusBadge
+                        label={t("events.attending", "Attending")}
+                        variant="active"
+                        size="sm"
+                      />
                     )}
                   </View>
                   <View style={s.info}>
@@ -110,11 +113,11 @@ export default function EventsSection({
                       </View>
                     )}
                     {event.attendees_count != null && (
-                      <View style={[s.statusBadge, { backgroundColor: `${primaryColor}20` }]}>
-                        <Text style={[s.statusText, { color: primaryColor }]}>
-                          {event.attendees_count} {t("events.going", "Going")}
-                        </Text>
-                      </View>
+                      <StatusBadge
+                        label={`${event.attendees_count} ${t("events.going", "Going")}`}
+                        variant="default"
+                        size="sm"
+                      />
                     )}
                   </View>
                 </Pressable>
