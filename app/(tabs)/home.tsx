@@ -670,6 +670,7 @@ export default function HomeScreen() {
           <View style={{ paddingHorizontal: SPACING.small }}>
           <View key={item.post_id}>
           <PostCard
+            context="home"
             post={item}
             isSaved={savedPostIds.has(item.post_id)}
             onLike={() => handleToggleLike(item)}
