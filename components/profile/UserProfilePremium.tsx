@@ -117,6 +117,7 @@ interface UserProfilePremiumProps {
   onCreateStory?: () => void;
   onOpenBookings?: () => void;
   onViewFriends?: () => void;
+  initialSavedPostIds?: Set<string>;
 }
 
 export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
@@ -184,6 +185,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   onCreateStory,
   onOpenBookings,
   onViewFriends,
+  initialSavedPostIds,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -447,6 +449,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           isScreenFocused={isScreenFocused}
           refreshing={refreshing}
           onRefresh={onRefresh}
+          initialSavedPostIds={initialSavedPostIds}
           listHeaderComponent={profileHeaderContent}
         />
         {user.cover_photo && (
@@ -521,6 +524,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
             isScreenFocused={isScreenFocused}
             refreshing={refreshing}
             onRefresh={onRefresh}
+            initialSavedPostIds={initialSavedPostIds}
           />
         ) : (
           tabContentNonPosts

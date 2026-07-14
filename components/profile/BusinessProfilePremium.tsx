@@ -145,6 +145,7 @@ interface BusinessProfilePremiumProps {
   onOpenSlotManager?: (serviceId: string) => void;
   onOpenBookingList?: () => void;
   onViewFriends?: () => void;
+  initialSavedPostIds?: Set<string>;
 }
 
 export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
@@ -227,6 +228,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   onOpenSlotManager,
   onOpenBookingList,
   onViewFriends,
+  initialSavedPostIds,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -547,6 +549,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           isScreenFocused={isScreenFocused}
           refreshing={refreshing}
           onRefresh={onRefresh}
+          initialSavedPostIds={initialSavedPostIds}
           listHeaderComponent={
             <>
               {profileHeaderContent}
@@ -596,6 +599,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           isScreenFocused={isScreenFocused}
           refreshing={refreshing}
           onRefresh={onRefresh}
+          initialSavedPostIds={initialSavedPostIds}
           listHeaderComponent={
             <>
               {profileHeaderContent}
@@ -668,6 +672,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   isScreenFocused={isScreenFocused}
                   refreshing={refreshing}
                   onRefresh={onRefresh}
+                  initialSavedPostIds={initialSavedPostIds}
                 />
               )}
               {activeTab === "media" && (
@@ -767,6 +772,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   isScreenFocused={isScreenFocused}
                   refreshing={refreshing}
                   onRefresh={onRefresh}
+                  initialSavedPostIds={initialSavedPostIds}
                 />
               )}
               {privateActiveTab === "media" && (
