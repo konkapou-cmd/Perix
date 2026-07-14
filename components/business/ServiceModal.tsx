@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -363,6 +364,10 @@ export default function ServiceModal({
     : t("services.createService", "Add Service");
 
   const handleSaveWithValidation = () => {
+    if (!form.type) {
+      Alert.alert(t("common.error"), t("services.selectType", "Please select a service type"));
+      return;
+    }
     const hasCoverPhoto = !!form.cover_image_url ||
       (form.image_urls && form.image_urls.length > 0);
     if (form.status === "published" && !hasCoverPhoto) {

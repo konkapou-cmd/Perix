@@ -46,6 +46,10 @@ export const createJob = async (
     title: string;
     description: string;
     cover_image?: string;
+    image_urls?: string[];
+    gallery_images?: string[];
+    gallery_videos?: string[];
+    video_url?: string;
     root_category: string;
     subcategory: string;
     expires_at?: string;
@@ -53,6 +57,8 @@ export const createJob = async (
     requirements?: string;
     salary_range?: string;
     work_location?: string;
+    status?: string;
+    cover_focal_point?: { x: number; y: number };
   }
 ): Promise<import("./core").Job> => {
   return apiRequest<import("./core").Job>("/jobs", "POST", token, job);
@@ -61,7 +67,25 @@ export const createJob = async (
 export const updateJob = async (
   token: string,
   jobId: string,
-  data: { title?: string; description?: string; cover_image?: string; is_active?: boolean }
+  data: {
+    title?: string;
+    description?: string;
+    cover_image?: string;
+    image_urls?: string[];
+    gallery_images?: string[];
+    gallery_videos?: string[];
+    video_url?: string;
+    root_category?: string;
+    subcategory?: string;
+    expires_at?: string;
+    job_type?: string;
+    requirements?: string;
+    salary_range?: string;
+    work_location?: string;
+    status?: string;
+    is_active?: boolean;
+    cover_focal_point?: { x: number; y: number };
+  }
 ): Promise<import("./core").Job> => {
   return apiRequest<import("./core").Job>(`/jobs/${jobId}`, "PUT", token, data);
 };
