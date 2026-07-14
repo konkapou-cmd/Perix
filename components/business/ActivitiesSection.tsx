@@ -96,14 +96,14 @@ export default function ActivitiesSection({
                     />
                     {(activity.my_status === "accepted" || activity.my_status === "going") && (
                       <StatusBadge
-                        label={t("activities.going", "Going")}
+                        label={t("activities.going", "Dabei")}
                         variant="active"
                         size="sm"
                       />
                     )}
                     {activity.is_creator && activity.my_status !== "accepted" && activity.my_status !== "going" && (
                       <StatusBadge
-                        label={t("activities.yours", "Yours")}
+                        label={t("activities.yours", "Deins")}
                         variant="owner"
                         size="sm"
                       />
@@ -128,7 +128,7 @@ export default function ActivitiesSection({
                       </View>
                     )}
                     <StatusBadge
-                      label={activity.is_creator ? t("activities.hosting", "Hosting") : activity.my_status || t("activities.joined", "Joined")}
+                      label={activity.is_creator ? t("activities.hosting", "Gastgeber") : activity.my_status || t("activities.joined", "Dabei")}
                       variant="default"
                       size="sm"
                     />
