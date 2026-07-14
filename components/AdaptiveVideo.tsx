@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { AppState, AppStateStatus, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle, Text, Image as RNImage, ActivityIndicator, Dimensions } from "react-native";
-import { useVideoPlayer, VideoView } from "expo-video";
+import { useVideoPlayer, VideoView, VideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 
 type AdaptiveVideoProps = {
@@ -26,6 +26,47 @@ type AdaptiveVideoProps = {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const DEFAULT_MAX_HEIGHT = SCREEN_HEIGHT * 0.75;
+
+type VideoPlayerCoreProps = {
+  videoUri: string;
+  isLooping: boolean;
+  initialMuted: boolean;
+  resizeMode: "contain" | "cover";
+  useNativeControls: boolean;
+  onPlayerCreated: (player: VideoPlayer) => void;
+};
+
+function VideoPlayerCore({
+  videoUri,
+  isLooping,
+  initialMuted,
+  resizeMode,
+  useNativeControls,
+  onPlayerCreated,
+}: VideoPlayerCoreProps) {
+  const player = useVideoPlayer(videoUri || null, (p) => {
+    p.loop = isLooping;
+    p.muted = initialMuted;
+  });
+
+  useEffect(() => {
+    onPlayerCreated(player);
+    return () => {
+      try { player.pause(); } catch (_) {}
+    };
+  }, [player]);
+
+  if (!player) return null;
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      contentFit={resizeMode}
+      nativeControls={useNativeControls}
+    />
+  );
+}
 
 function isMuxProcessingPlaceholder(url: string): boolean {
   return !!url && url.startsWith("mux://");
@@ -58,24 +99,33 @@ export default function AdaptiveVideo({
 }: AdaptiveVideoProps) {
   const videoUri = uri || source?.uri || "";
   const isProcessing = videoStatus === "processing" || isMuxProcessingPlaceholder(videoUri);
+  const validRatio = typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0 ? ratio : null;
+
+  const [player, setPlayer] = useState<VideoPlayer | null>(null);
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isPlaying, setIsPlaying] = useState(false);
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
-  const [coverFailed, setCoverFailed] = useState(false);
-  const [coverRatio, setCoverRatio] = useState<number | null>(ratio || null);
   const [hasError, setHasError] = useState(false);
-  const [retrying, setRetrying] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+
+  const naturalAspectRef = useRef<number | null>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<View>(null);
   const playedRef = useRef(false);
-  const player = useVideoPlayer(isProcessing ? null : videoUri, (p) => {
-    p.loop = isLooping;
-    p.muted = initialMuted;
-  });
 
-  useEffect(() => {
-    setCoverFailed(false);
-  }, [coverPhoto, videoUri]);
+  const clearLoadTimeout = () => {
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+      loadTimeoutRef.current = null;
+    }
+  };
+
+  const handleNaturalAspect = (aspect: number) => {
+    naturalAspectRef.current = aspect;
+    setNaturalAspect(aspect);
+    clearLoadTimeout();
+    setHasError(false);
+  };
 
   useEffect(() => {
     if (!player || autoPlay) return;
@@ -85,24 +135,15 @@ export default function AdaptiveVideo({
 
   const coverUrl = coverPhoto || muxThumbnailUrl || getMuxThumbnail(videoUri);
 
-  const styleHasHeight = !!(style && typeof style === 'object' && 'height' in style);
+  const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
 
   const containerStyle: ViewStyle = {
     width: "100%",
-    aspectRatio: styleHasHeight ? undefined : (ratio || 4 / 5),
+    aspectRatio: styleHasHeight ? undefined : (validRatio || 4 / 5),
     maxHeight,
     overflow: "hidden",
     backgroundColor: "#000",
   };
-
-  useEffect(() => {
-    if (!coverUrl || ratio) return;
-    RNImage.getSize(
-      coverUrl,
-      (w, h) => { setCoverRatio(w / h); },
-      () => {}
-    );
-  }, [coverUrl, ratio]);
 
   useEffect(() => {
     if (player) player.muted = isMuted;
@@ -113,6 +154,7 @@ export default function AdaptiveVideo({
   }, [isLooping, player]);
 
   useEffect(() => {
+    if (!player) return;
     const sub = player.addListener("playingChange", (e) => {
       setIsPlaying(e.isPlaying);
       if (e.isPlaying && !playedRef.current) {
@@ -124,28 +166,25 @@ export default function AdaptiveVideo({
   }, [player, onPlay]);
 
   useEffect(() => {
-    return () => { try { player.pause(); } catch (_) {} };
-  }, [player]);
-
-  useEffect(() => {
-    if (ratio || naturalAspect) return;
+    if (validRatio || naturalAspect) return;
+    if (!player) return;
     const sub = player.addListener("sourceLoad", (payload: any) => {
       const track = payload.availableVideoTracks?.[0];
       if (track?.size?.width && track?.size?.height) {
-        setNaturalAspect(track.size.width / track.size.height);
+        handleNaturalAspect(track.size.width / track.size.height);
       }
     });
     return () => sub.remove();
-  }, [player, ratio]);
+  }, [player, validRatio, naturalAspect]);
 
   useEffect(() => {
-    if (Platform.OS !== "web" || ratio || naturalAspect) return;
+    if (Platform.OS !== "web" || validRatio || naturalAspect) return;
     const domNode = containerRef.current as unknown as HTMLElement | null;
     if (!domNode) return;
     const check = () => {
       const video = domNode.querySelector("video");
       if (video && video.videoWidth && video.videoHeight) {
-        setNaturalAspect(video.videoWidth / video.videoHeight);
+        handleNaturalAspect(video.videoWidth / video.videoHeight);
         return true;
       }
       return false;
@@ -153,7 +192,7 @@ export default function AdaptiveVideo({
     const t = setTimeout(() => check(), 600);
     const id = setInterval(() => { if (check()) clearInterval(id); }, 400);
     return () => { clearTimeout(t); clearInterval(id); };
-  }, [ratio, naturalAspect]);
+  }, [validRatio, naturalAspect]);
 
   useEffect(() => {
     if (!player || isProcessing || !videoUri || !autoPlay) return;
@@ -179,35 +218,33 @@ export default function AdaptiveVideo({
 
   useEffect(() => {
     setHasError(false);
-    setRetrying(false);
-    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    clearLoadTimeout();
     if (!videoUri || isProcessing) return;
     loadTimeoutRef.current = setTimeout(() => {
-      if (!naturalAspect && !ratio) {
+      if (!naturalAspectRef.current && !validRatio) {
         setHasError(true);
       }
     }, 10000);
-    return () => {
-      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-    };
+    return clearLoadTimeout;
   }, [videoUri, isProcessing]);
 
   const handleRetry = () => {
     setHasError(false);
-    setRetrying(true);
     setNaturalAspect(null);
-    setCoverRatio(ratio || null);
-    setCoverFailed(false);
-    setTimeout(() => setRetrying(false), 500);
+    naturalAspectRef.current = null;
+    clearLoadTimeout();
+    setRetryKey((k) => k + 1);
   };
 
   const toggleMute = () => {
+    if (!player) return;
     const newMuted = !isMuted;
     setIsMuted(newMuted);
     onMuteChange?.(newMuted);
   };
 
   const togglePlayPause = () => {
+    if (!player) return;
     if (isPlaying) {
       player.pause();
       setIsPlaying(false);
@@ -227,7 +264,7 @@ export default function AdaptiveVideo({
 
   const effectiveStyle: ViewStyle = {
     ...containerStyle,
-    aspectRatio: styleHasHeight ? undefined : (ratio || naturalAspect || 4 / 5),
+    aspectRatio: styleHasHeight ? undefined : (validRatio || naturalAspect || 4 / 5),
     maxHeight,
   };
 
@@ -242,6 +279,11 @@ export default function AdaptiveVideo({
             <Text style={styles.retryText}>Retry</Text>
           </Pressable>
         </View>
+      ) : isProcessing && !coverUrl ? (
+        <View style={styles.overlayCenter}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.processingText}>Processing video...</Text>
+        </View>
       ) : (
         <>
           {coverUrl && (
@@ -251,14 +293,17 @@ export default function AdaptiveVideo({
               resizeMode="cover"
             />
           )}
-          {player && (
-            <VideoView
-              player={player}
-              style={StyleSheet.absoluteFill}
-              contentFit={resizeMode}
-              nativeControls={useNativeControls}
+          {!isProcessing && videoUri ? (
+            <VideoPlayerCore
+              key={`${videoUri}-${retryKey}`}
+              videoUri={videoUri}
+              isLooping={isLooping}
+              initialMuted={initialMuted}
+              resizeMode={resizeMode}
+              useNativeControls={useNativeControls}
+              onPlayerCreated={setPlayer}
             />
-          )}
+          ) : null}
           <Pressable
             onPress={handlePress}
             style={StyleSheet.absoluteFill}
@@ -296,6 +341,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 13,
     fontWeight: "600",
+    marginTop: 8,
   },
   errorContainer: {
     flex: 1,
