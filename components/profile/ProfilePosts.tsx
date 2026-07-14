@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   TextStyle,
   ScrollView,
   FlatList,
+  RefreshControl,
   Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -66,6 +67,9 @@ interface ProfilePostsProps {
   onCreateStory?: () => void;
   initialSavedPostIds?: Set<string>;
   listHeaderComponent?: React.ReactNode;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  isScreenFocused?: boolean;
 }
 
 const formatDate = (dateStr: string) => {
@@ -123,8 +127,11 @@ pendingMentionIds = [],
   isPosting = false,
   uploadPercent = 0,
   onCreateStory,
-  initialSavedPostIds = new Set(),
+  initialSavedPostIds,
   listHeaderComponent,
+  refreshing,
+  onRefresh,
+  isScreenFocused = true,
 }) => {
   const { t } = useTranslation();
   const { sessionToken, activeIdentity } = useAuth();
@@ -134,10 +141,12 @@ pendingMentionIds = [],
   const [editText, setEditText] = useState("");
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [postsData, setPostsData] = useState<Post[]>(posts);
-  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(initialSavedPostIds);
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(
+    () => new Set(initialSavedPostIds ?? [])
+  );
 
   useEffect(() => {
-    setSavedPostIds(new Set(initialSavedPostIds ?? new Set()));
+    setSavedPostIds(new Set(initialSavedPostIds ?? []));
   }, [initialSavedPostIds]);
 
   const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
@@ -304,175 +313,179 @@ pendingMentionIds = [],
     }
   };
 
-  return (
-    <View style={styles.container}>
-      {!readOnly && (
-        <View style={[styles.createPost, { backgroundColor: cardColor }]}>
-          <View style={styles.createPostInput}>
-            <View style={styles.createPostAvatar}>
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.createPostAvatarImage} />
-              ) : (
-                <Ionicons name="person" size={20} color={primaryColor} />
-              )}
-            </View>
-            <TextInput
-              style={[styles.createPostTextInput, { backgroundColor: bgColor || "#f3f4f6", color: textColor }]}
-              placeholder={t("profile.whatsNew", "What's on your mind?")}
-              placeholderTextColor={PROFILE_COLORS.TEXT_SECONDARY}
-              value={postText}
-              onChangeText={setPostText}
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
-          {showMentionSuggestions && mentionSuggestions.length > 0 && (
-            <View style={styles.mentionDropdown}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {mentionSuggestions.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    style={styles.mentionItem}
-                    onPress={() => onSelectMention?.(item)}
-                  >
-                    {item.avatar ? (
-                      <Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
-                    ) : (
-                      <View style={[styles.mentionAvatar, styles.mentionAvatarPlaceholder]}>
-                        <Text style={styles.mentionInitials}>
-                          {(item.name || "").slice(0, 2).toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <Text style={styles.mentionName} numberOfLines={1}>
-                      @{item.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
+  const createPostComposer = !readOnly ? (
+    <View style={[styles.createPost, { backgroundColor: cardColor }]}>
+      <View style={styles.createPostInput}>
+        <View style={styles.createPostAvatar}>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.createPostAvatarImage} />
+          ) : (
+            <Ionicons name="person" size={20} color={primaryColor} />
           )}
-          {(postText.trim() || postImage || postVideoPreview) && (
-            <View style={styles.createPostMediaRow}>
-              {postImage && (
-                <View style={styles.mediaPreviewWrapper}>
-                  <Image source={{ uri: postImage }} style={styles.mediaPreview} />
-                  <Pressable style={styles.removeMediaBtn} onPress={onDiscardMedia}>
-                    <Ionicons name="close-circle" size={22} color="#ef4444" />
-                  </Pressable>
-                </View>
-              )}
-              {postVideoPreview && (
-                <View style={styles.mediaPreviewWrapper}>
-                  <Image source={{ uri: postVideoPreview }} style={styles.mediaPreview} />
-                  <Pressable style={styles.removeMediaBtn} onPress={onDiscardMedia}>
-                    <Ionicons name="close-circle" size={22} color="#ef4444" />
-                  </Pressable>
-                </View>
-              )}
-            </View>
-          )}
-          <View style={styles.createPostActions}>
-            <Pressable style={styles.createPostAction} onPress={pickPostImage}>
-              <Ionicons name="image" size={22} color={PROFILE_COLORS.TEXT_SECONDARY} />
-            </Pressable>
-            <Pressable style={styles.createPostAction} onPress={pickPostVideo}>
-              <Ionicons name="videocam" size={22} color={PROFILE_COLORS.TEXT_SECONDARY} />
-            </Pressable>
-            {onOpenTagModal && (
-              <Pressable style={styles.createPostAction} onPress={onOpenTagModal}>
-                <Ionicons name="at" size={22} color={PROFILE_COLORS.TEXT_SECONDARY} />
-              </Pressable>
-            )}
-            {onCreateStory && (
-              <Pressable style={styles.createPostAction} onPress={onCreateStory}>
-                <Ionicons name="play-circle-outline" size={22} color="#7c3aed" />
-              </Pressable>
-            )}
-            <View style={{ flex: 1 }} />
-            {(postText.trim() || postImage || postVideoPreview) && (
+        </View>
+        <TextInput
+          style={[styles.createPostTextInput, { backgroundColor: bgColor || "#f3f4f6", color: textColor }]}
+          placeholder={t("profile.whatsNew", "What's on your mind?")}
+          placeholderTextColor={PROFILE_COLORS.TEXT_SECONDARY}
+          value={postText}
+          onChangeText={setPostText}
+          multiline
+          textAlignVertical="top"
+        />
+      </View>
+      {showMentionSuggestions && mentionSuggestions.length > 0 && (
+        <View style={styles.mentionDropdown}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {mentionSuggestions.map((item) => (
               <Pressable
-                style={[styles.createPostSubmit, { backgroundColor: primaryColor }, (isPosting || uploadPercent > 0) && { opacity: 0.7 }]}
-                onPress={handleCreatePost}
-                disabled={isPosting || uploadPercent > 0}
+                key={item.id}
+                style={styles.mentionItem}
+                onPress={() => onSelectMention?.(item)}
               >
-                {isPosting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : uploadPercent > 0 ? (
-                  <Text style={styles.uploadPercentText}>{Math.round(uploadPercent)}%</Text>
+                {item.avatar ? (
+                  <Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
                 ) : (
-                  <Ionicons name="send" size={16} color="#fff" />
+                  <View style={[styles.mentionAvatar, styles.mentionAvatarPlaceholder]}>
+                    <Text style={styles.mentionInitials}>
+                      {(item.name || "").slice(0, 2).toUpperCase()}
+                    </Text>
+                  </View>
                 )}
+                <Text style={styles.mentionName} numberOfLines={1}>
+                  @{item.name}
+                </Text>
               </Pressable>
-            )}
-          </View>
+            ))}
+          </ScrollView>
         </View>
       )}
+      {(postText.trim() || postImage || postVideoPreview) && (
+        <View style={styles.createPostMediaRow}>
+          {postImage && (
+            <View style={styles.mediaPreviewWrapper}>
+              <Image source={{ uri: postImage }} style={styles.mediaPreview} />
+              <Pressable style={styles.removeMediaBtn} onPress={onDiscardMedia}>
+                <Ionicons name="close-circle" size={22} color="#ef4444" />
+              </Pressable>
+            </View>
+          )}
+          {postVideoPreview && (
+            <View style={styles.mediaPreviewWrapper}>
+              <Image source={{ uri: postVideoPreview }} style={styles.mediaPreview} />
+              <Pressable style={styles.removeMediaBtn} onPress={onDiscardMedia}>
+                <Ionicons name="close-circle" size={22} color="#ef4444" />
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
+      <View style={styles.createPostActions}>
+        <Pressable style={styles.createPostAction} onPress={pickPostImage}>
+          <Ionicons name="image" size={22} color={PROFILE_COLORS.TEXT_SECONDARY} />
+        </Pressable>
+        <Pressable style={styles.createPostAction} onPress={pickPostVideo}>
+          <Ionicons name="videocam" size={22} color={PROFILE_COLORS.TEXT_SECONDARY} />
+        </Pressable>
+        {onOpenTagModal && (
+          <Pressable style={styles.createPostAction} onPress={onOpenTagModal}>
+            <Ionicons name="at" size={22} color={PROFILE_COLORS.TEXT_SECONDARY} />
+          </Pressable>
+        )}
+        {onCreateStory && (
+          <Pressable style={styles.createPostAction} onPress={onCreateStory}>
+            <Ionicons name="play-circle-outline" size={22} color="#7c3aed" />
+          </Pressable>
+        )}
+        <View style={{ flex: 1 }} />
+        {(postText.trim() || postImage || postVideoPreview) && (
+          <Pressable
+            style={[styles.createPostSubmit, { backgroundColor: primaryColor }, (isPosting || uploadPercent > 0) && { opacity: 0.7 }]}
+            onPress={handleCreatePost}
+            disabled={isPosting || uploadPercent > 0}
+          >
+            {isPosting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : uploadPercent > 0 ? (
+              <Text style={styles.uploadPercentText}>{Math.round(uploadPercent)}%</Text>
+            ) : (
+              <Ionicons name="send" size={16} color="#fff" />
+            )}
+          </Pressable>
+        )}
+      </View>
+    </View>
+  ) : null;
 
-      {posts.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="newspaper-outline" size={48} color="#d1d5db" />
-          <Text style={styles.emptyText}>
-            {t("profile.noPosts", "No posts yet")}
-          </Text>
-        </View>
-      ) : isWeb ? (
-        <View style={styles.postGrid}>
-          {postsData.map((post) => (
-            <Pressable
-              key={post.post_id}
-              style={styles.gridCard}
-              onPress={() => router.push(`/post/${post.post_id}` as any)}
-            >
-              {post.video_url || post.image_url ? (
-                <View style={styles.gridMedia}>
-                  {post.video_url ? (
-                    <AdaptiveVideo
-                      uri={post.video_url}
-                      autoPlay
-                      style={{ width: "100%" }}
-                      ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
-                      maxHeight={1200}
-                      borderRadius={0}
-                      videoStatus={post.video_status}
-                      muxThumbnailUrl={post.mux_thumbnail_url || undefined}
-                      coverPhoto={post.mux_thumbnail_url || undefined}
-                      showMuteButton
-                    />
-                  ) : (
-                    <AdaptiveImage
-                      uri={post.image_url || ""}
-                      style={{ width: "100%" }}
-                      ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
-                      maxHeight={1200}
-                      borderRadius={0}
-                    />
-                  )}
-                  <View style={styles.gridOverlay}>
-                    <Ionicons name="heart" size={14} color="#fff" />
-                    <Text style={styles.gridOverlayText}>{post.likes_count || 0}</Text>
-                    {post.comments_count ? (
-                      <>
-                        <Ionicons name="chatbubble" size={12} color="#fff" style={{ marginLeft: 8 }} />
-                        <Text style={styles.gridOverlayText}>{post.comments_count}</Text>
-                      </>
-                    ) : null}
+  return (
+    <View style={styles.container}>
+      {isWeb && createPostComposer}
+
+      {isWeb ? (
+        posts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="newspaper-outline" size={48} color="#d1d5db" />
+            <Text style={styles.emptyText}>
+              {t("profile.noPosts", "No posts yet")}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.postGrid}>
+            {postsData.map((post) => (
+              <Pressable
+                key={post.post_id}
+                style={styles.gridCard}
+                onPress={() => router.push(`/post/${post.post_id}` as any)}
+              >
+                {post.video_url || post.image_url ? (
+                  <View style={styles.gridMedia}>
+                    {post.video_url ? (
+                      <AdaptiveVideo
+                        uri={post.video_url}
+                        autoPlay
+                        style={{ width: "100%" }}
+                        ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
+                        maxHeight={1200}
+                        borderRadius={0}
+                        videoStatus={post.video_status}
+                        muxThumbnailUrl={post.mux_thumbnail_url || undefined}
+                        coverPhoto={post.mux_thumbnail_url || undefined}
+                        showMuteButton
+                      />
+                    ) : (
+                      <AdaptiveImage
+                        uri={post.image_url || ""}
+                        style={{ width: "100%" }}
+                        ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
+                        maxHeight={1200}
+                        borderRadius={0}
+                      />
+                    )}
+                    <View style={styles.gridOverlay}>
+                      <Ionicons name="heart" size={14} color="#fff" />
+                      <Text style={styles.gridOverlayText}>{post.likes_count || 0}</Text>
+                      {post.comments_count ? (
+                        <>
+                          <Ionicons name="chatbubble" size={12} color="#fff" style={{ marginLeft: 8 }} />
+                          <Text style={styles.gridOverlayText}>{post.comments_count}</Text>
+                        </>
+                      ) : null}
+                    </View>
                   </View>
-                </View>
-              ) : (
-                <View style={[styles.gridMedia, styles.gridTextCard]}>
-                  <Text style={styles.gridTextPreview} numberOfLines={6}>
-                    {post.text || ""}
-                  </Text>
-                  <View style={styles.gridOverlay}>
-                    <Ionicons name="heart" size={14} color="#fff" />
-                    <Text style={styles.gridOverlayText}>{post.likes_count || 0}</Text>
+                ) : (
+                  <View style={[styles.gridMedia, styles.gridTextCard]}>
+                    <Text style={styles.gridTextPreview} numberOfLines={6}>
+                      {post.text || ""}
+                    </Text>
+                    <View style={styles.gridOverlay}>
+                      <Ionicons name="heart" size={14} color="#fff" />
+                      <Text style={styles.gridOverlayText}>{post.likes_count || 0}</Text>
+                    </View>
                   </View>
-                </View>
-              )}
-            </Pressable>
-          ))}
-        </View>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        )
       ) : (
         <FlatList
           data={postsData}
@@ -482,7 +495,7 @@ pendingMentionIds = [],
               context="profile"
               post={post}
               isSaved={savedPostIds.has(post.post_id)}
-              isActive={post.post_id === visiblePostId && !editingPost}
+              isActive={isScreenFocused && post.post_id === visiblePostId && !editingPost}
               canEdit={!!isOwnPost(post)}
               canDelete={!!isOwnPost(post)}
               sessionToken={sessionToken}
@@ -495,7 +508,25 @@ pendingMentionIds = [],
               taggedBusinesses={post.tagged_business_ids?.map(id => ({ id, name: getBizName(id) })) || []}
             />
           )}
-          ListHeaderComponent={listHeaderComponent ? <>{listHeaderComponent}</> : null}
+          ListHeaderComponent={
+            <>
+              {listHeaderComponent}
+              {!readOnly && createPostComposer}
+            </>
+          }
+          ListEmptyComponent={
+            postsData.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="newspaper-outline" size={48} color="#d1d5db" />
+                <Text style={styles.emptyText}>{t("profile.noPosts", "No posts yet")}</Text>
+              </View>
+            ) : null
+          }
+          refreshControl={
+            refreshing !== undefined && onRefresh ? (
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
+            ) : undefined
+          }
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           keyboardShouldPersistTaps="handled"
