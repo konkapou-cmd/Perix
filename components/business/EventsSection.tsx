@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
 import StatusBadge from "../ui/StatusBadge";
+import { SectionHeader } from "../shared/SectionHeader";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 
 type Props = {
@@ -39,15 +40,13 @@ export default function EventsSection({
 
   return (
     <View style={s.container}>
-      <View style={s.sectionHeader}>
-        <Text style={[s.cardTitle, { color: textColor }]}>{t("business.events")}</Text>
-        {!readOnly && (
-          <Pressable style={[s.addButton, { backgroundColor: primaryColor }]} onPress={onAddEvent}>
-            <Ionicons name="add-circle" size={18} color="#fff" />
-            <Text style={s.addButtonText}>{t("events.createEvent")}</Text>
-          </Pressable>
-        )}
-      </View>
+      <SectionHeader
+        icon="calendar"
+        title={t("business.events", "Veranstaltungen")}
+        accent={primaryColor}
+        onSeeAll={!readOnly ? onAddEvent : undefined}
+        seeAllLabel={t("events.createEvent", "Event erstellen")}
+      />
 
       {events.length === 0 ? (
         <EmptyState icon="calendar" message={t("business.noEvents")} subMessage={readOnly ? undefined : t("business.addFirstEvent")} />

@@ -12,6 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { SectionHeader } from "./shared/SectionHeader";
+import { COLORS } from "../lib/designTokens";
 import { FriendProfile } from "../lib/api";
 import Constants from "expo-constants";
 
@@ -125,18 +127,12 @@ export default function FriendsCarousel({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t("friends.myFriends") || "Friends"}</Text>
-        {friends.length > 0 && currentUserId && (
-          <Pressable 
-            style={styles.seeAllButton}
-            onPress={() => router.push(`/friends/${currentUserId}` as any)}
-          >
-            <Text style={styles.seeAllText}>{t("common.seeAll", "Alle anzeigen")}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#000000" />
-          </Pressable>
-        )}
-      </View>
+      <SectionHeader
+        title={t("friends.myFriends", "Friends")}
+        icon="people"
+        accent={COLORS.textPrimary}
+        onSeeAll={friends.length > 0 && currentUserId ? () => router.push(`/friends/${currentUserId}` as any) : undefined}
+      />
 
       <FlatList
         data={friends}

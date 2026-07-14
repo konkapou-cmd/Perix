@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { SectionHeader } from "../shared/SectionHeader";
 import { ActivityItem } from "../../lib/api";
 import { ACTIVITY_TYPES } from "../../lib/api/core";
 
@@ -79,21 +80,16 @@ export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFil
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="people" size={18} color="#ffffff" />
-          </View>
-          <Text style={styles.title}>Activities</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <Pressable style={styles.calendarButton} onPress={onCalendarOpen}>
-            <Ionicons name="calendar-outline" size={16} color="#ffffff" />
-          </Pressable>
-          <Pressable style={styles.seeAllButton} onPress={() => router.navigate({ pathname: "/(tabs)/locator" as any, params: { tab: "activities" } })}>
-            <Text style={styles.seeAllText}>{t("common.seeAll", "Alle anzeigen")}</Text>
-            <Ionicons name="chevron-forward" size={14} color="#ffffff" />
-          </Pressable>
-        </View>
+        <SectionHeader
+          icon="people"
+          title={t("home.activities", "Activities")}
+          accent={COLORS.primaryDark}
+          onSeeAll={() => router.navigate({ pathname: "/(tabs)/locator" as any, params: { tab: "activities" } })}
+          style={{ marginBottom: 0, flex: 1 }}
+        />
+        <Pressable style={styles.calendarButton} onPress={onCalendarOpen}>
+          <Ionicons name="calendar-outline" size={16} color="#ffffff" />
+        </Pressable>
       </View>
 
       <View style={styles.filterRow}>
