@@ -368,6 +368,13 @@ export default function LocatorScreen() {
     return translateCategory(selectedSubcategory, t);
   }, [selectedSubcategory, t]);
 
+  const businessSubcategories = useMemo(() => {
+    if (!selectedRootGroup) return [] as any[];
+    return selectedRootGroup.groups
+      ? selectedRootGroup.groups.flatMap((g: any) => g.subcategories)
+      : (selectedRootGroup.subcategories ?? []);
+  }, [selectedRootGroup]);
+
   const filteredRentals = useMemo(() =>
     rentalTypeFilter ? rentals.filter(r => r.subcategory === rentalTypeFilter) : rentals,
     [rentals, rentalTypeFilter]
@@ -876,16 +883,13 @@ export default function LocatorScreen() {
             primaryColor={COLORS.primary}
             borderColor={COLORS.border ?? "#e5e7eb"}
           />
-          {selectedRoot !== "All" && selectedRootGroup && (
+          {selectedRoot !== "All" && businessSubcategories.length > 0 && (
             <ProgressivePicker
               label={t("common.subcategory", "Kategorie")}
               value={selectedSubcategory === "All" ? "All" : selectedSubcategory}
               options={[
                 { key: "All", label: t("common.allSubcategories", "Alle Unterkategorien") },
-                ...(selectedRootGroup.groups
-                  ? selectedRootGroup.groups.flatMap(g => g.subcategories)
-                  : (selectedRootGroup.subcategories || [])
-                ).map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t) })),
+                ...businessSubcategories.map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t) })),
               ]}
               onChange={(key) => setSelectedSubcategory(key === "All" ? "All" : key)}
               primaryColor={COLORS.primary}
@@ -1171,6 +1175,13 @@ export default function LocatorScreen() {
             />
           </View>
           <View style={styles.calendarFooter}>
+            <Pressable style={styles.calendarActionButton} onPress={() => {
+              setDateFilter({ startDate: null, endDate: null });
+              setPendingDateFilter({ startDate: null, endDate: null });
+              setShowCalendar(false);
+            }}>
+              <Text style={styles.calendarActionButtonText}>{t("common.reset", "Zurücksetzen")}</Text>
+            </Pressable>
             <Pressable style={[styles.calendarActionButton, styles.calendarApplyButton]} onPress={() => {
               setDateFilter(pendingDateFilter);
               setShowCalendar(false);
