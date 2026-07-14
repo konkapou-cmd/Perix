@@ -513,7 +513,7 @@ pendingMentionIds = [],
                       uri={post.video_url}
                       autoPlay
                       style={{ width: "100%", height: "100%" }}
-                      ratio={post.media_ratio || undefined}
+                      ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
                       maxHeight={1200}
                       borderRadius={0}
                       videoStatus={post.video_status}
@@ -523,7 +523,7 @@ pendingMentionIds = [],
                     <AdaptiveImage
                       uri={post.image_url || ""}
                       style={{ width: "100%", height: "100%" }}
-                      ratio={post.media_ratio || undefined}
+                      ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
                       maxHeight={1200}
                       borderRadius={0}
                     />

@@ -209,7 +209,7 @@ export default function CameraScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
       const asset = result.assets[0];
       const type = asset.type === "video" ? "video" : "image";
-      const ratio = asset.width && asset.height ? String(asset.width / asset.height) : undefined;
+      const ratio = asset.width && asset.height && asset.height > 0 ? String(asset.width / asset.height) : undefined;
       router.push({
         pathname: "/media-editor",
         params: { uri: encodeURIComponent(asset.uri), type, mode: mode, ratio },

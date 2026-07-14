@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
 import { COLORS } from "../lib/designTokens";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
@@ -122,7 +123,7 @@ export default function OnboardingScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: MEDIA_LIMITS.image.pickerQuality,
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
         setUploadingPhoto(true);

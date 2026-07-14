@@ -535,7 +535,7 @@ export default function ProfileScreen() {
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
       const asset = result.assets[0];
-      setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
+      setPostMediaRatio(asset.width && asset.height && asset.height > 0 ? asset.width / asset.height : null);
       const uri = `data:image/jpeg;base64,${asset.base64}`;
       setPostImage(uri);
       setPostVideo(null);
@@ -556,7 +556,7 @@ export default function ProfileScreen() {
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
       const asset = result.assets[0];
-      setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
+      setPostMediaRatio(asset.width && asset.height && asset.height > 0 ? asset.width / asset.height : null);
       if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
         Alert.alert(t("common.error"), `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
         return;
