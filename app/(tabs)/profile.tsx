@@ -218,7 +218,7 @@ export default function ProfileScreen() {
   const { user, logout, sessionToken, activeIdentity, setActiveIdentity, refreshUser } = useAuth();
   const { clearMapBounds } = useMapBounds();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string }>();
+  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string; t?: string }>();
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -458,7 +458,7 @@ export default function ProfileScreen() {
     if (params.openBookings === "1") {
       setBookingListVisible(true);
     }
-  }, [params.openEvent, params.openJob, params.openService, params.openBookings]);
+  }, [params.openEvent, params.openJob, params.openService, params.openBookings, params.t]);
 
   // ---------------------------------------------------------------------------
   // 2. USER VIEW STATE & HANDLERS
@@ -629,6 +629,7 @@ export default function ProfileScreen() {
           is_private: eventForm.is_private,
           password: eventForm.is_private ? (eventForm.password || null) : null,
           tagged_artist_ids: eventForm.tagged_artist_ids?.length ? eventForm.tagged_artist_ids : null,
+          cover_focal_point: (eventForm as any).cover_focal_point || undefined,
         });
       } else {
         const payload: any = {
@@ -647,6 +648,7 @@ export default function ProfileScreen() {
           is_private: eventForm.is_private,
           password: eventForm.is_private ? (eventForm.password || null) : null,
           tagged_artist_ids: eventForm.tagged_artist_ids?.length ? eventForm.tagged_artist_ids : [],
+          cover_focal_point: (eventForm as any).cover_focal_point || undefined,
         };
         if (activeIdentity?.type === "business") payload.business_id = activeIdentity.id;
         console.log("[handleSaveEvent] Creating event, payload:", JSON.stringify({ ...payload, image_urls: payload.image_urls?.length, gallery_images: payload.gallery_images?.length, gallery_videos: payload.gallery_videos?.length }));
@@ -1337,6 +1339,23 @@ const handleUpdateSlug = async (newSlug: string) => {
         calories: serviceForm.calories ? parseInt(serviceForm.calories, 10) : undefined,
         allergens: serviceForm.allergens,
         spice_level: serviceForm.spice_level ? parseInt(serviceForm.spice_level, 10) : undefined,
+        duration_days: serviceForm.duration_days ? parseInt(serviceForm.duration_days, 10) : undefined,
+        duration_months: serviceForm.duration_months ? parseInt(serviceForm.duration_months, 10) : undefined,
+        includes: serviceForm.includes || undefined,
+        visits_included: serviceForm.visits_included ? parseInt(serviceForm.visits_included, 10) : undefined,
+        valid_days: serviceForm.valid_days || undefined,
+        included_services: serviceForm.included_services,
+        sessions_count: serviceForm.sessions_count ? parseInt(serviceForm.sessions_count, 10) : undefined,
+        duration_per_session: serviceForm.duration_per_session || undefined,
+        special_requests: serviceForm.special_requests || undefined,
+        pickup_location: serviceForm.pickup_location || undefined,
+        dropoff_location: serviceForm.dropoff_location || undefined,
+        reason_for_visit: serviceForm.reason_for_visit || undefined,
+        insurance_info: serviceForm.insurance_info || undefined,
+        pet_name: serviceForm.pet_name || undefined,
+        pet_type: serviceForm.pet_type || undefined,
+        status: serviceForm.status || undefined,
+        sort_order: serviceForm.sort_order ? parseInt(serviceForm.sort_order, 10) : undefined,
       };
       if (editingServiceId) {
         await updateService(sessionToken, editingServiceId, payload);
@@ -1347,9 +1366,9 @@ const handleUpdateSlug = async (newSlug: string) => {
       setEditingServiceId(null);
       setServiceForm(DEFAULT_SERVICE_FORM);
       loadBusinessProfile();
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to save service:", e);
-      Alert.alert(t("common.error", "Error"), t("services.saveFailed", "Failed to save service"));
+      Alert.alert(t("common.error", "Error"), e?.detail || e?.message || t("services.saveFailed", "Failed to save service"));
     }
     setServiceSaving(false);
   };
@@ -2268,6 +2287,7 @@ currentUserId={businessDetail?.business?.business_id}
                 work_location: jobForm.work_location || undefined,
                 expires_at: jobForm.expires_at || undefined,
                 status: jobForm.status || "published",
+                cover_focal_point: (jobForm as any).cover_focal_point || undefined,
               };
               if (editingJobId) {
                 await updateJob(sessionToken, editingJobId, jobData);
@@ -2278,8 +2298,9 @@ currentUserId={businessDetail?.business?.business_id}
               setEditingJobId(null);
               setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
               loadBusinessProfile();
-            } catch (error) {
+            } catch (error: any) {
               console.error("Failed to save job:", error);
+              Alert.alert(t("common.error", "Error"), error?.detail || error?.message || t("jobs.saveFailed", "Failed to save job"));
             }
             setJobSaving(false);
           }}

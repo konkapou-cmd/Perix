@@ -104,6 +104,7 @@ export const createEvent = async (
     is_private?: boolean;
     password?: string | null;
     tagged_artist_ids?: string[];
+    cover_focal_point?: { x: number; y: number };
   }
 ): Promise<EventItem> => {
   return apiRequest<EventItem>("/events", "POST", token, payload);
@@ -129,6 +130,7 @@ export const updateEvent = async (
     is_private?: boolean;
     password?: string | null;
     tagged_artist_ids?: string[] | null;
+    cover_focal_point?: { x: number; y: number };
   }
 ): Promise<EventItem> => {
   return apiRequest<EventItem>(`/events/${eventId}`, "PUT", token, payload);
