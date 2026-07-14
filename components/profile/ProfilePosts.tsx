@@ -17,17 +17,14 @@ import {
 import { useRouter } from "expo-router";
 import AdaptiveVideo from "../AdaptiveVideo";
 import AdaptiveImage from "../AdaptiveImage";
-import LazyMediaViewer, { MediaItem } from "../LazyMediaViewer";
-import PostContent from "../PostContent";
-import { CommentSection } from "../CommentSection";
+import { PostCard } from "../posts/PostCard";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
-import { Post, togglePostLike as apiTogglePostLike } from "../../lib/api";
+import { Post, togglePostLike as apiTogglePostLike, toggleSaved } from "../../lib/api";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
-import { formatRelativeDate } from "../../lib/formatDate";
 import useResponsiveLayout from "../../hooks/useResponsiveLayout";
 
 interface ProfilePostsProps {
@@ -129,15 +126,12 @@ pendingMentionIds = [],
   const { contentMaxWidth } = useResponsiveLayout();
   const { sessionToken, activeIdentity } = useAuth();
   const router = useRouter();
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
-  const [viewerIndex, setViewerIndex] = useState(0);
-
   const isWeb = Platform.OS === "web";
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [editText, setEditText] = useState("");
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [postsData, setPostsData] = useState<Post[]>(posts);
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setPostsData(posts);
@@ -257,6 +251,22 @@ pendingMentionIds = [],
     );
   };
 
+  const handleComment = (post: Post) => {
+    router.push(`/post/${post.post_id}`);
+  };
+
+  const handleSave = async (post: Post) => {
+    if (!sessionToken) return;
+    try {
+      const { is_saved } = await toggleSaved(sessionToken, "post", post.post_id);
+      setSavedPostIds(prev => {
+        const next = new Set(prev);
+        is_saved ? next.add(post.post_id) : next.delete(post.post_id);
+        return next;
+      });
+    } catch (e) { console.warn("toggleSaved failed:", e); }
+  };
+
   const handleEditPress = (post: Post) => {
     setEditingPost(post);
     setEditText(post.text || "");
@@ -272,119 +282,6 @@ pendingMentionIds = [],
       setEditText("");
       onRefreshPosts?.();
     }
-  };
-
-  const renderPost = ({ item: post }: { item: Post }) => {
-    const ownPost = isOwnPost(post);
-
-    return (
-      <Pressable
-        style={[styles.postCard, { backgroundColor: cardColor }]}
-        onPress={() => onPostPress?.(post)}
-      >
-        <View style={styles.postHeader}>
-          <View style={[styles.postAvatarPlaceholder, { backgroundColor: primaryColor }]}>
-            {post.actor_avatar ? (
-              <Image source={{ uri: post.actor_avatar }} style={styles.avatarImage} />
-            ) : (
-              <Ionicons name="person" size={20} color={PROFILE_COLORS.CARD} />
-            )}
-          </View>
-          <View style={styles.postMeta}>
-            <Text style={[styles.postAuthor, { color: textColor }, themeStyles as any]}>
-              {post.actor_name || "User"}
-            </Text>
-            <Text style={[styles.postDate, { color: textSecondaryColor }, themeStyles as any]}>{formatRelativeDate(post.created_at)}</Text>
-          </View>
-          {ownPost && (
-            <View style={styles.postActions}>
-              <Pressable style={styles.postActionBtn} onPress={() => handleEditPress(post)}>
-                <Ionicons name="create-outline" size={20} color={COLORS.primaryDark} />
-              </Pressable>
-              <Pressable style={styles.postActionBtn} onPress={() => handleDeletePost(post)}>
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
-              </Pressable>
-            </View>
-          )}
-        </View>
-
-        {post.text && (
-          <PostContent 
-            text={post.text}
-            textStyle={[styles.postText, { color: textColor }, themeStyles as any]}
-            taggedUsers={post.tagged_user_ids?.map(id => ({ id, name: getFriendName(id) }))}
-            taggedBusinesses={post.tagged_business_ids?.map(id => ({ id, name: getBizName(id) }))}
-            taggedArtists={(post as any).tagged_artist_ids?.map((id: string) => ({ id, name: id }))}
-          />
-        )}
-
-        {post.video_url ? (
-          <View style={styles.postMediaWrapper}>
-            <AdaptiveVideo
-              uri={post.video_url}
-              autoPlay
-              ratio={post.media_ratio || undefined}
-              initialMuted={true}
-              showMuteButton
-              resizeMode="cover"
-              coverPhoto={post.mux_thumbnail_url || undefined}
-              maxHeight={Dimensions.get("window").height * 0.75}
-              borderRadius={0}
-              videoStatus={post.video_status}
-              muxThumbnailUrl={post.mux_thumbnail_url || undefined}
-              onPress={() => {
-                const items: MediaItem[] = [];
-                if (post.video_url) items.push({ type: "video", uri: post.video_url, ratio: post.media_ratio || undefined, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
-                if (post.image_url) items.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
-                setViewerMedia(items);
-                setViewerIndex(0);
-                setViewerOpen(true);
-              }}
-            />
-          </View>
-        ) : post.image_url ? (
-          <View style={styles.postMediaWrapper}>
-            <AdaptiveImage
-              uri={post.image_url}
-              ratio={post.media_ratio || undefined}
-              maxHeight={Dimensions.get("window").height * 0.75}
-              borderRadius={0}
-              onPress={() => {
-                const items: MediaItem[] = [];
-                if (post.image_url) items.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
-                if (post.video_url) items.push({ type: "video", uri: post.video_url, ratio: post.media_ratio || undefined, muxThumbnailUrl: post.mux_thumbnail_url || undefined, videoStatus: post.video_status });
-                setViewerMedia(items);
-                setViewerIndex(0);
-                setViewerOpen(true);
-              }}
-            />
-          </View>
-        ) : null}
-
-        <View style={styles.postFooter}>
-          <Pressable onPress={() => handleLikePost(post)} style={styles.postStat}>
-            <Ionicons 
-              name={likedPosts.has(post.post_id) ? "heart" : "heart-outline"} 
-              size={18} 
-              color={likedPosts.has(post.post_id) ? "#ef4444" : primaryColor} 
-            />
-            <Text style={[styles.postStatText, { color: textSecondaryColor }]}>
-              {postsData.find(p => p.post_id === post.post_id)?.likes_count || post.likes_count || 0}
-            </Text>
-          </Pressable>
-          <View style={styles.postStat}>
-            <Ionicons name="chatbubble-outline" size={18} color={textSecondaryColor} />
-            <Text style={[styles.postStatText, { color: textSecondaryColor }]}>{post.comments_count || 0}</Text>
-          </View>
-        </View>
-
-        <CommentSection postId={post.post_id} onCommentAdded={() => {
-          setPostsData(prev => prev.map(p =>
-            p.post_id === post.post_id ? { ...p, comments_count: (p.comments_count || 0) + 1 } : p
-          ));
-        }} />
-      </Pressable>
-    );
   };
 
   return (
@@ -558,7 +455,23 @@ pendingMentionIds = [],
         </View>
       ) : (
         <View style={{ gap: 12, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 24 }}>
-          {postsData.map((post) => <View key={post.post_id}>{renderPost({ item: post })}</View>)}
+          {postsData.map((post) => (
+            <PostCard
+              key={post.post_id}
+              context="profile"
+              post={post}
+              isSaved={savedPostIds.has(post.post_id)}
+              isActive={false}
+              canEdit={!!isOwnPost(post)}
+              canDelete={!!isOwnPost(post)}
+              sessionToken={sessionToken}
+              onLike={() => handleLikePost(post)}
+              onComment={() => handleComment(post)}
+              onSave={() => handleSave(post)}
+              onEdit={() => handleEditPress(post)}
+              onDelete={() => handleDeletePost(post)}
+            />
+          ))}
         </View>
       )}
 
@@ -598,13 +511,6 @@ pendingMentionIds = [],
           </View>
         </View>
       </Modal>
-
-      <LazyMediaViewer
-        visible={viewerOpen}
-        media={viewerMedia}
-        initialIndex={viewerIndex}
-        onClose={() => setViewerOpen(false)}
-      />
     </View>
   );
 };
