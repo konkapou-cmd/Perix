@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Post, BACKEND_URL } from "../../lib/api";
 import { COLORS, SPACING, BORDER_RADIUS } from "../../lib/designTokens";
@@ -9,6 +9,7 @@ import { Alert } from "react-native";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "../../lib/formatDate";
 import LazyMediaViewer, { MediaItem } from "../LazyMediaViewer";
+import PostContent from "../PostContent";
 import PostHeader from "./PostHeader";
 import PostMedia from "./PostMedia";
 import PostActions from "./PostActions";
@@ -32,6 +33,8 @@ export interface PostCardProps {
   onShare?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  taggedUsers?: { id: string; name: string }[];
+  taggedBusinesses?: { id: string; name: string }[];
 }
 
 export function PostCard({
@@ -52,6 +55,8 @@ export function PostCard({
   onShare,
   onEdit,
   onDelete,
+  taggedUsers = [],
+  taggedBusinesses = [],
 }: PostCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -165,11 +170,23 @@ export function PostCard({
 
       {post.text && (
         post.video_url || post.image_url ? (
-          <Text style={styles.caption} numberOfLines={3}>{post.text}</Text>
+          <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+            <PostContent
+              text={post.text}
+              textStyle={styles.caption}
+              taggedUsers={taggedUsers}
+              taggedBusinesses={taggedBusinesses}
+            />
+          </View>
         ) : (
           <View style={styles.textOnlyCard}>
             <Ionicons name="chatbubble-ellipses" size={16} color={COLORS.borderLight} style={{ marginBottom: 8 }} />
-            <Text style={styles.textOnlyContent} numberOfLines={8}>{post.text}</Text>
+            <PostContent
+              text={post.text}
+              textStyle={styles.textOnlyContent}
+              taggedUsers={taggedUsers}
+              taggedBusinesses={taggedBusinesses}
+            />
           </View>
         )
       )}
@@ -184,12 +201,6 @@ export function PostCard({
           onPress={() => setViewerOpen(true)}
         />
       ) : null}
-
-      {isSaved && (
-        <View style={styles.savedBadge}>
-          <Ionicons name="bookmark" size={10} color={COLORS.gold} />
-        </View>
-      )}
 
       <PostActions
         liked={!!post.liked_by_me}
@@ -246,17 +257,5 @@ const styles = StyleSheet.create({
     fontSize: Platform.OS === "web" ? 16 : 14,
     color: COLORS.textDark,
     lineHeight: Platform.OS === "web" ? 24 : 20,
-  },
-  savedBadge: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: COLORS.textPrimary,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 10,
   },
 });

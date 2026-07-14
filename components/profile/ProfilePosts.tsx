@@ -64,6 +64,7 @@ interface ProfilePostsProps {
   isPosting?: boolean;
   uploadPercent?: number;
   onCreateStory?: () => void;
+  initialSavedPostIds?: Set<string>;
 }
 
 const formatDate = (dateStr: string) => {
@@ -121,6 +122,7 @@ pendingMentionIds = [],
   isPosting = false,
   uploadPercent = 0,
   onCreateStory,
+  initialSavedPostIds = new Set(),
 }) => {
   const { t } = useTranslation();
   const { contentMaxWidth } = useResponsiveLayout();
@@ -131,7 +133,7 @@ pendingMentionIds = [],
   const [editText, setEditText] = useState("");
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [postsData, setPostsData] = useState<Post[]>(posts);
-  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(initialSavedPostIds);
 
   useEffect(() => {
     setPostsData(posts);
@@ -454,7 +456,7 @@ pendingMentionIds = [],
           ))}
         </View>
       ) : (
-        <View style={{ gap: 12, paddingTop: 12, paddingBottom: 24 }}>
+        <View style={{ paddingTop: 12, paddingBottom: 24 }}>
           {postsData.map((post) => (
             <PostCard
               key={post.post_id}
@@ -470,6 +472,8 @@ pendingMentionIds = [],
               onSave={() => handleSave(post)}
               onEdit={() => handleEditPress(post)}
               onDelete={() => handleDeletePost(post)}
+              taggedUsers={post.tagged_user_ids?.map(id => ({ id, name: getFriendName(id) })) || []}
+              taggedBusinesses={post.tagged_business_ids?.map(id => ({ id, name: getBizName(id) })) || []}
             />
           ))}
         </View>
