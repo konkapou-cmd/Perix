@@ -209,7 +209,7 @@ const [followLoading, setFollowLoading] = useState(false);
   const pickPostImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
+      quality: MEDIA_LIMITS.image.pickerQuality,
       base64: false,
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
@@ -224,7 +224,7 @@ const [followLoading, setFollowLoading] = useState(false);
   const pickPostVideo = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: 0.7,
+      quality: MEDIA_LIMITS.video.pickerQuality,
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
       const asset = result.assets[0];

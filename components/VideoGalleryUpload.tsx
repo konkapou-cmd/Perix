@@ -121,7 +121,7 @@ export default function VideoGalleryUpload({
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
         allowsEditing: false,
-        quality: 0.8,
+        quality: MEDIA_LIMITS.video.pickerQuality,
         videoMaxDuration: MEDIA_LIMITS.gallery.maxVideoDurationSeconds,
       });
 

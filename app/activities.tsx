@@ -52,6 +52,7 @@ import {
   isUpcomingActivity,
   uploadMedia,
 } from "../lib/api";
+import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
 
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -417,7 +418,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        quality: 0.7,
+        quality: MEDIA_LIMITS.image.pickerQuality,
       });
       if (!result.canceled && result.assets) {
         const newUris = result.assets.map(a => a.uri).filter(Boolean);
@@ -436,7 +437,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        quality: 0.7,
+        quality: MEDIA_LIMITS.image.pickerQuality,
       });
       if (!result.canceled && result.assets) {
         const newUris = result.assets.map(a => a.uri).filter(Boolean);

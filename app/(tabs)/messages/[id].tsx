@@ -48,6 +48,7 @@ import {
   SHADOWS,
   ICON_SIZES,
 } from "../../../lib/designTokens";
+import { MEDIA_LIMITS } from "../../../lib/constants/mediaLimits";
 
 function TypingDots({ name, t }: { name: string; t: (key: string) => string }) {
   const dot1 = useRef(new Animated.Value(0.3)).current;
@@ -329,7 +330,7 @@ export default function ChatScreen() {
         mediaTypes: mediaType === "image" 
           ? ImagePicker.MediaTypeOptions.Images 
           : ImagePicker.MediaTypeOptions.Videos,
-        quality: 0.8,
+        quality: mediaType === "image" ? MEDIA_LIMITS.image.pickerQuality : MEDIA_LIMITS.video.pickerQuality,
       });
       
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {

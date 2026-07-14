@@ -99,7 +99,7 @@ export default function UnifiedMediaGallery({
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 0.8,
+      quality: MEDIA_LIMITS.image.pickerQuality,
     });
     if (result.canceled || !result.assets) return;
     const newItems: MediaItem[] = [];
@@ -142,7 +142,7 @@ export default function UnifiedMediaGallery({
     if (!sessionToken) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: 0.7,
+      quality: MEDIA_LIMITS.video.pickerQuality,
     });
     if (result.canceled || !result.assets || !result.assets[0]?.uri) return;
     const asset = result.assets[0];

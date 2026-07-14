@@ -530,7 +530,7 @@ export default function ProfileScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.5,
+      quality: MEDIA_LIMITS.image.pickerQuality,
       base64: true,
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
@@ -552,7 +552,7 @@ export default function ProfileScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: 0.5,
+      quality: MEDIA_LIMITS.video.pickerQuality,
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
       const asset = result.assets[0];
@@ -742,7 +742,7 @@ export default function ProfileScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       base64: true,
-      quality: 0.7,
+      quality: MEDIA_LIMITS.image.pickerQuality,
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
       const uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
@@ -757,7 +757,7 @@ export default function ProfileScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       base64: true,
-      quality: 0.7,
+      quality: MEDIA_LIMITS.image.pickerQuality,
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
       const uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
@@ -868,7 +868,7 @@ export default function ProfileScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.8,
+      quality: MEDIA_LIMITS.image.pickerQuality,
       base64: true,
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
@@ -969,7 +969,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         base64: true,
-        quality: 0.7,
+        quality: MEDIA_LIMITS.image.pickerQuality,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setShowUploadProgress(true);
@@ -1380,7 +1380,7 @@ const handleUpdateSlug = async (newSlug: string) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
-      quality: 0.8,
+      quality: MEDIA_LIMITS.image.pickerQuality,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
       try {
@@ -1408,6 +1408,7 @@ const handleUpdateSlug = async (newSlug: string) => {
     setIsUploading(true);
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["videos"],
+      quality: MEDIA_LIMITS.video.pickerQuality,
       allowsEditing: true,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -1464,7 +1465,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: MEDIA_LIMITS.image.pickerQuality,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
       try {
@@ -1493,7 +1494,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [16, 9],
-      quality: 0.8,
+      quality: MEDIA_LIMITS.image.pickerQuality,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
       try {
@@ -2100,7 +2101,7 @@ currentUserId={businessDetail?.business?.business_id}
                     if (!sessionToken) return;
                     const result = await ImagePicker.launchImageLibraryAsync({
                       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-                      quality: 0.7,
+                      quality: MEDIA_LIMITS.video.pickerQuality,
                     });
                     if (result.canceled || !result.assets?.[0]?.uri) return;
                     try {

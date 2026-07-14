@@ -31,6 +31,7 @@ import {
   uploadMedia,
 } from "../../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../../lib/designTokens";
+import { MEDIA_LIMITS } from "../../../lib/constants/mediaLimits";
 
 type ChatType = "activity" | "event";
 
@@ -146,7 +147,7 @@ export default function GroupChatScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
+        quality: MEDIA_LIMITS.image.pickerQuality,
       });
       if (result.canceled || !result.assets || result.assets.length === 0) return;
       setUploadingMedia(true);
