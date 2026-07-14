@@ -27,6 +27,10 @@ import AdaptiveImage from "../../components/AdaptiveImage";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import { formatRelativeDate } from "../../lib/formatDate";
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const DETAIL_MAX_HEIGHT = SCREEN_HEIGHT * 0.65;
+const DETAIL_WIDTH = SCREEN_WIDTH - SPACING.page * 2;
+
 export default function PostDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sessionToken, user, activeIdentity } = useAuth();
@@ -139,6 +143,10 @@ export default function PostDetail() {
   const displayName = post.actor_name || post.author?.name || "User";
   const displayAvatar = post.actor_avatar || post.author?.profile_photo || post.author?.picture;
 
+  const mediaRatio = post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 4 / 5;
+  const naturalHeight = mediaRatio > 0 ? DETAIL_WIDTH / mediaRatio : DETAIL_WIDTH;
+  const frameHeight = Math.min(naturalHeight, DETAIL_MAX_HEIGHT);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -192,17 +200,17 @@ export default function PostDetail() {
           )}
 
           {post.video_url ? (
-            <View style={styles.postVideoContainer}>
+            <View style={[styles.postVideoContainer, { height: frameHeight }]}>
               <AdaptiveVideo
                 uri={post.video_url}
                 autoPlay
-                style={styles.postVideo}
+                style={{ width: "100%", height: frameHeight }}
                 initialMuted
                 showMuteButton
                 resizeMode="cover"
                 coverPhoto={post.mux_thumbnail_url || undefined}
-                ratio={post.media_ratio || undefined}
-                maxHeight={Dimensions.get("window").height * 0.65}
+                ratio={mediaRatio}
+                maxHeight={frameHeight}
                 borderRadius={8}
                 videoStatus={post.video_status}
                 muxThumbnailUrl={post.mux_thumbnail_url || undefined}
@@ -219,10 +227,10 @@ export default function PostDetail() {
           ) : post.image_url ? (
             <AdaptiveImage
               uri={post.image_url}
-              ratio={post.media_ratio || undefined}
-              maxHeight={Dimensions.get("window").height * 0.65}
+              ratio={mediaRatio}
+              maxHeight={frameHeight}
               borderRadius={8}
-              style={styles.postImage}
+              style={{ width: "100%", height: frameHeight }}
               onPress={() => {
                 const items: MediaItem[] = [];
                 if (post.image_url) items.push({ type: "image", uri: post.image_url, ratio: post.media_ratio || undefined });
