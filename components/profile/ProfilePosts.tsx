@@ -6,7 +6,6 @@ import {
   Image,
   Pressable,
   TextInput,
-  KeyboardAvoidingView,
   Platform,
   Modal,
   Alert,
@@ -388,7 +387,6 @@ pendingMentionIds = [],
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
     <View style={styles.container}>
       {!readOnly && (
         <View style={[styles.createPost, { backgroundColor: cardColor }]}>
@@ -605,7 +603,6 @@ pendingMentionIds = [],
         onClose={() => setViewerOpen(false)}
       />
     </View>
-    </KeyboardAvoidingView>
   );
 };
 
