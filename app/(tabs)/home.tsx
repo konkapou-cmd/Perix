@@ -667,7 +667,7 @@ export default function HomeScreen() {
         data={homeLayout.sections.find(s => s.id === "posts")?.enabled !== false ? sortedPosts : []}
         keyExtractor={(item) => item.post_id}
         renderItem={({ item }) => (
-          <View style={{ paddingHorizontal: SPACING.small }}>
+          <View style={{ paddingHorizontal: 0 }}>
           <View key={item.post_id}>
           <PostCard
             context="home"

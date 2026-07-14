@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   tabContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingBottom: 24,
     marginTop: 12,
   },
