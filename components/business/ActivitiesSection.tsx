@@ -9,6 +9,7 @@ import { EmptyState } from "../shared";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
 import StatusBadge from "../ui/StatusBadge";
+import { SectionHeader } from "../shared/SectionHeader";
 
 type Props = {
   activities: ActivityItem[];
@@ -47,15 +48,13 @@ export default function ActivitiesSection({
 
   return (
     <View style={s.container}>
-      <View style={s.sectionHeader}>
-        <Text style={[s.cardTitle, { color: textColor }]}>{t("userProfile.activities", "Activities")}</Text>
-        {!readOnly && (
-          <Pressable style={[s.addButton, { backgroundColor: primaryColor }]} onPress={onAddActivity}>
-            <Ionicons name="add-circle" size={18} color="#fff" />
-            <Text style={s.addButtonText}>{t("activities.createActivity")}</Text>
-          </Pressable>
-        )}
-      </View>
+      <SectionHeader
+        icon="people"
+        title={t("userProfile.activities", "Aktivitäten")}
+        accent={primaryColor}
+        onSeeAll={!readOnly ? onAddActivity : undefined}
+        seeAllLabel={t("activities.createActivity", "Aktivität erstellen")}
+      />
 
       {activities.length === 0 ? (
         <EmptyState icon="people" message={t("userProfile.noActivities")} subMessage={!readOnly ? t("userProfile.addFirstActivity") : undefined} />

@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import EmptyState from "../ui/EmptyState";
+import { SectionHeader } from "../shared/SectionHeader";
 import { COLORS, SPACING } from "../../lib/designTokens";
 
 interface FilterOption {
@@ -33,22 +34,12 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
 
   return (
     <View style={styles.card}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitle}>
-          <View style={[styles.iconContainer, { backgroundColor: accent }]}>
-            <Ionicons name={icon} size={18} color={COLORS.textLight} />
-          </View>
-          <Text style={styles.cardTitle}>{title}</Text>
-        </View>
-        <View style={styles.sectionHeaderRight}>
-          {seeAllRoute && (
-            <Pressable style={[styles.seeAllButton, { backgroundColor: accent }]} onPress={() => router.navigate(seeAllRoute as any)}>
-              <Text style={styles.seeAllButtonText}>{t("common.seeAll", "Alle anzeigen")}</Text>
-              <Ionicons name="chevron-forward" size={14} color={COLORS.textLight} />
-            </Pressable>
-          )}
-        </View>
-      </View>
+      <SectionHeader
+        icon={icon}
+        title={title}
+        accent={accent}
+        onSeeAll={seeAllRoute ? () => router.navigate(seeAllRoute as any) : undefined}
+      />
 
       {filters && (
         <View style={styles.filterChipRow}>

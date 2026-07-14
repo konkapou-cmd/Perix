@@ -9,6 +9,7 @@ import { EmptyState } from "../shared";
 import StatusBadge from "../ui/StatusBadge";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
+import { SectionHeader } from "../shared/SectionHeader";
 
 type Props = {
   jobs: Job[];
@@ -38,15 +39,13 @@ export default function JobsSection({
 
   return (
     <View style={s.container}>
-      <View style={s.sectionHeader}>
-        <Text style={[s.cardTitle, { color: textColor }]}>{t("jobs.myJobs")}</Text>
-        {!readOnly && onAddJob && (
-          <Pressable style={[s.addButton, { backgroundColor: primaryColor }]} onPress={onAddJob}>
-            <Ionicons name="add-circle" size={18} color="#fff" />
-            <Text style={s.addButtonText}>{t("jobs.createJob")}</Text>
-          </Pressable>
-        )}
-      </View>
+      <SectionHeader
+        icon="briefcase"
+        title={t("jobs.myJobs", "Meine Stellenanzeigen")}
+        accent={primaryColor}
+        onSeeAll={!readOnly && onAddJob ? onAddJob : undefined}
+        seeAllLabel={t("jobs.createJob", "Job erstellen")}
+      />
 
       {jobs.length === 0 ? (
         <EmptyState icon="briefcase" message={t("jobs.noJobs")} subMessage={readOnly ? undefined : t("jobs.addFirstJob")} />
