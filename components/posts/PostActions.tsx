@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, Pressable, StyleSheet, Text } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../lib/designTokens";
 
@@ -16,7 +16,7 @@ interface PostActionsProps {
 
 export default function PostActions({ liked, likesCount, commentsCount, isSaved, onLike, onComment, onShare, onSave }: PostActionsProps) {
   return (
-    <Pressable style={styles.row}>
+    <View style={styles.row}>
       <Pressable style={styles.item} onPress={onLike}>
         <Ionicons
           name={liked ? "heart" : "heart-outline"}
@@ -44,7 +44,7 @@ export default function PostActions({ liked, likesCount, commentsCount, isSaved,
           color={isSaved ? COLORS.gold : COLORS.textMuted}
         />
       </Pressable>
-    </Pressable>
+    </View>
   );
 }
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 
 interface PostCommentsRowProps {
@@ -9,13 +10,17 @@ interface PostCommentsRowProps {
 }
 
 export default function PostCommentsRow({ count, onPress }: PostCommentsRowProps) {
+  const { t } = useTranslation();
+
   if (!count) return null;
 
   return (
     <Pressable style={styles.container} onPress={onPress}>
       <Ionicons name="chatbubble-outline" size={14} color={COLORS.textMuted} />
       <Text style={styles.text}>
-        View {count > 1 ? `all ${count} comments` : "1 comment"}
+        {count > 1
+          ? t("posts.viewAllComments", "View all {{count}} comments", { count })
+          : t("posts.viewComment", "View 1 comment")}
       </Text>
     </Pressable>
   );
