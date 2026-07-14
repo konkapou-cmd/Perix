@@ -43,6 +43,7 @@ export const getMyJobs = async (token: string): Promise<import("./core").Job[]> 
 export const createJob = async (
   token: string,
   job: {
+    business_id?: string;
     title: string;
     description: string;
     cover_image?: string;
