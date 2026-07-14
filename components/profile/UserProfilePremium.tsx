@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useIsFocused } from "@react-navigation/native";
 import { COLORS } from "../../lib/designTokens";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
@@ -186,6 +187,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
+  const isScreenFocused = useIsFocused();
   const [activeTab, setActiveTab] = useState<ProfileTab>("posts");
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
@@ -442,6 +444,9 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           onRefreshPosts={onRefreshPosts}
           isOwnProfile={isOwnProfile}
           onCreateStory={onCreateStory}
+          isScreenFocused={isScreenFocused}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           listHeaderComponent={profileHeaderContent}
         />
         {user.cover_photo && (
@@ -477,7 +482,49 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
-        {tabContentNonPosts}
+        {activeTab === "posts" ? (
+          <ProfilePosts
+            posts={userPosts}
+            primaryColor={primaryColor}
+            cardColor={cardColor}
+            textColor={textColor}
+            textSecondaryColor={secondaryColor}
+            bgColor={bgColor}
+            readOnly={readOnly}
+            postText={postText}
+            setPostText={setPostText}
+            postImage={postImage}
+            postVideo={postVideo}
+            postVideoPreview={postVideoPreview}
+            pickPostImage={pickPostImage}
+            pickPostVideo={pickPostVideo}
+            onDiscardMedia={onDiscardMedia}
+            handleCreatePost={handleCreatePost}
+            isPosting={isPosting}
+            uploadPercent={uploadPercent}
+            onDeletePost={onDeletePost}
+            onEditPost={onEditPost}
+            currentUserId={currentUserId}
+            avatarUri={avatarUri}
+            themeStyles={themeStyles}
+            onOpenTagModal={onOpenTagModal}
+            onEditTags={onEditTags}
+            friends={friends}
+            businesses={businesses}
+            showMentionSuggestions={showMentionSuggestions}
+            mentionSuggestions={mentionSuggestions}
+            onSelectMention={onSelectMention}
+            pendingMentionIds={pendingMentionIds}
+            onRefreshPosts={onRefreshPosts}
+            isOwnProfile={isOwnProfile}
+            onCreateStory={onCreateStory}
+            isScreenFocused={isScreenFocused}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        ) : (
+          tabContentNonPosts
+        )}
       </ScrollView>
 
       {user.cover_photo && (
