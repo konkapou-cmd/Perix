@@ -454,7 +454,7 @@ pendingMentionIds = [],
           ))}
         </View>
       ) : (
-        <View style={{ gap: 12, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 24 }}>
+        <View style={{ gap: 12, paddingTop: 12, paddingBottom: 24 }}>
           {postsData.map((post) => (
             <PostCard
               key={post.post_id}

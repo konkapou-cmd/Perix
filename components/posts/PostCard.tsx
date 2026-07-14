@@ -219,7 +219,7 @@ export function PostCard({
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 0,
+    marginHorizontal: 8,
     backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
