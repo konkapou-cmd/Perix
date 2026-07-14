@@ -307,7 +307,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               {onCustomizeTheme && (
                 <Pressable style={styles.iconBtn} onPress={onCustomizeTheme}>
                   <Ionicons name="color-palette-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
-                  <Text style={styles.iconLabel}>{t("common.design") || "Design"}</Text>
+                  <Text style={styles.iconLabel}>{t("common.design", "Design")}</Text>
                 </Pressable>
               )}
               {onPlan && (
@@ -318,7 +318,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               )}
               <Pressable style={styles.iconBtn} onPress={onSettings || (() => router.push("/settings"))}>
                 <Ionicons name="settings-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
-                <Text style={styles.iconLabel}>{t("common.settings") || "Settings"}</Text>
+                <Text style={styles.iconLabel}>{t("common.settings", "Einstellungen")}</Text>
               </Pressable>
               {showLogout && onLogout && (
                 <Pressable style={styles.iconBtn} onPress={onLogout}>

@@ -17,7 +17,7 @@ export const SectionHeader = ({
   title,
   count,
   onSeeAll,
-  seeAllLabel = "See All",
+  seeAllLabel = "",
   style,
 }: SectionHeaderProps) => {
   return (

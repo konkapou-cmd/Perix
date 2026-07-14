@@ -81,7 +81,7 @@ export default function JobsSection({
                     {job.is_active ? (
                       <View style={s.activeBadge}>
                         <Ionicons name="checkmark-circle" size={10} color="#fff" />
-                        <Text style={s.activeText}>{t("jobs.active", "Active")}</Text>
+                        <Text style={s.activeText}>{t("jobs.active", "Aktiv")}</Text>
                       </View>
                     ) : (
                       <View style={s.inactiveBadge}>
