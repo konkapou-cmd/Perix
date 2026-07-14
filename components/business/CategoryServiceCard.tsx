@@ -14,15 +14,15 @@ function MediaWithOverlay({ service, placeholderIcon }: { service: Service; plac
   const hasVideo = !!service.video_url;
   const galleryCount = (service.gallery_images?.length || 0) + (service.image_urls?.length || 0) - 1;
   return (
-    <View style={s.mediaWrapper}>
+    <View style={s.cardMedia}>
       {service.cover_image_url ? (
-        <FocalImage uri={service.cover_image_url} focalPoint={service.cover_focal_point} style={s.image} showLoader={false} />
+        <FocalImage uri={service.cover_image_url} aspectRatio={16 / 9} focalPoint={service.cover_focal_point} borderRadius={0} showLoader={false} />
       ) : hasVideo ? (
-        <AdaptiveVideo uri={service.video_url!} autoPlay style={s.image} isLooping initialMuted />
+        <AdaptiveVideo uri={service.video_url!} autoPlay style={{ width: "100%", aspectRatio: 16 / 9 }} isLooping initialMuted />
       ) : imageUri ? (
-        <FocalImage uri={imageUri} focalPoint={service.cover_focal_point} style={s.image} showLoader={false} />
+        <FocalImage uri={imageUri} aspectRatio={16 / 9} focalPoint={service.cover_focal_point} borderRadius={0} showLoader={false} />
       ) : (
-        <View style={[s.image, s.imagePlaceholder]}>
+        <View style={s.imagePlaceholder}>
           <Ionicons name={placeholderIcon as any} size={32} color={COLORS.textMuted} />
         </View>
       )}
@@ -42,6 +42,7 @@ type Props = {
   primaryColor?: string;
   textColor?: string;
   secondaryColor?: string;
+  cardColor?: string;
 };
 
 function getTypeIcon(type: string): string {
@@ -53,7 +54,7 @@ function getTypeIcon(type: string): string {
   return "help-circle";
 }
 
-export default function CategoryServiceCard({ service, rootCategory, onPress, primaryColor = COLORS.primary, textColor = COLORS.textPrimary, secondaryColor = COLORS.textSecondary }: Props) {
+export default function CategoryServiceCard({ service, rootCategory, onPress, primaryColor = COLORS.primary, textColor = COLORS.textPrimary, secondaryColor = COLORS.textSecondary, cardColor = COLORS.background }: Props) {
   const getFieldsForType = (): string[] => {
     const types = CATEGORY_SERVICE_TYPES[rootCategory] || [];
     const match = types.find((t) => t.type === service.type);
@@ -161,7 +162,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
   const typeName = typeConfig?.publicTabLabel || typeConfig?.label || service.type;
 
   return (
-    <Pressable style={s.card} onPress={() => onPress?.(service)}>
+    <Pressable style={[s.card, { backgroundColor: cardColor }]} onPress={() => onPress?.(service)}>
       <MediaWithOverlay service={service} placeholderIcon={typeIcon} />
       <View style={s.imageBadges}>
         <View style={[s.typeBadge, { backgroundColor: primaryColor }]}>
@@ -190,19 +191,19 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
     borderRadius: BORDER_RADIUS.card,
-    marginHorizontal: SPACING.page,
     overflow: "hidden",
     ...SHADOWS.subtle,
   },
-  mediaWrapper: {
-    position: "relative",
-    height: 140,
-  },
-  image: {
+  cardMedia: {
     width: "100%",
-    height: "100%",
+    aspectRatio: 16 / 9,
+    overflow: "hidden",
+    borderTopLeftRadius: BORDER_RADIUS.card,
+    borderTopRightRadius: BORDER_RADIUS.card,
   },
   imagePlaceholder: {
+    width: "100%",
+    height: "100%",
     backgroundColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
@@ -230,7 +231,7 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   info: {
-    padding: SPACING.section,
+    padding: 10,
   },
   name: {
     fontSize: FONT_SIZES.body,

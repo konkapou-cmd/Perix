@@ -71,13 +71,13 @@ export default function ActivitiesSection({
                   style={s.cardContent}
                   onPress={() => router.push(`/activity/${activity.activity_id}`)}
                 >
-                  <View style={s.imageContainer}>
+                  <View style={s.cardMedia}>
                     {activity.cover_image_url ? (
-                      <FocalImage uri={activity.cover_image_url} focalPoint={activity.cover_focal_point} style={s.image} showLoader={false} />
+                      <FocalImage uri={activity.cover_image_url} aspectRatio={16 / 9} focalPoint={activity.cover_focal_point} borderRadius={0} showLoader={false} />
                     ) : hasVideo ? (
-                      <AdaptiveVideo uri={activity.video_url || ""} autoPlay style={s.image} isLooping initialMuted />
+                      <AdaptiveVideo uri={activity.video_url || ""} autoPlay style={{ width: "100%", aspectRatio: 16 / 9 }} isLooping initialMuted />
                     ) : imageUrl ? (
-                      <FocalImage uri={imageUrl} focalPoint={activity.cover_focal_point} style={s.image} showLoader={false} />
+                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={activity.cover_focal_point} borderRadius={0} showLoader={false} />
                     ) : (
                       <View style={[s.imagePlaceholder, { backgroundColor: `${theme.color}30` }]}>
                         <Text style={s.themeEmoji}>{theme.emoji}</Text>
@@ -184,20 +184,19 @@ const s = StyleSheet.create({
     gap: SPACING.small,
   },
   card: {
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
     ...SHADOWS.subtle,
   },
   cardContent: {
     flex: 1,
   },
-  imageContainer: {
-    position: "relative",
-    height: 140,
-  },
-  image: {
+  cardMedia: {
     width: "100%",
-    height: "100%",
+    aspectRatio: 16 / 9,
+    overflow: "hidden",
+    borderTopLeftRadius: BORDER_RADIUS.card,
+    borderTopRightRadius: BORDER_RADIUS.card,
   },
   imagePlaceholder: {
     width: "100%",
@@ -271,7 +270,7 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   info: {
-    padding: SPACING.small,
+    padding: 10,
   },
   title: {
     fontSize: FONT_SIZES.body,

@@ -61,13 +61,13 @@ export default function JobsSection({
                   style={s.cardContent}
                   onPress={() => router.push(`/job/${job.job_id}`)}
                 >
-                  <View style={s.imageContainer}>
+                  <View style={s.cardMedia}>
                     {job.cover_image ? (
-                      <FocalImage uri={job.cover_image} focalPoint={job.cover_focal_point} style={s.image} showLoader={false} />
+                      <FocalImage uri={job.cover_image} aspectRatio={16 / 9} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} />
                     ) : hasVideo ? (
-                      <AdaptiveVideo uri={job.video_url || ""} autoPlay style={s.image} isLooping initialMuted />
+                      <AdaptiveVideo uri={job.video_url || ""} autoPlay style={{ width: "100%", aspectRatio: 16 / 9 }} isLooping initialMuted />
                     ) : imageUrl ? (
-                      <FocalImage uri={imageUrl} focalPoint={job.cover_focal_point} style={s.image} showLoader={false} />
+                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} />
                     ) : (
                       <View style={[s.imagePlaceholder, { backgroundColor: `${primaryColor}30` }]}>
                         <Ionicons name="briefcase" size={36} color={primaryColor} />
@@ -166,20 +166,19 @@ const s = StyleSheet.create({
     gap: SPACING.small,
   },
   card: {
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
     ...SHADOWS.subtle,
   },
   cardContent: {
     flex: 1,
   },
-  imageContainer: {
-    position: "relative",
-    height: 140,
-  },
-  image: {
+  cardMedia: {
     width: "100%",
-    height: "100%",
+    aspectRatio: 16 / 9,
+    overflow: "hidden",
+    borderTopLeftRadius: BORDER_RADIUS.card,
+    borderTopRightRadius: BORDER_RADIUS.card,
   },
   imagePlaceholder: {
     width: "100%",
@@ -232,7 +231,7 @@ const s = StyleSheet.create({
     color: "#fff",
   },
   info: {
-    padding: SPACING.small,
+    padding: 10,
   },
   title: {
     fontSize: FONT_SIZES.body,
