@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS, BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING, ICON_SIZES } from "../../lib/designTokens";
 
 type SectionHeaderProps = {
@@ -17,9 +18,11 @@ export const SectionHeader = ({
   title,
   count,
   onSeeAll,
-  seeAllLabel = "",
+  seeAllLabel,
   style,
 }: SectionHeaderProps) => {
+  const { t } = useTranslation();
+  const label = seeAllLabel || t("common.seeAll", "Alle anzeigen");
   return (
     <View style={[styles.row, style]}>
       <View style={styles.left}>
@@ -35,7 +38,7 @@ export const SectionHeader = ({
       </View>
       {onSeeAll && (
         <Pressable style={styles.seeAllBtn} onPress={onSeeAll}>
-          <Text style={styles.seeAllText}>{seeAllLabel}</Text>
+          <Text style={styles.seeAllText}>{label}</Text>
           <Ionicons name="chevron-forward" size={14} color={COLORS.background} />
         </Pressable>
       )}
