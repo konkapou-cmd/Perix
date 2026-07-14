@@ -11,13 +11,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
-import AdaptiveImage from "../AdaptiveImage";
-import AdaptiveVideo from "../AdaptiveVideo";
+import MediaThumbnail from "../ui/MediaThumbnail";
 import LazyMediaViewer, { MediaItem as MediaViewerItem } from "../LazyMediaViewer";
 import { Post } from "../../lib/api";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_COLS = 3;
+
+function getVideoThumbnailUrl(uri: string): string {
+  if (uri.includes("mux.com")) {
+    return uri.replace("stream.mux.com", "image.mux.com").replace(".m3u8", "/thumbnail.jpg?time=0&width=300");
+  }
+  return uri.replace("/upload/", "/upload/so_0,vc_00,w_300/");
+}
 const GRID_GAP = 2;
 const ITEM_SIZE = (SCREEN_WIDTH - GRID_GAP * (GRID_COLS + 1)) / GRID_COLS;
 const MAX_GALLERY_ITEMS = 15;
@@ -125,42 +131,6 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
     onDeleteItem?.(item.source, item.type, item.uri);
   };
 
-  const renderItem = ({ item, index }: { item: MediaItem; index: number }) => (
-    <View style={styles.gridItem}>
-      <Pressable onPress={() => handleItemPress(item, index)}>
-        {item.type === "image" ? (
-          <AdaptiveImage uri={item.uri} style={styles.gridImage} />
-        ) : (
-          <View style={styles.videoThumbnail}>
-            <AdaptiveVideo
-              uri={item.uri.includes('mux.com') ? item.uri.replace('stream.mux.com', 'image.mux.com').replace('.m3u8', '/thumbnail.jpg?time=0&width=300') : item.uri.replace('/upload/', '/upload/so_0,vc_00,w_300/')}
-              autoPlay
-              style={styles.gridVideo}
-              showMuteButton={false}
-              useNativeControls={false}
-            />
-            <View style={styles.videoOverlay}>
-              <Ionicons name="play-circle" size={32} color="#fff" />
-            </View>
-          </View>
-        )}
-        {item.source === "post" && (
-          <View style={styles.postBadge}>
-            <Ionicons name="document-text" size={10} color="#fff" />
-          </View>
-        )}
-      </Pressable>
-      {!readOnly && (
-        <Pressable
-          style={styles.deleteBtn}
-          onPress={() => handleDelete(item, index)}
-        >
-          <Ionicons name="close-circle" size={22} color={PROFILE_COLORS.DANGER} />
-        </Pressable>
-      )}
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <View style={[styles.tabRow, { backgroundColor: cardColor }]}>
@@ -209,28 +179,13 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
               style={[styles.webGridItem, !isWeb && { flex: 1, maxWidth: "33%" }]}
               onPress={() => handleItemPress(item, index)}
             >
-              {item.type === "image" ? (
-                <AdaptiveImage uri={item.uri} style={styles.webGridMedia} ratio={1} maxHeight={1200} borderRadius={0} />
-              ) : (
-                <View style={styles.videoThumbnail}>
-                  <AdaptiveVideo
-                    uri={item.uri}
-                    coverPhoto={item.uri.includes('mux.com') ? item.uri.replace('stream.mux.com', 'image.mux.com').replace('.m3u8', '/thumbnail.jpg?time=0&width=300') : item.uri.replace('/upload/', '/upload/so_0,vc_00,w_300/')}
-                    style={styles.webGridMedia}
-                    ratio={1}
-                    maxHeight={1200}
-                    autoPlay
-                    initialMuted
-                    isLooping
-                    showMuteButton={false}
-                    useNativeControls={false}
-                    borderRadius={0}
-                  />
-                  <View style={styles.videoOverlay}>
-                    <Ionicons name="play-circle" size={32} color="#fff" />
-                  </View>
-                </View>
-              )}
+              <MediaThumbnail
+                uri={item.type === "video" ? getVideoThumbnailUrl(item.uri) : item.uri}
+                type={item.type}
+                aspectRatio={1}
+                showTypeBadge
+                borderRadius={0}
+              />
               {item.source === "post" && (
                 <View style={styles.postBadge}>
                   <Ionicons name="document-text" size={10} color="#fff" />
