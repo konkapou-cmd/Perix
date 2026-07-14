@@ -8,6 +8,7 @@ import { formatDate } from "../../lib/formatDate";
 import { EmptyState } from "../shared";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
+import StatusBadge from "../ui/StatusBadge";
 
 type Props = {
   activities: ActivityItem[];
@@ -88,21 +89,24 @@ export default function ActivitiesSection({
                         <Ionicons name="lock-closed" size={12} color="#fff" />
                       </View>
                     )}
-                    <View style={[s.themeBadge, { backgroundColor: theme.color }]}>
-                      <Text style={s.themeBadgeEmoji}>{theme.emoji}</Text>
-                      <Text style={s.themeBadgeLabel}>{theme.label}</Text>
-                    </View>
+                    <StatusBadge
+                      label={theme.label}
+                      color={theme.color}
+                      size="sm"
+                    />
                     {(activity.my_status === "accepted" || activity.my_status === "going") && (
-                      <View style={s.goingBadge}>
-                        <Ionicons name="checkmark-circle" size={10} color="#fff" />
-                        <Text style={s.goingText}>{t("activities.going", "Going")}</Text>
-                      </View>
+                      <StatusBadge
+                        label={t("activities.going", "Going")}
+                        variant="active"
+                        size="sm"
+                      />
                     )}
                     {activity.is_creator && activity.my_status !== "accepted" && activity.my_status !== "going" && (
-                      <View style={s.ownerBadge}>
-                        <Ionicons name="star" size={10} color="#fff" />
-                        <Text style={s.ownerText}>{t("activities.yours", "Yours")}</Text>
-                      </View>
+                      <StatusBadge
+                        label={t("activities.yours", "Yours")}
+                        variant="owner"
+                        size="sm"
+                      />
                     )}
                   </View>
                   <View style={s.info}>
@@ -123,11 +127,11 @@ export default function ActivitiesSection({
                         </Text>
                       </View>
                     )}
-                    <View style={[s.statusBadge, { backgroundColor: `${primaryColor}20` }]}>
-                      <Text style={[s.statusText, { color: primaryColor }]}>
-                        {activity.is_creator ? t("activities.hosting", "Hosting") : activity.my_status || t("activities.joined", "Joined")}
-                      </Text>
-                    </View>
+                    <StatusBadge
+                      label={activity.is_creator ? t("activities.hosting", "Hosting") : activity.my_status || t("activities.joined", "Joined")}
+                      variant="default"
+                      size="sm"
+                    />
                   </View>
                 </Pressable>
                 {activity.is_creator && !readOnly && (
