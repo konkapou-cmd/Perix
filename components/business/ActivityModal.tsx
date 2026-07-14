@@ -1,18 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { CalendarList } from "react-native-calendars";
@@ -21,6 +17,8 @@ import { ActivityItem, ACTIVITY_TYPES, ACTIVITY_CATEGORIES, ACTIVITY_SUBCATEGORI
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
+import FormScreen from "../ui/FormScreen";
+import FormBottomBar from "../ui/FormBottomBar";
 
 type ActivityForm = {
   title: string;
@@ -60,6 +58,7 @@ type Props = {
   nearLat?: number;
   nearLng?: number;
   businessAddress?: string;
+  isSaving?: boolean;
 };
 
 function formToMedia(form: ActivityForm): MediaItem[] {
@@ -137,6 +136,7 @@ export default function ActivityModal({
   nearLat,
   nearLng,
   businessAddress,
+  isSaving = false,
 }: Props) {
   const { t } = useTranslation();
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -193,21 +193,8 @@ export default function ActivityModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide">
-      <SafeAreaView style={s.modalContainer} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={s.header}>
-          <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
-            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-          </Pressable>
-          <Text style={s.headerTitle}>
-            {activityEditing ? t("activities.editActivity") : t("activities.createActivity")}
-          </Text>
-          <View style={s.headerBtn} />
-        </View>
-
-        <ScrollView style={s.body} keyboardShouldPersistTaps="handled">
-          <UnifiedMediaGallery
+    <FormScreen title={activityEditing ? t("activities.editActivity") : t("activities.createActivity")} onClose={onClose}>
+      <UnifiedMediaGallery
             media={media}
             onChange={handleMediaChange}
             sessionToken={sessionToken}
@@ -368,22 +355,14 @@ export default function ActivityModal({
             );
           })}
 
-          <View style={{ height: 140 }} />
-        </ScrollView>
-
-        <View style={s.footer}>
-          <Pressable style={s.cancelBtn} onPress={onClose}>
-            <Text style={s.cancelBtnText}>{t("common.cancel")}</Text>
-          </Pressable>
-          <Pressable style={s.saveBtn} onPress={onSave}>
-            <Text style={s.saveBtnText}>
-              {activityEditing ? t("common.save") : t("common.create")}
-            </Text>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
+      <FormBottomBar
+        onCancel={onClose}
+        onSave={onSave}
+        isSaving={isSaving}
+        disabled={!activityForm.title.trim()}
+        saveLabel={activityEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
+      />
+    </FormScreen>
   );
 }
 
