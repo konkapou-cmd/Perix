@@ -133,7 +133,7 @@ async def create_event(
         tagged_artist_ids=tagged_artist_ids,
         tagged_artists=tagged_artists or None,
         cover_focal_point=event_doc.get("cover_focal_point"),
-        password=event_doc.get("password"),
+        requires_password=bool(event_doc.get("password")),
     )
 
 
@@ -276,7 +276,7 @@ async def list_events(
                 gallery_videos=event.get("gallery_videos", []),
                 tagged_artist_ids=event.get("tagged_artist_ids") or [],
                 cover_focal_point=event.get("cover_focal_point"),
-                password=event.get("password"),
+                requires_password=bool(event.get("password")),
             )
         )
     return response
@@ -333,7 +333,7 @@ async def get_event_detail(
         tagged_artist_ids=tagged_artist_ids,
         tagged_artists=tagged_artists,
         cover_focal_point=event.get("cover_focal_point"),
-        password=event.get("password"),
+        requires_password=bool(event.get("password")),
     )
 
 
@@ -382,7 +382,7 @@ async def get_event_public(event_id: str):
         gallery_videos=event.get("gallery_videos", []),
         tagged_artist_ids=event.get("tagged_artist_ids") or [],
         cover_focal_point=event.get("cover_focal_point"),
-        password=event.get("password"),
+        requires_password=bool(event.get("password")),
     )
 
 
@@ -415,7 +415,7 @@ async def update_event(
     if not authorized:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    update_data = {key: value for key, value in payload.dict().items() if value is not None}
+    update_data = payload.model_dump(exclude_unset=True)
     
     if update_data:
         await db.events.update_one({"event_id": event_id}, {"$set": update_data})
@@ -457,7 +457,7 @@ async def update_event(
         tagged_artist_ids=tagged_artist_ids,
         tagged_artists=tagged_artists,
         cover_focal_point=event.get("cover_focal_point"),
-        password=event.get("password"),
+        requires_password=bool(event.get("password")),
     )
 
 

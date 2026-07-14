@@ -157,6 +157,7 @@ async def create_job(
         "image_urls": job_data.image_urls,
         "gallery_images": job_data.gallery_images,
         "gallery_videos": job_data.gallery_videos,
+        "video_url": job_data.video_url,
         "job_type": job_data.job_type,
         "requirements": job_data.requirements,
         "salary_range": job_data.salary_range,
@@ -172,6 +173,7 @@ async def create_job(
         "business_name": business.get("name"),
         "business_logo": business.get("profile_photo"),
         "cover_focal_point": job_data.cover_focal_point or {"x": 0.5, "y": 0.5},
+        "status": job_data.status or "published",
     }
     
     await db.jobs.insert_one(job)

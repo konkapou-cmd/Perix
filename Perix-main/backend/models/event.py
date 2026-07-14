@@ -88,7 +88,7 @@ class EventResponse(BaseModel):
     tagged_artist_ids: List[str] = []
     tagged_artists: Optional[List[Dict[str, Any]]] = None
     cover_focal_point: Optional[FocalPoint] = None
-    password: Optional[str] = None
+    requires_password: bool = False
 
 
 class EventPublicResponse(BaseModel):
@@ -115,7 +115,7 @@ class EventPublicResponse(BaseModel):
     tagged_artist_ids: List[str] = []
     tagged_artists: Optional[List[Dict[str, Any]]] = None
     cover_focal_point: Optional[FocalPoint] = None
-    password: Optional[str] = None
+    requires_password: bool = False
 
 
 class EventUpdate(BaseModel):
