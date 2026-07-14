@@ -65,7 +65,7 @@ export default React.memo(function AdaptiveImage({
     maxHeight,
     borderRadius,
     overflow: "hidden",
-    backgroundColor: hasError || !isValidUri ? fallbackColor : COLORS.surfaceDark,
+    backgroundColor: hasError || !isValidUri ? fallbackColor : "transparent",
   };
 
   const imageResizeMode = resizeMode as any;

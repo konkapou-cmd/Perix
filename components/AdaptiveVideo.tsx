@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { AppState, AppStateStatus, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle, Text, Image as RNImage, ActivityIndicator } from "react-native";
+import { AppState, AppStateStatus, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle, Text, Image as RNImage, ActivityIndicator, Dimensions } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -24,7 +24,8 @@ type AdaptiveVideoProps = {
   useNativeControls?: boolean;
 };
 
-const DEFAULT_MAX_HEIGHT = 470;
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const DEFAULT_MAX_HEIGHT = SCREEN_HEIGHT * 0.75;
 
 function isMuxProcessingPlaceholder(url: string): boolean {
   return !!url && url.startsWith("mux://");
@@ -62,6 +63,9 @@ export default function AdaptiveVideo({
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
   const [coverFailed, setCoverFailed] = useState(false);
   const [coverRatio, setCoverRatio] = useState<number | null>(ratio || null);
+  const [hasError, setHasError] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<View>(null);
   const playedRef = useRef(false);
   const player = useVideoPlayer(isProcessing ? null : videoUri, (p) => {
@@ -85,10 +89,10 @@ export default function AdaptiveVideo({
 
   const containerStyle: ViewStyle = {
     width: "100%",
-    aspectRatio: styleHasHeight ? undefined : (ratio || 16 / 9),
+    aspectRatio: styleHasHeight ? undefined : (ratio || 4 / 5),
     maxHeight,
     overflow: "hidden",
-    backgroundColor: "transparent",
+    backgroundColor: "#000",
   };
 
   useEffect(() => {
@@ -173,6 +177,30 @@ export default function AdaptiveVideo({
     return () => { sub.remove(); };
   }, [player, autoPlay, videoUri, isProcessing]);
 
+  useEffect(() => {
+    setHasError(false);
+    setRetrying(false);
+    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    if (!videoUri || isProcessing) return;
+    loadTimeoutRef.current = setTimeout(() => {
+      if (!naturalAspect && !ratio) {
+        setHasError(true);
+      }
+    }, 10000);
+    return () => {
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    };
+  }, [videoUri, isProcessing]);
+
+  const handleRetry = () => {
+    setHasError(false);
+    setRetrying(true);
+    setNaturalAspect(null);
+    setCoverRatio(ratio || null);
+    setCoverFailed(false);
+    setTimeout(() => setRetrying(false), 500);
+  };
+
   const toggleMute = () => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
@@ -199,37 +227,50 @@ export default function AdaptiveVideo({
 
   const effectiveStyle: ViewStyle = {
     ...containerStyle,
-    aspectRatio: styleHasHeight ? undefined : (ratio || naturalAspect || 16 / 9),
+    aspectRatio: styleHasHeight ? undefined : (ratio || naturalAspect || 4 / 5),
     maxHeight,
   };
 
   return (
     <View ref={containerRef} style={[effectiveStyle, style]}>
-      {coverUrl && (
-        <RNImage
-          source={{ uri: coverUrl }}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-        />
-      )}
-      {player && (
-        <VideoView
-          player={player}
-          style={StyleSheet.absoluteFill}
-          contentFit={resizeMode}
-          nativeControls={useNativeControls}
-        />
-      )}
-      <Pressable
-        onPress={handlePress}
-        style={StyleSheet.absoluteFill}
-        accessibilityRole="button"
-        accessibilityLabel="Play video"
-      />
-      {showMuteButton && (
-        <Pressable style={styles.muteButton} onPress={toggleMute}>
-          <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
-        </Pressable>
+      {hasError ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={32} color="#fff" />
+          <Text style={styles.errorText}>Video cannot load</Text>
+          <Pressable style={styles.retryButton} onPress={handleRetry}>
+            <Ionicons name="refresh" size={18} color="#fff" />
+            <Text style={styles.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          {coverUrl && (
+            <RNImage
+              source={{ uri: coverUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          )}
+          {player && (
+            <VideoView
+              player={player}
+              style={StyleSheet.absoluteFill}
+              contentFit={resizeMode}
+              nativeControls={useNativeControls}
+            />
+          )}
+          <Pressable
+            onPress={handlePress}
+            style={StyleSheet.absoluteFill}
+            accessibilityRole="button"
+            accessibilityLabel="Play video"
+          />
+          {showMuteButton && (
+            <Pressable style={styles.muteButton} onPress={toggleMute}>
+              <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
+            </Pressable>
+          )}
+        </>
       )}
     </View>
   );
@@ -254,6 +295,33 @@ const styles = StyleSheet.create({
   processingText: {
     color: "#fff",
     fontSize: 13,
+    fontWeight: "600",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#000",
+    padding: 16,
+  },
+  errorText: {
+    color: "#999",
+    fontSize: 14,
+    marginTop: 8,
+  },
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    gap: 6,
+  },
+  retryText: {
+    color: "#fff",
+    fontSize: 14,
     fontWeight: "600",
   },
 });
