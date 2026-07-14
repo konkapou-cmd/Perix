@@ -1,23 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { CalendarList } from "react-native-calendars";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
+import FormScreen from "../ui/FormScreen";
+import FormBottomBar from "../ui/FormBottomBar";
 
 type JobForm = {
   title: string;
@@ -150,19 +147,9 @@ export default function JobModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide">
-      <SafeAreaView style={s.modalContainer} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={s.header}>
-            <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
-              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-            </Pressable>
-            <Text style={s.headerTitle}>{modalTitle}</Text>
-            <View style={s.headerBtn} />
-          </View>
-
-          <ScrollView style={s.body} keyboardShouldPersistTaps="handled">
-            <UnifiedMediaGallery
+    <>
+    <FormScreen title={modalTitle} onClose={onClose}>
+      <UnifiedMediaGallery
               media={media}
               onChange={handleMediaChange}
               sessionToken={sessionToken}
@@ -253,23 +240,14 @@ export default function JobModal({
               ))}
             </View>
 
-            <View style={{ height: 140 }} />
-          </ScrollView>
-
-          <View style={s.footer}>
-            <Pressable style={s.cancelBtn} onPress={onClose}>
-              <Text style={s.cancelBtnText}>{t("common.cancel") || "Cancel"}</Text>
-            </Pressable>
-            <Pressable style={[s.saveBtn, isSaving && s.saveBtnDisabled]} onPress={onSave} disabled={isSaving}>
-              {isSaving ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={s.saveBtnText}>{isEditing ? t("common.save") || "Save" : t("common.create") || "Create"}</Text>
-              )}
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+      <FormBottomBar
+        onCancel={onClose}
+        onSave={onSave}
+        isSaving={isSaving}
+        disabled={!jobForm.title.trim() || !jobForm.description.trim()}
+        saveLabel={isEditing ? t("common.save", "Speichern") : t("jobs.create", "Job erstellen")}
+      />
+    </FormScreen>
 
       {/* Date picker modal */}
       <Modal visible={showDatePicker} animationType="slide" transparent>
@@ -298,7 +276,7 @@ export default function JobModal({
           </View>
         </View>
       </Modal>
-    </Modal>
+    </>
   );
 }
 
