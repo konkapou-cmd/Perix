@@ -236,7 +236,7 @@ export type EventItem = {
   longitude?: number | null;
   theme?: string | null;
   is_private?: boolean;
-  password?: string | null;
+  requires_password?: boolean;
   gallery_images?: string[];
   gallery_videos?: string[];
   tagged_artist_ids?: string[];

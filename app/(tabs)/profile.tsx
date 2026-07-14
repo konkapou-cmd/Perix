@@ -627,7 +627,12 @@ export default function ProfileScreen() {
           gallery_images: eventForm.gallery_images,
           gallery_videos: eventForm.gallery_videos,
           is_private: eventForm.is_private,
-          password: eventForm.is_private ? (eventForm.password || null) : null,
+          ...(eventForm.is_private && eventForm.password?.trim()
+            ? { password: eventForm.password.trim() }
+            : eventForm.is_private
+              ? {}
+              : { password: null }
+          ),
           tagged_artist_ids: eventForm.tagged_artist_ids?.length ? eventForm.tagged_artist_ids : null,
           cover_focal_point: (eventForm as any).cover_focal_point || undefined,
         });
@@ -646,7 +651,12 @@ export default function ProfileScreen() {
           gallery_images: eventForm.gallery_images,
           gallery_videos: eventForm.gallery_videos,
           is_private: eventForm.is_private,
-          password: eventForm.is_private ? (eventForm.password || null) : null,
+          ...(eventForm.is_private && eventForm.password?.trim()
+            ? { password: eventForm.password.trim() }
+            : eventForm.is_private
+              ? {}
+              : { password: null }
+          ),
           tagged_artist_ids: eventForm.tagged_artist_ids?.length ? eventForm.tagged_artist_ids : [],
           cover_focal_point: (eventForm as any).cover_focal_point || undefined,
         };
@@ -2268,10 +2278,16 @@ currentUserId={businessDetail?.business?.business_id}
           onFormChange={setJobForm}
           onSave={async () => {
             if (!sessionToken || !jobForm.title.trim()) return;
+            const businessId = activeIdentity?.type === "business" ? activeIdentity.id : null;
+            if (!businessId) {
+              Alert.alert(t("common.error", "Error"), t("jobs.businessRequired", "Select a business before creating a job"));
+              setJobSaving(false);
+              return;
+            }
             setJobSaving(true);
             try {
-              const businessId = activeIdentity?.id;
-              const jobData = {
+              const jobData: any = {
+                business_id: businessId,
                 title: jobForm.title,
                 description: jobForm.description,
                 cover_image: jobForm.cover_image,
