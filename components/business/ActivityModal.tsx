@@ -304,6 +304,7 @@ export default function ActivityModal({
             style={s.input}
             nearLat={nearLat}
             nearLng={nearLng}
+            confirmed={!activityEditing && !!businessAddress}
           />
 
           <Text style={s.label}>{t("activities.maxAttendees")}</Text>

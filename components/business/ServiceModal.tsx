@@ -560,6 +560,7 @@ export default function ServiceModal({
               placeholder={t(config.placeholderKey || "services.addressPlaceholder", "Search address...")}
               nearLat={nearLat}
               nearLng={nearLng}
+              confirmed={!form.name && !!businessAddress}
             />
           </View>
         );
