@@ -15,7 +15,13 @@ interface PostHeaderProps {
 export default function PostHeader({ actorName, actorAvatar, formattedDate, onAuthorPress, editSlot }: PostHeaderProps) {
   return (
     <View style={styles.container}>
-      <Pressable onPress={onAuthorPress}>
+      <Pressable
+        style={styles.authorArea}
+        onPress={(e: any) => {
+          e?.stopPropagation?.();
+          onAuthorPress?.();
+        }}
+      >
         {actorAvatar ? (
           <AdaptiveImage uri={actorAvatar} borderRadius={22} ratio={1} maxHeight={44} style={styles.avatar} />
         ) : (
@@ -23,11 +29,11 @@ export default function PostHeader({ actorName, actorAvatar, formattedDate, onAu
             <Text style={styles.avatarText}>{actorName.charAt(0).toUpperCase()}</Text>
           </View>
         )}
+        <View style={styles.info}>
+          <Text style={styles.name}>{actorName}</Text>
+          <Text style={styles.time}>{formattedDate}</Text>
+        </View>
       </Pressable>
-      <View style={styles.info}>
-        <Text style={styles.name}>{actorName}</Text>
-        <Text style={styles.time}>{formattedDate}</Text>
-      </View>
       {editSlot && <View style={styles.editSlot}>{editSlot}</View>}
     </View>
   );
@@ -39,6 +45,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
     paddingHorizontal: 16,
+  },
+  authorArea: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
   },
   avatar: {
     width: 44,
@@ -59,7 +70,6 @@ const styles = StyleSheet.create({
     color: COLORS.primaryDark,
   },
   info: {
-    flex: 1,
     marginLeft: 12,
   },
   name: {
