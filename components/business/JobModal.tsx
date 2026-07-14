@@ -229,6 +229,7 @@ export default function JobModal({
               style={s.input}
               nearLat={nearLat}
               nearLng={nearLng}
+              confirmed={!editingId && !!businessAddress}
             />
 
             <Text style={s.label}>{t("jobs.expiresAt") || "Läuft ab am"}</Text>

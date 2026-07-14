@@ -312,6 +312,7 @@ export default function EventModal({
             style={s.input}
             nearLat={nearLat}
             nearLng={nearLng}
+            confirmed={!eventEditing && !!businessAddress}
           />
 
           <Text style={s.label}>{t("events.theme") || "Theme"}</Text>

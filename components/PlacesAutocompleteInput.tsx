@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   TextInput,
@@ -21,6 +21,7 @@ type Props = {
   style?: any;
   nearLat?: number;
   nearLng?: number;
+  confirmed?: boolean;
 };
 
 type PlacePrediction = {
@@ -39,11 +40,13 @@ export default function PlacesAutocompleteInput({
   style,
   nearLat,
   nearLng,
+  confirmed,
 }: Props) {
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [searching, setSearching] = useState(false);
   const [showPredictions, setShowPredictions] = useState(false);
   const [isAddressConfirmed, setIsAddressConfirmed] = useState(false);
+  const confirmedValueRef = useRef<string>("");
 
   const searchPlaces = useCallback(async (query: string) => {
     if (!query || query.length < 2 || isAddressConfirmed) {
@@ -117,8 +120,21 @@ export default function PlacesAutocompleteInput({
     if (!value) setIsAddressConfirmed(false);
   }, [value]);
 
+  useEffect(() => {
+    if (confirmed) {
+      if (!confirmedValueRef.current && value) {
+        confirmedValueRef.current = value;
+      }
+      setIsAddressConfirmed(true);
+    }
+  }, [confirmed, value]);
+
   const handleTextChange = (text: string) => {
     onChangeText(text);
+    if (confirmedValueRef.current && text !== confirmedValueRef.current) {
+      confirmedValueRef.current = "";
+      setIsAddressConfirmed(false);
+    }
     if (!text || text.length < 2) {
       setPredictions([]);
       setShowPredictions(false);
