@@ -249,6 +249,221 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     location: location || user.location,
   };
 
+  const useFlatListForPosts = activeTab === "posts" && Platform.OS !== "web";
+
+  const profileHeaderContent = (
+    <>
+      <ProfileHeader
+        identityPicker={identityPicker}
+        coverUri={user.cover_photo}
+        coverVideoUri={(!user.cover_photo && (user as any).video_url) ? (user as any).video_url : undefined}
+        coverFocalPoint={user.cover_focal_point}
+        avatarUri={(user.profile_photo || user.picture) as string}
+        avatarInitial={user.name?.charAt(0)?.toUpperCase() || "?"}
+        name={user.name}
+        slug={slugUrl}
+        bio={bio || user.bio}
+        location={location || user.location}
+        primaryColor={primaryColor}
+        textColor={textColor}
+        cardColor={cardColor}
+        bgColor={bgColor}
+        borderColor={borderColor}
+        themeStyles={themeStyles}
+        readOnly={readOnly}
+        onEditCover={handleUpdateCoverPhoto}
+        onRepositionCover={() => setShowCoverReposition(true)}
+        onEditAvatar={handleUpdateProfilePhoto}
+        onShare={onShare || handleShare}
+        onViewPublic={handleViewPublic}
+        onCustomizeTheme={() => setThemeModalVisible?.(true)}
+        onEditProfile={onEditProfile}
+        onSettings={() => router.push("/settings")}
+        onLogout={handleLogout}
+        showLogout={!readOnly}
+        onSaved={() => router.push("/saved")}
+        showMessageButton={showMessageButton}
+        onMessagePress={onMessagePress}
+        friendStatus={friendStatus}
+        onFriendPress={onFriendPress}
+        onSavePress={readOnly ? onSavePress : undefined}
+        isSaved={readOnly ? isSaved : undefined}
+        savingItem={readOnly ? savingItem : undefined}
+        stats={[
+          { label: t("profile.posts", "Posts"), count: userPosts.length },
+          { label: t("profile.friends", "Friends"), count: friends.length, onPress: onViewFriends },
+          { label: t("userProfile.activities", "Activities"), count: userActivities.length },
+        ]}
+        completenessItems={
+          !readOnly
+            ? [
+                { label: t("profile.addPhoto", "Add a profile photo"), done: !!(user.profile_photo || user.picture) },
+                { label: t("profile.addBio", "Add a bio"), done: !!(bio || user.bio) },
+                { label: t("profile.addLocation", "Add your location"), done: !!(location || user.location) },
+              ]
+            : undefined
+        }
+      />
+
+      <ProfileAboutInline
+        data={aboutData}
+        primaryColor={primaryColor}
+        cardColor={cardColor}
+        textColor={textColor}
+        borderColor={borderColor}
+        readOnly={readOnly}
+        onEditProfile={onEditProfile}
+        themeStyles={themeStyles}
+      />
+
+      {isOwnProfile && (
+        <FriendsCarousel
+          friends={friends as FriendProfile[]}
+          showAddButton={true}
+          currentUserId={currentUserId}
+          currentUserName={user.name}
+        />
+      )}
+
+      {readOnly && (
+        <FriendsSection
+          friends={friends as FriendProfile[]}
+          isFriend={friendStatus === "friends" || friendStatus === "request_sent"}
+          onToggleFriend={onFriendPress || (() => {})}
+          isLoading={false}
+          showMakeButton={true}
+          showFriendRequests={false}
+        />
+      )}
+
+      <ProfileTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        tabs={tabs}
+        primaryColor={primaryColor}
+        bgColor={cardColor}
+        borderColor={borderColor}
+        themeStyles={themeStyles}
+      />
+    </>
+  );
+
+  const tabContentNonPosts = (
+    <View style={styles.tabContent}>
+      {activeTab === "media" && (
+        <ProfileMedia
+          images={galleryImages}
+          videos={galleryVideos}
+          posts={userPosts}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          readOnly={readOnly}
+          onDeleteItem={(source, type, uri) => {
+            if (source === "post") {
+              const post = userPosts.find(p => p.image_url === uri || p.video_url === uri);
+              if (post) onDeletePost?.(post);
+            } else {
+              if (type === "image") {
+                const idx = galleryImages.indexOf(uri);
+                if (idx !== -1) handleDeleteGalleryItem?.("image", idx);
+              } else {
+                const idx = galleryVideos.indexOf(uri);
+                if (idx !== -1) handleDeleteGalleryItem?.("video", idx);
+              }
+            }
+          }}
+        />
+      )}
+      {activeTab === "bookings" && (
+        <View style={styles.bookingTab}>
+          <Text style={[styles.bookingTabTitle, { color: textColor }]}>{t("services.myBookings", "My Bookings")}</Text>
+          <Text style={[styles.bookingTabDesc, { color: secondaryColor }]}>{t("services.myBookingsDesc", "View and manage your booked services")}</Text>
+          <Pressable
+            style={[styles.bookingTabBtn, { backgroundColor: primaryColor }]}
+            onPress={() => { onOpenBookings?.(); setActiveTab("posts"); }}
+          >
+            <Ionicons name="calendar" size={18} color="#fff" />
+            <Text style={styles.bookingTabBtnText}>{t("services.viewBookings", "View My Bookings")}</Text>
+          </Pressable>
+        </View>
+      )}
+      {activeTab === "activities" && (
+        <ActivitiesSection
+          activities={userActivities}
+          onAddActivity={() => openActivityModal?.()}
+          onEditActivity={handleEditActivity ?? (() => {})}
+          onDeleteActivity={handleDeleteActivity ?? (() => {})}
+          readOnly={readOnly}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          secondaryColor={secondaryColor}
+        />
+      )}
+    </View>
+  );
+
+  if (useFlatListForPosts) {
+    return (
+      <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+        <ProfilePosts
+          posts={userPosts}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          textSecondaryColor={secondaryColor}
+          bgColor={bgColor}
+          readOnly={readOnly}
+          postText={postText}
+          setPostText={setPostText}
+          postImage={postImage}
+          postVideo={postVideo}
+          postVideoPreview={postVideoPreview}
+          pickPostImage={pickPostImage}
+          pickPostVideo={pickPostVideo}
+          onDiscardMedia={onDiscardMedia}
+          handleCreatePost={handleCreatePost}
+          isPosting={isPosting}
+          uploadPercent={uploadPercent}
+          onDeletePost={onDeletePost}
+          onEditPost={onEditPost}
+          currentUserId={currentUserId}
+          avatarUri={avatarUri}
+          themeStyles={themeStyles}
+          onOpenTagModal={onOpenTagModal}
+          onEditTags={onEditTags}
+          friends={friends}
+          businesses={businesses}
+          showMentionSuggestions={showMentionSuggestions}
+          mentionSuggestions={mentionSuggestions}
+          onSelectMention={onSelectMention}
+          pendingMentionIds={pendingMentionIds}
+          onRefreshPosts={onRefreshPosts}
+          isOwnProfile={isOwnProfile}
+          onCreateStory={onCreateStory}
+          listHeaderComponent={profileHeaderContent}
+        />
+        {user.cover_photo && (
+          <CoverPositionEditor
+            visible={showCoverReposition}
+            uri={user.cover_photo}
+            initialFocalPoint={user.cover_focal_point ?? { x: 0.5, y: 0.5 }}
+            aspectRatio={3}
+            onCancel={() => setShowCoverReposition(false)}
+            onSave={async (fp) => {
+              if (sessionToken) {
+                await updateProfileMedia(sessionToken, { cover_focal_point: fp });
+              }
+              setShowCoverReposition(false);
+              refreshUser?.();
+            }}
+          />
+        )}
+      </KeyboardAvoidingView>
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
       <ScrollView
@@ -261,190 +476,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           ) : undefined
         }
       >
-        <ProfileHeader
-          identityPicker={identityPicker}
-          coverUri={user.cover_photo}
-          coverVideoUri={(!user.cover_photo && (user as any).video_url) ? (user as any).video_url : undefined}
-          coverFocalPoint={user.cover_focal_point}
-          avatarUri={(user.profile_photo || user.picture) as string}
-          avatarInitial={user.name?.charAt(0)?.toUpperCase() || "?"}
-          name={user.name}
-          slug={slugUrl}
-          bio={bio || user.bio}
-          location={location || user.location}
-          primaryColor={primaryColor}
-          textColor={textColor}
-          cardColor={cardColor}
-          bgColor={bgColor}
-          borderColor={borderColor}
-          themeStyles={themeStyles}
-          readOnly={readOnly}
-          onEditCover={handleUpdateCoverPhoto}
-          onRepositionCover={() => setShowCoverReposition(true)}
-          onEditAvatar={handleUpdateProfilePhoto}
-          onShare={onShare || handleShare}
-          onViewPublic={handleViewPublic}
-          onCustomizeTheme={() => setThemeModalVisible?.(true)}
-          onEditProfile={onEditProfile}
-          onSettings={() => router.push("/settings")}
-          onLogout={handleLogout}
-          showLogout={!readOnly}
-          onSaved={() => router.push("/saved")}
-          showMessageButton={showMessageButton}
-          onMessagePress={onMessagePress}
-          friendStatus={friendStatus}
-          onFriendPress={onFriendPress}
-          onSavePress={readOnly ? onSavePress : undefined}
-          isSaved={readOnly ? isSaved : undefined}
-          savingItem={readOnly ? savingItem : undefined}
-          stats={[
-            { label: t("profile.posts", "Posts"), count: userPosts.length },
-            { label: t("profile.friends", "Friends"), count: friends.length, onPress: onViewFriends },
-            { label: t("userProfile.activities", "Activities"), count: userActivities.length },
-          ]}
-          completenessItems={
-            !readOnly
-              ? [
-                  { label: t("profile.addPhoto", "Add a profile photo"), done: !!(user.profile_photo || user.picture) },
-                  { label: t("profile.addBio", "Add a bio"), done: !!(bio || user.bio) },
-                  { label: t("profile.addLocation", "Add your location"), done: !!(location || user.location) },
-                ]
-              : undefined
-}
-         />
-
-        <ProfileAboutInline
-          data={aboutData}
-          primaryColor={primaryColor}
-          cardColor={cardColor}
-          textColor={textColor}
-          borderColor={borderColor}
-          readOnly={readOnly}
-          onEditProfile={onEditProfile}
-          themeStyles={themeStyles}
-        />
-
-        {isOwnProfile && (
-          <FriendsCarousel
-            friends={friends as FriendProfile[]}
-            showAddButton={true}
-            currentUserId={currentUserId}
-            currentUserName={user.name}
-          />
-        )}
-
-        {readOnly && (
-          <FriendsSection
-            friends={friends as FriendProfile[]}
-            isFriend={friendStatus === "friends" || friendStatus === "request_sent"}
-            onToggleFriend={onFriendPress || (() => {})}
-            isLoading={false}
-            showMakeButton={true}
-            showFriendRequests={false}
-          />
-        )}
-
-        <ProfileTabs
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          tabs={tabs}
-          primaryColor={primaryColor}
-          bgColor={cardColor}
-          borderColor={borderColor}
-          themeStyles={themeStyles}
-        />
-
-        <View style={styles.tabContent}>
-          {activeTab === "posts" && (
-            <ProfilePosts
-              posts={userPosts}
-              primaryColor={primaryColor}
-              cardColor={cardColor}
-              textColor={textColor}
-              textSecondaryColor={secondaryColor}
-              bgColor={bgColor}
-              readOnly={readOnly}
-              postText={postText}
-              setPostText={setPostText}
-              postImage={postImage}
-              postVideo={postVideo}
-              postVideoPreview={postVideoPreview}
-              pickPostImage={pickPostImage}
-              pickPostVideo={pickPostVideo}
-              onDiscardMedia={onDiscardMedia}
-              handleCreatePost={handleCreatePost}
-              isPosting={isPosting}
-              uploadPercent={uploadPercent}
-              onDeletePost={onDeletePost}
-              onEditPost={onEditPost}
-              currentUserId={currentUserId}
-              avatarUri={avatarUri}
-              themeStyles={themeStyles}
-              onOpenTagModal={onOpenTagModal}
-              onEditTags={onEditTags}
-              friends={friends}
-              businesses={businesses}
-              showMentionSuggestions={showMentionSuggestions}
-              mentionSuggestions={mentionSuggestions}
-              onSelectMention={onSelectMention}
-              pendingMentionIds={pendingMentionIds}
-              onRefreshPosts={onRefreshPosts}
-              isOwnProfile={isOwnProfile}
-              onCreateStory={onCreateStory}
-            />
-          )}
-          {activeTab === "media" && (
-            <ProfileMedia
-              images={galleryImages}
-              videos={galleryVideos}
-              posts={userPosts}
-              primaryColor={primaryColor}
-              cardColor={cardColor}
-              textColor={textColor}
-              readOnly={readOnly}
-              onDeleteItem={(source, type, uri) => {
-                if (source === "post") {
-                  const post = userPosts.find(p => p.image_url === uri || p.video_url === uri);
-                  if (post) onDeletePost?.(post);
-                } else {
-                  if (type === "image") {
-                    const idx = galleryImages.indexOf(uri);
-                    if (idx !== -1) handleDeleteGalleryItem?.("image", idx);
-                  } else {
-                    const idx = galleryVideos.indexOf(uri);
-                    if (idx !== -1) handleDeleteGalleryItem?.("video", idx);
-                  }
-                }
-              }}
-            />
-          )}
-          {activeTab === "bookings" && (
-            <View style={styles.bookingTab}>
-              <Text style={[styles.bookingTabTitle, { color: textColor }]}>{t("services.myBookings", "My Bookings")}</Text>
-              <Text style={[styles.bookingTabDesc, { color: secondaryColor }]}>{t("services.myBookingsDesc", "View and manage your booked services")}</Text>
-              <Pressable
-                style={[styles.bookingTabBtn, { backgroundColor: primaryColor }]}
-                onPress={() => { onOpenBookings?.(); setActiveTab("posts"); }}
-              >
-                <Ionicons name="calendar" size={18} color="#fff" />
-                <Text style={styles.bookingTabBtnText}>{t("services.viewBookings", "View My Bookings")}</Text>
-              </Pressable>
-            </View>
-          )}
-          {activeTab === "activities" && (
-            <ActivitiesSection
-              activities={userActivities}
-              onAddActivity={() => openActivityModal?.()}
-              onEditActivity={handleEditActivity ?? (() => {})}
-              onDeleteActivity={handleDeleteActivity ?? (() => {})}
-              readOnly={readOnly}
-              primaryColor={primaryColor}
-              cardColor={cardColor}
-              textColor={textColor}
-              secondaryColor={secondaryColor}
-            />
-          )}
-        </View>
+        {profileHeaderContent}
+        {tabContentNonPosts}
       </ScrollView>
 
       {user.cover_photo && (
