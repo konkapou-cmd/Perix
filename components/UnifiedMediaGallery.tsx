@@ -4,10 +4,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import AdaptiveVideo from "./AdaptiveVideo";
-import AdaptiveImage from "./AdaptiveImage";
 import FocalImage from "./FocalImage";
 import CoverPositionEditor from "./CoverPositionEditor";
 import GalleryUploadSlot from "./GalleryUploadSlot";
+import MediaThumbnail from "./ui/MediaThumbnail";
 import { uploadMedia, uploadVideoMux, UploadProgress } from "../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../lib/constants/mediaLimits";
@@ -303,18 +303,18 @@ export default function UnifiedMediaGallery({
 
             return (
               <View key={`m-${realIdx}`} style={[s.gridItem, { width: itemSize, height: itemSize }]}>
-                {mediaItem.type === "video" ? (
-                  <AdaptiveVideo
-                    uri={mediaItem.uri}
-                    autoPlay
-                    style={s.gridImage}
-                    resizeMode="cover"
-                    isLooping={false}
-                    initialMuted
-                  />
-                ) : (
-                  <AdaptiveImage uri={mediaItem.uri} style={s.gridImage} resizeMode="cover" />
-                )}
+                <MediaThumbnail
+                  uri={mediaItem.uri}
+                  type={mediaItem.type}
+                  aspectRatio={1}
+                  showTypeBadge
+                  borderRadius={10}
+                  onPress={() => {
+                    if (isCreator) {
+                      setMenuIndex(showMenu ? null : realIdx);
+                    }
+                  }}
+                />
                 {mediaItem.isCoverImage && (
                   <View style={s.gridCoverBadge}>
                     <Ionicons name="image" size={12} color={COLORS.textLight} />
