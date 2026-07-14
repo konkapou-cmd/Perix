@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   TextStyle,
   ScrollView,
+  FlatList,
   Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -25,7 +26,6 @@ import { COLORS } from "../../lib/designTokens";
 import { Post, togglePostLike as apiTogglePostLike, toggleSaved } from "../../lib/api";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
-import useResponsiveLayout from "../../hooks/useResponsiveLayout";
 
 interface ProfilePostsProps {
   posts: Post[];
@@ -65,6 +65,7 @@ interface ProfilePostsProps {
   uploadPercent?: number;
   onCreateStory?: () => void;
   initialSavedPostIds?: Set<string>;
+  listHeaderComponent?: React.ReactNode;
 }
 
 const formatDate = (dateStr: string) => {
@@ -123,9 +124,9 @@ pendingMentionIds = [],
   uploadPercent = 0,
   onCreateStory,
   initialSavedPostIds = new Set(),
+  listHeaderComponent,
 }) => {
   const { t } = useTranslation();
-  const { contentMaxWidth } = useResponsiveLayout();
   const { sessionToken, activeIdentity } = useAuth();
   const router = useRouter();
   const isWeb = Platform.OS === "web";
@@ -134,6 +135,23 @@ pendingMentionIds = [],
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [postsData, setPostsData] = useState<Post[]>(posts);
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(initialSavedPostIds);
+
+  useEffect(() => {
+    setSavedPostIds(new Set(initialSavedPostIds ?? new Set()));
+  }, [initialSavedPostIds]);
+
+  const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+    minimumViewTime: 300,
+  }).current;
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<{ item: Post }> }) => {
+      setVisiblePostId(viewableItems[0]?.item.post_id ?? null);
+    }
+  ).current;
 
   useEffect(() => {
     setPostsData(posts);
@@ -456,14 +474,15 @@ pendingMentionIds = [],
           ))}
         </View>
       ) : (
-        <View style={{ paddingTop: 12, paddingBottom: 24 }}>
-          {postsData.map((post) => (
+        <FlatList
+          data={postsData}
+          keyExtractor={(post) => post.post_id}
+          renderItem={({ item: post }) => (
             <PostCard
-              key={post.post_id}
               context="profile"
               post={post}
               isSaved={savedPostIds.has(post.post_id)}
-              isActive={false}
+              isActive={post.post_id === visiblePostId && !editingPost}
               canEdit={!!isOwnPost(post)}
               canDelete={!!isOwnPost(post)}
               sessionToken={sessionToken}
@@ -475,8 +494,16 @@ pendingMentionIds = [],
               taggedUsers={post.tagged_user_ids?.map(id => ({ id, name: getFriendName(id) })) || []}
               taggedBusinesses={post.tagged_business_ids?.map(id => ({ id, name: getBizName(id) })) || []}
             />
-          ))}
-        </View>
+          )}
+          ListHeaderComponent={listHeaderComponent ? <>{listHeaderComponent}</> : null}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 100 }}
+          initialNumToRender={3}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+        />
       )}
 
       <Modal
