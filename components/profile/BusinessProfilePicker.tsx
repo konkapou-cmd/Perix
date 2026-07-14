@@ -44,14 +44,26 @@ export default function BusinessProfilePicker({
   }, [activeTab]);
 
   useEffect(() => {
-    if (currentPrimary === "services" && !activeTab.startsWith("svc:") && serviceTabs.length > 0) {
-      if (lastServiceKey && serviceTabs.some((s) => s.key === lastServiceKey)) {
-        onTabChange(lastServiceKey);
-      } else {
-        onTabChange(serviceTabs[0].key);
-      }
+    if (!activeTab.startsWith("svc:")) return;
+
+    const activeStillExists = serviceTabs.some(
+      (tab) => tab.key === activeTab
+    );
+    if (activeStillExists) return;
+
+    const rememberedStillExists =
+      lastServiceKey &&
+      serviceTabs.some((tab) => tab.key === lastServiceKey);
+
+    const fallback =
+      (rememberedStillExists ? lastServiceKey : null) ??
+      serviceTabs[0]?.key ??
+      normalTabs[0]?.key;
+
+    if (fallback && fallback !== activeTab) {
+      onTabChange(fallback);
     }
-  }, []);
+  }, [activeTab, lastServiceKey, serviceTabs, normalTabs, onTabChange]);
 
   const primaryOptions = useMemo(() => {
     const result: { key: string; label: string; icon?: any; count?: number }[] = [];

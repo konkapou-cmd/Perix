@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -53,6 +54,7 @@ export default function ProgressivePicker<T extends string = string>({
   displayValue,
   onPressOverride,
 }: ProgressivePickerProps<T>) {
+  const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState(false);
 
   const selectedOption = useMemo(() => {
@@ -113,7 +115,7 @@ export default function ProgressivePicker<T extends string = string>({
         animationType="slide"
         onRequestClose={close}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, isWeb && styles.modalOverlayWeb]}>
           <Pressable style={styles.modalBackdrop} onPress={close} />
           <View style={[styles.modalSheet, { backgroundColor }, isWeb && styles.modalSheetWeb]}>
             <SafeAreaView edges={["bottom"]} style={{ flex: 1 }}>
@@ -167,7 +169,7 @@ export default function ProgressivePicker<T extends string = string>({
                   </Pressable>
                 ))}
                 {options.length === 0 && (
-                  <Text style={[styles.modalEmpty, { color: mutedColor }]}>Keine Optionen verfügbar</Text>
+                  <Text style={[styles.modalEmpty, { color: mutedColor }]}>{t("common.noOptions", "No options available")}</Text>
                 )}
               </ScrollView>
             </SafeAreaView>
@@ -209,6 +211,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
   },
+  modalOverlayWeb: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.4)",
@@ -220,11 +226,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   modalSheetWeb: {
-    maxHeight: "60%",
+    width: "90%",
     maxWidth: 480,
-    alignSelf: "center",
-    marginBottom: 40,
+    maxHeight: "70%",
     borderRadius: 16,
+    marginBottom: 0,
   },
   modalHeader: {
     flexDirection: "row",
