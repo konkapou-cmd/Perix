@@ -88,6 +88,7 @@ class EventResponse(BaseModel):
     tagged_artist_ids: List[str] = []
     tagged_artists: Optional[List[Dict[str, Any]]] = None
     cover_focal_point: Optional[FocalPoint] = None
+    password: Optional[str] = None
 
 
 class EventPublicResponse(BaseModel):
@@ -113,6 +114,8 @@ class EventPublicResponse(BaseModel):
     gallery_videos: List[str] = []
     tagged_artist_ids: List[str] = []
     tagged_artists: Optional[List[Dict[str, Any]]] = None
+    cover_focal_point: Optional[FocalPoint] = None
+    password: Optional[str] = None
 
 
 class EventUpdate(BaseModel):

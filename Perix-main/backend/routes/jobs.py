@@ -15,6 +15,7 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
 class JobCreate(BaseModel):
+    business_id: Optional[str] = None
     title: str
     description: str
     cover_image: Optional[str] = None
@@ -123,11 +124,20 @@ async def create_job(
     current_user: UserPublic = Depends(get_current_user)
 ):
     """Create a new job posting (business owners only)"""
-    # Check if user has a business
-    business = await db.businesses.find_one(
-        {"owner_id": current_user.user_id},
-        {"_id": 0}
-    )
+    # Use provided business_id or fall back to first owned business
+    business = None
+    if job_data.business_id:
+        business = await db.businesses.find_one(
+            {"business_id": job_data.business_id, "owner_id": current_user.user_id},
+            {"_id": 0}
+        )
+        if not business:
+            raise HTTPException(status_code=403, detail="You do not own the specified business")
+    else:
+        business = await db.businesses.find_one(
+            {"owner_id": current_user.user_id},
+            {"_id": 0}
+        )
     if not business:
         raise HTTPException(status_code=403, detail="Only business owners can post jobs")
     
@@ -154,8 +164,8 @@ async def create_job(
         "root_category": job_data.root_category or business.get("root_category"),
         "subcategory": job_data.subcategory or business.get("subcategory"),
         "location": business.get("address"),
-        "latitude": business.get("latitude"),
-        "longitude": business.get("longitude"),
+        "latitude": job_data.latitude if job_data.latitude is not None else business.get("latitude"),
+        "longitude": job_data.longitude if job_data.longitude is not None else business.get("longitude"),
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "expires_at": expires_at.isoformat(),

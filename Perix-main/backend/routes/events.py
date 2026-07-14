@@ -132,6 +132,8 @@ async def create_event(
         gallery_videos=event_doc.get("gallery_videos", []),
         tagged_artist_ids=tagged_artist_ids,
         tagged_artists=tagged_artists or None,
+        cover_focal_point=event_doc.get("cover_focal_point"),
+        password=event_doc.get("password"),
     )
 
 
@@ -273,6 +275,8 @@ async def list_events(
                 gallery_images=event.get("gallery_images", []),
                 gallery_videos=event.get("gallery_videos", []),
                 tagged_artist_ids=event.get("tagged_artist_ids") or [],
+                cover_focal_point=event.get("cover_focal_point"),
+                password=event.get("password"),
             )
         )
     return response
@@ -328,6 +332,8 @@ async def get_event_detail(
         gallery_videos=event.get("gallery_videos", []),
         tagged_artist_ids=tagged_artist_ids,
         tagged_artists=tagged_artists,
+        cover_focal_point=event.get("cover_focal_point"),
+        password=event.get("password"),
     )
 
 
@@ -374,6 +380,9 @@ async def get_event_public(event_id: str):
         profile_theme=business.get("theme") if business else None,
         gallery_images=event.get("gallery_images", []),
         gallery_videos=event.get("gallery_videos", []),
+        tagged_artist_ids=event.get("tagged_artist_ids") or [],
+        cover_focal_point=event.get("cover_focal_point"),
+        password=event.get("password"),
     )
 
 
@@ -447,6 +456,8 @@ async def update_event(
         gallery_videos=event.get("gallery_videos", []),
         tagged_artist_ids=tagged_artist_ids,
         tagged_artists=tagged_artists,
+        cover_focal_point=event.get("cover_focal_point"),
+        password=event.get("password"),
     )
 
 
