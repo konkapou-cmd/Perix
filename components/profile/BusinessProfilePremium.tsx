@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import {
   BusinessDetail,
   EventItem,
@@ -229,6 +230,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
+  const isScreenFocused = useIsFocused();
   const [showAnalytics, setShowAnalytics] = useState(false);
 
   const [activeTab, setActiveTab] = useState("posts");
@@ -399,6 +401,233 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     })(),
   };
 
+  const profileHeaderContent = (
+    <>
+      <ProfileHeader
+        identityPicker={identityPicker}
+        coverUri={detail.business.cover_image}
+        coverVideoUri={(!detail.business.cover_image && (detail.business as any).video_url) ? (detail.business as any).video_url : undefined}
+        coverFocalPoint={detail.business.cover_focal_point}
+        onRepositionCover={() => setShowCoverReposition(true)}
+        avatarUri={detail.business.logo_image}
+        avatarInitial={detail.business.name?.charAt(0)?.toUpperCase() || "B"}
+        name={detail.business.name}
+        slug={slugUrl}
+        bio={detail.business.description}
+        location={detail.business.address}
+        primaryColor={primaryColor}
+        textColor={textColor}
+        cardColor={cardColor}
+        bgColor={bgColor}
+        borderColor={borderColor}
+        themeStyles={themeStyles}
+        readOnly={readOnly}
+        onEditCover={onUpdateCover}
+        onEditAvatar={onUpdateLogo}
+        onShare={onShare || handleShare}
+        onViewPublic={handleViewPublic}
+        onCustomizeTheme={() => setThemeModalVisible?.(true)}
+        onPlan={onPlan}
+        onEditProfile={onEditProfile}
+        onSettings={() => router.push("/settings")}
+        onLogout={() => {}}
+        showLogout={false}
+        showMessageButton={showMessageButton}
+        onMessagePress={onMessagePress}
+        showFollowButton={!!onFollowPress}
+        onFollowPress={onFollowPress}
+        onSavePress={onSavePress}
+        isSaved={isSaved}
+        savingItem={savingItem}
+        friendStatus={friendStatus || "none"}
+        stats={[
+          { label: t("profile.posts", "Posts"), count: businessPosts.length },
+          { label: t("profile.friends", "Friends"), count: detail.business.friends_count ?? friends.length, onPress: onViewFriends },
+          { label: t("business.events", "Events"), count: events.length },
+          { label: t("jobs.myJobs", "Jobs"), count: jobs.length },
+        ]}
+        completenessItems={
+          !readOnly
+            ? [
+                { label: t("profile.addPhoto", "Add a logo"), done: !!detail.business.logo_image },
+                { label: t("profile.addBio", "Add a description"), done: !!detail.business.description },
+                { label: t("profile.addLocation", "Add an address"), done: !!detail.business.address },
+              ]
+            : undefined
+        }
+      />
+      {detail.business.root_category && (
+        <View style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons name="grid-outline" size={14} color={COLORS.textMuted} />
+            <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>
+              {`${translateCategory(detail.business.root_category, t)}${detail.business.subcategory ? ` / ${translateCategory(detail.business.subcategory, t)}` : ""}`}
+            </Text>
+          </View>
+        </View>
+      )}
+      <ProfileAboutInline
+        data={aboutData}
+        primaryColor={primaryColor}
+        cardColor={cardColor}
+        textColor={textColor}
+        borderColor={borderColor}
+        readOnly={readOnly}
+        onEditHours={openHoursModal}
+        onEditProfile={onEditProfile}
+        themeStyles={themeStyles}
+      />
+      {!isOwnProfile && detail.business.latitude && detail.business.longitude && (
+        <ContentMap
+          latitude={detail.business.latitude}
+          longitude={detail.business.longitude}
+          title={detail.business.name}
+          address={detail.business.address}
+          interactive={false}
+        />
+      )}
+      {isOwnProfile && !readOnly && (
+        <FriendsCarousel
+          friends={friends as any}
+          showAddButton={false}
+          currentUserId={currentUserId}
+          currentUserName={detail.business.name}
+        />
+      )}
+      {readOnly && (
+        <FriendsSection
+          friends={friends as any}
+          isFriend={friendStatus === "friends"}
+          onToggleFriend={onFollowPress || (() => {})}
+          showMakeButton={false}
+          showFriendRequests={false}
+        />
+      )}
+    </>
+  );
+
+  const isPrivatePostsMobile = !readOnly && privateActiveTab === "posts" && Platform.OS !== "web";
+  const isPublicPostsMobile = readOnly && activeTab === "posts" && Platform.OS !== "web";
+
+  if (isPrivatePostsMobile) {
+    return (
+      <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+        <ProfilePosts
+          posts={businessPosts}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          postText={postText}
+          setPostText={setPostText}
+          postImage={postImage}
+          postVideo={postVideo}
+          postVideoPreview={postVideoPreview}
+          pickPostImage={pickPostImage}
+          pickPostVideo={pickPostVideo}
+          onDiscardMedia={onDiscardMedia}
+          handleCreatePost={handleCreatePost}
+          isPosting={isPosting}
+          uploadPercent={uploadPercent}
+          onDeletePost={onDeletePost}
+          onEditPost={onEditPost}
+          currentUserId={currentUserId}
+          avatarUri={avatarUri}
+          themeStyles={themeStyles}
+          onOpenTagModal={onOpenTagModal}
+          onEditTags={onEditTags}
+          friends={friends}
+          businesses={[detail.business]}
+          showMentionSuggestions={showMentionSuggestions}
+          mentionSuggestions={mentionSuggestions}
+          onSelectMention={onSelectMention}
+          pendingMentionIds={pendingMentionIds}
+          onRefreshPosts={onRefreshPosts}
+          isOwnProfile={isOwnProfile}
+          onCreateStory={onCreateStory}
+          isScreenFocused={isScreenFocused}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          listHeaderComponent={
+            <>
+              {profileHeaderContent}
+              <ProfileTabs
+                activeTab={privateActiveTab}
+                onTabChange={setPrivateActiveTab}
+                tabs={privateTabs}
+                primaryColor={primaryColor}
+                bgColor={cardColor}
+                borderColor={COLORS.border}
+              />
+            </>
+          }
+        />
+        {detail.business?.cover_image && (
+          <CoverPositionEditor
+            visible={showCoverReposition}
+            uri={detail.business.cover_image}
+            initialFocalPoint={detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 }}
+            aspectRatio={3}
+            onCancel={() => setShowCoverReposition(false)}
+            onSave={async (fp) => {
+              await updateBusiness(sessionToken, detail.business.business_id, { cover_focal_point: fp });
+              setShowCoverReposition(false);
+              onRefresh?.();
+            }}
+          />
+        )}
+      </KeyboardAvoidingView>
+    );
+  }
+
+  if (isPublicPostsMobile) {
+    return (
+      <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+        <ProfilePosts
+          posts={businessPosts}
+          readOnly={true}
+          isOwnProfile={false}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          currentUserId={currentUserId}
+          avatarUri={avatarUri}
+          friends={friends}
+          businesses={[detail.business]}
+          isScreenFocused={isScreenFocused}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          listHeaderComponent={
+            <>
+              {profileHeaderContent}
+              <ProfileTabs
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                tabs={publicTabs}
+                primaryColor={primaryColor}
+                bgColor={cardColor}
+                borderColor={COLORS.border}
+              />
+            </>
+          }
+        />
+        {detail.business?.cover_image && (
+          <CoverPositionEditor
+            visible={showCoverReposition}
+            uri={detail.business.cover_image}
+            initialFocalPoint={detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 }}
+            aspectRatio={3}
+            onCancel={() => setShowCoverReposition(false)}
+            onSave={async (fp) => {
+              await updateBusiness(sessionToken, detail.business.business_id, { cover_focal_point: fp });
+              setShowCoverReposition(false);
+              onRefresh?.();
+            }}
+          />
+        )}
+      </KeyboardAvoidingView>
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
       <ScrollView
@@ -411,115 +640,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           ) : undefined
         }
       >
-        <ProfileHeader
-          identityPicker={identityPicker}
-          coverUri={detail.business.cover_image}
-          coverVideoUri={(!detail.business.cover_image && (detail.business as any).video_url) ? (detail.business as any).video_url : undefined}
-          coverFocalPoint={detail.business.cover_focal_point}
-          onRepositionCover={() => setShowCoverReposition(true)}
-          avatarUri={detail.business.logo_image}
-          avatarInitial={detail.business.name?.charAt(0)?.toUpperCase() || "B"}
-          name={detail.business.name}
-          slug={slugUrl}
-          bio={detail.business.description}
-          location={detail.business.address}
-          primaryColor={primaryColor}
-          textColor={textColor}
-          cardColor={cardColor}
-          bgColor={bgColor}
-          borderColor={borderColor}
-          themeStyles={themeStyles}
-          readOnly={readOnly}
-          onEditCover={onUpdateCover}
-          onEditAvatar={onUpdateLogo}
-          onShare={onShare || handleShare}
-          onViewPublic={handleViewPublic}
-          onCustomizeTheme={() => setThemeModalVisible?.(true)}
-          onPlan={onPlan}
-          onEditProfile={onEditProfile}
-          onSettings={() => router.push("/settings")}
-          onLogout={() => {}}
-          showLogout={false}
-          showMessageButton={showMessageButton}
-          onMessagePress={onMessagePress}
-          showFollowButton={!!onFollowPress}
-          onFollowPress={onFollowPress}
-          onSavePress={onSavePress}
-          isSaved={isSaved}
-          savingItem={savingItem}
-          friendStatus={friendStatus || "none"}
-          stats={[
-            { label: t("profile.posts", "Posts"), count: businessPosts.length },
-            { label: t("profile.friends", "Friends"), count: detail.business.friends_count ?? friends.length, onPress: onViewFriends },
-            { label: t("business.events", "Events"), count: events.length },
-            { label: t("jobs.myJobs", "Jobs"), count: jobs.length },
-          ]}
-          completenessItems={
-            !readOnly
-              ? [
-                  { label: t("profile.addPhoto", "Add a logo"), done: !!detail.business.logo_image },
-                  { label: t("profile.addBio", "Add a description"), done: !!detail.business.description },
-                  { label: t("profile.addLocation", "Add an address"), done: !!detail.business.address },
-                ]
-              : undefined
-}
-          />
-        {/* Category/Subcategory badge - always visible */}
-        {detail.business.root_category && (
-          <View style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Ionicons name="grid-outline" size={14} color={COLORS.textMuted} />
-              <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>
-                {`${translateCategory(detail.business.root_category, t)}${detail.business.subcategory ? ` / ${translateCategory(detail.business.subcategory, t)}` : ""}`}
-              </Text>
-            </View>
-          </View>
-        )}
+        {profileHeaderContent}
 
-        <ProfileAboutInline
-          data={aboutData}
-          primaryColor={primaryColor}
-          cardColor={cardColor}
-          textColor={textColor}
-          borderColor={borderColor}
-          readOnly={readOnly}
-          onEditHours={openHoursModal}
-          onEditProfile={onEditProfile}
-          themeStyles={themeStyles}
-        />
-
-        {/* Business Map - hidden for own profile */}
-        {!isOwnProfile && detail.business.latitude && detail.business.longitude && (
-          <ContentMap
-            latitude={detail.business.latitude}
-            longitude={detail.business.longitude}
-            title={detail.business.name}
-            address={detail.business.address}
-            interactive={false}
-          />
-        )}
-
-        {/* Friends section */}
-        {isOwnProfile && !readOnly && (
-          <FriendsCarousel
-            friends={friends as any}
-            showAddButton={false}
-            currentUserId={currentUserId}
-            currentUserName={detail.business.name}
-          />
-        )}
-
-        {readOnly && (
-          <FriendsSection
-            friends={friends as any}
-            isFriend={friendStatus === "friends"}
-            onToggleFriend={onFollowPress || (() => {})}
-            showMakeButton={false}
-            showFriendRequests={false}
-          />
-        )}
-
-        {/* Public profile: tab-based layout */}
         {readOnly ? (
           <>
             <ProfileTabs
@@ -530,7 +652,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
               bgColor={cardColor}
               borderColor={COLORS.border}
             />
-
             <View style={styles.tabContent}>
               {activeTab === "posts" && (
                 <ProfilePosts
@@ -544,6 +665,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   avatarUri={avatarUri}
                   friends={friends}
                   businesses={[detail.business]}
+                  isScreenFocused={isScreenFocused}
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
                 />
               )}
               {activeTab === "media" && (
@@ -597,7 +721,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
             </View>
           </>
         ) : (
-          /* Private profile: tab-based layout */
           <>
             <ProfileTabs
               activeTab={privateActiveTab}
@@ -607,7 +730,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
               bgColor={cardColor}
               borderColor={COLORS.border}
             />
-
             <View style={styles.tabContent}>
               {privateActiveTab === "posts" && (
                 <ProfilePosts
@@ -642,6 +764,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   onRefreshPosts={onRefreshPosts}
                   isOwnProfile={isOwnProfile}
                   onCreateStory={onCreateStory}
+                  isScreenFocused={isScreenFocused}
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
                 />
               )}
               {privateActiveTab === "media" && (
