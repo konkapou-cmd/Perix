@@ -33,7 +33,7 @@ type VideoPlayerCoreProps = {
   initialMuted: boolean;
   resizeMode: "contain" | "cover";
   useNativeControls: boolean;
-  onPlayerCreated: (player: VideoPlayer) => void;
+  onPlayerCreated: (player: VideoPlayer | null) => void;
 };
 
 function VideoPlayerCore({
@@ -53,8 +53,9 @@ function VideoPlayerCore({
     onPlayerCreated(player);
     return () => {
       try { player.pause(); } catch (_) {}
+      onPlayerCreated(null);
     };
-  }, [player]);
+  }, [player, onPlayerCreated]);
 
   if (!player) return null;
 
@@ -126,6 +127,14 @@ export default function AdaptiveVideo({
     clearLoadTimeout();
     setHasError(false);
   };
+
+  useEffect(() => {
+    setNaturalAspect(null);
+    naturalAspectRef.current = null;
+    playedRef.current = false;
+    setHasError(false);
+    clearLoadTimeout();
+  }, [videoUri]);
 
   useEffect(() => {
     if (!player || autoPlay) return;
@@ -226,7 +235,7 @@ export default function AdaptiveVideo({
       }
     }, 10000);
     return clearLoadTimeout;
-  }, [videoUri, isProcessing]);
+  }, [videoUri, isProcessing, validRatio, retryKey]);
 
   const handleRetry = () => {
     setHasError(false);
