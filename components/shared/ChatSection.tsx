@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { ChatMessage } from "../../lib/api/core";
 import { uploadMedia } from "../../lib/api";
+import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 import { useAuth } from "../../context/AuthContext";
 import { COLORS, BORDER_RADIUS, SHADOWS, SPACING, FONT_SIZES, FONT_WEIGHTS } from "../../lib/designTokens";
 
@@ -73,7 +74,7 @@ export default function ChatSection({
     if (!sessionToken || !onSendMedia) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
+      quality: MEDIA_LIMITS.image.pickerQuality,
     });
     if (result.canceled || !result.assets?.[0]?.uri) return;
     try {

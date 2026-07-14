@@ -146,6 +146,7 @@ export default function MediaEditor() {
       const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
 
       if (isVideo) {
+        const isRemote = decodedUri.startsWith("http");
         if (!isRemote) {
           const info = await FileSystem.getInfoAsync(decodedUri);
           if (info.exists && info.size && info.size > MEDIA_LIMITS.post.maxVideoFileSizeBytes) {
@@ -162,28 +163,31 @@ export default function MediaEditor() {
         setShowUploadProgress(true);
         setUploadContext("video");
         setUploadProgress({ phase: "preparing", progress: 0 });
-        const isRemote = decodedUri.startsWith("http");
         let videoUrl: string | null = null;
         let muxPlaybackId: string | null | undefined = undefined;
         let muxThumbnail: string | null | undefined = undefined;
+        let videoStatus: string | undefined = undefined;
 
         if (isRemote) {
           const muxId = decodedUri.match(/stream\.mux\.com\/([a-zA-Z0-9]+)\.m3u8/)?.[1];
           videoUrl = decodedUri;
           muxPlaybackId = muxId;
+          videoStatus = "ready";
         } else {
           const muxResult = await uploadVideoMux(sessionToken, decodedUri, undefined, setUploadProgress);
           videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
           muxPlaybackId = muxResult.mux_playback_id || undefined;
           muxThumbnail = muxResult.mux_thumbnail_url || undefined;
+          videoStatus = muxResult.video_status;
           if (!videoUrl && !muxPlaybackId) {
             throw new Error("Video-Upload fehlgeschlagen.");
           }
         }
         setShowUploadProgress(false);
         console.log("[media-editor] creating post with video:", { videoUrl, muxPlaybackId });
-        await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, "ready");
+        await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, videoStatus);
       } else {
+        const isRemote = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
         if (!isRemote) {
           const info = await FileSystem.getInfoAsync(decodedUri);
           if (info.exists && info.size && info.size > MEDIA_LIMITS.image.maxFileSizeBytes) {
@@ -195,7 +199,6 @@ export default function MediaEditor() {
         setShowUploadProgress(true);
         setUploadContext("image");
         setUploadProgress({ phase: "preparing", progress: 0 });
-        const isRemote = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
         const imageUrl = isRemote
           ? await uploadImageToCloudinary(sessionToken, decodedUri)
           : await uploadMedia(sessionToken, decodedUri, "image", (p) => setUploadProgress(p));
@@ -232,10 +235,21 @@ export default function MediaEditor() {
             return;
           }
         }
+      } else {
+        const isRemote = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
+        if (!isRemote) {
+          const info = await FileSystem.getInfoAsync(decodedUri);
+          if (info.exists && info.size && info.size > MEDIA_LIMITS.image.maxFileSizeBytes) {
+            Alert.alert(t("common.error"), `Das Bild ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.image.maxFileSizeMb} MB.`);
+            setPublishing(false);
+            return;
+          }
+        }
       }
       const isRemote = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
       const mediaUrl = isVideo ? decodedUri : (isRemote ? await uploadImageToCloudinary(sessionToken, decodedUri) : await uploadMedia(sessionToken, decodedUri, "image"));
-      await createStory(sessionToken, { media_url: mediaUrl, media_type: isVideo ? "video" : "image", text: caption, actor_id: activeIdentity.id, actor_type: activeIdentity.type as "business" });
+      const cityAdCaption = caption.length > MEDIA_LIMITS.cityAd.captionMaxLength ? caption.slice(0, MEDIA_LIMITS.cityAd.captionMaxLength) : caption;
+      await createStory(sessionToken, { media_url: mediaUrl, media_type: isVideo ? "video" : "image", text: cityAdCaption, actor_id: activeIdentity.id, actor_type: activeIdentity.type as "business" });
       Alert.alert(t("editor.success", "Success!"), t("editor.cityAdPublished", "Your city ad has been published!"), [{ text: t("common.ok"), onPress: () => router.back() }]);
     } catch (error: any) {
       console.error("[media-editor] publishAsCityAd failed:", error?.message, error);

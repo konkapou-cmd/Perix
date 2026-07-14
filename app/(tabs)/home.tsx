@@ -351,7 +351,7 @@ export default function HomeScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: MEDIA_LIMITS.image.pickerQuality, base64: true, allowsEditing: true, aspect: [4, 5], exif: false });
     if (!result.canceled && result.assets?.[0]?.base64) {
       const asset = result.assets[0];
-      setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
+      setPostMediaRatio(asset.width && asset.height && asset.height > 0 ? asset.width / asset.height : null);
       setPostImage(`data:image/jpeg;base64,${asset.base64}`);
       setPostVideo(null);
       setPostVideoPreview(null);
@@ -375,7 +375,7 @@ export default function HomeScreen() {
         Alert.alert("Video zu lang", `Videos dürfen maximal ${MEDIA_LIMITS.post.maxVideoDurationSeconds} Sekunden lang sein.`);
         return;
       }
-      setPostMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
+      setPostMediaRatio(asset.width && asset.height && asset.height > 0 ? asset.width / asset.height : null);
       setPostVideoPreview(asset.uri);
       setPostImage(null);
       if (sessionToken) {
@@ -484,7 +484,7 @@ export default function HomeScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: MEDIA_LIMITS.image.pickerQuality, base64: true });
     if (!result.canceled && result.assets?.[0]?.base64) {
       const asset = result.assets[0];
-      setEditMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
+      setEditMediaRatio(asset.width && asset.height && asset.height > 0 ? asset.width / asset.height : null);
       setEditImage(`data:image/jpeg;base64,${asset.base64}`);
       setEditVideo(null);
       setEditVideoPreview(null);
@@ -497,7 +497,7 @@ export default function HomeScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, quality: MEDIA_LIMITS.video.pickerQuality });
     if (!result.canceled && result.assets?.[0]?.uri) {
       const asset = result.assets[0];
-      setEditMediaRatio(asset.width && asset.height ? asset.width / asset.height : null);
+      setEditMediaRatio(asset.width && asset.height && asset.height > 0 ? asset.width / asset.height : null);
       setEditVideoPreview(asset.uri);
       setEditImage(null);
       if (sessionToken) {
