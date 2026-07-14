@@ -328,7 +328,7 @@ pendingMentionIds = [],
               showMuteButton
               resizeMode="cover"
               coverPhoto={post.mux_thumbnail_url || undefined}
-              maxHeight={Dimensions.get("window").height * 0.7}
+              maxHeight={Dimensions.get("window").height * 0.75}
               borderRadius={0}
               videoStatus={post.video_status}
               muxThumbnailUrl={post.mux_thumbnail_url || undefined}
@@ -346,7 +346,8 @@ pendingMentionIds = [],
           <View style={styles.postMediaWrapper}>
             <AdaptiveImage
               uri={post.image_url}
-              maxHeight={Dimensions.get("window").height * 0.7}
+              ratio={post.media_ratio || undefined}
+              maxHeight={Dimensions.get("window").height * 0.75}
               borderRadius={0}
               onPress={() => {
                 const items: MediaItem[] = [];
@@ -512,17 +513,19 @@ pendingMentionIds = [],
                     <AdaptiveVideo
                       uri={post.video_url}
                       autoPlay
-                      style={{ width: "100%", height: "100%" }}
+                      style={{ width: "100%" }}
                       ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
                       maxHeight={1200}
                       borderRadius={0}
                       videoStatus={post.video_status}
                       muxThumbnailUrl={post.mux_thumbnail_url || undefined}
+                      coverPhoto={post.mux_thumbnail_url || undefined}
+                      showMuteButton
                     />
                   ) : (
                     <AdaptiveImage
                       uri={post.image_url || ""}
-                      style={{ width: "100%", height: "100%" }}
+                      style={{ width: "100%" }}
                       ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
                       maxHeight={1200}
                       borderRadius={0}

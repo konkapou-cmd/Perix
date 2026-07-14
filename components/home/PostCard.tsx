@@ -137,6 +137,7 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
             onMuteChange={onMuteChange}
             resizeMode="cover"
             coverPhoto={post.mux_thumbnail_url || undefined}
+            maxHeight={Dimensions.get("window").height * 0.75}
             borderRadius={0}
             videoStatus={post.video_status}
             muxThumbnailUrl={post.mux_thumbnail_url || undefined}
@@ -147,7 +148,8 @@ export function PostCard({ post, isSaved, onLike, onComment, onSave, sessionToke
         <View style={styles.postMediaWrapper}>
           <AdaptiveImage
             uri={post.image_url}
-            maxHeight={Dimensions.get("window").height * 0.7}
+            ratio={post.media_ratio || undefined}
+            maxHeight={Dimensions.get("window").height * 0.75}
             borderRadius={0}
             onPress={() => setViewerOpen(true)}
           />
