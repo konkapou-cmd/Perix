@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Post, BACKEND_URL } from "../../lib/api";
-import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { COLORS, SPACING, BORDER_RADIUS } from "../../lib/designTokens";
 import { Share } from "react-native";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
@@ -22,7 +22,6 @@ export interface PostCardProps {
   canEdit?: boolean;
   canDelete?: boolean;
   sessionToken: string | null;
-  autoPlay?: boolean;
   showMuteButton?: boolean;
   muted?: boolean;
   onMuteChange?: (m: boolean) => void;
@@ -43,9 +42,8 @@ export function PostCard({
   canEdit = false,
   canDelete = false,
   sessionToken,
-  autoPlay = false,
-  showMuteButton = false,
-  muted = false,
+  showMuteButton = true,
+  muted = true,
   onMuteChange,
   onCardTap,
   onLike,
@@ -62,6 +60,11 @@ export function PostCard({
 
   const displayName = post.actor_name || post.author?.name || "User";
   const displayAvatar = post.actor_avatar || post.author?.profile_photo || post.author?.picture;
+
+  const preventCardNav = (fn?: () => void) => {
+    skipCardNav.current = true;
+    fn?.();
+  };
 
   const mediaItems: MediaItem[] = [];
   if (post.video_url) {
@@ -83,6 +86,7 @@ export function PostCard({
   };
 
   const handleShare = async () => {
+    skipCardNav.current = true;
     if (onShare) { onShare(); return; }
     const message = `Check out ${displayName}'s post on Perix!`;
     const url = `${BACKEND_URL?.replace("/api", "")}/share/post/${post.post_id}`;
@@ -90,6 +94,7 @@ export function PostCard({
   };
 
   const handleLike = () => {
+    skipCardNav.current = true;
     if (!sessionToken) {
       Alert.alert(
         t("common.loginRequired") || "Login Required",
@@ -105,6 +110,7 @@ export function PostCard({
   };
 
   const handleSave = () => {
+    skipCardNav.current = true;
     if (!sessionToken) {
       Alert.alert(
         t("common.loginRequired") || "Login Required",
@@ -120,6 +126,7 @@ export function PostCard({
   };
 
   const handleComment = () => {
+    skipCardNav.current = true;
     onComment();
   };
 
@@ -131,30 +138,30 @@ export function PostCard({
 
   const activeVideo = isActive && !viewerOpen;
 
+  const editSlot = (canEdit || canDelete) ? (
+    <>
+      {canEdit && (
+        <Pressable onPress={() => preventCardNav(onEdit)}>
+          <Ionicons name="create-outline" size={20} color={COLORS.primaryDark} />
+        </Pressable>
+      )}
+      {canDelete && (
+        <Pressable onPress={() => preventCardNav(onDelete)}>
+          <Ionicons name="trash-outline" size={20} color="#ef4444" />
+        </Pressable>
+      )}
+    </>
+  ) : undefined;
+
   return (
     <Pressable style={styles.card} onPress={handleCardPress}>
       <PostHeader
         actorName={displayName}
         actorAvatar={displayAvatar}
-        createdAt={post.created_at}
         formattedDate={formatDate(post.created_at)}
         onAuthorPress={handleAuthorPress}
+        editSlot={editSlot}
       />
-
-      {(canEdit || canDelete) && (
-        <View style={styles.editRow}>
-          {canEdit && (
-            <Pressable style={styles.editBtn} onPress={() => { skipCardNav.current = true; onEdit?.(); }}>
-              <Ionicons name="create-outline" size={18} color={COLORS.primaryDark} />
-            </Pressable>
-          )}
-          {canDelete && (
-            <Pressable style={styles.editBtn} onPress={() => { skipCardNav.current = true; onDelete?.(); }}>
-              <Ionicons name="trash-outline" size={18} color="#ef4444" />
-            </Pressable>
-          )}
-        </View>
-      )}
 
       {post.text && (
         post.video_url || post.image_url ? (
@@ -218,17 +225,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: SPACING.compact,
     ...Platform.select({ web: { width: "100%", maxWidth: 720, alignSelf: "center", cursor: "pointer", transition: "box-shadow 0.2s" } as any, default: {} }),
-  },
-  editRow: {
-    position: "absolute",
-    top: 10,
-    right: 16,
-    flexDirection: "row",
-    gap: 8,
-    zIndex: 10,
-  },
-  editBtn: {
-    padding: 4,
   },
   caption: {
     fontSize: Platform.OS === "web" ? 16 : 14,

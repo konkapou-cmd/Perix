@@ -683,7 +683,7 @@ export default function HomeScreen() {
               } catch (e) { console.warn("toggleSaved failed:", e); }
             }}
             sessionToken={sessionToken}
-            autoPlay={item.post_id === visiblePostId && !isAnyModalOpen && isFocused}
+            isActive={item.post_id === visiblePostId && !isAnyModalOpen && isFocused}
             showMuteButton
             muted={!(userWantsSound && item.post_id === visiblePostId && !isAnyModalOpen && isFocused)}
             onMuteChange={setUserWantsSound}

@@ -1,17 +1,18 @@
 import React from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { COLORS, FONT_WEIGHTS } from "../../lib/designTokens";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../../lib/designTokens";
 import AdaptiveImage from "../AdaptiveImage";
 
 interface PostHeaderProps {
   actorName: string;
   actorAvatar?: string | null;
-  createdAt: string;
   formattedDate: string;
   onAuthorPress?: () => void;
+  editSlot?: React.ReactNode;
 }
 
-export default function PostHeader({ actorName, actorAvatar, createdAt, formattedDate, onAuthorPress }: PostHeaderProps) {
+export default function PostHeader({ actorName, actorAvatar, formattedDate, onAuthorPress, editSlot }: PostHeaderProps) {
   return (
     <View style={styles.container}>
       <Pressable onPress={onAuthorPress}>
@@ -27,6 +28,7 @@ export default function PostHeader({ actorName, actorAvatar, createdAt, formatte
         <Text style={styles.name}>{actorName}</Text>
         <Text style={styles.time}>{formattedDate}</Text>
       </View>
+      {editSlot && <View style={styles.editSlot}>{editSlot}</View>}
     </View>
   );
 }
@@ -57,6 +59,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryDark,
   },
   info: {
+    flex: 1,
     marginLeft: 12,
   },
   name: {
@@ -67,5 +70,9 @@ const styles = StyleSheet.create({
   time: {
     fontSize: Platform.OS === "web" ? 13 : 12,
     color: COLORS.textGray,
+  },
+  editSlot: {
+    flexDirection: "row",
+    gap: 8,
   },
 });
