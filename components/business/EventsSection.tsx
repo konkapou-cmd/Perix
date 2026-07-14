@@ -88,7 +88,7 @@ export default function EventsSection({
                     />
                     {event.is_attending && (
                       <StatusBadge
-                        label={t("events.attending", "Attending")}
+                        label={t("events.attending", "Du nimmst teil")}
                         variant="active"
                         size="sm"
                       />
@@ -114,7 +114,7 @@ export default function EventsSection({
                     )}
                     {event.attendees_count != null && (
                       <StatusBadge
-                        label={`${event.attendees_count} ${t("events.going", "Going")}`}
+                        label={t("events.goingCount", "{{count}} dabei", { count: event.attendees_count })}
                         variant="default"
                         size="sm"
                       />
