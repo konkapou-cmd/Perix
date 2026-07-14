@@ -146,6 +146,19 @@ export default function MediaEditor() {
       const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
 
       if (isVideo) {
+        if (!isRemote) {
+          const info = await FileSystem.getInfoAsync(decodedUri);
+          if (info.exists && info.size && info.size > MEDIA_LIMITS.post.maxVideoFileSizeBytes) {
+            Alert.alert(t("common.error"), `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
+            setPublishing(false);
+            return;
+          }
+          if (originalDuration > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
+            Alert.alert("Video zu lang", `Videos dürfen maximal ${MEDIA_LIMITS.post.maxVideoDurationSeconds} Sekunden lang sein.`);
+            setPublishing(false);
+            return;
+          }
+        }
         setShowUploadProgress(true);
         setUploadContext("video");
         setUploadProgress({ phase: "preparing", progress: 0 });
@@ -171,6 +184,14 @@ export default function MediaEditor() {
         console.log("[media-editor] creating post with video:", { videoUrl, muxPlaybackId });
         await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, "ready");
       } else {
+        if (!isRemote) {
+          const info = await FileSystem.getInfoAsync(decodedUri);
+          if (info.exists && info.size && info.size > MEDIA_LIMITS.image.maxFileSizeBytes) {
+            Alert.alert(t("common.error"), `Das Bild ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.image.maxFileSizeMb} MB.`);
+            setPublishing(false);
+            return;
+          }
+        }
         setShowUploadProgress(true);
         setUploadContext("image");
         setUploadProgress({ phase: "preparing", progress: 0 });

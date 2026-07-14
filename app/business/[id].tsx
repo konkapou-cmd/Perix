@@ -36,7 +36,7 @@ import {
   checkSaved,
   APP_URL,
 } from "../../lib/api";
-import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
+import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/mediaLimits";
 import { useAuth } from "../../context/AuthContext";
 import { COLORS } from "../../lib/designTokens";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
@@ -233,7 +233,7 @@ const [followLoading, setFollowLoading] = useState(false);
         Alert.alert(t("common.error") || "Error", `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.post.maxVideoFileSizeMb} MB.`);
         return;
       }
-      if (asset.duration != null && asset.duration > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
+      if (normalizeDurationSeconds(asset.duration) > MEDIA_LIMITS.post.maxVideoDurationSeconds) {
         Alert.alert("Video zu lang", `Videos dürfen maximal ${MEDIA_LIMITS.post.maxVideoDurationSeconds} Sekunden lang sein.`);
         return;
       }

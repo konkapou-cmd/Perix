@@ -130,8 +130,11 @@ export default function VideoGalleryUpload({
       }
 
       const asset = result.assets[0];
-      
-      // No file size limit - streaming upload handles any size
+
+      if (asset.fileSize && asset.fileSize > MEDIA_LIMITS.gallery.maxVideoFileSizeBytes) {
+        Alert.alert(t("common.error"), `Das Video ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.gallery.maxVideoFileSizeMb} MB.`);
+        return;
+      }
 
       setUploading(true);
       setUploadProgress({ phase: "preparing", progress: 0 });
@@ -531,11 +534,11 @@ export default function VideoGalleryUpload({
               placeholder={t("gallery.enterCaption") || "Enter a caption..."}
               placeholderTextColor={COLORS.textPlaceholder}
               multiline
-              maxLength={MEDIA_LIMITS.story.captionMaxLength}
+              maxLength={MEDIA_LIMITS.post.captionMaxLength}
               autoFocus
             />
             <Text style={styles.captionCharCount}>
-              {editingCaption.length}/200
+              {editingCaption.length}/{MEDIA_LIMITS.post.captionMaxLength}
             </Text>
             <View style={styles.captionModalActions}>
               <Pressable
