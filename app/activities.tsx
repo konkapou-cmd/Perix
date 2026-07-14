@@ -1003,6 +1003,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
               style={styles.input}
               nearLat={mapBounds?.centerLat ?? location?.latitude ?? undefined}
               nearLng={mapBounds?.centerLng ?? location?.longitude ?? undefined}
+              confirmed={!!form.location}
             />
             <Pressable style={styles.saveChangesButton} onPress={handleUpdateActivity}>
               <Text style={styles.saveChangesButtonText}>{t('activities.saveChanges')}</Text>
