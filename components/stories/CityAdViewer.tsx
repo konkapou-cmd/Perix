@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -134,13 +135,15 @@ export function CityAdViewer({
 
       {/* Video player */}
       <View style={styles.videoContainer}>
-        {isVideo && currentStory?.media_url ? (
+        {currentStory?.media_type === "video" && currentStory?.media_url ? (
           <VideoView
             player={player}
             style={styles.video}
             contentFit="contain"
             nativeControls={false}
           />
+        ) : currentStory?.media_url ? (
+          <Image source={{ uri: currentStory.media_url }} style={styles.media} resizeMode="contain" />
         ) : (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#fff" />
@@ -192,6 +195,10 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT,
   },
   video: {
+    width: "100%",
+    height: "100%",
+  },
+  media: {
     width: "100%",
     height: "100%",
   },

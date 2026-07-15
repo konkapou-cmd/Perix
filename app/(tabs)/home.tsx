@@ -1198,7 +1198,7 @@ export default function HomeScreen() {
 
       <ShareContent visible={shareModalVisible} onClose={() => setShareModalVisible(false)} contentType="post" contentId={shareContentId} title={shareContentTitle} description="" />
 
-      <Modal visible={storyViewerOpen} animationType="fade" onRequestClose={() => setStoryViewerOpen(false)}>
+      <Modal visible={storyViewerOpen} animationType="fade" transparent statusBarTranslucent onRequestClose={() => setStoryViewerOpen(false)}>
         {storyViewerOpen && storyGroups.length > 0 && (
           <CityAdViewer groups={storyGroups} initialGroupIndex={storyViewerIndex} onClose={() => setStoryViewerOpen(false)} />
         )}
