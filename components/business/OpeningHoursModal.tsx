@@ -143,7 +143,7 @@ export default function OpeningHoursModal({
                           style={styles.removePeriodButton}
                           onPress={() => removePeriod(day, index)}
                         >
-                          <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                          <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
                         </Pressable>
                       )}
                     </View>

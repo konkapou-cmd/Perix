@@ -342,7 +342,7 @@ export default function UnifiedMediaGallery({
                           </Pressable>
                         )}
                         <Pressable style={s.menuItem} onPress={() => removeItem(realIdx)}>
-                          <Ionicons name="trash-outline" size={12} color={COLORS.error} />
+                          <Ionicons name="trash-outline" size={12} color={COLORS.danger} />
                           <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("common.delete") || "Remove"}</Text>
                         </Pressable>
                       </View>

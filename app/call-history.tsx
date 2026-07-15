@@ -177,7 +177,7 @@ export default function CallHistoryScreen() {
             }}
             data-testid={`delete-call-${item.call_id}`}
           >
-            <Ionicons name="trash-outline" size={18} color="#ef4444" />
+            <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
           </Pressable>
         </View>
       </Pressable>
@@ -210,7 +210,7 @@ export default function CallHistoryScreen() {
         <Text style={styles.title}>{t("calls.callHistory")}</Text>
         {calls.length > 0 ? (
           <Pressable onPress={handleClearAllCalls} style={styles.clearAllButton} data-testid="clear-all-calls-btn">
-            <Ionicons name="trash-outline" size={20} color="#ef4444" />
+            <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
           </Pressable>
         ) : (
           <View style={{ width: 40 }} />

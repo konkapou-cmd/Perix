@@ -411,7 +411,7 @@ export default function VideoGalleryUpload({
                     style={styles.deleteButtonSmall}
                     onPress={() => handleDeleteVideo(index)}
                   >
-                    <Ionicons name="trash" size={14} color={COLORS.danger} />
+                    <Ionicons name="trash-outline" size={14} color={COLORS.danger} />
                   </Pressable>
                   <Pressable
                     style={[styles.reorderButton, index === normalizedVideos.length - 1 && styles.reorderButtonDisabled]}

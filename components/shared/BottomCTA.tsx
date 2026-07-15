@@ -59,7 +59,7 @@ export const BottomCTA = ({
         )}
         {onShare && (
           <Pressable style={styles.iconBtn} onPress={onShare}>
-            <Ionicons name="share-social" size={22} color={COLORS.textSecondary} />
+            <Ionicons name="share-social-outline" size={22} color={COLORS.textSecondary} />
           </Pressable>
         )}
       </View>
