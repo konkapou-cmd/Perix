@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
@@ -1160,11 +1161,14 @@ const handleUpdateSlug = async (newSlug: string) => {
     }
   };
 
+  const isFocused = useIsFocused();
+
   useEffect(() => {
+    if (!isFocused) return;
     if (activeIdentity?.type === "business") {
       loadBusinessFullData(activeIdentity.id);
     }
-  }, [activeIdentity, sessionToken]);
+  }, [isFocused, activeIdentity, sessionToken]);
 
   const loadBusinessProfile = () => {
     if (activeIdentity?.type === "business") loadBusinessFullData(activeIdentity.id);
