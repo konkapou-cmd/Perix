@@ -24,16 +24,16 @@ type Props = {
 
 function getTabLabel(rootCategory: string): string {
   switch (rootCategory) {
-    case "food-dining": return "Menu";
-    case "rentals": case "rental-real-estate": return "Rooms";
-    case "shopping-retail": case "fashion-accessories": return "Products";
-    case "beauty-care": case "healthcare": case "pets": return "Appointments";
-    case "sports-fitness-wellness": return "Classes & Services";
-    case "education-creativity": return "Classes & Services";
-    case "automotive": return "Vehicles";
-    case "nightlife-social": return "Reservations";
-    case "entertainment-events": return "Bookings";
-    default: return "Services";
+    case "food-dining": return "Menü";
+    case "rentals": case "rental-real-estate": return "Zimmer";
+    case "shopping-retail": case "fashion-accessories": return "Produkte";
+    case "beauty-care": case "healthcare": case "pets": return "Termine";
+    case "sports-fitness-wellness": return "Kurse & Dienste";
+    case "education-creativity": return "Kurse & Dienste";
+    case "automotive": return "Fahrzeuge";
+    case "nightlife-social": return "Reservierungen";
+    case "entertainment-events": return "Buchungen";
+    default: return "Dienste";
   }
 }
 

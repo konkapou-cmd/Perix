@@ -61,10 +61,10 @@ export default function MyApplicationsScreen() {
         {applications.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="briefcase-outline" size={64} color="#d1d5db" />
-            <Text style={styles.emptyTitle}>No applications yet</Text>
-            <Text style={styles.emptySubtitle}>Apply to jobs to see them here</Text>
+            <Text style={styles.emptyTitle}>{t("applications.noApplications", "Keine Bewerbungen")}</Text>
+            <Text style={styles.emptySubtitle}>{t("applications.applyHint", "Bewirb dich auf Jobs, um sie hier zu sehen")}</Text>
             <Pressable style={styles.browseBtn} onPress={() => router.navigate("/(tabs)/jobs" as any)}>
-              <Text style={styles.browseBtnText}>Browse Jobs</Text>
+              <Text style={styles.browseBtnText}>{t("common.browseJobs", "Jobs durchsuchen")}</Text>
             </Pressable>
           </View>
         ) : (

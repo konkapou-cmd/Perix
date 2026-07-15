@@ -122,7 +122,7 @@ export default function DropdownSearch<T extends SearchItem>({
               ))}
 
               {filtered.length === 0 && (
-                <Text style={styles.emptyText}>No results found</Text>
+                <Text style={styles.emptyText}>Keine Ergebnisse</Text>
               )}
             </ScrollView>
           </View>
