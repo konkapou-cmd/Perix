@@ -436,6 +436,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   hoursDay: {
+    flex: 1,
     fontSize: 13,
     color: PROFILE_COLORS.TEXT_SECONDARY,
     fontWeight: "500",

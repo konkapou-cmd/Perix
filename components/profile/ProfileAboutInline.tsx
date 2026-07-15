@@ -122,7 +122,7 @@ export const ProfileAboutInline: React.FC<Props> = ({
               {!readOnly && onEditHours && (
                 <Pressable style={s.hoursEditBtn} onPress={onEditHours}>
                   <Ionicons name="create-outline" size={14} color={primaryColor} />
-                  <Text style={[s.hoursEditText, { color: primaryColor }]}>{t("common.edit", "Edit")}</Text>
+                  <Text style={[s.hoursEditText, { color: primaryColor }]}>{t("common.edit", "Bearbeiten")}</Text>
                 </Pressable>
               )}
             </View>
@@ -158,7 +158,7 @@ export const ProfileAboutInline: React.FC<Props> = ({
       {!readOnly && onEditProfile && !hasBio && !hasLocation && (
         <Pressable style={[s.editBtn, { backgroundColor: primaryColor }]} onPress={onEditProfile}>
           <Ionicons name="create-outline" size={14} color="#fff" />
-          <Text style={s.editBtnText}>{t("profile.addBio", "Add bio")}</Text>
+          <Text style={s.editBtnText}>{t("profile.addBio", "Bio hinzufügen")}</Text>
         </Pressable>
       )}
     </View>
@@ -216,6 +216,7 @@ const s = StyleSheet.create({
     paddingVertical: SPACING.tiny,
   },
   hoursDay: {
+    flex: 1,
     fontSize: FONT_SIZES.small,
     fontWeight: FONT_WEIGHTS.medium as any,
   },
