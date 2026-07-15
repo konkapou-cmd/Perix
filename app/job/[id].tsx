@@ -24,6 +24,7 @@ import { getJob, applyToJob, uploadMedia, Job, toggleSaved, checkSaved } from ".
 import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
+import EntityMapSection from "../../components/shared/EntityMapSection";
 import { ChecklistCard } from "../../components/shared/ChecklistCard";
 import { ShareSection } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
@@ -133,14 +134,6 @@ export default function JobDetailPage() {
     }
   };
 
-  const openMap = () => {
-    if (job?.latitude && job?.longitude) {
-      Linking.openURL(`https://maps.google.com/maps?q=${job.latitude},${job.longitude}`);
-    } else if (job?.location) {
-      Linking.openURL(`https://maps.google.com/maps?q=${encodeURIComponent(job.location)}`);
-    }
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.centered} edges={["top", "bottom"]}>
@@ -216,24 +209,13 @@ export default function JobDetailPage() {
             />
           </View>
 
-          {job.location && (
-            <LocationCard
-              label={t("jobs.location") || "Standort"}
-              address={job.location}
-              accentColor={COLORS.jobsAccent}
-              onPress={openMap}
-            />
-          )}
-
-          {job.latitude && job.longitude && (
-            <ContentMap
-              latitude={job.latitude}
-              longitude={job.longitude}
-              title={job.title}
-              address={job.location}
-              interactive
-            />
-          )}
+          <EntityMapSection
+            address={job.location}
+            latitude={job.latitude}
+            longitude={job.longitude}
+            title={job.title}
+            accentColor={COLORS.jobsAccent}
+          />
 
           <ContentSection icon="document-text" title={t("jobs.jobDescription") || "Beschreibung"}>
             <Text style={styles.description}>{job.description}</Text>

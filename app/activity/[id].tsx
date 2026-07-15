@@ -31,6 +31,7 @@ import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
+import EntityMapSection from "../../components/shared/EntityMapSection";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { EntityHeader } from "../../components/shared/EntityHeader";
 import { BottomCTA } from "../../components/shared/BottomCTA";
@@ -261,11 +262,6 @@ export default function ActivityDetailPage() {
     } catch (_) { await Share.share({ message }); }
   };
 
-  const openMap = () => {
-    if (!activity?.latitude || !activity?.longitude) return;
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${activity.latitude},${activity.longitude}`);
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -383,40 +379,13 @@ export default function ActivityDetailPage() {
             />
           </View>
 
-          {activity.location && (
-            <LocationCard
-              label={t("activities.location") || "Ort"}
-              address={activity.location}
-              accentColor={COLORS.activityAccent}
-              onPress={openMap}
-            />
-          )}
-
-          {activity.latitude && activity.longitude && (
-            <ContentMap
-              latitude={activity.latitude}
-              longitude={activity.longitude}
-              title={activity.title}
-              address={activity.location}
-              interactive
-            />
-          )}
-
-          {activity.tagged_business && (
-            <Pressable
-              style={styles.taggedBusinessCard}
-              onPress={() => router.push(`/business/${activity.tagged_business?.business_id}`)}
-            >
-              {activity.tagged_business.logo_image && (
-                <Image source={{ uri: activity.tagged_business.logo_image }} style={styles.taggedBusinessLogo} />
-              )}
-              <View style={styles.taggedBusinessInfo}>
-                <Text style={styles.taggedBusinessLabel}>{t("activities.venue") || "Venue"}</Text>
-                <Text style={styles.taggedBusinessName}>{activity.tagged_business.name}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-            </Pressable>
-          )}
+          <EntityMapSection
+            address={activity.location}
+            latitude={activity.latitude}
+            longitude={activity.longitude}
+            title={activity.title}
+            accentColor={COLORS.activityAccent}
+          />
 
           {activity.description && (
             <ContentSection icon="document-text" title={t("activities.description") || "Beschreibung"}>

@@ -1,8 +1,9 @@
 import React from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import BusinessMap from "../BusinessMap";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
+import { openInMaps } from "../../lib/utils/openMapUrl";
 
 type ContentMapProps = {
   latitude: number;
@@ -14,8 +15,7 @@ type ContentMapProps = {
 
 export default function ContentMap({ latitude, longitude, title, address, interactive = true }: ContentMapProps) {
   const openMap = () => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-    Linking.openURL(url);
+    openInMaps({ latitude, longitude, address, label: title });
   };
 
   return (

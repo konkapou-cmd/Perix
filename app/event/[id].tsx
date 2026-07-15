@@ -29,6 +29,7 @@ import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
+import EntityMapSection from "../../components/shared/EntityMapSection";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { RSVPSection } from "../../components/shared/RSVPSection";
 import { EntityHeader } from "../../components/shared/EntityHeader";
@@ -351,13 +352,6 @@ export default function EventDetailPage() {
     await Share.share({ message });
   };
 
-  const openMap = () => {
-    const lat = event?.business?.latitude || event?.artist?.latitude;
-    const lng = event?.business?.longitude || event?.artist?.longitude;
-    if (!lat || !lng) return;
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
-  };
-
   const allMediaItems = event ? buildMediaItems(event) : [];
 
   if (loading) {
@@ -461,24 +455,13 @@ export default function EventDetailPage() {
             />
           </View>
 
-          {event.location && (
-            <LocationCard
-              label={t("events.location") || "Ort"}
-              address={event.location}
-              accentColor={COLORS.eventAccent}
-              onPress={openMap}
-            />
-          )}
-
-          {hasCoordinates && eventLocation && (
-            <ContentMap
-              latitude={eventLocation.latitude}
-              longitude={eventLocation.longitude}
-              title={event.title}
-              address={event.location || organizer || ""}
-              interactive
-            />
-          )}
+          <EntityMapSection
+            address={event.location}
+            latitude={eventLocation?.latitude}
+            longitude={eventLocation?.longitude}
+            title={event.title}
+            accentColor={COLORS.eventAccent}
+          />
 
           {event.description && (
             <ContentSection icon="document-text" title={t("events.description") || "Beschreibung"}>
