@@ -89,7 +89,11 @@ export const ProfileAboutInline: React.FC<Props> = ({
         </Text>
       )}
 
-      {hasHours && (
+      {hasHours && (() => {
+        const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const todayKey = dayNames[new Date().getDay()];
+        const todayHours = data.openingHours?.[todayKey];
+        return (
         <Pressable style={[s.hoursCard, { backgroundColor: cardColor, borderColor }]} onPress={() => setHoursExpanded(e => !e)}>
           <View style={s.hoursHeader}>
             <View style={s.hoursBadgeRow}>
@@ -98,8 +102,10 @@ export const ProfileAboutInline: React.FC<Props> = ({
               </View>
               <Text style={[s.hoursToday, { color: textColor }]}>
                 {data.isOpen
-                  ? t("profile.aboutInline.closesAt", `Closes at ${formatTime(data.openingHours?.[Object.keys(data.openingHours || {})[0]]?.close || "")}` )
-                  : t("profile.aboutInline.opensAt", `Opens at ${formatTime(data.openingHours?.[Object.keys(data.openingHours || {})[0]]?.open || "")}`)}
+                  ? t("profile.aboutInline.closesAt", `Closes at ${formatTime(todayHours?.close || "")}`)
+                  : todayHours
+                    ? t("profile.aboutInline.opensAt", `Opens at ${formatTime(todayHours.open || "")}`)
+                    : t("profile.aboutInline.closedToday", "Heute geschlossen")}
               </Text>
             </View>
             <Ionicons name={hoursExpanded ? "chevron-up" : "chevron-down"} size={18} color={PROFILE_COLORS.TEXT_SECONDARY} />
@@ -108,7 +114,7 @@ export const ProfileAboutInline: React.FC<Props> = ({
             <View style={s.hoursExpanded}>
               {Object.entries(data.openingHours || {}).map(([day, hours]) => (
                 <View key={day} style={s.hoursRow}>
-                  <Text style={[s.hoursDay, { color: textColor }]}>{dayNames[day] || day}</Text>
+                  <Text style={[s.hoursDay, { color: textColor }]}>{(dayNames as any)[day] || day}</Text>
                   <Text style={[s.hoursTime, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>{formatTime(hours.open)} – {formatTime(hours.close)}</Text>
                 </View>
               ))}
@@ -121,7 +127,7 @@ export const ProfileAboutInline: React.FC<Props> = ({
             </View>
           )}
         </Pressable>
-      )}
+        ); })()}
 
       {hasContact && (
         <View style={s.contactRow}>

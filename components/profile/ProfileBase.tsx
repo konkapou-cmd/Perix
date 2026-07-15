@@ -255,12 +255,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             s.onPress ? (
               <Pressable key={i} style={styles.statItem} onPress={s.onPress}>
                 <Text style={[styles.statCount, { color: textColor }, themeStyles as TextStyle]}>{s.count}</Text>
-                <Text style={[styles.statLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>{s.label}</Text>
+                <Text style={[styles.statLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]} numberOfLines={1} ellipsizeMode="tail">{s.label}</Text>
               </Pressable>
             ) : (
               <View key={i} style={styles.statItem}>
                 <Text style={[styles.statCount, { color: textColor }, themeStyles as TextStyle]}>{s.count}</Text>
-                <Text style={[styles.statLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>{s.label}</Text>
+                <Text style={[styles.statLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]} numberOfLines={1} ellipsizeMode="tail">{s.label}</Text>
               </View>
             )
           ))}
