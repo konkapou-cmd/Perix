@@ -272,7 +272,7 @@ export default function JobsScreen() {
                 title: job.title,
                 description: job.business_name || "",
                 type: "job" as const,
-                pinColor: "#FFD700",
+                pinColor: COLORS.pinJob,
               }))}
             onMarkerPress={(id) => {
               router.push(`/job/${id}` as any);
