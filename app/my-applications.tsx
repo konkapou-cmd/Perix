@@ -4,6 +4,7 @@ import {
   Image,
   Pressable,
   ScrollView,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -23,6 +24,15 @@ export default function MyApplicationsScreen() {
   const router = useRouter();
   const [applications, setApplications] = useState<MyApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadApplications = async () => {
+    if (!sessionToken) return;
+    try {
+      const data = await getMyApplications(sessionToken);
+      setApplications(data);
+    } catch (e) { console.error(e); }
+  };
 
   useEffect(() => {
     if (!sessionToken) return;
@@ -58,7 +68,7 @@ export default function MyApplicationsScreen() {
         <Text style={styles.title}>{t("jobs.myApplications") || "My Applications"}</Text>
         <View style={{ width: 40 }} />
       </View>
-      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }} refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={async () => { setIsRefreshing(true); await loadApplications(); setIsRefreshing(false); }} tintColor={COLORS.primary} colors={[COLORS.primary]} />}>
         {applications.length === 0 ? (
           <EmptyState
             icon="briefcase-outline"

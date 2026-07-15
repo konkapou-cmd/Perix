@@ -119,6 +119,7 @@ export default function HomeScreen() {
 
   const [localPosts, setLocalPosts] = useState<Post[]>([]);
   const [localSavedPostIds, setLocalSavedPostIds] = useState<Set<string> | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const unique = feedData.posts.filter((p, i, arr) => arr.findIndex(x => x.post_id === p.post_id) === i);
@@ -225,8 +226,10 @@ export default function HomeScreen() {
   };
 
   const onRefresh = async () => {
+    setIsRefreshing(true);
     setHasMorePosts(true);
     await refreshFeed();
+    setIsRefreshing(false);
   };
 
   useFocusEffect(
@@ -1007,7 +1010,7 @@ export default function HomeScreen() {
             <View style={styles.storyEmpty}><Text style={styles.storyEmptyText}>{t("home.noPosts") || "No posts yet"}</Text></View>
           ) : null
         }
-        refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
         contentContainerStyle={{ paddingBottom: 52 + insets.bottom + 20 }}
         onViewableItemsChanged={onViewableItemsChangedRef}
         viewabilityConfig={viewabilityConfigRef}

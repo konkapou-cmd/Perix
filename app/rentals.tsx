@@ -7,6 +7,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -55,6 +56,7 @@ export default function RentalsScreen() {
 
   const [loading, setLoading] = useState(true);
   const [rentals, setRentals] = useState<Rental[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
 
@@ -381,6 +383,7 @@ export default function RentalsScreen() {
           )}
           onEndReached={loadMoreRentals}
           onEndReachedThreshold={0.5}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={async () => { setIsRefreshing(true); await loadRentals(); setIsRefreshing(false); }} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
           ListFooterComponent={loadingMore ? <ActivityIndicator color={COLORS.textPrimary} /> : null}
           ListEmptyComponent={
             <EmptyState
