@@ -120,10 +120,10 @@ export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFil
         {sortedActivities.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="calendar-outline" size={40} color="#d1d5db" />
-            <Text style={styles.emptyText}>No activities yet</Text>
+            <Text style={styles.emptyText}>{t("home.noActivitiesYet", "Noch keine Aktivitäten")}</Text>
             <Pressable style={styles.createButton} onPress={() => router.push("/create")}>
               <Ionicons name="add-circle" size={16} color="#ffffff" />
-              <Text style={styles.createButtonText}>Create Activity</Text>
+              <Text style={styles.createButtonText}>{t("home.createActivity", "Aktivität erstellen")}</Text>
             </Pressable>
           </View>
         ) : (

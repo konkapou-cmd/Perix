@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { AppState, AppStateStatus, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle, Text, Image as RNImage, ActivityIndicator, Dimensions } from "react-native";
 import { useVideoPlayer, VideoView, VideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 type AdaptiveVideoProps = {
   uri?: string;
@@ -98,6 +99,7 @@ export default function AdaptiveVideo({
   onPress,
   useNativeControls = false,
 }: AdaptiveVideoProps) {
+  const { t } = useTranslation();
   const videoUri = uri || source?.uri || "";
   const isProcessing = videoStatus === "processing" || isMuxProcessingPlaceholder(videoUri);
   const validRatio = typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0 ? ratio : null;
@@ -282,16 +284,16 @@ export default function AdaptiveVideo({
       {hasError ? (
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={32} color="#fff" />
-          <Text style={styles.errorText}>Video cannot load</Text>
+          <Text style={styles.errorText}>{t("common.videoCannotLoad", "Video kann nicht geladen werden")}</Text>
           <Pressable style={styles.retryButton} onPress={handleRetry}>
             <Ionicons name="refresh" size={18} color="#fff" />
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t("common.retry", "Wiederholen")}</Text>
           </Pressable>
         </View>
       ) : isProcessing && !coverUrl ? (
         <View style={styles.overlayCenter}>
           <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.processingText}>Processing video...</Text>
+          <Text style={styles.processingText}>{t("common.processingVideo", "Video wird verarbeitet...")}</Text>
         </View>
       ) : (
         <>
