@@ -49,6 +49,7 @@ import {
   ICON_SIZES,
 } from "../../../lib/designTokens";
 import { MEDIA_LIMITS } from "../../../lib/constants/mediaLimits";
+import { HeaderBackButton } from "../../../components/shared/HeaderBackButton";
 
 function TypingDots({ name, t }: { name: string; t: (key: string) => string }) {
   const dot1 = useRef(new Animated.Value(0.3)).current;
@@ -594,9 +595,7 @@ export default function ChatScreen() {
     >
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="chevron-back" size={ICON_SIZES.interactive} color={COLORS.textPrimary} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{name || t("messages.chat")}</Text>
         </View>
@@ -849,19 +848,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.backgroundPage,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: SPACING.std,
-  },
   headerTitle: {
     fontSize: FONT_SIZES.h4,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.textPrimary,
+    marginLeft: SPACING.std,
   },
   headerActions: {
     flexDirection: "row",

@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { getStoryAnalytics, getStoryViewers, StoryAnalyticsData, StoryViewerItem } from "../../lib/api/storyAnalytics";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
+import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 
 const STORY_REACTIONS: Record<string, string> = {
   "❤️": "#ef4444",
@@ -73,9 +74,7 @@ export default function StoryAnalyticsScreen() {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.header}>
-          <Pressable style={styles.headerBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
-          </Pressable>
+          <HeaderBackButton onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t("stories.analytics", "Story Analytics")}</Text>
           <View style={{ width: 36 }} />
         </View>
@@ -92,9 +91,7 @@ export default function StoryAnalyticsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.headerBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t("stories.analytics", "Story Analytics")}</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -208,13 +205,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: COLORS.backgroundPage,
-    alignItems: "center", justifyContent: "center",
-    marginRight: SPACING.compact,
-  },
-  headerTitle: { fontSize: FONT_SIZES.body, fontWeight: "600", color: COLORS.textPrimary, flex: 1 },
+  headerTitle: { fontSize: FONT_SIZES.body, fontWeight: "600", color: COLORS.textPrimary, flex: 1, marginLeft: SPACING.compact },
   emptyText: { color: COLORS.textMuted, fontSize: FONT_SIZES.body, marginTop: 40 },
   scrollContent: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small },
