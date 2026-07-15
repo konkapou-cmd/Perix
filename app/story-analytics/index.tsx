@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { getActorAnalytics, ActorAnalyticsData, ActorStoryAnalytics } from "../../lib/api/storyAnalytics";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
+import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 
 export default function StoryAnalyticsOverviewScreen() {
   const { t } = useTranslation();
@@ -64,9 +65,7 @@ export default function StoryAnalyticsOverviewScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.headerBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t("stories.myAnalytics", "My Story Analytics")}</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -158,12 +157,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.std, paddingTop: SPACING.small, paddingBottom: SPACING.compact,
     backgroundColor: COLORS.background, borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
-  headerBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: COLORS.backgroundPage, alignItems: "center", justifyContent: "center",
-    marginRight: SPACING.compact,
-  },
-  headerTitle: { fontSize: FONT_SIZES.body, fontWeight: "600", color: COLORS.textPrimary, flex: 1 },
+  headerTitle: { fontSize: FONT_SIZES.body, fontWeight: "600", color: COLORS.textPrimary, flex: 1, marginLeft: SPACING.compact },
   filterRow: {
     flexDirection: "row", paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
     backgroundColor: COLORS.background, gap: SPACING.small,

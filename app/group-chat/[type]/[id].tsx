@@ -32,6 +32,7 @@ import {
 } from "../../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../../lib/designTokens";
 import { MEDIA_LIMITS } from "../../../lib/constants/mediaLimits";
+import { HeaderBackButton } from "../../../components/shared/HeaderBackButton";
 
 type ChatType = "activity" | "event";
 
@@ -178,9 +179,7 @@ export default function GroupChatScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Pressable style={styles.headerButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <View style={styles.headerInfo}>
           <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>{subtitle}</Text>
@@ -313,17 +312,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.backgroundPage,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: SPACING.compact,
-  },
   headerInfo: {
     flex: 1,
+    marginLeft: SPACING.compact,
   },
   headerTitle: {
     fontSize: FONT_SIZES.body,

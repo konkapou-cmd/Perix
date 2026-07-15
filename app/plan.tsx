@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
 import { useAuth } from "../context/AuthContext";
 import { applyVoucher } from "../lib/api/subscriptions";
+import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 
 type Feature = {
   icon: string;
@@ -58,9 +59,7 @@ export default function PlanScreen() {
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <View style={s.header}>
-        <Pressable onPress={() => router.back()} style={s.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.primaryDark} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} tintColor={COLORS.primaryDark} />
         <Text style={s.headerTitle}>{t("subscription.plan") || "Plan"}</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -142,7 +141,6 @@ export default function PlanScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.backgroundPage },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: "600", color: COLORS.primaryDark },
   container: { flex: 1, padding: 16 },
   planCard: { borderRadius: BORDER_RADIUS.lg, padding: SPACING.std, marginBottom: SPACING.compact },

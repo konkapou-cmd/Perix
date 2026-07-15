@@ -29,6 +29,7 @@ import {
   toggleSaved,
   batchCheckSaved,
 } from "../lib/api";
+import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 import BusinessMap from "../components/BusinessMap";
 import { useMapBounds } from "../context/MapBoundsContext";
 import EmptyState from "../components/shared/EmptyState";
@@ -219,9 +220,7 @@ export default function RentalsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{t("rentals.rentals")}</Text>
           <Text style={styles.subtitle}>{t("rentals.subtitle", "Find your next home")}</Text>
@@ -439,9 +438,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     gap: 12,
-  },
-  backButton: {
-    padding: 4,
   },
   title: {
     fontSize: 22,
