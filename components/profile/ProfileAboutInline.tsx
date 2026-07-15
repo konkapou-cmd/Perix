@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { getTodayHours, getDayPeriods, GERMAN_DAYS, DAY_KEYS, getTodayStatus, getPeriodsSummary, type OpeningHours } from "./hoursUtils";
 
 type AboutDataType = {
   type: "user" | "business" | "artist";
@@ -90,34 +91,34 @@ export const ProfileAboutInline: React.FC<Props> = ({
       )}
 
       {hasHours && (() => {
-        const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-        const todayKey = dayNames[new Date().getDay()];
-        const todayHours = data.openingHours?.[todayKey];
+        const todayPeriods = getTodayHours(data.openingHours as OpeningHours || {});
+        const { label, detail } = getTodayStatus(data.isOpen ?? false, todayPeriods);
         return (
         <Pressable style={[s.hoursCard, { backgroundColor: cardColor, borderColor }]} onPress={() => setHoursExpanded(e => !e)}>
           <View style={s.hoursHeader}>
             <View style={s.hoursBadgeRow}>
               <View style={[s.openBadge, { backgroundColor: data.isOpen ? COLORS.success : COLORS.danger }]}>
-                <Text style={s.openBadgeText}>{data.isOpen ? t("profile.aboutInline.openNow", "Open Now") : t("profile.aboutInline.closed", "Closed")}</Text>
+                <Text style={s.openBadgeText}>{label}</Text>
               </View>
-              <Text style={[s.hoursToday, { color: textColor }]}>
-                {data.isOpen
-                  ? t("profile.aboutInline.closesAt", `Closes at ${formatTime(todayHours?.close || "")}`)
-                  : todayHours
-                    ? t("profile.aboutInline.opensAt", `Opens at ${formatTime(todayHours.open || "")}`)
-                    : t("profile.aboutInline.closedToday", "Heute geschlossen")}
-              </Text>
+              {detail && (
+                <Text style={[s.hoursToday, { color: textColor }]}>{detail}</Text>
+              )}
             </View>
             <Ionicons name={hoursExpanded ? "chevron-up" : "chevron-down"} size={18} color={PROFILE_COLORS.TEXT_SECONDARY} />
           </View>
           {hoursExpanded && (
             <View style={s.hoursExpanded}>
-              {Object.entries(data.openingHours || {}).map(([day, hours]) => (
+              {DAY_KEYS.map((day) => {
+                const periods = getDayPeriods(data.openingHours?.[day] as any);
+                return (
                 <View key={day} style={s.hoursRow}>
-                  <Text style={[s.hoursDay, { color: textColor }]}>{(dayNames as any)[day] || day}</Text>
-                  <Text style={[s.hoursTime, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>{formatTime(hours.open)} – {formatTime(hours.close)}</Text>
+                  <Text style={[s.hoursDay, { color: textColor }]}>{GERMAN_DAYS[day] || day}</Text>
+                  <Text style={[s.hoursTime, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>
+                    {getPeriodsSummary(periods)}
+                  </Text>
                 </View>
-              ))}
+              );
+              })}
               {!readOnly && onEditHours && (
                 <Pressable style={s.hoursEditBtn} onPress={onEditHours}>
                   <Ionicons name="create-outline" size={14} color={primaryColor} />
