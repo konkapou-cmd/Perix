@@ -121,7 +121,7 @@ export default function JobsSection({
                       </Pressable>
                     )}
                     <Pressable style={s.actionBtn} onPress={() => onDeleteJob(job.job_id)}>
-                      <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                       <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
                     </Pressable>
                   </View>
                 )}

@@ -126,7 +126,7 @@ export default function EventsSection({
                       <Ionicons name="create-outline" size={18} color={primaryColor} />
                     </Pressable>
                     <Pressable style={s.actionBtn} onPress={() => onDeleteEvent(event.event_id)}>
-                      <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                       <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
                     </Pressable>
                   </View>
                 )}
