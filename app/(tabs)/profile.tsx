@@ -443,53 +443,51 @@ export default function ProfileScreen() {
   }, [identities, activeIdentity, setActiveIdentity]);
 
   // Watch for business action params from BusinessActionsModal
-  const consumedActionRef = useRef<string | null>(null);
-
   useEffect(() => {
-    const action =
-      params.openService === "1" ? "service"
-      : params.openEvent === "1" ? "event"
-      : params.openJob === "1" ? "job"
-      : params.openBookings === "1" ? "bookings"
-      : null;
+    const shouldOpenService = params.openService === "1";
+    const shouldOpenEvent = params.openEvent === "1";
+    const shouldOpenJob = params.openJob === "1";
+    const shouldOpenBookings = params.openBookings === "1";
 
-    if (!action) return;
+    if (!shouldOpenService && !shouldOpenEvent && !shouldOpenJob && !shouldOpenBookings) {
+      return;
+    }
 
-    const actionKey = `${action}:${params.t ?? ""}`;
-    if (consumedActionRef.current === actionKey) return;
-    consumedActionRef.current = actionKey;
+    // Clear all consumed action params once.
+    router.setParams({
+      openService: undefined,
+      openEvent: undefined,
+      openJob: undefined,
+      openBookings: undefined,
+      t: undefined,
+    } as any);
 
-    // Hard-clean the profile route — remove stale modal params.
-    router.replace("/(tabs)/profile");
+    // Open only one action per trigger.
+    if (shouldOpenService) {
+      handleAddService();
+      return;
+    }
 
-    requestAnimationFrame(() => {
-      if (action === "service") {
-        handleAddService();
-        return;
-      }
+    if (shouldOpenEvent) {
+      setEventModalVisible(true);
+      return;
+    }
 
-      if (action === "event") {
-        setEventModalVisible(true);
-        return;
-      }
+    if (shouldOpenJob) {
+      setEditingJobId(null);
+      setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
+      setJobModalVisible(true);
+      return;
+    }
 
-      if (action === "job") {
-        setEditingJobId(null);
-        setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
-        setJobModalVisible(true);
-        return;
-      }
-
-      if (action === "bookings") {
-        setBookingListVisible(true);
-      }
-    });
+    if (shouldOpenBookings) {
+      setBookingListVisible(true);
+    }
   }, [
     params.openService,
     params.openEvent,
     params.openJob,
     params.openBookings,
-    params.t,
   ]);
 
   // ---------------------------------------------------------------------------
