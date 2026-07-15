@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
+import { GERMAN_DAYS, DAY_KEYS, getDayPeriods, getPeriodsSummary, type OpeningHours } from "./hoursUtils";
 
 export interface ProfileAboutData {
   type: "user" | "business" | "artist";
@@ -140,11 +141,6 @@ export const ProfileAbout: React.FC<ProfileAboutProps> = ({
     website: "globe",
   };
 
-  const dayNames: Record<string, string> = {
-    mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu",
-    fri: "Fri", sat: "Sat", sun: "Sun",
-  };
-
   const openNow = data.isOpen;
 
   return (
@@ -212,7 +208,7 @@ export const ProfileAbout: React.FC<ProfileAboutProps> = ({
         <>
           {data.openingHours && Object.keys(data.openingHours).length > 0 && (
             <AboutSection
-              title={t("profile.hours", "Opening Hours")}
+              title={t("profile.hours", "Öffnungszeiten")}
               icon="time-outline"
               cardColor={cardColor}
               textColor={textColor}
@@ -233,26 +229,29 @@ export const ProfileAbout: React.FC<ProfileAboutProps> = ({
                     ]}
                   >
                     {openNow
-                      ? t("profile.openNow", "Open Now")
-                      : t("profile.closed", "Closed")}
+                      ? t("profile.openingHours.openNow", "Geöffnet")
+                      : t("profile.openingHours.closed", "Geschlossen")}
                   </Text>
                 </View>
                 {!readOnly && onOpenHours && (
                   <Pressable onPress={onOpenHours}>
                     <Text style={[styles.editLink, { color: primaryColor }]}>
-                      {t("common.edit", "Edit")}
+                      {t("common.edit", "Bearbeiten")}
                     </Text>
                   </Pressable>
                 )}
               </View>
-              {Object.entries(data.openingHours).map(([day, hours]) => (
+              {DAY_KEYS.map((day) => {
+                const periods = getDayPeriods(data.openingHours?.[day] as any);
+                return (
                 <View key={day} style={styles.hoursRow}>
-                  <Text style={[styles.hoursDay, themeStyles as any]}>{dayNames[day] || day}</Text>
+                  <Text style={[styles.hoursDay, themeStyles as any]}>{GERMAN_DAYS[day] || day}</Text>
                   <Text style={[styles.hoursTime, { color: textColor }, themeStyles as any]}>
-                    {hours.open} – {hours.close}
+                    {getPeriodsSummary(periods)}
                   </Text>
                 </View>
-              ))}
+              );
+              })}
             </AboutSection>
           )}
         </>
