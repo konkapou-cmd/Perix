@@ -113,7 +113,7 @@ export default function FriendsCarousel({
             colors={["#000000", "#FFD700"]}
             style={styles.addButton}
           >
-            <Ionicons name="share-social" size={22} color="#fff" />
+            <Ionicons name="share-social-outline" size={22} color="#fff" />
           </LinearGradient>
         </View>
         <Text style={styles.friendName}>{t("friends.invite") || "Invite"}</Text>

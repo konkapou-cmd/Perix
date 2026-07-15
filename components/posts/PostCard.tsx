@@ -152,7 +152,7 @@ export function PostCard({
       )}
       {canDelete && (
         <Pressable onPress={() => preventCardNav(onDelete)}>
-          <Ionicons name="trash-outline" size={20} color="#ef4444" />
+          <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
         </Pressable>
       )}
     </>

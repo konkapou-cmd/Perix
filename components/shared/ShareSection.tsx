@@ -33,7 +33,7 @@ export const ShareSection = ({
 
       <Pressable style={styles.action} onPress={onShare}>
         <View style={[styles.iconCircle, { backgroundColor: accentColor + "15" }]}>
-          <Ionicons name="share-social" size={22} color={accentColor} />
+          <Ionicons name="share-social-outline" size={22} color={accentColor} />
         </View>
         <Text style={styles.actionLabel}>Teilen</Text>
       </Pressable>

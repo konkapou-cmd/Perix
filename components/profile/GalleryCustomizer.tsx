@@ -149,7 +149,7 @@ const DraggableItem: React.FC<DraggableItemProps> = React.memo(({
             </Pressable>
           </View>
           <Pressable style={styles.deleteBtn} onPress={handleDelete}>
-            <Ionicons name="trash" size={14} color="#fff" />
+            <Ionicons name="trash-outline" size={14} color="#fff" />
           </Pressable>
         </View>
       </Pressable>

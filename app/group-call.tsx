@@ -450,7 +450,7 @@ export default function GroupCallScreen() {
                       )}
                     </View>
                     <Text style={styles.friendName}>{item.name}</Text>
-                    <Ionicons name="add-circle" size={24} color={COLORS.primaryDark} />
+                    <Ionicons name="add-circle-outline" size={24} color={COLORS.primaryDark} />
                   </Pressable>
                 )}
               />

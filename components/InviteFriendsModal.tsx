@@ -135,7 +135,7 @@ export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
             
             <Pressable style={styles.option} onPress={() => shareVia("other")}>
               <View style={[styles.iconCircle, { backgroundColor: "#000000" }]}>
-                <Ionicons name="share-social" size={28} color="#fff" />
+                <Ionicons name="share-social-outline" size={28} color="#fff" />
               </View>
               <Text style={styles.optionText}>{t("common.other") || "Other"}</Text>
             </Pressable>

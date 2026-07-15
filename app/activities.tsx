@@ -729,7 +729,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                           <Ionicons name="create-outline" size={14} color={COLORS.primaryDark} />
                         </Pressable>
                         <Pressable style={styles.airbnbActionBtn} onPress={() => handleDeleteActivity(activity.activity_id)}>
-                          <Ionicons name="trash-outline" size={14} color="#ef4444" />
+                           <Ionicons name="trash-outline" size={14} color={COLORS.danger} />
                         </Pressable>
                       </>
                     )}
@@ -952,7 +952,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                 style={styles.input}
               />
               <Pressable style={styles.createButton} onPress={handleCreate}>
-                <Ionicons name="add-circle" size={20} color="#fff" />
+                <Ionicons name="add-circle-outline" size={20} color="#fff" />
                 <Text style={styles.createButtonText}>{t('activities.create')}</Text>
               </Pressable>
             </ScrollView>
