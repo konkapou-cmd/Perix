@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View, Image, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
 import type { Business, EventItem, ActivityItem } from "../../lib/api";
@@ -37,6 +38,7 @@ export default function LocatorCard(props: LocatorCardProps) {
 }
 
 function BusinessCard({ data, distance, isOpen, onPress }: BusinessCardProps) {
+  const { t } = useTranslation();
   const themeColors = getThemeColors(data.theme as any);
   const primaryColor = themeColors.primaryColor;
   const textColor = themeColors.textColor;
@@ -75,7 +77,7 @@ function BusinessCard({ data, distance, isOpen, onPress }: BusinessCardProps) {
             <View style={[styles.statusPill, isOpen ? styles.statusOpen : styles.statusClosed]}>
               <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
               <Text style={[styles.statusText, isOpen ? styles.statusTextOpen : styles.statusTextClosed]}>
-                {isOpen ? "Open" : "Closed"}
+                {isOpen ? t("common.open", "Geöffnet") : t("common.closed", "Geschlossen")}
               </Text>
             </View>
           )}

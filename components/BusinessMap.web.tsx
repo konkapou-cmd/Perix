@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Service } from "../lib/api";
 import { formatEventDate } from "../lib/formatDate";
 import { COLORS } from "../lib/designTokens";
+import { useTranslation } from "react-i18next";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 
@@ -89,6 +90,7 @@ export default function BusinessMap({
   disabledHint = "Tap to enable location",
   staticMode = false,
 }: Props) {
+  const { t } = useTranslation();
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -255,7 +257,7 @@ export default function BusinessMap({
         <View style={s.loading}><ActivityIndicator size="large" color="#000" /></View>
       )}
       {mapError && (
-        <View style={s.loading}><Ionicons name="alert-circle" size={32} color="#ef4444" /><Text style={s.errorText}>Map failed to load. Check API key.</Text></View>
+        <View style={s.loading}><Ionicons name="alert-circle" size={32} color="#ef4444" /><Text style={s.errorText}>{t("map.loadFailed", "Karte konnte nicht geladen werden")}</Text></View>
       )}
       <View
         ref={mapDivRef as any}

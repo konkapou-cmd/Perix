@@ -25,11 +25,11 @@ export const ErrorState = ({
 
   return (
     <View style={[styles.container, fullWidth && styles.fullWidth]}>
-      <Ionicons name="alert-circle-outline" size={48} color={COLORS.danger ?? "#ef4444"} />
+      <Ionicons name="alert-circle-outline" size={48} color={COLORS.danger} />
       <Text style={styles.message}>{text}</Text>
       {onRetry && (
         <Pressable style={styles.retryBtn} onPress={onRetry}>
-          <Ionicons name="refresh" size={16} color="#fff" />
+          <Ionicons name="refresh" size={16} color={COLORS.textLight} />
           <Text style={styles.retryText}>{retry}</Text>
         </Pressable>
       )}
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold,
-    color: "#fff",
+    color: COLORS.textLight,
   },
 });
 
