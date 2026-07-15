@@ -1400,6 +1400,11 @@ const handleUpdateSlug = async (newSlug: string) => {
         status: serviceForm.status || undefined,
         sort_order: serviceForm.sort_order ? parseInt(serviceForm.sort_order, 10) : undefined,
       };
+      if (payload.status === "published" && !payload.cover_image_url) {
+        Alert.alert(t("common.error", "Fehler"), t("services.coverRequired", "Bitte füge ein Titelbild hinzu, bevor du den Dienst veröffentlichst."));
+        setServiceSaving(false);
+        return;
+      }
       if (editingServiceId) {
         await updateService(sessionToken, editingServiceId, payload);
       } else {

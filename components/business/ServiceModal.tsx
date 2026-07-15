@@ -210,7 +210,7 @@ const DEFAULT_FORM: ServiceForm = {
   insurance_info: "",
   pet_name: "",
   pet_type: "",
-  status: "published",
+  status: "draft",
   sort_order: "0",
 };
 
