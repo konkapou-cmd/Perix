@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SectionHeader } from "../shared/SectionHeader";
+import EmptyState from "../shared/EmptyState";
 import { ActivityItem } from "../../lib/api";
 import { ACTIVITY_TYPES } from "../../lib/api/core";
 
@@ -118,14 +119,14 @@ export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFil
         contentContainerStyle={styles.scrollContent}
       >
         {sortedActivities.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={40} color="#d1d5db" />
-            <Text style={styles.emptyText}>{t("home.noActivitiesYet", "Noch keine Aktivitäten")}</Text>
-            <Pressable style={styles.createButton} onPress={() => router.push("/create")}>
-              <Ionicons name="add-circle" size={16} color="#ffffff" />
-              <Text style={styles.createButtonText}>{t("home.createActivity", "Aktivität erstellen")}</Text>
-            </Pressable>
-          </View>
+          <EmptyState
+            icon="calendar-outline"
+            message={t("home.noActivitiesYet", "Noch keine Aktivitäten")}
+            size="compact"
+            muted
+            actionLabel={t("home.createActivity", "Aktivität erstellen")}
+            onAction={() => router.push("/create")}
+          />
         ) : (
           sortedActivities.map((activity) => {
             const themeColor = getThemeColor(activity.theme);

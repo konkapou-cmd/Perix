@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
+import EmptyState from "../shared/EmptyState";
 import MediaThumbnail from "../ui/MediaThumbnail";
 import LazyMediaViewer, { MediaItem as MediaViewerItem } from "../LazyMediaViewer";
 import { Post } from "../../lib/api";
@@ -163,14 +164,12 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
       </View>
 
       {mediaItems.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="images-outline" size={48} color="#d1d5db" />
-          <Text style={styles.emptyText}>
-            {activeTab === "photos"
-              ? t("profile.noPhotos", "No photos yet")
-              : t("profile.noVideos", "No videos yet")}
-          </Text>
-        </View>
+        <EmptyState
+          icon={activeTab === "photos" ? "images-outline" : "videocam-outline"}
+          i18nKey={activeTab === "photos" ? "profile.noPhotos" : "profile.noVideos"}
+          message={activeTab === "photos" ? "Noch keine Fotos" : "Noch keine Videos"}
+          size="large"
+        />
       ) : (
         <View style={styles.webGrid}>
           {mediaItems.map((item, index) => (

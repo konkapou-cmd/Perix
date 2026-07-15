@@ -30,6 +30,7 @@ import {
 import BusinessMap from "../../components/BusinessMap";
 import { useMapBounds } from "../../context/MapBoundsContext";
 import { translateCategory } from "../../lib/categoryTranslation";
+import EmptyState from "../../components/shared/EmptyState";
 import { SkeletonBox } from "../../components/shared";
 import {
   COLORS,
@@ -371,9 +372,11 @@ export default function JobsScreen() {
           onEndReachedThreshold={0.5}
           ListFooterComponent={loadingMore ? <ActivityIndicator color={COLORS.textPrimary} /> : null}
           ListEmptyComponent={
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>{searchQuery ? t("jobs.noResults", "No jobs found") : t("jobs.noJobs")}</Text>
-            </View>
+            <EmptyState
+              icon="briefcase-outline"
+              message={searchQuery ? t("jobs.noResults", "Keine Jobs gefunden") : t("jobs.noJobs", "Noch keine Jobs verfügbar")}
+              size="large"
+            />
           }
           contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 16 }}
         />

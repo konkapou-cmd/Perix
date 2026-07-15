@@ -15,6 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
 import { COLORS } from "../lib/designTokens";
 import { getMyApplications, MyApplication } from "../lib/api";
+import EmptyState from "../components/shared/EmptyState";
 
 export default function MyApplicationsScreen() {
   const { t } = useTranslation();
@@ -59,14 +60,15 @@ export default function MyApplicationsScreen() {
       </View>
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
         {applications.length === 0 ? (
-          <View style={styles.empty}>
-            <Ionicons name="briefcase-outline" size={64} color="#d1d5db" />
-            <Text style={styles.emptyTitle}>{t("applications.noApplications", "Keine Bewerbungen")}</Text>
-            <Text style={styles.emptySubtitle}>{t("applications.applyHint", "Bewirb dich auf Jobs, um sie hier zu sehen")}</Text>
-            <Pressable style={styles.browseBtn} onPress={() => router.navigate("/(tabs)/jobs" as any)}>
-              <Text style={styles.browseBtnText}>{t("common.browseJobs", "Jobs durchsuchen")}</Text>
-            </Pressable>
-          </View>
+          <EmptyState
+            icon="briefcase-outline"
+            message={t("applications.noApplications", "Keine Bewerbungen")}
+            subMessage={t("applications.applyHint", "Bewirb dich auf Jobs, um sie hier zu sehen")}
+            size="large"
+            fullWidth
+            actionLabel={t("common.browseJobs", "Jobs durchsuchen")}
+            onAction={() => router.navigate("/(tabs)/jobs" as any)}
+          />
         ) : (
           applications.map(app => {
             const colors = getStatusColor(app.status);
