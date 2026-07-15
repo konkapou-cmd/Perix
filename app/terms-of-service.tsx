@@ -1,10 +1,10 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { COLORS } from "../lib/designTokens";
+import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 
 export default function TermsOfServiceScreen() {
   const { t } = useTranslation();
@@ -60,9 +60,7 @@ export default function TermsOfServiceScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} tintColor={COLORS.textLight} />
         <Text style={styles.headerTitle}>{t("terms.title") || "Terms of Service"}</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -86,7 +84,6 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#000",
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#fff" },
   content: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   lastUpdated: { fontSize: 13, color: "#9ca3af", marginBottom: 16, textAlign: "center" },

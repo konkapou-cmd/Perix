@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { COLORS } from "../lib/designTokens";
+import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 import { useSocket, useSocketEvent } from "../context/SocketContext";
 import {
   initiateCall,
@@ -447,13 +448,9 @@ export default function CallScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Emergency back button */}
-      <Pressable 
-        style={styles.backButton} 
-        onPress={navigateBack}
-      >
-        <Ionicons name="arrow-back" size={24} color="#fff" />
-      </Pressable>
+      <View style={styles.backButtonContainer}>
+        <HeaderBackButton onPress={navigateBack} tintColor={COLORS.textLight} />
+      </View>
 
       {/* Video background */}
       {callType === "video" && agoraAvailable && (
@@ -747,16 +744,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  backButton: {
+  backButtonContainer: {
     position: "absolute",
     top: 50,
     left: 20,
     zIndex: 100,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
   },
 });

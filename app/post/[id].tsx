@@ -20,6 +20,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { getPost, togglePostLike, addPostComment, Post, PostComment, toggleSaved, checkSaved } from "../../lib/api";
 import { COLORS, SPACING } from "../../lib/designTokens";
+import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 import { CommentSection } from "../../components/CommentSection";
 import PostContent from "../../components/PostContent";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
@@ -127,9 +128,7 @@ export default function PostDetail() {
     return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-          </Pressable>
+          <HeaderBackButton onPress={() => router.back()} />
           <Text style={styles.headerTitle}>Post</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -150,9 +149,7 @@ export default function PostDetail() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Post</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -302,9 +299,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
-  },
-  backButton: {
-    padding: 8,
   },
   headerTitle: {
     fontSize: 18,

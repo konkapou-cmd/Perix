@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { COLORS } from "../lib/designTokens";
+import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 
 export default function HelpSupportScreen() {
   const { t } = useTranslation();
@@ -50,9 +51,7 @@ export default function HelpSupportScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} tintColor={COLORS.textLight} />
         <Text style={styles.headerTitle}>{t("help.title") || "Help & Support"}</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -95,7 +94,6 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#000",
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#fff" },
   content: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 12 },

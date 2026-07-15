@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Pressable,
   ScrollView,
   RefreshControl,
   StyleSheet,
@@ -10,14 +9,15 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
 import { COLORS } from "../lib/designTokens";
+import { Ionicons } from "@expo/vector-icons";
 import { getMyApplications, MyApplication } from "../lib/api";
 import EmptyState from "../components/shared/EmptyState";
 import LoadingState from "../components/shared/LoadingState";
+import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 
 export default function MyApplicationsScreen() {
   const { t } = useTranslation();
@@ -63,9 +63,7 @@ export default function MyApplicationsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.title}>{t("jobs.myApplications") || "My Applications"}</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -132,7 +130,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f3f4f6" },
   loading: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
-  backBtn: { padding: 8 },
   title: { fontSize: 18, fontWeight: "700", color: "#111827" },
   content: { flex: 1, padding: 16 },
   empty: { alignItems: "center", paddingTop: 80 },
