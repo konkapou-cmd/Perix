@@ -1,8 +1,9 @@
-import { StyleSheet, Text, View, TextInput, Pressable, Linking, ActivityIndicator, FlatList } from "react-native";
+import { StyleSheet, Text, View, TextInput, Pressable, ActivityIndicator, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../lib/designTokens";
 import { useState, useCallback } from "react";
 import Constants from "expo-constants";
+import { openInMaps } from "../lib/utils/openMapUrl";
 
 type Props = {
   location: { latitude: number; longitude: number } | null;
@@ -124,10 +125,11 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
   };
 
   const openGoogleMaps = () => {
-    const url = location
-      ? `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`
-      : "https://www.google.com/maps";
-    Linking.openURL(url);
+    if (location) {
+      openInMaps({ latitude: location.latitude, longitude: location.longitude });
+    } else {
+      openInMaps({});
+    }
   };
 
   return (
