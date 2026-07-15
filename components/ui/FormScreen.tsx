@@ -8,14 +8,15 @@ import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS } from "../../lib/designToken
 type FormScreenProps = {
   title: string;
   onClose: () => void;
+  visible: boolean;
   children?: React.ReactNode;
 };
 
-export default function FormScreen({ title, onClose, children }: FormScreenProps) {
+export default function FormScreen({ title, onClose, visible, children }: FormScreenProps) {
   const { t } = useTranslation();
 
   return (
-    <Modal visible animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <KeyboardAvoidingView
           style={styles.kav}

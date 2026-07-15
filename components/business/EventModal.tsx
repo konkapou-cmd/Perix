@@ -225,7 +225,7 @@ export default function EventModal({
   const themeList = eventThemes.length > 0 ? eventThemes : Object.entries(themesMap).map(([slug, t]) => ({ slug, label: t.label, color: t.color, emoji: t.emoji, gradient: t.gradient }));
 
   return (
-    <FormScreen title={eventEditing ? t("events.editEvent") : t("events.createEvent")} onClose={onClose}>
+    <FormScreen title={eventEditing ? t("events.editEvent") : t("events.createEvent")} onClose={onClose} visible={visible}>
       <UnifiedMediaGallery
             media={media}
             onChange={handleMediaChange}
