@@ -607,34 +607,6 @@ export default function HomeScreen() {
     );
   }
 
-  if (!isMapInitialized) {
-    return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t("home.greeting", { name: user?.name?.split(" ")[0] || "there" })}</Text>
-          <Text style={styles.headerSubtitle}>{t("home.sharePrompt")}</Text>
-        </View>
-        <View style={styles.mapPromptContainer}>
-          <View style={styles.mapPromptCard}>
-            <View style={styles.mapPromptIconContainer}>
-              <Ionicons name="map" size={48} color={COLORS.primaryDark} />
-            </View>
-            <Text style={styles.mapPromptTitle}>{t("home.setLocationTitle", { defaultValue: "Set Your Area" })}</Text>
-            <Text style={styles.mapPromptText}>{t("home.setLocationDescription", { defaultValue: "To see content from nearby businesses, please first set your location area on the map." })}</Text>
-            <Pressable style={styles.mapPromptButton} onPress={handleRecenterOnMe} data-testid="recenter-btn">
-              <Ionicons name="locate" size={20} color={COLORS.textLight} />
-              <Text style={styles.mapPromptButtonText}>{t("home.useMyLocation", { defaultValue: "Use My Location" })}</Text>
-            </Pressable>
-            <Pressable style={[styles.mapPromptButton, styles.mapPromptButtonSecondary]} onPress={() => router.navigate("/(tabs)/locator" as any)} data-testid="go-to-map-btn">
-              <Ionicons name="navigate" size={20} color={COLORS.primaryDark} />
-              <Text style={[styles.mapPromptButtonText, styles.mapPromptButtonTextSecondary]}>{t("home.goToMap", { defaultValue: "Go to Map" })}</Text>
-            </Pressable>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.stickyHeader}>
@@ -705,6 +677,26 @@ export default function HomeScreen() {
             <Pressable style={{ paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, backgroundColor: COLORS.errorText, borderRadius: BORDER_RADIUS.md }} onPress={onRefresh}>
               <Text style={{ color: COLORS.textLight, fontWeight: FONT_WEIGHTS.semibold, fontSize: FONT_SIZES.small }}>{t("common.retry") || "Retry"}</Text>
             </Pressable>
+          </View>
+        )}
+
+        {!isMapInitialized && (
+          <View style={styles.mapPromptContainer}>
+            <View style={styles.mapPromptCard}>
+              <View style={styles.mapPromptIconContainer}>
+                <Ionicons name="map" size={48} color={COLORS.primaryDark} />
+              </View>
+              <Text style={styles.mapPromptTitle}>{t("home.setLocationTitle", { defaultValue: "Set Your Area" })}</Text>
+              <Text style={styles.mapPromptText}>{t("home.setLocationDescription", { defaultValue: "To see content from nearby businesses, please first set your location area on the map." })}</Text>
+              <Pressable style={styles.mapPromptButton} onPress={handleRecenterOnMe} data-testid="recenter-btn">
+                <Ionicons name="locate" size={20} color={COLORS.textLight} />
+                <Text style={styles.mapPromptButtonText}>{t("home.useMyLocation", { defaultValue: "Use My Location" })}</Text>
+              </Pressable>
+              <Pressable style={[styles.mapPromptButton, styles.mapPromptButtonSecondary]} onPress={() => router.navigate("/(tabs)/locator" as any)} data-testid="go-to-map-btn">
+                <Ionicons name="navigate" size={20} color={COLORS.primaryDark} />
+                <Text style={[styles.mapPromptButtonText, styles.mapPromptButtonTextSecondary]}>{t("home.goToMap", { defaultValue: "Go to Map" })}</Text>
+              </Pressable>
+            </View>
           </View>
         )}
 
