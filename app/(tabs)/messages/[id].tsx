@@ -87,12 +87,13 @@ function TypingDots({ name, t }: { name: string; t: (key: string) => string }) {
 }
 
 function DateSeparator({ dateStr }: { dateStr: string }) {
+  const { t } = useTranslation();
   const date = new Date(dateStr);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   let label: string;
-  if (diffDays === 0) label = "Today";
-  else if (diffDays === 1) label = "Yesterday";
+  if (diffDays === 0) label = t("common.today", "Heute");
+  else if (diffDays === 1) label = t("common.yesterday", "Gestern");
   else label = date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
 
   return (
