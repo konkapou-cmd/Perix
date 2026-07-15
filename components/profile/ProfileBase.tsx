@@ -101,6 +101,85 @@ interface ProfileHeaderProps {
   completenessItems?: { label: string; done: boolean }[];
 }
 
+type ActionBtnVariant = "primary" | "outline" | "secondaryIcon" | "dangerIcon" | "savedIcon";
+
+function ProfileActionButton({
+  label,
+  icon,
+  variant = "primary",
+  color = PROFILE_COLORS.PRIMARY,
+  onPress,
+  disabled,
+}: {
+  label?: string;
+  icon: string;
+  variant?: ActionBtnVariant;
+  color?: string;
+  onPress?: () => void;
+  disabled?: boolean;
+}) {
+  const isPrimary = variant === "primary" || variant === "savedIcon";
+  const isOutline = variant === "outline";
+  const isIcon = variant === "secondaryIcon" || variant === "dangerIcon" || variant === "savedIcon";
+
+  const bg = variant === "primary" ? color
+    : variant === "outline" ? "transparent"
+    : variant === "dangerIcon" ? PROFILE_COLORS.DANGER
+    : "transparent";
+
+  const fg = variant === "primary" ? "#fff"
+    : variant === "outline" ? color
+    : variant === "dangerIcon" ? PROFILE_COLORS.DANGER
+    : variant === "savedIcon" ? "#FFD700"
+    : PROFILE_COLORS.TEXT_SECONDARY;
+
+  const iconSize = isPrimary ? 16 : 20;
+
+  if (isIcon && !label) {
+    return (
+      <Pressable style={abStyles.iconBtn} onPress={onPress} disabled={disabled} hitSlop={8}>
+        <Ionicons name={icon as any} size={20} color={fg} />
+      </Pressable>
+    );
+  }
+
+  return (
+    <Pressable
+      style={[
+        abStyles.btn,
+        isPrimary && { backgroundColor: bg },
+        isOutline && { backgroundColor: bg, borderWidth: 1.5, borderColor: color },
+      ]}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      <Ionicons name={icon as any} size={iconSize} color={fg} />
+      {label && <Text style={[abStyles.text, { color: fg }]} numberOfLines={1}>{label}</Text>}
+    </Pressable>
+  );
+}
+
+const abStyles = StyleSheet.create({
+  btn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: PROFILE.BUTTON_RADIUS,
+    minHeight: 44,
+  },
+  text: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  iconBtn: {
+    padding: 8,
+    borderRadius: 8,
+  },
+});
+
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   identityPicker,
   coverUri,
@@ -286,45 +365,52 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         {!readOnly && (
           <>
             <View style={styles.primaryActions}>
-              <Pressable
-                style={[styles.primaryBtn, { backgroundColor: primaryColor }]}
+              <ProfileActionButton
+                icon="create-outline"
+                label={t("common.edit", "Profil bearbeiten")}
                 onPress={onEditProfile}
-              >
-                <Ionicons name="create-outline" size={16} color="#fff" />
-                <Text style={styles.primaryBtnText}>{t("common.edit", "Edit Profile")}</Text>
-              </Pressable>
+                color={primaryColor}
+              />
               {onShare && (
-                <Pressable
-                  style={[styles.primaryBtn, { backgroundColor: cardColor, borderWidth: 1, borderColor: primaryColor }]}
+                <ProfileActionButton
+                  icon="share-social-outline"
+                  label={t("common.share", "Teilen")}
+                  variant="outline"
                   onPress={onShare}
-                >
-                  <Ionicons name="share-social-outline" size={16} color={primaryColor} />
-                  <Text style={[styles.primaryBtnText, { color: primaryColor }]}>{t("common.share", "Share")}</Text>
-                </Pressable>
+                  color={primaryColor}
+                />
               )}
             </View>
             <View style={styles.secondaryRow}>
               {onCustomizeTheme && (
-                <Pressable style={styles.iconBtn} onPress={onCustomizeTheme}>
-                  <Ionicons name="color-palette-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
-                  <Text style={styles.iconLabel}>{t("common.design", "Design")}</Text>
-                </Pressable>
+                <ProfileActionButton
+                  icon="color-palette-outline"
+                  label={t("common.design", "Design")}
+                  variant="secondaryIcon"
+                  onPress={onCustomizeTheme}
+                />
               )}
               {onPlan && (
-                <Pressable style={styles.iconBtn} onPress={onPlan}>
-                  <Ionicons name="star-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
-                  <Text style={styles.iconLabel}>{t("subscription.plan") || "Plan"}</Text>
-                </Pressable>
+                <ProfileActionButton
+                  icon="star-outline"
+                  label={t("subscription.plan", "Plan")}
+                  variant="secondaryIcon"
+                  onPress={onPlan}
+                />
               )}
-              <Pressable style={styles.iconBtn} onPress={onSettings || (() => router.push("/settings"))}>
-                <Ionicons name="settings-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
-                <Text style={styles.iconLabel}>{t("common.settings", "Einstellungen")}</Text>
-              </Pressable>
+              <ProfileActionButton
+                icon="settings-outline"
+                label={t("common.settings", "Einstellungen")}
+                variant="secondaryIcon"
+                onPress={onSettings || (() => router.push("/settings"))}
+              />
               {showLogout && onLogout && (
-                <Pressable style={styles.iconBtn} onPress={onLogout}>
-                  <Ionicons name="log-out-outline" size={20} color={PROFILE_COLORS.DANGER} />
-                  <Text style={styles.iconLabel}>{t("common.logout") || "Logout"}</Text>
-                </Pressable>
+                <ProfileActionButton
+                  icon="log-out-outline"
+                  label={t("common.logout", "Abmelden")}
+                  variant="dangerIcon"
+                  onPress={onLogout}
+                />
               )}
             </View>
           </>
@@ -333,73 +419,53 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <>
             <View style={styles.primaryActions}>
               {showMessageButton && onMessagePress && (
-                <Pressable
-                  style={[styles.primaryBtn, { backgroundColor: primaryColor }]}
+                <ProfileActionButton
+                  icon="chatbubble-ellipses-outline"
+                  label={t("profile.message", "Nachricht")}
                   onPress={onMessagePress}
-                >
-                  <Ionicons name="chatbubble-ellipses-outline" size={16} color="#fff" />
-                  <Text style={styles.primaryBtnText}>{t("profile.message", "Message")}</Text>
-                </Pressable>
+                  color={primaryColor}
+                />
               )}
               {onFriendPress && (
-                <Pressable
-                  style={[styles.primaryBtn, {
-                    backgroundColor: friendStatus === "friends" ? cardColor : primaryColor,
-                    borderWidth: friendStatus === "friends" ? 1 : 0,
-                    borderColor: friendStatus === "friends" ? borderColor : primaryColor,
-                  }]}
+                <ProfileActionButton
+                  icon={friendStatus === "friends" ? "people" : "person-add-outline"}
+                  label={friendStatus === "friends" ? t("profile.friends", "Freunde") :
+                    friendStatus === "request_sent" ? t("profile.pending", "Anfrage gesendet") :
+                    friendStatus === "request_received" ? t("profile.acceptRequest", "Annehmen") :
+                    t("profile.addFriend", "Freund hinzufügen")}
+                  variant={friendStatus === "friends" ? "outline" : "primary"}
                   onPress={onFriendPress}
-                >
-                  <Ionicons
-                    name={friendStatus === "friends" ? "people" : "person-add-outline"}
-                    size={16}
-                    color={friendStatus === "friends" ? textColor : "#fff"}
-                  />
-                  <Text style={[styles.primaryBtnText, { color: friendStatus === "friends" ? textColor : "#fff" }]}>
-                    {friendStatus === "friends" ? t("profile.friends", "Friends") :
-                     friendStatus === "request_sent" ? t("profile.pending", "Pending") :
-                     friendStatus === "request_received" ? t("profile.acceptRequest", "Accept") :
-                     t("profile.addFriend", "Add Friend")}
-                  </Text>
-                </Pressable>
+                  color={friendStatus === "friends" ? primaryColor : primaryColor}
+                />
               )}
               {showFollowButton && onFollowPress && (
-                <Pressable
-                  style={[styles.primaryBtn, {
-                    backgroundColor: friendStatus === "friends" ? cardColor : primaryColor,
-                    borderWidth: friendStatus === "friends" ? 1 : 0,
-                    borderColor: friendStatus === "friends" ? borderColor : primaryColor,
-                  }]}
+                <ProfileActionButton
+                  icon={friendStatus === "friends" ? "people" : "person-add-outline"}
+                  label={friendStatus === "friends" ? t("profile.friends", "Folgen") :
+                    friendStatus === "request_sent" ? t("profile.pending", "Anfrage gesendet") :
+                    friendStatus === "request_received" ? t("profile.acceptRequest", "Annehmen") :
+                    t("profile.follow", "Folgen")}
+                  variant={friendStatus === "friends" ? "outline" : "primary"}
                   onPress={onFollowPress}
-                >
-                  <Ionicons
-                    name={friendStatus === "friends" ? "people" : "person-add-outline"}
-                    size={16}
-                    color={friendStatus === "friends" ? textColor : "#fff"}
-                  />
-                  <Text style={[styles.primaryBtnText, { color: friendStatus === "friends" ? textColor : "#fff" }]}>
-                    {friendStatus === "friends" ? t("profile.friends", "Friends") :
-                     friendStatus === "request_sent" ? t("profile.pending", "Pending") :
-                     friendStatus === "request_received" ? t("profile.acceptRequest", "Accept") :
-                     t("profile.addFriend", "Add Friend")}
-                  </Text>
-                </Pressable>
+                  color={friendStatus === "friends" ? primaryColor : primaryColor}
+                />
               )}
             </View>
             <View style={styles.secondaryRow}>
               {onShare && (
-                <Pressable style={styles.iconBtn} onPress={onShare}>
-                  <Ionicons name="share-social-outline" size={20} color={PROFILE_COLORS.TEXT_SECONDARY} />
-                </Pressable>
+                <ProfileActionButton
+                  icon="share-social-outline"
+                  variant="secondaryIcon"
+                  onPress={onShare}
+                />
               )}
               {onSavePress && (
-                <Pressable style={styles.iconBtn} onPress={onSavePress} disabled={savingItem}>
-                  <Ionicons
-                    name={isSaved ? "bookmark" : "bookmark-outline"}
-                    size={20}
-                    color={isSaved ? "#FFD700" : PROFILE_COLORS.TEXT_SECONDARY}
-                  />
-                </Pressable>
+                <ProfileActionButton
+                  icon={isSaved ? "bookmark" : "bookmark-outline"}
+                  variant="savedIcon"
+                  onPress={onSavePress}
+                  disabled={savingItem}
+                />
               )}
             </View>
           </>
