@@ -47,6 +47,7 @@ export default function PlacesAutocompleteInput({
   const [showPredictions, setShowPredictions] = useState(false);
   const [isAddressConfirmed, setIsAddressConfirmed] = useState(false);
   const confirmedValueRef = useRef<string>("");
+  const hasUserEditedRef = useRef(false);
 
   const searchPlaces = useCallback(async (query: string) => {
     if (!query || query.length < 2 || isAddressConfirmed) {
@@ -117,19 +118,28 @@ export default function PlacesAutocompleteInput({
   }, [value, searchPlaces, isAddressConfirmed]);
 
   useEffect(() => {
-    if (!value) setIsAddressConfirmed(false);
-  }, [value]);
+    if (!value) {
+      confirmedValueRef.current = "";
+      hasUserEditedRef.current = false;
+      setIsAddressConfirmed(false);
+      return;
+    }
 
-  useEffect(() => {
-    if (confirmed) {
-      if (!confirmedValueRef.current && value) {
-        confirmedValueRef.current = value;
-      }
+    if (confirmed && !confirmedValueRef.current && !hasUserEditedRef.current) {
+      confirmedValueRef.current = value;
       setIsAddressConfirmed(true);
+      return;
+    }
+
+    if (!confirmed) {
+      confirmedValueRef.current = "";
+      hasUserEditedRef.current = false;
+      setIsAddressConfirmed(false);
     }
   }, [confirmed, value]);
 
   const handleTextChange = (text: string) => {
+    hasUserEditedRef.current = true;
     onChangeText(text);
     if (confirmedValueRef.current && text !== confirmedValueRef.current) {
       confirmedValueRef.current = "";
@@ -145,6 +155,8 @@ export default function PlacesAutocompleteInput({
   const handleSelectPrediction = (prediction: PlacePrediction) => {
     setPredictions([]);
     setShowPredictions(false);
+    hasUserEditedRef.current = false;
+    confirmedValueRef.current = prediction.description;
     setIsAddressConfirmed(true);
     onSuggestionsVisible?.(false);
     
@@ -160,6 +172,8 @@ export default function PlacesAutocompleteInput({
     onChangeText("");
     setPredictions([]);
     setShowPredictions(false);
+    confirmedValueRef.current = "";
+    hasUserEditedRef.current = false;
     setIsAddressConfirmed(false);
     onSuggestionsVisible?.(false);
   };
