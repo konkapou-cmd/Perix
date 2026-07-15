@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
+import { IconActionButton } from "../ui/IconActionButton";
 import AdaptiveImage from "../AdaptiveImage";
 import FocalImage from "../FocalImage";
 import AdaptiveVideo from "../AdaptiveVideo";
@@ -137,9 +138,17 @@ function ProfileActionButton({
 
   if (isIcon && !label) {
     return (
-      <Pressable style={abStyles.iconBtn} onPress={onPress} disabled={disabled} hitSlop={8}>
-        <Ionicons name={icon as any} size={20} color={fg} />
-      </Pressable>
+      <IconActionButton
+        icon={icon as any}
+        onPress={onPress}
+        variant={
+          variant === "dangerIcon" ? "danger"
+          : variant === "savedIcon" ? "gold"
+          : "muted"
+        }
+        size="sm"
+        disabled={disabled}
+      />
     );
   }
 
@@ -173,10 +182,6 @@ const abStyles = StyleSheet.create({
   text: {
     fontSize: 14,
     fontWeight: "600",
-  },
-  iconBtn: {
-    padding: 8,
-    borderRadius: 8,
   },
 });
 
