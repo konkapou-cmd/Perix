@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface MapBounds {
@@ -26,6 +26,7 @@ export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
   const [mapBounds, setMapBoundsState] = useState<MapBounds | null>(null);
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const prevBoundsRef = useRef<MapBounds | null>(null);
 
   // Load saved map bounds on mount
   useEffect(() => {
@@ -47,7 +48,22 @@ export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
   const setMapBounds = useCallback(async (bounds: MapBounds) => {
     setMapBoundsState(bounds);
     setIsMapInitialized(true);
-    setRefreshKey((prev) => prev + 1);
+
+    const prev = prevBoundsRef.current;
+    const changed = !prev
+      || prev.centerLat !== bounds.centerLat
+      || prev.centerLng !== bounds.centerLng
+      || prev.minLat !== bounds.minLat
+      || prev.maxLat !== bounds.maxLat
+      || prev.minLng !== bounds.minLng
+      || prev.maxLng !== bounds.maxLng;
+
+    prevBoundsRef.current = bounds;
+
+    if (changed) {
+      setRefreshKey((prev) => prev + 1);
+    }
+
     try {
       await AsyncStorage.setItem(MAP_BOUNDS_STORAGE_KEY, JSON.stringify(bounds));
     } catch (e) {
