@@ -218,7 +218,7 @@ export default function ProfileScreen() {
   const { user, logout, sessionToken, activeIdentity, setActiveIdentity, refreshUser } = useAuth();
   const { clearMapBounds } = useMapBounds();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string; t?: string }>();
+  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string }>();
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -459,7 +459,6 @@ export default function ProfileScreen() {
       openEvent: undefined,
       openJob: undefined,
       openBookings: undefined,
-      t: undefined,
     } as any);
 
     // Open only one action per trigger.
