@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BusinessMap from "../../components/BusinessMap";
-import { SkeletonBox } from "../../components/shared";
+import { SkeletonBox, EmptyState } from "../../components/shared";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import LocatorCard from "../../components/locator/LocatorCard";
 import LocatorHeader from "../../components/locator/LocatorHeader";
@@ -986,9 +986,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{visibleBusinesses.length} {t('tabs.businesses')}</Text>
             {visibleBusinesses.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>{t('business.noBusinesses')}</Text>
-              </View>
+              <EmptyState icon="storefront" message={t('business.noBusinesses')} size="default" muted />
             )}
             {visibleBusinesses.map((business) => {
               const isOpen = isBusinessOpen(business);
@@ -1012,9 +1010,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{visibleEvents.length} {t('tabs.events')}</Text>
             {visibleEvents.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>{t('events.noEvents')}</Text>
-              </View>
+              <EmptyState icon="calendar" message={t('events.noEvents')} size="default" muted />
             )}
             {visibleEvents.map((event) => {
               const dist = getDistance(event.business?.latitude, event.business?.longitude);
@@ -1036,9 +1032,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{visibleActivities.length} {t('tabs.activities')}</Text>
             {visibleActivities.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>{t('activities.noActivities')}</Text>
-              </View>
+              <EmptyState icon="people" message={t('activities.noActivities')} size="default" muted />
             )}
             {visibleActivities.map((activity) => {
               const dist = getDistance(activity.latitude, activity.longitude);
@@ -1060,9 +1054,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{filteredRentals.length} {t('tabs.rentals')}</Text>
             {filteredRentals.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>{t('rentals.noRentals') || "No rentals found"}</Text>
-              </View>
+              <EmptyState icon="home-outline" message={t('rentals.noRentals', "Keine Mietangebote gefunden")} size="default" muted />
             )}
             {filteredRentals.map((rental) => {
               const dist = getDistance(rental.latitude, rental.longitude);
@@ -1097,9 +1089,7 @@ export default function LocatorScreen() {
           <View style={styles.list}>
             <Text style={styles.listTitle}>{filteredJobs.length} {t('tabs.jobs')}</Text>
             {filteredJobs.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>{t('jobs.noJobs') || "No jobs found"}</Text>
-              </View>
+              <EmptyState icon="briefcase-outline" message={t('jobs.noJobs', "Keine Stellenanzeigen gefunden")} size="default" muted />
             )}
             {filteredJobs.map((job) => {
               const dist = getDistance(job.latitude, job.longitude);

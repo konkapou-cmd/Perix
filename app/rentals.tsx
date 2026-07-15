@@ -30,6 +30,7 @@ import {
 } from "../lib/api";
 import BusinessMap from "../components/BusinessMap";
 import { useMapBounds } from "../context/MapBoundsContext";
+import EmptyState from "../components/shared/EmptyState";
 import { translateCategory } from "../lib/categoryTranslation";
 import {
   COLORS,
@@ -382,9 +383,11 @@ export default function RentalsScreen() {
           onEndReachedThreshold={0.5}
           ListFooterComponent={loadingMore ? <ActivityIndicator color={COLORS.textPrimary} /> : null}
           ListEmptyComponent={
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>{searchQuery ? t("rentals.noResults", "No rentals found") : t("rentals.noRentals")}</Text>
-            </View>
+            <EmptyState
+              icon="home-outline"
+              message={searchQuery ? t("rentals.noResults", "Keine Mietangebote gefunden") : t("rentals.noRentals", "Noch keine Mietangebote verfügbar")}
+              size="large"
+            />
           }
           contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 16 }}
         />
