@@ -130,7 +130,7 @@ function ProfileActionButton({
   const fg = variant === "primary" ? "#fff"
     : variant === "outline" ? color
     : variant === "dangerIcon" ? PROFILE_COLORS.DANGER
-    : variant === "savedIcon" ? "#FFD700"
+    : variant === "savedIcon" ? COLORS.gold
     : PROFILE_COLORS.TEXT_SECONDARY;
 
   const iconSize = isPrimary ? 16 : 20;
