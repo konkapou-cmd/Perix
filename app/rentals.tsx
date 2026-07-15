@@ -32,6 +32,7 @@ import {
 import BusinessMap from "../components/BusinessMap";
 import { useMapBounds } from "../context/MapBoundsContext";
 import EmptyState from "../components/shared/EmptyState";
+import { SkeletonBox } from "../components/shared";
 import { translateCategory } from "../lib/categoryTranslation";
 import {
   COLORS,
@@ -312,18 +313,9 @@ export default function RentalsScreen() {
       {/* Rental List */}
       <Text style={styles.sectionTitle}>{t("rentals.nearbyRentals", "Nearby Rentals")}</Text>
       {loading ? (
-        <View style={{ backgroundColor: COLORS.backgroundPage }}>
+        <View style={{ padding: 16, backgroundColor: COLORS.backgroundPage }}>
           {[0, 1, 2, 3].map((i) => (
-            <View key={i} style={{ backgroundColor: COLORS.background, borderRadius: 16, padding: 12, marginHorizontal: 16, marginBottom: 10 }}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: "#e5e7eb" }} />
-                <View style={{ marginLeft: 12, gap: 6 }}>
-                  <View style={{ width: 140, height: 12, backgroundColor: "#e5e7eb", borderRadius: 4 }} />
-                  <View style={{ width: 100, height: 12, backgroundColor: "#e5e7eb", borderRadius: 4 }} />
-                  <View style={{ width: 80, height: 12, backgroundColor: "#e5e7eb", borderRadius: 4 }} />
-                </View>
-              </View>
-            </View>
+            <SkeletonBox key={i} width="100%" height={88} borderRadius={16} style={{ marginBottom: 10 }} />
           ))}
         </View>
       ) : (

@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import { COLORS } from "../lib/designTokens";
 import { getMyApplications, MyApplication } from "../lib/api";
 import EmptyState from "../components/shared/EmptyState";
+import LoadingState from "../components/shared/LoadingState";
 
 export default function MyApplicationsScreen() {
   const { t } = useTranslation();
@@ -54,7 +55,7 @@ export default function MyApplicationsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loading}><ActivityIndicator size="large" color={COLORS.primaryDark} /></View>
+        <LoadingState size="large" fullWidth />
       </SafeAreaView>
     );
   }
