@@ -76,16 +76,16 @@ export default function TabsLayout() {
         router.push("/camera");
         break;
       case "event":
-        router.replace({ pathname: "/(tabs)/profile", params: { openEvent: "1", t: Date.now().toString() } as any });
+        router.replace({ pathname: "/(tabs)/profile", params: { openEvent: "1" } });
         break;
       case "job":
-        router.replace({ pathname: "/(tabs)/profile", params: { openJob: "1", t: Date.now().toString() } as any });
+        router.replace({ pathname: "/(tabs)/profile", params: { openJob: "1" } });
         break;
       case "service":
-        router.replace({ pathname: "/(tabs)/profile", params: { openService: "1", t: Date.now().toString() } as any });
+        router.replace({ pathname: "/(tabs)/profile", params: { openService: "1" } });
         break;
       case "bookings":
-        router.replace({ pathname: "/(tabs)/profile", params: { openBookings: "1", t: Date.now().toString() } as any });
+        router.replace({ pathname: "/(tabs)/profile", params: { openBookings: "1" } });
         break;
     }
   };
