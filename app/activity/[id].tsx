@@ -32,6 +32,7 @@ import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../c
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
 import EntityMapSection from "../../components/shared/EntityMapSection";
+import ErrorState from "../../components/shared/ErrorState";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { EntityHeader } from "../../components/shared/EntityHeader";
 import { BottomCTA } from "../../components/shared/BottomCTA";
@@ -273,8 +274,11 @@ export default function ActivityDetailPage() {
   if (!activity) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Ionicons name="people-outline" size={48} color={COLORS.textSecondary} />
-        <Text style={styles.errorText}>{t("activities.activityNotFound")}</Text>
+        <ErrorState
+          message={t("activities.activityNotFound", "Aktivität nicht gefunden")}
+          fullWidth
+          onRetry={() => loadActivity()}
+        />
         <Pressable style={[styles.backButton, { backgroundColor: COLORS.activityAccent }]} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>{t("common.back")}</Text>
         </Pressable>
