@@ -444,21 +444,51 @@ export default function ProfileScreen() {
 
   // Watch for business action params from BusinessActionsModal
   useEffect(() => {
-    if (params.openEvent === "1") {
-      setEventModalVisible(true);
+    const shouldOpenService = params.openService === "1";
+    const shouldOpenEvent = params.openEvent === "1";
+    const shouldOpenJob = params.openJob === "1";
+    const shouldOpenBookings = params.openBookings === "1";
+
+    if (!shouldOpenService && !shouldOpenEvent && !shouldOpenJob && !shouldOpenBookings) {
+      return;
     }
-    if (params.openJob === "1") {
+
+    // Clear consumed params immediately so closing the modal does not reopen it.
+    router.setParams({
+      openService: undefined,
+      openEvent: undefined,
+      openJob: undefined,
+      openBookings: undefined,
+      t: undefined,
+    } as any);
+
+    // Open only one modal/action per route trigger to avoid stacked modals.
+    if (shouldOpenService) {
+      handleAddService();
+      return;
+    }
+
+    if (shouldOpenEvent) {
+      setEventModalVisible(true);
+      return;
+    }
+
+    if (shouldOpenJob) {
       setEditingJobId(null);
       setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
       setJobModalVisible(true);
+      return;
     }
-    if (params.openService === "1") {
-      handleAddService();
-    }
-    if (params.openBookings === "1") {
+
+    if (shouldOpenBookings) {
       setBookingListVisible(true);
     }
-  }, [params.openEvent, params.openJob, params.openService, params.openBookings, params.t]);
+  }, [
+    params.openService,
+    params.openEvent,
+    params.openJob,
+    params.openBookings,
+  ]);
 
   // ---------------------------------------------------------------------------
   // 2. USER VIEW STATE & HANDLERS
