@@ -290,7 +290,7 @@ export default function RentalsScreen() {
                 title: r.title,
                 description: r.business_name || "",
                 type: "rental" as const,
-                pinColor: "#10b981",
+                pinColor: COLORS.pinRental,
               }))}
             onMarkerPress={(id) => openRentalDetail(filteredRentals.find((r) => r.rental_id === id)!)}
             onRegionChangeComplete={(bounds) => {

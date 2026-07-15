@@ -28,6 +28,8 @@ type JobForm = {
   requirements: string;
   salary_range: string;
   work_location: string;
+  latitude?: number | null;
+  longitude?: number | null;
   expires_at: string;
   status: "draft" | "published";
 };
@@ -211,7 +213,11 @@ export default function JobModal({
             <PlacesAutocompleteInput
               value={jobForm.work_location}
               onChangeText={(text) => handleFormChange("work_location", text)}
-              onSelectPlace={(address) => handleFormChange("work_location", address)}
+              onSelectPlace={(address, lat, lng) => {
+                handleFormChange("work_location", address);
+                handleFormChange("latitude", lat as any);
+                handleFormChange("longitude", lng as any);
+              }}
               placeholder={businessAddress || t("jobs.locationPlaceholder") || "z.B. Berlin, Deutschland oder Remote"}
               style={s.input}
               nearLat={nearLat}

@@ -2301,6 +2301,8 @@ currentUserId={businessDetail?.business?.business_id}
                 requirements: jobForm.requirements || undefined,
                 salary_range: jobForm.salary_range || undefined,
                 work_location: jobForm.work_location || undefined,
+                latitude: jobForm.latitude ?? undefined,
+                longitude: jobForm.longitude ?? undefined,
                 expires_at: jobForm.expires_at || undefined,
                 status: jobForm.status || "published",
                 cover_focal_point: (jobForm as any).cover_focal_point || undefined,
