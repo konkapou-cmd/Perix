@@ -35,6 +35,7 @@ import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../c
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
 import EntityMapSection from "../../components/shared/EntityMapSection";
+import ErrorState from "../../components/shared/ErrorState";
 import { ChecklistCard } from "../../components/shared/ChecklistCard";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
@@ -274,7 +275,11 @@ export default function ServiceDetailPage() {
   if (!service) {
     return (
       <SafeAreaView style={styles.centered} edges={["top"]}>
-        <Text style={styles.errorText}>{t("services.notFound", "Service not found")}</Text>
+        <ErrorState
+          message={t("services.notFound", "Dienst nicht gefunden")}
+          fullWidth
+          onRetry={() => loadService()}
+        />
         <Pressable style={[styles.backButton, { backgroundColor: COLORS.servicesAccent }]} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>{t("common.back")}</Text>
         </Pressable>

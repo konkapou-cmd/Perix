@@ -25,6 +25,7 @@ import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../c
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
 import EntityMapSection from "../../components/shared/EntityMapSection";
+import ErrorState from "../../components/shared/ErrorState";
 import { ChecklistCard } from "../../components/shared/ChecklistCard";
 import { ShareSection } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
@@ -145,7 +146,11 @@ export default function JobDetailPage() {
   if (!job) {
     return (
       <SafeAreaView style={styles.centered} edges={["top", "bottom"]}>
-        <Text style={styles.errorText}>{t("jobs.noJobs") || "Job not found"}</Text>
+        <ErrorState
+          message={t("jobs.noJobs", "Stellenanzeige nicht gefunden")}
+          fullWidth
+          onRetry={() => loadJob()}
+        />
         <Pressable style={styles.notFoundBack} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={20} color={COLORS.jobsAccent} />
           <Text style={styles.backText}>{t("common.back")}</Text>

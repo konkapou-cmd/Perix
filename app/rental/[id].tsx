@@ -22,6 +22,7 @@ import ContentSection from "../../components/shared/ContentSection";
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
 import EntityMapSection from "../../components/shared/EntityMapSection";
+import ErrorState from "../../components/shared/ErrorState";
 import { ShareSection } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
 import { EntityHeader } from "../../components/shared/EntityHeader";
@@ -85,7 +86,11 @@ export default function RentalDetailPage() {
   if (!rental) {
     return (
       <SafeAreaView style={styles.centered} edges={["top"]}>
-        <Text style={styles.errorText}>{t("rentals.notFound") || "Rental not found"}</Text>
+        <ErrorState
+          message={t("rentals.notFound", "Mietangebot nicht gefunden")}
+          fullWidth
+          onRetry={() => loadRental()}
+        />
         <Pressable style={styles.notFoundBack} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={20} color={COLORS.rentalsAccent} />
           <Text style={styles.backText}>{t("common.back")}</Text>
