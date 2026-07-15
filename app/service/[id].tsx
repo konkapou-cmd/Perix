@@ -34,6 +34,7 @@ import ShareContent from "../../components/ShareContent";
 import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
+import EntityMapSection from "../../components/shared/EntityMapSection";
 import { ChecklistCard } from "../../components/shared/ChecklistCard";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
@@ -187,14 +188,6 @@ export default function ServiceDetailPage() {
       setShowInquiry(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage("");
     } catch (e: any) { Alert.alert("Error", e.message || t("services.inquiryFailed")); }
     finally { setSubmittingInquiry(false); }
-  };
-
-  const openMap = () => {
-    if (service?.latitude != null && service?.longitude != null) {
-      Linking.openURL(`https://maps.google.com/maps?q=${service.latitude},${service.longitude}`);
-    } else if (service?.address) {
-      Linking.openURL(`https://maps.google.com/maps?q=${encodeURIComponent(service.address)}`);
-    }
   };
 
   const formatTime = (time: string) => { const [h, m] = time.split(":"); return `${h}:${m}`; };
@@ -383,18 +376,13 @@ export default function ServiceDetailPage() {
             </View>
           )}
 
-          {service.address && (
-            <LocationCard
-              label={t("services.address", "Adresse")}
-              address={service.address}
-              accentColor={COLORS.servicesAccent}
-              onPress={openMap}
-            />
-          )}
-
-          {service.latitude != null && service.longitude != null && (
-            <ContentMap latitude={service.latitude} longitude={service.longitude} title={service.name} address={service.address} interactive />
-          )}
+          <EntityMapSection
+            address={service.address}
+            latitude={service.latitude}
+            longitude={service.longitude}
+            title={service.name}
+            accentColor={COLORS.servicesAccent}
+          />
 
           {service.description && (
             <ContentSection icon="document-text" title={t("services.description", "Beschreibung")}>

@@ -21,6 +21,7 @@ import ContentMap from "../../components/shared/ContentMap";
 import ContentSection from "../../components/shared/ContentSection";
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
+import EntityMapSection from "../../components/shared/EntityMapSection";
 import { ShareSection } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
 import { EntityHeader } from "../../components/shared/EntityHeader";
@@ -65,14 +66,6 @@ export default function RentalDetailPage() {
       console.error("Failed to toggle save:", error);
     } finally {
       setSavingItem(false);
-    }
-  };
-
-  const openMap = () => {
-    if (rental?.latitude && rental?.longitude) {
-      Linking.openURL(`https://maps.google.com/maps?q=${rental.latitude},${rental.longitude}`);
-    } else if (rental?.address) {
-      Linking.openURL(`https://maps.google.com/maps?q=${encodeURIComponent(rental.address)}`);
     }
   };
 
@@ -167,24 +160,13 @@ export default function RentalDetailPage() {
           </ContentSection>
         )}
 
-        {rental.address && (
-          <LocationCard
-            label={t("rentals.address") || "Adresse"}
+        <EntityMapSection
             address={rental.address}
-            accentColor={COLORS.rentalsAccent}
-            onPress={openMap}
-          />
-        )}
-
-        {rental.latitude && rental.longitude && (
-          <ContentMap
             latitude={rental.latitude}
             longitude={rental.longitude}
             title={rental.title}
-            address={rental.address}
-            interactive
+            accentColor={COLORS.rentalsAccent}
           />
-        )}
 
         {rental.gallery_images && rental.gallery_images.length > 0 && (
           <ContentGallery
