@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -471,9 +471,13 @@ export default function LocatorScreen() {
     });
   }, [setGlobalMapBounds, sessionToken, radiusKm]);
 
+  const requestIdRef = useRef(0);
+
   useEffect(() => {
     if (!mapBounds || !sessionToken) return;
+    const currentRequestId = ++requestIdRef.current;
     const timer = setTimeout(() => {
+      if (currentRequestId !== requestIdRef.current) return;
       loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
       if (activeTab === "businesses" && selectedRoot === "rental-real-estate") {
         loadRentals(mapBounds, rentalTypeFilter);
@@ -484,22 +488,15 @@ export default function LocatorScreen() {
       if (activeTab === "jobs") {
         loadJobs(mapBounds);
       }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory, activeTab, rentalTypeFilter]);
-
-  useEffect(() => {
-    if (!mapBounds || !sessionToken) return;
-    if (activeTab !== "events" && activeTab !== "activities") return;
-    const timer = setTimeout(() => {
       if (activeTab === "events") {
         loadEvents(mapBounds);
-      } else if (activeTab === "activities") {
+      }
+      if (activeTab === "activities") {
         loadActivities(mapBounds);
       }
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [mapBounds, sessionToken, activeTab, refreshKey, dateFilter, loadEvents, loadActivities]);
+  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory, activeTab, rentalTypeFilter, dateFilter, loadEvents, loadActivities]);
 
 
 
@@ -816,7 +813,13 @@ export default function LocatorScreen() {
           businesses={activeTab === "businesses" ? businesses : []}
           events={activeTab === "events" ? events : []}
           activities={activeTab === "activities" ? activities : []}
-          rentals={activeTab === "businesses" ? rentals : []}
+          rentals={
+            activeTab === "rentals" ||
+            (activeTab === "businesses" && selectedRoot === "rental-real-estate")
+              ? rentals
+              : []
+          }
+          jobs={activeTab === "jobs" ? jobs : []}
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
@@ -825,6 +828,8 @@ export default function LocatorScreen() {
               if (rental) { router.push(`/service/${rental.service_id || id}` as any); return; }
               router.push(`/business/${id}` as any); return;
             }
+            if (activeTab === "rentals") { router.push(`/rental/${id}` as any); return; }
+            if (activeTab === "jobs") { router.push(`/job/${id}` as any); return; }
             if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
           }}
