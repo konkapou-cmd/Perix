@@ -22,6 +22,7 @@ import {
   FONT_WEIGHTS,
   BORDER_RADIUS,
 } from "../lib/designTokens";
+import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 
 export default function MyRentalsScreen() {
   const { t } = useTranslation();
@@ -61,9 +62,7 @@ export default function MyRentalsScreen() {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-          </Pressable>
+          <HeaderBackButton onPress={() => router.back()} />
           <Text style={styles.title}>{t("rentals.myRentals", "My Rentals")}</Text>
         </View>
         <View style={styles.center}>
@@ -76,9 +75,7 @@ export default function MyRentalsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.title}>{t("rentals.myRentals", "My Rentals")}</Text>
       </View>
 
@@ -145,9 +142,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     gap: 12,
-  },
-  backButton: {
-    padding: 4,
   },
   title: {
     fontSize: 22,

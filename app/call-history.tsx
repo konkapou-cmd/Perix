@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { COLORS } from "../lib/designTokens";
+import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 import { getCallHistory, deleteCallHistory, deleteAllCallHistory, CallRecord } from "../lib/api";
 
 export default function CallHistoryScreen() {
@@ -188,9 +189,7 @@ export default function CallHistoryScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-          </Pressable>
+          <HeaderBackButton onPress={() => router.back()} />
           <Text style={styles.title}>{t("calls.callHistory")}</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -204,9 +203,7 @@ export default function CallHistoryScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.title}>{t("calls.callHistory")}</Text>
         {calls.length > 0 ? (
           <Pressable onPress={handleClearAllCalls} style={styles.clearAllButton} data-testid="clear-all-calls-btn">
@@ -252,9 +249,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
-  },
-  backButton: {
-    padding: 8,
   },
   clearAllButton: {
     padding: 8,

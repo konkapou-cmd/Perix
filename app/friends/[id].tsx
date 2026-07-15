@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { COLORS } from "../../lib/designTokens";
+import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 import { FriendProfile, getUserFriends, getMyFriendProfiles } from "../../lib/api";
 
 export default function FriendsListScreen() {
@@ -106,11 +107,9 @@ export default function FriendsListScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.title}>{t("profile.friends", "Friends")}</Text>
-        <View style={styles.backBtn} />
+        <View style={{ width: 40, height: 40 }} />
       </View>
 
       {loading ? (
@@ -150,12 +149,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
   },
   title: {
     fontSize: 18,

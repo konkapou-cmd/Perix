@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { getSavedItems, toggleSaved, SavedItem } from "../lib/api";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../lib/designTokens";
+import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 
 const TYPE_ICONS: Record<string, string> = {
   event: "calendar",
@@ -154,9 +155,7 @@ export default function SavedScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </Pressable>
+        <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t("saved.title", "Saved")}</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -228,12 +227,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
   },
   headerTitle: {
     fontSize: FONT_SIZES.h3,
