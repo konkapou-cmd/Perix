@@ -138,8 +138,8 @@ async def create_job(
             {"owner_id": current_user.user_id},
             {"_id": 0}
         )
-    if not business:
-        raise HTTPException(status_code=403, detail="Only business owners can post jobs")
+        if not business:
+            raise HTTPException(status_code=403, detail="Only business owners can post jobs")
     
     # Calculate expiry date (default 3 weeks)
     if job_data.expires_at:

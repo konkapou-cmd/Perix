@@ -1,7 +1,9 @@
 """Authentication routes."""
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
-from datetime import timedelta
+from datetime import datetime, timedelta
+from pydantic import BaseModel
 import httpx
+import secrets
 
 from database import db
 from models.user import RegisterInput, LoginInput, GoogleSessionInput, AuthResponse, UserPublic, UpgradeToBusinessInput, ChangePasswordInput
@@ -10,6 +12,14 @@ from config import SESSION_DAYS
 from routes.dependencies import pwd_context, build_user_public, create_session, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+# Password reset models
+class ForgotPasswordInput(BaseModel):
+    email: str
+
+class ResetPasswordInput(BaseModel):
+    token: str
+    new_password: str
 
 
 def set_session_cookie(response: Response, session_token: str) -> None:
@@ -263,3 +273,42 @@ async def change_password(
         {"$set": {"password_hash": pwd_context.hash(payload.new_password)}}
     )
     return {"status": "password_changed"}
+
+
+@router.post("/forgot-password", summary="Request a password reset token")
+async def forgot_password(payload: ForgotPasswordInput):
+    user_doc = await db.users.find_one({"email": payload.email})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="No account found with this email")
+    token = secrets.token_urlsafe(32)
+    now = datetime.utcnow()
+    await db.password_reset_tokens.insert_one({
+        "token": token,
+        "email": payload.email,
+        "created_at": now,
+        "expires_at": now + timedelta(hours=1),
+        "used": False,
+    })
+    return {"status": "reset_token_created", "reset_token": token, "message": "Token expires in 1 hour"}
+
+
+@router.post("/reset-password", summary="Reset password using a token")
+async def reset_password(payload: ResetPasswordInput):
+    reset_doc = await db.password_reset_tokens.find_one({
+        "token": payload.token,
+        "used": False,
+        "expires_at": {"$gt": datetime.utcnow()},
+    })
+    if not reset_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    if len(payload.new_password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+    await db.password_reset_tokens.update_one(
+        {"token": payload.token},
+        {"$set": {"used": True}},
+    )
+    await db.users.update_one(
+        {"email": reset_doc["email"]},
+        {"$set": {"password_hash": pwd_context.hash(payload.new_password)}}
+    )
+    return {"status": "password_reset", "email": reset_doc["email"]}
