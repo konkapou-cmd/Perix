@@ -142,6 +142,10 @@ export default function LoginScreen() {
 
           {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
+          <Link href="/forgot-password" style={styles.forgotLink}>
+            {t("auth.forgotPassword", "Passwort vergessen?")}
+          </Link>
+
           <View style={styles.securedByContainer}>
             <Ionicons name="shield-checkmark" size={14} color="#10b981" />
             <Text style={styles.securedByText}>LOG IN SECURED BY</Text>
@@ -377,5 +381,12 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     fontWeight: "700",
     letterSpacing: 1,
+  },
+  forgotLink: {
+    textAlign: "center",
+    color: COLORS.primary,
+    fontSize: 14,
+    fontWeight: "500",
+    marginTop: 16,
   },
 });

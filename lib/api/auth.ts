@@ -39,3 +39,11 @@ export const getMe = async (token: string): Promise<import("./core").User> => {
 export const logoutUser = async (token: string): Promise<void> => {
   await apiRequest("/auth/logout", "POST", token);
 };
+
+export const forgotPassword = async (email: string): Promise<{ reset_token: string }> => {
+  return apiRequest("/auth/forgot-password", "POST", null, { email });
+};
+
+export const resetPassword = async (token: string, new_password: string): Promise<{ status: string }> => {
+  return apiRequest("/auth/reset-password", "POST", null, { token, new_password });
+};
