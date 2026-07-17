@@ -310,6 +310,18 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           });
         }
       });
+      // If no services exist yet, show a default tab so the owner can create
+      if (seen.size === 0) {
+        const defaultModule = getDefaultModule(rootCat);
+        const resolvedCat = resolveCategory(rootCat);
+        const config = getServiceTypeConfig(resolvedCat, defaultModule);
+        tabs.push({
+          key: `svc:${resolvedCat}:${defaultModule}`,
+          label: config?.publicTabLabel || t("services.services", "Dienste"),
+          icon: (config?.icon || getCategoryIcon(rootCat) || "grid") as any,
+          count: 0,
+        });
+      }
     }
     // 3. Events
     if (events.length > 0) {

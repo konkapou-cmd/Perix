@@ -435,6 +435,6 @@ export function getCategoryCtaType(rootCategory: string): ServiceCtaType {
   return SERVICE_CATEGORY_MATRIX[rootCategory]?.recommendedCtaType ?? "get_in_touch";
 }
 
-export function hasServiceModules(rootCategory: string): boolean {
+export function hasServiceModules(rootCategory: string, _subcategory?: string): boolean {
   return (SERVICE_CATEGORY_MATRIX[rootCategory]?.allowedModules?.length ?? 0) > 0;
 }
