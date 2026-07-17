@@ -101,7 +101,7 @@ async def create_event(
         "is_private": payload.is_private,
         "password": payload.password,
         "tagged_artist_ids": payload.tagged_artist_ids or [],
-        "cover_focal_point": payload.cover_focal_point or {"x": 0.5, "y": 0.5},
+        "cover_focal_point": payload.cover_focal_point.model_dump() if payload.cover_focal_point else {"x": 0.5, "y": 0.5},
         "created_at": now_utc(),
         "attendees": [],
     }

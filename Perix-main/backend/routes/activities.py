@@ -174,7 +174,7 @@ async def create_activity(
         "gallery_videos": payload.gallery_videos or [],
         "video_url": payload.video_url,
         "tagged_business_id": payload.tagged_business_id,
-        "cover_focal_point": payload.cover_focal_point or {"x": 0.5, "y": 0.5},
+        "cover_focal_point": payload.cover_focal_point.model_dump() if payload.cover_focal_point else {"x": 0.5, "y": 0.5},
     }
     await db.activities.insert_one(activity_doc)
     

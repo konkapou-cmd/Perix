@@ -172,7 +172,7 @@ async def create_job(
         "expires_at": expires_at.isoformat(),
         "business_name": business.get("name"),
         "business_logo": business.get("profile_photo"),
-        "cover_focal_point": job_data.cover_focal_point or {"x": 0.5, "y": 0.5},
+        "cover_focal_point": job_data.cover_focal_point.model_dump() if job_data.cover_focal_point else {"x": 0.5, "y": 0.5},
         "status": job_data.status or "published",
     }
     
