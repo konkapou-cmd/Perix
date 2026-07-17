@@ -213,6 +213,40 @@ export default function ServiceDetailPage() {
 
   const getQuickInfoFields = () => getFieldsForType().filter((f) => ["duration_minutes", "capacity", "bedrooms", "bathrooms", "size_sqm", "max_guests"].includes(f) && hasDetailValue(f));
 
+  const getModuleDetailSections = (): { title: string; icon: string; fields: string[] }[] => {
+    if (!service) return [];
+    const moduleFields = getServiceFields(service.type);
+    const sections: { title: string; icon: string; fields: string[] }[] = [];
+
+    const specs: string[] = [];
+    const vehicle: string[] = [];
+    const food: string[] = [];
+    const health: string[] = [];
+    const included: string[] = [];
+    const timing: string[] = [];
+
+    for (const f of moduleFields) {
+      if (!hasDetailValue(f)) continue;
+      if (f === "duration_minutes" || f === "sessions_count" || f === "duration_days" || f === "duration_months" || f === "duration_per_session" || f === "visits_included" || f === "valid_days") timing.push(f);
+      else if (f === "make" || f === "model" || f === "year" || f === "mileage_km" || f === "fuel_type" || f === "transmission") vehicle.push(f);
+      else if (f === "menu_category" || f === "dietary_tags" || f === "allergens" || f === "calories" || f === "spice_level") food.push(f);
+      else if (f === "reason_for_visit" || f === "insurance_info" || f === "pet_name" || f === "pet_type") health.push(f);
+      else if (f === "includes" || f === "included_services" || f === "special_requests") included.push(f);
+      else if (f === "instructor" || f === "specialist_name" || f === "difficulty_level" || f === "session_type" || f === "treatment_type" || f === "service_category" || f === "consultation_type" || f === "meeting_type" || f === "capacity" || f === "max_guests") specs.push(f);
+      else if (f === "pickup_location" || f === "dropoff_location" || f === "available_from" || f === "lease_duration" || f === "furnished" || f === "floor" || f === "bedrooms" || f === "bathrooms" || f === "size_sqm") specs.push(f);
+      else if (f === "brand" || f === "stock_status" || f === "condition") specs.push(f);
+    }
+
+    if (timing.length) sections.push({ title: t("detail.timing", "Dauer & Verfügbarkeit"), icon: "time-outline", fields: timing });
+    if (specs.length) sections.push({ title: t("detail.specs", "Details"), icon: "information-circle-outline", fields: specs });
+    if (vehicle.length) sections.push({ title: t("detail.vehicle", "Fahrzeugdaten"), icon: "car-sport-outline", fields: vehicle });
+    if (food.length) sections.push({ title: t("detail.food", "Gerichtinfos"), icon: "restaurant-outline", fields: food });
+    if (health.length) sections.push({ title: t("detail.health", "Gesundheit & Pflege"), icon: "medkit-outline", fields: health });
+    if (included.length) sections.push({ title: t("detail.included", "Enthalten"), icon: "list-outline", fields: included });
+
+    return sections;
+  };
+
   const getFacilities = (): string[] => {
     if (!service?.facilities || !Array.isArray(service.facilities)) return [];
     return service.facilities.map((f: string) => f.charAt(0).toUpperCase() + f.slice(1).replace(/-/g, " "));
@@ -347,6 +381,37 @@ export default function ServiceDetailPage() {
             </ContentSection>
           )}
 
+          {getModuleDetailSections().map((section) => (
+            <ContentSection key={section.title} icon={section.icon} title={section.title}>
+              <View style={styles.moduleGrid}>
+                {section.fields.map((fieldName) => {
+                  const value = serviceField(fieldName);
+                  const config = FIELD_REGISTRY[fieldName];
+                  if (!config || value === undefined || value === null) return null;
+                  let displayValue = String(value);
+                  if (config.component === "number" && config.displayFormat === "duration") displayValue = formatDuration(Number(value));
+                  if (fieldName === "size_sqm") displayValue = String(value) + " m²";
+                  if (fieldName === "calories") displayValue = String(value) + " kcal";
+                  if (fieldName === "mileage_km") displayValue = String(value) + " km";
+                  if (fieldName === "duration_days") displayValue = String(value) + " Tage";
+                  if (fieldName === "duration_months") displayValue = String(value) + " Monate";
+                  if (fieldName === "sessions_count") displayValue = String(value) + " Sitzungen";
+                  if (config.component === "chips" || config.component === "chips-multi") displayValue = String(value);
+                  if (fieldName === "available_from") {
+                    try { displayValue = new Date(String(value)).toLocaleDateString("de-DE"); } catch {}
+                  }
+                  return (
+                    <View key={fieldName} style={styles.moduleItem}>
+                      <Ionicons name={(getFieldIcon(fieldName) || "information-circle") as any} size={18} color={COLORS.textMuted} />
+                      <Text style={styles.moduleLabel}>{t(config.labelKey, config.labelKey)}</Text>
+                      <Text style={styles.moduleValue} selectable>{displayValue}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </ContentSection>
+          ))}
+
           {getFacilities().length > 0 && (
             <ChecklistCard
               icon="checkmark-circle-outline"
@@ -376,15 +441,17 @@ export default function ServiceDetailPage() {
             onSave={handleToggleSave}
           />
 
-          <BottomCTA
-            primaryLabel={ctaLabel}
-            primaryIcon={ctaIcon}
-            accentColor={COLORS.servicesAccent}
-            onPrimary={handleCta}
-            saved={isSaved}
-            onSave={handleToggleSave}
-            onShare={handleShareService}
-          />
+          {ctaType !== "browse_only" && (
+            <BottomCTA
+              primaryLabel={ctaLabel}
+              primaryIcon={ctaIcon}
+              accentColor={COLORS.servicesAccent}
+              onPrimary={handleCta}
+              saved={isSaved}
+              onSave={handleToggleSave}
+              onShare={handleShareService}
+            />
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -579,4 +646,8 @@ const styles = StyleSheet.create({
   submitButton: { backgroundColor: COLORS.servicesAccent, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.std },
   submitButtonDisabled: { opacity: 0.6 },
   submitButtonText: { fontSize: FONT_SIZES.body, fontWeight: "700", color: "#fff" },
+  moduleGrid: { gap: SPACING.small },
+  moduleItem: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.tiny },
+  moduleLabel: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, width: 110 },
+  moduleValue: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary, fontWeight: "600", flex: 1 },
 });
