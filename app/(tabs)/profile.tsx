@@ -87,6 +87,7 @@ import {
 } from "../../lib/api";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/mediaLimits";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
+import { hasServiceModules, getDefaultModule } from "../../lib/config/serviceCategoryMatrix";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
 import { LanguagePicker } from "../../components/LanguagePicker";
 import { IdentityDropdown } from "../../components/profile/IdentityDropdown";
@@ -464,6 +465,11 @@ export default function ProfileScreen() {
 
     // Open only one action per trigger.
     if (shouldOpenService) {
+      const rootCategory = businessDetail?.business.root_category;
+      if (rootCategory && !hasServiceModules(rootCategory)) {
+        Alert.alert(t("common.info", "Info"), t("services.noCategoryModules", "Für diese Kategorie sind keine Dienste verfügbar."));
+        return;
+      }
       handleAddService();
       return;
     }
@@ -1200,10 +1206,12 @@ const handleUpdateSlug = async (newSlug: string) => {
 
   // Service handlers
   const handleAddService = (type?: string) => {
+    const rootCategory = businessDetail?.business.root_category;
+    if (rootCategory && !hasServiceModules(rootCategory)) return;
     setEditingServiceId(null);
     setServiceForm({
       ...DEFAULT_SERVICE_FORM,
-      type: type || DEFAULT_SERVICE_FORM.type,
+      type: type || getDefaultModule(rootCategory || "") || DEFAULT_SERVICE_FORM.type,
     });
     setServiceModalVisible(true);
   };
@@ -2209,7 +2217,7 @@ currentUserId={businessDetail?.business?.business_id}
                     }
                   }}
                   services={bizServices}
-                  onAddService={handleAddService}
+                  onAddService={businessDetail?.business.root_category && hasServiceModules(businessDetail.business.root_category) ? handleAddService : undefined}
                   handleEditService={handleEditService}
                   handleDeleteService={handleDeleteService}
                   openBookingModal={handleOpenBooking}
