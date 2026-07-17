@@ -2,7 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Service } from "../../lib/api";
-import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES, FONT_WEIGHTS, SHADOWS, CATEGORY_SERVICE_TYPES, getServiceTypeConfig, getBookingMode, BookingMode } from "../../lib/designTokens";
+import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES, FONT_WEIGHTS, SHADOWS, CATEGORY_SERVICE_TYPES, getServiceTypeConfig } from "../../lib/designTokens";
+import { getServiceCtaType } from "../../lib/config/serviceModules";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { FIELD_REGISTRY } from "../../lib/fieldRegistry";
 import AdaptiveImage from "../AdaptiveImage";
@@ -154,11 +155,22 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
   const cardFields = getFieldsForType().filter((f) => hasCardField(f) && f !== "price");
   const typeIcon = getTypeIcon(service.type);
 
-  const typeConfig = getServiceTypeConfig(rootCategory, service.type);
-  const bookingMode: BookingMode = typeConfig ? getBookingMode(typeConfig) : "browse_only";
-  const ctaLabel = bookingMode === "booking_slots" ? "Book" : bookingMode === "booking_request" ? "Request" : "View";
-  const ctaColor = bookingMode === "booking_slots" ? COLORS.success : bookingMode === "booking_request" ? COLORS.primary : COLORS.textMuted;
+  const ctaType = getServiceCtaType(service.type);
+  const ctaLabel =
+    ctaType === "booking" ? "Jetzt buchen"
+    : ctaType === "reservation" ? "Reservieren"
+    : ctaType === "request_quote" ? "Angebot anfragen"
+    : ctaType === "get_in_touch" ? "Kontakt"
+    : ctaType === "buy" ? "Kaufen"
+    : "";
+  const ctaColor =
+    ctaType === "booking" ? COLORS.success
+    : ctaType === "reservation" ? COLORS.primary
+    : ctaType === "request_quote" ? COLORS.primaryDark
+    : ctaType === "get_in_touch" ? COLORS.textSecondary
+    : COLORS.textMuted;
 
+  const typeConfig = getServiceTypeConfig(rootCategory, service.type);
   const typeName = typeConfig?.publicTabLabel || typeConfig?.label || service.type;
 
   return (
@@ -169,9 +181,11 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
           <Ionicons name={typeIcon as any} size={10} color="#fff" />
           <Text style={s.typeBadgeText}>{typeName}</Text>
         </View>
-        <View style={[s.ctaPill, { backgroundColor: ctaColor + "20" }]}>
-          <Text style={[s.ctaText, { color: ctaColor }]}>{ctaLabel}</Text>
-        </View>
+        {ctaType !== "browse_only" && (
+          <View style={[s.ctaPill, { backgroundColor: ctaColor + "20" }]}>
+            <Text style={[s.ctaText, { color: ctaColor }]}>{ctaLabel}</Text>
+          </View>
+        )}
       </View>
       <View style={s.info}>
         <Text style={[s.name, { color: textColor }]} numberOfLines={1}>

@@ -25,7 +25,8 @@ import { useAuth } from "../../context/AuthContext";
 import { getServiceDetail, getSlots, createBooking, getAvailability, sendServiceInquiry } from "../../lib/api/services";
 import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { Service, TimeSlot } from "../../lib/api/core";
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS, CATEGORY_SERVICE_TYPES, getServiceTypeConfig, getBookingMode, BookingMode } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
@@ -95,73 +96,38 @@ export default function ServiceDetailPage() {
 
   const requiresSlots = useMemo(() => {
     if (!service) return true;
-    const rootCat = service.root_category || "";
-    const types = CATEGORY_SERVICE_TYPES[rootCat] || [];
-    return types.find((ct) => ct.type === service.type)?.requiresSlots ?? true;
+    return requiresServiceSlots(service.type);
   }, [service]);
 
   const requiresBooking = useMemo(() => {
     if (!service) return true;
-    const rootCat = service.root_category || "";
-    const types = CATEGORY_SERVICE_TYPES[rootCat] || [];
-    return types.find((ct) => ct.type === service.type)?.requiresBooking ?? true;
+    return isServiceBookable(service.type);
   }, [service]);
 
-  const bookingMode = useMemo<BookingMode>(() => {
-    if (!service) return "browse_only";
-    const config = getServiceTypeConfig(service.root_category || "", service.type || "");
-    return config ? getBookingMode(config) : (requiresBooking ? "booking_slots" : "browse_only");
-  }, [service, requiresBooking]);
+  const ctaType = useMemo(() => {
+    if (!service) return "browse_only" as const;
+    return getServiceCtaType(service.type);
+  }, [service]);
 
-  const dates = useMemo(() => {
-    const result: string[] = [];
-    const today = new Date();
-    for (let i = 0; i < 14; i++) { const d = new Date(today); d.setDate(d.getDate() + i); result.push(d.toISOString().split("T")[0]); }
-    return result;
-  }, []);
+  const ctaLabel =
+    ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
+    : ctaType === "reservation" ? t("services.reserve", "Reservieren")
+    : ctaType === "request_quote" ? t("services.requestQuote", "Angebot anfragen")
+    : ctaType === "get_in_touch" ? t("services.getInTouch", "Kontakt aufnehmen")
+    : t("services.learnMore", "Mehr erfahren");
 
-  const calendarMarkedDates = useMemo(() => {
-    const marks: Record<string, any> = {};
-    if (selectedDate) marks[selectedDate] = { selected: true, selectedColor: COLORS.servicesAccent, selectedTextColor: "#fff" };
-    const today = new Date();
-    for (let i = 0; i < 60; i++) {
-      const d = new Date(today); d.setDate(d.getDate() + i);
-      const ds = d.toISOString().split("T")[0];
-      if (ds === selectedDate) continue;
-      const dow = d.getDay();
-      if (slots.some((s) => s.date === ds || (s.is_recurring && s.day_of_week === dow))) {
-        marks[ds] = { ...marks[ds], marked: true, dotColor: COLORS.detailSuccess };
-      }
+  const ctaIcon =
+    ctaType === "booking" || ctaType === "reservation" ? "calendar-outline"
+    : ctaType === "request_quote" ? "chatbubble-ellipses-outline"
+    : ctaType === "get_in_touch" ? "mail-outline"
+    : "information-circle-outline";
+
+  const handleCta = () => {
+    if (ctaType === "booking" || ctaType === "reservation") {
+      setShowBooking(true); setBookingName(user?.name || ""); setBookingEmail(user?.email || "");
+    } else {
+      setShowInquiry(true); setInquiryName(user?.name || ""); setInquiryEmail(user?.email || "");
     }
-    return marks;
-  }, [slots, selectedDate]);
-
-  useEffect(() => {
-    if (!service || !selectedDate || !requiresSlots) return;
-    Promise.all([getSlots(service.service_id), getAvailability(service.service_id, selectedDate).catch(() => [])])
-      .then(([slotData, availData]) => {
-        const dateObj = new Date(selectedDate + "T00:00:00");
-        const dayOfWeek = dateObj.getDay();
-        const matching = slotData.filter((s) => {
-          if (s.is_blocked || s.is_booked) return false;
-          if (s.date === selectedDate) return true;
-          if (s.is_recurring && s.day_of_week === dayOfWeek) return true;
-          return false;
-        });
-        matching.sort((a, b) => a.start_time.localeCompare(b.start_time));
-        setSlots(matching);
-        const availMap: Record<string, any> = {};
-        availData.forEach((a: any) => { availMap[a.slot_id] = { available_spots: a.available_spots, capacity: a.capacity, is_full: a.is_full }; });
-        setAvailabilities(availMap);
-      }).catch(() => { setSlots([]); setAvailabilities({}); });
-  }, [service, selectedDate]);
-
-  const handleToggleSave = async () => {
-    if (!sessionToken || !service) return;
-    setSavingItem(true);
-    try { const { is_saved } = await toggleSaved(sessionToken, "service", service.service_id); setIsSaved(is_saved); }
-    catch (e) { console.error("Failed to toggle save:", e); }
-    finally { setSavingItem(false); }
   };
 
   const handleRequestBooking = async () => {
@@ -197,18 +163,16 @@ export default function ServiceDetailPage() {
   const isRental = currentCategory === "rentals" || currentCategory === "rental-real-estate";
 
   const getTypeIcon = (type: string) => {
-    const types = CATEGORY_SERVICE_TYPES[currentCategory] || [];
-    return types.find((ct) => ct.type === type)?.icon || "grid";
+    return getServiceModuleIcon(type);
   };
 
   const getTypeLabel = (type: string) => {
-    const types = CATEGORY_SERVICE_TYPES[currentCategory] || [];
-    return types.find((ct) => ct.type === type)?.label || type.replace(/_/g, " ");
+    return getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? type));
   };
 
   const getFieldsForType = (): string[] => {
-    const types = CATEGORY_SERVICE_TYPES[currentCategory] || [];
-    return types.find((ct) => ct.type === service?.type)?.fields || [];
+    if (!service) return [];
+    return getServiceFields(service.type);
   };
 
   const serviceField = (name: string): any => (service as any)?.[name];
@@ -286,18 +250,6 @@ export default function ServiceDetailPage() {
       </SafeAreaView>
     );
   }
-
-  const ctaLabel = bookingMode === "booking_slots" ? t("services.bookNow", "Jetzt buchen")
-    : bookingMode === "booking_request" ? t("services.requestBooking", "Buchung anfragen")
-    : t("services.askAbout", "Anfrage senden");
-
-  const handleCta = () => {
-    if (bookingMode === "browse_only") {
-      setShowInquiry(true); setInquiryName(user?.name || ""); setInquiryEmail(user?.email || "");
-    } else {
-      setShowBooking(true); setBookingName(user?.name || ""); setBookingEmail(user?.email || "");
-    }
-  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: COLORS.backgroundPage }]} edges={["top", "bottom"]}>
@@ -426,7 +378,7 @@ export default function ServiceDetailPage() {
 
           <BottomCTA
             primaryLabel={ctaLabel}
-            primaryIcon="calendar-outline"
+            primaryIcon={ctaIcon}
             accentColor={COLORS.servicesAccent}
             onPrimary={handleCta}
             saved={isSaved}
