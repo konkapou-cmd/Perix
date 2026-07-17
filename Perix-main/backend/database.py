@@ -8,6 +8,91 @@ client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
 # Category data structures
+
+ROOT_SERVICE_TYPES: Dict[str, List[str]] = {
+    "sports-fitness-wellness": ["gym_class", "gym_session", "gym_membership", "gym_pass", "gym_recovery"],
+    "beauty-care": ["salon_appointment", "salon_package", "salon_course"],
+    "professional-services": ["pro_consultation", "pro_package", "pro_retainer"],
+    "education-creativity": ["edu_class", "edu_lesson", "edu_workshop", "edu_course"],
+    "food-dining": ["menu_item", "table_reservation"],
+    "rentals": ["rental_property"],
+    "rental-real-estate": ["rental_property"],
+    "nightlife-social": ["table_reservation", "vip_package"],
+    "entertainment-events": ["ent_booking", "ent_performance"],
+    "shopping-retail": ["retail_product", "retail_custom"],
+    "fashion-accessories": ["retail_product", "tailoring_alteration", "custom_order"],
+    "automotive": ["auto_vehicle", "auto_rental", "auto_repair", "auto_wash"],
+    "healthcare": ["health_appointment", "health_procedure", "health_test"],
+    "pets": ["pet_appointment", "pet_product"],
+}
+
+ROOT_SERVICE_BOOKING_CONFIG: Dict[str, Dict[str, Dict[str, bool]]] = {
+    "sports-fitness-wellness": {
+        "gym_class":      {"booking": True,  "slots": True},
+        "gym_session":    {"booking": True,  "slots": True},
+        "gym_membership": {"booking": False, "slots": False},
+        "gym_pass":       {"booking": False, "slots": False},
+        "gym_recovery":   {"booking": True,  "slots": True},
+    },
+    "beauty-care": {
+        "salon_appointment": {"booking": True,  "slots": True},
+        "salon_package":     {"booking": True,  "slots": True},
+        "salon_course":      {"booking": True,  "slots": False},
+    },
+    "professional-services": {
+        "pro_consultation": {"booking": True,  "slots": True},
+        "pro_package":      {"booking": False, "slots": False},
+        "pro_retainer":     {"booking": False, "slots": False},
+    },
+    "education-creativity": {
+        "edu_class":    {"booking": True,  "slots": True},
+        "edu_lesson":   {"booking": True,  "slots": True},
+        "edu_workshop": {"booking": True,  "slots": True},
+        "edu_course":   {"booking": False, "slots": False},
+    },
+    "food-dining": {
+        "menu_item":        {"booking": False, "slots": False},
+        "table_reservation": {"booking": True, "slots": True},
+    },
+    "rentals": {
+        "rental_property": {"booking": True, "slots": False},
+    },
+    "rental-real-estate": {
+        "rental_property": {"booking": True, "slots": False},
+    },
+    "nightlife-social": {
+        "table_reservation": {"booking": True, "slots": True},
+        "vip_package":       {"booking": True, "slots": False},
+    },
+    "entertainment-events": {
+        "ent_booking":     {"booking": True, "slots": True},
+        "ent_performance": {"booking": True, "slots": True},
+    },
+    "shopping-retail": {
+        "retail_product": {"booking": False, "slots": False},
+        "retail_custom":  {"booking": False, "slots": False},
+    },
+    "fashion-accessories": {
+        "retail_product":       {"booking": False, "slots": False},
+        "tailoring_alteration": {"booking": True,  "slots": False},
+        "custom_order":         {"booking": False, "slots": False},
+    },
+    "automotive": {
+        "auto_vehicle": {"booking": False, "slots": False},
+        "auto_rental":  {"booking": True,  "slots": True},
+        "auto_repair":  {"booking": True,  "slots": True},
+        "auto_wash":    {"booking": True,  "slots": True},
+    },
+    "healthcare": {
+        "health_appointment": {"booking": True, "slots": True},
+        "health_procedure":   {"booking": True, "slots": True},
+        "health_test":        {"booking": True, "slots": True},
+    },
+    "pets": {
+        "pet_appointment": {"booking": True,  "slots": True},
+        "pet_product":     {"booking": False, "slots": False},
+    },
+}
 CATEGORY_TREE: List[Dict] = []
 CATEGORY_LOOKUP: Dict[str, Dict] = {}
 
@@ -71,7 +156,8 @@ async def create_indexes():
     )
 
     # Session token index for auth lookups
-    await db.users.create_index("session_token")
+    await db.user_sessions.create_index("session_token", unique=True)
+    await db.user_sessions.create_index("expires_at", expireAfterSeconds=0)
 
     # Event ID unique index
     await db.events.create_index("event_id", unique=True)
@@ -85,6 +171,25 @@ async def create_indexes():
     # Job indexes
     await db.jobs.create_index("job_id", unique=True)
     await db.jobs.create_index("business_id")
+    await _safe_create_index(db.jobs, [("is_active", 1), ("expires_at", 1)])
+
+    # Service indexes
+    await db.services.create_index("service_id", unique=True)
+    await db.services.create_index("business_id")
+    await db.services.create_index("type")
+
+    # Bookings indexes
+    await db.bookings.create_index("booking_id", unique=True)
+    await _safe_create_index(db.bookings, [("business_id", 1), ("status", 1)])
+    await _safe_create_index(db.bookings, [("client_id", 1), ("status", 1)])
+    await db.bookings.create_index("service_id")
+    await db.bookings.create_index("slot_id")
+
+    # Service slots indexes
+    await db.service_slots.create_index("slot_id", unique=True)
+    await db.service_slots.create_index("service_id")
+    await db.service_slots.create_index([("service_id", 1), ("date", 1)])
+
     # Jobs store location as address string; geo filtering uses
     # Python-side haversine on latitude/longitude fields, so no 2dsphere.
 
@@ -133,8 +238,8 @@ def build_category_tree() -> None:
     """Build hardcoded category structure with all events enabled."""
     global CATEGORY_TREE, CATEGORY_LOOKUP
 
-    def make_modules():
-        return {
+    def make_modules(category_slug: str):
+        base = {
             "events": True,
             "tickets": True,
             "jobs": True,
@@ -145,6 +250,18 @@ def build_category_tree() -> None:
             "gym": False,
             "salon": False,
         }
+        if category_slug in ROOT_SERVICE_TYPES:
+            if category_slug == "sports-fitness-wellness":
+                base["gym"] = True
+            elif category_slug == "beauty-care":
+                base["salon"] = True
+            elif category_slug == "food-dining":
+                base["menu"] = True
+            elif category_slug in ("rentals", "rental-real-estate"):
+                base["rentals"] = True
+        service_types = ROOT_SERVICE_TYPES.get(category_slug, [])
+        base["service_types"] = service_types
+        return base, service_types
 
     CATEGORIES = [
         {
@@ -342,7 +459,7 @@ def build_category_tree() -> None:
                 {
                     "name": "Rentals",
                     "slug": "rentals",
-                    "subcategories": ["apartments", "houses", "studios", "rooms", "commercial-spaces"],
+                    "subcategories": ["apartments", "houses", "studios", "rooms"],
                 },
             ],
         },
@@ -412,16 +529,9 @@ def build_category_tree() -> None:
 
             for sub_slug in group["subcategories"]:
                 sub_name = sub_slug.replace("-", " ").title()
-                modules = make_modules()
-                if root_slug in ("rentals", "rental-real-estate"):
-                    modules["rentals"] = True
-                if root_slug == "sports-fitness-wellness":
-                    modules["gym"] = True
-                if root_slug == "beauty-care":
-                    modules["salon"] = True
-                if root_slug == "food-dining":
-                    modules["menu"] = True
-                tools = [key for key, value in modules.items() if value]
+                modules, service_types = make_modules(root_slug)
+                tools_excluding_types = {k: v for k, v in modules.items() if k != "service_types"}
+                tools = [key for key, value in tools_excluding_types.items() if value]
 
                 subcategory = {
                     "name": sub_name,
@@ -429,6 +539,7 @@ def build_category_tree() -> None:
                     "group_slug": group_slug,
                     "group_name": group_name,
                     "modules": modules,
+                    "service_types": service_types,
                     "tools": tools,
                 }
                 group_subs.append(subcategory)
