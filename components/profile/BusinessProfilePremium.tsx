@@ -49,6 +49,7 @@ import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE_COLORS } from "./ProfileDesign";
 import { COLORS, CATEGORY_SERVICE_TYPES, resolveCategory, getServiceTypeConfig } from "../../lib/designTokens";
+import { hasServiceModules, getAllowedModules, getDefaultModule, getCategoryIcon } from "../../lib/config/serviceCategoryMatrix";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import useResponsiveLayout from "../../hooks/useResponsiveLayout";
 import FriendsCarousel from "../FriendsCarousel";
@@ -254,9 +255,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
       tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
     }
     // Service type tabs — one per categoryKey:serviceType
-    const mod = detail.business.enabled_modules;
-    const hasServiceModule = mod?.services || mod?.menu || mod?.gym || mod?.rentals;
-    if (hasServiceModule) {
+    const rootCat = detail.business.root_category || "";
+    const hasModule = hasServiceModules(rootCat);
+    if (hasModule) {
       const seen = new Set<string>();
       (services || []).filter(s => s.is_active).forEach(s => {
         const cat = resolveCategory(s.root_category || "");
@@ -285,10 +286,10 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     const tabs: TabDefinition[] = [];
     // 1. Posts
     tabs.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: businessPosts.length });
-    // 2. Service type tabs — one per categoryKey:serviceType (same as publicTabs)
-    const mod = detail.business.enabled_modules;
-    const hasServiceModule = mod?.services || mod?.menu || mod?.gym || mod?.rentals;
-    if (hasServiceModule) {
+    // 2. Service type tabs — one per categoryKey:serviceType
+    const rootCat = detail.business.root_category || "";
+    const hasModule = hasServiceModules(rootCat);
+    if (hasModule) {
       const seen = new Set<string>();
       (services || []).filter(s => s.is_active).forEach(s => {
         const cat = resolveCategory(s.root_category || "");
