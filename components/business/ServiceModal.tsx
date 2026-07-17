@@ -12,6 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES } from "../../lib/designTokens";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
+import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
+import { getDefaultModule, getAllowedModules } from "../../lib/config/serviceCategoryMatrix";
 import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect, useRef } from "react";
 import { CalendarList } from "react-native-calendars";
@@ -335,13 +337,15 @@ export default function ServiceModal({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [coverPhotoError, setCoverPhotoError] = useState<string | null>(null);
 
-  const typesForCategory = rootCategory ? CATEGORY_SERVICE_TYPES[rootCategory] || [] : [];
-  const allowedTypeKeys = typesForCategory.map((ct) => ct.type);
-  const filteredTypes = SERVICE_TYPES.filter((st) => allowedTypeKeys.includes(st.key));
+  const allowedModules = rootCategory ? getAllowedModules(rootCategory) : [];
+  const filteredModules = allowedModules
+    .map((key: string) => SERVICE_MODULES[key])
+    .filter((m): m is ServiceModuleConfig => !!m);
 
   useEffect(() => {
-    if (visible && !form.type && filteredTypes.length > 0) {
-      setForm((prev) => ({ ...prev, type: filteredTypes[0].key }));
+    if (visible && !form.type && filteredModules.length > 0) {
+      const defaultType = getDefaultModule(rootCategory || "");
+      setForm((prev) => ({ ...prev, type: defaultType || filteredModules[0].key }));
     }
   }, [visible]);
 
@@ -351,15 +355,15 @@ export default function ServiceModal({
     }
   }, [visible]);
 
-  const selectedType = typesForCategory.find((ct) => ct.type === form.type);
-  const selectedFields = selectedType?.fields || [];
-
+  const selectedFields = getServiceFields(form.type);
+  const isEditing = form.name !== "";
   const isRental = rootCategory === "rentals" || rootCategory === "rental-real-estate";
 
-  const isEditing = form.name !== "";
-  const modalTitle = selectedType
-    ? `${isEditing ? "Edit" : "Add"} ${selectedType.publicTabLabel || selectedType.label || "Service"}`
-    : t("services.createService", "Add Service");
+  const moduleLabel = (key: string) => getServiceModuleLabel(key, (k: string, fb?: string) => t(k, fb ?? key));
+
+  const modalTitle = filteredModules.find((m: ServiceModuleConfig) => m.key === form.type)
+    ? `${isEditing ? t("common.edit", "Bearbeiten") : t("services.add", "Hinzufügen")} ${moduleLabel(form.type)}`
+    : t("services.createService", "Dienst erstellen");
 
   const handleSaveWithValidation = () => {
     if (!form.type) {
@@ -585,15 +589,15 @@ export default function ServiceModal({
         <Text style={styles.required}>*</Text>
       </Text>
       <View style={styles.pickerRow}>
-              {filteredTypes.map((tpe) => (
+              {filteredModules.map((mod) => (
                 <Pressable
-                  key={tpe.key}
-                  style={[styles.chip, form.type === tpe.key && styles.chipSelected]}
-                  onPress={() => updateField("type", tpe.key)}
+                  key={mod.key}
+                  style={[styles.chip, form.type === mod.key && styles.chipSelected]}
+                  onPress={() => updateField("type", mod.key)}
                 >
-                  <Ionicons name={tpe.icon as any} size={16} color={form.type === tpe.key ? "#fff" : COLORS.textSecondary} />
-                  <Text style={[styles.chipText, form.type === tpe.key && styles.chipTextSelected]}>
-                    {t(tpe.labelKey, tpe.key)}
+                  <Ionicons name={mod.icon} size={16} color={form.type === mod.key ? "#fff" : COLORS.textSecondary} />
+                  <Text style={[styles.chipText, form.type === mod.key && styles.chipTextSelected]}>
+                    {moduleLabel(mod.key)}
                   </Text>
                 </Pressable>
               ))}
