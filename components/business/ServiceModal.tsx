@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
 import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
 import { getDefaultModule, getAllowedModules } from "../../lib/config/serviceCategoryMatrix";
@@ -21,46 +21,6 @@ import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import FormScreen from "../ui/FormScreen";
 import FormBottomBar from "../ui/FormBottomBar";
-
-const SERVICE_TYPES = [
-  { key: "gym_class", icon: "fitness", labelKey: "services.typeGymClass" },
-  { key: "gym_session", icon: "fitness", labelKey: "services.typeGymSession" },
-  { key: "gym_membership", icon: "card", labelKey: "services.typeGymMembership" },
-  { key: "gym_pass", icon: "ticket", labelKey: "services.typeGymPass" },
-  { key: "gym_recovery", icon: "medkit", labelKey: "services.typeGymRecovery" },
-  { key: "salon_appointment", icon: "calendar", labelKey: "services.typeSalonAppointment" },
-  { key: "salon_package", icon: "gift", labelKey: "services.typeSalonPackage" },
-  { key: "salon_course", icon: "layers", labelKey: "services.typeSalonCourse" },
-  { key: "pro_consultation", icon: "briefcase", labelKey: "services.typeProConsultation" },
-  { key: "pro_package", icon: "gift", labelKey: "services.typeProPackage" },
-  { key: "pro_retainer", icon: "refresh", labelKey: "services.typeProRetainer" },
-  { key: "edu_class", icon: "school", labelKey: "services.typeEduClass" },
-  { key: "edu_lesson", icon: "book", labelKey: "services.typeEduLesson" },
-  { key: "edu_workshop", icon: "people", labelKey: "services.typeEduWorkshop" },
-  { key: "edu_course", icon: "layers", labelKey: "services.typeEduCourse" },
-  { key: "menu_item", icon: "restaurant", labelKey: "services.typeMenuItem" },
-  { key: "rental_property", icon: "home", labelKey: "services.typeRentalProperty" },
-
-  { key: "table_reservation", icon: "table", labelKey: "services.typeTableReservation" },
-  { key: "vip_package", icon: "star", labelKey: "services.typeVipPackage" },
-  { key: "ent_booking", icon: "calendar", labelKey: "services.typeEntBooking" },
-  { key: "ent_performance", icon: "musical-notes", labelKey: "services.typeEntPerformance" },
-  { key: "retail_product", icon: "pricetag", labelKey: "services.typeRetailProduct" },
-  { key: "retail_custom", icon: "create", labelKey: "services.typeRetailCustom" },
-  { key: "tailoring_alteration", icon: "cut", labelKey: "services.typeTailoring" },
-  { key: "custom_order", icon: "create", labelKey: "services.typeCustomOrder" },
-  { key: "auto_vehicle", icon: "car", labelKey: "services.typeAutoVehicle" },
-  { key: "auto_rental", icon: "calendar", labelKey: "services.typeAutoRental" },
-  { key: "auto_repair", icon: "wrench", labelKey: "services.typeAutoRepair" },
-  { key: "auto_wash", icon: "water", labelKey: "services.typeAutoWash" },
-  { key: "health_appointment", icon: "calendar", labelKey: "services.typeHealthAppointment" },
-  { key: "health_procedure", icon: "medkit", labelKey: "services.typeHealthProcedure" },
-  { key: "health_test", icon: "flask", labelKey: "services.typeHealthTest" },
-  { key: "pet_appointment", icon: "paw", labelKey: "services.typePetAppointment" },
-  { key: "pet_product", icon: "cart", labelKey: "services.typePetProduct" },
-];
-
-// Field options are now driven by FIELD_REGISTRY in lib/fieldRegistry.ts
 
 export type ServiceForm = {
   type: string;
