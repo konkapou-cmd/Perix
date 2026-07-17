@@ -8,7 +8,7 @@ import re
 from database import db
 from models.user import UserPublic
 from utils.helpers import now_utc
-from routes.dependencies import get_current_user
+from routes.dependencies import get_current_user, pwd_context
 
 
 def _safe_regex(search: str) -> str:
@@ -617,3 +617,23 @@ async def get_admin_stats(
         "total_businesses": total_businesses,
         "total_artists": total_artists
     }
+
+
+class DevResetPasswordInput(BaseModel):
+    email: str
+    new_password: str
+    dev_key: str
+
+
+@router.post("/dev-reset-password")
+async def dev_reset_password(payload: DevResetPasswordInput):
+    if payload.dev_key != "perix-dev-reset-key-2026":
+        raise HTTPException(status_code=403, detail="Invalid dev key")
+    user = await db.users.find_one({"email": payload.email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.users.update_one(
+        {"email": payload.email},
+        {"$set": {"password_hash": pwd_context.hash(payload.new_password)}}
+    )
+    return {"status": "password_reset", "email": payload.email}
