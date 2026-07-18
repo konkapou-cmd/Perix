@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Platfo
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES, CategoryServiceType, getServiceTypeConfig, getBookingMode, BookingMode } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { getServiceCtaType, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
 import { Service, TimeSlot } from "../../lib/api/core";
 import { getSlots, createBooking, getAvailability } from "../../lib/api/services";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
@@ -47,10 +48,8 @@ export default function ServiceBookingModal({
   const [allSlots, setAllSlots] = useState<TimeSlot[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const typeConfig = service ? getServiceTypeConfig(
-    service.root_category || rootCategory || "", service.type || ""
-  ) : null;
-  const bookingMode: BookingMode = typeConfig ? getBookingMode(typeConfig) : "booking_slots";
+  const ctaType: ServiceCtaType = service ? getServiceCtaType(service.type) : "get_in_touch";
+  const hasSlots = service ? requiresServiceSlots(service.type) : false;
   useEffect(() => {
     if (visible && service) {
       setSelectedSlot(null);
@@ -68,7 +67,7 @@ export default function ServiceBookingModal({
 
   useEffect(() => {
     if (!service || !selectedDate) return;
-    if (bookingMode !== "booking_slots") return;
+    if (ctaType !== "booking") return;
     setLoadingSlots(true);
     Promise.all([
       getSlots(service.service_id),
@@ -94,7 +93,7 @@ export default function ServiceBookingModal({
       })
       .catch(() => { setSlots([]); setAvailabilities({}); })
       .finally(() => setLoadingSlots(false));
-  }, [service, selectedDate, bookingMode]);
+  }, [service, selectedDate, ctaType]);
 
   const today = new Date();
   const dates: string[] = [];
@@ -126,7 +125,7 @@ export default function ServiceBookingModal({
       Alert.alert(t("common.error", "Error"), t("services.nameRequired", "Please enter your name"));
       return;
     }
-    if (bookingMode === "booking_slots" && !selectedSlot) {
+    if (ctaType === "booking" && !selectedSlot) {
       Alert.alert(t("common.error", "Error"), t("services.selectTime", "Please select a time slot"));
       return;
     }
@@ -157,9 +156,7 @@ export default function ServiceBookingModal({
     }
   };
 
-  const categoryTypes = rootCategory ? CATEGORY_SERVICE_TYPES[rootCategory] || [] : [];
-  const currentTypeDef = categoryTypes.find((ct) => ct.type === service?.type);
-  const requiresSlot = currentTypeDef?.requiresSlots ?? true;
+  const requiresSlot = service ? requiresServiceSlots(service.type) : false;
   const showPets = rootCategory === "pets";
   const showHealthcare = rootCategory === "healthcare";
   const showAutoRental = rootCategory === "automotive" && service?.type === "auto_rental";
@@ -196,8 +193,8 @@ export default function ServiceBookingModal({
             <Ionicons name="close" size={24} color={COLORS.textPrimary} />
           </Pressable>
           <Text style={s.headerTitle}>
-            {bookingMode === "browse_only" ? t("services.askAbout", "Ask about this") :
-             bookingMode === "booking_request" ? t("services.requestBooking", "Request Booking") :
+            {ctaType === "browse_only" ? t("services.askAbout", "Anfrage senden") :
+             ctaType === "booking" ? t("services.requestBooking", "Buchung anfragen") :
              t("services.bookNow", "Book Now")}
           </Text>
           <View style={s.headerBtn} />
@@ -242,7 +239,7 @@ export default function ServiceBookingModal({
             })}
           </ScrollView>
 
-          {bookingMode === "booking_slots" && selectedDate && (
+          {ctaType === "booking" && selectedDate && (
             <>
               <Text style={s.sectionTitle}>{t("services.selectSlot", "Select a time slot")}</Text>
               {loadingSlots ? (
@@ -272,7 +269,7 @@ export default function ServiceBookingModal({
             </>
           )}
 
-          {bookingMode === "booking_request" && selectedDate && (
+          {ctaType !== "booking" && selectedDate && (
             <>
               <Text style={s.sectionTitle}>Preferred time (optional)</Text>
               <TextInput
@@ -294,7 +291,7 @@ export default function ServiceBookingModal({
             </>
           )}
 
-          {bookingMode === "browse_only" && (
+          {ctaType === "browse_only" && (
             <View style={{ alignItems: "center", paddingVertical: SPACING.section }}>
               <Text style={{ fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, textAlign: "center", marginBottom: SPACING.std }}>
                 This service is available for viewing. Send a message to ask the business about it.
@@ -349,7 +346,7 @@ export default function ServiceBookingModal({
             </>
           )}
 
-          {bookingMode !== "browse_only" && (
+          {ctaType !== "browse_only" && (
             <>
               <Text style={s.sectionTitle}>{t("services.notes", "Notes / Special requests")}</Text>
               <TextInput style={[s.input, { height: 80 }]} value={notes} onChangeText={setNotes} placeholder="Any special requests..." multiline placeholderTextColor={COLORS.textDisabled} />
@@ -359,21 +356,21 @@ export default function ServiceBookingModal({
           <View style={{ height: SPACING.large }} />
         </ScrollView>
 
-        {bookingMode !== "browse_only" && (
+        {ctaType !== "browse_only" && (
           <View style={s.footer}>
             <Pressable style={s.cancelBtn} onPress={onClose}>
               <Text style={s.cancelBtnText}>{t("common.cancel", "Cancel")}</Text>
             </Pressable>
             <Pressable
-              style={[s.saveBtn, (!selectedDate || submitting || (bookingMode === "booking_slots" && !selectedSlot)) && { opacity: 0.5 }]}
+              style={[s.saveBtn, (!selectedDate || submitting || (ctaType === "booking" && !selectedSlot)) && { opacity: 0.5 }]}
               onPress={handleBook}
-              disabled={!selectedDate || submitting || (bookingMode === "booking_slots" && !selectedSlot)}
+              disabled={!selectedDate || submitting || (ctaType === "booking" && !selectedSlot)}
             >
               {submitting ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Text style={s.saveBtnText}>
-                  {bookingMode === "booking_slots" ? t("services.bookNow", "Book Now") : t("services.requestBooking", "Send Request")}
+                  {ctaType === "booking" ? t("services.bookNow", "Jetzt buchen") : t("services.requestBooking", "Anfrage senden")}
                 </Text>
               )}
             </Pressable>
