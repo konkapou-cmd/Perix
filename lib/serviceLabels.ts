@@ -1,4 +1,5 @@
-import { CATEGORY_SERVICE_TYPES } from "./designTokens";
+import { getDefaultModule } from "./config/serviceCategoryMatrix";
+import { getServiceModuleLabel } from "./config/serviceModules";
 
 const SINGULAR_LABELS: Record<string, string> = {
   "sports-fitness-wellness": "Class",
@@ -20,11 +21,9 @@ const SINGULAR_LABELS: Record<string, string> = {
 export function getServiceSingular(rootCategory: string, t?: any): string {
   const label = rootCategory ? SINGULAR_LABELS[rootCategory] : undefined;
   if (t && label) {
-    const types = CATEGORY_SERVICE_TYPES[rootCategory];
-    if (types && types.length > 0) {
-      const firstType = types[0];
-      const labelKey = `services.type${firstType.type.charAt(0).toUpperCase() + firstType.type.slice(1).replace(/_./g, (c) => c[1]?.toUpperCase() || "")}`;
-      return t(labelKey, { defaultValue: label });
+    const defaultModule = getDefaultModule(rootCategory);
+    if (defaultModule) {
+      return getServiceModuleLabel(defaultModule, (k: string, fb?: string) => t(k, fb ?? label));
     }
   }
   return label || "Service";
