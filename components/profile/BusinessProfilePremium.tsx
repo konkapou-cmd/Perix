@@ -48,8 +48,9 @@ import { ProfileMedia } from "./ProfileMedia";
 import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE_COLORS } from "./ProfileDesign";
-import { COLORS, CATEGORY_SERVICE_TYPES, resolveCategory, getServiceTypeConfig } from "../../lib/designTokens";
+import { COLORS, resolveCategory } from "../../lib/designTokens";
 import { hasServiceModules, getAllowedModules, getDefaultModule, getCategoryIcon } from "../../lib/config/serviceCategoryMatrix";
+import { getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import useResponsiveLayout from "../../hooks/useResponsiveLayout";
 import FriendsCarousel from "../FriendsCarousel";
@@ -233,6 +234,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   initialSavedPostIds,
 }) => {
   const { t } = useTranslation();
+  const serviceLabel = (type: string, fallback?: string) => getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? fallback ?? type));
+  const serviceIcon = (type: string) => getServiceModuleIcon(type);
   const router = useRouter();
   const isScreenFocused = useIsFocused();
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -264,7 +267,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         const tabKey = `svc:${cat}:${s.type}`;
         if (!seen.has(tabKey)) {
           seen.add(tabKey);
-          const config = getServiceTypeConfig(cat, s.type);
           const count = (services || []).filter(sv =>
             resolveCategory(sv.root_category || "") === cat &&
             sv.type === s.type &&
@@ -272,8 +274,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           ).length;
           tabs.push({
             key: tabKey,
-            label: config?.publicTabLabel || s.type,
-            icon: config?.icon || "grid",
+            label: serviceLabel(s.type),
+            icon: serviceIcon(s.type),
             count,
           });
         }
@@ -296,7 +298,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         const tabKey = `svc:${cat}:${s.type}`;
         if (!seen.has(tabKey)) {
           seen.add(tabKey);
-          const config = getServiceTypeConfig(cat, s.type);
           const count = (services || []).filter(sv =>
             resolveCategory(sv.root_category || "") === cat &&
             sv.type === s.type &&
@@ -304,8 +305,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           ).length;
           tabs.push({
             key: tabKey,
-            label: config?.publicTabLabel || s.type,
-            icon: config?.icon || "grid",
+            label: serviceLabel(s.type),
+            icon: serviceIcon(s.type),
             count,
           });
         }
@@ -314,11 +315,10 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
       if (seen.size === 0) {
         const defaultModule = getDefaultModule(rootCat);
         const resolvedCat = resolveCategory(rootCat);
-        const config = getServiceTypeConfig(resolvedCat, defaultModule);
         tabs.push({
           key: `svc:${resolvedCat}:${defaultModule}`,
-          label: config?.publicTabLabel || t("services.services", "Dienste"),
-          icon: (config?.icon || getCategoryIcon(rootCat) || "grid") as any,
+          label: serviceLabel(defaultModule, t("services.services", "Dienste")),
+          icon: serviceIcon(defaultModule) || getCategoryIcon(rootCat) || "grid",
           count: 0,
         });
       }
