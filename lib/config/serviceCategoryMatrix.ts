@@ -417,7 +417,7 @@ export function getDefaultModule(rootCategory: string): string {
   return SERVICE_CATEGORY_MATRIX[rootCategory]?.defaultModule ?? "";
 }
 
-export function getCategoryQuestions(rootCategory: string): ServiceQuestionConfig[] {
+export function getCategoryQuestions(rootCategory: string, _subcategory?: string): ServiceQuestionConfig[] {
   return SERVICE_CATEGORY_MATRIX[rootCategory]?.questions ?? [];
 }
 
