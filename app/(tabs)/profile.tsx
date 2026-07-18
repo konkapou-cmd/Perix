@@ -1340,6 +1340,8 @@ const handleUpdateSlug = async (newSlug: string) => {
       }
       const payload: any = {
         business_id: businessId,
+        root_category: businessDetail?.business.root_category || undefined,
+        subcategory: businessDetail?.business.subcategory || undefined,
         type: serviceForm.type,
         name: serviceForm.name.trim(),
         description: serviceForm.description || undefined,
@@ -1374,8 +1376,16 @@ const handleUpdateSlug = async (newSlug: string) => {
         property_type: serviceForm.property_type || undefined,
         deposit: serviceForm.deposit || undefined,
         address: serviceForm.address || undefined,
-        latitude: serviceForm.latitude ? parseFloat(serviceForm.latitude) : undefined,
-        longitude: serviceForm.longitude ? parseFloat(serviceForm.longitude) : undefined,
+        latitude: serviceForm.latitude ? parseFloat(serviceForm.latitude) : (
+          serviceForm.type === "rental_property" || serviceForm.type === "auto_rental"
+            ? undefined
+            : businessDetail?.business.latitude ?? undefined
+        ),
+        longitude: serviceForm.longitude ? parseFloat(serviceForm.longitude) : (
+          serviceForm.type === "rental_property" || serviceForm.type === "auto_rental"
+            ? undefined
+            : businessDetail?.business.longitude ?? undefined
+        ),
         make: serviceForm.make || undefined,
         model: serviceForm.model || undefined,
         year: serviceForm.year ? parseInt(serviceForm.year, 10) : undefined,
