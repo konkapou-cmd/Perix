@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
 import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
-import { getDefaultModule, getAllowedModules } from "../../lib/config/serviceCategoryMatrix";
+import { getDefaultModule, getAllowedModules, getCategoryQuestions } from "../../lib/config/serviceCategoryMatrix";
 import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect, useRef } from "react";
 import { CalendarList } from "react-native-calendars";
@@ -356,6 +356,26 @@ export default function ServiceModal({
 
   const hasField = (name: string) => selectedFields.includes(name);
 
+  const requiredModuleFields = getRequiredServiceFields(form.type);
+  const categoryQuestions = getCategoryQuestions(rootCategory || "");
+  const fieldImportance = new Map<string, number>();
+  categoryQuestions.forEach((q) => {
+    fieldImportance.set(q.field, q.importance === "required" ? 0 : q.importance === "recommended" ? 1 : 2);
+  });
+
+  const isFieldRequired = (field: string) =>
+    requiredModuleFields.includes(field) ||
+    categoryQuestions.some((q) => q.field === field && q.importance === "required");
+
+  const sortedFields = selectedFields
+    .filter((f) => f !== "address" && f !== "deposit" && f !== "price")
+    .map((field, index) => ({ field, index }))
+    .sort((a, b) => {
+      const importanceDiff = (fieldImportance.get(a.field) ?? 2) - (fieldImportance.get(b.field) ?? 2);
+      return importanceDiff !== 0 ? importanceDiff : a.index - b.index;
+    })
+    .map((item) => item.field);
+
   const getPriceLabel = () => {
     if (isRental) return t("rentals.rentPrice", "Rent Price");
     return t("services.price", "Price");
@@ -371,13 +391,15 @@ export default function ServiceModal({
     if (!config) return null;
 
     const label = t(config.labelKey, config.labelKey);
+    const required = isFieldRequired(fieldName);
+    const labelWithAsterisk = required ? `${label} *` : label;
     const value = fieldValue(fieldName);
 
     switch (config.component) {
       case "text":
         return (
           <View key={fieldName}>
-            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.label}>{labelWithAsterisk}</Text>
             <TextInput
               style={styles.input}
               placeholder={t(config.placeholderKey || "", "")}
@@ -390,7 +412,7 @@ export default function ServiceModal({
       case "textarea":
         return (
           <View key={fieldName}>
-            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.label}>{labelWithAsterisk}</Text>
             <TextInput
               style={[styles.input, { height: 80 }]}
               placeholder={t(config.placeholderKey || "", "")}
@@ -405,7 +427,7 @@ export default function ServiceModal({
       case "number":
         return (
           <View key={fieldName}>
-            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.label}>{labelWithAsterisk}</Text>
             <TextInput
               style={styles.input}
               placeholder={t(config.placeholderKey || "", "")}
@@ -422,7 +444,7 @@ export default function ServiceModal({
         if (fieldName === "lease_duration") {
           return (
             <View key={fieldName}>
-              <Text style={styles.label}>{label}</Text>
+              <Text style={styles.label}>{labelWithAsterisk}</Text>
               <View style={styles.chipWideRow}>
                 {options.map((opt) => (
                   <Pressable
@@ -441,7 +463,7 @@ export default function ServiceModal({
         }
         return (
           <View key={fieldName}>
-            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.label}>{labelWithAsterisk}</Text>
             <View style={styles.pickerRow}>
               {options.map((opt) => (
                 <Pressable
@@ -464,7 +486,7 @@ export default function ServiceModal({
         const currentVals: string[] = Array.isArray(value) ? value : [];
         return (
           <View key={fieldName}>
-            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.label}>{labelWithAsterisk}</Text>
             <View style={styles.chipWideRow}>
               {options.map((opt) => (
                 <Pressable
@@ -503,7 +525,7 @@ export default function ServiceModal({
       case "date":
         return (
           <View key={fieldName}>
-            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.label}>{labelWithAsterisk}</Text>
             <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
               <Text style={[styles.dateText, !(value as string) && styles.dateTextPlaceholder]}>
                 {(value as string) ? (value as string).split("-").reverse().join(".") : t("services.selectDate", "DD.MM.YYYY")}
@@ -515,7 +537,7 @@ export default function ServiceModal({
       case "location":
         return (
           <View key={fieldName}>
-            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.label}>{labelWithAsterisk}</Text>
             <PlacesAutocompleteInput
               value={(value as string) || ""}
               onChangeText={(text) => updateField(fieldName as any, text as any)}
@@ -603,7 +625,7 @@ export default function ServiceModal({
               keyboardType="numeric"
             />
 
-            {selectedFields.filter((f) => f !== "address" && f !== "deposit" && f !== "price").map(renderFieldInput)}
+            {sortedFields.map(renderFieldInput)}
 
             {hasField("address") && renderFieldInput("address")}
             {hasField("deposit") && renderFieldInput("deposit")}
