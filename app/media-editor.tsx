@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff" },
   headerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 16, fontWeight: "700", color: COLORS.textPrimary },
-  previewContainer: { backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
+  previewContainer: { backgroundColor: "#000", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   videoWrapper: { width: SCREEN_WIDTH, height: CANVAS_HEIGHT, backgroundColor: "#000" },
   playOverlay: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.1)" },
   playBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
