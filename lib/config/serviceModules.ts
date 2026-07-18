@@ -95,7 +95,6 @@ export const SERVICE_MODULES: Record<string, ServiceModuleConfig> = {
     requiredFields: [],
     mediaRequiredForPublish: false,
     allowedRootCategories: ["beauty-care"],
-    notes: "included_services options array is currently empty in FIELD_REGISTRY — needs populating with actual salon service options.",
   },
 
   pro_consultation: {
