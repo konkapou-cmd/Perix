@@ -2383,6 +2383,7 @@ currentUserId={businessDetail?.business?.business_id}
         onSave={handleSaveService}
         isSaving={serviceSaving}
         rootCategory={businessDetail?.business.root_category}
+        subcategory={businessDetail?.business.subcategory}
         sessionToken={sessionToken || ""}
         nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
         nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}

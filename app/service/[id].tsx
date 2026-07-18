@@ -123,10 +123,19 @@ export default function ServiceDetailPage() {
     : "information-circle-outline";
 
   const handleCta = () => {
-    if (ctaType === "booking" || ctaType === "reservation") {
+    if (ctaType === "booking") {
       setShowBooking(true); setBookingName(user?.name || ""); setBookingEmail(user?.email || "");
     } else {
-      setShowInquiry(true); setInquiryName(user?.name || ""); setInquiryEmail(user?.email || "");
+      setShowInquiry(true);
+      setInquiryName(user?.name || "");
+      setInquiryEmail(user?.email || "");
+      if (ctaType === "request_quote") {
+        setInquiryMessage(`Ich interessiere mich für: ${service?.name || ""}`);
+      } else if (ctaType === "reservation") {
+        setInquiryMessage(`Hallo, ich möchte ${service?.name || ""} reservieren. Bitte teilen Sie mir die Verfügbarkeit mit.`);
+      } else {
+        setInquiryMessage("");
+      }
     }
   };
 
