@@ -100,6 +100,7 @@ type Props = {
   onSave: () => void;
   isSaving?: boolean;
   rootCategory?: string;
+  subcategory?: string;
   sessionToken?: string;
   nearLat?: number;
   nearLng?: number;
@@ -291,7 +292,7 @@ function mediaToForm(media: MediaItem[], base: ServiceForm): ServiceForm {
 }
 
 export default function ServiceModal({
-  visible, onClose, form, setForm, onSave, isSaving, rootCategory, sessionToken, nearLat, nearLng, businessAddress,
+  visible, onClose, form, setForm, onSave, isSaving, rootCategory, subcategory, sessionToken, nearLat, nearLng, businessAddress,
 }: Props) {
   const { t } = useTranslation();
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -357,7 +358,7 @@ export default function ServiceModal({
   const hasField = (name: string) => selectedFields.includes(name);
 
   const requiredModuleFields = getRequiredServiceFields(form.type);
-  const categoryQuestions = getCategoryQuestions(rootCategory || "");
+  const categoryQuestions = getCategoryQuestions(rootCategory || "", subcategory);
   const fieldImportance = new Map<string, number>();
   categoryQuestions.forEach((q) => {
     fieldImportance.set(q.field, q.importance === "required" ? 0 : q.importance === "recommended" ? 1 : 2);
