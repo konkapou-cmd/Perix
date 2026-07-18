@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Service } from "../../lib/api/core";
-import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, CATEGORY_SERVICE_TYPES } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
 import { EmptyState } from "../shared";
 import CategoryServiceCard from "./CategoryServiceCard";
 
@@ -43,10 +44,6 @@ export default function ServiceSection({
   const { t } = useTranslation();
   const tabLabel = getTabLabel(rootCategory);
 
-  const typeDefs = rootCategory ? CATEGORY_SERVICE_TYPES[rootCategory] || [] : [];
-  const typeDefMap: Record<string, { label: string; icon: string }> = {};
-  typeDefs.forEach((td) => { typeDefMap[td.type] = td; });
-
   const groupedByType: Record<string, Service[]> = {};
   services.forEach((s) => {
     const key = s.type || "other";
@@ -71,21 +68,21 @@ export default function ServiceSection({
   return (
     <View style={s.container}>
       {typeEntries.map(([type, items]) => {
-        const info = typeDefMap[type];
-        const addLabel = info?.label || type;
+        const icon = getServiceModuleIcon(type);
+        const label = getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? type));
 
         return (
           <View key={type}>
             {typeEntries.length > 1 && (
               <View style={s.typeHeader}>
-                {info && <Ionicons name={info.icon as any} size={16} color={primaryColor} style={{ marginRight: SPACING.small }} />}
-                <Text style={[s.categoryTitle, { color: textColor }]}>{info?.publicTabLabel || info?.label || type}</Text>
+                <Ionicons name={icon} size={16} color={primaryColor} style={{ marginRight: SPACING.small }} />
+                <Text style={[s.categoryTitle, { color: textColor }]}>{label}</Text>
               </View>
             )}
             {!readOnly && onAddService && (
               <Pressable style={[s.addBtn, { backgroundColor: cardColor, borderColor: primaryColor }]} onPress={() => onAddService(type)}>
                 <Ionicons name="add-circle-outline" size={18} color={primaryColor} />
-                <Text style={[s.addBtnText, { color: primaryColor }]}>{t("services.add", "Add")} {addLabel}</Text>
+                <Text style={[s.addBtnText, { color: primaryColor }]}>{t("services.add", "Hinzufügen")} {label}</Text>
               </Pressable>
             )}
             <View style={s.grid}>
