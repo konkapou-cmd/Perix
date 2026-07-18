@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Service } from "../../lib/api";
 import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES, FONT_WEIGHTS, SHADOWS, CATEGORY_SERVICE_TYPES, getServiceTypeConfig } from "../../lib/designTokens";
-import { getServiceCtaType } from "../../lib/config/serviceModules";
+import { getServiceCtaType, getServiceModuleIcon } from "../../lib/config/serviceModules";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { FIELD_REGISTRY } from "../../lib/fieldRegistry";
 import AdaptiveImage from "../AdaptiveImage";
@@ -47,12 +47,7 @@ type Props = {
 };
 
 function getTypeIcon(type: string): string {
-  const defs = CATEGORY_SERVICE_TYPES;
-  for (const cat of Object.keys(defs)) {
-    const found = defs[cat].find((t) => t.type === type);
-    if (found) return found.icon;
-  }
-  return "help-circle";
+  return getServiceModuleIcon(type);
 }
 
 export default function CategoryServiceCard({ service, rootCategory, onPress, primaryColor = COLORS.primary, textColor = COLORS.textPrimary, secondaryColor = COLORS.textSecondary, cardColor = COLORS.background }: Props) {
