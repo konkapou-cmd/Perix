@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
 import StatusBadge from "../ui/StatusBadge";
