@@ -1,9 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Service } from "../../lib/api";
-import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES, FONT_WEIGHTS, SHADOWS, CATEGORY_SERVICE_TYPES, getServiceTypeConfig } from "../../lib/designTokens";
-import { getServiceCtaType, getServiceModuleIcon } from "../../lib/config/serviceModules";
+import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES, FONT_WEIGHTS, SHADOWS } from "../../lib/designTokens";
+import { getServiceCtaType, getServiceModuleIcon, getServiceFields, getServiceModuleLabel } from "../../lib/config/serviceModules";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { FIELD_REGISTRY } from "../../lib/fieldRegistry";
 import AdaptiveImage from "../AdaptiveImage";
@@ -51,10 +52,9 @@ function getTypeIcon(type: string): string {
 }
 
 export default function CategoryServiceCard({ service, rootCategory, onPress, primaryColor = COLORS.primary, textColor = COLORS.textPrimary, secondaryColor = COLORS.textSecondary, cardColor = COLORS.background }: Props) {
+  const { t } = useTranslation();
   const getFieldsForType = (): string[] => {
-    const types = CATEGORY_SERVICE_TYPES[rootCategory] || [];
-    const match = types.find((t) => t.type === service.type);
-    return match?.fields || [];
+    return getServiceFields(service.type);
   };
 
   const serviceField = (name: string): any => (service as any)[name];
@@ -165,8 +165,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
     : ctaType === "get_in_touch" ? COLORS.textSecondary
     : COLORS.textMuted;
 
-  const typeConfig = getServiceTypeConfig(rootCategory, service.type);
-  const typeName = typeConfig?.publicTabLabel || typeConfig?.label || service.type;
+  const typeName = getServiceModuleLabel(service.type, (k: string, fb?: string) => t(k, fb ?? service.type));
 
   return (
     <Pressable style={[s.card, { backgroundColor: cardColor }]} onPress={() => onPress?.(service)}>
