@@ -293,7 +293,7 @@ export default function EventModal({
           <Text style={s.label}>{t("events.location") || "Location"}</Text>
           <PlacesAutocompleteInput
             value={eventForm.location}
-            onChangeText={(text) => onFormChange({ ...eventForm, location: text })}
+            onChangeText={(text) => onFormChange({ ...eventForm, location: text, latitude: null, longitude: null })}
             onSelectPlace={(address, lat, lng) => onFormChange({ ...eventForm, location: address, latitude: lat, longitude: lng })}
             placeholder={t("events.locationPlaceholder") || "Location or address"}
             style={s.input}
