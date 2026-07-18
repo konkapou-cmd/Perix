@@ -310,7 +310,7 @@ export const FIELD_REGISTRY: FieldRegistry = {
     component: "chips-multi",
     labelKey: "services.includedServices",
     showOnCard: true,
-    options: [],
+    options: ["haircut", "color", "styling", "manicure", "pedicure", "facial", "massage", "makeup", "waxing"],
   },
   sessions_count: {
     component: "number",
