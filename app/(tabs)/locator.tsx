@@ -805,7 +805,7 @@ export default function LocatorScreen() {
           <Pressable style={styles.sidebarOverlay} onPress={() => setSidebarOpen(false)} />
         )}
 
-        <View style={styles.sidebarContent}>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}>
           {/* Map Section */}
           <View style={styles.mapSection}>
         <BusinessMap
@@ -981,11 +981,7 @@ export default function LocatorScreen() {
       )}
 
       {/* Card List */}
-      <ScrollView
-        style={styles.cardScrollView}
-        contentContainerStyle={styles.cardScrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
+      <View style={styles.listContainer}>
         {/* Business List */}
         {activeTab === "businesses" && (
           <View style={styles.list}>
@@ -1125,6 +1121,7 @@ export default function LocatorScreen() {
         )}
 
         <View style={{ height: 80 }} />
+      </View>
       </ScrollView>
 
       {/* Calendar Modal */}
@@ -2841,10 +2838,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     flexShrink: 1,
   },
-  cardScrollView: {
-    flex: 1,
-  },
-  cardScrollContent: {
+  listContainer: {
     paddingBottom: SPACING.small,
   },
 });

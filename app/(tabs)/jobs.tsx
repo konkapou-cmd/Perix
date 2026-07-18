@@ -217,8 +217,7 @@ export default function JobsScreen() {
         </Pressable>
       </View>
 
-      {/* Category Filters */}
-      <View style={styles.filters}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <Pressable
           style={styles.filterButton}
           onPress={() => setCategoryModalVisible(true)}
@@ -315,6 +314,7 @@ export default function JobsScreen() {
         <FlatList
           data={filteredJobs}
           keyExtractor={(item) => item.job_id}
+          nestedScrollEnabled
           renderItem={({ item }) => (
             <Pressable
               style={styles.jobCard}
@@ -383,6 +383,8 @@ export default function JobsScreen() {
           contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 16 }}
         />
       )}
+
+      </ScrollView>
 
       {/* Category Modal */}
       {/* Category Modal */}
