@@ -334,7 +334,7 @@ export default function ServiceModal({
     const hasCoverPhoto = !!form.cover_image_url ||
       (form.image_urls && form.image_urls.length > 0);
     if (form.status === "published" && !hasCoverPhoto) {
-      setCoverPhotoError("A cover photo is required before this service can be published.");
+      setCoverPhotoError(t("services.coverRequired", "Bitte füge ein Titelbild hinzu, bevor du den Dienst veröffentlichst."));
       return;
     }
     setCoverPhotoError(null);
