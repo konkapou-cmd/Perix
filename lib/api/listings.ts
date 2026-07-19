@@ -38,29 +38,29 @@ export type Listing = {
 export type ListingCreatePayload = {
   listing_type: ListingType;
   title: string;
-  description?: string;
-  price?: string;
-  cover_image_url?: string;
+  description?: string | null;
+  price?: string | null;
+  cover_image_url?: string | null;
   image_urls?: string[];
   gallery_images?: string[];
   gallery_videos?: string[];
-  video_url?: string;
-  address?: string;
-  latitude?: number;
-  longitude?: number;
-  category?: string;
+  video_url?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  category?: string | null;
   status?: ListingStatus;
-  condition?: string;
-  brand?: string;
-  delivery_method?: string;
-  property_type?: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  size_sqm?: number;
-  furnished?: boolean;
-  available_from?: string;
-  lease_duration?: string;
-  deposit?: string;
+  condition?: string | null;
+  brand?: string | null;
+  delivery_method?: string | null;
+  property_type?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  size_sqm?: number | null;
+  furnished?: boolean | null;
+  available_from?: string | null;
+  lease_duration?: string | null;
+  deposit?: string | null;
 };
 
 export type ListingUpdatePayload = Partial<ListingCreatePayload> & {
