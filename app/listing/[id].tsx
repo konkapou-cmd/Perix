@@ -62,7 +62,7 @@ export default function ListingDetailScreen() {
       Alert.alert(t("common.loginRequired", "Login Required"), t("common.loginToContact", "Please log in to contact the seller."));
       return;
     }
-    router.push({ pathname: "/(tabs)/messages" as any, params: { id: listing.owner_id, name: "Seller" } as any });
+    router.push({ pathname: `/messages/${listing.owner_id}` as any, params: { name: "Seller", entityType: "user" } as any });
   };
 
   if (loading) {
