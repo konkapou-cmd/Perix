@@ -138,16 +138,14 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         condition: isProduct ? (condition || null) : undefined,
         brand: isProduct ? (brand || null) : undefined,
         delivery_method: isProduct ? (delivery || null) : undefined,
-        brand: isProduct ? (brand || undefined) : undefined,
-        delivery_method: isProduct ? (delivery || undefined) : undefined,
         property_type: !isProduct ? propertyType : undefined,
-        bedrooms: !isProduct ? (parseInt(bedrooms, 10) || undefined) : undefined,
-        bathrooms: !isProduct ? (parseInt(bathrooms, 10) || undefined) : undefined,
-        size_sqm: !isProduct ? (parseInt(sizeSqm, 10) || undefined) : undefined,
+        bedrooms: !isProduct ? (bedrooms.trim() ? parseInt(bedrooms, 10) : null) : undefined,
+        bathrooms: !isProduct ? (bathrooms.trim() ? parseInt(bathrooms, 10) : null) : undefined,
+        size_sqm: !isProduct ? (sizeSqm.trim() ? parseInt(sizeSqm, 10) : null) : undefined,
         furnished: !isProduct ? furnished : undefined,
-        available_from: !isProduct ? (availableFrom || undefined) : undefined,
-        lease_duration: !isProduct ? (leaseDuration || undefined) : undefined,
-        deposit: !isProduct ? (deposit || undefined) : undefined,
+        available_from: !isProduct ? (availableFrom || null) : undefined,
+        lease_duration: !isProduct ? (leaseDuration || null) : undefined,
+        deposit: !isProduct ? (deposit || null) : undefined,
       };
 
       if (isEditing) {
