@@ -30,7 +30,29 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
         raise HTTPException(status_code=403, detail="Not authorized")
     if not is_subscription_active(business):
         raise HTTPException(status_code=403, detail="Active subscription required")
-    enabled_modules = business.get("enabled_modules", {})
+    enabled_modules = business.get("enabled_modules")
+
+    if not isinstance(enabled_modules, dict):
+        logger.warning(
+            "Repairing invalid enabled_modules for business %s: type=%s",
+            payload.business_id,
+            type(enabled_modules).__name__,
+        )
+        enabled_modules = {}
+
+    root_category = business.get("root_category") or getattr(payload, "root_category", None) or ""
+
+    if not enabled_modules:
+        allowed_types = ROOT_SERVICE_TYPES.get(root_category, [])
+        if allowed_types:
+            enabled_modules = {
+                "services": True,
+                "service_types": allowed_types,
+            }
+            await db.businesses.update_one(
+                {"business_id": payload.business_id},
+                {"$set": {"enabled_modules": enabled_modules}},
+            )
     if not enabled_modules.get("services") and not enabled_modules.get("menu") and not enabled_modules.get("rentals") and not enabled_modules.get("gym"):
         raise HTTPException(status_code=403, detail="Services are not enabled for this business category")
 

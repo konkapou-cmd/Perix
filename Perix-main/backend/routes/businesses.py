@@ -18,7 +18,7 @@ from models.event import EventResponse
 from routes.jobs import job_response
 from models.service import ServiceResponse
 from routes.rentals import service_to_rental, RENTAL_SERVICE_TYPES
-from utils.helpers import generate_id, now_utc, normalize_datetime
+from utils.helpers import generate_id, now_utc, parse_datetime, normalize_datetime
 from routes.dependencies import get_current_user, build_user_public
 
 
@@ -87,10 +87,10 @@ def build_business_summary(business_doc: Dict) -> BusinessSummary:
 def is_trial_active(business_doc: Dict) -> bool:
     if business_doc.get("subscription_status") != "trial":
         return False
-    trial_expires = business_doc.get("trial_expires_at")
-    if not trial_expires:
+    trial_expires = parse_datetime(business_doc.get("trial_expires_at"))
+    if trial_expires is None:
         return False
-    return normalize_datetime(trial_expires) >= now_utc()
+    return trial_expires >= now_utc()
 
 
 def is_subscription_active(business_doc: Dict) -> bool:
