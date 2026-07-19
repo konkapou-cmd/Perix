@@ -78,6 +78,7 @@ import {
   createService,
   updateService,
   deleteService,
+  getSlots,
   updateUserSlug,
   updateBusinessSlug,
   getPosts,
@@ -1133,6 +1134,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [serviceForm, setServiceForm] = useState(DEFAULT_SERVICE_FORM);
   const [serviceSaving, setServiceSaving] = useState(false);
+  const [originalAvailabilitySlots, setOriginalAvailabilitySlots] = useState<any[]>([]);
 
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
   const [bookingService, setBookingService] = useState<Service | null>(null);
@@ -1216,78 +1218,95 @@ const handleUpdateSlug = async (newSlug: string) => {
     setServiceModalVisible(true);
   };
 
-  const handleEditService = (service: Service) => {
-    setEditingServiceId(service.service_id);
-    setServiceForm({
-      type: service.type || "appointment",
-      name: service.name || "",
-      description: service.description || "",
-      price: service.price || "",
-      duration_minutes: service.duration_minutes?.toString() || "",
-      capacity: service.capacity?.toString() || "",
-      facilities: service.facilities || [],
-      beds: service.beds?.toString() || "",
-      room_size: service.room_size || "",
-      room_number: service.room_number || "",
-      menu_category: service.menu_category || "",
-      dietary_tags: service.dietary_tags || [],
-      image_urls: service.image_urls || [],
-      cover_image_url: service.cover_image_url || "",
-      gallery_images: service.gallery_images || [],
-      gallery_videos: service.gallery_videos || [],
-      video_url: service.video_url || "",
-      instructor: service.instructor || "",
-      difficulty_level: service.difficulty_level || "",
-      specialist_name: service.specialist_name || "",
-      service_category: service.service_category || "",
-      consultation_type: service.consultation_type || "",
-      meeting_type: service.meeting_type || "",
-      bedrooms: service.bedrooms?.toString() || "",
-      bathrooms: service.bathrooms?.toString() || "",
-      size_sqm: service.size_sqm?.toString() || "",
-      floor: service.floor?.toString() || "",
-      furnished: service.furnished || false,
-      available_from: service.available_from || "",
-      lease_duration: service.lease_duration || "",
-      max_guests: service.max_guests?.toString() || "",
-      property_type: service.property_type || "",
-      deposit: service.deposit || "",
-      address: service.address || "",
-      latitude: service.latitude?.toString() || "",
-      longitude: service.longitude?.toString() || "",
-      make: service.make || "",
-      model: service.model || "",
-      year: service.year?.toString() || "",
-      mileage_km: service.mileage_km?.toString() || "",
-      fuel_type: service.fuel_type || "",
-      transmission: service.transmission || "",
-      stock_status: service.stock_status || "",
-      brand: service.brand || "",
-      condition: service.condition || "",
-      treatment_type: service.treatment_type || "",
-      session_type: service.session_type || "",
-      calories: service.calories?.toString() || "",
-      allergens: service.allergens || [],
-      spice_level: service.spice_level?.toString() || "",
-      duration_days: service.duration_days?.toString() || "",
-      duration_months: service.duration_months?.toString() || "",
-      includes: service.includes || "",
-      visits_included: service.visits_included?.toString() || "",
-      valid_days: service.valid_days?.toString() || "",
-      included_services: service.included_services || [],
-      sessions_count: service.sessions_count?.toString() || "",
-      duration_per_session: service.duration_per_session?.toString() || "",
-      special_requests: service.special_requests || "",
-      pickup_location: service.pickup_location || "",
-      dropoff_location: service.dropoff_location || "",
-      reason_for_visit: service.reason_for_visit || "",
-      insurance_info: service.insurance_info || "",
-      pet_name: service.pet_name || "",
-      pet_type: service.pet_type || "",
-      status: (service.status as "draft" | "published" | "hidden") || "published",
-      sort_order: service.sort_order?.toString() || "0",
-    });
-    setServiceModalVisible(true);
+  const handleEditService = async (service: Service) => {
+    try {
+      const slots = await getSlots(service.service_id);
+      const normalizedSlots = slots.map((s: any) => ({
+        day_of_week: s.day_of_week,
+        date: s.date,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        is_recurring: s.is_recurring,
+      }));
+      setOriginalAvailabilitySlots(normalizedSlots);
+      setEditingServiceId(service.service_id);
+      setServiceForm({
+        type: service.type || "appointment",
+        name: service.name || "",
+        description: service.description || "",
+        price: service.price || "",
+        duration_minutes: service.duration_minutes?.toString() || "",
+        capacity: service.capacity?.toString() || "",
+        facilities: service.facilities || [],
+        beds: service.beds?.toString() || "",
+        room_size: service.room_size || "",
+        room_number: service.room_number || "",
+        menu_category: service.menu_category || "",
+        dietary_tags: service.dietary_tags || [],
+        image_urls: service.image_urls || [],
+        cover_image_url: service.cover_image_url || "",
+        gallery_images: service.gallery_images || [],
+        gallery_videos: service.gallery_videos || [],
+        video_url: service.video_url || "",
+        instructor: service.instructor || "",
+        difficulty_level: service.difficulty_level || "",
+        specialist_name: service.specialist_name || "",
+        service_category: service.service_category || "",
+        consultation_type: service.consultation_type || "",
+        meeting_type: service.meeting_type || "",
+        bedrooms: service.bedrooms?.toString() || "",
+        bathrooms: service.bathrooms?.toString() || "",
+        size_sqm: service.size_sqm?.toString() || "",
+        floor: service.floor?.toString() || "",
+        furnished: service.furnished || false,
+        available_from: service.available_from || "",
+        lease_duration: service.lease_duration || "",
+        max_guests: service.max_guests?.toString() || "",
+        property_type: service.property_type || "",
+        deposit: service.deposit || "",
+        address: service.address || "",
+        latitude: service.latitude?.toString() || "",
+        longitude: service.longitude?.toString() || "",
+        make: service.make || "",
+        model: service.model || "",
+        year: service.year?.toString() || "",
+        mileage_km: service.mileage_km?.toString() || "",
+        fuel_type: service.fuel_type || "",
+        transmission: service.transmission || "",
+        stock_status: service.stock_status || "",
+        brand: service.brand || "",
+        condition: service.condition || "",
+        treatment_type: service.treatment_type || "",
+        session_type: service.session_type || "",
+        calories: service.calories?.toString() || "",
+        allergens: service.allergens || [],
+        spice_level: service.spice_level?.toString() || "",
+        duration_days: service.duration_days?.toString() || "",
+        duration_months: service.duration_months?.toString() || "",
+        includes: service.includes || "",
+        visits_included: service.visits_included?.toString() || "",
+        valid_days: service.valid_days?.toString() || "",
+        included_services: service.included_services || [],
+        sessions_count: service.sessions_count?.toString() || "",
+        duration_per_session: service.duration_per_session?.toString() || "",
+        special_requests: service.special_requests || "",
+        pickup_location: service.pickup_location || "",
+        dropoff_location: service.dropoff_location || "",
+        reason_for_visit: service.reason_for_visit || "",
+        insurance_info: service.insurance_info || "",
+        pet_name: service.pet_name || "",
+        pet_type: service.pet_type || "",
+        status: (service.status as "draft" | "published" | "hidden") || "published",
+        sort_order: service.sort_order?.toString() || "0",
+        availability_slots: normalizedSlots,
+      });
+      setServiceModalVisible(true);
+    } catch {
+      Alert.alert(
+        t("common.error", "Fehler"),
+        t("services.availabilityLoadFailed", "Die Verfügbarkeit des Dienstes konnte nicht geladen werden."),
+      );
+    }
   };
 
   const handleDeleteService = (serviceId: string) => {
@@ -1418,6 +1437,25 @@ const handleUpdateSlug = async (newSlug: string) => {
         status: serviceForm.status || undefined,
         sort_order: serviceForm.sort_order ? parseInt(serviceForm.sort_order, 10) : undefined,
       };
+
+      const normalizeSlots = (slots: any[]) =>
+        [...slots]
+          .map((s) => ({
+            day_of_week: s.day_of_week ?? null,
+            date: s.date ?? null,
+            start_time: s.start_time,
+            end_time: s.end_time,
+            is_recurring: s.is_recurring,
+          }))
+          .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+
+      const availabilityChanged =
+        JSON.stringify(normalizeSlots(serviceForm.availability_slots || [])) !==
+        JSON.stringify(normalizeSlots(originalAvailabilitySlots));
+
+      if (!editingServiceId || availabilityChanged) {
+        payload.availability_slots = serviceForm.availability_slots || [];
+      }
       if (payload.status === "published" && !payload.cover_image_url) {
         Alert.alert(t("common.error", "Fehler"), t("services.coverRequired", "Bitte füge ein Titelbild hinzu, bevor du den Dienst veröffentlichst."));
         setServiceSaving(false);

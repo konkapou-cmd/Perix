@@ -298,6 +298,9 @@ export default function ServiceModal({
 }: Props) {
   const { t } = useTranslation();
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showSlotDatePicker, setShowSlotDatePicker] = useState(false);
+  const [slotDraft, setSlotDraft] = useState({ is_recurring: true, day_of_week: 1, start_time: "09:00", end_time: "10:00", date: "" as string | undefined });
+  const [showSlotEditor, setShowSlotEditor] = useState(false);
   const [coverPhotoError, setCoverPhotoError] = useState<string | null>(null);
 
   const allowedModules = rootCategory ? getAllowedModules(rootCategory) : [];
@@ -700,19 +703,75 @@ export default function ServiceModal({
                   </Pressable>
                 </View>
               ))}
-              <View style={styles.addSlotRow}>
-                <Pressable
-                  style={[styles.addSlotBtn, { borderColor: COLORS.primary }]}
-                  onPress={() => {
-                    const slots = [...(form.availability_slots || [])];
-                    slots.push({ is_recurring: true, day_of_week: 1, start_time: "09:00", end_time: "10:00" });
-                    setForm(prev => ({ ...prev, availability_slots: slots }));
-                  }}
-                >
-                  <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
-                  <Text style={[styles.addSlotText, { color: COLORS.primary }]}>{t("services.addTimeSlot", "Zeitfenster hinzufügen")}</Text>
-                </Pressable>
-              </View>
+
+              {showSlotEditor ? (
+                <View style={styles.slotEditor}>
+                  <View style={styles.chipRow}>
+                    <Pressable style={[styles.chip, slotDraft.is_recurring && styles.chipActive]} onPress={() => setSlotDraft(prev => ({ ...prev, is_recurring: true }))}>
+                      <Text style={[styles.chipText, slotDraft.is_recurring && styles.chipTextActive]}>{t("services.weekly", "Wöchentlich")}</Text>
+                    </Pressable>
+                    <Pressable style={[styles.chip, !slotDraft.is_recurring && styles.chipActive]} onPress={() => setSlotDraft(prev => ({ ...prev, is_recurring: false }))}>
+                      <Text style={[styles.chipText, !slotDraft.is_recurring && styles.chipTextActive]}>{t("services.specificDate", "Bestimmtes Datum")}</Text>
+                    </Pressable>
+                  </View>
+
+                  {slotDraft.is_recurring ? (
+                    <View style={styles.chipRow}>
+                      {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((label, i) => (
+                        <Pressable key={i} style={[styles.chip, slotDraft.day_of_week === (i + 1) % 7 && styles.chipActive]} onPress={() => setSlotDraft(prev => ({ ...prev, day_of_week: (i + 1) % 7 }))}>
+                          <Text style={[styles.chipText, slotDraft.day_of_week === (i + 1) % 7 && styles.chipTextActive]}>{label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : (
+                    <Pressable style={styles.selector} onPress={() => setShowSlotDatePicker(true)}>
+                      <Text style={slotDraft.date ? styles.selectorTextSelected : styles.selectorText}>
+                        {slotDraft.date || t("services.selectDate", "Datum wählen")}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+                    </Pressable>
+                  )}
+
+                  <View style={styles.row}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.label}>{t("services.startTime", "Start")}</Text>
+                      <TextInput style={styles.input} value={slotDraft.start_time} onChangeText={(v) => setSlotDraft(prev => ({ ...prev, start_time: v }))} placeholder="09:00" placeholderTextColor={COLORS.textDisabled} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.label}>{t("services.endTime", "Ende")}</Text>
+                      <TextInput style={styles.input} value={slotDraft.end_time} onChangeText={(v) => setSlotDraft(prev => ({ ...prev, end_time: v }))} placeholder="10:00" placeholderTextColor={COLORS.textDisabled} />
+                    </View>
+                  </View>
+
+                  <View style={styles.addSlotRow}>
+                    <Pressable style={[styles.addSlotBtn, { borderColor: COLORS.success }]} onPress={() => {
+                      const parseTime = (v: string) => { const m = /^(\d{1,2}):(\d{2})$/.exec(v.trim()); if (!m) return null; const h = Number(m[1]), min = Number(m[2]); return (h >= 0 && h <= 23 && min >= 0 && min <= 59) ? h * 60 + min : null; };
+                      const start = parseTime(slotDraft.start_time);
+                      const end = parseTime(slotDraft.end_time);
+                      if (start === null || end === null || start >= end) return;
+                      const hasTarget = slotDraft.is_recurring ? slotDraft.day_of_week !== undefined : !!slotDraft.date;
+                      if (!hasTarget) return;
+                      const slots = [...(form.availability_slots || []), { ...slotDraft }];
+                      setForm(prev => ({ ...prev, availability_slots: slots }));
+                      setShowSlotEditor(false);
+                      setSlotDraft({ is_recurring: true, day_of_week: 1, start_time: "09:00", end_time: "10:00", date: undefined });
+                    }}>
+                      <Ionicons name="checkmark" size={18} color={COLORS.success} />
+                      <Text style={[styles.addSlotText, { color: COLORS.success }]}>{t("common.add", "Hinzufügen")}</Text>
+                    </Pressable>
+                    <Pressable style={[styles.addSlotBtn, { borderColor: COLORS.textMuted }]} onPress={() => { setShowSlotEditor(false); setSlotDraft({ is_recurring: true, day_of_week: 1, start_time: "09:00", end_time: "10:00", date: undefined }); }}>
+                      <Text style={[styles.addSlotText, { color: COLORS.textMuted }]}>{t("common.cancel", "Abbrechen")}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.addSlotRow}>
+                  <Pressable style={[styles.addSlotBtn, { borderColor: COLORS.primary }]} onPress={() => setShowSlotEditor(true)}>
+                    <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+                    <Text style={[styles.addSlotText, { color: COLORS.primary }]}>{t("services.addTimeSlot", "Zeitfenster hinzufügen")}</Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           ) : (
             <View>
@@ -744,7 +803,13 @@ export default function ServiceModal({
         disabled={
           !form.type || !form.name.trim() ||
           (form.status === "published" && isServiceBookable(form.type) &&
-            (requiresServiceSlots(form.type) ? !(form.availability_slots?.length) : !form.available_from))
+            (requiresServiceSlots(form.type)
+              ? !(form.availability_slots?.length) || !form.availability_slots!.every(s => {
+                  const p = (v: string) => { const m = /^(\d{1,2}):(\d{2})$/.exec(v.trim()); if (!m) return null; const h = Number(m[1]), min = Number(m[2]); return (h >= 0 && h <= 23 && min >= 0 && min <= 59) ? h * 60 + min : null; };
+                  const a = p(s.start_time), b = p(s.end_time);
+                  return a !== null && b !== null && a < b && (s.is_recurring ? s.day_of_week !== undefined : !!s.date);
+                })
+              : !form.available_from))
         }
       />
     </FormScreen>
@@ -833,4 +898,8 @@ const styles = StyleSheet.create({
   selectorText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textDisabled },
   selectorTextSelected: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
   availabilityHint: { fontSize: FONT_SIZES.caption, color: COLORS.danger, marginTop: SPACING.small },
+  slotEditor: { paddingVertical: SPACING.small },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: 4 },
+  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipTextActive: { color: "#fff" },
 });
