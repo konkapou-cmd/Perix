@@ -2596,7 +2596,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mapSection: {
-    height: Platform.OS === "web" ? "40%" : "33%",
+    height: 280,
     width: "100%",
   },
   recenterFab: {
