@@ -678,6 +678,49 @@ export default function ServiceModal({
               </View>
             </Modal>
 
+            {/* Slot date picker modal */}
+            <Modal
+              visible={showSlotDatePicker}
+              animationType="slide"
+              transparent
+              onRequestClose={() => setShowSlotDatePicker(false)}
+            >
+              <View style={styles.datePickerOverlay}>
+                <View style={styles.datePickerContainer}>
+                  <View style={styles.datePickerHeader}>
+                    <Pressable onPress={() => setShowSlotDatePicker(false)}>
+                      <Text style={styles.datePickerDone}>
+                        {t("common.done", "Fertig")}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <CalendarList
+                    horizontal
+                    pagingEnabled
+                    minDate={new Date().toISOString().slice(0, 10)}
+                    onDayPress={(day: any) => {
+                      setSlotDraft((previous) => ({
+                        ...previous,
+                        is_recurring: false,
+                        date: day.dateString,
+                      }));
+                      setShowSlotDatePicker(false);
+                    }}
+                    markedDates={
+                      slotDraft.date
+                        ? { [slotDraft.date]: { selected: true, selectedColor: COLORS.primary } }
+                        : {}
+                    }
+                    theme={{
+                      todayTextColor: COLORS.primary,
+                      selectedDayBackgroundColor: COLORS.primary,
+                      arrowColor: COLORS.primary,
+                    }}
+                  />
+                </View>
+              </View>
+            </Modal>
+
       {/* Availability Section for bookable services */}
       {isServiceBookable(form.type) && (
         <View style={styles.availabilitySection}>
