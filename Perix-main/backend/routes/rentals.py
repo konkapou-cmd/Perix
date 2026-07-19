@@ -37,6 +37,8 @@ def service_to_rental(service: dict, business: dict = None) -> dict:
         "business_id": service.get("business_id"),
         "business_name": business.get("name") if business else service.get("business_name"),
         "business_logo": business.get("profile_photo") or business.get("logo_image") if business else None,
+        "source_type": "business",
+        "source_badge": "Professional business",
         "title": service.get("name"),
         "description": service.get("description"),
         "cover_image": cover,
@@ -62,6 +64,53 @@ def service_to_rental(service: dict, business: dict = None) -> dict:
         "furnished": service.get("furnished"),
         "lease_duration": service.get("lease_duration"),
         "cover_focal_point": service.get("cover_focal_point", {"x": 0.5, "y": 0.5}),
+    }
+
+
+def listing_to_rental(listing: dict, owner: dict = None) -> dict:
+    images = listing.get("image_urls", [])
+    cover = listing.get("cover_image_url") or (images[0] if images else None)
+    gallery = listing.get("gallery_images", [])
+    if not gallery and len(images) > 1:
+        gallery = images[1:]
+    property_type = listing.get("property_type") or "apartment"
+    return {
+        "rental_id": f"lst_{listing.get('listing_id', '')}",
+        "listing_id": listing.get("listing_id"),
+        "service_id": None,
+        "business_id": None,
+        "business_name": None,
+        "business_logo": None,
+        "source_type": "owner",
+        "source_badge": "Owner-listed",
+        "owner_id": listing.get("owner_id"),
+        "owner_name": owner.get("name") if owner else None,
+        "owner_photo": owner.get("profile_photo") or owner.get("picture") if owner else None,
+        "title": listing.get("title"),
+        "description": listing.get("description"),
+        "cover_image": cover,
+        "rent_price": listing.get("price"),
+        "rooms_size": None,
+        "address": listing.get("address"),
+        "latitude": listing.get("latitude"),
+        "longitude": listing.get("longitude"),
+        "available_from": listing.get("available_from"),
+        "deposit": listing.get("deposit"),
+        "property_type": property_type,
+        "gallery_images": gallery,
+        "gallery_videos": listing.get("gallery_videos", []),
+        "video_url": listing.get("video_url"),
+        "image_urls": listing.get("image_urls", []),
+        "is_active": listing.get("is_active", True),
+        "created_at": listing.get("created_at"),
+        "root_category": "rentals",
+        "subcategory": property_type,
+        "bedrooms": listing.get("bedrooms"),
+        "bathrooms": listing.get("bathrooms"),
+        "size_sqm": listing.get("size_sqm"),
+        "furnished": listing.get("furnished"),
+        "lease_duration": listing.get("lease_duration"),
+        "cover_focal_point": {"x": 0.5, "y": 0.5},
     }
 
 
@@ -108,6 +157,26 @@ async def get_rentals(
                 s["root_category"] = rc
                 s["subcategory"] = biz.get("subcategory", s.get("type"))
             rental_obj = service_to_rental(s, biz)
+            if property_type and rental_obj.get("property_type") != property_type:
+                continue
+            if subcategory and rental_obj.get("subcategory") != subcategory:
+                continue
+            rentals.append(rental_obj)
+
+    # Include owner-listed home rentals
+    owner_listings = await db.listings.find(
+        {"listing_type": "home_rental", "status": "published", "is_active": True},
+        {"_id": 0}
+    ).to_list(100)
+    if owner_listings:
+        owner_ids = list({l["owner_id"] for l in owner_listings})
+        owner_cursor = db.users.find({"user_id": {"$in": owner_ids}}, {"_id": 0, "password_hash": 0})
+        owner_map = {}
+        async for u in owner_cursor:
+            owner_map[u["user_id"]] = u
+        for lst in owner_listings:
+            owner = owner_map.get(lst["owner_id"])
+            rental_obj = listing_to_rental(lst, owner)
             if property_type and rental_obj.get("property_type") != property_type:
                 continue
             if subcategory and rental_obj.get("subcategory") != subcategory:

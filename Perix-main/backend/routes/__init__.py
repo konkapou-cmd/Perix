@@ -33,6 +33,7 @@ from routes.rentals import router as rentals_router
 from routes.services import router as services_router
 from routes.places import router as places_router
 from routes.mux import router as mux_router
+from routes.listings import router as listings_router
 
 # Create main API router
 api_router = APIRouter(prefix="/api")
@@ -70,6 +71,7 @@ api_router.include_router(rentals_router)
 api_router.include_router(services_router)
 api_router.include_router(places_router)
 api_router.include_router(mux_router)
+api_router.include_router(listings_router)
 
 
 @api_router.get("/")
