@@ -13,7 +13,7 @@ from routes.dependencies import get_current_user
 
 router = APIRouter(prefix="/saved", tags=["Saved Items"])
 
-VALID_TYPES = {"event", "activity", "job", "post", "business", "user", "rental"}
+VALID_TYPES = {"event", "activity", "job", "post", "business", "user", "rental", "service"}
 
 
 @router.post("/toggle", response_model=SavedToggleResponse)
@@ -170,12 +170,26 @@ async def _fetch_item_data(item_type: str, item_id: str) -> Optional[Dict[str, A
                 "profile_photo": doc.get("profile_photo") or doc.get("picture"),
             }
     elif item_type == "rental":
-        doc = await db.rentals.find_one({"rental_id": item_id}, {"_id": 0})
+        if item_id.startswith("svc_"):
+            service_id = item_id[4:]
+            doc = await db.services.find_one({"service_id": service_id}, {"_id": 0})
+            if doc:
+                return {
+                    "title": doc.get("name"),
+                    "cover_image": doc.get("cover_image_url") or (doc.get("image_urls") or [None])[0],
+                    "rent_price": doc.get("price"),
+                    "address": doc.get("address"),
+                }
+        return None
+    elif item_type == "service":
+        doc = await db.services.find_one({"service_id": item_id}, {"_id": 0})
         if doc:
             return {
-                "title": doc.get("title"),
-                "cover_image": doc.get("cover_image"),
-                "rent_price": doc.get("rent_price"),
+                "name": doc.get("name"),
+                "business_id": doc.get("business_id"),
+                "type": doc.get("type"),
+                "price": doc.get("price"),
+                "cover_image_url": doc.get("cover_image_url"),
                 "address": doc.get("address"),
             }
-    return None
+        return None
