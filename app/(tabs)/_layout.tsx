@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
 import BusinessActionsModal, { BusinessAction } from "../../components/business/BusinessActionsModal";
+import CreationSheet, { CreationAction } from "../../components/user/CreationSheet";
 
 function TabBarBackground() {
   return (
@@ -68,6 +69,7 @@ export default function TabsLayout() {
   const router = useRouter();
   const { activeIdentity } = useAuth();
   const [showBizActions, setShowBizActions] = useState(false);
+  const [showCreateSheet, setShowCreateSheet] = useState(false);
   const isBusiness = activeIdentity?.type === "business";
 
   const handleBizAction = (action: BusinessAction) => {
@@ -86,6 +88,28 @@ export default function TabsLayout() {
         break;
       case "bookings":
         router.replace({ pathname: "/(tabs)/profile", params: { openBookings: "1" } });
+        break;
+    }
+  };
+
+  const handleCreateAction = (action: CreationAction) => {
+    switch (action) {
+      case "business":
+        if (isBusiness) {
+          router.replace("/(tabs)/profile");
+        } else {
+          router.push("/business/create" as any);
+        }
+        break;
+      case "camera":
+        router.push("/camera");
+        break;
+      case "activity":
+        router.replace({ pathname: "/(tabs)/profile", params: { openActivity: "1" } as any });
+        break;
+      case "home_rental":
+      case "product":
+        // Open listing modal — implement in Phase 3
         break;
     }
   };
@@ -179,6 +203,11 @@ export default function TabsLayout() {
             name="create"
             options={{
               tabBarItemStyle: isBusiness ? { display: "none" } : undefined,
+              tabBarButton: !isBusiness
+                ? (props: any) => (
+                    <Pressable {...props} onPress={() => setShowCreateSheet(true)} />
+                  )
+                : undefined,
               tabBarIcon: ({ color, size, focused }) => (
                 <CameraTabIcon color={color} size={size} filled={focused} />
               ),
@@ -192,6 +221,12 @@ export default function TabsLayout() {
         visible={showBizActions}
         onClose={() => setShowBizActions(false)}
         onAction={handleBizAction}
+      />
+      <CreationSheet
+        visible={showCreateSheet}
+        onClose={() => setShowCreateSheet(false)}
+        onAction={handleCreateAction}
+        hasBusiness={isBusiness}
       />
     </View>
   );
