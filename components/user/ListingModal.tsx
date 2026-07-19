@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Alert, Modal, Pressable, ScrollView, StyleSheet,
   Text, TextInput, View, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -6,9 +6,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
-import { ListingType, ListingCreatePayload, Listing } from "../../lib/api/listings";
+import { ListingType, ListingStatus, ListingCreatePayload, Listing } from "../../lib/api/listings";
 import { createListing, updateListing } from "../../lib/api/listings";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
+import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 
 type Props = {
   visible: boolean;
@@ -23,7 +24,28 @@ const HOME_TYPES = ["apartment", "house", "studio", "room"];
 const CONDITIONS = ["new", "like_new", "good", "used"];
 const DELIVERY = ["pickup", "shipping", "both"];
 
-export default function ListingModal({ visible, listingType, editingListing, sessionToken, onClose, onSave }: Props) {
+function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string } {
+  const image_urls: string[] = [];
+  const gallery_images: string[] = [];
+  const gallery_videos: string[] = [];
+  let video_url: string | undefined;
+  let cover_image_url: string | undefined;
+
+  media.forEach((m) => {
+    if (m.type === "image") {
+      image_urls.push(m.uri);
+      gallery_images.push(m.uri);
+      if (!cover_image_url) cover_image_url = m.uri;
+    } else if (m.type === "video") {
+      gallery_videos.push(m.uri);
+      if (!video_url) video_url = m.uri;
+    }
+  });
+
+  return { image_urls, gallery_images, gallery_videos, video_url, cover_image_url };
+}
+
+export default function ListingModal({ visible, listingType, editingListing, sessionToken, onClose, onSave: onSaveProp }: Props) {
   const { t } = useTranslation();
   const isProduct = listingType === "product";
   const isEditing = !!editingListing;
@@ -31,10 +53,11 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [status, setStatus] = useState<"draft" | "published">("published");
+  const [status, setStatus] = useState<ListingStatus>("published");
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
+  const [media, setMedia] = useState<MediaItem[]>([]);
 
   // Product fields
   const [condition, setCondition] = useState("");
@@ -50,15 +73,19 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [availableFrom, setAvailableFrom] = useState("");
   const [leaseDuration, setLeaseDuration] = useState("");
   const [deposit, setDeposit] = useState("");
-
   const [saving, setSaving] = useState(false);
+
+  const hasCoordinates = useMemo(
+    () => Number.isFinite(latitude) && Number.isFinite(longitude),
+    [latitude, longitude],
+  );
 
   useEffect(() => {
     if (visible && editingListing) {
       setTitle(editingListing.title || "");
       setDescription(editingListing.description || "");
       setPrice(editingListing.price || "");
-      setStatus(editingListing.status === "published" ? "published" : "draft");
+      setStatus(editingListing.status as ListingStatus);
       setAddress(editingListing.address || "");
       setLatitude(editingListing.latitude);
       setLongitude(editingListing.longitude);
@@ -73,26 +100,34 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setAvailableFrom(editingListing.available_from || "");
       setLeaseDuration(editingListing.lease_duration || "");
       setDeposit(editingListing.deposit || "");
+      // Load existing media
+      const items: MediaItem[] = [];
+      (editingListing.image_urls || []).forEach((u) => items.push({ uri: u, type: "image" }));
+      (editingListing.gallery_videos || []).forEach((u) => items.push({ uri: u, type: "video" }));
+      if (editingListing.video_url) items.push({ uri: editingListing.video_url, type: "video" });
+      setMedia(items);
     } else if (visible) {
-      resetForm();
+      setTitle(""); setDescription(""); setPrice(""); setStatus("published");
+      setAddress(""); setLatitude(undefined); setLongitude(undefined); setMedia([]);
+      setCondition(""); setBrand(""); setDelivery("");
+      setPropertyType("apartment"); setBedrooms(""); setBathrooms("");
+      setSizeSqm(""); setFurnished(false); setAvailableFrom(""); setLeaseDuration(""); setDeposit("");
     }
   }, [visible, editingListing]);
-
-  const resetForm = () => {
-    setTitle(""); setDescription(""); setPrice(""); setStatus("published");
-    setAddress(""); setLatitude(undefined); setLongitude(undefined);
-    setCondition(""); setBrand(""); setDelivery("");
-    setPropertyType("apartment"); setBedrooms(""); setBathrooms("");
-    setSizeSqm(""); setFurnished(false); setAvailableFrom(""); setLeaseDuration(""); setDeposit("");
-  };
 
   const handleSave = async () => {
     if (!title.trim()) {
       Alert.alert(t("common.error", "Error"), t("common.titleRequired", "Title is required"));
       return;
     }
+    if (listingType === "home_rental" && status === "published" && !hasCoordinates) {
+      Alert.alert(t("common.error", "Error"), t("marketplace.locationRequired", "Select and confirm the home's address before publishing."));
+      return;
+    }
+
     setSaving(true);
     try {
+      const mediaFields = mediaToPayload(media);
       const payload: ListingCreatePayload = {
         listing_type: listingType,
         title: title.trim(),
@@ -102,6 +137,11 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         address: address || undefined,
         latitude,
         longitude,
+        cover_image_url: mediaFields.cover_image_url,
+        image_urls: mediaFields.image_urls,
+        gallery_images: mediaFields.gallery_images,
+        gallery_videos: mediaFields.gallery_videos,
+        video_url: mediaFields.video_url,
         condition: isProduct ? (condition || undefined) : undefined,
         brand: isProduct ? (brand || undefined) : undefined,
         delivery_method: isProduct ? (delivery || undefined) : undefined,
@@ -109,7 +149,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         bedrooms: !isProduct ? (parseInt(bedrooms, 10) || undefined) : undefined,
         bathrooms: !isProduct ? (parseInt(bathrooms, 10) || undefined) : undefined,
         size_sqm: !isProduct ? (parseInt(sizeSqm, 10) || undefined) : undefined,
-        furnished: !isProduct ? (furnished ? true : undefined) : undefined,
+        furnished: !isProduct ? furnished : undefined,
         available_from: !isProduct ? (availableFrom || undefined) : undefined,
         lease_duration: !isProduct ? (leaseDuration || undefined) : undefined,
         deposit: !isProduct ? (deposit || undefined) : undefined,
@@ -120,9 +160,8 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       } else {
         await createListing(sessionToken, payload);
       }
-      onSave();
+      onSaveProp();
       onClose();
-      resetForm();
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e?.message || t("common.saveFailed", "Failed to save listing"));
     }
@@ -158,6 +197,13 @@ export default function ListingModal({ visible, listingType, editingListing, ses
 
             <Text style={styles.label}>{t("services.description", "Description")}</Text>
             <TextInput style={[styles.input, { height: 80 }]} value={description} onChangeText={setDescription} placeholder={t("services.descriptionPlaceholder", "Describe your listing...")} placeholderTextColor={COLORS.textDisabled} multiline textAlignVertical="top" />
+
+            <UnifiedMediaGallery
+              media={media}
+              onChange={setMedia}
+              sessionToken={sessionToken}
+              label={t("marketplace.photosVideos", "Photos & Videos")}
+            />
 
             {isProduct ? (
               <>
@@ -224,10 +270,10 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 <Text style={styles.label}>{t("services.address", "Address")} <Text style={styles.required}>*</Text></Text>
                 <PlacesAutocompleteInput
                   value={address}
-                  onChangeText={setAddress}
+                  onChangeText={(text) => { setAddress(text); setLatitude(undefined); setLongitude(undefined); }}
                   onSelectPlace={(addr, lat, lng) => { setAddress(addr); setLatitude(lat); setLongitude(lng); }}
                   placeholder={t("services.addressPlaceholder", "Search address...")}
-                  confirmed={!!address}
+                  confirmed={hasCoordinates}
                 />
               </>
             )}

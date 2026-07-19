@@ -13,6 +13,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
 import BusinessActionsModal, { BusinessAction } from "../../components/business/BusinessActionsModal";
 import CreationSheet, { CreationAction } from "../../components/user/CreationSheet";
+import ListingModal from "../../components/user/ListingModal";
+import type { ListingType } from "../../lib/api/listings";
 
 function TabBarBackground() {
   return (
@@ -68,8 +70,10 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { activeIdentity } = useAuth();
+  const { sessionToken } = useAuth();
   const [showBizActions, setShowBizActions] = useState(false);
   const [showCreateSheet, setShowCreateSheet] = useState(false);
+  const [listingType, setListingType] = useState<ListingType | null>(null);
   const isBusiness = activeIdentity?.type === "business";
 
   const handleBizAction = (action: BusinessAction) => {
@@ -109,7 +113,11 @@ export default function TabsLayout() {
         break;
       case "home_rental":
       case "product":
-        // Open listing modal — implement in Phase 3
+        if (!sessionToken) {
+          router.push("/login" as any);
+          return;
+        }
+        setListingType(action as ListingType);
         break;
     }
   };
@@ -227,6 +235,16 @@ export default function TabsLayout() {
         onClose={() => setShowCreateSheet(false)}
         onAction={handleCreateAction}
         hasBusiness={isBusiness}
+      />
+      <ListingModal
+        visible={listingType !== null}
+        listingType={listingType ?? "product"}
+        sessionToken={sessionToken ?? ""}
+        onClose={() => setListingType(null)}
+        onSave={() => {
+          setListingType(null);
+          router.push("/my-listings" as any);
+        }}
       />
     </View>
   );

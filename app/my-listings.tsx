@@ -20,10 +20,10 @@ export default function MyListingsScreen() {
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
   const load = () => {
-    if (!sessionToken) return;
+    if (!sessionToken) { setLoading(false); return; }
     setLoading(true);
     getMyListings(sessionToken, tab)
-      .then(setListings)
+      .then((items) => setListings(items.filter((i) => i.is_active)))
       .catch(() => {})
       .finally(() => setLoading(false));
   };
