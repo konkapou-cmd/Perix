@@ -14,12 +14,13 @@ interface MapSectionProps {
   events: EventItem[];
   activities: ActivityItem[];
   rentals: Rental[];
+  jobs: any[];
   services: Service[];
   onRegionChange: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
   onRecenter?: (lat: number, lng: number) => void;
 }
 
-export function MapSection({ mapBounds, businesses, events, activities, rentals, services, onRegionChange, onRecenter }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, events, activities, rentals, jobs, services, onRegionChange, onRecenter }: MapSectionProps) {
   const router = useRouter();
 
   const handleMarkerPress = (id: string) => {
@@ -31,6 +32,8 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
     if (act) { router.push(`/activity/${id}` as any); return; }
     const rental = rentals.find(r => r.rental_id === id);
     if (rental) { router.push(`/service/${rental.service_id || id}` as any); return; }
+    const job = jobs.find(j => j.job_id === id);
+    if (job) { router.push(`/job/${id}` as any); return; }
     const service = services.find(s => s.service_id === id);
     if (service) { router.push(`/service/${id}` as any); return; }
   };
@@ -56,6 +59,7 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
           activities={activities}
           rentals={rentals}
           services={services}
+          jobs={jobs}
           onRegionChangeComplete={(bounds: any) => {
             onRegionChange({ minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng });
           }}

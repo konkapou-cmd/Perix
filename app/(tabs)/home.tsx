@@ -721,6 +721,7 @@ export default function HomeScreen() {
             events={events}
             activities={activities}
             rentals={rentals}
+            jobs={jobs}
             services={sortedServices}
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });

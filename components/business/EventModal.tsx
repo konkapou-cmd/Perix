@@ -204,9 +204,14 @@ export default function EventModal({
     }
   }, [eventEditing]);
 
+  const hasCoordinates =
+    Number.isFinite(Number(eventForm.latitude)) &&
+    Number.isFinite(Number(eventForm.longitude));
+
+  // Auto-fill business location coordinates when address is auto-filled
   useEffect(() => {
     if (visible && !eventEditing && !eventForm.location && businessAddress) {
-      onFormChange({ ...eventForm, location: businessAddress });
+      onFormChange({ ...eventForm, location: businessAddress, latitude: nearLat ?? null, longitude: nearLng ?? null });
     }
   }, [visible]);
 
@@ -299,7 +304,7 @@ export default function EventModal({
             style={s.input}
             nearLat={nearLat}
             nearLng={nearLng}
-            confirmed={!!eventForm.location}
+            confirmed={hasCoordinates}
           />
 
           <Text style={s.label}>{t("events.theme") || "Theme"}</Text>

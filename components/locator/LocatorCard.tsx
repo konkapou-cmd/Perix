@@ -93,6 +93,9 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
   const primaryColor = themeColors.primaryColor;
   const coverImage = data.cover_image_url || data.image_urls?.[0] || data.gallery_images?.[0];
   const formattedDate = formatEventDate(data.start_time);
+  const dateParts = formattedDate.split(".");
+  const dateDay = dateParts[0] || "";
+  const dateMonth = dateParts[1] ? `/${dateParts[1]}` : "";
   const businessName = data.business?.name || data.creator?.name || "";
 
   return (
@@ -101,16 +104,16 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
         <View style={styles.eventImageContainer}>
           <Image source={{ uri: coverImage }} style={styles.eventCoverImage} resizeMode="cover" />
           <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
-            <Text style={styles.dateBadgeDay}>{formattedDate.split("/")[0]}</Text>
-            <Text style={styles.dateBadgeMonth}>{`/${formattedDate.split("/")[1]}`}</Text>
+            <Text style={styles.dateBadgeDay}>{dateDay}</Text>
+            <Text style={styles.dateBadgeMonth}>{dateMonth}</Text>
           </View>
         </View>
       ) : (
         <View style={[styles.eventImageContainer, styles.eventImagePlaceholder, { backgroundColor: primaryColor + "15" }]}>
           <Ionicons name="calendar-outline" size={28} color={primaryColor} />
           <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
-            <Text style={styles.dateBadgeDay}>{formattedDate.split("/")[0]}</Text>
-            <Text style={styles.dateBadgeMonth}>{`/${formattedDate.split("/")[1]}`}</Text>
+            <Text style={styles.dateBadgeDay}>{dateDay}</Text>
+            <Text style={styles.dateBadgeMonth}>{dateMonth}</Text>
           </View>
         </View>
       )}
