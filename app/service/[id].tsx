@@ -166,6 +166,39 @@ export default function ServiceDetailPage() {
     finally { setSubmittingInquiry(false); }
   };
 
+  const handleToggleSave = async () => {
+    if (savingItem) return;
+
+    if (!sessionToken) {
+      Alert.alert(
+        t("common.loginRequired") || "Login Required",
+        t("common.loginToSave") || "Please log in",
+        [
+          { text: t("common.cancel") || "Cancel", style: "cancel" },
+          { text: t("auth.login") || "Login", onPress: () => router.push("/login") },
+        ],
+      );
+      return;
+    }
+
+    if (!service?.service_id) return;
+
+    setSavingItem(true);
+
+    try {
+      const { is_saved } = await toggleSaved(sessionToken, "service", service.service_id);
+      setIsSaved(is_saved);
+    } catch (error) {
+      console.error("Failed to toggle saved service:", error);
+      Alert.alert(
+        t("common.error") || "Error",
+        t("common.pleaseTryAgain") || "Please try again",
+      );
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
   const formatTime = (time: string) => { const [h, m] = time.split(":"); return `${h}:${m}`; };
 
   const currentCategory = service?.root_category || "";
