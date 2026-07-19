@@ -244,12 +244,20 @@ async def list_events(
         if event_lat is None or event_lng is None:
             business = business_map.get(event.get("business_id"))
             artist = artist_map.get(event.get("artist_id"))
-            if business and business.get("latitude"):
-                event_lat = business.get("latitude")
-                event_lng = business.get("longitude")
-            elif artist and artist.get("latitude"):
-                event_lat = artist.get("latitude")
-                event_lng = artist.get("longitude")
+            if (
+                business
+                and business.get("latitude") is not None
+                and business.get("longitude") is not None
+            ):
+                event_lat = business["latitude"]
+                event_lng = business["longitude"]
+            elif (
+                artist
+                and artist.get("latitude") is not None
+                and artist.get("longitude") is not None
+            ):
+                event_lat = artist["latitude"]
+                event_lng = artist["longitude"]
         
         if use_bounds or (latitude is not None and longitude is not None):
             if event_lat is None or event_lng is None:
@@ -316,12 +324,20 @@ async def get_event_detail(
     event_lat = event.get("latitude")
     event_lng = event.get("longitude")
     if event_lat is None or event_lng is None:
-        if business and business.get("latitude"):
-            event_lat = business.get("latitude")
-            event_lng = business.get("longitude")
-        elif artist and artist.get("latitude"):
-            event_lat = artist.get("latitude")
-            event_lng = artist.get("longitude")
+        if (
+            business
+            and business.get("latitude") is not None
+            and business.get("longitude") is not None
+        ):
+            event_lat = business["latitude"]
+            event_lng = business["longitude"]
+        elif (
+            artist
+            and artist.get("latitude") is not None
+            and artist.get("longitude") is not None
+        ):
+            event_lat = artist["latitude"]
+            event_lng = artist["longitude"]
 
     from routes.businesses import build_business_summary
     return EventResponse(
@@ -377,12 +393,20 @@ async def get_event_public(event_id: str):
     event_lat = event.get("latitude")
     event_lng = event.get("longitude")
     if event_lat is None or event_lng is None:
-        if business and business.get("latitude"):
-            event_lat = business.get("latitude")
-            event_lng = business.get("longitude")
-        elif artist and artist.get("latitude"):
-            event_lat = artist.get("latitude")
-            event_lng = artist.get("longitude")
+        if (
+            business
+            and business.get("latitude") is not None
+            and business.get("longitude") is not None
+        ):
+            event_lat = business["latitude"]
+            event_lng = business["longitude"]
+        elif (
+            artist
+            and artist.get("latitude") is not None
+            and artist.get("longitude") is not None
+        ):
+            event_lat = artist["latitude"]
+            event_lng = artist["longitude"]
 
     from routes.businesses import build_business_summary
     return EventPublicResponse(
@@ -472,12 +496,20 @@ async def update_event(
     event_lat = event.get("latitude")
     event_lng = event.get("longitude")
     if event_lat is None or event_lng is None:
-        if business and business.get("latitude"):
-            event_lat = business.get("latitude")
-            event_lng = business.get("longitude")
-        elif artist and artist.get("latitude"):
-            event_lat = artist.get("latitude")
-            event_lng = artist.get("longitude")
+        if (
+            business
+            and business.get("latitude") is not None
+            and business.get("longitude") is not None
+        ):
+            event_lat = business["latitude"]
+            event_lng = business["longitude"]
+        elif (
+            artist
+            and artist.get("latitude") is not None
+            and artist.get("longitude") is not None
+        ):
+            event_lat = artist["latitude"]
+            event_lng = artist["longitude"]
 
     return EventResponse(
         event_id=event["event_id"],
