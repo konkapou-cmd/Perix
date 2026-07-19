@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 import asyncio
+import json
 from datetime import datetime
 from pydantic import BaseModel
 import logging
@@ -23,6 +24,32 @@ logger = logging.getLogger("services")
 
 # ─── Availability Validation ───
 
+def parse_time(value: str) -> int:
+    try:
+        hour_text, minute_text = value.split(":")
+        hour = int(hour_text)
+        minute = int(minute_text)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="Time format must be HH:MM")
+    if not 0 <= hour <= 23 or not 0 <= minute <= 59:
+        raise HTTPException(status_code=400, detail="Time must be a valid 24-hour value")
+    return hour * 60 + minute
+
+
+def normalize_slots(slots: list) -> str:
+    items = sorted([
+        {
+            "day_of_week": s.get("day_of_week"),
+            "date": s.get("date"),
+            "start_time": s.get("start_time"),
+            "end_time": s.get("end_time"),
+            "is_recurring": s.get("is_recurring"),
+        }
+        for s in slots
+    ], key=lambda x: json.dumps(x, sort_keys=True))
+    return json.dumps(items, sort_keys=True)
+
+
 def validate_availability_slots(
     slots: list,
     duration_minutes: Optional[int] = None,
@@ -37,15 +64,8 @@ def validate_availability_slots(
         if not start or not end:
             raise HTTPException(status_code=400, detail="Each availability entry must have a start and end time")
 
-        try:
-            start_parts = [int(x) for x in start.split(":")]
-            end_parts = [int(x) for x in end.split(":")]
-            if len(start_parts) != 2 or len(end_parts) != 2:
-                raise ValueError
-            start_min = start_parts[0] * 60 + start_parts[1]
-            end_min = end_parts[0] * 60 + end_parts[1]
-        except (ValueError, IndexError):
-            raise HTTPException(status_code=400, detail="Time format must be HH:MM")
+        start_min = parse_time(start)
+        end_min = parse_time(end)
 
         if start_min >= end_min:
             raise HTTPException(status_code=400, detail="End time must be after start time")
@@ -465,55 +485,77 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
     if not is_subscription_active(business):
         raise HTTPException(status_code=403, detail="Active subscription required")
 
-    update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
-    incoming_slots = update_data.pop("availability_slots", None)
+    payload_data = payload.model_dump()
+    incoming_slots = payload_data.pop("availability_slots", None)
 
-    if incoming_slots is not None:
-        booked_count = await db.service_slots.count_documents({
-            "service_id": service_id,
-            "is_booked": True,
-        })
-        if booked_count:
-            raise HTTPException(
-                status_code=409,
-                detail="Availability with existing bookings cannot be replaced.",
-            )
+    update_data = {k: v for k, v in payload_data.items() if v is not None}
 
-    if update_data:
-        publish_status = update_data.get("status") or service.get("status") or "published"
-        cover_image = update_data.get("cover_image_url") or service.get("cover_image_url")
-        if publish_status == "published" and not cover_image:
-            raise HTTPException(
-                status_code=400,
-                detail="A cover photo is required before publishing this service."
-            )
+    existing_slots = await db.service_slots.find(
+        {"service_id": service_id},
+        {"_id": 0},
+    ).to_list(500)
 
-        # Availability validation for publishing
-        resolved = "rentals" if (business.get("root_category") or "") == "rental-real-estate" else (business.get("root_category") or "")
-        booking_config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved, {}).get(
-            service.get("type", ""), {"booking": False, "slots": False}
+    effective_slots = incoming_slots if incoming_slots is not None else existing_slots
+
+    effective_available_from = (
+        update_data["available_from"]
+        if "available_from" in update_data
+        else service.get("available_from")
+    )
+
+    effective_duration = (
+        update_data.get("duration_minutes")
+        if "duration_minutes" in update_data
+        else service.get("duration_minutes")
+    )
+
+    publish_status = update_data.get("status") or service.get("status") or "published"
+    cover_image = update_data.get("cover_image_url") or service.get("cover_image_url")
+
+    if publish_status == "published" and not cover_image:
+        raise HTTPException(
+            status_code=400,
+            detail="A cover photo is required before publishing this service."
         )
 
-        if publish_status == "published" and booking_config.get("booking"):
-            if incoming_slots is None:
-                count = await db.service_slots.count_documents({"service_id": service_id})
-                if booking_config.get("slots") and count == 0:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Add at least one available date and time before publishing this service.",
-                    )
-            elif booking_config.get("slots"):
-                if not incoming_slots:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Add at least one available date and time before publishing this service.",
-                    )
-                validate_availability_slots(incoming_slots, service.get("duration_minutes"))
+    # Availability validation — placed outside if update_data to catch slots-only requests
+    resolved = "rentals" if (business.get("root_category") or "") == "rental-real-estate" else (business.get("root_category") or "")
+    booking_config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved, {}).get(
+        service.get("type", ""), {"booking": False, "slots": False}
+    )
 
+    if publish_status == "published" and booking_config.get("booking"):
+        if booking_config.get("slots"):
+            if not effective_slots:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Add at least one available date and time before publishing this service.",
+                )
+            validate_availability_slots(effective_slots, effective_duration)
+        elif not effective_available_from:
+            raise HTTPException(
+                status_code=400,
+                detail="Add an availability date before publishing this service.",
+            )
+
+    # Check booked slots before replacing
+    if incoming_slots is not None:
+        slots_changed = normalize_slots(incoming_slots) != normalize_slots(existing_slots)
+        if slots_changed:
+            booked_count = await db.service_slots.count_documents({
+                "service_id": service_id,
+                "is_booked": True,
+            })
+            if booked_count:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Availability with existing bookings cannot be replaced.",
+                )
+
+    if update_data:
         await db.services.update_one({"service_id": service_id}, {"$set": update_data})
         service.update(update_data)
 
-    # Replace slots if provided
     if incoming_slots is not None:
         await db.service_slots.delete_many({"service_id": service_id})
         if incoming_slots:
