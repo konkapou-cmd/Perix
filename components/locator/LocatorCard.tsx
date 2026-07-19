@@ -93,9 +93,8 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
   const primaryColor = themeColors.primaryColor;
   const coverImage = data.cover_image_url || data.image_urls?.[0] || data.gallery_images?.[0];
   const formattedDate = formatEventDate(data.start_time);
-  const dateParts = formattedDate.split(".");
-  const dateDay = dateParts[0] || "";
-  const dateMonth = dateParts[1] ? `/${dateParts[1]}` : "";
+  const [dateDay = "", dateRest = ""] = formattedDate.split(/[./-]/);
+  const dateMonth = dateRest ? `/${dateRest}` : "";
   const businessName = data.business?.name || data.creator?.name || "";
 
   return (
