@@ -5,6 +5,14 @@ from datetime import datetime
 from models.focal_point import FocalPoint
 
 
+class AvailabilitySlotInput(BaseModel):
+    day_of_week: Optional[int] = Field(default=None, ge=0, le=6)  # 0=Sunday...6=Saturday
+    date: Optional[str] = None
+    start_time: str
+    end_time: str
+    is_recurring: bool = False
+
+
 class ServiceCreate(BaseModel):
     business_id: str
     root_category: Optional[str] = None
@@ -81,6 +89,7 @@ class ServiceCreate(BaseModel):
     status: Optional[str] = None
     sort_order: Optional[int] = Field(default=0)
     cover_focal_point: Optional[FocalPoint] = None
+    availability_slots: List[AvailabilitySlotInput] = Field(default_factory=list)
 
 
 class ServiceUpdate(BaseModel):
@@ -156,6 +165,7 @@ class ServiceUpdate(BaseModel):
     status: Optional[str] = None
     sort_order: Optional[int] = None
     cover_focal_point: Optional[FocalPoint] = None
+    availability_slots: Optional[List[AvailabilitySlotInput]] = None
 
 
 class ServiceResponse(BaseModel):

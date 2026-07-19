@@ -21,6 +21,53 @@ from utils.push_notifications import send_message_notification
 router = APIRouter(prefix="/services", tags=["Services"])
 logger = logging.getLogger("services")
 
+# ─── Availability Validation ───
+
+def validate_availability_slots(
+    slots: list,
+    duration_minutes: Optional[int] = None,
+) -> None:
+    from datetime import datetime, timezone as dt_timezone
+    today = datetime.now(dt_timezone.utc)
+
+    for slot in slots:
+        start = slot.get("start_time", "")
+        end = slot.get("end_time", "")
+
+        if not start or not end:
+            raise HTTPException(status_code=400, detail="Each availability entry must have a start and end time")
+
+        try:
+            start_parts = [int(x) for x in start.split(":")]
+            end_parts = [int(x) for x in end.split(":")]
+            if len(start_parts) != 2 or len(end_parts) != 2:
+                raise ValueError
+            start_min = start_parts[0] * 60 + start_parts[1]
+            end_min = end_parts[0] * 60 + end_parts[1]
+        except (ValueError, IndexError):
+            raise HTTPException(status_code=400, detail="Time format must be HH:MM")
+
+        if start_min >= end_min:
+            raise HTTPException(status_code=400, detail="End time must be after start time")
+
+        if duration_minutes and (end_min - start_min) < duration_minutes:
+            raise HTTPException(status_code=400, detail=f"Time slot must be at least {duration_minutes} minutes")
+
+        if slot.get("is_recurring"):
+            if slot.get("day_of_week") is None:
+                raise HTTPException(status_code=400, detail="A weekday is required for recurring availability")
+        else:
+            date_str = slot.get("date")
+            if not date_str:
+                raise HTTPException(status_code=400, detail="A date is required for one-time availability")
+            try:
+                slot_date = datetime.fromisoformat(date_str)
+                if slot_date.date() < today.date():
+                    raise HTTPException(status_code=400, detail="Cannot set availability for past dates")
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format, use YYYY-MM-DD")
+
+
 # ─── Services CRUD ───
 
 @router.post("", response_model=ServiceResponse)
@@ -75,13 +122,58 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
             detail="A cover photo is required before publishing this service."
         )
 
+    # Extract slots before building doc
+    payload_data = payload.model_dump()
+    slots = payload_data.pop("availability_slots", [])
+
+    # Validate availability for publishing bookable services
+    resolved_category = "rentals" if root_category == "rental-real-estate" else root_category
+    booking_config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved_category, {}).get(
+        payload.type, {"booking": False, "slots": False}
+    )
+
+    if publish_status == "published" and booking_config.get("booking"):
+        if booking_config.get("slots"):
+            if not slots:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Add at least one available date and time before publishing this service.",
+                )
+            validate_availability_slots(slots, payload.duration_minutes)
+        elif not getattr(payload, "available_from", None):
+            raise HTTPException(
+                status_code=400,
+                detail="Add an availability date before publishing this service.",
+            )
+
     doc = {
-        **payload.model_dump(),
+        **payload_data,
         "service_id": generate_id("svc"),
         "is_active": True,
         "created_at": now_utc(),
     }
-    await db.services.insert_one(doc)
+
+    slot_docs = [
+        {
+            **slot,
+            "slot_id": generate_id("slt"),
+            "service_id": doc["service_id"],
+            "is_blocked": False,
+            "is_booked": False,
+            "created_at": now_utc(),
+        }
+        for slot in slots
+    ]
+
+    try:
+        await db.services.insert_one(doc)
+        if slot_docs:
+            await db.service_slots.insert_many(slot_docs)
+    except Exception:
+        await db.services.delete_one({"service_id": doc["service_id"]})
+        await db.service_slots.delete_many({"service_id": doc["service_id"]})
+        raise
+
     return ServiceResponse(**doc)
 
 
@@ -374,6 +466,19 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
         raise HTTPException(status_code=403, detail="Active subscription required")
 
     update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
+    incoming_slots = update_data.pop("availability_slots", None)
+
+    if incoming_slots is not None:
+        booked_count = await db.service_slots.count_documents({
+            "service_id": service_id,
+            "is_booked": True,
+        })
+        if booked_count:
+            raise HTTPException(
+                status_code=409,
+                detail="Availability with existing bookings cannot be replaced.",
+            )
+
     if update_data:
         publish_status = update_data.get("status") or service.get("status") or "published"
         cover_image = update_data.get("cover_image_url") or service.get("cover_image_url")
@@ -382,8 +487,49 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
                 status_code=400,
                 detail="A cover photo is required before publishing this service."
             )
+
+        # Availability validation for publishing
+        resolved = "rentals" if (business.get("root_category") or "") == "rental-real-estate" else (business.get("root_category") or "")
+        booking_config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved, {}).get(
+            service.get("type", ""), {"booking": False, "slots": False}
+        )
+
+        if publish_status == "published" and booking_config.get("booking"):
+            if incoming_slots is None:
+                count = await db.service_slots.count_documents({"service_id": service_id})
+                if booking_config.get("slots") and count == 0:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Add at least one available date and time before publishing this service.",
+                    )
+            elif booking_config.get("slots"):
+                if not incoming_slots:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Add at least one available date and time before publishing this service.",
+                    )
+                validate_availability_slots(incoming_slots, service.get("duration_minutes"))
+
         await db.services.update_one({"service_id": service_id}, {"$set": update_data})
         service.update(update_data)
+
+    # Replace slots if provided
+    if incoming_slots is not None:
+        await db.service_slots.delete_many({"service_id": service_id})
+        if incoming_slots:
+            slot_docs = [
+                {
+                    **slot,
+                    "slot_id": generate_id("slt"),
+                    "service_id": service_id,
+                    "is_blocked": False,
+                    "is_booked": False,
+                    "created_at": now_utc(),
+                }
+                for slot in incoming_slots
+            ]
+            await db.service_slots.insert_many(slot_docs)
+
     return ServiceResponse(**service)
 
 
