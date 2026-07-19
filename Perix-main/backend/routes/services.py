@@ -87,6 +87,24 @@ def validate_availability_slots(
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid date format, use YYYY-MM-DD")
 
+    # Check for overlapping slots within same day/weekday
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for slot in slots:
+        if slot.get("is_recurring"):
+            key = ("recurring", slot.get("day_of_week"))
+        else:
+            key = ("date", slot.get("date"))
+        groups[key].append(slot)
+
+    for group_slots in groups.values():
+        ordered = sorted(group_slots, key=lambda s: parse_time(s["start_time"]))
+        for current, following in zip(ordered, ordered[1:]):
+            current_end = parse_time(current["end_time"])
+            following_start = parse_time(following["start_time"])
+            if following_start < current_end:
+                raise HTTPException(status_code=400, detail="Time slots cannot overlap.")
+
 
 # ─── Services CRUD ───
 
@@ -539,38 +557,79 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
             )
 
     # Check booked slots before replacing
-    if incoming_slots is not None:
-        slots_changed = normalize_slots(incoming_slots) != normalize_slots(existing_slots)
+    slots_changed = (
+        incoming_slots is not None
+        and normalize_slots(incoming_slots) != normalize_slots(existing_slots)
+    )
+
+    if slots_changed:
+        booked_count = await db.service_slots.count_documents({
+            "service_id": service_id,
+            "is_booked": True,
+        })
+        if booked_count:
+            raise HTTPException(
+                status_code=409,
+                detail="Availability with existing bookings cannot be replaced.",
+            )
+
+    original_update_values = {
+        key: service.get(key) for key in update_data
+    }
+
+    try:
         if slots_changed:
-            booked_count = await db.service_slots.count_documents({
-                "service_id": service_id,
-                "is_booked": True,
-            })
-            if booked_count:
-                raise HTTPException(
-                    status_code=409,
-                    detail="Availability with existing bookings cannot be replaced.",
+            await db.service_slots.delete_many({"service_id": service_id})
+            if incoming_slots:
+                slot_docs = [
+                    {
+                        **slot,
+                        "slot_id": generate_id("slt"),
+                        "service_id": service_id,
+                        "is_blocked": False,
+                        "is_booked": False,
+                        "created_at": now_utc(),
+                    }
+                    for slot in incoming_slots
+                ]
+                await db.service_slots.insert_many(slot_docs)
+
+        if update_data:
+            await db.services.update_one(
+                {"service_id": service_id},
+                {"$set": update_data},
+            )
+            service.update(update_data)
+
+    except Exception:
+        if slots_changed:
+            await db.service_slots.delete_many({"service_id": service_id})
+            if existing_slots:
+                await db.service_slots.insert_many(existing_slots)
+
+        if update_data:
+            restore_set = {
+                key: value
+                for key, value in original_update_values.items()
+                if value is not None
+            }
+            restore_unset = {
+                key: ""
+                for key, value in original_update_values.items()
+                if value is None
+            }
+            restore_operation = {}
+            if restore_set:
+                restore_operation["$set"] = restore_set
+            if restore_unset:
+                restore_operation["$unset"] = restore_unset
+            if restore_operation:
+                await db.services.update_one(
+                    {"service_id": service_id},
+                    restore_operation,
                 )
 
-    if update_data:
-        await db.services.update_one({"service_id": service_id}, {"$set": update_data})
-        service.update(update_data)
-
-    if incoming_slots is not None:
-        await db.service_slots.delete_many({"service_id": service_id})
-        if incoming_slots:
-            slot_docs = [
-                {
-                    **slot,
-                    "slot_id": generate_id("slt"),
-                    "service_id": service_id,
-                    "is_blocked": False,
-                    "is_booked": False,
-                    "created_at": now_utc(),
-                }
-                for slot in incoming_slots
-            ]
-            await db.service_slots.insert_many(slot_docs)
+        raise
 
     return ServiceResponse(**service)
 
