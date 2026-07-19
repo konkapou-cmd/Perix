@@ -67,7 +67,9 @@ export default function MarketplaceScreen() {
       <View style={styles.header}>
         <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t("marketplace.title", "Marketplace")}</Text>
-        <View style={{ width: 44 }} />
+        <Pressable onPress={() => router.push("/my-listings" as any)} style={styles.myBtn}>
+          <Ionicons name="list-outline" size={22} color={COLORS.primary} />
+        </Pressable>
       </View>
 
       <View style={styles.tabRow}>
@@ -127,6 +129,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background, borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: "700", color: COLORS.textPrimary, flex: 1, marginLeft: SPACING.small },
+  myBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.backgroundPage, alignItems: "center", justifyContent: "center" },
   tabRow: { flexDirection: "row", padding: SPACING.small, gap: SPACING.small, backgroundColor: COLORS.background },
   tab: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
