@@ -25,24 +25,17 @@ const CONDITIONS = ["new", "like_new", "good", "used"];
 const DELIVERY = ["pickup", "shipping", "both"];
 
 function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string } {
-  const image_urls: string[] = [];
-  const gallery_images: string[] = [];
-  const gallery_videos: string[] = [];
-  let video_url: string | undefined;
-  let cover_image_url: string | undefined;
-
-  media.forEach((m) => {
-    if (m.type === "image") {
-      image_urls.push(m.uri);
-      gallery_images.push(m.uri);
-      if (!cover_image_url) cover_image_url = m.uri;
-    } else if (m.type === "video") {
-      gallery_videos.push(m.uri);
-      if (!video_url) video_url = m.uri;
-    }
-  });
-
-  return { image_urls, gallery_images, gallery_videos, video_url, cover_image_url };
+  const images = media.filter((m) => m.type === "image");
+  const videos = media.filter((m) => m.type === "video");
+  const coverImage = images.find((m) => (m as any).isCoverImage) ?? images[0];
+  const coverVideo = videos.find((m) => (m as any).isCoverVideo);
+  return {
+    cover_image_url: coverImage?.uri,
+    image_urls: images.map((m) => m.uri),
+    gallery_images: images.filter((m) => m.uri !== coverImage?.uri).map((m) => m.uri),
+    video_url: coverVideo?.uri ?? videos[0]?.uri,
+    gallery_videos: videos.filter((m) => m.uri !== (coverVideo?.uri ?? videos[0]?.uri)).map((m) => m.uri),
+  };
 }
 
 export default function ListingModal({ visible, listingType, editingListing, sessionToken, onClose, onSave: onSaveProp }: Props) {
@@ -131,18 +124,20 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       const payload: ListingCreatePayload = {
         listing_type: listingType,
         title: title.trim(),
-        description: description || undefined,
-        price: price || undefined,
+        description: description || null,
+        price: price || null,
         status,
-        address: address || undefined,
-        latitude,
-        longitude,
-        cover_image_url: mediaFields.cover_image_url,
+        address: address || null,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
+        cover_image_url: mediaFields.cover_image_url || null,
         image_urls: mediaFields.image_urls,
         gallery_images: mediaFields.gallery_images,
         gallery_videos: mediaFields.gallery_videos,
-        video_url: mediaFields.video_url,
-        condition: isProduct ? (condition || undefined) : undefined,
+        video_url: mediaFields.video_url || null,
+        condition: isProduct ? (condition || null) : undefined,
+        brand: isProduct ? (brand || null) : undefined,
+        delivery_method: isProduct ? (delivery || null) : undefined,
         brand: isProduct ? (brand || undefined) : undefined,
         delivery_method: isProduct ? (delivery || undefined) : undefined,
         property_type: !isProduct ? propertyType : undefined,
