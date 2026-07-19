@@ -63,6 +63,12 @@ async def create_event(
                 status_code=403,
                 detail="Premium subscription required to create events"
             )
+        # Business events use the business location — override any payload location
+        if business.get("address"):
+            payload.location = business.get("address")
+        if business.get("latitude") is not None and business.get("longitude") is not None:
+            payload.latitude = business.get("latitude")
+            payload.longitude = business.get("longitude")
     
     if payload.artist_id:
         artist = await db.artists.find_one(
@@ -266,8 +272,8 @@ async def list_events(
                 start_time=event["start_time"],
                 end_time=event.get("end_time"),
                 location=event.get("location"),
-                latitude=event.get("latitude"),
-                longitude=event.get("longitude"),
+                latitude=event_lat,
+                longitude=event_lng,
                 created_at=event["created_at"],
                 theme=event.get("theme"),
                 is_private=event.get("is_private", False),
@@ -306,7 +312,17 @@ async def get_event_detail(
     is_attending = current_user.user_id in attendees
     
     tagged_artist_ids, tagged_artists = await build_tagged_artists(event.get("tagged_artist_ids") or [])
-    
+
+    event_lat = event.get("latitude")
+    event_lng = event.get("longitude")
+    if event_lat is None or event_lng is None:
+        if business and business.get("latitude"):
+            event_lat = business.get("latitude")
+            event_lng = business.get("longitude")
+        elif artist and artist.get("latitude"):
+            event_lat = artist.get("latitude")
+            event_lng = artist.get("longitude")
+
     from routes.businesses import build_business_summary
     return EventResponse(
         event_id=event["event_id"],
@@ -320,8 +336,8 @@ async def get_event_detail(
         start_time=event["start_time"],
         end_time=event.get("end_time"),
         location=event.get("location"),
-        latitude=event.get("latitude"),
-        longitude=event.get("longitude"),
+        latitude=event_lat,
+        longitude=event_lng,
         created_at=event["created_at"],
         attendees_count=len(attendees),
         is_attending=is_attending,
@@ -358,6 +374,16 @@ async def get_event_public(event_id: str):
     
     attendees = event.get("attendees", [])
     
+    event_lat = event.get("latitude")
+    event_lng = event.get("longitude")
+    if event_lat is None or event_lng is None:
+        if business and business.get("latitude"):
+            event_lat = business.get("latitude")
+            event_lng = business.get("longitude")
+        elif artist and artist.get("latitude"):
+            event_lat = artist.get("latitude")
+            event_lng = artist.get("longitude")
+
     from routes.businesses import build_business_summary
     return EventPublicResponse(
         event_id=event["event_id"],
@@ -371,8 +397,8 @@ async def get_event_public(event_id: str):
         start_time=event["start_time"],
         end_time=event.get("end_time"),
         location=event.get("location"),
-        latitude=event.get("latitude"),
-        longitude=event.get("longitude"),
+        latitude=event_lat,
+        longitude=event_lng,
         created_at=event["created_at"],
         attendees_count=len(attendees),
         is_private=event.get("is_private", False),
@@ -416,6 +442,14 @@ async def update_event(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     update_data = payload.model_dump(exclude_unset=True)
+
+    # Business events always use the business location — override any set values
+    if business:
+        if business.get("address"):
+            update_data["location"] = business.get("address")
+        if business.get("latitude") is not None and business.get("longitude") is not None:
+            update_data["latitude"] = business.get("latitude")
+            update_data["longitude"] = business.get("longitude")
     
     if update_data:
         await db.events.update_one({"event_id": event_id}, {"$set": update_data})
@@ -434,6 +468,17 @@ async def update_event(
     
     from routes.businesses import build_business_summary
     tagged_artist_ids, tagged_artists = await build_tagged_artists(event.get("tagged_artist_ids") or [])
+
+    event_lat = event.get("latitude")
+    event_lng = event.get("longitude")
+    if event_lat is None or event_lng is None:
+        if business and business.get("latitude"):
+            event_lat = business.get("latitude")
+            event_lng = business.get("longitude")
+        elif artist and artist.get("latitude"):
+            event_lat = artist.get("latitude")
+            event_lng = artist.get("longitude")
+
     return EventResponse(
         event_id=event["event_id"],
         business=build_business_summary(business) if business else None,
@@ -446,8 +491,8 @@ async def update_event(
         start_time=event["start_time"],
         end_time=event.get("end_time"),
         location=event.get("location"),
-        latitude=event.get("latitude"),
-        longitude=event.get("longitude"),
+        latitude=event_lat,
+        longitude=event_lng,
         created_at=event["created_at"],
         is_private=event.get("is_private", False),
         theme=event.get("theme"),
