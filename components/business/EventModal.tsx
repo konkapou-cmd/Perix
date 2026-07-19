@@ -208,6 +208,10 @@ export default function EventModal({
     Number.isFinite(Number(eventForm.latitude)) &&
     Number.isFinite(Number(eventForm.longitude));
 
+  const hasBusinessCoordinates =
+    Number.isFinite(Number(nearLat)) &&
+    Number.isFinite(Number(nearLng));
+
   // Auto-fill business location coordinates when address is auto-filled
   useEffect(() => {
     if (visible && !eventEditing && !eventForm.location && businessAddress) {
@@ -302,7 +306,7 @@ export default function EventModal({
                 value={businessAddress}
                 onChangeText={() => {}}
                 locked
-                confirmed
+                confirmed={hasBusinessCoordinates}
                 style={s.input}
               />
               <Text style={s.hint}>{t("events.businessLocationLocked", "Events use your business address.")}</Text>
@@ -411,7 +415,7 @@ export default function EventModal({
         onCancel={onClose}
         onSave={onSave}
         isSaving={isSaving}
-        disabled={!eventForm.title.trim()}
+        disabled={!eventForm.title.trim() || (!!businessAddress && !hasBusinessCoordinates)}
         saveLabel={eventEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
       />
     </FormScreen>
