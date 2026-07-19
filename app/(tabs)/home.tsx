@@ -136,7 +136,11 @@ export default function HomeScreen() {
   } = feedData;
 
   const [marketplaceItems, setMarketplaceItems] = useState<Listing[]>([]);
-  useEffect(() => { getListings("product").then(setMarketplaceItems).catch(() => {}); }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getListings("product").then(setMarketplaceItems).catch(() => {});
+    }, []),
+  );
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");

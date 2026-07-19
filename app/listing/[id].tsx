@@ -41,7 +41,14 @@ export default function ListingDetailScreen() {
   }, [id, sessionToken]);
 
   const handleToggleSave = async () => {
-    if (!sessionToken || !listing) return;
+    if (!sessionToken) {
+      Alert.alert(t("common.loginRequired", "Login Required"), t("common.loginToSave", "Please log in to save this listing."), [
+        { text: t("common.cancel", "Cancel"), style: "cancel" },
+        { text: t("auth.login", "Login"), onPress: () => router.push("/login") },
+      ]);
+      return;
+    }
+    if (!listing) return;
     setSaving(true);
     try {
       const { is_saved } = await toggleSaved(sessionToken, "listing", listing.listing_id);
