@@ -32,8 +32,6 @@ async def create_listing(
 @router.get("", response_model=list[ListingResponse])
 async def list_listings(
     listing_type: Optional[str] = Query(None),
-    status: str = "published",
-    owner_id: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
     min_lat: Optional[float] = None,
@@ -41,19 +39,38 @@ async def list_listings(
     min_lng: Optional[float] = None,
     max_lng: Optional[float] = None,
 ):
-    query = {"is_active": True, "status": status}
+    query = {"is_active": True, "status": "published"}
     if listing_type:
         query["listing_type"] = listing_type
-    if owner_id:
-        query["owner_id"] = owner_id
 
     # Optional geo filtering for home rentals
-    if listing_type == "home_rental" and min_lat is not None and max_lat is not None:
-        query["latitude"] = {"$gte": min_lat, "$lte": max_lat}
-        query["longitude"] = {"$gte": min_lng, "$lte": max_lng}
+    if listing_type == "home_rental":
+        has_bounds = all(
+            value is not None
+            for value in (min_lat, max_lat, min_lng, max_lng)
+        )
+        if has_bounds:
+            query["latitude"] = {"$gte": min_lat, "$lte": max_lat}
+            query["longitude"] = {"$gte": min_lng, "$lte": max_lng}
 
     cursor = db.listings.find(query).skip(skip).limit(limit).sort("created_at", -1)
     docs = await cursor.to_list(limit)
+    return [ListingResponse(**doc) for doc in docs]
+
+
+@router.get("/my", response_model=list[ListingResponse])
+async def list_my_listings(
+    listing_type: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    query = {"owner_id": current_user.user_id}
+    if listing_type:
+        query["listing_type"] = listing_type
+    if status:
+        query["status"] = status
+
+    docs = await db.listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     return [ListingResponse(**doc) for doc in docs]
 
 

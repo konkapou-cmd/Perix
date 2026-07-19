@@ -178,22 +178,9 @@ async def _fetch_item_data(item_type: str, item_id: str) -> Optional[Dict[str, A
                     "title": doc.get("name"),
                     "cover_image": doc.get("cover_image_url") or (doc.get("image_urls") or [None])[0],
                     "rent_price": doc.get("price"),
-                "address": doc.get("address"),
-            }
+                    "address": doc.get("address"),
+                }
         return None
-    elif item_type == "listing":
-        doc = await db.listings.find_one({"listing_id": item_id}, {"_id": 0})
-        if doc:
-            return {
-                "name": doc.get("title"),
-                "owner_id": doc.get("owner_id"),
-                "listing_type": doc.get("listing_type"),
-                "price": doc.get("price"),
-                "cover_image_url": doc.get("cover_image_url"),
-                "address": doc.get("address"),
-            }
-        return None
-    return None
     elif item_type == "service":
         doc = await db.services.find_one({"service_id": item_id}, {"_id": 0})
         if doc:
@@ -205,4 +192,15 @@ async def _fetch_item_data(item_type: str, item_id: str) -> Optional[Dict[str, A
                 "cover_image_url": doc.get("cover_image_url"),
                 "address": doc.get("address"),
             }
-        return None
+    elif item_type == "listing":
+        doc = await db.listings.find_one({"listing_id": item_id}, {"_id": 0})
+        if doc:
+            return {
+                "name": doc.get("title"),
+                "owner_id": doc.get("owner_id"),
+                "listing_type": doc.get("listing_type"),
+                "price": doc.get("price"),
+                "cover_image_url": doc.get("cover_image_url"),
+                "address": doc.get("address"),
+            }
+    return None

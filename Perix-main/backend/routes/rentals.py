@@ -75,7 +75,7 @@ def listing_to_rental(listing: dict, owner: dict = None) -> dict:
         gallery = images[1:]
     property_type = listing.get("property_type") or "apartment"
     return {
-        "rental_id": f"lst_{listing.get('listing_id', '')}",
+        "rental_id": listing.get("listing_id"),
         "listing_id": listing.get("listing_id"),
         "service_id": None,
         "business_id": None,
@@ -237,17 +237,31 @@ async def get_my_rentals(current_user: UserPublic = Depends(get_current_user)):
 
 @router.get("/{rental_id}")
 async def get_rental(rental_id: str, current_user: UserPublic = Depends(get_current_user)):
-    if not rental_id.startswith("svc_"):
-        raise HTTPException(status_code=404, detail="Rental not found (native rentals removed)")
-    service_id = rental_id[4:]
-    service = await db.services.find_one({"service_id": service_id}, {"_id": 0})
-    if not service:
-        raise HTTPException(status_code=404, detail="Service not found")
-    business = await db.businesses.find_one(
-        {"business_id": service["business_id"]},
-        {"_id": 0, "name": 1, "profile_photo": 1, "logo_image": 1}
-    )
-    return service_to_rental(service, business)
+    if rental_id.startswith("lst_"):
+        listing = await db.listings.find_one(
+            {"listing_id": rental_id, "listing_type": "home_rental", "status": "published", "is_active": True},
+            {"_id": 0},
+        )
+        if not listing:
+            raise HTTPException(status_code=404, detail="Rental not found")
+        owner = await db.users.find_one(
+            {"user_id": listing["owner_id"]},
+            {"_id": 0, "password_hash": 0},
+        )
+        return listing_to_rental(listing, owner)
+
+    if rental_id.startswith("svc_"):
+        service_id = rental_id[4:]
+        service = await db.services.find_one({"service_id": service_id}, {"_id": 0})
+        if not service:
+            raise HTTPException(status_code=404, detail="Service not found")
+        business = await db.businesses.find_one(
+            {"business_id": service["business_id"]},
+            {"_id": 0, "name": 1, "profile_photo": 1, "logo_image": 1}
+        )
+        return service_to_rental(service, business)
+
+    raise HTTPException(status_code=404, detail="Rental not found")
 
 
 @router.post("/inquiry")
