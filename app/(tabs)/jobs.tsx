@@ -217,82 +217,6 @@ export default function JobsScreen() {
         </Pressable>
       </View>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <Pressable
-          style={styles.filterButton}
-          onPress={() => setCategoryModalVisible(true)}
-          data-testid="category-filter-btn"
-        >
-          <Text style={styles.filterLabel}>{t("locator.category")}: </Text>
-          <Text style={styles.filterValue}>{translatedRootCategory}</Text>
-          <Ionicons name="chevron-down" size={16} color="#6b7280" />
-        </Pressable>
-
-        <Pressable
-          style={styles.filterButton}
-          onPress={() => setSubcategoryModalVisible(true)}
-          data-testid="subcategory-filter-btn"
-        >
-          <Text style={styles.filterLabel}>{t("locator.subcategory")}: </Text>
-          <Text style={styles.filterValue}>{translatedSubcategory}</Text>
-          <Ionicons name="chevron-down" size={16} color="#6b7280" />
-        </Pressable>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={16} color={COLORS.textMuted} />
-          <TextInput
-            placeholder={t("jobs.searchJobs", "Search jobs...")}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={styles.searchInput}
-            placeholderTextColor={COLORS.textDisabled}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
-            </Pressable>
-          )}
-        </View>
-      </View>
-
-      {/* Map */}
-      <View style={styles.mapContainer}>
-        {location ? (
-          <BusinessMap
-            location={location}
-            showUserLocation
-            markers={(jobs || [])
-              .filter((job: any) => job.latitude && job.longitude)
-              .map((job) => ({
-                id: job.job_id,
-                latitude: job.latitude!,
-                longitude: job.longitude!,
-                title: job.title,
-                description: job.business_name || "",
-                type: "job" as const,
-                pinColor: COLORS.pinJob,
-              }))}
-            onMarkerPress={(id) => {
-              router.push(`/job/${id}` as any);
-            }}
-            onRegionChangeComplete={(bounds) => {
-              setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
-            }}
-          />
-        ) : (
-          <View style={styles.mapPlaceholder}>
-            <Ionicons name="location" size={40} color={COLORS.primaryDark} />
-            <Text style={styles.mapPlaceholderText}>{t("jobs.tapToEnableLocation")}</Text>
-            <Text style={styles.mapPlaceholderSubtext}>{t("jobs.viewNearbyJobs")}</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Job List */}
-      <Text style={styles.sectionTitle}>{t("jobs.nearbyJobs")}</Text>
       {loading ? (
         <View style={{ backgroundColor: COLORS.backgroundPage }}>
           <SkeletonBox width="100%" height={180} borderRadius={16} style={{ marginHorizontal: 16, marginTop: 16 }} />
@@ -315,6 +239,87 @@ export default function JobsScreen() {
           data={filteredJobs}
           keyExtractor={(item) => item.job_id}
           nestedScrollEnabled
+          ListHeaderComponent={
+            <>
+              {/* Category Filters */}
+              <View style={styles.filters}>
+                <Pressable
+                  style={styles.filterButton}
+                  onPress={() => setCategoryModalVisible(true)}
+                  data-testid="category-filter-btn"
+                >
+                  <Text style={styles.filterLabel}>{t("locator.category")}: </Text>
+                  <Text style={styles.filterValue}>{translatedRootCategory}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                </Pressable>
+
+                <Pressable
+                  style={styles.filterButton}
+                  onPress={() => setSubcategoryModalVisible(true)}
+                  data-testid="subcategory-filter-btn"
+                >
+                  <Text style={styles.filterLabel}>{t("locator.subcategory")}: </Text>
+                  <Text style={styles.filterValue}>{translatedSubcategory}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                </Pressable>
+              </View>
+
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <View style={styles.searchBar}>
+                  <Ionicons name="search" size={16} color={COLORS.textMuted} />
+                  <TextInput
+                    placeholder={t("jobs.searchJobs", "Search jobs...")}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    style={styles.searchInput}
+                    placeholderTextColor={COLORS.textDisabled}
+                  />
+                  {searchQuery.length > 0 && (
+                    <Pressable onPress={() => setSearchQuery("")}>
+                      <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+
+              {/* Map */}
+              <View style={styles.mapContainer}>
+                {location ? (
+                  <BusinessMap
+                    location={location}
+                    showUserLocation
+                    markers={(jobs || [])
+                      .filter((job: any) => job.latitude && job.longitude)
+                      .map((job) => ({
+                        id: job.job_id,
+                        latitude: job.latitude!,
+                        longitude: job.longitude!,
+                        title: job.title,
+                        description: job.business_name || "",
+                        type: "job" as const,
+                        pinColor: COLORS.pinJob,
+                      }))}
+                    onMarkerPress={(id) => {
+                      router.push(`/job/${id}` as any);
+                    }}
+                    onRegionChangeComplete={(bounds) => {
+                      setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
+                    }}
+                  />
+                ) : (
+                  <View style={styles.mapPlaceholder}>
+                    <Ionicons name="location" size={40} color={COLORS.primaryDark} />
+                    <Text style={styles.mapPlaceholderText}>{t("jobs.tapToEnableLocation")}</Text>
+                    <Text style={styles.mapPlaceholderSubtext}>{t("jobs.viewNearbyJobs")}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Job List title */}
+              <Text style={styles.sectionTitle}>{t("jobs.nearbyJobs")}</Text>
+            </>
+          }
           renderItem={({ item }) => (
             <Pressable
               style={styles.jobCard}
@@ -384,7 +389,6 @@ export default function JobsScreen() {
         />
       )}
 
-      </ScrollView>
 
       {/* Category Modal */}
       {/* Category Modal */}
