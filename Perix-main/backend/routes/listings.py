@@ -76,7 +76,10 @@ async def list_my_listings(
 
 @router.get("/{listing_id}", response_model=ListingResponse)
 async def get_listing(listing_id: str):
-    doc = await db.listings.find_one({"listing_id": listing_id})
+    doc = await db.listings.find_one(
+        {"listing_id": listing_id, "status": "published", "is_active": True},
+        {"_id": 0},
+    )
     if not doc:
         raise HTTPException(status_code=404, detail="Listing not found")
     return ListingResponse(**doc)

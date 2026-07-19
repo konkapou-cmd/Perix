@@ -266,26 +266,46 @@ async def get_rental(rental_id: str, current_user: UserPublic = Depends(get_curr
 
 @router.post("/inquiry")
 async def send_rental_inquiry(
-    service_id: str = Form(...),
+    service_id: Optional[str] = Form(None),
+    listing_id: Optional[str] = Form(None),
     name: str = Form(...),
     email: str = Form(...),
     message: str = Form(...),
     files: List[UploadFile] = File(None),
     current_user: UserPublic = Depends(get_current_user),
 ):
-    """Send a rental inquiry as a message to the business owner with optional file attachments."""
-    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
-    if not service:
-        raise HTTPException(status_code=404, detail="Service not found")
+    """Send a rental inquiry as a message to the owner (business or individual)."""
+    owner_id = None
+    business_id = None
+    rental_title = ""
+    entity_type = "business"
 
-    business_id = service.get("business_id")
-    business = await db.businesses.find_one({"business_id": business_id}, {"_id": 0})
-    if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
+    if listing_id:
+        listing = await db.listings.find_one(
+            {"listing_id": listing_id, "listing_type": "home_rental", "status": "published", "is_active": True},
+            {"_id": 0},
+        )
+        if not listing:
+            raise HTTPException(status_code=404, detail="Rental not found")
+        owner_id = listing["owner_id"]
+        rental_title = listing.get("title", "")
+        entity_type = "user"
+    elif service_id:
+        service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+        if not service:
+            raise HTTPException(status_code=404, detail="Service not found")
+        business_id = service.get("business_id")
+        business = await db.businesses.find_one({"business_id": business_id}, {"_id": 0})
+        if not business:
+            raise HTTPException(status_code=404, detail="Business not found")
+        owner_id = business.get("owner_id")
+        rental_title = service.get("name", "")
+        entity_type = "business"
+    else:
+        raise HTTPException(status_code=400, detail="service_id or listing_id required")
 
-    owner_id = business.get("owner_id")
     if not owner_id:
-        raise HTTPException(status_code=404, detail="Business owner not found")
+        raise HTTPException(status_code=404, detail="Owner not found")
 
     # Upload files and collect media URLs
     media_items = []
@@ -323,8 +343,9 @@ async def send_rental_inquiry(
                     if os.path.exists(tmp_path):
                         os.remove(tmp_path)
 
+    conv_id = business_id or listing_id or ""
     # Build the inquiry message text
-    inquiry_text = f"**Rental Inquiry: {service.get('name')}**\n\nFrom: {name} ({email})\n\n{message}"
+    inquiry_text = f"**Rental Inquiry: {rental_title}**\n\nFrom: {name} ({email})\n\n{message}"
     if media_items:
         inquiry_text += f"\n\nAttachments ({len(media_items)}):"
         for item in media_items:
@@ -336,7 +357,7 @@ async def send_rental_inquiry(
         "from_user_id": current_user.user_id,
         "to_user_id": owner_id,
         "to_business_id": business_id,
-        "entity_type": "business",
+        "entity_type": entity_type,
         "text": inquiry_text,
         "read": False,
         "created_at": now_utc(),
@@ -350,7 +371,7 @@ async def send_rental_inquiry(
             sender_name=current_user.name,
             sender_id=current_user.user_id,
             sender_photo=current_user.profile_photo,
-            conversation_id=business_id,
+            conversation_id=conv_id,
             message_preview=inquiry_text[:100],
         )
     )
@@ -358,12 +379,12 @@ async def send_rental_inquiry(
     # Broadcast via WebSocket
     await ws_broadcast_new_message(owner_id, message_doc)
     await ws_broadcast_new_message(current_user.user_id, message_doc)
-    await ws_broadcast_conversation_update(owner_id, {"conversation_id": business_id, "last_message": message_doc})
-    await ws_broadcast_conversation_update(current_user.user_id, {"conversation_id": business_id, "last_message": message_doc})
+    await ws_broadcast_conversation_update(owner_id, {"conversation_id": conv_id, "last_message": message_doc})
+    await ws_broadcast_conversation_update(current_user.user_id, {"conversation_id": conv_id, "last_message": message_doc})
 
     return {
         "success": True,
         "message_id": message_doc["message_id"],
-        "conversation_id": business_id,
+        "conversation_id": conv_id,
         "media_count": len(media_items),
     }
