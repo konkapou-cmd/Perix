@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Service } from "../../lib/api/core";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
+import { getDefaultModule } from "../../lib/config/serviceCategoryMatrix";
 import { EmptyState } from "../shared";
 import CategoryServiceCard from "./CategoryServiceCard";
 
@@ -59,9 +60,21 @@ export default function ServiceSection({
     );
   }
 
+  if (services.length === 0 && readOnly) {
+    return (
+      <EmptyState icon="grid" message={t("services.noServices")} />
+    );
+  }
+
   if (services.length === 0) {
     return (
-      <EmptyState icon="grid" message={t("services.noServices")} subMessage={readOnly ? undefined : t("services.addFirstService")} />
+      <EmptyState
+        icon="grid"
+        message={t("services.noServices")}
+        subMessage={t("services.addFirstService")}
+        actionLabel={t("services.add", "Hinzufügen")}
+        onAction={() => onAddService?.(getDefaultModule(rootCategory))}
+      />
     );
   }
 

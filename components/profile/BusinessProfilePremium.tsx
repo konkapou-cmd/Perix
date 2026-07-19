@@ -293,15 +293,14 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     const hasModule = hasServiceModules(rootCat);
     if (hasModule) {
       const seen = new Set<string>();
-      (services || []).filter(s => s.is_active).forEach(s => {
+      (services || []).forEach(s => {
         const cat = resolveCategory(s.root_category || "");
         const tabKey = `svc:${cat}:${s.type}`;
         if (!seen.has(tabKey)) {
           seen.add(tabKey);
           const count = (services || []).filter(sv =>
             resolveCategory(sv.root_category || "") === cat &&
-            sv.type === s.type &&
-            sv.is_active
+            sv.type === s.type
           ).length;
           tabs.push({
             key: tabKey,
