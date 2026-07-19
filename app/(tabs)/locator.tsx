@@ -1430,7 +1430,6 @@ export default function LocatorScreen() {
           </View>
         </View>
       </Modal>
-        </View>
       </View>
     </SafeAreaView>
   );
