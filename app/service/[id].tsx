@@ -122,6 +122,27 @@ export default function ServiceDetailPage() {
     : ctaType === "get_in_touch" ? "mail-outline"
     : "information-circle-outline";
 
+  const dates = useMemo(() => {
+    const result: string[] = [];
+    const today = new Date();
+    for (let i = 0; i < 14; i++) { const d = new Date(today); d.setDate(d.getDate() + i); result.push(d.toISOString().split("T")[0]); }
+    return result;
+  }, []);
+
+  const calendarMarkedDates = useMemo(() => {
+    const marks: Record<string, any> = {};
+    if (selectedDate) marks[selectedDate] = { selected: true, selectedColor: COLORS.servicesAccent, selectedTextColor: "#fff" };
+    const today = new Date();
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(today); d.setDate(d.getDate() + i);
+      const ds = d.toISOString().split("T")[0];
+      if (ds === selectedDate) continue;
+      const avail = availabilities[ds];
+      if (avail) marks[ds] = { selected: true, selectedColor: avail.is_full ? "#ef4444" : "#10b981", selectedTextColor: "#fff" };
+    }
+    return marks;
+  }, [selectedDate, availabilities]);
+
   const handleCta = () => {
     if (ctaType === "booking") {
       setShowBooking(true); setBookingName(user?.name || ""); setBookingEmail(user?.email || "");
