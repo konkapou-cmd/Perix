@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
-import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
+import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, isServiceBookable, requiresServiceSlots, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
 import { getDefaultModule, getAllowedModules, getCategoryQuestions } from "../../lib/config/serviceCategoryMatrix";
 import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect, useRef } from "react";
@@ -90,6 +90,7 @@ export type ServiceForm = {
   pet_type: string;
   status: "draft" | "published" | "hidden";
   sort_order: string;
+  availability_slots: { day_of_week?: number; date?: string; start_time: string; end_time: string; is_recurring: boolean }[];
 };
 
 type Props = {
@@ -175,6 +176,7 @@ const DEFAULT_FORM: ServiceForm = {
   pet_type: "",
   status: "draft",
   sort_order: "0",
+  availability_slots: [],
 };
 
 export { DEFAULT_FORM };
@@ -336,6 +338,20 @@ export default function ServiceModal({
     if (form.status === "published" && !hasCoverPhoto) {
       setCoverPhotoError(t("services.coverRequired", "Bitte füge ein Titelbild hinzu, bevor du den Dienst veröffentlichst."));
       return;
+    }
+    // Availability validation for publishing bookable services
+    if (form.status === "published" && isServiceBookable(form.type)) {
+      if (requiresServiceSlots(form.type)) {
+        if (!form.availability_slots || form.availability_slots.length === 0) {
+          Alert.alert(t("common.error", "Fehler"), t("services.availabilityTimesRequired", "Bitte füge mindestens eine verfügbare Zeit hinzu, bevor du den Dienst veröffentlichst."));
+          return;
+        }
+      } else {
+        if (!form.available_from) {
+          Alert.alert(t("common.error", "Fehler"), t("services.availabilityDateRequired", "Bitte wähle ein Verfügbarkeitsdatum, bevor du den Dienst veröffentlichst."));
+          return;
+        }
+      }
     }
     setCoverPhotoError(null);
     onSave();
@@ -658,12 +674,78 @@ export default function ServiceModal({
                 </View>
               </View>
             </Modal>
+
+      {/* Availability Section for bookable services */}
+      {isServiceBookable(form.type) && (
+        <View style={styles.availabilitySection}>
+          <Text style={styles.sectionTitle}>
+            {t("services.availability", "Verfügbarkeit")}
+            {form.status === "published" && <Text style={styles.required}> *</Text>}
+          </Text>
+
+          {requiresServiceSlots(form.type) ? (
+            <View>
+              {(form.availability_slots || []).map((slot, idx) => (
+                <View key={idx} style={styles.slotRow}>
+                  <Text style={styles.slotLabel}>
+                    {slot.is_recurring ? ["So","Mo","Di","Mi","Do","Fr","Sa"][slot.day_of_week ?? 0] : (slot.date || "")}
+                  </Text>
+                  <Text style={styles.slotTime}>{slot.start_time} – {slot.end_time}</Text>
+                  <Pressable onPress={() => {
+                    const slots = [...(form.availability_slots || [])];
+                    slots.splice(idx, 1);
+                    setForm(prev => ({ ...prev, availability_slots: slots }));
+                  }} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color={COLORS.danger} />
+                  </Pressable>
+                </View>
+              ))}
+              <View style={styles.addSlotRow}>
+                <Pressable
+                  style={[styles.addSlotBtn, { borderColor: COLORS.primary }]}
+                  onPress={() => {
+                    const slots = [...(form.availability_slots || [])];
+                    slots.push({ is_recurring: true, day_of_week: 1, start_time: "09:00", end_time: "10:00" });
+                    setForm(prev => ({ ...prev, availability_slots: slots }));
+                  }}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+                  <Text style={[styles.addSlotText, { color: COLORS.primary }]}>{t("services.addTimeSlot", "Zeitfenster hinzufügen")}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.label}>{t("services.availableFrom", "Verfügbar ab")}</Text>
+              <Pressable style={styles.selector} onPress={() => setShowDatePicker(true)}>
+                <Text style={form.available_from ? styles.selectorTextSelected : styles.selectorText}>
+                  {form.available_from || t("services.selectDate", "Datum wählen")}
+                </Text>
+                <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+              </Pressable>
+            </View>
+          )}
+
+          {form.status === "published" && (
+            <Text style={styles.availabilityHint}>
+              {requiresServiceSlots(form.type)
+                ? t("services.availabilityHintSlots", "Füge mindestens ein Zeitfenster hinzu, um den Dienst zu veröffentlichen.")
+                : t("services.availabilityHintDate", "Wähle ein Datum aus, um den Dienst zu veröffentlichen.")}
+            </Text>
+          )}
+        </View>
+      )}
+
       <FormBottomBar
         onCancel={onClose}
         onSave={handleSaveWithValidation}
         saveLabel={isEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
         isSaving={isSaving}
-        disabled={!form.type || !form.name.trim()}
+        disabled={
+          !form.type || !form.name.trim() ||
+          (form.status === "published" && isServiceBookable(form.type) &&
+            (requiresServiceSlots(form.type) ? !(form.availability_slots?.length) : !form.available_from))
+        }
       />
     </FormScreen>
   );
@@ -739,4 +821,16 @@ const styles = StyleSheet.create({
   toggleBtn: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.compact, marginTop: SPACING.small },
   toggleBtnActive: {},
   toggleLabel: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  availabilitySection: { paddingHorizontal: SPACING.std, paddingBottom: SPACING.small, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: SPACING.small },
+  sectionTitle: { fontSize: FONT_SIZES.body, fontWeight: "700", color: COLORS.textPrimary, marginBottom: SPACING.small },
+  slotRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  slotLabel: { fontSize: FONT_SIZES.caption, color: COLORS.textPrimary, width: 40 },
+  slotTime: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, flex: 1 },
+  addSlotRow: { marginTop: SPACING.small },
+  addSlotBtn: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.small, paddingHorizontal: SPACING.small, borderWidth: 1, borderRadius: BORDER_RADIUS.md },
+  addSlotText: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600" },
+  selector: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: COLORS.backgroundPage, padding: SPACING.std, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border },
+  selectorText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textDisabled },
+  selectorTextSelected: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  availabilityHint: { fontSize: FONT_SIZES.caption, color: COLORS.danger, marginTop: SPACING.small },
 });
