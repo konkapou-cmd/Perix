@@ -75,6 +75,7 @@ import { useLayoutPreferences } from "../../hooks/useLayoutPreferences";
 import { CityAdCircles } from "../../components/home/CityAdCircles";
 import { CarouselSection } from "../../components/home/CarouselSection";
 import { MapSection } from "../../components/home/MapSection";
+import { getListings, Listing } from "../../lib/api/listings";
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
 import { PostCard } from "../../components/home/PostCard";
 import { LayoutSettingsModal } from "../../components/home/LayoutSettingsModal";
@@ -133,6 +134,9 @@ export default function HomeScreen() {
     savedEventIds, savedActivityIds, savedBusinessIds, savedJobIds, savedRentalIds, savedServiceIds,
     feedError, loading: feedLoading, backgroundLoading, refresh: refreshFeed,
   } = feedData;
+
+  const [marketplaceItems, setMarketplaceItems] = useState<Listing[]>([]);
+  useEffect(() => { getListings("product").then(setMarketplaceItems).catch(() => {}); }, []);
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");
@@ -904,30 +908,57 @@ export default function HomeScreen() {
         )}
 
         {homeLayout.sections.find(s => s.id === "rentals")?.enabled !== false && (
-          <CarouselSection
-            title={t("rentals.rentals") || "Rentals"}
-            icon="home"
-            color={COLORS.rentalsAccent}
-            seeAllRoute="/rentals"
-            emptyMessage={t("rentals.noRentals") || "No rentals nearby"}
-          >
-            {sortedRentals.map((rental) => {
-              const rentalImg = rental.cover_image || (!(rental as any).video_url ? rental.gallery_images?.[0] : undefined);
-              return (
-                <CarouselCard
-                  key={rental.rental_id}
-                  imageUrl={rentalImg}
-                  videoUrl={rental.video_url}
-                  title={rental.title}
-                  subtitle={rental.rent_price || rental.rooms_size || ""}
-                  thirdLine={rental.address || ""}
-                  onPress={() => router.push(`/service/${rental.service_id || rental.rental_id}` as any)}
-                  isSaved={savedRentalIds.has(rental.rental_id)}
-                  fallbackIcon="home"
-                />
-              );
-            })}
-          </CarouselSection>
+          <>
+            <CarouselSection
+              title={t("rentals.professionalRentals", "Professional Rentals")}
+              icon="business"
+              color={COLORS.rentalsAccent}
+              seeAllRoute="/rentals"
+              emptyMessage={t("rentals.noRentals") || "No rentals nearby"}
+            >
+              {sortedRentals.filter((r: any) => (r.source_type || "business") === "business").map((rental) => {
+                const rentalImg = rental.cover_image || (!(rental as any).video_url ? rental.gallery_images?.[0] : undefined);
+                return (
+                  <CarouselCard
+                    key={rental.rental_id}
+                    imageUrl={rentalImg}
+                    videoUrl={rental.video_url}
+                    title={rental.title}
+                    subtitle={(rental as any).source_badge ? `💼 ${(rental as any).source_badge}` : (rental.rent_price || rental.rooms_size || "")}
+                    thirdLine={rental.address || ""}
+                    onPress={() => router.push(`/service/${rental.service_id || rental.rental_id}` as any)}
+                    isSaved={savedRentalIds.has(rental.rental_id)}
+                    fallbackIcon="home"
+                  />
+                );
+              })}
+            </CarouselSection>
+
+            <CarouselSection
+              title={t("rentals.homesFromOwners", "Homes from Owners")}
+              icon="home"
+              color={COLORS.primaryDark}
+              seeAllRoute="/marketplace?tab=homes"
+              emptyMessage={t("rentals.noOwnerHomes", "No owner-listed homes nearby")}
+            >
+              {sortedRentals.filter((r: any) => r.source_type === "owner").map((rental) => {
+                const rentalImg = rental.cover_image || (!(rental as any).video_url ? rental.gallery_images?.[0] : undefined);
+                return (
+                  <CarouselCard
+                    key={rental.rental_id}
+                    imageUrl={rentalImg}
+                    videoUrl={rental.video_url}
+                    title={rental.title}
+                    subtitle={(rental as any).source_badge ? `🏠 ${(rental as any).source_badge}` : (rental.rent_price || rental.rooms_size || "")}
+                    thirdLine={rental.address || ""}
+                    onPress={() => router.push(`/rental/${rental.rental_id}` as any)}
+                    isSaved={savedRentalIds.has(rental.rental_id)}
+                    fallbackIcon="home"
+                  />
+                );
+              })}
+            </CarouselSection>
+          </>
         )}
 
         {homeLayout.sections.find(s => s.id === "jobs")?.enabled !== false && (
@@ -953,6 +984,30 @@ export default function HomeScreen() {
                 />
               );
             })}
+          </CarouselSection>
+        )}
+
+        {homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
+          <CarouselSection
+            title={t("home.marketplace", "Marketplace")}
+            icon="pricetag"
+            color={COLORS.warning}
+            seeAllRoute="/marketplace?tab=items"
+            emptyMessage={t("marketplace.noItems", "No items for sale nearby")}
+          >
+            {marketplaceItems.map((item) => (
+              <CarouselCard
+                key={item.listing_id}
+                imageUrl={item.cover_image_url || item.image_urls?.[0]}
+                videoUrl={item.video_url}
+                title={item.title}
+                subtitle={`${t("marketplace.forSale", "For sale")}${item.price ? ` · ${item.price}` : ""}`}
+                thirdLine={item.address || ""}
+                onPress={() => router.push(`/listing/${item.listing_id}` as any)}
+                isSaved={false}
+                fallbackIcon="pricetag"
+              />
+            ))}
           </CarouselSection>
         )}
 
