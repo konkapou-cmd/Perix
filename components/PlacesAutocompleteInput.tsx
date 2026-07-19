@@ -22,6 +22,7 @@ type Props = {
   nearLat?: number;
   nearLng?: number;
   confirmed?: boolean;
+  locked?: boolean;
 };
 
 type PlacePrediction = {
@@ -41,6 +42,7 @@ export default function PlacesAutocompleteInput({
   nearLat,
   nearLng,
   confirmed,
+  locked,
 }: Props) {
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [searching, setSearching] = useState(false);
@@ -187,8 +189,11 @@ export default function PlacesAutocompleteInput({
           onChangeText={handleTextChange}
           placeholder={placeholder}
           placeholderTextColor="#9ca3af"
+          editable={!locked}
         />
-        {searching ? (
+        {locked ? (
+          <Ionicons name="lock-closed" size={18} color="#9ca3af" style={{ marginRight: 8 }} />
+        ) : searching ? (
           <ActivityIndicator size="small" color="#000000" style={styles.loader} />
         ) : value && value.length > 0 ? (
           <TouchableOpacity onPress={handleClear} style={styles.clearButton}>

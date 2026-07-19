@@ -296,16 +296,29 @@ export default function EventModal({
           )}
 
           <Text style={s.label}>{t("events.location") || "Location"}</Text>
-          <PlacesAutocompleteInput
-            value={eventForm.location}
-            onChangeText={(text) => onFormChange({ ...eventForm, location: text, latitude: null, longitude: null })}
-            onSelectPlace={(address, lat, lng) => onFormChange({ ...eventForm, location: address, latitude: lat, longitude: lng })}
-            placeholder={t("events.locationPlaceholder") || "Location or address"}
-            style={s.input}
-            nearLat={nearLat}
-            nearLng={nearLng}
-            confirmed={hasCoordinates}
-          />
+          {businessAddress ? (
+            <View>
+              <PlacesAutocompleteInput
+                value={businessAddress}
+                onChangeText={() => {}}
+                locked
+                confirmed
+                style={s.input}
+              />
+              <Text style={s.hint}>{t("events.businessLocationLocked", "Events use your business address.")}</Text>
+            </View>
+          ) : (
+            <PlacesAutocompleteInput
+              value={eventForm.location}
+              onChangeText={(text) => onFormChange({ ...eventForm, location: text, latitude: null, longitude: null })}
+              onSelectPlace={(address, lat, lng) => onFormChange({ ...eventForm, location: address, latitude: lat, longitude: lng })}
+              placeholder={t("events.locationPlaceholder") || "Location or address"}
+              style={s.input}
+              nearLat={nearLat}
+              nearLng={nearLng}
+              confirmed={hasCoordinates}
+            />
+          )}
 
           <Text style={s.label}>{t("events.theme") || "Theme"}</Text>
           <Pressable style={s.selector} onPress={() => onShowThemePicker(!showThemePicker)}>
@@ -675,5 +688,10 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.medium as any,
     color: COLORS.textPrimary,
     maxWidth: 100,
+  },
+  hint: {
+    fontSize: FONT_SIZES.caption,
+    color: COLORS.textMuted,
+    marginTop: SPACING.tiny,
   },
 });
