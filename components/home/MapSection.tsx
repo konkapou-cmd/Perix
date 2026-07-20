@@ -7,6 +7,7 @@ import BusinessMap from "../../components/BusinessMap";
 import { MapBounds } from "../../context/MapBoundsContext";
 import { Business, EventItem, ActivityItem, Rental, Service } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { entityRoutes, pushEntityRoute, getRentalNavigationId } from "../../lib/navigation/entityRoutes";
 
 interface MapSectionProps {
   mapBounds: MapBounds;
@@ -31,9 +32,11 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
     const act = activities.find(a => a.activity_id === id);
     if (act) { router.push(`/activity/${id}` as any); return; }
     const rental = rentals.find(r => r.rental_id === id);
-    if (rental) { router.push(`/service/${rental.service_id || id}` as any); return; }
+    if (rental) { pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any)), () => {}); return; }
+    const service = services.find(s => s.service_id === id);
+    if (service) { pushEntityRoute(router, entityRoutes.service(id), () => {}); return; }
     const job = jobs.find(j => j.job_id === id);
-    if (job) { router.push(`/job/${id}` as any); return; }
+    if (job) { pushEntityRoute(router, entityRoutes.job(id), () => {}); return; }
     const service = services.find(s => s.service_id === id);
     if (service) { router.push(`/service/${id}` as any); return; }
   };

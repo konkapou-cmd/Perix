@@ -15,6 +15,7 @@ import BusinessActionsModal, { BusinessAction } from "../../components/business/
 import CreationSheet, { CreationAction } from "../../components/user/CreationSheet";
 import ListingModal from "../../components/user/ListingModal";
 import type { ListingType } from "../../lib/api/listings";
+import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 
 function TabBarBackground() {
   return (
@@ -248,7 +249,7 @@ export default function TabsLayout() {
             t("common.success", "Erfolgreich"),
             t("marketplace.itemCreated", "Dein Eintrag wurde veröffentlicht."),
             [
-              { text: t("marketplace.viewListing", "Ansehen"), onPress: () => router.push(`/listing/${listingId}` as any) },
+              { text: t("marketplace.viewListing", "Ansehen"), onPress: () => pushEntityRoute(router, entityRoutes.listing(listingId), () => showInvalidEntityAlert(t)) },
               { text: t("marketplace.myListings", "Meine Einträge"), onPress: () => router.push("/my-listings" as any) },
               { text: t("common.ok", "OK"), onPress: () => {} },
             ],

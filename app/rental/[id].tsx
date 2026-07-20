@@ -26,10 +26,16 @@ import ErrorState from "../../components/shared/ErrorState";
 import { ShareSection } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
 import { EntityHeader } from "../../components/shared/EntityHeader";
+import { normalizeId } from "../../lib/navigation/entityRoutes";
+
+// ... inside the component:
+  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = normalizeId(rawId);
 
 export default function RentalDetailPage() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = normalizeId(rawId);
   const { sessionToken } = useAuth();
   const router = useRouter();
   const [rental, setRental] = useState<Rental | null>(null);

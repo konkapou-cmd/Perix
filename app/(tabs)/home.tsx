@@ -76,6 +76,7 @@ import { CityAdCircles } from "../../components/home/CityAdCircles";
 import { CarouselSection } from "../../components/home/CarouselSection";
 import { MapSection } from "../../components/home/MapSection";
 import { getListings, Listing } from "../../lib/api/listings";
+import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
 import { PostCard } from "../../components/home/PostCard";
 import { LayoutSettingsModal } from "../../components/home/LayoutSettingsModal";
@@ -902,7 +903,7 @@ export default function HomeScreen() {
                   videoUrl={service.video_url}
                   title={service.name}
                   subtitle={service.type}
-                  onPress={() => router.push(`/service/${service.service_id}` as any)}
+                  onPress={() => pushEntityRoute(router, entityRoutes.service(service.service_id), () => showInvalidEntityAlert(t))}
                   isSaved={savedServiceIds.has(service.service_id)}
                   fallbackIcon="briefcase"
                 />
@@ -930,7 +931,7 @@ export default function HomeScreen() {
                     title={rental.title}
                     subtitle={(rental as any).source_badge ? `💼 ${(rental as any).source_badge}` : (rental.rent_price || rental.rooms_size || "")}
                     thirdLine={rental.address || ""}
-                    onPress={() => router.push(`/service/${rental.service_id || rental.rental_id}` as any)}
+                    onPress={() => pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any) as any), () => showInvalidEntityAlert(t))}
                     isSaved={savedRentalIds.has(rental.rental_id)}
                     fallbackIcon="home"
                   />
@@ -955,7 +956,7 @@ export default function HomeScreen() {
                     title={rental.title}
                     subtitle={(rental as any).source_badge ? `🏠 ${(rental as any).source_badge}` : (rental.rent_price || rental.rooms_size || "")}
                     thirdLine={rental.address || ""}
-                    onPress={() => router.push(`/rental/${rental.rental_id}` as any)}
+                    onPress={() => pushEntityRoute(router, entityRoutes.rental(rental.rental_id as any), () => showInvalidEntityAlert(t))}
                     isSaved={savedRentalIds.has(rental.rental_id)}
                     fallbackIcon="home"
                   />
@@ -982,7 +983,7 @@ export default function HomeScreen() {
                   videoUrl={job.video_url}
                   title={job.title}
                   subtitle={job.business_name || job.location || ""}
-                  onPress={() => router.push(`/job/${job.job_id}`)}
+                  onPress={() => pushEntityRoute(router, entityRoutes.job(job.job_id), () => showInvalidEntityAlert(t))}
                   isSaved={savedJobIds.has(job.job_id)}
                   fallbackIcon="briefcase"
                 />
@@ -1007,7 +1008,7 @@ export default function HomeScreen() {
                 title={item.title}
                 subtitle={`${t("marketplace.forSale", "For sale")}${item.price ? ` · ${item.price}` : ""}`}
                 thirdLine={item.address || ""}
-                onPress={() => router.push(`/listing/${item.listing_id}` as any)}
+                onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="pricetag"
               />

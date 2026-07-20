@@ -10,6 +10,7 @@ import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 import AdaptiveImage from "../../components/AdaptiveImage";
+import { normalizeId } from "../../lib/navigation/entityRoutes";
 
 const CONDITIONS: Record<string, string> = {
   new: "New", like_new: "Like New", good: "Good", used: "Used",
@@ -17,7 +18,8 @@ const CONDITIONS: Record<string, string> = {
 
 export default function ListingDetailScreen() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = normalizeId(rawId);
   const router = useRouter();
   const { sessionToken, user } = useAuth();
 
