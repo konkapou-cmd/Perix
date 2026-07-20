@@ -404,6 +404,24 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 />
               )}
               <ProfileActionButton
+                icon="storefront-outline"
+                label={t("marketplace.title", "Marktplatz")}
+                variant="secondaryIcon"
+                onPress={() => router.push("/marketplace/items" as any)}
+              />
+              <ProfileActionButton
+                icon="list-outline"
+                label={t("marketplace.myListings", "Meine Anzeigen")}
+                variant="secondaryIcon"
+                onPress={() => router.push("/my-listings" as any)}
+              />
+              <ProfileActionButton
+                icon="bookmark-outline"
+                label={t("common.saved", "Gespeicherte Inhalte")}
+                variant="secondaryIcon"
+                onPress={() => router.push("/saved" as any)}
+              />
+              <ProfileActionButton
                 icon="settings-outline"
                 label={t("common.settings", "Einstellungen")}
                 variant="secondaryIcon"

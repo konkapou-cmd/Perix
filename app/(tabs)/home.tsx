@@ -943,7 +943,7 @@ export default function HomeScreen() {
               title={t("rentals.homesFromOwners", "Homes from Owners")}
               icon="home"
               color={COLORS.primaryDark}
-              seeAllRoute="/marketplace?tab=homes"
+              seeAllRoute="/marketplace/homes"
               emptyMessage={t("rentals.noOwnerHomes", "No owner-listed homes nearby")}
             >
               {sortedRentals.filter((r: any) => r.source_type === "owner").map((rental) => {
@@ -997,7 +997,7 @@ export default function HomeScreen() {
             title={t("home.marketplace", "Marketplace")}
             icon="pricetag"
             color={COLORS.warning}
-            seeAllRoute="/marketplace?tab=items"
+            seeAllRoute="/marketplace/items"
             emptyMessage={t("marketplace.noItems", "No items for sale nearby")}
           >
             {marketplaceItems.map((item) => (
