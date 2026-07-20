@@ -49,6 +49,20 @@ ALL_VALID_ATTRIBUTE_KEYS: set[str] = {
     "operating_hours", "business_seller", "vat_deductible",
 }
 
+NUMBER_ATTRIBUTE_KEYS: set[str] = {
+    "storage_gb", "ram_gb", "screen_size",
+    "width_cm", "height_cm", "depth_cm",
+    "weight_kg", "model_year", "mileage_km",
+    "release_year", "year", "operating_hours",
+}
+
+BOOLEAN_ATTRIBUTE_KEYS: set[str] = {
+    "warranty", "original_packaging", "assembled",
+    "authenticity_proof", "accident_free", "complete",
+    "certificate", "sealed", "unused",
+    "business_seller", "vat_deductible",
+}
+
 
 def normalize_category(key: Optional[str]) -> Optional[str]:
     if not key:
@@ -162,7 +176,7 @@ async def create_listing(
         dump["category"] = normalize_category(dump["category"])
 
     doc = {
-        **payload.model_dump(),
+        **dump,
         "listing_id": generate_id("lst"),
         "owner_id": current_user.user_id,
         "is_active": True,
@@ -260,7 +274,21 @@ async def list_listings(
 
     for attr_key, vals in attribute_filters.items():
         unique = list(dict.fromkeys(vals))
-        query[f"attributes.{attr_key}"] = unique[0] if len(unique) == 1 else {"$in": unique}
+        if attr_key in NUMBER_ATTRIBUTE_KEYS:
+            try:
+                converted = [int(v) for v in unique]
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid numeric value for attribute '{attr_key}'")
+            query[f"attributes.{attr_key}"] = converted[0] if len(converted) == 1 else {"$in": converted}
+        elif attr_key in BOOLEAN_ATTRIBUTE_KEYS:
+            lowered = [v.lower() for v in unique]
+            for v in lowered:
+                if v not in ("true", "false", "1", "0"):
+                    raise HTTPException(status_code=400, detail=f"Invalid boolean value for attribute '{attr_key}'")
+            converted = [v in ("true", "1") for v in lowered]
+            query[f"attributes.{attr_key}"] = converted[0] if len(converted) == 1 else {"$in": converted}
+        else:
+            query[f"attributes.{attr_key}"] = unique[0] if len(unique) == 1 else {"$in": unique}
 
     has_bounds = all(v is not None for v in (min_lat, max_lat, min_lng, max_lng))
 
@@ -346,6 +374,9 @@ async def update_listing(
         effective_category, effective_subcategory,
         effective_vis, effective_label,
     )
+
+    if doc.get("listing_type") == "product" and update_data.get("category"):
+        update_data["category"] = normalize_category(update_data["category"])
 
     if update_data:
         await db.listings.update_one(
