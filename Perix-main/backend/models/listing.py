@@ -17,6 +17,8 @@ class ListingCreate(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    public_location_label: Optional[str] = None
+    location_visibility: str = "approximate"
     category: Optional[str] = None
     status: str = "draft"  # draft | published | sold | rented
 
@@ -48,6 +50,8 @@ class ListingUpdate(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    public_location_label: Optional[str] = None
+    location_visibility: Optional[str] = None
     category: Optional[str] = None
     status: Optional[str] = None
     condition: Optional[str] = None
@@ -79,6 +83,8 @@ class ListingResponse(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    public_location_label: Optional[str] = None
+    location_visibility: str = "approximate"
     category: Optional[str] = None
     status: str
     is_active: bool = True
