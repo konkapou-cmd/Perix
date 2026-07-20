@@ -18,6 +18,8 @@ export type Listing = {
   address?: string;
   latitude?: number;
   longitude?: number;
+  public_location_label?: string;
+  location_visibility: "approximate" | "exact";
   category?: string;
   status: ListingStatus;
   is_active: boolean;
@@ -48,6 +50,8 @@ export type ListingCreatePayload = {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  public_location_label?: string | null;
+  location_visibility?: "approximate" | "exact";
   category?: string | null;
   status?: ListingStatus;
   condition?: string | null;

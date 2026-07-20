@@ -51,6 +51,8 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
+  const [publicLocationLabel, setPublicLocationLabel] = useState("");
+  const [locationVisibility, setLocationVisibility] = useState<"approximate" | "exact">("approximate");
   const [media, setMedia] = useState<MediaItem[]>([]);
 
   // Product fields
@@ -83,6 +85,8 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setAddress(editingListing.address || "");
       setLatitude(editingListing.latitude);
       setLongitude(editingListing.longitude);
+      setPublicLocationLabel(editingListing.public_location_label || "");
+      setLocationVisibility(editingListing.location_visibility || "approximate");
       setCondition(editingListing.condition || "");
       setBrand(editingListing.brand || "");
       setDelivery(editingListing.delivery_method || "");
@@ -103,6 +107,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
     } else if (visible) {
       setTitle(""); setDescription(""); setPrice(""); setStatus("published");
       setAddress(""); setLatitude(undefined); setLongitude(undefined); setMedia([]);
+      setPublicLocationLabel(""); setLocationVisibility("approximate");
       setCondition(""); setBrand(""); setDelivery("");
       setPropertyType("apartment"); setBedrooms(""); setBathrooms("");
       setSizeSqm(""); setFurnished(false); setAvailableFrom(""); setLeaseDuration(""); setDeposit("");
@@ -114,8 +119,11 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       Alert.alert(t("common.error", "Error"), t("common.titleRequired", "Title is required"));
       return;
     }
-    if (listingType === "home_rental" && status === "published" && !hasCoordinates) {
-      Alert.alert(t("common.error", "Error"), t("marketplace.locationRequired", "Select and confirm the home's address before publishing."));
+    if (status === "published" && !hasCoordinates) {
+      Alert.alert(
+        t("common.error", "Error"),
+        t("marketplace.locationRequired", "Select and confirm an address before publishing."),
+      );
       return;
     }
 
@@ -131,6 +139,8 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         address: address || null,
         latitude: latitude ?? null,
         longitude: longitude ?? null,
+        public_location_label: publicLocationLabel || null,
+        location_visibility: locationVisibility,
         cover_image_url: mediaFields.cover_image_url || null,
         image_urls: mediaFields.image_urls,
         gallery_images: mediaFields.gallery_images,
@@ -261,14 +271,50 @@ export default function ListingModal({ visible, listingType, editingListing, ses
 
                 <Text style={styles.label}>{t("rentals.deposit", "Deposit")}</Text>
                 <TextInput style={styles.input} value={deposit} onChangeText={setDeposit} placeholder="€1000" placeholderTextColor={COLORS.textDisabled} />
+              </>
+            )}
 
-                <Text style={styles.label}>{t("services.address", "Address")} <Text style={styles.required}>*</Text></Text>
-                <PlacesAutocompleteInput
-                  value={address}
-                  onChangeText={(text) => { setAddress(text); setLatitude(undefined); setLongitude(undefined); }}
-                  onSelectPlace={(addr, lat, lng) => { setAddress(addr); setLatitude(lat); setLongitude(lng); }}
-                  placeholder={t("services.addressPlaceholder", "Search address...")}
-                  confirmed={hasCoordinates}
+            <Text style={styles.label}>
+              {t("services.address", "Address")}
+              {status === "published" && <Text style={styles.required}> *</Text>}
+            </Text>
+            <PlacesAutocompleteInput
+              value={address}
+              onChangeText={(text) => { setAddress(text); setLatitude(undefined); setLongitude(undefined); }}
+              onSelectPlace={(addr, lat, lng) => { setAddress(addr); setLatitude(lat); setLongitude(lng); }}
+              placeholder={t("services.addressPlaceholder", "Search address...")}
+              confirmed={hasCoordinates}
+            />
+
+            {hasCoordinates && (
+              <>
+                <Text style={styles.label}>{t("marketplace.locationVisibility", "Location Visibility")}</Text>
+                <View style={styles.chipRow}>
+                  <Pressable
+                    style={[styles.chip, locationVisibility === "approximate" && styles.chipActive]}
+                    onPress={() => setLocationVisibility("approximate")}
+                  >
+                    <Text style={[styles.chipText, locationVisibility === "approximate" && styles.chipTextActive]}>
+                      {t("marketplace.approximate", "Approx. area")}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.chip, locationVisibility === "exact" && styles.chipActive]}
+                    onPress={() => setLocationVisibility("exact")}
+                  >
+                    <Text style={[styles.chipText, locationVisibility === "exact" && styles.chipTextActive]}>
+                      {t("marketplace.exact", "Exact address")}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.label}>{t("marketplace.publicLabel", "Public location label")}</Text>
+                <TextInput
+                  style={styles.input}
+                  value={publicLocationLabel}
+                  onChangeText={setPublicLocationLabel}
+                  placeholder={isProduct ? "e.g. Berlin" : "e.g. Berlin-Mitte"}
+                  placeholderTextColor={COLORS.textDisabled}
                 />
               </>
             )}
