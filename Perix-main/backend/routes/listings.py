@@ -20,7 +20,13 @@ def fuzz_coordinate(value: float) -> float:
 def public_listing_location(doc: dict) -> dict:
     result = dict(doc)
 
-    if result.get("location_visibility") == "approximate":
+    visibility = (
+        result.get("location_visibility")
+        or "approximate"
+    )
+    result["location_visibility"] = visibility
+
+    if visibility == "approximate":
         result["address"] = (
             result.get("public_location_label")
             or "Approximate location"
@@ -62,13 +68,6 @@ def validate_location(address, lat, lng, status, vis: Optional[LocationVisibilit
             status_code=400,
             detail="A public location label is required for approximate visibility.",
         )
-
-
-def apply_location_visibility(doc: dict):
-    if doc.get("location_visibility") == "approximate" and doc.get("latitude") is not None:
-        doc["latitude"] = fuzz_coordinate(doc["latitude"])
-        doc["longitude"] = fuzz_coordinate(doc["longitude"])
-    return doc
 
 
 @router.post("", response_model=ListingResponse)
