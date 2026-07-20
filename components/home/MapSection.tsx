@@ -37,8 +37,6 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
     if (service) { pushEntityRoute(router, entityRoutes.service(id), () => {}); return; }
     const job = jobs.find(j => j.job_id === id);
     if (job) { pushEntityRoute(router, entityRoutes.job(id), () => {}); return; }
-    const service = services.find(s => s.service_id === id);
-    if (service) { router.push(`/service/${id}` as any); return; }
   };
 
   const handleRecenter = async () => {
