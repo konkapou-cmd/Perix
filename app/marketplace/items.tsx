@@ -114,9 +114,9 @@ export default function MarketplaceItemsPage() {
           onPress={() => setCategoryFilterVisible(true)}
         >
           <Ionicons name="options-outline" size={16} color={category ? "#fff" : COLORS.textPrimary} />
-          <Text style={[styles.filterBtnText, category ? styles.filterBtnTextActive : undefined]}>
+          <Text style={[styles.filterBtnText, category ? { color: COLORS.background } : undefined]}>
             {category
-              ? `Kategorie · ${catConfig ? t(catConfig.labelKey, catConfig.fallback) : category}${subLabel ? ` · ${subLabel}` : ""}`
+              ? `Kategorie · ${catConfig ? t(catConfig.labelKey, catConfig.fallback) : category}${subLabel ? ` · ${t(catConfig?.subcategories.find((s) => s.key === subcategory)?.labelKey ?? "", subLabel)}` : ""}`
               : t("marketplace.category", "Kategorie")}
           </Text>
         </Pressable>
@@ -174,6 +174,5 @@ const styles = StyleSheet.create({
   },
   filterBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   filterBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.textPrimary },
-  filterBtnTextActive: { color: "#fff" },
   resultCount: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, paddingVertical: SPACING.small },
 });
