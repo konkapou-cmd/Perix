@@ -18,6 +18,7 @@ type Props = {
   sessionToken: string;
   onClose: () => void;
   onSave: () => void;
+  onCreated?: (listingId: string) => void;
 };
 
 const HOME_TYPES = ["apartment", "house", "studio", "room"];
@@ -38,7 +39,7 @@ function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_ima
   };
 }
 
-export default function ListingModal({ visible, listingType, editingListing, sessionToken, onClose, onSave: onSaveProp }: Props) {
+export default function ListingModal({ visible, listingType, editingListing, sessionToken, onClose, onSave: onSaveProp, onCreated }: Props) {
   const { t } = useTranslation();
   const isProduct = listingType === "product";
   const isEditing = !!editingListing;
@@ -151,7 +152,8 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       if (isEditing) {
         await updateListing(sessionToken, editingListing!.listing_id, payload);
       } else {
-        await createListing(sessionToken, payload);
+        const created = await createListing(sessionToken, payload);
+        onCreated?.(created.listing_id);
       }
       onSaveProp();
       onClose();

@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { View, Text, Pressable, StyleSheet, Platform, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { useBadge } from "../../context/BadgeContext";
@@ -241,9 +241,18 @@ export default function TabsLayout() {
         listingType={listingType ?? "product"}
         sessionToken={sessionToken ?? ""}
         onClose={() => setListingType(null)}
-        onSave={() => {
+        onSave={() => setListingType(null)}
+        onCreated={(listingId) => {
           setListingType(null);
-          router.push("/my-listings" as any);
+          Alert.alert(
+            t("common.success", "Erfolgreich"),
+            t("marketplace.itemCreated", "Dein Eintrag wurde veröffentlicht."),
+            [
+              { text: t("marketplace.viewListing", "Ansehen"), onPress: () => router.push(`/listing/${listingId}` as any) },
+              { text: t("marketplace.myListings", "Meine Einträge"), onPress: () => router.push("/my-listings" as any) },
+              { text: t("common.ok", "OK"), onPress: () => {} },
+            ],
+          );
         }}
       />
     </View>
