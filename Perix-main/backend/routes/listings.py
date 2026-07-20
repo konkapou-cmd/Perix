@@ -14,6 +14,49 @@ router = APIRouter(prefix="/listings", tags=["Listings"])
 FUZZ_FACTOR = 0.01  # ~1km area
 SEARCHABLE_FIELDS = ["title", "description", "category", "subcategory", "brand", "public_location_label"]
 
+LEGACY_TO_CANONICAL = {
+    "home_garden": "home_garden_diy",
+    "sports": "sports_outdoor",
+    "books": "media_music",
+}
+
+MARKETPLACE_SUBCATEGORIES: dict[str, list[str]] = {
+    "electronics": ["smartphones", "computers_tablets", "tv_video", "audio_hifi", "gaming_hardware", "cameras", "wearables", "smart_home", "networking", "electronic_accessories"],
+    "home_garden_diy": ["furniture", "kitchen_household", "large_appliances", "small_appliances", "decoration", "lighting", "garden", "tools", "renovation_materials", "storage"],
+    "fashion": ["womens_clothing", "mens_clothing", "kids_clothing", "shoes", "bags", "jewelry", "watches", "sportswear", "workwear", "vintage_designer", "fashion_accessories"],
+    "baby_kids": ["baby_equipment", "strollers", "car_seats", "nursery_furniture", "baby_clothing", "kids_clothing", "toys_learning", "school_supplies", "feeding", "baby_safety_care"],
+    "sports_outdoor": ["fitness", "running", "team_sports", "camping_hiking", "winter_sports", "water_sports", "racket_sports", "climbing", "golf", "sports_accessories", "outdoor_clothing"],
+    "bikes_mobility": ["bicycles", "electric_bikes", "scooters", "electric_scooters", "bike_parts", "bike_accessories", "helmets_protection", "child_transport", "mobility_aids"],
+    "media_music": ["books", "comics_manga", "movies_series", "cds", "vinyl", "musical_instruments", "studio_dj", "sheet_music", "media_accessories"],
+    "toys_games": ["console_games", "board_games", "puzzles", "building_sets", "dolls_figures", "educational_toys", "outdoor_toys", "remote_controlled", "toy_vehicles"],
+    "hobbies_collectibles": ["art", "antiques", "coins_stamps", "trading_cards", "model_building", "crafts", "collectible_figures", "memorabilia", "other_collectibles"],
+    "beauty_wellness": ["skincare", "makeup", "haircare", "hair_styling", "fragrances", "nailcare", "wellness_devices", "beauty_devices", "personal_care", "beauty_accessories"],
+    "pet_supplies": ["dog_supplies", "cat_supplies", "small_pet_supplies", "bird_supplies", "aquarium", "terrarium", "pet_transport", "pet_beds_furniture", "pet_care", "pet_training"],
+    "office_business": ["office_furniture", "office_supplies", "printers_scanners", "retail_equipment", "restaurant_equipment", "workshop_equipment", "machines", "warehouse_logistics", "agriculture", "event_equipment", "packaging"],
+    "other": ["miscellaneous", "household_clearance", "bundles", "uncategorized_parts"],
+}
+
+ALL_VALID_ATTRIBUTE_KEYS: set[str] = {
+    "brand", "model", "storage_gb", "screen_size", "color", "warranty", "original_packaging",
+    "processor", "ram_gb", "material", "width_cm", "height_cm", "depth_cm", "assembled",
+    "size", "target_group", "age_group", "authenticity_proof", "safety_standard",
+    "accident_free", "manufacture_date", "sport_type", "weight_kg", "bike_type",
+    "frame_size", "wheel_size", "model_year", "mileage_km", "battery_capacity",
+    "battery_condition", "format", "genre", "language", "author_artist", "publisher_label",
+    "isbn", "release_year", "platform", "complete", "players", "series",
+    "condition_grade", "artist_manufacturer", "year", "edition", "certificate",
+    "sealed", "unused", "product_type", "pet_type", "power", "voltage",
+    "operating_hours", "business_seller", "vat_deductible",
+}
+
+
+def normalize_category(key: Optional[str]) -> Optional[str]:
+    if not key:
+        return None
+    if key in LEGACY_TO_CANONICAL:
+        return LEGACY_TO_CANONICAL[key]
+    return key
+
 
 def fuzz_coordinate(value: float) -> float:
     return math.floor(value / FUZZ_FACTOR) * FUZZ_FACTOR + (FUZZ_FACTOR / 2)
@@ -85,6 +128,19 @@ def validate_location(address, lat, lng, status, listing_type="product", categor
             detail="A subcategory is required to publish.",
         )
 
+    if listing_type == "product" and category:
+        canonical = normalize_category(category.strip())
+        if canonical not in MARKETPLACE_SUBCATEGORIES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid marketplace category: {category}",
+            )
+        if subcategory and subcategory.strip() not in MARKETPLACE_SUBCATEGORIES[canonical]:
+            raise HTTPException(
+                status_code=400,
+                detail="Subcategory does not belong to the selected category.",
+            )
+
 
 @router.post("", response_model=ListingResponse)
 async def create_listing(
@@ -100,6 +156,10 @@ async def create_listing(
         payload.category, payload.subcategory,
         payload.location_visibility, payload.public_location_label,
     )
+
+    dump = payload.model_dump()
+    if payload.listing_type == "product" and dump.get("category"):
+        dump["category"] = normalize_category(dump["category"])
 
     doc = {
         **payload.model_dump(),
@@ -181,15 +241,26 @@ async def list_listings(
         query["furnished"] = furnished
 
     # Dynamic attribute filters: attr_<key>=<value> in query string
-    for key, values in request.query_params.multi_items():
+    attribute_filters: dict[str, list[str]] = {}
+    for key, value in request.query_params.multi_items():
         if not key.startswith("attr_"):
             continue
-        attr_key = escape_regex(key[5:])
-        if len(values) == 1 and "," in values:
-            vals = [v.strip() for v in values.split(",") if v.strip()]
-            query[f"attributes.{attr_key}"] = {"$in": vals}
-        elif values:
-            query[f"attributes.{attr_key}"] = values if len(values) == 1 else {"$in": list(values)}
+        attr_key = key[5:]
+        if attr_key not in ALL_VALID_ATTRIBUTE_KEYS:
+            continue
+        raw = value.strip()
+        if not raw:
+            continue
+        if "," in raw:
+            vals = [v.strip() for v in raw.split(",") if v.strip()]
+        else:
+            vals = [raw]
+        if vals:
+            attribute_filters.setdefault(attr_key, []).extend(vals)
+
+    for attr_key, vals in attribute_filters.items():
+        unique = list(dict.fromkeys(vals))
+        query[f"attributes.{attr_key}"] = unique[0] if len(unique) == 1 else {"$in": unique}
 
     has_bounds = all(v is not None for v in (min_lat, max_lat, min_lng, max_lng))
 
