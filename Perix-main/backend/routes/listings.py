@@ -276,7 +276,7 @@ async def list_listings(
         unique = list(dict.fromkeys(vals))
         if attr_key in NUMBER_ATTRIBUTE_KEYS:
             try:
-                converted = [int(v) for v in unique]
+                converted = [float(v) for v in unique]
             except ValueError:
                 raise HTTPException(status_code=400, detail=f"Invalid numeric value for attribute '{attr_key}'")
             query[f"attributes.{attr_key}"] = converted[0] if len(converted) == 1 else {"$in": converted}
