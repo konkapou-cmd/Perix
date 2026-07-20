@@ -139,7 +139,7 @@ export default function HomeScreen() {
   const [marketplaceItems, setMarketplaceItems] = useState<Listing[]>([]);
   useFocusEffect(
     useCallback(() => {
-      getListings("product").then(setMarketplaceItems).catch(() => {});
+      getListings({ listingType: "product" }).then(setMarketplaceItems).catch(() => {});
     }, []),
   );
 

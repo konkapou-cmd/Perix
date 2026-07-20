@@ -73,17 +73,51 @@ export type ListingUpdatePayload = Partial<ListingCreatePayload> & {
   is_active?: boolean;
 };
 
+export type ListingDiscoveryQuery = {
+  listingType: ListingType;
+  search?: string;
+
+  minLat?: number;
+  maxLat?: number;
+  minLng?: number;
+  maxLng?: number;
+
+  category?: string;
+  condition?: string;
+  deliveryMethod?: string;
+
+  propertyType?: string;
+  minBedrooms?: number;
+  furnished?: boolean;
+
+  skip?: number;
+  limit?: number;
+};
+
 export const getListings = async (
-  listingType?: ListingType,
-  skip?: number,
-  limit?: number,
+  query: ListingDiscoveryQuery,
 ): Promise<Listing[]> => {
   const params = new URLSearchParams();
-  if (listingType) params.append("listing_type", listingType);
-  if (skip != null) params.append("skip", String(skip));
-  if (limit != null) params.append("limit", String(limit));
-  const qs = params.toString() ? `?${params}` : "";
-  return apiRequest<Listing[]>(`/listings${qs}`, "GET");
+  params.append("listing_type", query.listingType);
+
+  if (query.search) params.append("q", query.search);
+
+  if (query.minLat != null) params.append("min_lat", String(query.minLat));
+  if (query.maxLat != null) params.append("max_lat", String(query.maxLat));
+  if (query.minLng != null) params.append("min_lng", String(query.minLng));
+  if (query.maxLng != null) params.append("max_lng", String(query.maxLng));
+
+  if (query.category) params.append("category", query.category);
+  if (query.condition) params.append("condition", query.condition);
+  if (query.deliveryMethod) params.append("delivery_method", query.deliveryMethod);
+  if (query.propertyType) params.append("property_type", query.propertyType);
+  if (query.minBedrooms != null) params.append("min_bedrooms", String(query.minBedrooms));
+  if (query.furnished != null) params.append("furnished", String(query.furnished));
+
+  if (query.skip != null) params.append("skip", String(query.skip));
+  if (query.limit != null) params.append("limit", String(query.limit));
+
+  return apiRequest<Listing[]>(`/listings?${params}`, "GET");
 };
 
 export const getMyListings = async (

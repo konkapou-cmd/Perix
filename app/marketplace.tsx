@@ -24,7 +24,7 @@ export default function MarketplaceScreen() {
   useEffect(() => {
     const type = activeTab === "homes" ? "home_rental" : "product";
     setLoading(true);
-    getListings(type)
+    getListings({ listingType: type })
       .then(setListings)
       .catch(() => {})
       .finally(() => setLoading(false));
