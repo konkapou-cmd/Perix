@@ -3,6 +3,8 @@ import { apiRequest } from "./core";
 export type ListingType = "product" | "home_rental";
 export type ListingStatus = "draft" | "published" | "sold" | "rented";
 
+export type LocationVisibility = "approximate" | "exact";
+
 export type Listing = {
   listing_id: string;
   owner_id: string;
@@ -19,7 +21,7 @@ export type Listing = {
   latitude?: number;
   longitude?: number;
   public_location_label?: string;
-  location_visibility: "approximate" | "exact";
+  location_visibility: LocationVisibility;
   category?: string;
   status: ListingStatus;
   is_active: boolean;

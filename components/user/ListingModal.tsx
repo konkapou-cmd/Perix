@@ -6,7 +6,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
-import { ListingType, ListingStatus, ListingCreatePayload, Listing } from "../../lib/api/listings";
+import { ListingType, ListingStatus, ListingCreatePayload, Listing, LocationVisibility } from "../../lib/api/listings";
 import { createListing, updateListing } from "../../lib/api/listings";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
@@ -52,7 +52,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
   const [publicLocationLabel, setPublicLocationLabel] = useState("");
-  const [locationVisibility, setLocationVisibility] = useState<"approximate" | "exact">("approximate");
+  const [locationVisibility, setLocationVisibility] = useState<LocationVisibility>("approximate");
   const [media, setMedia] = useState<MediaItem[]>([]);
 
   // Product fields
@@ -122,7 +122,14 @@ export default function ListingModal({ visible, listingType, editingListing, ses
     if (status === "published" && !hasCoordinates) {
       Alert.alert(
         t("common.error", "Error"),
-        t("marketplace.locationRequired", "Select and confirm an address before publishing."),
+        t("marketplace.locationRequired", "Wähle vor der Veröffentlichung eine Adresse aus den Vorschlägen aus."),
+      );
+      return;
+    }
+    if (status === "published" && locationVisibility === "approximate" && !publicLocationLabel.trim()) {
+      Alert.alert(
+        t("common.error", "Error"),
+        t("marketplace.publicLabelRequired", "Gib eine öffentliche Ortsangabe an, z.B. Berlin-Mitte."),
       );
       return;
     }
@@ -288,14 +295,14 @@ export default function ListingModal({ visible, listingType, editingListing, ses
 
             {hasCoordinates && (
               <>
-                <Text style={styles.label}>{t("marketplace.locationVisibility", "Location Visibility")}</Text>
+                <Text style={styles.label}>{t("marketplace.locationVisibility", "Sichtbarkeit des Standorts")}</Text>
                 <View style={styles.chipRow}>
                   <Pressable
                     style={[styles.chip, locationVisibility === "approximate" && styles.chipActive]}
                     onPress={() => setLocationVisibility("approximate")}
                   >
                     <Text style={[styles.chipText, locationVisibility === "approximate" && styles.chipTextActive]}>
-                      {t("marketplace.approximate", "Approx. area")}
+                      {t("marketplace.approximate", "Ungefährer Bereich")}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -303,12 +310,15 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                     onPress={() => setLocationVisibility("exact")}
                   >
                     <Text style={[styles.chipText, locationVisibility === "exact" && styles.chipTextActive]}>
-                      {t("marketplace.exact", "Exact address")}
+                      {t("marketplace.exact", "Genaue Adresse")}
                     </Text>
                   </Pressable>
                 </View>
 
-                <Text style={styles.label}>{t("marketplace.publicLabel", "Public location label")}</Text>
+                <Text style={styles.label}>
+                  {t("marketplace.publicLabel", "Öffentliche Ortsangabe")}
+                  {status === "published" && locationVisibility === "approximate" && <Text style={styles.required}> *</Text>}
+                </Text>
                 <TextInput
                   style={styles.input}
                   value={publicLocationLabel}
