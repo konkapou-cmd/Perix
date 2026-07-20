@@ -28,10 +28,6 @@ import { BottomCTA } from "../../components/shared/BottomCTA";
 import { EntityHeader } from "../../components/shared/EntityHeader";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 
-// ... inside the component:
-  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
-  const id = normalizeId(rawId);
-
 export default function RentalDetailPage() {
   const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
@@ -48,7 +44,8 @@ export default function RentalDetailPage() {
   }, [id, sessionToken]);
 
   const loadRental = async () => {
-    if (!sessionToken || !id) return;
+    if (!id) { setLoading(false); return; }
+    if (!sessionToken) return;
     try {
       const data = await getRental(sessionToken, id);
       setRental(data);
@@ -80,6 +77,21 @@ export default function RentalDetailPage() {
     const message = `${rental.title} - ${rental.rent_price || ""} on Perix`;
     await Linking.openURL(`whatsapp://send?text=${encodeURIComponent(message)}`);
   };
+
+  if (!id) {
+    return (
+      <SafeAreaView style={styles.centered} edges={["top"]}>
+        <ErrorState
+          message={t("rentals.invalidRental", "Dieses Mietangebot kann nicht geöffnet werden.")}
+          fullWidth
+        />
+        <Pressable style={styles.notFoundBack} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color={COLORS.rentalsAccent} />
+          <Text style={styles.backText}>{t("common.back")}</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (

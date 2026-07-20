@@ -829,9 +829,8 @@ export default function LocatorScreen() {
               if (rental) { pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any) as any), () => showInvalidEntityAlert(t)); return; }
               router.push(`/business/${id}` as any); return;
             }
-            pushEntityRoute(router, entityRoutes.rental(id), () => showInvalidEntityAlert(t)); return;
-          }
-          pushEntityRoute(router, entityRoutes.job(id), () => showInvalidEntityAlert(t)); return;
+            if (activeTab === "rentals") { pushEntityRoute(router, entityRoutes.rental(id), () => showInvalidEntityAlert(t)); return; }
+            if (activeTab === "jobs") { pushEntityRoute(router, entityRoutes.job(id), () => showInvalidEntityAlert(t)); return; }
             if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
           }}

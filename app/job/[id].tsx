@@ -33,10 +33,6 @@ import { EntityHeader } from "../../components/shared/EntityHeader";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 
-// ... inside component:
-  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
-  const id = normalizeId(rawId);
-
 export default function JobDetailPage() {
   const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
@@ -59,7 +55,8 @@ export default function JobDetailPage() {
   }, [id, sessionToken]);
 
   const loadJob = async () => {
-    if (!sessionToken || !id) return;
+    if (!id) { setLoading(false); return; }
+    if (!sessionToken) return;
     try {
       const data = await getJob(sessionToken, id);
       setJob(data);
@@ -140,6 +137,21 @@ export default function JobDetailPage() {
       console.log("Document picker error:", error);
     }
   };
+
+  if (!id) {
+    return (
+      <SafeAreaView style={styles.centered} edges={["top", "bottom"]}>
+        <ErrorState
+          message={t("jobs.invalidJob", "Diese Jobanzeige kann nicht geöffnet werden.")}
+          fullWidth
+        />
+        <Pressable style={styles.notFoundBack} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color={COLORS.jobsAccent} />
+          <Text style={styles.backText}>{t("common.back")}</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (

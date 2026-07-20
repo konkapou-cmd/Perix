@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -49,21 +49,11 @@ const BACKEND_URL =
 
 export default function ServiceDetailPage() {
   const { t } = useTranslation();
+  const router = useRouter();
+  const { sessionToken, user } = useAuth();
   const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
   const id = normalizeId(rawId);
 
-  if (!id) {
-    return (
-      <SafeAreaView style={styles.centered} edges={["top"]}>
-        <ErrorState message={t("services.invalidService", "Dieser Dienst kann nicht geöffnet werden.")} fullWidth />
-        <Pressable style={[styles.backButton, { backgroundColor: COLORS.servicesAccent }]} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>{t("common.back")}</Text>
-        </Pressable>
-      </SafeAreaView>
-    );
-  }
-  const { sessionToken, user } = useAuth();
-  const router = useRouter();
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
@@ -91,12 +81,13 @@ export default function ServiceDetailPage() {
   const [themedAlertVisible, setThemedAlertVisible] = useState(false);
   const [themedAlertMessage, setThemedAlertMessage] = useState("");
 
-  const showThemedAlert = (message: string) => { setThemedAlertMessage(message); setThemedAlertVisible(true); };
+  const showThemedAlert = useCallback((message: string) => {
+    setThemedAlertMessage(message);
+    setThemedAlertVisible(true);
+  }, []);
 
-  useEffect(() => { loadService(); }, [id]);
-
-  const loadService = async () => {
-    if (!id) return;
+  const loadService = useCallback(async () => {
+    if (!id) { setLoading(false); return; }
     try {
       const data = await getServiceDetail(id);
       setService(data);
@@ -105,7 +96,9 @@ export default function ServiceDetailPage() {
       }
     } catch (e) { console.log("Failed to load service:", e); }
     finally { setLoading(false); }
-  };
+  }, [id, sessionToken]);
+
+  useEffect(() => { loadService(); }, [loadService]);
 
   const requiresSlots = useMemo(() => {
     if (!service) return true;
@@ -121,19 +114,6 @@ export default function ServiceDetailPage() {
     if (!service) return "browse_only" as const;
     return getServiceCtaType(service.type);
   }, [service]);
-
-  const ctaLabel =
-    ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
-    : ctaType === "reservation" ? t("services.reserve", "Reservieren")
-    : ctaType === "request_quote" ? t("services.requestQuote", "Angebot anfragen")
-    : ctaType === "get_in_touch" ? t("services.getInTouch", "Kontakt aufnehmen")
-    : t("services.learnMore", "Mehr erfahren");
-
-  const ctaIcon =
-    ctaType === "booking" || ctaType === "reservation" ? "calendar-outline"
-    : ctaType === "request_quote" ? "chatbubble-ellipses-outline"
-    : ctaType === "get_in_touch" ? "mail-outline"
-    : "information-circle-outline";
 
   const dates = useMemo(() => {
     const result: string[] = [];
@@ -155,6 +135,36 @@ export default function ServiceDetailPage() {
     }
     return marks;
   }, [selectedDate, availabilities]);
+
+  if (!id) {
+    return (
+      <SafeAreaView style={styles.centered} edges={["top"]}>
+        <ErrorState
+          message={t("services.invalidService", "Dieser Dienst kann nicht geöffnet werden.")}
+          fullWidth
+        />
+        <Pressable
+          style={[styles.backButton, { backgroundColor: COLORS.servicesAccent }]}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>{t("common.back", "Zurück")}</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
+  const ctaLabel =
+    ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
+    : ctaType === "reservation" ? t("services.reserve", "Reservieren")
+    : ctaType === "request_quote" ? t("services.requestQuote", "Angebot anfragen")
+    : ctaType === "get_in_touch" ? t("services.getInTouch", "Kontakt aufnehmen")
+    : t("services.learnMore", "Mehr erfahren");
+
+  const ctaIcon =
+    ctaType === "booking" || ctaType === "reservation" ? "calendar-outline"
+    : ctaType === "request_quote" ? "chatbubble-ellipses-outline"
+    : ctaType === "get_in_touch" ? "mail-outline"
+    : "information-circle-outline";
 
   const handleCta = () => {
     if (ctaType === "booking") {

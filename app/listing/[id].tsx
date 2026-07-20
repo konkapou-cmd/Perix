@@ -29,7 +29,10 @@ export default function ListingDetailScreen() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     getListing(id)
       .then((d) => { setListing(d); return d; })
@@ -73,6 +76,22 @@ export default function ListingDetailScreen() {
     }
     router.push({ pathname: `/messages/${listing.owner_id}` as any, params: { name: "Seller", entityType: "user" } as any });
   };
+
+  if (!id) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.header}>
+          <HeaderBackButton onPress={() => router.back()} />
+        </View>
+        <View style={styles.center}>
+          <Ionicons name="alert-circle-outline" size={48} color={COLORS.textMuted} />
+          <Text style={{ fontSize: 16, color: COLORS.textMuted, marginTop: SPACING.std }}>
+            {t("listing.invalid", "This listing cannot be opened.")}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (
