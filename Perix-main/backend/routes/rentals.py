@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from database import db
 from routes.dependencies import get_current_user, UserPublic
+from routes.listings import public_listing_location
 from routes.ws import ws_broadcast_new_message, ws_broadcast_conversation_update
 from utils.helpers import generate_id, now_utc
 from utils.push_notifications import send_message_notification
@@ -176,6 +177,7 @@ async def get_rentals(
             owner_map[u["user_id"]] = u
         for lst in owner_listings:
             owner = owner_map.get(lst["owner_id"])
+            lst = public_listing_location(lst)
             rental_obj = listing_to_rental(lst, owner)
             if property_type and rental_obj.get("property_type") != property_type:
                 continue
@@ -248,7 +250,7 @@ async def get_rental(rental_id: str, current_user: UserPublic = Depends(get_curr
             {"user_id": listing["owner_id"]},
             {"_id": 0, "password_hash": 0},
         )
-        return listing_to_rental(listing, owner)
+        return listing_to_rental(public_listing_location(listing), owner)
 
     if rental_id.startswith("svc_"):
         service_id = rental_id[4:]

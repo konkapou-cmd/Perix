@@ -1,7 +1,9 @@
 """Shared Pydantic model for user listings (products and home rentals)."""
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
+
+LocationVisibility = Literal["approximate", "exact"]
 
 
 class ListingCreate(BaseModel):
@@ -18,7 +20,7 @@ class ListingCreate(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     public_location_label: Optional[str] = None
-    location_visibility: str = "approximate"
+    location_visibility: LocationVisibility = "approximate"
     category: Optional[str] = None
     status: str = "draft"  # draft | published | sold | rented
 
@@ -51,7 +53,7 @@ class ListingUpdate(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     public_location_label: Optional[str] = None
-    location_visibility: Optional[str] = None
+    location_visibility: Optional[LocationVisibility] = None
     category: Optional[str] = None
     status: Optional[str] = None
     condition: Optional[str] = None
@@ -84,7 +86,7 @@ class ListingResponse(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     public_location_label: Optional[str] = None
-    location_visibility: str = "approximate"
+    location_visibility: LocationVisibility = "approximate"
     category: Optional[str] = None
     status: str
     is_active: bool = True

@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
 from database import db
 from models.user import UserPublic
-from models.listing import ListingCreate, ListingUpdate, ListingResponse
+from models.listing import ListingCreate, ListingUpdate, ListingResponse, LocationVisibility
 from utils.helpers import generate_id, now_utc
 from routes.dependencies import get_current_user
 
@@ -17,7 +17,29 @@ def fuzz_coordinate(value: float) -> float:
     return math.floor(value / FUZZ_FACTOR) * FUZZ_FACTOR + (FUZZ_FACTOR / 2)
 
 
-def validate_location(address, lat, lng, status):
+def public_listing_location(doc: dict) -> dict:
+    result = dict(doc)
+
+    if result.get("location_visibility") == "approximate":
+        result["address"] = (
+            result.get("public_location_label")
+            or "Approximate location"
+        )
+
+        lat = result.get("latitude")
+        lng = result.get("longitude")
+
+        if lat is not None and lng is not None:
+            result["latitude"] = fuzz_coordinate(lat)
+            result["longitude"] = fuzz_coordinate(lng)
+        else:
+            result["latitude"] = None
+            result["longitude"] = None
+
+    return result
+
+
+def validate_location(address, lat, lng, status, vis: Optional[LocationVisibility] = None, public_label: Optional[str] = None):
     if status != "published":
         return
     if not address or not address.strip():
@@ -34,6 +56,11 @@ def validate_location(address, lat, lng, status):
         raise HTTPException(
             status_code=400,
             detail="Invalid coordinate range.",
+        )
+    if vis == "approximate" and (not public_label or not public_label.strip()):
+        raise HTTPException(
+            status_code=400,
+            detail="A public location label is required for approximate visibility.",
         )
 
 
@@ -52,7 +79,10 @@ async def create_listing(
     if payload.listing_type not in ("product", "home_rental"):
         raise HTTPException(status_code=400, detail="listing_type must be 'product' or 'home_rental'")
 
-    validate_location(payload.address, payload.latitude, payload.longitude, payload.status)
+    validate_location(
+        payload.address, payload.latitude, payload.longitude,
+        payload.status, payload.location_visibility, payload.public_location_label,
+    )
 
     doc = {
         **payload.model_dump(),
@@ -62,7 +92,7 @@ async def create_listing(
         "created_at": now_utc(),
     }
     await db.listings.insert_one(doc)
-    return ListingResponse(**apply_location_visibility(doc))
+    return ListingResponse(**doc)
 
 
 @router.get("", response_model=list[ListingResponse])
@@ -91,7 +121,7 @@ async def list_listings(
 
     cursor = db.listings.find(query).skip(skip).limit(limit).sort("created_at", -1)
     docs = await cursor.to_list(limit)
-    return [ListingResponse(**apply_location_visibility(doc)) for doc in docs]
+    return [ListingResponse(**public_listing_location(doc)) for doc in docs]
 
 
 @router.get("/my", response_model=list[ListingResponse])
@@ -118,7 +148,7 @@ async def get_listing(listing_id: str):
     )
     if not doc:
         raise HTTPException(status_code=404, detail="Listing not found")
-    return ListingResponse(**apply_location_visibility(doc))
+    return ListingResponse(**public_listing_location(doc))
 
 
 @router.put("/{listing_id}", response_model=ListingResponse)
@@ -140,8 +170,13 @@ async def update_listing(
     effective_address = update_data.get("address", doc.get("address"))
     effective_lat = update_data.get("latitude", doc.get("latitude"))
     effective_lng = update_data.get("longitude", doc.get("longitude"))
+    effective_vis = update_data.get("location_visibility", doc.get("location_visibility", "approximate"))
+    effective_label = update_data.get("public_location_label", doc.get("public_location_label"))
 
-    validate_location(effective_address, effective_lat, effective_lng, effective_status)
+    validate_location(
+        effective_address, effective_lat, effective_lng,
+        effective_status, effective_vis, effective_label,
+    )
 
     if update_data:
         await db.listings.update_one(
