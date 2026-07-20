@@ -8,6 +8,7 @@ import { getListings, Listing } from "../lib/api/listings";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../lib/designTokens";
 import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 import { useAuth } from "../context/AuthContext";
+import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
 
 type MarketTab = "items" | "homes";
 
@@ -36,9 +37,9 @@ export default function MarketplaceScreen() {
         style={styles.card}
         onPress={() => {
           if (activeTab === "homes") {
-            router.push(`/rental/${item.listing_id}` as any);
+            pushEntityRoute(router, entityRoutes.rental(item.listing_id), () => showInvalidEntityAlert(t));
           } else {
-            router.push(`/listing/${item.listing_id}` as any);
+            pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t));
           }
         }}
       >

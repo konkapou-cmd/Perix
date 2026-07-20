@@ -27,6 +27,7 @@ import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { Service, TimeSlot } from "../../lib/api/core";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
+import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
@@ -48,7 +49,19 @@ const BACKEND_URL =
 
 export default function ServiceDetailPage() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = normalizeId(rawId);
+
+  if (!id) {
+    return (
+      <SafeAreaView style={styles.centered} edges={["top"]}>
+        <ErrorState message={t("services.invalidService", "Dieser Dienst kann nicht geöffnet werden.")} fullWidth />
+        <Pressable style={[styles.backButton, { backgroundColor: COLORS.servicesAccent }]} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>{t("common.back")}</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
   const { sessionToken, user } = useAuth();
   const router = useRouter();
   const [service, setService] = useState<Service | null>(null);

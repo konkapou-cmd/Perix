@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
 
 import { useAuth } from "../context/AuthContext";
 import {
@@ -204,7 +205,7 @@ export default function RentalsScreen() {
   };
 
   const openRentalDetail = async (rental: Rental) => {
-    router.push(`/service/${rental.service_id || rental.rental_id}` as any);
+    pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any) as any), () => showInvalidEntityAlert(t));
   };
 
   const translatePropertyType = (slug: string) => {

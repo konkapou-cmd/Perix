@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { Job } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { formatDate } from "../../lib/formatDate";
 import { EmptyState } from "../shared";
 import StatusBadge from "../ui/StatusBadge";
@@ -59,7 +60,7 @@ export default function JobsSection({
               <View key={job.job_id} style={[s.card, { backgroundColor: cardColor }]}>
                 <Pressable
                   style={s.cardContent}
-                  onPress={() => router.push(`/job/${job.job_id}`)}
+                  onPress={() => pushEntityRoute(router, entityRoutes.job(job.job_id), () => showInvalidEntityAlert(t))}
                 >
                   <View style={s.cardMedia}>
                     {job.cover_image ? (

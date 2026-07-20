@@ -51,6 +51,7 @@ import { PROFILE_COLORS } from "./ProfileDesign";
 import { COLORS, resolveCategory } from "../../lib/designTokens";
 import { hasServiceModules, getAllowedModules, getDefaultModule, getCategoryIcon } from "../../lib/config/serviceCategoryMatrix";
 import { getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
+import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import useResponsiveLayout from "../../hooks/useResponsiveLayout";
 import FriendsCarousel from "../FriendsCarousel";
@@ -726,7 +727,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                       services={filteredServices}
                       rootCategory={cat}
                       readOnly={true}
-                      onServicePress={(s) => router.push(`/service/${s.service_id}` as any)}
+                      onServicePress={(s) => pushEntityRoute(router, entityRoutes.service(s.service_id), () => showInvalidEntityAlert(t))}
                       cardColor={cardColor}
                       textColor={textColor}
                     />
@@ -854,7 +855,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                       onEditService={handleEditService}
                       onDeleteService={handleDeleteService}
                       onOpenSlotManager={onOpenSlotManager}
-                      onServicePress={(service) => router.push(`/service/${service.service_id}` as any)}
+                      onServicePress={(service) => pushEntityRoute(router, entityRoutes.service(service.service_id), () => showInvalidEntityAlert(t))}
                       cardColor={cardColor}
                       textColor={textColor}
                     />

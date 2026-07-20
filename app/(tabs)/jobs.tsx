@@ -41,6 +41,7 @@ import {
   BORDER_RADIUS,
   SHADOWS,
 } from "../../lib/designTokens";
+import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 
 export default function JobsScreen() {
@@ -301,7 +302,7 @@ export default function JobsScreen() {
                         pinColor: COLORS.pinJob,
                       }))}
                     onMarkerPress={(id) => {
-                      router.push(`/job/${id}` as any);
+                      pushEntityRoute(router, entityRoutes.job(id), () => showInvalidEntityAlert(t));
                     }}
                     onRegionChangeComplete={(bounds) => {
                       setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
@@ -323,7 +324,7 @@ export default function JobsScreen() {
           renderItem={({ item }) => (
             <Pressable
               style={styles.jobCard}
-              onPress={() => router.push(`/job/${item.job_id}`)}
+              onPress={() => pushEntityRoute(router, entityRoutes.job(item.job_id), () => showInvalidEntityAlert(t))}
               data-testid={`job-card-${item.job_id}`}
             >
               {item.cover_image ? (

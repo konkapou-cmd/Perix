@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import BusinessMap from "../../components/BusinessMap";
 import { SkeletonBox, EmptyState } from "../../components/shared";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import LocatorCard from "../../components/locator/LocatorCard";
 import LocatorHeader from "../../components/locator/LocatorHeader";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
@@ -825,11 +826,12 @@ export default function LocatorScreen() {
           onMarkerPress={(id) => {
             if (activeTab === "businesses") {
               const rental = rentals.find(r => r.rental_id === id);
-              if (rental) { router.push(`/service/${rental.service_id || id}` as any); return; }
+              if (rental) { pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any) as any), () => showInvalidEntityAlert(t)); return; }
               router.push(`/business/${id}` as any); return;
             }
-            if (activeTab === "rentals") { router.push(`/rental/${id}` as any); return; }
-            if (activeTab === "jobs") { router.push(`/job/${id}` as any); return; }
+            pushEntityRoute(router, entityRoutes.rental(id), () => showInvalidEntityAlert(t)); return;
+          }
+          pushEntityRoute(router, entityRoutes.job(id), () => showInvalidEntityAlert(t)); return;
             if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
           }}
@@ -1078,7 +1080,7 @@ export default function LocatorScreen() {
                   } as any}
                   distance={dist !== null ? formatDistance(dist) : null}
                   isOpen={null}
-                  onPress={() => router.push(`/service/${rental.service_id || rental.rental_id}` as any)}
+                  onPress={() => pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any) as any), () => showInvalidEntityAlert(t))}
                 />
               );
             })}
@@ -1113,7 +1115,7 @@ export default function LocatorScreen() {
                   } as any}
                   distance={dist !== null ? formatDistance(dist) : null}
                   isOpen={null}
-                  onPress={() => router.push(`/job/${job.job_id}` as any)}
+                  onPress={() => pushEntityRoute(router, entityRoutes.job(job.job_id), () => showInvalidEntityAlert(t))}
                 />
               );
             })}

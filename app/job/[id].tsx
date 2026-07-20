@@ -31,10 +31,16 @@ import { ShareSection } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
 import { EntityHeader } from "../../components/shared/EntityHeader";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import { normalizeId } from "../../lib/navigation/entityRoutes";
+
+// ... inside component:
+  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = normalizeId(rawId);
 
 export default function JobDetailPage() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = normalizeId(rawId);
   const { sessionToken, user } = useAuth();
   const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);

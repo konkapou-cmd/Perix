@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
 
 import { useAuth } from "../context/AuthContext";
 import { getMyRentals, Rental } from "../lib/api";
@@ -91,7 +92,7 @@ export default function MyRentalsScreen() {
           renderItem={({ item }) => (
             <Pressable
               style={styles.rentalCard}
-              onPress={() => router.push(`/service/${item.service_id || item.rental_id}` as any)}
+              onPress={() => pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(item as any) as any), () => showInvalidEntityAlert(t))}
             >
               {item.cover_image ? (
                 <Image source={{ uri: item.cover_image }} style={styles.rentalImage} />
