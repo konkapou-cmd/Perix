@@ -10,6 +10,9 @@ import { ListingType, ListingStatus, ListingCreatePayload, Listing, LocationVisi
 import { createListing, updateListing } from "../../lib/api/listings";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
+import MarketplaceCategoryPicker from "../marketplace/MarketplaceCategoryPicker";
+import MarketplaceAttributeFields from "../marketplace/MarketplaceAttributeFields";
+import { getCategoryAttributes, getCategoryConfig, normalizeCategory } from "../../lib/marketplace/marketplaceTaxonomy";
 
 type Props = {
   visible: boolean;
@@ -71,6 +74,11 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [deposit, setDeposit] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [listingCategory, setListingCategory] = useState("");
+  const [listingSubcategory, setListingSubcategory] = useState("");
+  const [listingAttributes, setListingAttributes] = useState<Record<string, any>>({});
+  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
+
   const hasCoordinates = useMemo(
     () => Number.isFinite(latitude) && Number.isFinite(longitude),
     [latitude, longitude],
@@ -98,6 +106,10 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setAvailableFrom(editingListing.available_from || "");
       setLeaseDuration(editingListing.lease_duration || "");
       setDeposit(editingListing.deposit || "");
+      const cat = normalizeCategory(editingListing.category || "");
+      setListingCategory(cat);
+      setListingSubcategory(editingListing.subcategory || "");
+      setListingAttributes(editingListing.attributes || {});
       // Load existing media
       const items: MediaItem[] = [];
       (editingListing.image_urls || []).forEach((u) => items.push({ uri: u, type: "image" }));
@@ -111,6 +123,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setCondition(""); setBrand(""); setDelivery("");
       setPropertyType("apartment"); setBedrooms(""); setBathrooms("");
       setSizeSqm(""); setFurnished(false); setAvailableFrom(""); setLeaseDuration(""); setDeposit("");
+      setListingCategory(""); setListingSubcategory(""); setListingAttributes({});
     }
   }, [visible, editingListing]);
 
@@ -134,6 +147,15 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       return;
     }
 
+    if (isProduct && status === "published" && !listingCategory) {
+      Alert.alert(t("common.error", "Error"), t("marketplace.categoryRequired", "Bitte wähle eine Kategorie aus."));
+      return;
+    }
+    if (isProduct && status === "published" && !listingSubcategory) {
+      Alert.alert(t("common.error", "Error"), t("marketplace.subcategoryRequired", "Bitte wähle eine Unterkategorie aus."));
+      return;
+    }
+
     setSaving(true);
     try {
       const mediaFields = mediaToPayload(media);
@@ -148,6 +170,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         longitude: longitude ?? null,
         public_location_label: publicLocationLabel || null,
         location_visibility: locationVisibility,
+        category: listingCategory || null,
+        subcategory: listingSubcategory || null,
+        attributes: Object.keys(listingAttributes).length > 0 ? listingAttributes : null,
         cover_image_url: mediaFields.cover_image_url || null,
         image_urls: mediaFields.image_urls,
         gallery_images: mediaFields.gallery_images,
@@ -216,6 +241,47 @@ export default function ListingModal({ visible, listingType, editingListing, ses
               sessionToken={sessionToken}
               label={t("marketplace.photosVideos", "Photos & Videos")}
             />
+
+            {isProduct && (
+              <>
+                <Text style={styles.label}>
+                  {t("marketplace.category", "Kategorie")}
+                  {status === "published" && <Text style={styles.required}> *</Text>}
+                </Text>
+                <Pressable
+                  style={styles.input}
+                  onPress={() => setCategoryPickerVisible(true)}
+                >
+                  <Text style={listingCategory ? { color: COLORS.textPrimary } : { color: COLORS.textDisabled }}>
+                    {listingCategory
+                      ? `${getCategoryConfig(listingCategory)?.fallback ?? listingCategory}${listingSubcategory ? ` · ${getCategoryConfig(listingCategory)?.subcategories.find((s) => s.key === listingSubcategory)?.fallback ?? listingSubcategory}` : ""}`
+                      : t("marketplace.selectCategory", "Kategorie auswählen")}
+                  </Text>
+                </Pressable>
+
+                <MarketplaceCategoryPicker
+                  visible={categoryPickerVisible}
+                  selectedCategory={listingCategory}
+                  selectedSubcategory={listingSubcategory}
+                  onSelect={(cat, sub) => {
+                    if (cat !== listingCategory) setListingAttributes({});
+                    setListingCategory(cat);
+                    setListingSubcategory(sub);
+                  }}
+                  onClose={() => setCategoryPickerVisible(false)}
+                />
+
+                {listingCategory && (
+                  <MarketplaceAttributeFields
+                    attributes={getCategoryAttributes(listingCategory, listingSubcategory || undefined)}
+                    values={listingAttributes}
+                    onChange={(key, val) => setListingAttributes((prev) => ({ ...prev, [key]: val }))}
+                  />
+                )}
+
+                <View style={{ height: SPACING.section }} />
+              </>
+            )}
 
             {isProduct ? (
               <>

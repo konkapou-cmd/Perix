@@ -1,41 +1,42 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { COLORS, SPACING, FONT_SIZES } from "../../lib/designTokens";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { getListings, Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
 import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes";
+import { getCategoryConfig } from "../../lib/marketplace/marketplaceTaxonomy";
 import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
 import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
 import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/DiscoveryMap";
 import DiscoveryResults from "../../components/discovery/DiscoveryResults";
 import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState";
+import MarketplaceCategoryFilter from "../../components/marketplace/MarketplaceCategoryFilter";
 
-const CATEGORIES = [
-  { key: "electronics", label: "Elektronik" },
-  { key: "fashion", label: "Mode" },
-  { key: "home_garden", label: "Haus & Garten" },
-  { key: "sports", label: "Sport" },
-  { key: "books", label: "Bücher" },
-  { key: "other", label: "Sonstiges" },
+const CONDITION_OPTIONS = [
+  { key: "new", label: "Neu" },
+  { key: "like_new", label: "Wie neu" },
+  { key: "good", label: "Gut" },
+  { key: "used", label: "Gebraucht" },
 ];
-
-const CONDITIONS_LIST = ["new", "like_new", "good", "used"];
-const DELIVERY_LIST = ["pickup", "shipping", "both"];
 
 export default function MarketplaceItemsPage() {
   const { t } = useTranslation();
   const router = useRouter();
 
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("");
-  const [activeCondition, setActiveCondition] = useState("");
-  const [activeDelivery, setActiveDelivery] = useState("");
+  const [category, setCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
+  const [activeConditions, setActiveConditions] = useState<string[]>([]);
+  const [pickupOnly, setPickupOnly] = useState(false);
+  const [shippingOnly, setShippingOnly] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [bounds, setBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
+  const [categoryFilterVisible, setCategoryFilterVisible] = useState(false);
   const skipRef = useRef(0);
 
   const fetchListings = useCallback(async (reset = false) => {
@@ -43,75 +44,54 @@ export default function MarketplaceItemsPage() {
     const query: ListingDiscoveryQuery = {
       listingType: "product",
       search: search || undefined,
-      category: activeCategory || undefined,
-      condition: activeCondition || undefined,
-      deliveryMethod: activeDelivery || undefined,
+      category: category || undefined,
+      subcategory: subcategory || undefined,
+      conditions: activeConditions.length > 0 ? activeConditions : undefined,
+      pickupAvailable: pickupOnly || undefined,
+      shippingAvailable: shippingOnly || undefined,
       skip: reset ? 0 : skipRef.current,
       limit: 50,
     };
-    if (bounds) {
-      Object.assign(query, bounds);
-    }
+    if (bounds) Object.assign(query, bounds);
     try {
       const data = await getListings(query);
-      if (reset) {
-        setListings(data);
-        skipRef.current = data.length;
-      } else {
-        setListings((prev) => [...prev, ...data]);
-        skipRef.current += data.length;
-      }
+      setListings(reset ? data : (prev) => [...prev, ...data]);
+      if (reset) skipRef.current = data.length;
+      else skipRef.current += data.length;
     } catch {}
     setLoading(false);
-  }, [search, activeCategory, activeCondition, activeDelivery, bounds]);
+  }, [search, category, subcategory, activeConditions, pickupOnly, shippingOnly, bounds]);
 
   useEffect(() => { fetchListings(true); }, [fetchListings]);
 
   const markers: DiscoveryMapMarker[] = useMemo(
     () =>
-      listings
-        .filter((l) => l.latitude != null && l.longitude != null)
-        .map((l) => ({
-          id: l.listing_id,
-          latitude: l.latitude!,
-          longitude: l.longitude!,
-          title: l.title,
-          color: COLORS.success,
-        })),
+      listings.filter((l) => l.latitude != null && l.longitude != null).map((l) => ({
+        id: l.listing_id, latitude: l.latitude!, longitude: l.longitude!,
+        title: l.title, color: COLORS.success,
+      })),
     [listings],
   );
 
-  const categoryChips: FilterChip[] = useMemo(
-    () => [
-      { key: "", label: t("marketplace.all", "Alle"), active: activeCategory === "" },
-      ...CATEGORIES.map((c) => ({ key: c.key, label: c.label, active: activeCategory === c.key })),
-    ],
-    [activeCategory],
-  );
-
   const conditionChips: FilterChip[] = useMemo(
-    () =>
-      CONDITIONS_LIST.map((c) => ({ key: c, label: t(`listing.condition.${c}`, c), active: activeCondition === c })),
-    [activeCondition],
+    () => CONDITION_OPTIONS.map((c) => ({
+      key: c.key,
+      label: t(`listing.condition.${c.key}`, c.label),
+      active: activeConditions.includes(c.key),
+    })),
+    [activeConditions, t],
   );
 
-  const deliveryChips: FilterChip[] = useMemo(
-    () =>
-      DELIVERY_LIST.map((d) => ({ key: d, label: t(`listing.delivery.${d}`, d), active: activeDelivery === d })),
-    [activeDelivery],
-  );
+  const deliveryChips: FilterChip[] = useMemo(() => [
+    { key: "pickup", label: t("marketplace.pickup", "Abholung"), active: pickupOnly },
+    { key: "shipping", label: t("marketplace.shipping", "Versand"), active: shippingOnly },
+  ], [pickupOnly, shippingOnly, t]);
 
-  const handleTabChange = (tab: "items" | "homes") => {
-    if (tab === "homes") router.replace("/marketplace/homes");
-  };
+  const handleMarkerPress = (id: string) => pushEntityRoute(router, entityRoutes.listing(id), () => {});
+  const handleCardPress = (listing: Listing) => pushEntityRoute(router, entityRoutes.listing(listing.listing_id), () => {});
 
-  const handleMarkerPress = (id: string) => {
-    pushEntityRoute(router, entityRoutes.listing(id), () => {});
-  };
-
-  const handleCardPress = (listing: Listing) => {
-    pushEntityRoute(router, entityRoutes.listing(listing.listing_id), () => {});
-  };
+  const catConfig = category ? getCategoryConfig(category) : null;
+  const subLabel = subcategory && catConfig ? catConfig.subcategories.find((s) => s.key === subcategory)?.fallback : "";
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -119,7 +99,7 @@ export default function MarketplaceItemsPage() {
         title={t("marketplace.title", "Marktplatz")}
         tab="items"
         onBack={() => router.back()}
-        onTabChange={handleTabChange}
+        onTabChange={(tab) => tab === "homes" && router.replace("/marketplace/homes")}
         onMyListings={() => router.push("/my-listings" as any)}
       />
       <DiscoverySearch
@@ -127,18 +107,41 @@ export default function MarketplaceItemsPage() {
         onChangeText={setSearch}
         placeholder={t("marketplace.searchItems", "Artikel durchsuchen...")}
       />
-      <DiscoveryFilterChips chips={categoryChips} onToggle={(k) => setActiveCategory(k === "Alle" ? "" : k === activeCategory ? "" : k)} />
-      <DiscoveryFilterChips chips={conditionChips} onToggle={(k) => setActiveCondition(k === activeCondition ? "" : k)} />
-      <DiscoveryFilterChips chips={deliveryChips} onToggle={(k) => setActiveDelivery(k === activeDelivery ? "" : k)} />
-      <DiscoveryMap
-        markers={markers}
-        onMarkerPress={handleMarkerPress}
-        onViewportChange={setBounds}
+      {/* Category filter button */}
+      <View style={styles.filterRow}>
+        <Pressable
+          style={[styles.filterBtn, category ? styles.filterBtnActive : undefined]}
+          onPress={() => setCategoryFilterVisible(true)}
+        >
+          <Ionicons name="options-outline" size={16} color={category ? "#fff" : COLORS.textPrimary} />
+          <Text style={[styles.filterBtnText, category ? styles.filterBtnTextActive : undefined]}>
+            {category
+              ? `Kategorie · ${catConfig ? t(catConfig.labelKey, catConfig.fallback) : category}${subLabel ? ` · ${subLabel}` : ""}`
+              : t("marketplace.category", "Kategorie")}
+          </Text>
+        </Pressable>
+      </View>
+      <MarketplaceCategoryFilter
+        visible={categoryFilterVisible}
+        category={category}
+        subcategory={subcategory}
+        onApply={(cat, sub) => { setCategory(cat); setSubcategory(sub); }}
+        onClose={() => setCategoryFilterVisible(false)}
       />
+      <DiscoveryFilterChips
+        chips={conditionChips}
+        onToggle={(k) => setActiveConditions((prev) => prev.includes(k) ? prev.filter((c) => c !== k) : [...prev, k])}
+      />
+      <DiscoveryFilterChips
+        chips={deliveryChips}
+        onToggle={(k) => {
+          if (k === "pickup") setPickupOnly(!pickupOnly);
+          if (k === "shipping") setShippingOnly(!shippingOnly);
+        }}
+      />
+      <DiscoveryMap markers={markers} onMarkerPress={handleMarkerPress} onViewportChange={setBounds} />
       {loading && listings.length === 0 ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
+        <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
       ) : listings.length === 0 ? (
         <DiscoveryEmptyState type="no-results" />
       ) : (
@@ -157,18 +160,20 @@ export default function MarketplaceItemsPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  filterRow: {
+    flexDirection: "row", paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
+    backgroundColor: COLORS.background, gap: SPACING.small,
+  },
+  filterBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border,
     backgroundColor: COLORS.backgroundPage,
   },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  resultCount: {
-    fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textMuted,
-    paddingVertical: SPACING.small,
-  },
+  filterBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  filterBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.textPrimary },
+  filterBtnTextActive: { color: "#fff" },
+  resultCount: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, paddingVertical: SPACING.small },
 });

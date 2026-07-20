@@ -23,6 +23,8 @@ export type Listing = {
   public_location_label?: string;
   location_visibility: LocationVisibility;
   category?: string;
+  subcategory?: string;
+  attributes?: Record<string, string | number | boolean | string[]>;
   status: ListingStatus;
   is_active: boolean;
   created_at: string;
@@ -53,8 +55,10 @@ export type ListingCreatePayload = {
   latitude?: number | null;
   longitude?: number | null;
   public_location_label?: string | null;
-  location_visibility?: "approximate" | "exact";
+  location_visibility?: LocationVisibility;
   category?: string | null;
+  subcategory?: string | null;
+  attributes?: Record<string, string | number | boolean | string[]> | null;
   status?: ListingStatus;
   condition?: string | null;
   brand?: string | null;
@@ -83,12 +87,18 @@ export type ListingDiscoveryQuery = {
   maxLng?: number;
 
   category?: string;
+  subcategory?: string;
+  conditions?: string[];
   condition?: string;
   deliveryMethod?: string;
+  pickupAvailable?: boolean;
+  shippingAvailable?: boolean;
 
   propertyType?: string;
   minBedrooms?: number;
   furnished?: boolean;
+
+  attributeFilters?: Record<string, string>;
 
   skip?: number;
   limit?: number;
@@ -108,11 +118,24 @@ export const getListings = async (
   if (query.maxLng != null) params.append("max_lng", String(query.maxLng));
 
   if (query.category) params.append("category", query.category);
-  if (query.condition) params.append("condition", query.condition);
+  if (query.subcategory) params.append("subcategory", query.subcategory);
+  if (query.conditions && query.conditions.length > 0) {
+    params.append("conditions", query.conditions.join(","));
+  } else if (query.condition) {
+    params.append("condition", query.condition);
+  }
   if (query.deliveryMethod) params.append("delivery_method", query.deliveryMethod);
+  if (query.pickupAvailable != null) params.append("pickup_available", String(query.pickupAvailable));
+  if (query.shippingAvailable != null) params.append("shipping_available", String(query.shippingAvailable));
   if (query.propertyType) params.append("property_type", query.propertyType);
   if (query.minBedrooms != null) params.append("min_bedrooms", String(query.minBedrooms));
   if (query.furnished != null) params.append("furnished", String(query.furnished));
+
+  if (query.attributeFilters) {
+    Object.entries(query.attributeFilters).forEach(([key, value]) => {
+      params.append(`attr_${key}`, value);
+    });
+  }
 
   if (query.skip != null) params.append("skip", String(query.skip));
   if (query.limit != null) params.append("limit", String(query.limit));
