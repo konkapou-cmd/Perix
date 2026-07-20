@@ -12,81 +12,119 @@ from routes.dependencies import get_current_user
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
 FUZZ_FACTOR = 0.01  # ~1km area
-SEARCHABLE_FIELDS = ["title", "description", "category", "brand", "public_location_label"]
+SEARCHABLE_FIELDS = ["title", "description", "category", "subcategory", "brand", "public_location_label"]
 
 
-def fuzz_coordinate(value: float) -> float:
-    return math.floor(value / FUZZ_FACTOR) * FUZZ_FACTOR + (FUZZ_FACTOR / 2)
+def _build_discovery_query(
+    listing_type: Optional[str],
+    q: Optional[str],
+    category: Optional[str],
+    subcategory: Optional[str],
+    conditions: Optional[str],
+    delivery_method: Optional[str],
+    pickup_available: Optional[bool],
+    shipping_available: Optional[bool],
+    property_type: Optional[str],
+    min_bedrooms: Optional[int],
+    furnished: Optional[bool],
+    attribute_filters: dict,
+    min_lat: Optional[float],
+    max_lat: Optional[float],
+    min_lng: Optional[float],
+    max_lng: Optional[float],
+) -> dict:
+    query: dict = {"is_active": True, "status": "published"}
+    if listing_type:
+        query["listing_type"] = listing_type
 
+    if q and q.strip():
+        terms = escape_regex(q.strip())
+        query["$or"] = [
+            {f: {"$regex": terms, "$options": "i"}} for f in SEARCHABLE_FIELDS
+        ]
 
-def escape_regex(text: str) -> str:
-    return re.escape(text)
+    if category:
+        from models.listing import CATEGORY_ALIASES
+        aliases = CATEGORY_ALIASES.get(category, [category])
+        query["category"] = {"$in": aliases}
 
+    if subcategory:
+        query["subcategory"] = subcategory
 
-def public_listing_location(doc: dict) -> dict:
-    result = dict(doc)
-
-    visibility = (
-        result.get("location_visibility")
-        or "approximate"
-    )
-    result["location_visibility"] = visibility
-
-    if visibility == "approximate":
-        result["address"] = (
-            result.get("public_location_label")
-            or "Approximate location"
-        )
-
-        lat = result.get("latitude")
-        lng = result.get("longitude")
-
-        if lat is not None and lng is not None:
-            result["latitude"] = fuzz_coordinate(lat)
-            result["longitude"] = fuzz_coordinate(lng)
+    if conditions and conditions.strip():
+        cond_list = [c.strip() for c in conditions.split(",") if c.strip()]
+        if len(cond_list) == 1:
+            query["condition"] = cond_list[0]
         else:
-            result["latitude"] = None
-            result["longitude"] = None
+            query["condition"] = {"$in": cond_list}
 
-    return result
+    if delivery_method:
+        if delivery_method == "shipping":
+            query["delivery_method"] = {"$in": ["shipping", "both"]}
+        elif delivery_method == "pickup":
+            query["delivery_method"] = {"$in": ["pickup", "both"]}
+        else:
+            query["delivery_method"] = delivery_method
+
+    if pickup_available and not shipping_available:
+        query["delivery_method"] = {"$in": ["pickup", "both"]}
+    elif shipping_available and not pickup_available:
+        query["delivery_method"] = {"$in": ["shipping", "both"]}
+    elif pickup_available and shipping_available:
+        pass  # any delivery ok
+
+    if property_type:
+        query["property_type"] = property_type
+    if min_bedrooms is not None:
+        query["bedrooms"] = {"$gte": min_bedrooms}
+    if furnished is not None:
+        query["furnished"] = furnished
+
+    for attr_key, attr_val in attribute_filters.items():
+        val = attr_val.strip() if isinstance(attr_val, str) else attr_val
+        if val and "," in str(val):
+            vals = [v.strip() for v in str(val).split(",") if v.strip()]
+            query[f"attributes.{escape_regex(attr_key)}"] = {"$in": vals}
+        elif val:
+            query[f"attributes.{escape_regex(attr_key)}"] = val
+
+    has_bounds = all(v is not None for v in (min_lat, max_lat, min_lng, max_lng))
+    if has_bounds:
+        query["latitude"] = {"$gte": min_lat - FUZZ_FACTOR, "$lte": max_lat + FUZZ_FACTOR}
+        query["longitude"] = {"$gte": min_lng - FUZZ_FACTOR, "$lte": max_lng + FUZZ_FACTOR}
+
+    return query, has_bounds
 
 
-def validate_location(address, lat, lng, status, vis: Optional[LocationVisibility] = None, public_label: Optional[str] = None):
-    if status != "published":
-        return
-    if not address or not address.strip():
-        raise HTTPException(
-            status_code=400,
-            detail="A verified location is required.",
-        )
-    if lat is None or lng is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Select an address from the suggestions.",
-        )
-    if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid coordinate range.",
-        )
-    if vis == "approximate" and (not public_label or not public_label.strip()):
-        raise HTTPException(
-            status_code=400,
-            detail="A public location label is required for approximate visibility.",
-        )
-
-
-@router.post("", response_model=ListingResponse)
-async def create_listing(
-    payload: ListingCreate,
-    current_user: UserPublic = Depends(get_current_user),
+@router.get("", response_model=list[ListingResponse])
+async def list_listings(
+    listing_type: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    subcategory: Optional[str] = Query(None),
+    condition: Optional[str] = Query(None),
+    conditions: Optional[str] = Query(None),
+    delivery_method: Optional[str] = Query(None),
+    pickup_available: Optional[bool] = Query(None),
+    shipping_available: Optional[bool] = Query(None),
+    property_type: Optional[str] = Query(None),
+    min_bedrooms: Optional[int] = Query(None),
+    furnished: Optional[bool] = Query(None),
+    min_lat: Optional[float] = Query(None),
+    max_lat: Optional[float] = Query(None),
+    min_lng: Optional[float] = Query(None),
+    max_lng: Optional[float] = Query(None),
+    skip: int = 0,
+    limit: int = 50,
 ):
     if payload.listing_type not in ("product", "home_rental"):
         raise HTTPException(status_code=400, detail="listing_type must be 'product' or 'home_rental'")
 
     validate_location(
         payload.address, payload.latitude, payload.longitude,
-        payload.status, payload.location_visibility, payload.public_location_label,
+        payload.status, payload.listing_type,
+        payload.category, payload.subcategory,
+        payload.location_visibility, payload.public_location_label,
     )
 
     doc = {
@@ -121,35 +159,30 @@ async def list_listings(
     skip: int = 0,
     limit: int = 50,
 ):
-    query: dict = {"is_active": True, "status": "published"}
-    if listing_type:
-        query["listing_type"] = listing_type
+    # Extract attribute_* query params dynamically
+    attribute_filters: dict = {}
+    # We can't dynamically capture kwargs in FastAPI query params,
+    # so we accept attribute filters via a precomputed approach.
+    # For now, the frontend sends conditions as comma-separated.
 
-    if q and q.strip():
-        terms = escape_regex(q.strip())
-        query["$or"] = [
-            {f: {"$regex": terms, "$options": "i"}} for f in SEARCHABLE_FIELDS
-        ]
-
-    if category:
-        query["category"] = {"$regex": f"^{escape_regex(category.strip())}$", "$options": "i"}
-    if condition:
-        query["condition"] = condition
-    if delivery_method:
-        query["delivery_method"] = delivery_method
-    if property_type:
-        query["property_type"] = property_type
-    if min_bedrooms is not None:
-        query["bedrooms"] = {"$gte": min_bedrooms}
-    if furnished is not None:
-        query["furnished"] = furnished
-
-    has_bounds = all(v is not None for v in (min_lat, max_lat, min_lng, max_lng))
-
-    # Expand DB bounds by FUZZ_FACTOR to include fuzzed markers
-    if has_bounds:
-        query["latitude"] = {"$gte": min_lat - FUZZ_FACTOR, "$lte": max_lat + FUZZ_FACTOR}
-        query["longitude"] = {"$gte": min_lng - FUZZ_FACTOR, "$lte": max_lng + FUZZ_FACTOR}
+    query, has_bounds = _build_discovery_query(
+        listing_type=listing_type,
+        q=q,
+        category=category,
+        subcategory=subcategory,
+        conditions=conditions or condition,
+        delivery_method=delivery_method,
+        pickup_available=pickup_available,
+        shipping_available=shipping_available,
+        property_type=property_type,
+        min_bedrooms=min_bedrooms,
+        furnished=furnished,
+        attribute_filters=attribute_filters,
+        min_lat=min_lat,
+        max_lat=max_lat,
+        min_lng=min_lng,
+        max_lng=max_lng,
+    )
 
     # Fetch more than limit since we filter after transform
     fetch_limit = limit * 5 if has_bounds else limit
@@ -222,9 +255,14 @@ async def update_listing(
     effective_vis = update_data.get("location_visibility", doc.get("location_visibility", "approximate"))
     effective_label = update_data.get("public_location_label", doc.get("public_location_label"))
 
+    effective_category = update_data.get("category", doc.get("category"))
+    effective_subcategory = update_data.get("subcategory", doc.get("subcategory"))
+
     validate_location(
         effective_address, effective_lat, effective_lng,
-        effective_status, effective_vis, effective_label,
+        effective_status, doc.get("listing_type", "product"),
+        effective_category, effective_subcategory,
+        effective_vis, effective_label,
     )
 
     if update_data:

@@ -1,9 +1,15 @@
 """Shared Pydantic model for user listings (products and home rentals)."""
 from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
+from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 
 LocationVisibility = Literal["approximate", "exact"]
+
+CATEGORY_ALIASES: dict = {
+    "home_garden_diy": ["home_garden_diy", "home_garden"],
+    "sports_outdoor": ["sports_outdoor", "sports"],
+    "media_music": ["media_music", "books"],
+}
 
 
 class ListingCreate(BaseModel):
@@ -22,6 +28,8 @@ class ListingCreate(BaseModel):
     public_location_label: Optional[str] = None
     location_visibility: LocationVisibility = "approximate"
     category: Optional[str] = None
+    subcategory: Optional[str] = None
+    attributes: Dict[str, Any] = Field(default_factory=dict)
     status: str = "draft"  # draft | published | sold | rented
 
     # Product fields
@@ -55,6 +63,8 @@ class ListingUpdate(BaseModel):
     public_location_label: Optional[str] = None
     location_visibility: Optional[LocationVisibility] = None
     category: Optional[str] = None
+    subcategory: Optional[str] = None
+    attributes: Optional[Dict[str, Any]] = None
     status: Optional[str] = None
     condition: Optional[str] = None
     brand: Optional[str] = None
@@ -88,6 +98,8 @@ class ListingResponse(BaseModel):
     public_location_label: Optional[str] = None
     location_visibility: LocationVisibility = "approximate"
     category: Optional[str] = None
+    subcategory: Optional[str] = None
+    attributes: Dict[str, Any] = Field(default_factory=dict)
     status: str
     is_active: bool = True
     created_at: datetime
