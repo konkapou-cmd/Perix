@@ -113,7 +113,7 @@ export default function MarketplaceItemsPage() {
           style={[styles.filterBtn, category ? styles.filterBtnActive : undefined]}
           onPress={() => setCategoryFilterVisible(true)}
         >
-          <Ionicons name="options-outline" size={16} color={category ? "#fff" : COLORS.textPrimary} />
+          <Ionicons name="options-outline" size={16} color={category ? COLORS.background : COLORS.textPrimary} />
           <Text style={[styles.filterBtnText, category ? { color: COLORS.background } : undefined]}>
             {category
               ? `Kategorie · ${catConfig ? t(catConfig.labelKey, catConfig.fallback) : category}${subLabel ? ` · ${t(catConfig?.subcategories.find((s) => s.key === subcategory)?.labelKey ?? "", subLabel)}` : ""}`
