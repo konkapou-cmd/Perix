@@ -991,7 +991,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
+        {marketplaceItems.length > 0 && homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
           <CarouselSection
             title={t("home.marketplace", "Marketplace")}
             icon="pricetag"

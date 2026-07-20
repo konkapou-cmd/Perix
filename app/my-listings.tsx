@@ -57,10 +57,10 @@ export default function MyListingsScreen() {
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, { label: string; color: string }> = {
-      draft: { label: t("common.draft", "Draft"), color: COLORS.textMuted },
-      published: { label: t("common.published", "Published"), color: COLORS.success },
-      sold: { label: t("common.sold", "Sold"), color: COLORS.primaryDark },
-      rented: { label: t("common.rented", "Rented"), color: COLORS.primaryDark },
+      draft: { label: t("common.draft", "Entwurf"), color: COLORS.textMuted },
+      published: { label: t("common.published", "Aktiv"), color: COLORS.success },
+      sold: { label: t("common.sold", "Verkauft"), color: COLORS.primaryDark },
+      rented: { label: t("common.rented", "Vermietet"), color: COLORS.primaryDark },
     };
     const info = map[status] || map.draft;
     return <View style={[styles.statusBadge, { backgroundColor: info.color + "20" }]}><Text style={[styles.statusText, { color: info.color }]}>{info.label}</Text></View>;
@@ -84,7 +84,12 @@ export default function MyListingsScreen() {
         )}
         {item.status === "published" && (
           <Pressable style={[styles.actionBtn, { backgroundColor: COLORS.primaryDark }]} onPress={() => handleMarkSold(item)}>
-            <Text style={styles.actionBtnText}>{tab === "product" ? t("common.sold", "Sold") : t("common.rented", "Rented")}</Text>
+            <Text style={styles.actionBtnText}>{tab === "product" ? t("marketplace.markAsSold", "Als verkauft markieren") : t("marketplace.markAsRented", "Als vermietet markieren")}</Text>
+          </Pressable>
+        )}
+        {(item.status === "sold" || item.status === "rented") && (
+          <Pressable style={[styles.actionBtn, { backgroundColor: COLORS.success }]} onPress={() => handlePublish(item)}>
+            <Text style={styles.actionBtnText}>{t("marketplace.relist", "Erneut einstellen")}</Text>
           </Pressable>
         )}
         <Pressable style={[styles.actionBtn, { backgroundColor: COLORS.primaryLight }]} onPress={() => setEditingListing(item)}>
