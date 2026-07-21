@@ -138,11 +138,6 @@ export default function HomeScreen() {
 
   const [viewportProducts, setViewportProducts] = useState<Listing[]>([]);
   const [viewportHomes, setViewportHomes] = useState<Listing[]>([]);
-  useFocusEffect(
-    useCallback(() => {
-      // viewport fetch handled by useEffect below
-    }, []),
-  );
 
   useEffect(() => {
     if (!mapBounds) return;
@@ -1015,7 +1010,7 @@ export default function HomeScreen() {
             seeAllRoute="/marketplace/items"
             emptyMessage={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
           >
-            {viewportProducts.length > 0 && viewportProducts.map((item) => (
+            {viewportProducts.map((item) => (
               <CarouselCard
                 key={item.listing_id}
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
@@ -1039,7 +1034,7 @@ export default function HomeScreen() {
             seeAllRoute="/marketplace/homes"
             emptyMessage={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
           >
-            {viewportHomes.length > 0 && viewportHomes.map((item) => (
+            {viewportHomes.map((item) => (
               <CarouselCard
                 key={item.listing_id}
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}

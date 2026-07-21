@@ -15,7 +15,7 @@ type MapMarker = {
   description?: string;
   isOpen?: boolean;
   pinColor?: string;
-  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service";
+  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product";
 };
 
 type MapBounds = {
