@@ -120,11 +120,14 @@ def has_publishable_location(address, lat, lng, vis, public_label) -> bool:
     return True
 
 
-def validate_location(address, lat, lng, status, listing_type="product", category=None, subcategory=None, vis: Optional[LocationVisibility] = None, public_label: Optional[str] = None):
-    if lat is not None and lng is not None:
-        if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
-            raise HTTPException(status_code=400, detail="Invalid coordinate range.")
+def validate_coordinates(lat, lng):
+    if lat is not None and not (-90 <= lat <= 90):
+        raise HTTPException(status_code=400, detail="Invalid latitude.")
+    if lng is not None and not (-180 <= lng <= 180):
+        raise HTTPException(status_code=400, detail="Invalid longitude.")
 
+
+def validate_location(status, listing_type="product", category=None, subcategory=None):
     if status != "published":
         return
     if listing_type == "product" and (not category or not category.strip()):
@@ -147,12 +150,7 @@ async def create_listing(
     if payload.listing_type not in ("product", "home_rental"):
         raise HTTPException(status_code=400, detail="listing_type must be 'product' or 'home_rental'")
 
-    validate_location(
-        payload.address, payload.latitude, payload.longitude,
-        payload.status, payload.listing_type,
-        payload.category, payload.subcategory,
-        payload.location_visibility, payload.public_location_label,
-    )
+    validate_coordinates(payload.latitude, payload.longitude)
 
     effective_status = payload.status
     if effective_status == "published" and not has_publishable_location(
@@ -160,6 +158,8 @@ async def create_listing(
         payload.location_visibility, payload.public_location_label,
     ):
         effective_status = "draft"
+
+    validate_location(effective_status, payload.listing_type, payload.category, payload.subcategory)
 
     dump = payload.model_dump()
     dump["status"] = effective_status
@@ -359,12 +359,7 @@ async def update_listing(
     effective_category = update_data.get("category", doc.get("category"))
     effective_subcategory = update_data.get("subcategory", doc.get("subcategory"))
 
-    validate_location(
-        effective_address, effective_lat, effective_lng,
-        effective_status, doc.get("listing_type", "product"),
-        effective_category, effective_subcategory,
-        effective_vis, effective_label,
-    )
+    validate_coordinates(effective_lat, effective_lng)
 
     if effective_status == "published" and not has_publishable_location(
         effective_address, effective_lat, effective_lng,
@@ -372,6 +367,8 @@ async def update_listing(
     ):
         effective_status = "draft"
         update_data["status"] = "draft"
+
+    validate_location(effective_status, doc.get("listing_type", "product"), effective_category, effective_subcategory)
 
     if doc.get("listing_type") == "product" and update_data.get("category"):
         update_data["category"] = normalize_category(update_data["category"])
