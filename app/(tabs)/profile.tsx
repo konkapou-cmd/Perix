@@ -1186,12 +1186,13 @@ const handleUpdateSlug = async (newSlug: string) => {
     if (!sessionToken) return;
     const requestId = ++bizListingsRequestRef.current;
     setBusinessListings([]);
-    try {
-      const [data, listings] = await Promise.all([
-        getBusinessDetail(sessionToken, bizId),
-        getManageListings(sessionToken, "business", bizId),
-      ]);
-      if (requestId !== bizListingsRequestRef.current) return;
+    const [detailResult, listingsResult] = await Promise.allSettled([
+      getBusinessDetail(sessionToken, bizId),
+      getManageListings(sessionToken, "business", bizId),
+    ]);
+    if (requestId !== bizListingsRequestRef.current) return;
+    if (detailResult.status === "fulfilled") {
+      const data = detailResult.value;
       setBusinessDetail(data);
       setBizEvents(data.events || []);
       setBizPosts(data.posts || []);
@@ -1201,12 +1202,18 @@ const handleUpdateSlug = async (newSlug: string) => {
       setBusinessSocialLinks(data.business.social_links || {});
       setBizGalleryImages(data.business.gallery_images || []);
       setBizGalleryVideos(data.business.gallery_videos || []);
-      setBusinessListings(listings.filter(l => l.listing_type === "product"));
-    } catch {
-      if (requestId === bizListingsRequestRef.current) {
-        setBusinessListings([]);
-      }
+    } else {
+      setBusinessDetail(null);
+      setBizEvents([]);
+      setBizPosts([]);
+      setBizJobs([]);
+      setBizServices([]);
     }
+    setBusinessListings(
+      listingsResult.status === "fulfilled"
+        ? listingsResult.value.filter(l => l.listing_type === "product")
+        : [],
+    );
   };
 
   const isFocused = useIsFocused();

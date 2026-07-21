@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -56,6 +56,7 @@ export default function UserProfileScreen() {
   const [friendProfiles, setFriendProfiles] = useState<FriendProfile[]>([]);
 
   const [userListings, setUserListings] = useState<Listing[]>([]);
+  const listingsRequestRef = useRef(0);
 
   const loadProfile = useCallback(async () => {
     if (!sessionToken || !id) return;
@@ -81,7 +82,13 @@ export default function UserProfileScreen() {
         console.log("Failed to load user activities:", e);
       }
 
-      getUserSellerListings(id).then(setUserListings).catch(() => {});
+      try {
+        const requestId = ++listingsRequestRef.current;
+        const listings = await getUserSellerListings(id);
+        if (requestId === listingsRequestRef.current) setUserListings(listings);
+      } catch {
+        setUserListings([]);
+      }
 
       try {
         const friendsData = await getUserFriends(sessionToken, id);
