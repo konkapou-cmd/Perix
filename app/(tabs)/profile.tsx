@@ -531,6 +531,23 @@ export default function ProfileScreen() {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [userActivities, setUserActivities] = useState<any[]>([]);
 
+  const handleUserToggleMarketplace = async (listing: Listing) => {
+    if (!sessionToken) return;
+    await updateListing(sessionToken, listing.listing_id, {
+      publication_scope:
+        listing.publication_scope === "profile_and_marketplace"
+          ? "profile_only"
+          : "profile_and_marketplace",
+    } as any);
+    loadUserProfile();
+  };
+
+  const handleUserDeleteListing = async (listing: Listing) => {
+    if (!sessionToken) return;
+    await deleteListing(sessionToken, listing.listing_id);
+    loadUserProfile();
+  };
+
   const loadUserActivities = async () => {
     if (!sessionToken || !user) return;
     try {
@@ -548,6 +565,8 @@ export default function ProfileScreen() {
       // This ensures consistency between private and public views
       const data = await getUserPublicProfile(sessionToken, user.user_id);
       setUserPosts(data.posts || []);
+
+      getManageListings(sessionToken, "user", user.user_id).then(setUserListings).catch(() => {});
     } catch (e) {
       // silently fail
     }
@@ -1125,6 +1144,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [bizAnalytics, setBizAnalytics] = useState<any>(null);
 
   const [businessListings, setBusinessListings] = useState<Listing[]>([]);
+  const [userListings, setUserListings] = useState<Listing[]>([]);
   const [listingModalVisible, setListingModalVisible] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
@@ -1172,7 +1192,8 @@ const handleUpdateSlug = async (newSlug: string) => {
       setBizGalleryImages(data.business.gallery_images || []);
       setBizGalleryVideos(data.business.gallery_videos || []);
 
-      getManageListings(sessionToken, "business", bizId).then(setBusinessListings).catch(() => {});
+      const listings = await getManageListings(sessionToken, "business", bizId);
+      setBusinessListings(listings.filter(l => l.listing_type === "product"));
     } catch (e) {
     }
   };
@@ -2126,7 +2147,18 @@ postText={postText}
                   onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
                    onOpenBookings={handleOpenUserBookings}
                    onViewFriends={() => router.push(`/friends/${user?.user_id}` as any)}
-                 />
+                  userListings={userListings}
+                  onAddItem={() => {
+                    setEditingListing(null);
+                    setListingModalVisible(true);
+                  }}
+                  onEditItem={(listing) => {
+                    setEditingListing(listing);
+                    setListingModalVisible(true);
+                  }}
+                  onToggleMarketplace={handleUserToggleMarketplace}
+                  onDeleteItem={handleUserDeleteListing}
+                />
                )}
 
           {activeIdentity?.type === 'business' && businessDetail && (
@@ -2327,7 +2359,7 @@ currentUserId={businessDetail?.business?.business_id}
         businessAddress={businessDetail?.business?.address ?? null}
         businessLatitude={businessDetail?.business?.latitude ?? null}
         businessLongitude={businessDetail?.business?.longitude ?? null}
-        businessPublicLocationLabel={null}
+        businessPublicLocationLabel={businessDetail?.business?.address ? businessDetail.business.address.split(",").pop()?.trim() ?? null : null}
         onClose={() => { setListingModalVisible(false); setEditingListing(null); }}
         onSave={handleSaveListing}
       />
