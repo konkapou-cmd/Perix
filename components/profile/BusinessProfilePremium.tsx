@@ -57,6 +57,8 @@ import useResponsiveLayout from "../../hooks/useResponsiveLayout";
 import FriendsCarousel from "../FriendsCarousel";
 import { FriendsSection } from "../shared/FriendsSection";
 import CoverPositionEditor from "../CoverPositionEditor";
+import { Listing } from "../../lib/api/listings";
+import ProfileItemsSection from "../marketplace/ProfileItemsSection";
 
 
 interface BusinessProfilePremiumProps {
@@ -150,6 +152,11 @@ interface BusinessProfilePremiumProps {
   onOpenBookingList?: () => void;
   onViewFriends?: () => void;
   initialSavedPostIds?: Set<string>;
+  businessListings?: Listing[];
+  onAddItem?: () => void;
+  onEditItem?: (listing: Listing) => void;
+  onToggleMarketplace?: (listing: Listing) => void;
+  onDeleteItem?: (listing: Listing) => void;
 }
 
 export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
@@ -233,6 +240,11 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   onOpenBookingList,
   onViewFriends,
   initialSavedPostIds,
+  businessListings = [],
+  onAddItem,
+  onEditItem,
+  onToggleMarketplace,
+  onDeleteItem,
 }) => {
   const { t } = useTranslation();
   const serviceLabel = (type: string, fallback?: string) => getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? fallback ?? type));
@@ -249,6 +261,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const publicTabs: TabDefinition[] = useMemo(() => {
     const tabs: TabDefinition[] = [];
     tabs.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: businessPosts.length });
+    if (businessListings.filter(l => l.status === "published" && l.is_active).length > 0) {
+      tabs.push({ key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetags-outline", count: businessListings.filter(l => l.status === "published" && l.is_active).length });
+    }
     if (galleryImages.length + galleryVideos.length > 0) {
       tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
     }
@@ -283,12 +298,12 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
       });
     }
     return tabs;
-  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t]);
+  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings]);
 
   const privateTabs: TabDefinition[] = useMemo(() => {
     const tabs: TabDefinition[] = [];
-    // 1. Posts
     tabs.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: businessPosts.length });
+    tabs.push({ key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetags-outline", count: businessListings.length });
     // 2. Service type tabs — one per categoryKey:serviceType
     const rootCat = detail.business.root_category || "";
     const hasModule = hasServiceModules(rootCat);
@@ -334,7 +349,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     // 5. Media (always visible for owner)
     tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
     return tabs;
-  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t]);
+  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings]);
 
   const theme = detail.business.theme;
   const { themeStyles, themeColors, isDark } = useThemeStyles(theme);
@@ -737,6 +752,16 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
               {activeTab === "jobs" && (
                 <JobsSection jobs={jobs} readOnly={true} primaryColor={primaryColor} cardColor={cardColor} textColor={textColor} secondaryColor={secondaryColor} />
               )}
+              {activeTab === "items" && (
+                <ProfileItemsSection
+                  listings={businessListings.filter(l => l.status === "published" && l.is_active)}
+                  isOwner={false}
+                  onAdd={() => {}}
+                  onEdit={() => {}}
+                  onToggleMarketplace={() => {}}
+                  onDelete={() => {}}
+                />
+              )}
             </View>
           </>
         ) : (
@@ -861,6 +886,16 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                     />
                   );
                 })()
+              )}
+              {privateActiveTab === "items" && (
+                <ProfileItemsSection
+                  listings={businessListings}
+                  isOwner={isOwnProfile ?? false}
+                  onAdd={() => onAddItem?.()}
+                  onEdit={(l) => onEditItem?.(l)}
+                  onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
+                  onDelete={(l) => onDeleteItem?.(l)}
+                />
               )}
             </View>
           </>

@@ -23,6 +23,7 @@ type Props = {
   businessAddress?: string | null;
   businessLatitude?: number | null;
   businessLongitude?: number | null;
+  businessPublicLocationLabel?: string | null;
   onClose: () => void;
   onSave: () => void;
   onCreated?: (listingId: string) => void;
@@ -46,7 +47,7 @@ function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_ima
   };
 }
 
-export default function ListingModal({ visible, listingType, editingListing, sessionToken, businessId, businessAddress, businessLatitude, businessLongitude, onClose, onSave: onSaveProp, onCreated }: Props) {
+export default function ListingModal({ visible, listingType, editingListing, sessionToken, businessId, businessAddress, businessLatitude, businessLongitude, businessPublicLocationLabel, onClose, onSave: onSaveProp, onCreated }: Props) {
   const { t } = useTranslation();
   const isProduct = listingType === "product";
   const isEditing = !!editingListing;
@@ -141,6 +142,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         setAddress(businessAddress ?? "");
         setLatitude(businessLatitude ?? undefined);
         setLongitude(businessLongitude ?? undefined);
+        setPublicLocationLabel(businessPublicLocationLabel ?? "");
       }
     }
   }, [visible, editingListing]);

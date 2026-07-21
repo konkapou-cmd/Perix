@@ -61,17 +61,23 @@ export default function ProfileItemsSection({ listings, isOwner, onAdd, onEdit, 
     return filtered;
   }, [listings, selectedCat, selectedSub]);
 
+  const categoryListings = useMemo(
+    () => (selectedCat ? listings.filter((l) => l.category === selectedCat) : []),
+    [listings, selectedCat],
+  );
+
   const subsForCat = useMemo(() => {
     if (!selectedCat) return [];
     const cat = getCategoryConfig(selectedCat);
     if (!cat) return [];
-    const counts: Record<string, number> = {};
-    listings.filter((l) => l.category === selectedCat).forEach((l) => {
-      const s = l.subcategory || "";
-      counts[s] = (counts[s] || 0) + 1;
-    });
-    return cat.subcategories.map((s) => ({ key: s.key, label: s.fallback, count: counts[s.key] || 0 }));
-  }, [selectedCat, listings]);
+    return cat.subcategories
+      .map((s) => ({
+        key: s.key,
+        label: s.fallback,
+        count: categoryListings.filter((l) => l.subcategory === s.key).length,
+      }))
+      .filter((s) => s.count > 0);
+  }, [selectedCat, categoryListings]);
 
   const handleCardPress = (listing: Listing) => {
     if (!isOwner || (listing.status === "published" && listing.is_active)) {
@@ -120,7 +126,7 @@ export default function ProfileItemsSection({ listings, isOwner, onAdd, onEdit, 
             onPress={() => setSelectedSub(null)}
           >
             <Text style={[styles.catChipText, !selectedSub && styles.catChipTextActive]}>
-              {t("marketplace.all", "Alle")} ({visibleListings.length})
+              {t("marketplace.all", "Alle")} ({categoryListings.length})
             </Text>
           </Pressable>
           {subsForCat.map((sub) => (
