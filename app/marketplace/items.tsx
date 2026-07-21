@@ -35,24 +35,52 @@ export default function MarketplaceItemsPage() {
   const [pickupOnly, setPickupOnly] = useState(false);
   const [shippingOnly, setShippingOnly] = useState(false);
   const [attributeFilters, setAttributeFilters] = useState<Record<string, string>>({});
+  const [draftAttributeFilters, setDraftAttributeFilters] = useState<Record<string, string>>({});
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [bounds, setBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
   const [categoryFilterVisible, setCategoryFilterVisible] = useState(false);
   const skipRef = useRef(0);
-  const attrTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attrTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  const handleAttrChange = useCallback((key: string, value: string) => {
-    if (attrTimeoutRef.current) clearTimeout(attrTimeoutRef.current);
-    attrTimeoutRef.current = setTimeout(() => {
-      setAttributeFilters((prev) => {
+  useEffect(() => {
+    return () => {
+      for (const t of attrTimeoutsRef.current.values()) clearTimeout(t);
+    };
+  }, []);
+
+  const handleAttrChange = useCallback(
+    (key: string, value: string) => {
+      setDraftAttributeFilters((prev) => {
         const next = { ...prev };
         if (value) next[key] = value;
         else delete next[key];
         return next;
       });
-    }, 300);
-  }, []);
+
+      const existing = attrTimeoutsRef.current.get(key);
+      if (existing) clearTimeout(existing);
+
+      const timeout = setTimeout(() => {
+        setAttributeFilters((prev) => {
+          const next = { ...prev };
+          if (value) next[key] = value;
+          else delete next[key];
+          return next;
+        });
+        attrTimeoutsRef.current.delete(key);
+      }, 300);
+
+      attrTimeoutsRef.current.set(key, timeout);
+    },
+    [],
+  );
+
+  const pruneFilters = useCallback((filters: Record<string, string>, validKeys: Set<string>) =>
+    Object.fromEntries(
+      Object.entries(filters).filter(([k]) => validKeys.has(k)),
+    ),
+  []);
 
   const fetchListings = useCallback(async (reset = false) => {
     setLoading(true);
@@ -147,11 +175,12 @@ export default function MarketplaceItemsPage() {
               .filter((a) => a.filterable)
               .map((a) => a.key),
           );
-          setAttributeFilters((prev) =>
-            Object.fromEntries(
-              Object.entries(prev).filter(([k]) => validKeys.has(k)),
-            ),
-          );
+          for (const t of attrTimeoutsRef.current.values()) clearTimeout(t);
+          attrTimeoutsRef.current.clear();
+          const pruned = pruneFilters(attributeFilters, validKeys);
+          const prunedDraft = pruneFilters(draftAttributeFilters, validKeys);
+          setDraftAttributeFilters(prunedDraft);
+          setAttributeFilters(pruned);
           setCategory(cat);
           setSubcategory(sub);
         }}
@@ -160,7 +189,7 @@ export default function MarketplaceItemsPage() {
       <MarketplaceAttributeFilters
         category={category}
         subcategory={subcategory}
-        filters={attributeFilters}
+        filters={draftAttributeFilters}
         onChange={handleAttrChange}
       />
       <DiscoveryFilterChips
