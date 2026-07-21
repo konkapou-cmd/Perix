@@ -566,7 +566,8 @@ export default function ProfileScreen() {
       const data = await getUserPublicProfile(sessionToken, user.user_id);
       setUserPosts(data.posts || []);
 
-      getManageListings(sessionToken, "user", user.user_id).then(setUserListings).catch(() => {});
+      const listings = await getManageListings(sessionToken, "user", user.user_id);
+      setUserListings(listings.filter(l => l.listing_type === "product"));
     } catch (e) {
       // silently fail
     }
@@ -1145,6 +1146,7 @@ const handleUpdateSlug = async (newSlug: string) => {
 
   const [businessListings, setBusinessListings] = useState<Listing[]>([]);
   const [userListings, setUserListings] = useState<Listing[]>([]);
+  const bizListingsRequestRef = useRef(0);
   const [listingModalVisible, setListingModalVisible] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
@@ -1179,20 +1181,22 @@ const handleUpdateSlug = async (newSlug: string) => {
 
   const loadBusinessFullData = async (bizId: string) => {
     if (!sessionToken) return;
+    const requestId = ++bizListingsRequestRef.current;
     try {
       const data = await getBusinessDetail(sessionToken, bizId);
+      if (requestId !== bizListingsRequestRef.current) return;
       setBusinessDetail(data);
       setBizEvents(data.events || []);
       setBizPosts(data.posts || []);
       setBizJobs(data.jobs || []);
       setBizServices(data.services || []);
-      // Load business editing state
       setBusinessOpeningHours(data.business.opening_hours || {} as any);
       setBusinessSocialLinks(data.business.social_links || {});
       setBizGalleryImages(data.business.gallery_images || []);
       setBizGalleryVideos(data.business.gallery_videos || []);
 
       const listings = await getManageListings(sessionToken, "business", bizId);
+      if (requestId !== bizListingsRequestRef.current) return;
       setBusinessListings(listings.filter(l => l.listing_type === "product"));
     } catch (e) {
     }
@@ -2359,7 +2363,12 @@ currentUserId={businessDetail?.business?.business_id}
         businessAddress={businessDetail?.business?.address ?? null}
         businessLatitude={businessDetail?.business?.latitude ?? null}
         businessLongitude={businessDetail?.business?.longitude ?? null}
-        businessPublicLocationLabel={businessDetail?.business?.address ? businessDetail.business.address.split(",").pop()?.trim() ?? null : null}
+        businessPublicLocationLabel={(() => {
+          const addr = businessDetail?.business?.address;
+          if (!addr) return null;
+          const parts = addr.split(",").map(s => s.trim());
+          return parts.length >= 2 ? parts[parts.length - 2] : parts[0];
+        })()}
         onClose={() => { setListingModalVisible(false); setEditingListing(null); }}
         onSave={handleSaveListing}
       />

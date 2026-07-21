@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { UserPublicProfile, getUserPublicProfile, getPosts, reportUser, getFriendshipStatus, toggleFriend, sendFriendRequest, cancelFriendRequest, acceptFriendRequest, FriendshipStatus, toggleSaved, checkSaved, APP_URL, getUserActivities, ActivityItem, getUserFriends, FriendProfile } from "../../lib/api";
 import { COLORS } from "../../lib/designTokens";
 import { useAuth } from "../../context/AuthContext";
+import { getUserSellerListings, Listing } from "../../lib/api/listings";
 
 import { UserProfilePremium } from "../../components/profile/UserProfilePremium";
 
@@ -54,6 +55,8 @@ export default function UserProfileScreen() {
   // Friends List State
   const [friendProfiles, setFriendProfiles] = useState<FriendProfile[]>([]);
 
+  const [userListings, setUserListings] = useState<Listing[]>([]);
+
   const loadProfile = useCallback(async () => {
     if (!sessionToken || !id) return;
     setLoading(true);
@@ -77,6 +80,8 @@ export default function UserProfileScreen() {
       } catch (e) {
         console.log("Failed to load user activities:", e);
       }
+
+      getUserSellerListings(id).then(setUserListings).catch(() => {});
 
       try {
         const friendsData = await getUserFriends(sessionToken, id);
@@ -330,6 +335,7 @@ export default function UserProfileScreen() {
           onViewFriends={() => router.push(`/friends/${id}` as any)}
           slug={id}
           avatarUri={profile.user.profile_photo || profile.user.picture || null}
+          userListings={userListings}
         />
       </View>
 
