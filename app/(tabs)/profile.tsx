@@ -104,6 +104,8 @@ import { ServiceModal, DEFAULT_SERVICE_FORM, ServiceBookingModal, SlotManagerMod
 import ActivityModal from "../../components/business/ActivityModal";
 import { useMapBounds } from "../../context/MapBoundsContext";
 import OpeningHoursModal from "../../components/business/OpeningHoursModal";
+import ListingModal from "../../components/user/ListingModal";
+import { getBusinessSellerListings, getManageListings, Listing, updateListing, deleteListing } from "../../lib/api/listings";
 import SocialLinksModal from "../../components/SocialLinksModal";
 import PlacesAutocompleteInput from "../../components/PlacesAutocompleteInput";
 
@@ -1122,6 +1124,10 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [bizServices, setBizServices] = useState<Service[]>([]);
   const [bizAnalytics, setBizAnalytics] = useState<any>(null);
 
+  const [businessListings, setBusinessListings] = useState<Listing[]>([]);
+  const [listingModalVisible, setListingModalVisible] = useState(false);
+  const [editingListing, setEditingListing] = useState<Listing | null>(null);
+
   // Business editing state
   const [hoursModalVisible, setHoursModalVisible] = useState(false);
   const [socialLinksModalVisible, setSocialLinksModalVisible] = useState(false);
@@ -1165,6 +1171,8 @@ const handleUpdateSlug = async (newSlug: string) => {
       setBusinessSocialLinks(data.business.social_links || {});
       setBizGalleryImages(data.business.gallery_images || []);
       setBizGalleryVideos(data.business.gallery_videos || []);
+
+      getManageListings(sessionToken, "business", bizId).then(setBusinessListings).catch(() => {});
     } catch (e) {
     }
   };
@@ -1180,6 +1188,29 @@ const handleUpdateSlug = async (newSlug: string) => {
 
   const loadBusinessProfile = () => {
     if (activeIdentity?.type === "business") loadBusinessFullData(activeIdentity.id);
+  };
+
+  const handleToggleMarketplaceListing = async (listing: Listing) => {
+    if (!sessionToken) return;
+    await updateListing(sessionToken, listing.listing_id, {
+      publication_scope:
+        listing.publication_scope === "profile_and_marketplace"
+          ? "profile_only"
+          : "profile_and_marketplace",
+    } as any);
+    loadBusinessProfile();
+  };
+
+  const handleDeleteListing = async (listing: Listing) => {
+    if (!sessionToken || !activeIdentity) return;
+    await deleteListing(sessionToken, listing.listing_id);
+    loadBusinessProfile();
+  };
+
+  const handleSaveListing = () => {
+    setListingModalVisible(false);
+    setEditingListing(null);
+    loadBusinessProfile();
   };
 
   // Business hours handlers
@@ -2272,10 +2303,34 @@ currentUserId={businessDetail?.business?.business_id}
                   onOpenSlotManager={handleOpenSlotManager}
                    onOpenBookingList={handleOpenBookingList}
                    onViewFriends={() => router.push(`/friends/${businessDetail?.business?.business_id}` as any)}
-                 />
+                  businessListings={businessListings}
+                  onAddItem={() => {
+                    setEditingListing(null);
+                    setListingModalVisible(true);
+                  }}
+                  onEditItem={(listing) => {
+                    setEditingListing(listing);
+                    setListingModalVisible(true);
+                  }}
+                  onToggleMarketplace={handleToggleMarketplaceListing}
+                  onDeleteItem={handleDeleteListing}
+                />
               )}
         </View>
       <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={uploadContext} mode="inline" onDismiss={() => { setShowUploadProgress(false); setUploadProgress(null); }} />
+      <ListingModal
+        visible={listingModalVisible}
+        listingType="product"
+        editingListing={editingListing}
+        sessionToken={sessionToken || ""}
+        businessId={activeIdentity?.type === "business" ? activeIdentity.id : null}
+        businessAddress={businessDetail?.business?.address ?? null}
+        businessLatitude={businessDetail?.business?.latitude ?? null}
+        businessLongitude={businessDetail?.business?.longitude ?? null}
+        businessPublicLocationLabel={null}
+        onClose={() => { setListingModalVisible(false); setEditingListing(null); }}
+        onSave={handleSaveListing}
+      />
       <Modal visible={themedAlertVisible} transparent animationType="fade">
         <View style={styles.themedAlertOverlay}>
           <View style={styles.themedAlertContainer}>
