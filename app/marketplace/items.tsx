@@ -15,6 +15,7 @@ import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/Dis
 import DiscoveryResults from "../../components/discovery/DiscoveryResults";
 import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState";
 import MarketplaceCategoryFilter from "../../components/marketplace/MarketplaceCategoryFilter";
+import MarketplaceAttributeFilters from "../../components/marketplace/MarketplaceAttributeFilters";
 
 const CONDITION_OPTIONS = [
   { key: "new", label: "Neu" },
@@ -33,6 +34,7 @@ export default function MarketplaceItemsPage() {
   const [activeConditions, setActiveConditions] = useState<string[]>([]);
   const [pickupOnly, setPickupOnly] = useState(false);
   const [shippingOnly, setShippingOnly] = useState(false);
+  const [attributeFilters, setAttributeFilters] = useState<Record<string, string>>({});
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [bounds, setBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
@@ -49,6 +51,7 @@ export default function MarketplaceItemsPage() {
       conditions: activeConditions.length > 0 ? activeConditions : undefined,
       pickupAvailable: pickupOnly || undefined,
       shippingAvailable: shippingOnly || undefined,
+      attributeFilters: Object.keys(attributeFilters).length > 0 ? attributeFilters : undefined,
       skip: reset ? 0 : skipRef.current,
       limit: 50,
     };
@@ -60,7 +63,7 @@ export default function MarketplaceItemsPage() {
       else skipRef.current += data.length;
     } catch {}
     setLoading(false);
-  }, [search, category, subcategory, activeConditions, pickupOnly, shippingOnly, bounds]);
+  }, [search, category, subcategory, activeConditions, pickupOnly, shippingOnly, attributeFilters, bounds]);
 
   useEffect(() => { fetchListings(true); }, [fetchListings]);
 
@@ -127,6 +130,17 @@ export default function MarketplaceItemsPage() {
         subcategory={subcategory}
         onApply={(cat, sub) => { setCategory(cat); setSubcategory(sub); }}
         onClose={() => setCategoryFilterVisible(false)}
+      />
+      <MarketplaceAttributeFilters
+        category={category}
+        subcategory={subcategory}
+        filters={attributeFilters}
+        onChange={(key, value) => setAttributeFilters((prev) => {
+          const next = { ...prev };
+          if (value) next[key] = value;
+          else delete next[key];
+          return next;
+        })}
       />
       <DiscoveryFilterChips
         chips={conditionChips}
