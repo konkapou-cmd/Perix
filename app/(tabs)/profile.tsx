@@ -1185,6 +1185,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const loadBusinessFullData = async (bizId: string) => {
     if (!sessionToken) return;
     const requestId = ++bizListingsRequestRef.current;
+    setBusinessDetail(null);
     setBusinessListings([]);
     const [detailResult, listingsResult] = await Promise.allSettled([
       getBusinessDetail(sessionToken, bizId),

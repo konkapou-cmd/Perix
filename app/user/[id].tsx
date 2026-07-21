@@ -60,6 +60,8 @@ export default function UserProfileScreen() {
 
   const loadProfile = useCallback(async () => {
     if (!sessionToken || !id) return;
+    const listingsRequestId = ++listingsRequestRef.current;
+    setUserListings([]);
     setLoading(true);
     setError(null);
     try {
@@ -83,11 +85,14 @@ export default function UserProfileScreen() {
       }
 
       try {
-        const requestId = ++listingsRequestRef.current;
         const listings = await getUserSellerListings(id);
-        if (requestId === listingsRequestRef.current) setUserListings(listings);
+        if (listingsRequestId === listingsRequestRef.current) {
+          setUserListings(listings);
+        }
       } catch {
-        setUserListings([]);
+        if (listingsRequestId === listingsRequestRef.current) {
+          setUserListings([]);
+        }
       }
 
       try {
