@@ -868,6 +868,10 @@ export default function LocatorScreen() {
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
+            const prod = viewportProducts.find(p => p.listing_id === id);
+            if (prod) { pushEntityRoute(router, entityRoutes.listing(id), () => showInvalidEntityAlert(t)); return; }
+            const home = viewportHomes.find(h => h.listing_id === id);
+            if (home) { pushEntityRoute(router, entityRoutes.rental(id), () => showInvalidEntityAlert(t)); return; }
             if (activeTab === "businesses") {
               const rental = rentals.find(r => r.rental_id === id);
               if (rental) { pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any) as any), () => showInvalidEntityAlert(t)); return; }
@@ -877,10 +881,6 @@ export default function LocatorScreen() {
             if (activeTab === "jobs") { pushEntityRoute(router, entityRoutes.job(id), () => showInvalidEntityAlert(t)); return; }
             if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
-            const prod = viewportProducts.find(p => p.listing_id === id);
-            if (prod) { pushEntityRoute(router, entityRoutes.listing(id), () => showInvalidEntityAlert(t)); return; }
-            const home = viewportHomes.find(h => h.listing_id === id);
-            if (home) { pushEntityRoute(router, entityRoutes.rental(id), () => showInvalidEntityAlert(t)); return; }
           }}
           disabled={!contextLocation}
           disabledHint="Tap to enable location"
