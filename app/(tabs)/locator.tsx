@@ -55,6 +55,7 @@ import {
 } from "../../lib/api";
 import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
+import { getListings, Listing } from "../../lib/api/listings";
 import { translateCategory } from "../../lib/categoryTranslation";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
 import { ACTIVITY_CATEGORIES, ACTIVITY_TYPES } from "../../lib/api";
@@ -112,6 +113,9 @@ export default function LocatorScreen() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [viewportProducts, setViewportProducts] = useState<Listing[]>([]);
+  const [viewportHomes, setViewportHomes] = useState<Listing[]>([]);
+  const viewportRequestRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [categoryModal, setCategoryModal] = useState(false);
   const [subcategoryModal, setSubcategoryModal] = useState(false);
@@ -457,6 +461,45 @@ export default function LocatorScreen() {
     const data = await getJobs(sessionToken, bounds);
     setJobs(data.jobs);
   }, [sessionToken]);
+
+  useEffect(() => {
+    if (!mapBounds) return;
+    const bounds = { minLat: mapBounds.minLat, maxLat: mapBounds.maxLat, minLng: mapBounds.minLng, maxLng: mapBounds.maxLng };
+    const requestId = ++viewportRequestRef.current;
+    Promise.all([
+      getListings({ listingType: "product", ...bounds, limit: 100 }),
+      getListings({ listingType: "home_rental", ...bounds, limit: 100 }),
+    ])
+      .then(([products, homes]) => {
+        if (requestId !== viewportRequestRef.current) return;
+        setViewportProducts(products);
+        setViewportHomes(homes);
+      })
+      .catch(() => {
+        if (requestId !== viewportRequestRef.current) return;
+        setViewportProducts([]);
+        setViewportHomes([]);
+      });
+  }, [mapBounds]);
+
+  const extraMarkers = useMemo(() => {
+    const existingRentalIds = new Set(
+      rentals.map((r) => getRentalNavigationId(r as any)).filter(Boolean) as string[],
+    );
+    const prodMarkers = viewportProducts
+      .filter((l) => l.latitude != null && l.longitude != null)
+      .map((l) => ({
+        id: l.listing_id, latitude: l.latitude!, longitude: l.longitude!,
+        title: l.title, pinColor: COLORS.success, type: "product" as const,
+      }));
+    const homeMarkers = viewportHomes
+      .filter((l) => l.latitude != null && l.longitude != null && !existingRentalIds.has(l.listing_id))
+      .map((l) => ({
+        id: l.listing_id, latitude: l.latitude!, longitude: l.longitude!,
+        title: l.title, pinColor: COLORS.rentalsAccent, type: "rental" as const,
+      }));
+    return [...prodMarkers, ...homeMarkers];
+  }, [viewportProducts, viewportHomes, rentals]);
 
   const handleMapRegionChange = useCallback((bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
@@ -821,6 +864,7 @@ export default function LocatorScreen() {
               : []
           }
           jobs={activeTab === "jobs" ? jobs : []}
+          extraMarkers={extraMarkers}
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
@@ -833,6 +877,10 @@ export default function LocatorScreen() {
             if (activeTab === "jobs") { pushEntityRoute(router, entityRoutes.job(id), () => showInvalidEntityAlert(t)); return; }
             if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
+            const prod = viewportProducts.find(p => p.listing_id === id);
+            if (prod) { pushEntityRoute(router, entityRoutes.listing(id), () => showInvalidEntityAlert(t)); return; }
+            const home = viewportHomes.find(h => h.listing_id === id);
+            if (home) { pushEntityRoute(router, entityRoutes.rental(id), () => showInvalidEntityAlert(t)); return; }
           }}
           disabled={!contextLocation}
           disabledHint="Tap to enable location"
