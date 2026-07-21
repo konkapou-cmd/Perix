@@ -132,28 +132,18 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       Alert.alert(t("common.error", "Error"), t("common.titleRequired", "Title is required"));
       return;
     }
-    if (status === "published" && !hasCoordinates) {
-      Alert.alert(
-        t("common.error", "Error"),
-        t("marketplace.locationRequired", "Wähle vor der Veröffentlichung eine Adresse aus den Vorschlägen aus."),
-      );
-      return;
-    }
-    if (status === "published" && locationVisibility === "approximate" && !publicLocationLabel.trim()) {
-      Alert.alert(
-        t("common.error", "Error"),
-        t("marketplace.publicLabelRequired", "Gib eine öffentliche Ortsangabe an, z.B. Berlin-Mitte."),
-      );
-      return;
-    }
 
-    if (isProduct && status === "published" && !listingCategory) {
-      Alert.alert(t("common.error", "Error"), t("marketplace.categoryRequired", "Bitte wähle eine Kategorie aus."));
-      return;
-    }
-    if (isProduct && status === "published" && !listingSubcategory) {
-      Alert.alert(t("common.error", "Error"), t("marketplace.subcategoryRequired", "Bitte wähle eine Unterkategorie aus."));
-      return;
+    let effectiveStatus: ListingStatus = status;
+    if (status === "published") {
+      if (!hasCoordinates) {
+        effectiveStatus = "draft";
+      } else if (locationVisibility === "approximate" && !publicLocationLabel.trim()) {
+        effectiveStatus = "draft";
+      } else if (isProduct && !listingCategory) {
+        effectiveStatus = "draft";
+      } else if (isProduct && !listingSubcategory) {
+        effectiveStatus = "draft";
+      }
     }
 
     setSaving(true);
@@ -164,7 +154,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         title: title.trim(),
         description: description || null,
         price: price || null,
-        status,
+        status: effectiveStatus,
         address: address || null,
         latitude: latitude ?? null,
         longitude: longitude ?? null,
@@ -197,8 +187,17 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         const created = await createListing(sessionToken, payload);
         onCreated?.(created.listing_id);
       }
-      onSaveProp();
-      onClose();
+
+      if (effectiveStatus !== status) {
+        setStatus("draft");
+        Alert.alert(
+          t("common.savedAsDraft", "Als Entwurf gespeichert"),
+          t("marketplace.draftLocationHint", "Füge eine verifizierte Adresse hinzu, bevor du veröffentlichst."),
+        );
+      } else {
+        onSaveProp();
+        onClose();
+      }
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e?.message || t("common.saveFailed", "Failed to save listing"));
     }

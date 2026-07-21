@@ -137,11 +137,25 @@ export default function HomeScreen() {
   } = feedData;
 
   const [marketplaceItems, setMarketplaceItems] = useState<Listing[]>([]);
+  const [viewportProducts, setViewportProducts] = useState<Listing[]>([]);
+  const [viewportHomes, setViewportHomes] = useState<Listing[]>([]);
   useFocusEffect(
     useCallback(() => {
       getListings({ listingType: "product" }).then(setMarketplaceItems).catch(() => {});
     }, []),
   );
+
+  useEffect(() => {
+    if (!mapBounds) return;
+    const bounds = { minLat: mapBounds.minLat, maxLat: mapBounds.maxLat, minLng: mapBounds.minLng, maxLng: mapBounds.maxLng };
+    Promise.all([
+      getListings({ listingType: "product", ...bounds, limit: 100 }).catch(() => [] as Listing[]),
+      getListings({ listingType: "home_rental", ...bounds, limit: 100 }).catch(() => [] as Listing[]),
+    ]).then(([products, homes]) => {
+      setViewportProducts(products);
+      setViewportHomes(homes);
+    });
+  }, [mapBounds]);
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");
@@ -732,6 +746,8 @@ export default function HomeScreen() {
             rentals={rentals}
             jobs={jobs}
             services={sortedServices}
+            products={viewportProducts}
+            ownerHomes={viewportHomes}
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
             }}
@@ -992,25 +1008,49 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {marketplaceItems.length > 0 && homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
+        {viewportProducts.length > 0 && homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
           <CarouselSection
-            title={t("home.marketplace", "Marketplace")}
+            title={t("marketplace.productsInArea", "Produkte in der Nähe")}
             icon="pricetag"
-            color={COLORS.warning}
+            color={COLORS.success}
             seeAllRoute="/marketplace/items"
-            emptyMessage={t("marketplace.noItems", "No items for sale nearby")}
+            emptyMessage={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
           >
-            {marketplaceItems.map((item) => (
+            {viewportProducts.map((item) => (
               <CarouselCard
                 key={item.listing_id}
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
                 videoUrl={item.video_url}
                 title={item.title}
-                subtitle={`${t("marketplace.forSale", "For sale")}${item.price ? ` · ${item.price}` : ""}`}
-                thirdLine={item.address || ""}
+                subtitle={`${item.price || ""}`}
+                thirdLine={item.public_location_label || item.address || ""}
                 onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="pricetag"
+              />
+            ))}
+          </CarouselSection>
+        )}
+
+        {viewportHomes.length > 0 && homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
+          <CarouselSection
+            title={t("marketplace.homesInArea", "Unterkünfte in der Nähe")}
+            icon="home"
+            color={COLORS.rentalsAccent}
+            seeAllRoute="/marketplace/homes"
+            emptyMessage={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
+          >
+            {viewportHomes.map((item) => (
+              <CarouselCard
+                key={item.listing_id}
+                imageUrl={item.cover_image_url || item.image_urls?.[0]}
+                videoUrl={item.video_url}
+                title={item.title}
+                subtitle={`${item.price || ""}`}
+                thirdLine={item.public_location_label || item.address || ""}
+                onPress={() => pushEntityRoute(router, entityRoutes.rental(item.listing_id), () => showInvalidEntityAlert(t))}
+                isSaved={false}
+                fallbackIcon="home"
               />
             ))}
           </CarouselSection>
