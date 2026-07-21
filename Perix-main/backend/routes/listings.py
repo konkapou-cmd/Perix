@@ -108,52 +108,35 @@ def public_listing_location(doc: dict) -> dict:
     return result
 
 
+def has_publishable_location(address, lat, lng, vis, public_label) -> bool:
+    if not address or not address.strip():
+        return False
+    if lat is None or lng is None:
+        return False
+    if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
+        return False
+    if vis == "approximate" and (not public_label or not public_label.strip()):
+        return False
+    return True
+
+
 def validate_location(address, lat, lng, status, listing_type="product", category=None, subcategory=None, vis: Optional[LocationVisibility] = None, public_label: Optional[str] = None):
+    if lat is not None and lng is not None:
+        if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
+            raise HTTPException(status_code=400, detail="Invalid coordinate range.")
+
     if status != "published":
         return
-    if not address or not address.strip():
-        raise HTTPException(
-            status_code=400,
-            detail="A verified location is required.",
-        )
-    if lat is None or lng is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Select an address from the suggestions.",
-        )
-    if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid coordinate range.",
-        )
-    if vis == "approximate" and (not public_label or not public_label.strip()):
-        raise HTTPException(
-            status_code=400,
-            detail="A public location label is required for approximate visibility.",
-        )
     if listing_type == "product" and (not category or not category.strip()):
-        raise HTTPException(
-            status_code=400,
-            detail="A category is required to publish.",
-        )
+        raise HTTPException(status_code=400, detail="A category is required to publish.")
     if listing_type == "product" and (not subcategory or not subcategory.strip()):
-        raise HTTPException(
-            status_code=400,
-            detail="A subcategory is required to publish.",
-        )
-
+        raise HTTPException(status_code=400, detail="A subcategory is required to publish.")
     if listing_type == "product" and category:
         canonical = normalize_category(category.strip())
         if canonical not in MARKETPLACE_SUBCATEGORIES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid marketplace category: {category}",
-            )
+            raise HTTPException(status_code=400, detail=f"Invalid marketplace category: {category}")
         if subcategory and subcategory.strip() not in MARKETPLACE_SUBCATEGORIES[canonical]:
-            raise HTTPException(
-                status_code=400,
-                detail="Subcategory does not belong to the selected category.",
-            )
+            raise HTTPException(status_code=400, detail="Subcategory does not belong to the selected category.")
 
 
 @router.post("", response_model=ListingResponse)
@@ -171,7 +154,15 @@ async def create_listing(
         payload.location_visibility, payload.public_location_label,
     )
 
+    effective_status = payload.status
+    if effective_status == "published" and not has_publishable_location(
+        payload.address, payload.latitude, payload.longitude,
+        payload.location_visibility, payload.public_location_label,
+    ):
+        effective_status = "draft"
+
     dump = payload.model_dump()
+    dump["status"] = effective_status
     if payload.listing_type == "product" and dump.get("category"):
         dump["category"] = normalize_category(dump["category"])
 
@@ -374,6 +365,13 @@ async def update_listing(
         effective_category, effective_subcategory,
         effective_vis, effective_label,
     )
+
+    if effective_status == "published" and not has_publishable_location(
+        effective_address, effective_lat, effective_lng,
+        effective_vis, effective_label,
+    ):
+        effective_status = "draft"
+        update_data["status"] = "draft"
 
     if doc.get("listing_type") == "product" and update_data.get("category"):
         update_data["category"] = normalize_category(update_data["category"])
