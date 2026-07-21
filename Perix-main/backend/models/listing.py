@@ -4,6 +4,8 @@ from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 
 LocationVisibility = Literal["approximate", "exact"]
+SellerType = Literal["user", "business"]
+PublicationScope = Literal["profile_only", "profile_and_marketplace"]
 
 CATEGORY_ALIASES: dict = {
     "home_garden_diy": ["home_garden_diy", "home_garden"],
@@ -31,6 +33,10 @@ class ListingCreate(BaseModel):
     subcategory: Optional[str] = None
     attributes: Dict[str, Any] = Field(default_factory=dict)
     status: str = "draft"  # draft | published | sold | rented
+    seller_type: SellerType = "user"
+    seller_id: Optional[str] = None
+    business_id: Optional[str] = None
+    publication_scope: PublicationScope = "profile_and_marketplace"
 
     # Product fields
     condition: Optional[str] = None  # new | like_new | good | used
@@ -78,6 +84,10 @@ class ListingUpdate(BaseModel):
     lease_duration: Optional[str] = None
     deposit: Optional[str] = None
     is_active: Optional[bool] = None
+    seller_type: Optional[SellerType] = None
+    seller_id: Optional[str] = None
+    business_id: Optional[str] = None
+    publication_scope: Optional[PublicationScope] = None
 
 
 class ListingResponse(BaseModel):
@@ -103,6 +113,10 @@ class ListingResponse(BaseModel):
     status: str
     is_active: bool = True
     created_at: datetime
+    seller_type: SellerType = "user"
+    seller_id: Optional[str] = None
+    business_id: Optional[str] = None
+    publication_scope: PublicationScope = "profile_and_marketplace"
 
     # Product
     condition: Optional[str] = None
