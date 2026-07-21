@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from typing import Optional
 from database import db
 from models.user import UserPublic
-from models.listing import ListingCreate, ListingUpdate, ListingResponse, LocationVisibility, CATEGORY_ALIASES, SellerType, PublicationScope
+from models.listing import ListingCreate, ListingUpdate, ListingResponse, LocationVisibility, CATEGORY_ALIASES
 from utils.helpers import generate_id, now_utc
 from routes.dependencies import get_current_user
 
@@ -150,15 +150,22 @@ async def create_listing(
     if payload.listing_type not in ("product", "home_rental"):
         raise HTTPException(status_code=400, detail="listing_type must be 'product' or 'home_rental'")
 
-    # Resolve seller identity
-    seller_id = payload.seller_id or current_user.user_id
+    # Resolve seller identity — server-controlled, never trust client seller_id
     if payload.seller_type == "business":
         if not payload.business_id:
             raise HTTPException(status_code=400, detail="business_id is required for seller_type=business")
         biz = await db.businesses.find_one({"business_id": payload.business_id})
-        if not biz or biz.get("owner_id") != current_user.user_id:
+        if not biz:
+            raise HTTPException(status_code=404, detail="Business not found")
+        if biz.get("owner_id") != current_user.user_id:
             raise HTTPException(status_code=403, detail="Not authorized to create listings for this business")
-        seller_id = payload.business_id
+        seller_type_val = "business"
+        seller_id_val = payload.business_id
+        business_id_val = payload.business_id
+    else:
+        seller_type_val = "user"
+        seller_id_val = current_user.user_id
+        business_id_val = None
 
     validate_coordinates(payload.latitude, payload.longitude)
 
@@ -173,7 +180,9 @@ async def create_listing(
 
     dump = payload.model_dump()
     dump["status"] = effective_status
-    dump["seller_id"] = seller_id
+    dump["seller_type"] = seller_type_val
+    dump["seller_id"] = seller_id_val
+    dump["business_id"] = business_id_val
     if payload.listing_type == "product" and dump.get("category"):
         dump["category"] = normalize_category(dump["category"])
 
@@ -220,22 +229,30 @@ async def list_listings(
     if listing_type:
         query["listing_type"] = listing_type
 
-    # Include listings published to marketplace, or those lacking the field (backward compat)
-    if not seller_id:
+    # Always enforce Marketplace visibility for public queries
+    # Exclude profile-only listings unless specifically requesting by seller_id
+    if seller_id:
+        query["seller_id"] = seller_id
+    else:
         query["$or"] = [
             {"publication_scope": "profile_and_marketplace"},
             {"publication_scope": {"$exists": False}},
         ]
+
     if seller_type:
         query["seller_type"] = seller_type
-    if seller_id:
-        query["seller_id"] = seller_id
 
     if q and q.strip():
         terms = escape_regex(q.strip())
-        query["$or"] = [
-            {f: {"$regex": terms, "$options": "i"}} for f in SEARCHABLE_FIELDS
-        ]
+        clauses = query.get("$and", [dict(query)])
+        clauses.append({
+            "$or": [
+                {f: {"$regex": terms, "$options": "i"}} for f in SEARCHABLE_FIELDS
+            ]
+        })
+        clean = {k: v for k, v in query.items() if k not in ("$or", "$and")}
+        clean["$and"] = clauses
+        query = clean
 
     if category:
         aliases = CATEGORY_ALIASES.get(category, [category])
@@ -347,6 +364,47 @@ async def list_my_listings(
     return [ListingResponse(**doc) for doc in docs]
 
 
+@router.get("/seller/user/{user_id}", response_model=list[ListingResponse])
+async def get_user_seller_listings(user_id: str):
+    docs = await db.listings.find(
+        {
+            "$or": [
+                {"seller_type": "user", "seller_id": user_id},
+                {"owner_id": user_id, "seller_type": {"$exists": False}, "seller_id": {"$exists": False}},
+            ],
+            "listing_type": "product",
+            "status": "published",
+            "is_active": True,
+        },
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(100)
+    return [ListingResponse(**public_listing_location(doc)) for doc in docs]
+
+
+@router.get("/seller/business/{business_id}", response_model=list[ListingResponse])
+async def get_business_seller_listings(business_id: str):
+    docs = await db.listings.find(
+        {"seller_type": "business", "business_id": business_id, "listing_type": "product", "status": "published", "is_active": True},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(100)
+    return [ListingResponse(**public_listing_location(doc)) for doc in docs]
+
+
+@router.get("/manage", response_model=list[ListingResponse])
+async def manage_listings(
+    seller_type: Optional[str] = Query(None),
+    seller_id: Optional[str] = Query(None),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    query: dict = {"owner_id": current_user.user_id}
+    if seller_type:
+        query["seller_type"] = seller_type
+    if seller_id:
+        query["seller_id"] = seller_id
+    docs = await db.listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [ListingResponse(**doc) for doc in docs]
+
+
 @router.get("/{listing_id}", response_model=ListingResponse)
 async def get_listing(listing_id: str):
     doc = await db.listings.find_one(
@@ -371,6 +429,11 @@ async def update_listing(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     update_data = payload.model_dump(exclude_unset=True)
+
+    # Seller identity is immutable — strip from update
+    update_data.pop("seller_type", None)
+    update_data.pop("seller_id", None)
+    update_data.pop("business_id", None)
 
     # Compute effective state: explicit update or existing value
     effective_status = update_data.get("status", doc.get("status", "draft"))
@@ -405,39 +468,6 @@ async def update_listing(
 
     doc = await db.listings.find_one({"listing_id": listing_id})
     return ListingResponse(**doc)
-
-
-@router.get("/seller/user/{user_id}", response_model=list[ListingResponse])
-async def get_user_seller_listings(user_id: str):
-    docs = await db.listings.find(
-        {"seller_type": "user", "seller_id": user_id, "status": "published", "is_active": True},
-        {"_id": 0},
-    ).sort("created_at", -1).to_list(100)
-    return [ListingResponse(**public_listing_location(doc)) for doc in docs]
-
-
-@router.get("/seller/business/{business_id}", response_model=list[ListingResponse])
-async def get_business_seller_listings(business_id: str):
-    docs = await db.listings.find(
-        {"seller_type": "business", "business_id": business_id, "status": "published", "is_active": True},
-        {"_id": 0},
-    ).sort("created_at", -1).to_list(100)
-    return [ListingResponse(**public_listing_location(doc)) for doc in docs]
-
-
-@router.get("/manage", response_model=list[ListingResponse])
-async def manage_listings(
-    seller_type: Optional[str] = Query(None),
-    seller_id: Optional[str] = Query(None),
-    current_user: UserPublic = Depends(get_current_user),
-):
-    query: dict = {"owner_id": current_user.user_id}
-    if seller_type:
-        query["seller_type"] = seller_type
-    if seller_id:
-        query["seller_id"] = seller_id
-    docs = await db.listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
-    return [ListingResponse(**doc) for doc in docs]
 
 
 @router.delete("/{listing_id}")
