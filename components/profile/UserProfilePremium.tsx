@@ -32,6 +32,8 @@ import { ProfileMedia } from "./ProfileMedia";
 import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
+import { Listing } from "../../lib/api/listings";
+import ProfileItemsSection from "../marketplace/ProfileItemsSection";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import FriendsCarousel from "../FriendsCarousel";
 import { FriendsSection } from "../shared/FriendsSection";
@@ -118,6 +120,11 @@ interface UserProfilePremiumProps {
   onOpenBookings?: () => void;
   onViewFriends?: () => void;
   initialSavedPostIds?: Set<string>;
+  userListings?: Listing[];
+  onAddItem?: () => void;
+  onEditItem?: (listing: Listing) => void;
+  onToggleMarketplace?: (listing: Listing) => void;
+  onDeleteItem?: (listing: Listing) => void;
 }
 
 export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
@@ -186,6 +193,11 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   onOpenBookings,
   onViewFriends,
   initialSavedPostIds,
+  userListings = [],
+  onAddItem,
+  onEditItem,
+  onToggleMarketplace,
+  onDeleteItem,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -211,8 +223,11 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     if (onOpenBookings) {
       base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
     }
+    if (userListings.length > 0 || onAddItem) {
+      base.push({ key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetags-outline", count: userListings.length });
+    }
     return base;
-  }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t]);
+  }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, onAddItem]);
 
   const theme = user.theme;
   const { themeStyles, themeColors } = useThemeStyles(theme);
@@ -403,6 +418,16 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           cardColor={cardColor}
           textColor={textColor}
           secondaryColor={secondaryColor}
+        />
+      )}
+      {activeTab === "items" && (
+        <ProfileItemsSection
+          listings={userListings}
+          isOwner={isOwnProfile ?? false}
+          onAdd={() => onAddItem?.()}
+          onEdit={(l) => onEditItem?.(l)}
+          onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
+          onDelete={(l) => onDeleteItem?.(l)}
         />
       )}
     </View>
