@@ -6,7 +6,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
-import { ListingType, ListingStatus, ListingCreatePayload, Listing, LocationVisibility } from "../../lib/api/listings";
+import { ListingType, ListingStatus, ListingCreatePayload, Listing, LocationVisibility, SellerType, PublicationScope } from "../../lib/api/listings";
 import { createListing, updateListing } from "../../lib/api/listings";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
@@ -19,6 +19,10 @@ type Props = {
   listingType: ListingType;
   editingListing?: Listing | null;
   sessionToken: string;
+  businessId?: string | null;
+  businessAddress?: string | null;
+  businessLatitude?: number | null;
+  businessLongitude?: number | null;
   onClose: () => void;
   onSave: () => void;
   onCreated?: (listingId: string) => void;
@@ -42,7 +46,7 @@ function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_ima
   };
 }
 
-export default function ListingModal({ visible, listingType, editingListing, sessionToken, onClose, onSave: onSaveProp, onCreated }: Props) {
+export default function ListingModal({ visible, listingType, editingListing, sessionToken, businessId, businessAddress, businessLatitude, businessLongitude, onClose, onSave: onSaveProp, onCreated }: Props) {
   const { t } = useTranslation();
   const isProduct = listingType === "product";
   const isEditing = !!editingListing;
@@ -78,6 +82,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [listingSubcategory, setListingSubcategory] = useState("");
   const [listingAttributes, setListingAttributes] = useState<Record<string, any>>({});
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
+  const [sellerType, setSellerType] = useState<SellerType>(businessId ? "business" : "user");
+  const [sellerBusinessId, setSellerBusinessId] = useState<string | null>(businessId ?? null);
+  const [scope, setScope] = useState<PublicationScope>("profile_and_marketplace");
 
   const hasCoordinates = useMemo(
     () => Number.isFinite(latitude) && Number.isFinite(longitude),
@@ -110,6 +117,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setListingCategory(cat);
       setListingSubcategory(editingListing.subcategory || "");
       setListingAttributes(editingListing.attributes || {});
+      setSellerType(editingListing.seller_type || "user");
+      setSellerBusinessId(editingListing.business_id ?? null);
+      setScope(editingListing.publication_scope || "profile_and_marketplace");
       // Load existing media
       const items: MediaItem[] = [];
       (editingListing.image_urls || []).forEach((u) => items.push({ uri: u, type: "image" }));
@@ -124,6 +134,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setPropertyType("apartment"); setBedrooms(""); setBathrooms("");
       setSizeSqm(""); setFurnished(false); setAvailableFrom(""); setLeaseDuration(""); setDeposit("");
       setListingCategory(""); setListingSubcategory(""); setListingAttributes({});
+      setSellerType(businessId ? "business" : "user");
+      setSellerBusinessId(businessId ?? null);
+      setScope("profile_and_marketplace");
     }
   }, [visible, editingListing]);
 
@@ -163,6 +176,10 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         category: listingCategory || null,
         subcategory: listingSubcategory || null,
         attributes: Object.keys(listingAttributes).length > 0 ? listingAttributes : null,
+        seller_type: sellerType,
+        seller_id: sellerType === "business" ? sellerBusinessId : undefined,
+        business_id: sellerType === "business" ? sellerBusinessId : undefined,
+        publication_scope: scope,
         cover_image_url: mediaFields.cover_image_url || null,
         image_urls: mediaFields.image_urls,
         gallery_images: mediaFields.gallery_images,
@@ -274,6 +291,30 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                     values={listingAttributes}
                     onChange={(key, val) => setListingAttributes((prev) => ({ ...prev, [key]: val }))}
                   />
+                )}
+
+                <Pressable
+                  style={[styles.toggle, scope === "profile_and_marketplace" && styles.toggleActive]}
+                  onPress={() => setScope(scope === "profile_and_marketplace" ? "profile_only" : "profile_and_marketplace")}
+                >
+                  <Ionicons name={scope === "profile_and_marketplace" ? "checkbox" : "square-outline"} size={20} color={scope === "profile_and_marketplace" ? COLORS.primary : COLORS.textMuted} />
+                  <Text style={styles.toggleText}>{t("marketplace.showInMarketplace", "Im Marktplatz anzeigen")}</Text>
+                </Pressable>
+
+                {businessId && (
+                  <Pressable
+                    style={styles.toggle}
+                    onPress={() => {
+                      if (address) {
+                        setAddress(""); setLatitude(undefined); setLongitude(undefined);
+                      } else {
+                        setAddress(businessAddress || ""); setLatitude(businessLatitude ?? undefined); setLongitude(businessLongitude ?? undefined);
+                      }
+                    }}
+                  >
+                    <Ionicons name={address === businessAddress ? "checkbox" : "square-outline"} size={20} color={address === businessAddress ? COLORS.primary : COLORS.textMuted} />
+                    <Text style={styles.toggleText}>{t("marketplace.useBusinessAddress", "Geschäftsadresse verwenden")}</Text>
+                  </Pressable>
                 )}
 
                 <View style={{ height: SPACING.section }} />

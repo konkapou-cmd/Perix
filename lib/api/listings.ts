@@ -4,6 +4,14 @@ export type ListingType = "product" | "home_rental";
 export type ListingStatus = "draft" | "published" | "sold" | "rented";
 
 export type LocationVisibility = "approximate" | "exact";
+export type SellerType = "user" | "business";
+export type PublicationScope = "profile_only" | "profile_and_marketplace";
+
+export type ListingSeller = {
+  type: SellerType;
+  id: string;
+  business_id?: string;
+};
 
 export type Listing = {
   listing_id: string;
@@ -28,6 +36,10 @@ export type Listing = {
   status: ListingStatus;
   is_active: boolean;
   created_at: string;
+  seller_type: SellerType;
+  seller_id?: string;
+  business_id?: string;
+  publication_scope: PublicationScope;
   condition?: string;
   brand?: string;
   delivery_method?: string;
@@ -59,6 +71,10 @@ export type ListingCreatePayload = {
   category?: string | null;
   subcategory?: string | null;
   attributes?: Record<string, string | number | boolean | string[]> | null;
+  seller_type?: SellerType;
+  seller_id?: string | null;
+  business_id?: string | null;
+  publication_scope?: PublicationScope;
   status?: ListingStatus;
   condition?: string | null;
   brand?: string | null;
@@ -179,4 +195,24 @@ export const deleteListing = async (
   listingId: string,
 ): Promise<{ status: string }> => {
   return apiRequest<{ status: string }>(`/listings/${listingId}`, "DELETE", token);
+};
+
+export const getUserSellerListings = async (userId: string): Promise<Listing[]> => {
+  return apiRequest<Listing[]>(`/listings/seller/user/${userId}`, "GET");
+};
+
+export const getBusinessSellerListings = async (businessId: string): Promise<Listing[]> => {
+  return apiRequest<Listing[]>(`/listings/seller/business/${businessId}`, "GET");
+};
+
+export const getManageListings = async (
+  token: string,
+  sellerType?: SellerType,
+  sellerId?: string,
+): Promise<Listing[]> => {
+  const params = new URLSearchParams();
+  if (sellerType) params.append("seller_type", sellerType);
+  if (sellerId) params.append("seller_id", sellerId);
+  const qs = params.toString() ? `?${params}` : "";
+  return apiRequest<Listing[]>(`/listings/manage${qs}`, "GET", token);
 };
