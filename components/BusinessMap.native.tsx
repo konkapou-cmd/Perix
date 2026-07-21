@@ -38,7 +38,10 @@ type Props = {
   activities?: ActivityItem[];
   artists?: ArtistSearchResult[];
   rentals?: Rental[];
+  jobs?: Job[];
+  services?: Service[];
   markers?: MapMarker[];
+  extraMarkers?: MapMarker[];
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
@@ -89,6 +92,7 @@ export default function BusinessMap({
   jobs = [] as Job[],
   services = [] as Service[],
   markers,
+  extraMarkers,
   showUserLocation = false,
   onRegionChange,
   onRegionChangeComplete,
@@ -99,7 +103,7 @@ export default function BusinessMap({
   disabledHint = "Tap to enable location",
   staticMode = false,
 }: Props) {
-  const mapMarkers: MapMarker[] = markers ?? [
+  const generatedMarkers: MapMarker[] = [
     ...businesses
       .filter(b => b.latitude != null && b.longitude != null)
       .map((business) => ({
@@ -178,6 +182,11 @@ export default function BusinessMap({
         type: "service" as const,
         pinColor: COLORS.servicesAccent,
       })),
+  ];
+
+  const mapMarkers: MapMarker[] = markers ?? [
+    ...generatedMarkers,
+    ...(extraMarkers ?? []),
   ];
 
   const resolvedInitialRegion = initialRegion || (location ? {

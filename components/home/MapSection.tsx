@@ -37,15 +37,21 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
       type: "product" as const,
     })), [products]);
 
-  const homeMarkers = useMemo(() =>
-    (ownerHomes || []).filter(l => l.latitude != null && l.longitude != null).map(l => ({
+  const homeMarkers = useMemo(() => {
+    const existingRentalIds = new Set(
+      rentals.map((r) => getRentalNavigationId(r as any)).filter(Boolean) as string[],
+    );
+    return (ownerHomes || []).filter(h => h.latitude != null && h.longitude != null && !existingRentalIds.has(h.listing_id)).map(l => ({
       id: l.listing_id,
       latitude: l.latitude!,
       longitude: l.longitude!,
       title: l.title,
       pinColor: COLORS.rentalsAccent,
       type: "rental" as const,
-    })), [ownerHomes]);
+    }));
+  }, [ownerHomes, rentals]);
+
+  const extraMarkers = useMemo(() => [...productMarkers, ...homeMarkers], [productMarkers, homeMarkers]);
 
   const handleMarkerPress = (id: string) => {
     const biz = businesses.find(b => b.business_id === id);
@@ -92,7 +98,7 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
             onRegionChange({ minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng });
           }}
           onMarkerPress={handleMarkerPress}
-          markers={[...productMarkers, ...homeMarkers]}
+          extraMarkers={extraMarkers}
           disabled={false}
         />
         <Pressable style={styles.recenterButton} onPress={handleRecenter}>

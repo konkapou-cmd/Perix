@@ -136,12 +136,11 @@ export default function HomeScreen() {
     feedError, loading: feedLoading, backgroundLoading, refresh: refreshFeed,
   } = feedData;
 
-  const [marketplaceItems, setMarketplaceItems] = useState<Listing[]>([]);
   const [viewportProducts, setViewportProducts] = useState<Listing[]>([]);
   const [viewportHomes, setViewportHomes] = useState<Listing[]>([]);
   useFocusEffect(
     useCallback(() => {
-      getListings({ listingType: "product" }).then(setMarketplaceItems).catch(() => {});
+      // viewport fetch handled by useEffect below
     }, []),
   );
 
@@ -1008,7 +1007,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {viewportProducts.length > 0 && homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
           <CarouselSection
             title={t("marketplace.productsInArea", "Produkte in der Nähe")}
             icon="pricetag"
@@ -1016,7 +1015,7 @@ export default function HomeScreen() {
             seeAllRoute="/marketplace/items"
             emptyMessage={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
           >
-            {viewportProducts.map((item) => (
+            {viewportProducts.length > 0 && viewportProducts.map((item) => (
               <CarouselCard
                 key={item.listing_id}
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
@@ -1032,7 +1031,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {viewportHomes.length > 0 && homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
           <CarouselSection
             title={t("marketplace.homesInArea", "Unterkünfte in der Nähe")}
             icon="home"
@@ -1040,7 +1039,7 @@ export default function HomeScreen() {
             seeAllRoute="/marketplace/homes"
             emptyMessage={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
           >
-            {viewportHomes.map((item) => (
+            {viewportHomes.length > 0 && viewportHomes.map((item) => (
               <CarouselCard
                 key={item.listing_id}
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}

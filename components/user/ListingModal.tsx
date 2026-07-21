@@ -189,15 +189,13 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       }
 
       if (effectiveStatus !== status) {
-        setStatus("draft");
         Alert.alert(
           t("common.savedAsDraft", "Als Entwurf gespeichert"),
           t("marketplace.draftLocationHint", "Füge eine verifizierte Adresse hinzu, bevor du veröffentlichst."),
         );
-      } else {
-        onSaveProp();
-        onClose();
       }
+      onSaveProp();
+      onClose();
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e?.message || t("common.saveFailed", "Failed to save listing"));
     }
