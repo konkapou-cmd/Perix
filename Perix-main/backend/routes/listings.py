@@ -229,18 +229,17 @@ async def list_listings(
     if listing_type:
         query["listing_type"] = listing_type
 
-    # Always enforce Marketplace visibility for public queries
-    # Exclude profile-only listings unless specifically requesting by seller_id
-    if seller_id:
-        query["seller_id"] = seller_id
-    else:
-        query["$or"] = [
-            {"publication_scope": "profile_and_marketplace"},
-            {"publication_scope": {"$exists": False}},
-        ]
+    # Generic discovery always enforces Marketplace projection
+    # Profile-only listings are retrievable only through /seller/user/ and /seller/business/
+    query["$or"] = [
+        {"publication_scope": "profile_and_marketplace"},
+        {"publication_scope": {"$exists": False}},
+    ]
 
     if seller_type:
         query["seller_type"] = seller_type
+    if seller_id:
+        query["seller_id"] = seller_id
 
     if q and q.strip():
         terms = escape_regex(q.strip())
