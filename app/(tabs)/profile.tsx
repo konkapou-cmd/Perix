@@ -560,16 +560,18 @@ export default function ProfileScreen() {
 
   const loadUserProfile = async () => {
     if (!sessionToken || !user) return;
+    const requestId = ++userListingsRequestRef.current;
     try {
-      // Use getUserPublicProfile to get the same data as the public profile page
-      // This ensures consistency between private and public views
       const data = await getUserPublicProfile(sessionToken, user.user_id);
       setUserPosts(data.posts || []);
 
       const listings = await getManageListings(sessionToken, "user", user.user_id);
+      if (requestId !== userListingsRequestRef.current) return;
       setUserListings(listings.filter(l => l.listing_type === "product"));
-    } catch (e) {
-      // silently fail
+    } catch {
+      if (requestId === userListingsRequestRef.current) {
+        setUserListings([]);
+      }
     }
   };
 
@@ -1147,6 +1149,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [businessListings, setBusinessListings] = useState<Listing[]>([]);
   const [userListings, setUserListings] = useState<Listing[]>([]);
   const bizListingsRequestRef = useRef(0);
+  const userListingsRequestRef = useRef(0);
   const [listingModalVisible, setListingModalVisible] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
@@ -1182,8 +1185,12 @@ const handleUpdateSlug = async (newSlug: string) => {
   const loadBusinessFullData = async (bizId: string) => {
     if (!sessionToken) return;
     const requestId = ++bizListingsRequestRef.current;
+    setBusinessListings([]);
     try {
-      const data = await getBusinessDetail(sessionToken, bizId);
+      const [data, listings] = await Promise.all([
+        getBusinessDetail(sessionToken, bizId),
+        getManageListings(sessionToken, "business", bizId),
+      ]);
       if (requestId !== bizListingsRequestRef.current) return;
       setBusinessDetail(data);
       setBizEvents(data.events || []);
@@ -1194,11 +1201,11 @@ const handleUpdateSlug = async (newSlug: string) => {
       setBusinessSocialLinks(data.business.social_links || {});
       setBizGalleryImages(data.business.gallery_images || []);
       setBizGalleryVideos(data.business.gallery_videos || []);
-
-      const listings = await getManageListings(sessionToken, "business", bizId);
-      if (requestId !== bizListingsRequestRef.current) return;
       setBusinessListings(listings.filter(l => l.listing_type === "product"));
-    } catch (e) {
+    } catch {
+      if (requestId === bizListingsRequestRef.current) {
+        setBusinessListings([]);
+      }
     }
   };
 
@@ -2366,8 +2373,10 @@ currentUserId={businessDetail?.business?.business_id}
         businessPublicLocationLabel={(() => {
           const addr = businessDetail?.business?.address;
           if (!addr) return null;
-          const parts = addr.split(",").map(s => s.trim());
-          return parts.length >= 2 ? parts[parts.length - 2] : parts[0];
+          const parts = addr.split(",").map(s => s.trim()).filter(Boolean);
+          if (parts.length >= 3) return parts[parts.length - 2];
+          if (parts.length === 2) return parts[1];
+          return parts[0] ?? null;
         })()}
         onClose={() => { setListingModalVisible(false); setEditingListing(null); }}
         onSave={handleSaveListing}
