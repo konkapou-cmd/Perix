@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { getListings, Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
 import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes";
-import { getCategoryConfig } from "../../lib/marketplace/marketplaceTaxonomy";
+import { getCategoryConfig, getCategoryAttributes } from "../../lib/marketplace/marketplaceTaxonomy";
 import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
 import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
@@ -40,6 +40,19 @@ export default function MarketplaceItemsPage() {
   const [bounds, setBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
   const [categoryFilterVisible, setCategoryFilterVisible] = useState(false);
   const skipRef = useRef(0);
+  const attrTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleAttrChange = useCallback((key: string, value: string) => {
+    if (attrTimeoutRef.current) clearTimeout(attrTimeoutRef.current);
+    attrTimeoutRef.current = setTimeout(() => {
+      setAttributeFilters((prev) => {
+        const next = { ...prev };
+        if (value) next[key] = value;
+        else delete next[key];
+        return next;
+      });
+    }, 300);
+  }, []);
 
   const fetchListings = useCallback(async (reset = false) => {
     setLoading(true);
@@ -128,19 +141,27 @@ export default function MarketplaceItemsPage() {
         visible={categoryFilterVisible}
         category={category}
         subcategory={subcategory}
-        onApply={(cat, sub) => { setCategory(cat); setSubcategory(sub); }}
+        onApply={(cat, sub) => {
+          const validKeys = new Set(
+            getCategoryAttributes(cat, sub || undefined)
+              .filter((a) => a.filterable)
+              .map((a) => a.key),
+          );
+          setAttributeFilters((prev) =>
+            Object.fromEntries(
+              Object.entries(prev).filter(([k]) => validKeys.has(k)),
+            ),
+          );
+          setCategory(cat);
+          setSubcategory(sub);
+        }}
         onClose={() => setCategoryFilterVisible(false)}
       />
       <MarketplaceAttributeFilters
         category={category}
         subcategory={subcategory}
         filters={attributeFilters}
-        onChange={(key, value) => setAttributeFilters((prev) => {
-          const next = { ...prev };
-          if (value) next[key] = value;
-          else delete next[key];
-          return next;
-        })}
+        onChange={handleAttrChange}
       />
       <DiscoveryFilterChips
         chips={conditionChips}
