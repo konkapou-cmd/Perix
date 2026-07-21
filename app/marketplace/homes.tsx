@@ -26,9 +26,10 @@ export default function MarketplaceHomesPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [bounds, setBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
-  const skipRef = useRef(0);
+  const requestIdRef = useRef(0);
 
-  const fetchListings = useCallback(async (reset = false) => {
+  const fetchListings = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     const query: ListingDiscoveryQuery = {
       listingType: "home_rental",
@@ -36,26 +37,22 @@ export default function MarketplaceHomesPage() {
       propertyType: activePropType || undefined,
       furnished: furnishedOnly ? true : undefined,
       minBedrooms: minBeds > 0 ? minBeds : undefined,
-      skip: reset ? 0 : skipRef.current,
-      limit: 50,
+      limit: 100,
     };
-    if (bounds) {
-      Object.assign(query, bounds);
-    }
+    if (bounds) Object.assign(query, bounds);
     try {
       const data = await getListings(query);
-      if (reset) {
-        setListings(data);
-        skipRef.current = data.length;
-      } else {
-        setListings((prev) => [...prev, ...data]);
-        skipRef.current += data.length;
-      }
-    } catch {}
-    setLoading(false);
+      if (requestId !== requestIdRef.current) return;
+      setListings(data);
+    } catch {
+      if (requestId !== requestIdRef.current) return;
+      setListings([]);
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false);
+    }
   }, [search, activePropType, furnishedOnly, minBeds, bounds]);
 
-  useEffect(() => { fetchListings(true); }, [fetchListings]);
+  useEffect(() => { fetchListings(); }, [fetchListings]);
 
   const markers: DiscoveryMapMarker[] = useMemo(
     () =>
@@ -66,7 +63,7 @@ export default function MarketplaceHomesPage() {
           latitude: l.latitude!,
           longitude: l.longitude!,
           title: l.title,
-          color: COLORS.rentalsAccent,
+          color: COLORS.rentalsAccent, type: "rental",
         })),
     [listings],
   );
@@ -109,7 +106,7 @@ export default function MarketplaceHomesPage() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <DiscoveryHeader
         title={t("marketplace.title", "Marktplatz")}
         tab="homes"

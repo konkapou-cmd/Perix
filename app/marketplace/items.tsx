@@ -40,7 +40,7 @@ export default function MarketplaceItemsPage() {
   const [loading, setLoading] = useState(true);
   const [bounds, setBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
   const [categoryFilterVisible, setCategoryFilterVisible] = useState(false);
-  const skipRef = useRef(0);
+  const requestIdRef = useRef(0);
   const attrTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
@@ -82,7 +82,8 @@ export default function MarketplaceItemsPage() {
     ),
   []);
 
-  const fetchListings = useCallback(async (reset = false) => {
+  const fetchListings = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     const query: ListingDiscoveryQuery = {
       listingType: "product",
@@ -93,26 +94,28 @@ export default function MarketplaceItemsPage() {
       pickupAvailable: pickupOnly || undefined,
       shippingAvailable: shippingOnly || undefined,
       attributeFilters: Object.keys(attributeFilters).length > 0 ? attributeFilters : undefined,
-      skip: reset ? 0 : skipRef.current,
-      limit: 50,
+      limit: 100,
     };
     if (bounds) Object.assign(query, bounds);
     try {
       const data = await getListings(query);
-      setListings(reset ? data : (prev) => [...prev, ...data]);
-      if (reset) skipRef.current = data.length;
-      else skipRef.current += data.length;
-    } catch {}
-    setLoading(false);
+      if (requestId !== requestIdRef.current) return;
+      setListings(data);
+    } catch {
+      if (requestId !== requestIdRef.current) return;
+      setListings([]);
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false);
+    }
   }, [search, category, subcategory, activeConditions, pickupOnly, shippingOnly, attributeFilters, bounds]);
 
-  useEffect(() => { fetchListings(true); }, [fetchListings]);
+  useEffect(() => { fetchListings(); }, [fetchListings]);
 
   const markers: DiscoveryMapMarker[] = useMemo(
     () =>
       listings.filter((l) => l.latitude != null && l.longitude != null).map((l) => ({
         id: l.listing_id, latitude: l.latitude!, longitude: l.longitude!,
-        title: l.title, color: COLORS.success,
+        title: l.title, color: COLORS.success, type: "product",
       })),
     [listings],
   );
@@ -138,7 +141,7 @@ export default function MarketplaceItemsPage() {
   const subLabel = subcategory && catConfig ? catConfig.subcategories.find((s) => s.key === subcategory)?.fallback : "";
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <DiscoveryHeader
         title={t("marketplace.title", "Marktplatz")}
         tab="items"

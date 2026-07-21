@@ -138,17 +138,26 @@ export default function HomeScreen() {
 
   const [viewportProducts, setViewportProducts] = useState<Listing[]>([]);
   const [viewportHomes, setViewportHomes] = useState<Listing[]>([]);
+  const viewportRequestRef = useRef(0);
 
   useEffect(() => {
     if (!mapBounds) return;
     const bounds = { minLat: mapBounds.minLat, maxLat: mapBounds.maxLat, minLng: mapBounds.minLng, maxLng: mapBounds.maxLng };
+    const requestId = ++viewportRequestRef.current;
     Promise.all([
-      getListings({ listingType: "product", ...bounds, limit: 100 }).catch(() => [] as Listing[]),
-      getListings({ listingType: "home_rental", ...bounds, limit: 100 }).catch(() => [] as Listing[]),
-    ]).then(([products, homes]) => {
-      setViewportProducts(products);
-      setViewportHomes(homes);
-    });
+      getListings({ listingType: "product", ...bounds, limit: 100 }),
+      getListings({ listingType: "home_rental", ...bounds, limit: 100 }),
+    ])
+      .then(([products, homes]) => {
+        if (requestId !== viewportRequestRef.current) return;
+        setViewportProducts(products);
+        setViewportHomes(homes);
+      })
+      .catch(() => {
+        if (requestId !== viewportRequestRef.current) return;
+        setViewportProducts([]);
+        setViewportHomes([]);
+      });
   }, [mapBounds]);
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);

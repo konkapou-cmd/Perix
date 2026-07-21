@@ -9,6 +9,7 @@ export type DiscoveryMapMarker = {
   longitude: number;
   title: string;
   color?: string;
+  type?: "product" | "rental";
 };
 
 type Props = {
@@ -31,7 +32,8 @@ export default function DiscoveryMap({ markers, onMarkerPress, onViewportChange 
         latitude: m.latitude,
         longitude: m.longitude,
         title: m.title,
-        markerColor: m.color ?? COLORS.primary,
+        pinColor: m.color ?? COLORS.primary,
+        type: m.type,
       })),
     [markers],
   );
