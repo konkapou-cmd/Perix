@@ -137,6 +137,11 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setSellerType(businessId ? "business" : "user");
       setSellerBusinessId(businessId ?? null);
       setScope("profile_and_marketplace");
+      if (businessId) {
+        setAddress(businessAddress ?? "");
+        setLatitude(businessLatitude ?? undefined);
+        setLongitude(businessLongitude ?? undefined);
+      }
     }
   }, [visible, editingListing]);
 
