@@ -36,7 +36,7 @@ function validCoords(lat?: number | null, lng?: number | null): boolean {
 export function useMarketplaceInitialViewport(): MarketplaceInitialViewport {
   const { mapBounds, isMapBoundsHydrated } = useMapBounds();
   const { location, loading: locationLoading } = useLocation();
-  const { user, sessionToken } = useAuth();
+  const { user, sessionToken, loading: authLoading } = useAuth();
   const frozenRef = useRef<MarketplaceInitialViewport | null>(null);
 
   return useMemo(() => {
@@ -44,7 +44,7 @@ export function useMarketplaceInitialViewport(): MarketplaceInitialViewport {
 
     const empty = { ready: false, needsLocation: false, initialLocation: null, initialBounds: null };
 
-    if (!isMapBoundsHydrated) return empty;
+    if (!isMapBoundsHydrated || authLoading) return empty;
 
     if (mapBounds) {
       const result: MarketplaceInitialViewport = {

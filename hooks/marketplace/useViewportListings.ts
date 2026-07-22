@@ -48,8 +48,8 @@ export function useViewportListings({ listingType, filters, limit = 100, initial
   useEffect(() => {
     if (!committedBounds) return;
     const requestId = ++requestIdRef.current;
+    setLoading(true);
     const timer = setTimeout(async () => {
-      setLoading(true);
       try {
         const query: ListingDiscoveryQuery = {
           listingType,

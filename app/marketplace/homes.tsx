@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { COLORS, SPACING, FONT_SIZES } from "../../lib/designTokens";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { getListings, Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
 import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes";
 import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
@@ -128,6 +129,35 @@ export default function MarketplaceHomesPage() {
         onMyListings={() => router.push("/my-listings" as any)}
       />
       <DiscoveryEmptyState type="no-location" />
+      <View style={styles.locationActions}>
+        <Pressable
+          style={styles.locationBtn}
+          onPress={() => {
+            import("expo-location").then((Location) => {
+              Location.requestForegroundPermissionsAsync().then(({ status }) => {
+                if (status === "granted") {
+                  Location.getCurrentPositionAsync({}).then((loc) => {
+                    const bnds = {
+                      minLat: loc.coords.latitude - 0.045,
+                      maxLat: loc.coords.latitude + 0.045,
+                      minLng: loc.coords.longitude - 0.045,
+                      maxLng: loc.coords.longitude + 0.045,
+                      centerLat: loc.coords.latitude,
+                      centerLng: loc.coords.longitude,
+                    };
+                    setMapBounds(bnds);
+                    setVisibleBounds(bnds);
+                    setCommittedBounds(bnds);
+                  });
+                }
+              });
+            });
+          }}
+        >
+          <Ionicons name="navigate" size={18} color={COLORS.background} />
+          <Text style={styles.locationBtnText}>{t("marketplace.useCurrentLocation", "Aktuellen Standort verwenden")}</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 
@@ -151,6 +181,7 @@ export default function MarketplaceHomesPage() {
       <DiscoveryMap
         markers={markers}
         initialLocation={viewport.initialLocation!}
+        initialBounds={viewport.initialBounds}
         onMarkerPress={handleMarkerPress}
         onViewportChanging={setVisibleBounds}
         onViewportChange={handleViewportChange}
@@ -191,4 +222,11 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     paddingVertical: SPACING.small,
   },
+  locationActions: { paddingHorizontal: SPACING.section, gap: SPACING.small },
+  locationBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: 14, marginTop: SPACING.std,
+  },
+  locationBtnText: { fontSize: FONT_SIZES.bodySmall, fontWeight: "700", color: COLORS.background },
 });

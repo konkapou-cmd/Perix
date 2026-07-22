@@ -22,12 +22,13 @@ type MapBounds = {
 type Props = {
   markers: DiscoveryMapMarker[];
   initialLocation: { latitude: number; longitude: number };
+  initialBounds?: MapBounds | null;
   onMarkerPress: (id: string) => void;
   onViewportChanging?: (bounds: MapBounds) => void;
   onViewportChange: (bounds: MapBounds) => void;
 };
 
-export default function DiscoveryMap({ markers, initialLocation, onMarkerPress, onViewportChanging, onViewportChange }: Props) {
+export default function DiscoveryMap({ markers, initialLocation, initialBounds, onMarkerPress, onViewportChanging, onViewportChange }: Props) {
 
   const mapMarkers = useMemo(
     () =>
@@ -56,10 +57,18 @@ export default function DiscoveryMap({ markers, initialLocation, onMarkerPress, 
     [onViewportChange],
   );
 
+  const initialRegion = initialBounds ? {
+    latitude: (initialBounds.minLat + initialBounds.maxLat) / 2,
+    longitude: (initialBounds.minLng + initialBounds.maxLng) / 2,
+    latitudeDelta: initialBounds.maxLat - initialBounds.minLat,
+    longitudeDelta: initialBounds.maxLng - initialBounds.minLng,
+  } : undefined;
+
   return (
     <View style={styles.container}>
       <BusinessMap
         location={initialLocation}
+        initialRegion={initialRegion}
         markers={mapMarkers}
         onMarkerPress={onMarkerPress}
         onRegionChange={handleRegionChange}

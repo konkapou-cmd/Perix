@@ -22,6 +22,12 @@ type MapBounds = {
 
 type Props = {
   location: { latitude: number; longitude: number };
+  initialRegion?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  };
   businesses?: Business[];
   events?: EventItem[];
   activities?: ActivityItem[];

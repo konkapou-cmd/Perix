@@ -165,6 +165,35 @@ export default function MarketplaceItemsPage() {
         onMyListings={() => router.push("/my-listings" as any)}
       />
       <DiscoveryEmptyState type="no-location" />
+      <View style={styles.locationActions}>
+        <Pressable
+          style={styles.locationBtn}
+          onPress={() => {
+            import("expo-location").then((Location) => {
+              Location.requestForegroundPermissionsAsync().then(({ status }) => {
+                if (status === "granted") {
+                  Location.getCurrentPositionAsync({}).then((loc) => {
+                    const bnds = {
+                      minLat: loc.coords.latitude - 0.045,
+                      maxLat: loc.coords.latitude + 0.045,
+                      minLng: loc.coords.longitude - 0.045,
+                      maxLng: loc.coords.longitude + 0.045,
+                      centerLat: loc.coords.latitude,
+                      centerLng: loc.coords.longitude,
+                    };
+                    setMapBounds(bnds);
+                    setVisibleBounds(bnds);
+                    setCommittedBounds(bnds);
+                  });
+                }
+              });
+            });
+          }}
+        >
+          <Ionicons name="navigate" size={18} color={COLORS.background} />
+          <Text style={styles.locationBtnText}>{t("marketplace.useCurrentLocation", "Aktuellen Standort verwenden")}</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 
@@ -234,7 +263,7 @@ export default function MarketplaceItemsPage() {
           if (k === "shipping") setShippingOnly(!shippingOnly);
         }}
       />
-      <DiscoveryMap markers={markers} initialLocation={viewport.initialLocation!} onMarkerPress={handleMarkerPress} onViewportChanging={setVisibleBounds} onViewportChange={handleViewportChange} />
+      <DiscoveryMap markers={markers} initialLocation={viewport.initialLocation!} initialBounds={viewport.initialBounds} onMarkerPress={handleMarkerPress} onViewportChanging={setVisibleBounds} onViewportChange={handleViewportChange} />
       {loading && visibleListings.length === 0 ? (
         <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
       ) : visibleListings.length === 0 ? (
@@ -270,4 +299,11 @@ const styles = StyleSheet.create({
   filterBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   filterBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.textPrimary },
   resultCount: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, paddingVertical: SPACING.small },
+  locationActions: { paddingHorizontal: SPACING.section, gap: SPACING.small },
+  locationBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: 14, marginTop: SPACING.std,
+  },
+  locationBtnText: { fontSize: FONT_SIZES.bodySmall, fontWeight: "700", color: COLORS.background },
 });
