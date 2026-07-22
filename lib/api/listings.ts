@@ -216,3 +216,22 @@ export const getManageListings = async (
   const qs = params.toString() ? `?${params}` : "";
   return apiRequest<Listing[]>(`/listings/manage${qs}`, "GET", token);
 };
+
+export type ProductPermission = {
+  category: string;
+  subcategories: string[];
+  unrestricted: boolean;
+};
+
+export type ProductPermissionsResponse = {
+  enabled: boolean;
+  source: string;
+  policy_version: number;
+  allowed: ProductPermission[];
+};
+
+export const getProductPermissions = async (
+  businessId: string,
+): Promise<ProductPermissionsResponse> => {
+  return apiRequest<ProductPermissionsResponse>(`/businesses/${businessId}/product-permissions`, "GET");
+};

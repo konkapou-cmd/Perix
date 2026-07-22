@@ -24,6 +24,7 @@ type Props = {
   businessLatitude?: number | null;
   businessLongitude?: number | null;
   businessPublicLocationLabel?: string | null;
+  allowedTaxonomy?: Record<string, "*" | string[]> | null;
   onClose: () => void;
   onSave: () => void;
   onCreated?: (listingId: string) => void;
@@ -47,7 +48,7 @@ function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_ima
   };
 }
 
-export default function ListingModal({ visible, listingType, editingListing, sessionToken, businessId, businessAddress, businessLatitude, businessLongitude, businessPublicLocationLabel, onClose, onSave: onSaveProp, onCreated }: Props) {
+export default function ListingModal({ visible, listingType, editingListing, sessionToken, businessId, businessAddress, businessLatitude, businessLongitude, businessPublicLocationLabel, allowedTaxonomy, onClose, onSave: onSaveProp, onCreated }: Props) {
   const { t } = useTranslation();
   const isProduct = listingType === "product";
   const isEditing = !!editingListing;
@@ -284,6 +285,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                   visible={categoryPickerVisible}
                   selectedCategory={listingCategory}
                   selectedSubcategory={listingSubcategory}
+                  allowedTaxonomy={allowedTaxonomy}
                   onSelect={(cat, sub) => {
                     if (cat !== listingCategory) setListingAttributes({});
                     setListingCategory(cat);

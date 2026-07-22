@@ -1,21 +1,38 @@
-import { Modal, View, Text, Pressable, ScrollView, TextInput, SafeAreaView, StyleSheet } from "react-native";
+import React, { useMemo } from "react";
+import { Modal, View, Text, Pressable, ScrollView, SafeAreaView, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
-import { MARKETPLACE_CATEGORIES, MarketplaceCategory } from "../../lib/marketplace/marketplaceTaxonomy";
+import { MARKETPLACE_CATEGORIES, MarketplaceCategory, MarketplaceSubcategory } from "../../lib/marketplace/marketplaceTaxonomy";
+
+type AllowedTaxonomy = Record<string, "*" | string[]>;
 
 type Props = {
   visible: boolean;
   selectedCategory: string;
   selectedSubcategory: string;
+  allowedTaxonomy?: AllowedTaxonomy | null;
   onSelect: (category: string, subcategory: string) => void;
   onClose: () => void;
 };
 
-export default function MarketplaceCategoryPicker({ visible, selectedCategory, selectedSubcategory, onSelect, onClose }: Props) {
+export default function MarketplaceCategoryPicker({ visible, selectedCategory, selectedSubcategory, allowedTaxonomy, onSelect, onClose }: Props) {
   const { t } = useTranslation();
 
-  const currentCat = MARKETPLACE_CATEGORIES.find((c) => c.key === selectedCategory);
+  const visibleCategories = useMemo(() => {
+    if (!allowedTaxonomy) return MARKETPLACE_CATEGORIES;
+    return MARKETPLACE_CATEGORIES
+      .filter((c) => allowedTaxonomy[c.key] !== undefined)
+      .map((c) => ({
+        ...c,
+        subcategories: ((allowedTaxonomy[c.key] === "*")
+          ? c.subcategories
+          : c.subcategories.filter((s) => (allowedTaxonomy[c.key] as string[])?.includes(s.key))
+        ),
+      }));
+  }, [allowedTaxonomy]);
+
+  const currentCat = visibleCategories.find((c) => c.key === selectedCategory);
   const subs = currentCat?.subcategories ?? [];
 
   const handleCatPick = (cat: MarketplaceCategory) => {
@@ -42,7 +59,7 @@ export default function MarketplaceCategoryPicker({ visible, selectedCategory, s
 
         {!selectedCategory ? (
           <ScrollView contentContainerStyle={styles.body}>
-            {MARKETPLACE_CATEGORIES.map((cat) => (
+            {visibleCategories.map((cat) => (
               <Pressable
                 key={cat.key}
                 style={styles.row}
