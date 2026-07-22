@@ -51,20 +51,11 @@ interface UseFeedDataResult {
   refresh: () => Promise<void>;
 }
 
-const DEFAULT_BOUNDS: MapBounds = {
-  minLat: 52.475,
-  maxLat: 52.565,
-  minLng: 13.36,
-  maxLng: 13.45,
-  centerLat: 52.52,
-  centerLng: 13.405,
-};
-
 function computeBounds(
   mapBounds: MapBounds | null,
   user: { latitude?: number | null; longitude?: number | null } | null,
   userLocation: { latitude: number; longitude: number } | null
-): MapBounds {
+): MapBounds | null {
   if (mapBounds) return mapBounds;
   const lat = user?.latitude || userLocation?.latitude;
   const lng = user?.longitude || userLocation?.longitude;
@@ -72,7 +63,7 @@ function computeBounds(
     const d = 0.09;
     return { minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng };
   }
-  return DEFAULT_BOUNDS;
+  return null;
 }
 
 export function useFeedData({ sessionToken, mapBounds, userLocation, user, refreshKey, friendsOnly }: UseFeedDataParams): UseFeedDataResult {
@@ -103,8 +94,10 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
     const { sessionToken, mapBounds, userLocation, user } = paramsRef.current;
     if (!sessionToken) return;
     const bounds = computeBounds(mapBounds, user, userLocation);
-    const userLat = bounds.centerLat || userLocation?.latitude || 52.52;
-    const userLng = bounds.centerLng || userLocation?.longitude || 13.405;
+    if (!bounds) return;
+    const userLat = bounds.centerLat || userLocation?.latitude;
+    const userLng = bounds.centerLng || userLocation?.longitude;
+    if (!userLat || !userLng) return;
 
     if (isInitialRef.current) {
       setLoading(true);
