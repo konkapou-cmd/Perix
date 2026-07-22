@@ -29,6 +29,7 @@ export default function MarketplaceHomesPage() {
   const requestIdRef = useRef(0);
 
   const fetchListings = useCallback(async () => {
+    if (!bounds) return;
     const requestId = ++requestIdRef.current;
     setLoading(true);
     const query: ListingDiscoveryQuery = {

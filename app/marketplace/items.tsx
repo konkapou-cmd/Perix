@@ -83,10 +83,12 @@ export default function MarketplaceItemsPage() {
   []);
 
   const fetchListings = useCallback(async () => {
+    if (!bounds) return;
     const requestId = ++requestIdRef.current;
     setLoading(true);
     const query: ListingDiscoveryQuery = {
       listingType: "product",
+      ...bounds,
       search: search || undefined,
       category: category || undefined,
       subcategory: subcategory || undefined,

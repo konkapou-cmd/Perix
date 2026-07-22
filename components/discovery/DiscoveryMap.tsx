@@ -12,18 +12,22 @@ export type DiscoveryMapMarker = {
   type?: "product" | "rental";
 };
 
-type Props = {
-  markers: DiscoveryMapMarker[];
-  onMarkerPress: (id: string) => void;
-  onViewportChange: (bounds: {
-    minLat: number;
-    maxLat: number;
-    minLng: number;
-    maxLng: number;
-  }) => void;
+type MapBounds = {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
 };
 
-export default function DiscoveryMap({ markers, onMarkerPress, onViewportChange }: Props) {
+type Props = {
+  markers: DiscoveryMapMarker[];
+  initialLocation?: { latitude: number; longitude: number };
+  onMarkerPress: (id: string) => void;
+  onViewportChanging?: (bounds: MapBounds) => void;
+  onViewportChange: (bounds: MapBounds) => void;
+};
+
+export default function DiscoveryMap({ markers, initialLocation, onMarkerPress, onViewportChanging, onViewportChange }: Props) {
 
   const mapMarkers = useMemo(
     () =>
@@ -39,19 +43,29 @@ export default function DiscoveryMap({ markers, onMarkerPress, onViewportChange 
   );
 
   const handleRegionChange = useCallback(
-    (bnds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+    (bnds: MapBounds) => {
+      onViewportChanging?.(bnds);
+    },
+    [onViewportChanging],
+  );
+
+  const handleRegionChangeComplete = useCallback(
+    (bnds: MapBounds) => {
       onViewportChange(bnds);
     },
     [onViewportChange],
   );
 
+  const location = initialLocation ?? { latitude: 52.52, longitude: 13.405 };
+
   return (
     <View style={styles.container}>
       <BusinessMap
-        location={{ latitude: 52.52, longitude: 13.405 }}
+        location={location}
         markers={mapMarkers}
         onMarkerPress={onMarkerPress}
-        onRegionChangeComplete={handleRegionChange}
+        onRegionChange={handleRegionChange}
+        onRegionChangeComplete={handleRegionChangeComplete}
         showUserLocation
       />
     </View>
