@@ -453,7 +453,14 @@ async def update_listing(
 
     if doc.get("seller_type") == "business" and doc.get("listing_type") == "product":
         biz = await db.businesses.find_one({"business_id": doc.get("business_id")})
-        if biz and effective_status == "published":
+        if not biz:
+            raise HTTPException(status_code=409, detail="Listing business no longer exists")
+        effective_scope = update_data.get("publication_scope", doc.get("publication_scope", "profile_and_marketplace"))
+        is_safe_exit = (
+            effective_status == "draft"
+            or effective_scope == "profile_only"
+        )
+        if not is_safe_exit:
             from utils.product_permissions import validate_business_product_category
             cat = normalize_category(effective_category) if effective_category else None
             validate_business_product_category(biz, cat, effective_subcategory)
