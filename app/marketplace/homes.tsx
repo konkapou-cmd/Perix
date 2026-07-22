@@ -53,7 +53,7 @@ export default function MarketplaceHomesPage() {
           title: l.title,
           color: COLORS.rentalsAccent, type: "rental",
         })),
-    [listings],
+    [visibleListings],
   );
 
   const propertyChips: FilterChip[] = useMemo(
@@ -116,19 +116,19 @@ export default function MarketplaceHomesPage() {
         onViewportChanging={setVisibleBounds}
         onViewportChange={setCommittedBounds}
       />
-      {loading && listings.length === 0 ? (
+      {loading && visibleListings.length === 0 ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
-      ) : listings.length === 0 ? (
+      ) : visibleListings.length === 0 ? (
         <DiscoveryEmptyState type="no-results" />
       ) : (
         <DiscoveryResults
-          listings={listings}
+          listings={visibleListings}
           onPressItem={handleCardPress}
           ListHeaderComponent={
             <Text style={styles.resultCount}>
-              {t("marketplace.results", "{{count}} Ergebnisse", { count: listings.length })}
+              {t("marketplace.results", "{{count}} Ergebnisse", { count: visibleListings.length })}
             </Text>
           }
         />

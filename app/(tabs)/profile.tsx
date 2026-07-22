@@ -1153,6 +1153,8 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [listingModalVisible, setListingModalVisible] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [businessAllowedTaxonomy, setBusinessAllowedTaxonomy] = useState<Record<string, "*" | string[]> | null>(null);
+  const [businessProductsEnabled, setBusinessProductsEnabled] = useState(false);
+  const [businessPermsLoading, setBusinessPermsLoading] = useState(true);
 
   // Business editing state
   const [hoursModalVisible, setHoursModalVisible] = useState(false);
@@ -1217,14 +1219,27 @@ const handleUpdateSlug = async (newSlug: string) => {
         : [],
     );
 
-    getProductPermissions(bizId).then((perms) => {
+    setBusinessAllowedTaxonomy({});
+    setBusinessPermsLoading(true);
+    setBusinessProductsEnabled(false);
+    try {
+      const perms = await getProductPermissions(bizId);
       if (requestId !== bizListingsRequestRef.current) return;
       setBusinessAllowedTaxonomy(
         Object.fromEntries(
           perms.allowed.map((p) => [p.category, p.unrestricted ? ("*" as const) : p.subcategories]),
         ),
       );
-    }).catch(() => {});
+      setBusinessProductsEnabled(perms.enabled);
+    } catch {
+      if (requestId !== bizListingsRequestRef.current) return;
+      setBusinessAllowedTaxonomy({});
+      setBusinessProductsEnabled(false);
+    } finally {
+      if (requestId === bizListingsRequestRef.current) {
+        setBusinessPermsLoading(false);
+      }
+    };
   };
 
   const isFocused = useIsFocused();
@@ -2364,11 +2379,12 @@ currentUserId={businessDetail?.business?.business_id}
                   onOpenSlotManager={handleOpenSlotManager}
                    onOpenBookingList={handleOpenBookingList}
                    onViewFriends={() => router.push(`/friends/${businessDetail?.business?.business_id}` as any)}
-                  businessListings={businessListings}
-                  onAddItem={() => {
-                    setEditingListing(null);
-                    setListingModalVisible(true);
-                  }}
+                   businessListings={businessListings}
+                   onAddItem={() => {
+                     if (businessPermsLoading || !businessProductsEnabled) return;
+                     setEditingListing(null);
+                     setListingModalVisible(true);
+                   }}
                   onEditItem={(listing) => {
                     setEditingListing(listing);
                     setListingModalVisible(true);

@@ -34,18 +34,17 @@ export function useViewportListings({ listingType, filters, limit = 100 }: HookA
   const [visibleBounds, setVisibleBounds] = useState<ViewportBounds | null>(null);
   const [committedBounds, setCommittedBounds] = useState<ViewportBounds | null>(null);
   const requestIdRef = useRef(0);
-  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const filtersKey = JSON.stringify(filters);
 
-  const fetchCommitted = useCallback((bounds: ViewportBounds) => {
-    if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-    fetchTimeoutRef.current = setTimeout(async () => {
-      const requestId = ++requestIdRef.current;
+  useEffect(() => {
+    if (!committedBounds) return;
+    const requestId = ++requestIdRef.current;
+    const timer = setTimeout(async () => {
       setLoading(true);
-      setCommittedBounds(bounds);
       try {
         const query: ListingDiscoveryQuery = {
           listingType,
-          ...bounds,
+          ...committedBounds,
           limit,
           ...filters,
         };
@@ -59,18 +58,17 @@ export function useViewportListings({ listingType, filters, limit = 100 }: HookA
         if (requestId === requestIdRef.current) setLoading(false);
       }
     }, 300);
-  }, [listingType, limit, JSON.stringify(filters)]);
-
-  useEffect(() => {
-    return () => {
-      if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-    };
-  }, []);
+    return () => clearTimeout(timer);
+  }, [committedBounds, listingType, limit, filtersKey]);
 
   const visibleListings = useMemo(() => {
     if (!visibleBounds) return listings;
     return listings.filter((l) => l.latitude != null && l.longitude != null && inBounds(l.latitude, l.longitude, visibleBounds));
   }, [listings, visibleBounds]);
+
+  const commitBounds = useCallback((b: ViewportBounds) => {
+    setCommittedBounds(b);
+  }, []);
 
   return {
     listings,
@@ -79,6 +77,6 @@ export function useViewportListings({ listingType, filters, limit = 100 }: HookA
     visibleBounds,
     committedBounds,
     setVisibleBounds,
-    setCommittedBounds: (b) => fetchCommitted(b),
+    setCommittedBounds: commitBounds,
   };
 }
