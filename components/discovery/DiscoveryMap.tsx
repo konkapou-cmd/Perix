@@ -21,7 +21,7 @@ type MapBounds = {
 
 type Props = {
   markers: DiscoveryMapMarker[];
-  initialLocation?: { latitude: number; longitude: number };
+  initialLocation: { latitude: number; longitude: number };
   onMarkerPress: (id: string) => void;
   onViewportChanging?: (bounds: MapBounds) => void;
   onViewportChange: (bounds: MapBounds) => void;
@@ -56,12 +56,10 @@ export default function DiscoveryMap({ markers, initialLocation, onMarkerPress, 
     [onViewportChange],
   );
 
-  const location = initialLocation ?? { latitude: 52.52, longitude: 13.405 };
-
   return (
     <View style={styles.container}>
       <BusinessMap
-        location={location}
+        location={initialLocation}
         markers={mapMarkers}
         onMarkerPress={onMarkerPress}
         onRegionChange={handleRegionChange}

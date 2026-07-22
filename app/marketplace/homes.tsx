@@ -13,6 +13,8 @@ import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/Dis
 import DiscoveryResults from "../../components/discovery/DiscoveryResults";
 import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState";
 import { useViewportListings } from "../../hooks/marketplace/useViewportListings";
+import { useMarketplaceInitialViewport } from "../../hooks/marketplace/useMarketplaceInitialViewport";
+import { useMapBounds } from "../../context/MapBoundsContext";
 
 const PROPERTY_TYPES = ["apartment", "house", "studio", "room"];
 
@@ -24,6 +26,8 @@ export default function MarketplaceHomesPage() {
   const [activePropType, setActivePropType] = useState("");
   const [furnishedOnly, setFurnishedOnly] = useState(false);
   const [minBeds, setMinBeds] = useState(0);
+  const { setMapBounds } = useMapBounds();
+  const viewport = useMarketplaceInitialViewport();
 
   const {
     listings,
@@ -40,6 +44,7 @@ export default function MarketplaceHomesPage() {
       minBedrooms: minBeds > 0 ? minBeds : undefined,
     },
     limit: 100,
+    initialBounds: viewport.initialBounds,
   });
 
   const markers: DiscoveryMapMarker[] = useMemo(
@@ -93,6 +98,39 @@ export default function MarketplaceHomesPage() {
     pushEntityRoute(router, entityRoutes.rental(listing.listing_id), () => {});
   };
 
+  const handleViewportChange = useCallback(
+    (bnds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+      setVisibleBounds(bnds);
+      setCommittedBounds(bnds);
+      setMapBounds({
+        minLat: bnds.minLat, maxLat: bnds.maxLat,
+        minLng: bnds.minLng, maxLng: bnds.maxLng,
+        centerLat: (bnds.minLat + bnds.maxLat) / 2,
+        centerLng: (bnds.minLng + bnds.maxLng) / 2,
+      });
+    },
+    [setVisibleBounds, setCommittedBounds, setMapBounds],
+  );
+
+  if (!viewport.ready) return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 80 }} />
+    </SafeAreaView>
+  );
+
+  if (viewport.needsLocation) return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <DiscoveryHeader
+        title={t("marketplace.title", "Marktplatz")}
+        tab="homes"
+        onBack={() => router.back()}
+        onTabChange={handleTabChange}
+        onMyListings={() => router.push("/my-listings" as any)}
+      />
+      <DiscoveryEmptyState type="no-location" />
+    </SafeAreaView>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <DiscoveryHeader
@@ -112,9 +150,10 @@ export default function MarketplaceHomesPage() {
       <DiscoveryFilterChips chips={bedroomChips} onToggle={(k) => setMinBeds(minBeds === parseInt(k.replace("beds_", "")) ? 0 : parseInt(k.replace("beds_", "")))} />
       <DiscoveryMap
         markers={markers}
+        initialLocation={viewport.initialLocation!}
         onMarkerPress={handleMarkerPress}
         onViewportChanging={setVisibleBounds}
-        onViewportChange={setCommittedBounds}
+        onViewportChange={handleViewportChange}
       />
       {loading && visibleListings.length === 0 ? (
         <View style={styles.centered}>

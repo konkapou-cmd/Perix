@@ -12,6 +12,7 @@ type HookArgs = {
   listingType: "product" | "home_rental";
   filters?: Partial<ListingDiscoveryQuery>;
   limit?: number;
+  initialBounds?: ViewportBounds | null;
 };
 
 type HookResult = {
@@ -28,13 +29,21 @@ function inBounds(lat: number, lng: number, b: ViewportBounds): boolean {
   return b.minLat <= lat && lat <= b.maxLat && b.minLng <= lng && lng <= b.maxLng;
 }
 
-export function useViewportListings({ listingType, filters, limit = 100 }: HookArgs): HookResult {
+export function useViewportListings({ listingType, filters, limit = 100, initialBounds }: HookArgs): HookResult {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
   const [visibleBounds, setVisibleBounds] = useState<ViewportBounds | null>(null);
   const [committedBounds, setCommittedBounds] = useState<ViewportBounds | null>(null);
   const requestIdRef = useRef(0);
   const filtersKey = JSON.stringify(filters);
+  const seededRef = useRef(false);
+
+  useEffect(() => {
+    if (seededRef.current || !initialBounds) return;
+    seededRef.current = true;
+    setVisibleBounds(initialBounds);
+    setCommittedBounds(initialBounds);
+  }, [initialBounds]);
 
   useEffect(() => {
     if (!committedBounds) return;

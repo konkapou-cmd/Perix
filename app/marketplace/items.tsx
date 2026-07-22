@@ -17,6 +17,8 @@ import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState"
 import MarketplaceCategoryFilter from "../../components/marketplace/MarketplaceCategoryFilter";
 import MarketplaceAttributeFilters from "../../components/marketplace/MarketplaceAttributeFilters";
 import { useViewportListings } from "../../hooks/marketplace/useViewportListings";
+import { useMarketplaceInitialViewport } from "../../hooks/marketplace/useMarketplaceInitialViewport";
+import { useMapBounds } from "../../context/MapBoundsContext";
 
 const CONDITION_OPTIONS = [
   { key: "new", label: "Neu" },
@@ -39,6 +41,8 @@ export default function MarketplaceItemsPage() {
   const [draftAttributeFilters, setDraftAttributeFilters] = useState<Record<string, string>>({});
   const [categoryFilterVisible, setCategoryFilterVisible] = useState(false);
   const attrTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const { setMapBounds } = useMapBounds();
+  const viewport = useMarketplaceInitialViewport();
 
   const discoveryFilters = useMemo(() => ({
     search: search || undefined,
@@ -60,6 +64,7 @@ export default function MarketplaceItemsPage() {
     listingType: "product",
     filters: discoveryFilters,
     limit: 100,
+    initialBounds: viewport.initialBounds,
   });
 
   useEffect(() => {
@@ -130,6 +135,39 @@ export default function MarketplaceItemsPage() {
   const catConfig = category ? getCategoryConfig(category) : null;
   const subLabel = subcategory && catConfig ? catConfig.subcategories.find((s) => s.key === subcategory)?.fallback : "";
 
+  const handleViewportChange = useCallback(
+    (bnds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+      setVisibleBounds(bnds);
+      setCommittedBounds(bnds);
+      setMapBounds({
+        minLat: bnds.minLat, maxLat: bnds.maxLat,
+        minLng: bnds.minLng, maxLng: bnds.maxLng,
+        centerLat: (bnds.minLat + bnds.maxLat) / 2,
+        centerLng: (bnds.minLng + bnds.maxLng) / 2,
+      });
+    },
+    [setVisibleBounds, setCommittedBounds, setMapBounds],
+  );
+
+  if (!viewport.ready) return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 80 }} />
+    </SafeAreaView>
+  );
+
+  if (viewport.needsLocation) return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <DiscoveryHeader
+        title={t("marketplace.title", "Marktplatz")}
+        tab="items"
+        onBack={() => router.back()}
+        onTabChange={(tab) => tab === "homes" && router.replace("/marketplace/homes")}
+        onMyListings={() => router.push("/my-listings" as any)}
+      />
+      <DiscoveryEmptyState type="no-location" />
+    </SafeAreaView>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <DiscoveryHeader
@@ -196,7 +234,7 @@ export default function MarketplaceItemsPage() {
           if (k === "shipping") setShippingOnly(!shippingOnly);
         }}
       />
-      <DiscoveryMap markers={markers} onMarkerPress={handleMarkerPress} onViewportChanging={setVisibleBounds} onViewportChange={setCommittedBounds} />
+      <DiscoveryMap markers={markers} initialLocation={viewport.initialLocation!} onMarkerPress={handleMarkerPress} onViewportChanging={setVisibleBounds} onViewportChange={handleViewportChange} />
       {loading && visibleListings.length === 0 ? (
         <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
       ) : visibleListings.length === 0 ? (
