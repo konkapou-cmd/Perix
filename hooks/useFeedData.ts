@@ -57,9 +57,9 @@ function computeBounds(
   userLocation: { latitude: number; longitude: number } | null
 ): MapBounds | null {
   if (mapBounds) return mapBounds;
-  const lat = user?.latitude || userLocation?.latitude;
-  const lng = user?.longitude || userLocation?.longitude;
-  if (lat && lng) {
+  const lat = user?.latitude ?? userLocation?.latitude;
+  const lng = user?.longitude ?? userLocation?.longitude;
+  if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
     const d = 0.09;
     return { minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng };
   }
@@ -94,10 +94,18 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
     const { sessionToken, mapBounds, userLocation, user } = paramsRef.current;
     if (!sessionToken) return;
     const bounds = computeBounds(mapBounds, user, userLocation);
-    if (!bounds) return;
-    const userLat = bounds.centerLat || userLocation?.latitude;
-    const userLng = bounds.centerLng || userLocation?.longitude;
-    if (!userLat || !userLng) return;
+    if (!bounds) {
+      setLoading(false);
+      setBackgroundLoading(false);
+      return;
+    }
+    const userLat = bounds.centerLat ?? userLocation?.latitude;
+    const userLng = bounds.centerLng ?? userLocation?.longitude;
+    if (userLat == null || userLng == null || !Number.isFinite(userLat) || !Number.isFinite(userLng)) {
+      setLoading(false);
+      setBackgroundLoading(false);
+      return;
+    }
 
     if (isInitialRef.current) {
       setLoading(true);
