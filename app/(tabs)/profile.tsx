@@ -2391,6 +2391,9 @@ currentUserId={businessDetail?.business?.business_id}
                   }}
                   onToggleMarketplace={handleToggleMarketplaceListing}
                   onDeleteItem={handleDeleteListing}
+                  canAddItems={businessProductsEnabled}
+                  addItemsLoading={businessPermsLoading}
+                  addItemsDisabledReason={t("marketplace.productsNotAvailable", "Für diese Unternehmenskategorie sind keine Produkte freigeschaltet.")}
                 />
               )}
         </View>

@@ -157,6 +157,9 @@ interface BusinessProfilePremiumProps {
   onEditItem?: (listing: Listing) => void;
   onToggleMarketplace?: (listing: Listing) => void;
   onDeleteItem?: (listing: Listing) => void;
+  canAddItems?: boolean;
+  addItemsLoading?: boolean;
+  addItemsDisabledReason?: string;
 }
 
 export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
@@ -245,6 +248,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   onEditItem,
   onToggleMarketplace,
   onDeleteItem,
+  canAddItems = true,
+  addItemsLoading = false,
+  addItemsDisabledReason,
 }) => {
   const { t } = useTranslation();
   const serviceLabel = (type: string, fallback?: string) => getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? fallback ?? type));
@@ -891,6 +897,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                 <ProfileItemsSection
                   listings={businessListings}
                   isOwner={isOwnProfile ?? false}
+                  canAdd={canAddItems && !addItemsLoading}
+                  addLoading={addItemsLoading}
+                  addDisabledReason={addItemsDisabledReason}
                   onAdd={() => onAddItem?.()}
                   onEdit={(l) => onEditItem?.(l)}
                   onToggleMarketplace={(l) => onToggleMarketplace?.(l)}

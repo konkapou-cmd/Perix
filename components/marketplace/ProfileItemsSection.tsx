@@ -11,6 +11,9 @@ import { MARKETPLACE_CATEGORIES, getCategoryConfig, getSubcategories } from "../
 type Props = {
   listings: Listing[];
   isOwner: boolean;
+  canAdd?: boolean;
+  addLoading?: boolean;
+  addDisabledReason?: string;
   onAdd: () => void;
   onEdit: (listing: Listing) => void;
   onToggleMarketplace: (listing: Listing) => void;
@@ -25,7 +28,7 @@ function statusBadge(status: ListingStatus, isActive: boolean): { label: string;
   return { label: status, color: COLORS.textPrimary };
 }
 
-export default function ProfileItemsSection({ listings, isOwner, onAdd, onEdit, onToggleMarketplace, onDelete }: Props) {
+export default function ProfileItemsSection({ listings, isOwner, canAdd = true, addLoading = false, addDisabledReason, onAdd, onEdit, onToggleMarketplace, onDelete }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
@@ -90,9 +93,22 @@ export default function ProfileItemsSection({ listings, isOwner, onAdd, onEdit, 
   return (
     <View style={styles.container}>
       {isOwner && (
-        <Pressable style={styles.addBtn} onPress={onAdd}>
-          <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-          <Text style={styles.addText}>{t("marketplace.addItem", "Artikel hinzufügen")}</Text>
+        <Pressable
+          style={[styles.addBtn, (!canAdd || addLoading) && styles.addBtnDisabled]}
+          onPress={canAdd && !addLoading ? onAdd : undefined}
+        >
+          <Ionicons
+            name={addLoading ? "hourglass-outline" : "add-circle-outline"}
+            size={20}
+            color={canAdd && !addLoading ? COLORS.primary : COLORS.textMuted}
+          />
+          <Text style={[styles.addText, (!canAdd || addLoading) && { color: COLORS.textMuted }]}>
+            {addLoading
+              ? t("common.loading", "Lädt...")
+              : !canAdd && addDisabledReason
+                ? addDisabledReason
+                : t("marketplace.addItem", "Artikel hinzufügen")}
+          </Text>
         </Pressable>
       )}
 
@@ -208,6 +224,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12, marginBottom: SPACING.small,
   },
   addText: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.primary },
+  addBtnDisabled: { opacity: 0.5 },
   catRow: { gap: SPACING.small, marginBottom: SPACING.small },
   subRow: { gap: SPACING.small, marginBottom: SPACING.small },
   catChip: {
