@@ -34,9 +34,49 @@ const HOME_TYPES = ["apartment", "house", "studio", "room"];
 const CONDITIONS = ["new", "like_new", "good", "used"];
 const DELIVERY = ["pickup", "shipping", "both"];
 
+function listingToMedia(listing: Listing | null | undefined): MediaItem[] {
+  if (!listing) return [];
+  const items: MediaItem[] = [];
+  const seen = new Set<string>();
+
+  function push(item: MediaItem) {
+    if (!seen.has(item.uri)) {
+      seen.add(item.uri);
+      items.push(item);
+    }
+  }
+
+  if (listing.cover_image_url) {
+    push({ uri: listing.cover_image_url, type: "image", isCoverImage: true });
+  }
+
+  if (listing.video_url) {
+    push({ uri: listing.video_url, type: "video", isCoverVideo: !listing.cover_image_url });
+  }
+
+  if (listing.image_urls) {
+    listing.image_urls.forEach((u) => push({ uri: u, type: "image" }));
+  }
+
+  if (listing.gallery_images) {
+    listing.gallery_images.forEach((u) => push({ uri: u, type: "image" }));
+  }
+
+  if (listing.gallery_videos) {
+    listing.gallery_videos.forEach((u) => push({ uri: u, type: "video" }));
+  }
+
+  return items;
+}
+
+function hasProcessingMedia(media: MediaItem[]): boolean {
+  return media.some((m) => m.processingStatus === "processing");
+}
+
 function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string } {
-  const images = media.filter((m) => m.type === "image");
-  const videos = media.filter((m) => m.type === "video");
+  const ready = media.filter((m) => m.processingStatus !== "processing");
+  const images = ready.filter((m) => m.type === "image");
+  const videos = ready.filter((m) => m.type === "video");
   const coverImage = images.find((m) => (m as any).isCoverImage) ?? images[0];
   const coverVideo = videos.find((m) => (m as any).isCoverVideo);
   return {
@@ -122,12 +162,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setSellerType(editingListing.seller_type || "user");
       setSellerBusinessId(editingListing.business_id ?? null);
       setScope(editingListing.publication_scope || "profile_and_marketplace");
-      // Load existing media
-      const items: MediaItem[] = [];
-      (editingListing.image_urls || []).forEach((u) => items.push({ uri: u, type: "image" }));
-      (editingListing.gallery_videos || []).forEach((u) => items.push({ uri: u, type: "video" }));
-      if (editingListing.video_url) items.push({ uri: editingListing.video_url, type: "video" });
-      setMedia(items);
+      setMedia(listingToMedia(editingListing));
     } else if (visible) {
       setTitle(""); setDescription(""); setPrice(""); setStatus("published");
       setAddress(""); setLatitude(undefined); setLongitude(undefined); setMedia([]);
@@ -151,6 +186,14 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const handleSave = async () => {
     if (!title.trim()) {
       Alert.alert(t("common.error", "Error"), t("common.titleRequired", "Title is required"));
+      return;
+    }
+
+    if (hasProcessingMedia(media)) {
+      Alert.alert(
+        t("upload.processingVideoTitle", "Video wird verarbeitet"),
+        t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
+      );
       return;
     }
 
@@ -401,9 +444,17 @@ export default function ListingModal({ visible, listingType, editingListing, ses
             <PlacesAutocompleteInput
               value={address}
               onChangeText={(text) => { setAddress(text); setLatitude(undefined); setLongitude(undefined); }}
-              onSelectPlace={(addr, lat, lng) => { setAddress(addr); setLatitude(lat); setLongitude(lng); }}
+              onSelectPlace={(addr, lat, lng, publicLabel) => {
+                setAddress(addr);
+                setLatitude(lat);
+                setLongitude(lng);
+                if (publicLabel && !publicLocationLabel) {
+                  setPublicLocationLabel(publicLabel);
+                }
+              }}
               placeholder={t("services.addressPlaceholder", "Search address...")}
               confirmed={hasCoordinates}
+              sessionToken={sessionToken}
             />
 
             {hasCoordinates && (

@@ -11,11 +11,12 @@ import {
   Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { apiRequest } from "../lib/api/core";
 
 type Props = {
   value: string;
   onChangeText: (text: string) => void;
-  onSelectPlace?: (address: string, lat: number, lng: number) => void;
+  onSelectPlace?: (address: string, lat: number, lng: number, publicLabel?: string) => void;
   onSuggestionsVisible?: (visible: boolean) => void;
   placeholder?: string;
   style?: any;
@@ -23,6 +24,7 @@ type Props = {
   nearLng?: number;
   confirmed?: boolean;
   locked?: boolean;
+  sessionToken?: string | null;
 };
 
 type PlacePrediction = {
@@ -30,6 +32,7 @@ type PlacePrediction = {
   description: string;
   lat: number;
   lon: number;
+  public_location_label?: string;
 };
 
 export default function PlacesAutocompleteInput({
@@ -43,6 +46,7 @@ export default function PlacesAutocompleteInput({
   nearLng,
   confirmed,
   locked,
+  sessionToken,
 }: Props) {
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [searching, setSearching] = useState(false);
@@ -61,32 +65,41 @@ export default function PlacesAutocompleteInput({
 
     setSearching(true);
     try {
-      let nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        query
-      )}&limit=8&addressdetails=1`;
-      if (nearLat != null && nearLng != null) {
-        nominatimUrl += `&lat=${nearLat}&lon=${nearLng}`;
-        const vbLatDelta = 0.5;
-        const vbLngDelta = 0.5;
-        nominatimUrl += `&viewbox=${nearLng - vbLngDelta},${nearLat + vbLatDelta},${nearLng + vbLngDelta},${nearLat - vbLatDelta}`;
+      let data: any;
+
+      if (sessionToken) {
+        let url = `/places/autocomplete?input=${encodeURIComponent(query)}`;
+        if (nearLat != null && nearLng != null) {
+          url += `&near_lat=${nearLat}&near_lng=${nearLng}`;
+        }
+        const res = await apiRequest<{ predictions: PlacePrediction[] }>(url, "GET", sessionToken);
+        data = res.predictions || [];
+      } else {
+        let nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          query
+        )}&limit=8&addressdetails=1`;
+        if (nearLat != null && nearLng != null) {
+          nominatimUrl += `&lat=${nearLat}&lon=${nearLng}`;
+          const vbLatDelta = 0.5;
+          const vbLngDelta = 0.5;
+          nominatimUrl += `&viewbox=${nearLng - vbLngDelta},${nearLat + vbLatDelta},${nearLng + vbLngDelta},${nearLat - vbLatDelta}`;
+        }
+        const response = await fetch(nominatimUrl, {
+          headers: { "User-Agent": "PerixApp/1.0" },
+        });
+        data = await response.json();
       }
-      const response = await fetch(nominatimUrl, {
-        headers: {
-          "User-Agent": "PerixApp/1.0",
-        },
-      });
-      const data = await response.json();
+
       if (data && Array.isArray(data)) {
         const addressResults = data
           .filter((item: any) => {
             const addr = item.address;
-            if (!addr) return false;
+            if (!addr) return true; // proxy results already filtered
             const hasStreet = addr.road || addr.street || addr.footway || addr.path;
             const hasNumber = addr.house_number;
             const hasCity = addr.city || addr.town || addr.village || addr.municipality;
             const hasPostcode = addr.postcode;
             const isBusiness = addr.amenity || addr.shop || addr.building;
-            
             if (isBusiness) return false;
             if ((hasStreet || hasNumber || hasCity || hasPostcode) && !isBusiness) return true;
             if (hasPostcode) return true;
@@ -95,9 +108,10 @@ export default function PlacesAutocompleteInput({
           .slice(0, 3)
           .map((item: any) => ({
             place_id: item.place_id?.toString() || Math.random().toString(),
-            description: item.display_name,
+            description: item.display_name || item.description,
             lat: parseFloat(item.lat),
-            lon: parseFloat(item.lon),
+            lon: item.lon != null ? parseFloat(item.lon) : parseFloat(item.lng),
+            public_location_label: item.public_location_label || null,
           }));
         setPredictions(addressResults);
         setShowPredictions(addressResults.length > 0);
@@ -108,7 +122,7 @@ export default function PlacesAutocompleteInput({
     } finally {
       setSearching(false);
     }
-  }, [onSuggestionsVisible, nearLat, nearLng, isAddressConfirmed]);
+  }, [onSuggestionsVisible, nearLat, nearLng, isAddressConfirmed, sessionToken]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -161,12 +175,12 @@ export default function PlacesAutocompleteInput({
     confirmedValueRef.current = prediction.description;
     setIsAddressConfirmed(true);
     onSuggestionsVisible?.(false);
-    
+
     onChangeText(prediction.description);
     if (onSelectPlace) {
-      onSelectPlace(prediction.description, prediction.lat, prediction.lon);
+      onSelectPlace(prediction.description, prediction.lat, prediction.lon, prediction.public_location_label);
     }
-    
+
     Keyboard.dismiss();
   };
 

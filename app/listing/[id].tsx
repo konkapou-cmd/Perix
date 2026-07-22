@@ -9,7 +9,8 @@ import { getListing, Listing } from "../../lib/api/listings";
 import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
-import AdaptiveImage from "../../components/AdaptiveImage";
+import { ContentHero, ContentGallery } from "../../components/shared";
+import { MediaItem } from "../../components/UnifiedMediaGallery";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 
 const CONDITIONS: Record<string, string> = {
@@ -115,7 +116,13 @@ export default function ListingDetailScreen() {
     );
   }
 
-  const img = listing.cover_image_url || listing.image_urls?.[0] || listing.gallery_images?.[0];
+  const allMediaItems: MediaItem[] = [
+    ...(listing.cover_image_url ? [{ uri: listing.cover_image_url, type: "image" as const, isCoverImage: true }] : []),
+    ...(listing.image_urls?.filter(u => u !== listing.cover_image_url).map(u => ({ uri: u, type: "image" as const })) || []),
+    ...(listing.video_url ? [{ uri: listing.video_url, type: "video" as const, isCoverVideo: !listing.cover_image_url }] : []),
+    ...(listing.gallery_images?.map(u => ({ uri: u, type: "image" as const })) || []),
+    ...(listing.gallery_videos?.filter(v => v !== listing.video_url).map(v => ({ uri: v, type: "video" as const })) || []),
+  ];
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -126,13 +133,14 @@ export default function ListingDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        {img ? (
-          <AdaptiveImage uri={img} ratio={4 / 3} maxHeight={300} borderRadius={12} style={styles.cover} />
-        ) : (
-          <View style={[styles.cover, styles.coverPlaceholder]}>
-            <Ionicons name="pricetag-outline" size={48} color="#9ca3af" />
-          </View>
-        )}
+        <ContentHero
+          coverImageUrl={listing.cover_image_url}
+          videoUrl={listing.video_url}
+          isCoverVideo={!listing.cover_image_url && !!listing.video_url}
+          imageUrls={listing.image_urls}
+          title={listing.title}
+          mediaItems={allMediaItems}
+        />
 
         <View style={styles.infoCard}>
           <Text style={styles.title}>{listing.title}</Text>
@@ -173,6 +181,10 @@ export default function ListingDetailScreen() {
             </View>
           ) : null}
         </View>
+
+        {allMediaItems.length > 0 && (
+          <ContentGallery mediaItems={allMediaItems} title="Galerie" />
+        )}
 
         <View style={styles.actions}>
           <Pressable style={styles.contactBtn} onPress={handleContact}>

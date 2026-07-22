@@ -19,6 +19,9 @@ export type MediaItem = {
   isCoverVideo?: boolean;
   focalPoint?: { x: number; y: number } | null;
   posterUrl?: string | null;
+  processingStatus?: "processing" | "ready" | "failed";
+  muxAssetId?: string | null;
+  temporaryId?: string;
 };
 
 type MediaContext = "cover" | "gallery" | "post" | "story" | "cityAd";
@@ -175,6 +178,26 @@ export default function UnifiedMediaGallery({
         setItemProgress((prev) => ({ ...prev, [idx]: p }));
       });
       const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+
+      if (muxResult.mux_upload_id && !videoUrl) {
+        // Video is still processing
+        const processingItem: MediaItem = {
+          uri: muxResult.mux_upload_id,
+          type: "video",
+          processingStatus: "processing",
+          muxAssetId: muxResult.mux_asset_id || null,
+          temporaryId: muxResult.mux_upload_id,
+        };
+        setItemProgress((prev) => ({ ...prev, [idx]: { phase: "processing", progress: 100 } }));
+        const combined = [...media, processingItem];
+        onChange(combined.slice(0, maxItemsResolved));
+        Alert.alert(
+          t("upload.videoProcessingTitle", "Video wird verarbeitet"),
+          t("upload.videoProcessingMsg", "Dein Video wird verarbeitet. Du kannst es speichern sobald es fertig ist."),
+        );
+        return;
+      }
+
       if (!videoUrl && !muxResult.mux_upload_id) throw new Error("Video upload failed - no URL returned");
       const newItems: MediaItem[] = [];
       if (videoUrl) newItems.push({
@@ -186,7 +209,7 @@ export default function UnifiedMediaGallery({
       if (newItems.length > 0) {
         setItemProgress((prev) => ({ ...prev, [idx]: { phase: "complete", progress: 100 } }));
         const combined = Array.from(new Set([...media, ...newItems]));
-        onChange(setExplicitCover(combined, combined.length - 1, "video").slice(0, maxItemsResolved));
+        onChange(combined.slice(0, maxItemsResolved));
       } else {
         throw new Error("Video upload completed but no playable URL was returned");
       }

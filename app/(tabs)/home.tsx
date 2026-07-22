@@ -957,31 +957,6 @@ export default function HomeScreen() {
                 );
               })}
             </CarouselSection>
-
-            <CarouselSection
-              title={t("rentals.homesFromOwners", "Homes from Owners")}
-              icon="home"
-              color={COLORS.primaryDark}
-              seeAllRoute="/marketplace/homes"
-              emptyMessage={t("rentals.noOwnerHomes", "No owner-listed homes nearby")}
-            >
-              {sortedRentals.filter((r: any) => r.source_type === "owner").map((rental) => {
-                const rentalImg = rental.cover_image || (!(rental as any).video_url ? rental.gallery_images?.[0] : undefined);
-                return (
-                  <CarouselCard
-                    key={rental.rental_id}
-                    imageUrl={rentalImg}
-                    videoUrl={rental.video_url}
-                    title={rental.title}
-                    subtitle={(rental as any).source_badge ? `🏠 ${(rental as any).source_badge}` : (rental.rent_price || rental.rooms_size || "")}
-                    thirdLine={rental.address || ""}
-                    onPress={() => pushEntityRoute(router, entityRoutes.rental(rental.rental_id as any), () => showInvalidEntityAlert(t))}
-                    isSaved={savedRentalIds.has(rental.rental_id)}
-                    fallbackIcon="home"
-                  />
-                );
-              })}
-            </CarouselSection>
           </>
         )}
 
