@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
-import { getListings, Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
+import { Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
 import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes";
 import { getCategoryConfig, getCategoryAttributes } from "../../lib/marketplace/marketplaceTaxonomy";
 import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
@@ -16,6 +16,7 @@ import DiscoveryResults from "../../components/discovery/DiscoveryResults";
 import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState";
 import MarketplaceCategoryFilter from "../../components/marketplace/MarketplaceCategoryFilter";
 import MarketplaceAttributeFilters from "../../components/marketplace/MarketplaceAttributeFilters";
+import { useViewportListings } from "../../hooks/marketplace/useViewportListings";
 
 const CONDITION_OPTIONS = [
   { key: "new", label: "Neu" },
@@ -36,12 +37,30 @@ export default function MarketplaceItemsPage() {
   const [shippingOnly, setShippingOnly] = useState(false);
   const [attributeFilters, setAttributeFilters] = useState<Record<string, string>>({});
   const [draftAttributeFilters, setDraftAttributeFilters] = useState<Record<string, string>>({});
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [bounds, setBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
   const [categoryFilterVisible, setCategoryFilterVisible] = useState(false);
-  const requestIdRef = useRef(0);
   const attrTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const discoveryFilters = useMemo(() => ({
+    search: search || undefined,
+    category: category || undefined,
+    subcategory: subcategory || undefined,
+    conditions: activeConditions.length > 0 ? activeConditions : undefined,
+    pickupAvailable: pickupOnly || undefined,
+    shippingAvailable: shippingOnly || undefined,
+    attributeFilters: Object.keys(attributeFilters).length > 0 ? attributeFilters : undefined,
+  }), [search, category, subcategory, activeConditions, pickupOnly, shippingOnly, attributeFilters]);
+
+  const {
+    listings,
+    visibleListings,
+    loading,
+    setVisibleBounds,
+    setCommittedBounds,
+  } = useViewportListings({
+    listingType: "product",
+    filters: discoveryFilters,
+    limit: 100,
+  });
 
   useEffect(() => {
     return () => {
@@ -82,40 +101,9 @@ export default function MarketplaceItemsPage() {
     ),
   []);
 
-  const fetchListings = useCallback(async () => {
-    if (!bounds) return;
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    const query: ListingDiscoveryQuery = {
-      listingType: "product",
-      ...bounds,
-      search: search || undefined,
-      category: category || undefined,
-      subcategory: subcategory || undefined,
-      conditions: activeConditions.length > 0 ? activeConditions : undefined,
-      pickupAvailable: pickupOnly || undefined,
-      shippingAvailable: shippingOnly || undefined,
-      attributeFilters: Object.keys(attributeFilters).length > 0 ? attributeFilters : undefined,
-      limit: 100,
-    };
-    if (bounds) Object.assign(query, bounds);
-    try {
-      const data = await getListings(query);
-      if (requestId !== requestIdRef.current) return;
-      setListings(data);
-    } catch {
-      if (requestId !== requestIdRef.current) return;
-      setListings([]);
-    } finally {
-      if (requestId === requestIdRef.current) setLoading(false);
-    }
-  }, [search, category, subcategory, activeConditions, pickupOnly, shippingOnly, attributeFilters, bounds]);
-
-  useEffect(() => { fetchListings(); }, [fetchListings]);
-
   const markers: DiscoveryMapMarker[] = useMemo(
     () =>
-      listings.filter((l) => l.latitude != null && l.longitude != null).map((l) => ({
+      visibleListings.filter((l) => l.latitude != null && l.longitude != null).map((l) => ({
         id: l.listing_id, latitude: l.latitude!, longitude: l.longitude!,
         title: l.title, color: COLORS.success, type: "product",
       })),
@@ -208,7 +196,7 @@ export default function MarketplaceItemsPage() {
           if (k === "shipping") setShippingOnly(!shippingOnly);
         }}
       />
-      <DiscoveryMap markers={markers} onMarkerPress={handleMarkerPress} onViewportChange={setBounds} />
+      <DiscoveryMap markers={markers} onMarkerPress={handleMarkerPress} onViewportChanging={setVisibleBounds} onViewportChange={setCommittedBounds} />
       {loading && listings.length === 0 ? (
         <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
       ) : listings.length === 0 ? (

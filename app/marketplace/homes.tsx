@@ -12,6 +12,7 @@ import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/Dis
 import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/DiscoveryMap";
 import DiscoveryResults from "../../components/discovery/DiscoveryResults";
 import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState";
+import { useViewportListings } from "../../hooks/marketplace/useViewportListings";
 
 const PROPERTY_TYPES = ["apartment", "house", "studio", "room"];
 
@@ -23,41 +24,27 @@ export default function MarketplaceHomesPage() {
   const [activePropType, setActivePropType] = useState("");
   const [furnishedOnly, setFurnishedOnly] = useState(false);
   const [minBeds, setMinBeds] = useState(0);
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [bounds, setBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
-  const requestIdRef = useRef(0);
 
-  const fetchListings = useCallback(async () => {
-    if (!bounds) return;
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    const query: ListingDiscoveryQuery = {
-      listingType: "home_rental",
+  const {
+    listings,
+    visibleListings,
+    loading,
+    setVisibleBounds,
+    setCommittedBounds,
+  } = useViewportListings({
+    listingType: "home_rental",
+    filters: {
       search: search || undefined,
       propertyType: activePropType || undefined,
       furnished: furnishedOnly ? true : undefined,
       minBedrooms: minBeds > 0 ? minBeds : undefined,
-      limit: 100,
-    };
-    if (bounds) Object.assign(query, bounds);
-    try {
-      const data = await getListings(query);
-      if (requestId !== requestIdRef.current) return;
-      setListings(data);
-    } catch {
-      if (requestId !== requestIdRef.current) return;
-      setListings([]);
-    } finally {
-      if (requestId === requestIdRef.current) setLoading(false);
-    }
-  }, [search, activePropType, furnishedOnly, minBeds, bounds]);
-
-  useEffect(() => { fetchListings(); }, [fetchListings]);
+    },
+    limit: 100,
+  });
 
   const markers: DiscoveryMapMarker[] = useMemo(
     () =>
-      listings
+      visibleListings
         .filter((l) => l.latitude != null && l.longitude != null)
         .map((l) => ({
           id: l.listing_id,
@@ -126,7 +113,8 @@ export default function MarketplaceHomesPage() {
       <DiscoveryMap
         markers={markers}
         onMarkerPress={handleMarkerPress}
-        onViewportChange={setBounds}
+        onViewportChanging={setVisibleBounds}
+        onViewportChange={setCommittedBounds}
       />
       {loading && listings.length === 0 ? (
         <View style={styles.centered}>

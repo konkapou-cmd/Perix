@@ -105,7 +105,7 @@ import ActivityModal from "../../components/business/ActivityModal";
 import { useMapBounds } from "../../context/MapBoundsContext";
 import OpeningHoursModal from "../../components/business/OpeningHoursModal";
 import ListingModal from "../../components/user/ListingModal";
-import { getBusinessSellerListings, getManageListings, Listing, updateListing, deleteListing } from "../../lib/api/listings";
+import { getBusinessSellerListings, getManageListings, Listing, updateListing, deleteListing, getProductPermissions } from "../../lib/api/listings";
 import SocialLinksModal from "../../components/SocialLinksModal";
 import PlacesAutocompleteInput from "../../components/PlacesAutocompleteInput";
 
@@ -1152,6 +1152,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const userListingsRequestRef = useRef(0);
   const [listingModalVisible, setListingModalVisible] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
+  const [businessAllowedTaxonomy, setBusinessAllowedTaxonomy] = useState<Record<string, "*" | string[]> | null>(null);
 
   // Business editing state
   const [hoursModalVisible, setHoursModalVisible] = useState(false);
@@ -1215,6 +1216,15 @@ const handleUpdateSlug = async (newSlug: string) => {
         ? listingsResult.value.filter(l => l.listing_type === "product")
         : [],
     );
+
+    getProductPermissions(bizId).then((perms) => {
+      if (requestId !== bizListingsRequestRef.current) return;
+      setBusinessAllowedTaxonomy(
+        Object.fromEntries(
+          perms.allowed.map((p) => [p.category, p.unrestricted ? ("*" as const) : p.subcategories]),
+        ),
+      );
+    }).catch(() => {});
   };
 
   const isFocused = useIsFocused();
@@ -2386,6 +2396,7 @@ currentUserId={businessDetail?.business?.business_id}
           if (parts.length === 2) return parts[1];
           return parts[0] ?? null;
         })()}
+        allowedTaxonomy={activeIdentity?.type === "business" ? businessAllowedTaxonomy : null}
         onClose={() => { setListingModalVisible(false); setEditingListing(null); }}
         onSave={handleSaveListing}
       />
