@@ -337,6 +337,24 @@ async def get_my_business(current_user: UserPublic = Depends(get_current_user)):
     return build_business_response(business) if business else None
 
 
+@router.get("/{business_id}/product-permissions")
+async def get_product_permissions(business_id: str):
+    from utils.product_permissions import resolve_product_permission
+    biz = await db.businesses.find_one({"business_id": business_id})
+    if not biz:
+        raise HTTPException(status_code=404, detail="Business not found")
+    permission = resolve_product_permission(
+        biz.get("root_category", ""),
+        biz.get("subcategory", ""),
+    )
+    return {
+        "enabled": not permission.is_empty,
+        "source": "category_matrix",
+        "policy_version": 1,
+        "allowed": permission.to_response(),
+    }
+
+
 @router.get("/{business_id}", response_model=BusinessDetail)
 async def get_business(
     business_id: str, current_user: UserPublic = Depends(get_current_user)
