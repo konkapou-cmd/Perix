@@ -460,7 +460,13 @@ async def update_listing(
         old_scope = doc.get("publication_scope", "profile_and_marketplace")
         effective_scope = update_data.get("publication_scope", old_scope)
 
-        taxonomy_changed = "category" in update_data or "subcategory" in update_data
+        old_category = normalize_category(doc.get("category")) if doc.get("category") else None
+        new_category = normalize_category(effective_category) if effective_category else None
+
+        taxonomy_changed = (
+            ("category" in update_data and new_category != old_category)
+            or ("subcategory" in update_data and effective_subcategory != doc.get("subcategory"))
+        )
         publishing_now = old_status != "published" and effective_status == "published"
         projecting_now = old_scope != "profile_and_marketplace" and effective_scope == "profile_and_marketplace"
 
@@ -476,8 +482,7 @@ async def update_listing(
 
         if should_validate:
             from utils.product_permissions import validate_business_product_category
-            cat = normalize_category(effective_category) if effective_category else None
-            validate_business_product_category(biz, cat, effective_subcategory)
+            validate_business_product_category(biz, new_category, effective_subcategory)
 
     if effective_status == "published" and not has_publishable_location(
         effective_address, effective_lat, effective_lng,
