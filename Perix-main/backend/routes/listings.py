@@ -162,9 +162,10 @@ async def create_listing(
         seller_type_val = "business"
         seller_id_val = payload.business_id
         business_id_val = payload.business_id
-        if payload.listing_type == "product":
+        if payload.listing_type == "product" and (payload.status == "published" or payload.publication_scope == "profile_and_marketplace"):
             from utils.product_permissions import validate_business_product_category
-            validate_business_product_category(biz, payload.category, payload.subcategory)
+            cat = normalize_category(payload.category) if payload.category else None
+            validate_business_product_category(biz, cat, payload.subcategory)
     else:
         seller_type_val = "user"
         seller_id_val = current_user.user_id
@@ -452,9 +453,10 @@ async def update_listing(
 
     if doc.get("seller_type") == "business" and doc.get("listing_type") == "product":
         biz = await db.businesses.find_one({"business_id": doc.get("business_id")})
-        if biz:
+        if biz and effective_status == "published":
             from utils.product_permissions import validate_business_product_category
-            validate_business_product_category(biz, effective_category, effective_subcategory)
+            cat = normalize_category(effective_category) if effective_category else None
+            validate_business_product_category(biz, cat, effective_subcategory)
 
     if effective_status == "published" and not has_publishable_location(
         effective_address, effective_lat, effective_lng,
