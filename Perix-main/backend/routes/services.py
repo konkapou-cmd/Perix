@@ -278,7 +278,7 @@ async def list_services(
 
 @router.post("/bookings", response_model=BookingResponse)
 async def create_booking(payload: BookingCreate, current_user: UserPublic = Depends(get_current_user)):
-    service = await db.services.find_one({"service_id": payload.service_id, "is_active": True})
+    service = await db.services.find_one({"service_id": payload.service_id, "is_active": True, "status": "published"})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
     business_id = service["business_id"]
@@ -437,7 +437,7 @@ async def send_service_inquiry(
     payload: InquiryPayload,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
 
@@ -486,7 +486,7 @@ async def send_service_inquiry(
 
 @router.get("/{service_id}", response_model=ServiceResponse)
 async def get_service(service_id: str):
-    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
     return ServiceResponse(**service)
@@ -666,7 +666,7 @@ class SlotAvailability(BaseModel):
 
 @router.get("/{service_id}/availability")
 async def get_availability(service_id: str, date: Optional[str] = None):
-    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
 

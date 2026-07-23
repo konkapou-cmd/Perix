@@ -131,7 +131,7 @@ async def get_rentals(
     limit: int = 20,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    svc_query: dict = {"is_active": True, "type": {"$in": list(RENTAL_SERVICE_TYPES)}}
+    svc_query: dict = {"is_active": True, "status": "published", "type": {"$in": list(RENTAL_SERVICE_TYPES)}}
     if root_category:
         matching_bizs = await db.businesses.find(
             {"root_category": root_category},
@@ -230,7 +230,7 @@ async def get_my_rentals(current_user: UserPublic = Depends(get_current_user)):
         return []
 
     services = await db.services.find(
-        {"business_id": {"$in": rental_biz_ids}, "type": {"$in": list(RENTAL_SERVICE_TYPES)}, "is_active": True},
+        {"business_id": {"$in": rental_biz_ids}, "type": {"$in": list(RENTAL_SERVICE_TYPES)}, "is_active": True, "status": "published"},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
 
@@ -293,7 +293,7 @@ async def send_rental_inquiry(
         rental_title = listing.get("title", "")
         entity_type = "user"
     elif service_id:
-        service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+        service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
         if not service:
             raise HTTPException(status_code=404, detail="Service not found")
         business_id = service.get("business_id")
