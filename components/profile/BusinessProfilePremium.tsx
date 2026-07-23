@@ -371,6 +371,16 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     onRequestedSectionHandled?.();
   }, [requestedSection, privateTabs]);
 
+  const theme = detail.business.theme;
+  const { themeStyles, themeColors, isDark } = useThemeStyles(theme);
+  const { isDesktop } = useResponsiveLayout();
+  const bgColor = themeColors.backgroundColor;
+  const primaryColor = themeColors.primaryColor;
+  const textColor = themeColors.textColor;
+  const secondaryColor = themeColors.secondaryColor;
+  const cardColor = themeColors.cardColor;
+  const borderColor = themeColors.borderColor;
+
   const slugUrl = slug ? `${APP_URL}/business/${slug}` : undefined;
 
   const handleCopyLink = async () => {
