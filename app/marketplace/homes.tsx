@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Pressable } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, FlatList, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -11,7 +11,6 @@ import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
 import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
 import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/DiscoveryMap";
-import DiscoveryResults from "../../components/discovery/DiscoveryResults";
 import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState";
 import { useViewportListings } from "../../hooks/marketplace/useViewportListings";
 import { useMarketplaceInitialViewport } from "../../hooks/marketplace/useMarketplaceInitialViewport";
@@ -113,6 +112,34 @@ export default function MarketplaceHomesPage() {
     [setVisibleBounds, setCommittedBounds, setMapBounds],
   );
 
+  const renderCard = useCallback(({ item }: { item: Listing }) => {
+    const img = item.cover_image_url || item.image_urls?.[0] || item.gallery_images?.[0];
+    const addressLabel = item.location_visibility === "approximate"
+      ? item.public_location_label || t("marketplace.approximateLocation", "Ungefahrer Standort")
+      : item.address;
+    return (
+      <Pressable style={styles.card} onPress={() => handleCardPress(item)}>
+        {img ? (
+          <Image source={{ uri: img }} style={styles.cardImage} />
+        ) : (
+          <View style={[styles.cardImage, styles.cardPlaceholder]}>
+            <Ionicons name="home-outline" size={28} color={COLORS.textDisabled} />
+          </View>
+        )}
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+          {item.price ? <Text style={styles.cardPrice}>{item.price}</Text> : null}
+          {addressLabel ? (
+            <View style={styles.cardAddr}>
+              <Ionicons name="location-outline" size={11} color={COLORS.textMuted} />
+              <Text style={styles.cardAddrText} numberOfLines={1}>{addressLabel}</Text>
+            </View>
+          ) : null}
+        </View>
+      </Pressable>
+    );
+  }, [handleCardPress, t]);
+
   if (!viewport.ready) return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 80 }} />
@@ -161,8 +188,8 @@ export default function MarketplaceHomesPage() {
     </SafeAreaView>
   );
 
-  return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+  const listHeader = useMemo(() => (
+    <View>
       <DiscoveryHeader
         title={t("marketplace.title", "Marktplatz")}
         tab="homes"
@@ -186,37 +213,55 @@ export default function MarketplaceHomesPage() {
         onViewportChanging={setVisibleBounds}
         onViewportChange={handleViewportChange}
       />
-      {loading && visibleListings.length === 0 ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
-      ) : visibleListings.length === 0 ? (
-        <DiscoveryEmptyState type="no-results" />
-      ) : (
-        <DiscoveryResults
-          listings={visibleListings}
-          onPressItem={handleCardPress}
-          ListHeaderComponent={
-            <Text style={styles.resultCount}>
-              {t("marketplace.results", "{{count}} Ergebnisse", { count: visibleListings.length })}
-            </Text>
-          }
-        />
+      {visibleListings.length > 0 && (
+        <Text style={styles.resultCount}>
+          {t("marketplace.results", "{{count}} Ergebnisse", { count: visibleListings.length })}
+        </Text>
       )}
+    </View>
+  ), [t, router, search, propertyChips, furnishedChip, bedroomChips, markers, viewport, visibleListings.length, activePropType, furnishedOnly, minBeds, setActivePropType, setFurnishedOnly, setMinBeds, handleMarkerPress, setVisibleBounds, handleViewportChange]);
+
+  return (
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+      <FlatList
+        style={{ flex: 1 }}
+        data={visibleListings}
+        renderItem={renderCard}
+        keyExtractor={(item) => item.listing_id}
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+          ) : (
+            <DiscoveryEmptyState type="no-results" />
+          )
+        }
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.backgroundPage,
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  listContent: { paddingBottom: SPACING.section },
+  columnWrapper: { gap: SPACING.small, paddingHorizontal: SPACING.std, marginBottom: SPACING.small },
+  card: {
+    flex: 1, backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.lg,
+    overflow: "hidden", borderWidth: 1, borderColor: COLORS.border,
   },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  cardImage: { width: "100%", aspectRatio: 16 / 9, backgroundColor: COLORS.backgroundPage },
+  cardPlaceholder: { alignItems: "center", justifyContent: "center" },
+  cardInfo: { padding: SPACING.small },
+  cardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.textPrimary },
+  cardPrice: { fontSize: FONT_SIZES.bodySmall, fontWeight: "700", color: COLORS.success, marginTop: 4 },
+  cardAddr: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 },
+  cardAddrText: { fontSize: 11, color: COLORS.textMuted, flex: 1 },
   resultCount: {
     fontSize: FONT_SIZES.bodySmall,
     color: COLORS.textMuted,
