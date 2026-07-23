@@ -229,7 +229,7 @@ async def list_services(
     skip: int = 0,
     limit: int = 100,
 ):
-    query = {"is_active": True}
+    query = {"is_active": True, "status": "published"}
     if business_id:
         query["business_id"] = business_id
     if type:
