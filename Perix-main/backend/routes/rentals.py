@@ -230,7 +230,7 @@ async def get_my_rentals(current_user: UserPublic = Depends(get_current_user)):
         return []
 
     services = await db.services.find(
-        {"business_id": {"$in": rental_biz_ids}, "type": {"$in": list(RENTAL_SERVICE_TYPES)}, "is_active": True, "status": "published"},
+        {"business_id": {"$in": rental_biz_ids}, "type": {"$in": list(RENTAL_SERVICE_TYPES)}, "is_active": True},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
 
@@ -254,7 +254,15 @@ async def get_rental(rental_id: str, current_user: UserPublic = Depends(get_curr
 
     if rental_id.startswith("svc_"):
         service_id = rental_id[4:]
-        service = await db.services.find_one({"service_id": service_id}, {"_id": 0})
+        service = await db.services.find_one(
+            {
+                "service_id": service_id,
+                "type": {"$in": list(RENTAL_SERVICE_TYPES)},
+                "is_active": True,
+                "status": "published",
+            },
+            {"_id": 0},
+        )
         if not service:
             raise HTTPException(status_code=404, detail="Service not found")
         business = await db.businesses.find_one(

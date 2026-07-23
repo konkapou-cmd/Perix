@@ -190,6 +190,8 @@ async def startup_db():
     await setup_ttl_indexes()
     # Run initial cleanup of old data
     await run_cleanup()
+    # Backfill legacy services with missing status
+    await migrate_service_status()
     # Start background cleanup scheduler (runs every 6 hours)
     asyncio.create_task(start_cleanup_scheduler(interval_hours=6))
     
@@ -203,6 +205,25 @@ async def startup_db():
     )
     scheduler.start()
     print("[Scheduler] Event reminder scheduler started (runs every 1 minute)")
+
+
+async def migrate_service_status():
+    """Backfill legacy services that have no status field."""
+    try:
+        result = await db.services.update_many(
+            {
+                "$or": [
+                    {"status": {"$exists": False}},
+                    {"status": None},
+                ],
+                "is_active": True,
+            },
+            {"$set": {"status": "published"}},
+        )
+        if result.modified_count > 0:
+            print(f"[Migration] Backfilled {result.modified_count} legacy services with status=published")
+    except Exception as e:
+        print(f"[Migration] Service status backfill failed: {e}")
 
 
 @app.on_event("shutdown")
