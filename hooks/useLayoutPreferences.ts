@@ -70,6 +70,7 @@ export function useLayoutPreferences() {
           setHomeLayout(prev => ({
             ...prev,
             ...parsed,
+            favoriteCategories: Array.isArray(parsed.favoriteCategories) ? parsed.favoriteCategories : [],
             sections: prev.sections.map(s => {
               const savedSection = parsed.sections?.find((ps: SectionConfig) => ps.id === s.id);
               return savedSection ? { ...s, ...savedSection } : s;

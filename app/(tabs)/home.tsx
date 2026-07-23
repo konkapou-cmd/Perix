@@ -110,6 +110,8 @@ export default function HomeScreen() {
 
   const [feedMode, setFeedMode] = useState<"nearby" | "following">("nearby");
 
+  const { homeLayout, toggleSection, setSorting, setFavoriteCategories } = useLayoutPreferences();
+
   const feedData = useFeedData({
     sessionToken,
     mapBounds,
@@ -117,7 +119,7 @@ export default function HomeScreen() {
     user,
     refreshKey: mapRefreshKey,
     friendsOnly: feedMode === "following",
-    favoriteCategories: homeLayout.favoriteCategories.length > 0 ? homeLayout.favoriteCategories : undefined,
+    favoriteCategories: (homeLayout?.favoriteCategories?.length ?? 0) > 0 ? homeLayout.favoriteCategories : undefined,
   });
 
   const [localPosts, setLocalPosts] = useState<Post[]>([]);
@@ -179,8 +181,6 @@ export default function HomeScreen() {
       setVisiblePostId(null);
     }
   }).current;
-
-  const { homeLayout, toggleSection, setSorting, setFavoriteCategories } = useLayoutPreferences();
 
   const popularCategories = useMemo(() => [
     "restaurants-bars", "fashion-accessories", "beauty-care", "health-wellness",
@@ -1072,7 +1072,7 @@ export default function HomeScreen() {
             </View>
           </View>
         )}
-          {homeLayout.favoriteCategories.length > 0 && (
+          {(homeLayout?.favoriteCategories?.length ?? 0) > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryChipRow} contentContainerStyle={{ gap: 6, paddingHorizontal: 16, paddingBottom: 8 }}>
               <Pressable
                 style={[styles.categoryChip, styles.categoryChipActive]}

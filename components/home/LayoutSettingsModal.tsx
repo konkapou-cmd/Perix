@@ -85,7 +85,7 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
                 );
               })}
             </View>
-            {homeLayout.favoriteCategories.length > 0 && (
+              {(homeLayout?.favoriteCategories?.length ?? 0) > 0 && (
               <Pressable
                 style={styles.clearCatBtn}
                 onPress={() => onSetFavoriteCategories([])}
