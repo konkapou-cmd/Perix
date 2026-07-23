@@ -117,6 +117,7 @@ export default function HomeScreen() {
     user,
     refreshKey: mapRefreshKey,
     friendsOnly: feedMode === "following",
+    favoriteCategories: homeLayout.favoriteCategories.length > 0 ? homeLayout.favoriteCategories : undefined,
   });
 
   const [localPosts, setLocalPosts] = useState<Post[]>([]);
@@ -179,7 +180,14 @@ export default function HomeScreen() {
     }
   }).current;
 
-  const { homeLayout, toggleSection, setSorting } = useLayoutPreferences();
+  const { homeLayout, toggleSection, setSorting, setFavoriteCategories } = useLayoutPreferences();
+
+  const popularCategories = useMemo(() => [
+    "restaurants-bars", "fashion-accessories", "beauty-care", "health-wellness",
+    "shopping-retail", "sports-fitness-wellness", "entertainment-events",
+    "education", "automotive", "professional-services", "pets", "food-dining",
+    "nightlife", "music", "rentals", "technology",
+  ], []);
 
   const { sortedEvents, sortedBusinesses, sortedJobs, sortedActivities, sortedPosts, sortedRentals, sortedServices } = useContentSorting({
     posts, events, businesses, jobs, activities, rentals, services,
@@ -1064,6 +1072,29 @@ export default function HomeScreen() {
             </View>
           </View>
         )}
+          {homeLayout.favoriteCategories.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryChipRow} contentContainerStyle={{ gap: 6, paddingHorizontal: 16, paddingBottom: 8 }}>
+              <Pressable
+                style={[styles.categoryChip, styles.categoryChipActive]}
+                onPress={() => setFavoriteCategories([])}
+              >
+                <Ionicons name="close" size={12} color="#fff" />
+                <Text style={[styles.categoryChipText, { color: "#fff" }]}>
+                  {t("home.clearCategories", "Filter loschen")}
+                </Text>
+              </Pressable>
+              {homeLayout.favoriteCategories.map((cat) => (
+                <Pressable
+                  key={cat}
+                  style={styles.categoryChip}
+                  onPress={() => setFavoriteCategories(homeLayout.favoriteCategories.filter(c => c !== cat))}
+                >
+                  <Text style={styles.categoryChipText}>{translateCategory(cat, t)}</Text>
+                  <Ionicons name="close" size={12} color={COLORS.textMuted} />
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
           </>
         }
         ListFooterComponent={
@@ -1304,6 +1335,7 @@ export default function HomeScreen() {
         homeLayout={homeLayout}
         onToggleSection={toggleSection}
         onSetSorting={setSorting}
+        onSetFavoriteCategories={setFavoriteCategories}
       />
     </SafeAreaView>
   );
@@ -1452,4 +1484,13 @@ const styles = StyleSheet.create({
   businessItemInfo: { flex: 1 },
   businessItemName: { fontSize: 15, fontWeight: "600", color: COLORS.textPrimary },
   businessItemCategory: { fontSize: 13, color: COLORS.textMuted },
+  categoryChipRow: { paddingTop: 8, paddingBottom: 4 },
+  categoryChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 16, backgroundColor: COLORS.backgroundPage,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+  categoryChipActive: { backgroundColor: COLORS.primaryDark, borderColor: COLORS.primaryDark },
+  categoryChipText: { fontSize: 12, fontWeight: "600", color: COLORS.textSecondary },
 });

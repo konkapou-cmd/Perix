@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { HomeLayoutConfig } from "../../hooks/useLayoutPreferences";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { translateCategory } from "../../lib/categoryTranslation";
 
 interface LayoutSettingsModalProps {
   visible: boolean;
@@ -11,12 +12,20 @@ interface LayoutSettingsModalProps {
   homeLayout: HomeLayoutConfig;
   onToggleSection: (sectionId: string) => void;
   onSetSorting: (type: keyof HomeLayoutConfig["sorting"], value: string) => void;
+  onSetFavoriteCategories: (categories: string[]) => void;
 }
 
 const SORT_OPTIONS = ["engagement", "distance", "chronological", "random"] as const;
 const SORTABLE_TYPES = ["posts", "events", "activities", "businesses", "services"] as const;
 
-export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSection, onSetSorting }: LayoutSettingsModalProps) {
+const POPULAR_CATEGORIES = [
+  "restaurants-bars", "fashion-accessories", "beauty-care", "health-wellness",
+  "shopping-retail", "sports-fitness-wellness", "entertainment-events",
+  "education", "automotive", "professional-services", "pets", "food-dining",
+  "nightlife", "music", "rentals", "technology",
+];
+
+export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSection, onSetSorting, onSetFavoriteCategories }: LayoutSettingsModalProps) {
   const { t } = useTranslation();
 
   return (
@@ -50,8 +59,40 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
                     );
                   })}
                 </View>
-              </View>
-            ))}
+            </View>
+          ))}
+
+            <Text style={styles.sectionLabel}>{t("home.favoriteCategories", "Kategorien")}</Text>
+            <View style={styles.categoryChips}>
+              {POPULAR_CATEGORIES.map((cat) => {
+                const active = homeLayout.favoriteCategories.includes(cat);
+                return (
+                  <Pressable
+                    key={cat}
+                    style={[styles.catChip, active && styles.catChipActive]}
+                    onPress={() => {
+                      if (active) {
+                        onSetFavoriteCategories(homeLayout.favoriteCategories.filter(c => c !== cat));
+                      } else {
+                        onSetFavoriteCategories([...homeLayout.favoriteCategories, cat]);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.catChipText, active && styles.catChipTextActive]}>
+                      {translateCategory(cat, t)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {homeLayout.favoriteCategories.length > 0 && (
+              <Pressable
+                style={styles.clearCatBtn}
+                onPress={() => onSetFavoriteCategories([])}
+              >
+                <Text style={styles.clearCatText}>{t("home.showAllCategories", "Alle Kategorien anzeigen")}</Text>
+              </Pressable>
+            )}
 
             <Text style={styles.sectionLabel}>{t("home.showSections")}</Text>
             {homeLayout.sections.filter(s => s.id !== "map").map((section) => (
@@ -159,5 +200,40 @@ const styles = StyleSheet.create({
   },
   toggleButtonTextActive: {
     color: COLORS.textLight,
+  },
+  categoryChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 8,
+  },
+  catChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: COLORS.backgroundPage,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  catChipActive: {
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
+  },
+  catChipText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: COLORS.textSecondary,
+  },
+  catChipTextActive: {
+    color: "#fff",
+  },
+  clearCatBtn: {
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  clearCatText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.primary,
   },
 });

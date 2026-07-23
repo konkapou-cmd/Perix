@@ -27,6 +27,7 @@ interface UseFeedDataParams {
   user: { latitude?: number | null; longitude?: number | null } | null;
   refreshKey?: number;
   friendsOnly?: boolean;
+  favoriteCategories?: string[];
 }
 
 interface UseFeedDataResult {
@@ -66,7 +67,7 @@ function computeBounds(
   return null;
 }
 
-export function useFeedData({ sessionToken, mapBounds, userLocation, user, refreshKey, friendsOnly }: UseFeedDataParams): UseFeedDataResult {
+export function useFeedData({ sessionToken, mapBounds, userLocation, user, refreshKey, friendsOnly, favoriteCategories }: UseFeedDataParams): UseFeedDataResult {
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -87,8 +88,8 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const isInitialRef = useRef(true);
 
-  const paramsRef = useRef({ sessionToken, mapBounds, userLocation, user, friendsOnly });
-  paramsRef.current = { sessionToken, mapBounds, userLocation, user, friendsOnly };
+  const paramsRef = useRef({ sessionToken, mapBounds, userLocation, user, friendsOnly, favoriteCategories });
+  paramsRef.current = { sessionToken, mapBounds, userLocation, user, friendsOnly, favoriteCategories };
 
   const loadData = useCallback(async () => {
     const { sessionToken, mapBounds, userLocation, user } = paramsRef.current;
@@ -120,7 +121,8 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
       }, undefined, (paramsRef.current as any).friendsOnly);
       const eventsPromise = getEvents(sessionToken, undefined, undefined, bounds);
       const activitiesPromise = getActivities(sessionToken, bounds);
-      const businessesPromise = getNearbyBusinesses(sessionToken, userLat, userLng, undefined, undefined, bounds);
+      const bizCat = (favoriteCategories && favoriteCategories.length > 0) ? favoriteCategories[0] : undefined;
+      const businessesPromise = getNearbyBusinesses(sessionToken, userLat, userLng, bizCat, undefined, bounds);
       const jobsPromise = getJobs(sessionToken, bounds, { latitude: userLat, longitude: userLng });
       const rentalsPromise = getRentals(sessionToken, bounds, { latitude: userLat, longitude: userLng });
       const servicesPromise = getNearbyServices(sessionToken, bounds, { latitude: userLat, longitude: userLng });
