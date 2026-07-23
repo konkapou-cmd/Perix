@@ -426,11 +426,14 @@ export default function UnifiedMediaGallery({
             // Regular media items
             const showMenu = menuIndex === realIdx;
             const mediaItem = item; // Prevent variable shadowing
+            const thumbnailUri = mediaItem.type === "video"
+              ? mediaItem.posterUrl ?? getMuxThumbnailFromUri(mediaItem.uri) ?? mediaItem.uri
+              : mediaItem.uri;
 
             return (
               <View key={`m-${realIdx}`} style={[s.gridItem, { width: itemSize, height: itemSize }]}>
                 <MediaThumbnail
-                  uri={mediaItem.uri}
+                  uri={thumbnailUri}
                   type={mediaItem.type}
                   aspectRatio={1}
                   showTypeBadge
@@ -458,13 +461,13 @@ export default function UnifiedMediaGallery({
                         {mediaItem.type === "image" && isResolved(mediaItem) && (
                           <Pressable style={s.menuItem} onPress={() => handleSetCoverImage(realIdx)}>
                             <Ionicons name="image-outline" size={12} color={COLORS.textPrimary} />
-                            <Text style={s.menuItemText}>{t("gallery.setCoverImage") || "Cover Image"}</Text>
+                            <Text style={s.menuItemText}>{t("gallery.setCoverImage", "Titelbild festlegen")}</Text>
                           </Pressable>
                         )}
                         {mediaItem.type === "video" && isResolved(mediaItem) && (
                           <Pressable style={s.menuItem} onPress={() => handleSetCoverVideo(realIdx)}>
                             <Ionicons name="videocam-outline" size={12} color={COLORS.textPrimary} />
-                            <Text style={s.menuItemText}>{t("gallery.setCoverVideo") || "Cover Video"}</Text>
+                            <Text style={s.menuItemText}>{t("gallery.setCoverVideo", "Cover Video")}</Text>
                           </Pressable>
                         )}
                         <Pressable style={s.menuItem} onPress={() => removeItem(realIdx)}>

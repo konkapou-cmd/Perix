@@ -31,8 +31,8 @@ type Props = {
 };
 
 const HOME_TYPES = ["apartment", "house", "studio", "room"];
-const CONDITIONS = ["new", "like_new", "good", "used"];
-const DELIVERY = ["pickup", "shipping", "both"];
+const CONDITION_LABELS: Record<string, string> = { new: "Neu", like_new: "Wie neu", good: "Gut", used: "Gebraucht" };
+const DELIVERY_LABELS: Record<string, string> = { pickup: "Abholung", shipping: "Versand", both: "Beides" };
 
 function listingToMedia(listing: Listing | null | undefined): MediaItem[] {
   if (!listing) return [];
@@ -104,6 +104,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [longitude, setLongitude] = useState<number | undefined>();
   const [publicLocationLabel, setPublicLocationLabel] = useState("");
   const [locationVisibility, setLocationVisibility] = useState<LocationVisibility>("approximate");
+  const [showPublicLabelInput, setShowPublicLabelInput] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
 
   // Product fields
@@ -379,9 +380,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
               <>
                 <Text style={styles.label}>{t("services.condition", "Condition")}</Text>
                 <View style={styles.chipRow}>
-                  {CONDITIONS.map((c) => (
-                    <Pressable key={c} style={[styles.chip, condition === c && styles.chipActive]} onPress={() => setCondition(condition === c ? "" : c)}>
-                      <Text style={[styles.chipText, condition === c && styles.chipTextActive]}>{c}</Text>
+                  {Object.entries(CONDITION_LABELS).map(([key, label]) => (
+                    <Pressable key={key} style={[styles.chip, condition === key && styles.chipActive]} onPress={() => setCondition(condition === key ? "" : key)}>
+                      <Text style={[styles.chipText, condition === key && styles.chipTextActive]}>{label}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -391,9 +392,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
 
                 <Text style={styles.label}>{t("services.delivery", "Delivery")}</Text>
                 <View style={styles.chipRow}>
-                  {DELIVERY.map((d) => (
-                    <Pressable key={d} style={[styles.chip, delivery === d && styles.chipActive]} onPress={() => setDelivery(delivery === d ? "" : d)}>
-                      <Text style={[styles.chipText, delivery === d && styles.chipTextActive]}>{d}</Text>
+                  {Object.entries(DELIVERY_LABELS).map(([key, label]) => (
+                    <Pressable key={key} style={[styles.chip, delivery === key && styles.chipActive]} onPress={() => setDelivery(delivery === key ? "" : key)}>
+                      <Text style={[styles.chipText, delivery === key && styles.chipTextActive]}>{label}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -459,41 +460,62 @@ export default function ListingModal({ visible, listingType, editingListing, ses
               sessionToken={sessionToken}
             />
 
-            {hasCoordinates && (
-              <>
-                <Text style={styles.label}>{t("marketplace.locationVisibility", "Sichtbarkeit des Standorts")}</Text>
-                <View style={styles.chipRow}>
-                  <Pressable
-                    style={[styles.chip, locationVisibility === "approximate" && styles.chipActive]}
-                    onPress={() => setLocationVisibility("approximate")}
-                  >
-                    <Text style={[styles.chipText, locationVisibility === "approximate" && styles.chipTextActive]}>
-                      {t("marketplace.approximate", "Ungefährer Bereich")}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.chip, locationVisibility === "exact" && styles.chipActive]}
-                    onPress={() => setLocationVisibility("exact")}
-                  >
-                    <Text style={[styles.chipText, locationVisibility === "exact" && styles.chipTextActive]}>
-                      {t("marketplace.exact", "Genaue Adresse")}
-                    </Text>
-                  </Pressable>
-                </View>
+                {hasCoordinates && (
+                  <>
+                    <Text style={styles.label}>{t("marketplace.locationVisibility", "Sichtbarkeit des Standorts")}</Text>
+                    <View style={styles.chipRow}>
+                      <Pressable
+                        style={[styles.chip, locationVisibility === "approximate" && styles.chipActive]}
+                        onPress={() => setLocationVisibility("approximate")}
+                      >
+                        <Text style={[styles.chipText, locationVisibility === "approximate" && styles.chipTextActive]}>
+                          {t("marketplace.approximate", "Ungefährer Bereich")}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.chip, locationVisibility === "exact" && styles.chipActive]}
+                        onPress={() => setLocationVisibility("exact")}
+                      >
+                        <Text style={[styles.chipText, locationVisibility === "exact" && styles.chipTextActive]}>
+                          {t("marketplace.exact", "Genaue Adresse")}
+                        </Text>
+                      </Pressable>
+                    </View>
 
-                <Text style={styles.label}>
-                  {t("marketplace.publicLabel", "Öffentliche Ortsangabe")}
-                  {status === "published" && locationVisibility === "approximate" && <Text style={styles.required}> *</Text>}
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  value={publicLocationLabel}
-                  onChangeText={setPublicLocationLabel}
-                  placeholder={isProduct ? "e.g. Berlin" : "e.g. Berlin-Mitte"}
-                  placeholderTextColor={COLORS.textDisabled}
-                />
-              </>
-            )}
+                    <View style={[styles.locationLabelRow, publicLocationLabel ? undefined : { display: "none" as any }]}>
+                      <Pressable
+                        style={styles.locationLabelPressable}
+                        onPress={() => setShowPublicLabelInput(!showPublicLabelInput)}
+                      >
+                        <Ionicons name="eye-outline" size={14} color={COLORS.textMuted} />
+                        <Text style={styles.locationLabelText} numberOfLines={1}>
+                          {publicLocationLabel
+                            ? `${t("marketplace.publicLabel", "Öffentlich")}: ${publicLocationLabel}`
+                            : ""}
+                        </Text>
+                        <Text style={styles.locationLabelEdit}>{t("common.change", "Ändern")}</Text>
+                      </Pressable>
+                      {(status === "published" && locationVisibility === "approximate" && !publicLocationLabel) && (
+                        <Text style={styles.required}>*</Text>
+                      )}
+                    </View>
+                    {(showPublicLabelInput || !publicLocationLabel) && locationVisibility === "approximate" && (
+                      <View style={styles.field}>
+                        <Text style={styles.label}>
+                          {t("marketplace.publicLabel", "Öffentliche Ortsangabe")}
+                          {status === "published" && <Text style={styles.required}> *</Text>}
+                        </Text>
+                        <TextInput
+                          style={styles.input}
+                          value={publicLocationLabel}
+                          onChangeText={setPublicLocationLabel}
+                          placeholder={isProduct ? "z.B. Berlin" : "z.B. Berlin-Mitte"}
+                          placeholderTextColor={COLORS.textDisabled}
+                        />
+                      </View>
+                    )}
+                  </>
+                )}
 
             <View style={styles.statusRow}>
               <Pressable style={[styles.statusBtn, status === "draft" && styles.statusBtnDraft]} onPress={() => setStatus("draft")}>
@@ -564,4 +586,13 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md, paddingVertical: 14, alignItems: "center",
   },
   saveBtnText: { fontSize: FONT_SIZES.body, fontWeight: "700", color: "#fff" },
+  locationLabelRow: { marginBottom: SPACING.small },
+  locationLabelPressable: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    padding: SPACING.small, borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.backgroundPage, borderWidth: 1, borderColor: COLORS.border,
+  },
+  locationLabelText: { flex: 1, fontSize: 13, color: COLORS.textPrimary },
+  locationLabelEdit: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
+  field: { marginTop: SPACING.small },
 });

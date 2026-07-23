@@ -309,7 +309,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const privateTabs: TabDefinition[] = useMemo(() => {
     const tabs: TabDefinition[] = [];
     tabs.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: businessPosts.length });
-    tabs.push({ key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetags-outline", count: businessListings.length });
+    if (canAddItems) {
+      tabs.push({ key: "items", label: t("marketplace.items", "Shop"), icon: "storefront-outline", count: businessListings.length });
+    }
     // 2. Service type tabs — one per categoryKey:serviceType
     const rootCat = detail.business.root_category || "";
     const hasModule = hasServiceModules(rootCat);
@@ -355,7 +357,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     // 5. Media (always visible for owner)
     tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
     return tabs;
-  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings]);
+  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings, canAddItems]);
 
   const theme = detail.business.theme;
   const { themeStyles, themeColors, isDark } = useThemeStyles(theme);
