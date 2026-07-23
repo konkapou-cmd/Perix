@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Alert, Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -39,7 +39,8 @@ type Props = {
 };
 
 function getCoverItem(media: MediaItem[]): MediaItem | undefined {
-  return media.find((m) => m.isCoverImage) || media.find((m) => m.isCoverVideo) || media[0];
+  const resolved = media.filter((m) => !m.processingStatus || m.processingStatus === "ready");
+  return resolved.find((m) => m.isCoverImage) || resolved.find((m) => m.isCoverVideo) || resolved[0];
 }
 
 function getMuxThumbnailFromUri(uri: string): string | null {
@@ -93,6 +94,14 @@ export default function UnifiedMediaGallery({
 
   const maxItemsResolved = maxItems ?? galleryLimits.maxItems;
 
+  const mediaRef = useRef(media);
+  useEffect(() => { mediaRef.current = media; }, [media]);
+
+  const commitMedia = (next: MediaItem[]) => {
+    mediaRef.current = next;
+    onChange(next);
+  };
+
   const coverItem = getCoverItem(media);
 
   const addImages = async () => {
@@ -142,30 +151,33 @@ export default function UnifiedMediaGallery({
     }
   };
 
-  const pollMuxProcessing = async (assetId: string, temporaryId: string, token: string, currentMedia: MediaItem[]) => {
+  const pollMuxProcessing = async (assetId: string, temporaryId: string, token: string) => {
     const maxAttempts = 24;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise((r) => setTimeout(r, 5000));
+      const current = mediaRef.current;
+      if (!current.some((item) => item.temporaryId === temporaryId)) return;
       try {
         const status = await getMuxAssetStatus(token, assetId);
         if (status.status === "ready" && status.playback_url) {
-          const videoUrl = status.playback_url;
-          const updated = currentMedia.map((item) =>
+          const updated = current.map((item) =>
             item.temporaryId === temporaryId
-              ? { uri: videoUrl, type: "video" as const, posterUrl: status.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: assetId }
+              ? { uri: status.playback_url!, type: "video" as const, posterUrl: status.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: assetId }
               : item,
           );
-          onChange(updated);
+          commitMedia(updated);
           return;
         }
       } catch {}
     }
-    const failed = currentMedia.map((item) =>
+    const current = mediaRef.current;
+    if (!current.some((item) => item.temporaryId === temporaryId)) return;
+    const failed = current.map((item) =>
       item.temporaryId === temporaryId
         ? { ...item, processingStatus: "failed" as const }
         : item,
     );
-    onChange(failed);
+    commitMedia(failed);
   };
 
   const addVideo = async () => {
@@ -222,7 +234,7 @@ export default function UnifiedMediaGallery({
           t("upload.videoProcessingTitle", "Video wird verarbeitet"),
           t("upload.videoProcessingMsg", "Dein Video wird verarbeitet. Du kannst es speichern sobald es fertig ist."),
         );
-        pollMuxProcessing(muxResult.mux_asset_id || muxResult.mux_upload_id, processingItem.temporaryId!, sessionToken, combined);
+        pollMuxProcessing(muxResult.mux_asset_id || "", processingItem.temporaryId!, sessionToken);
         return;
       }
 
@@ -348,6 +360,26 @@ export default function UnifiedMediaGallery({
               );
             }
 
+            // Processing/failed media items
+            if (item.processingStatus === "processing" || item.processingStatus === "failed") {
+              const isFailed = item.processingStatus === "failed";
+              return (
+                <View key={`m-${realIdx}`} style={[s.gridItem, { width: itemSize, height: itemSize }]}>
+                  <View style={[s.processingTile, isFailed && s.failedTile]}>
+                    <Ionicons name={isFailed ? "alert-circle-outline" : "hourglass-outline"} size={24} color={isFailed ? COLORS.danger : COLORS.primary} />
+                    <Text style={[s.processingText, isFailed && { color: COLORS.danger }]}>
+                      {isFailed ? t("upload.videoFailed", "Fehlgeschlagen") : t("upload.videoProcessing", "Wird verarbeitet")}
+                    </Text>
+                    {isCreator && (
+                      <Pressable style={s.processingRemoveBtn} onPress={() => removeItem(realIdx)}>
+                        <Ionicons name="close-circle-outline" size={16} color={COLORS.textMuted} />
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              );
+            }
+
             // Regular media items
             const showMenu = menuIndex === realIdx;
             const mediaItem = item; // Prevent variable shadowing
@@ -380,13 +412,13 @@ export default function UnifiedMediaGallery({
                   <View style={s.gridActions}>
                     {showMenu ? (
                       <View style={s.menuContainer}>
-                        {mediaItem.type === "image" && (
+                        {mediaItem.type === "image" && !mediaItem.processingStatus && (
                           <Pressable style={s.menuItem} onPress={() => handleSetCoverImage(realIdx)}>
                             <Ionicons name="image-outline" size={12} color={COLORS.textPrimary} />
                             <Text style={s.menuItemText}>{t("gallery.setCoverImage") || "Cover Image"}</Text>
                           </Pressable>
                         )}
-                        {mediaItem.type === "video" && (
+                        {mediaItem.type === "video" && !mediaItem.processingStatus && (
                           <Pressable style={s.menuItem} onPress={() => handleSetCoverVideo(realIdx)}>
                             <Ionicons name="videocam-outline" size={12} color={COLORS.textPrimary} />
                             <Text style={s.menuItemText}>{t("gallery.setCoverVideo") || "Cover Video"}</Text>
@@ -620,5 +652,20 @@ const s = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.medium as any,
+  },
+  processingTile: {
+    flex: 1, alignItems: "center", justifyContent: "center",
+    backgroundColor: COLORS.backgroundPage, borderRadius: 10,
+    gap: 4, padding: SPACING.small,
+  },
+  failedTile: {
+    backgroundColor: "#fef2f2",
+  },
+  processingText: {
+    fontSize: 10, color: COLORS.textMuted, textAlign: "center",
+  },
+  processingRemoveBtn: {
+    position: "absolute", top: 4, right: 4, padding: 2,
+    backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 10,
   },
 });

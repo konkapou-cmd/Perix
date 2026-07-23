@@ -69,12 +69,12 @@ function listingToMedia(listing: Listing | null | undefined): MediaItem[] {
   return items;
 }
 
-function hasProcessingMedia(media: MediaItem[]): boolean {
-  return media.some((m) => m.processingStatus === "processing");
+function hasUnresolvedMedia(media: MediaItem[]): boolean {
+  return media.some((m) => m.processingStatus === "processing" || m.processingStatus === "failed");
 }
 
 function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string } {
-  const ready = media.filter((m) => m.processingStatus !== "processing");
+  const ready = media.filter((m) => !m.processingStatus || m.processingStatus === "ready");
   const images = ready.filter((m) => m.type === "image");
   const videos = ready.filter((m) => m.type === "video");
   const explicitCoverVideo = videos.find((m) => (m as any).isCoverVideo);
@@ -191,7 +191,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       return;
     }
 
-    if (hasProcessingMedia(media)) {
+    if (hasUnresolvedMedia(media)) {
       Alert.alert(
         t("upload.processingVideoTitle", "Video wird verarbeitet"),
         t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
