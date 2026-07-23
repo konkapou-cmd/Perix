@@ -216,7 +216,6 @@ async def migrate_service_status():
                     {"status": {"$exists": False}},
                     {"status": None},
                 ],
-                "is_active": True,
             },
             {"$set": {"status": "published"}},
         )
