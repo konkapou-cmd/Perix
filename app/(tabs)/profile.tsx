@@ -223,7 +223,7 @@ export default function ProfileScreen() {
   const { user, logout, sessionToken, activeIdentity, setActiveIdentity, refreshUser } = useAuth();
   const { clearMapBounds } = useMapBounds();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string }>();
+  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string; openProduct?: string; section?: string }>();
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -449,6 +449,28 @@ export default function ProfileScreen() {
 
   // Watch for business action params from BusinessActionsModal
   useEffect(() => {
+    const section = params.section;
+    if (section) {
+      setRequestedSection(section as string);
+      router.setParams({ section: undefined } as any);
+      return;
+    }
+
+    const shouldOpenProduct = params.openProduct === "1";
+    if (shouldOpenProduct && businessDetail && !businessPermsLoading) {
+      router.setParams({ openProduct: undefined } as any);
+      if (!businessProductsEnabled) {
+        Alert.alert(
+          t("common.info", "Info"),
+          t("marketplace.productsNotAvailable", "Für diese Unternehmenskategorie sind keine Produkte freigeschaltet."),
+        );
+        return;
+      }
+      setEditingListing(null);
+      setListingModalVisible(true);
+      return;
+    }
+
     const shouldOpenService = params.openService === "1";
     const shouldOpenEvent = params.openEvent === "1";
     const shouldOpenJob = params.openJob === "1";
@@ -458,7 +480,6 @@ export default function ProfileScreen() {
       return;
     }
 
-    // Clear all consumed action params once.
     router.setParams({
       openService: undefined,
       openEvent: undefined,
@@ -466,7 +487,6 @@ export default function ProfileScreen() {
       openBookings: undefined,
     } as any);
 
-    // Open only one action per trigger.
     if (shouldOpenService) {
       const rootCategory = businessDetail?.business.root_category;
       if (rootCategory && !hasServiceModules(rootCategory)) {
@@ -497,6 +517,11 @@ export default function ProfileScreen() {
     params.openEvent,
     params.openJob,
     params.openBookings,
+    params.openProduct,
+    params.section,
+    businessDetail,
+    businessPermsLoading,
+    businessProductsEnabled,
   ]);
 
   // ---------------------------------------------------------------------------
@@ -1147,6 +1172,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [bizAnalytics, setBizAnalytics] = useState<any>(null);
 
   const [businessListings, setBusinessListings] = useState<Listing[]>([]);
+  const [requestedSection, setRequestedSection] = useState<string | null>(null);
   const [userListings, setUserListings] = useState<Listing[]>([]);
   const bizListingsRequestRef = useRef(0);
   const userListingsRequestRef = useRef(0);
@@ -2394,6 +2420,8 @@ currentUserId={businessDetail?.business?.business_id}
                   canAddItems={businessProductsEnabled}
                   addItemsLoading={businessPermsLoading}
                   addItemsDisabledReason={t("marketplace.productsNotAvailable", "Für diese Unternehmenskategorie sind keine Produkte freigeschaltet.")}
+                  requestedSection={requestedSection}
+                  onRequestedSectionHandled={() => setRequestedSection(null)}
                 />
               )}
         </View>

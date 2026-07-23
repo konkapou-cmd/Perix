@@ -7,10 +7,11 @@ import {
   Modal,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
+import { COLORS, BORDER_RADIUS, SPACING } from "../../lib/designTokens";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -18,90 +19,105 @@ type ActionItem = {
   key: string;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
-  description?: string;
+  count?: number;
 };
 
-export type BusinessAction = "cityad" | "event" | "job" | "service" | "bookings";
+export type BusinessAction =
+  | "create-product"
+  | "create-service"
+  | "create-event"
+  | "create-job"
+  | "create-city-ad"
+  | "manage-products"
+  | "manage-services"
+  | "manage-events"
+  | "manage-jobs"
+  | "manage-bookings"
+  | "manage-media";
 
 type Props = {
   visible: boolean;
+  loading?: boolean;
+  businessProductsEnabled?: boolean;
+  listingsCount?: number;
   onClose: () => void;
   onAction: (action: BusinessAction) => void;
 };
 
-export default function BusinessActionsModal({ visible, onClose, onAction }: Props) {
+export default function BusinessActionsModal({ visible, loading, businessProductsEnabled, listingsCount, onClose, onAction }: Props) {
   const { t } = useTranslation();
 
-  const actions: ActionItem[] = [
-    {
-      key: "cityad",
-      label: t("cityAd.createAd") || "Stadt anzeigen erstellen",
-      icon: "megaphone",
-    },
-    {
-      key: "event",
-      label: t("business.createEvent") || "Veranstaltung erstellen",
-      icon: "calendar",
-    },
-    {
-      key: "job",
-      label: t("business.createJob") || "Job erstellen",
-      icon: "briefcase",
-    },
-    {
-      key: "service",
-      label: t("services.addService") || "Dienst hinzufügen",
-      icon: "add-circle",
-    },
-    {
-      key: "bookings",
-      label: t("services.manageBookings") || "Buchungen verwalten",
-      icon: "calendar-number",
-    },
+  const showCreateProduct = !loading && businessProductsEnabled;
+  const showManageProducts = !loading && (businessProductsEnabled || (listingsCount ?? 0) > 0);
+
+  const createActions: ActionItem[] = [
+    ...(showCreateProduct ? [{ key: "create-product", label: t("marketplace.addProduct", "Produkt hinzufügen"), icon: "add-circle" as const }] : []),
+    { key: "create-service", label: t("services.addService", "Dienst hinzufügen"), icon: "add-circle" as const },
+    { key: "create-event", label: t("business.createEvent", "Veranstaltung erstellen"), icon: "calendar" as const },
+    { key: "create-job", label: t("business.createJob", "Job erstellen"), icon: "briefcase" as const },
+    { key: "create-city-ad", label: t("cityAd.createAd", "City Ad erstellen"), icon: "megaphone" as const },
   ];
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+  const manageActions: ActionItem[] = [
+    ...(showManageProducts ? [{ key: "manage-products", label: t("marketplace.products", "Produkte"), icon: "pricetags-outline" as const, count: listingsCount }] : []),
+    { key: "manage-services", label: t("services.services", "Dienste"), icon: "grid-outline" as const },
+    { key: "manage-events", label: t("events.title", "Veranstaltungen"), icon: "calendar" as const },
+    { key: "manage-jobs", label: t("jobs.title", "Jobs"), icon: "briefcase" as const },
+    { key: "manage-bookings", label: t("services.bookings", "Buchungen"), icon: "calendar-number" as const },
+    { key: "manage-media", label: t("profile.media", "Medien"), icon: "images-outline" as const },
+  ];
+
+  const renderRow = (action: ActionItem) => (
+    <Pressable
+      key={action.key}
+      style={styles.actionRow}
+      onPress={() => {
+        onClose();
+        onAction(action.key as BusinessAction);
+      }}
     >
+      <View style={styles.actionIcon}>
+        <Ionicons name={action.icon} size={22} color={COLORS.primaryDark} />
+      </View>
+      <View style={styles.actionInfo}>
+        <Text style={styles.actionLabel}>{action.label}</Text>
+      </View>
+      {action.count != null && (
+        <View style={styles.countBadge}>
+          <Text style={styles.countText}>{action.count}</Text>
+        </View>
+      )}
+      <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+    </Pressable>
+  );
+
+  return (
+    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={styles.handle} />
-          <Text style={styles.title}>
-            {t("business.actions", "Business Aktionen")}
-          </Text>
+          <Text style={styles.title}>{t("business.actions", "Business Aktionen")}</Text>
 
-          <View style={styles.actionsList}>
-            {actions.map((action) => (
-              <Pressable
-                key={action.key}
-                style={styles.actionRow}
-                onPress={() => {
-                  onClose();
-                  onAction(action.key as BusinessAction);
-                }}
-              >
-                <View style={styles.actionIcon}>
-                  <Ionicons name={action.icon} size={22} color={COLORS.primaryDark} />
-                </View>
-                <View style={styles.actionInfo}>
-                  <Text style={styles.actionLabel}>{action.label}</Text>
-                  {action.description && (
-                    <Text style={styles.actionDesc}>{action.description}</Text>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
-              </Pressable>
-            ))}
-          </View>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            </View>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>{t("business.create", "Erstellen")}</Text>
+              <View style={styles.actionsList}>
+                {createActions.map(renderRow)}
+              </View>
+
+              <Text style={styles.sectionTitle}>{t("business.manage", "Verwalten")}</Text>
+              <View style={styles.actionsList}>
+                {manageActions.map(renderRow)}
+              </View>
+            </>
+          )}
 
           <Pressable style={styles.cancelBtn} onPress={onClose}>
-            <Text style={styles.cancelText}>
-              {t("common.cancel", "Abbrechen")}
-            </Text>
+            <Text style={styles.cancelText}>{t("common.cancel", "Abbrechen")}</Text>
           </Pressable>
         </Pressable>
       </Pressable>
@@ -120,7 +136,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: Platform.OS === "ios" ? 34 : 16,
-    maxHeight: SCREEN_HEIGHT * 0.7,
+    maxHeight: SCREEN_HEIGHT * 0.75,
   },
   handle: {
     width: 36,
@@ -138,14 +154,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 16,
   },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#9ca3af",
+    textTransform: "uppercase",
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 6,
+  },
   actionsList: {
     paddingHorizontal: 16,
-    gap: 4,
+    gap: 2,
   },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 12,
     gap: 14,
@@ -166,10 +191,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.textPrimary,
   },
-  actionDesc: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginTop: 2,
+  countBadge: {
+    backgroundColor: COLORS.backgroundPage,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    marginRight: 4,
+  },
+  countText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.textSecondary,
   },
   cancelBtn: {
     marginHorizontal: 16,
@@ -183,5 +215,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#6b7280",
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
   },
 });
