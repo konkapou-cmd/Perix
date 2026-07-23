@@ -194,6 +194,7 @@ class ServiceResponse(BaseModel):
     video_status: Optional[str] = None
     cover_focal_point: Optional[FocalPoint] = None
     is_active: bool = True
+    status: Optional[str] = None
     created_at: datetime
     instructor: Optional[str] = None
     difficulty_level: Optional[str] = None
