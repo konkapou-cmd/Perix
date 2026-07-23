@@ -161,8 +161,19 @@ export default function UnifiedMediaGallery({
     }
   };
 
+  const markFailed = (temporaryId: string) => {
+    const current = mediaRef.current;
+    if (!current.some((item) => item.temporaryId === temporaryId)) return;
+    commitMedia(
+      current.map((item) =>
+        item.temporaryId === temporaryId
+          ? { ...item, processingStatus: "failed" as const }
+          : item,
+      ),
+    );
+  };
+
   const pollMuxProcessing = async (assetId: string | null, uploadId: string, temporaryId: string, token: string) => {
-    // First, resolve uploadId to assetId if needed
     let resolvedAssetId = assetId;
     if (!resolvedAssetId && uploadId) {
       for (let attempt = 0; attempt < 12; attempt++) {
@@ -171,10 +182,10 @@ export default function UnifiedMediaGallery({
         if (!current.some((item) => item.temporaryId === temporaryId)) return;
         try {
           const confirm = await confirmMuxUpload(token, uploadId);
-          if (confirm.playback_url) {
+          if (confirm.status === "ready" && confirm.playback_url) {
             const updated = current.map((item) =>
               item.temporaryId === temporaryId
-                ? { uri: confirm.playback_url!, type: "video" as const, posterUrl: null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: confirm.asset_id }
+                ? { uri: confirm.playback_url!, type: "video" as const, posterUrl: confirm.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: confirm.asset_id }
                 : item,
             );
             commitMedia(updated);
@@ -188,9 +199,11 @@ export default function UnifiedMediaGallery({
       }
     }
 
-    if (!resolvedAssetId) return;
+    if (!resolvedAssetId) {
+      markFailed(temporaryId);
+      return;
+    }
 
-    // Poll asset status
     const maxAttempts = 24;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise((r) => setTimeout(r, 5000));
@@ -209,14 +222,7 @@ export default function UnifiedMediaGallery({
         }
       } catch {}
     }
-    const current = mediaRef.current;
-    if (!current.some((item) => item.temporaryId === temporaryId)) return;
-    const failed = current.map((item) =>
-      item.temporaryId === temporaryId
-        ? { ...item, processingStatus: "failed" as const }
-        : item,
-    );
-    commitMedia(failed);
+    markFailed(temporaryId);
   };
 
   const addVideo = async () => {
