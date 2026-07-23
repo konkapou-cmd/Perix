@@ -9,7 +9,7 @@ import CoverPositionEditor from "./CoverPositionEditor";
 import GalleryUploadSlot from "./GalleryUploadSlot";
 import MediaThumbnail from "./ui/MediaThumbnail";
 import { uploadMedia, uploadVideoMux, UploadProgress } from "../lib/api";
-import { getMuxAssetStatus } from "../lib/api/mux";
+import { getMuxAssetStatus, confirmMuxUpload } from "../lib/api/mux";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../lib/constants/mediaLimits";
 
@@ -22,6 +22,7 @@ export type MediaItem = {
   posterUrl?: string | null;
   processingStatus?: "processing" | "ready" | "failed";
   muxAssetId?: string | null;
+  muxUploadId?: string;
   temporaryId?: string;
 };
 
@@ -38,9 +39,8 @@ type Props = {
   mediaContext?: MediaContext;
 };
 
-function getCoverItem(media: MediaItem[]): MediaItem | undefined {
-  const resolved = media.filter((m) => !m.processingStatus || m.processingStatus === "ready");
-  return resolved.find((m) => m.isCoverImage) || resolved.find((m) => m.isCoverVideo) || resolved[0];
+function isResolved(item: MediaItem): boolean {
+  return !item.processingStatus || item.processingStatus === "ready";
 }
 
 function getMuxThumbnailFromUri(uri: string): string | null {
@@ -102,7 +102,17 @@ export default function UnifiedMediaGallery({
     onChange(next);
   };
 
-  const coverItem = getCoverItem(media);
+  const coverIndex = media.findIndex((item) => isResolved(item) && item.isCoverImage);
+  const coverVideoIndex = coverIndex === -1 ? media.findIndex((item) => isResolved(item) && item.isCoverVideo) : -1;
+  const resolvedFallbackIndex = media.findIndex(isResolved);
+  const effectiveCoverIndex =
+    coverIndex >= 0 ? coverIndex
+    : coverVideoIndex >= 0 ? coverVideoIndex
+    : resolvedFallbackIndex;
+  const coverItem = effectiveCoverIndex >= 0 ? media[effectiveCoverIndex] : undefined;
+  const gridEntries = media
+    .map((item, index) => ({ item, index }))
+    .filter(({ index }) => index !== effectiveCoverIndex);
 
   const addImages = async () => {
     if (!sessionToken) {
@@ -151,18 +161,47 @@ export default function UnifiedMediaGallery({
     }
   };
 
-  const pollMuxProcessing = async (assetId: string, temporaryId: string, token: string) => {
+  const pollMuxProcessing = async (assetId: string | null, uploadId: string, temporaryId: string, token: string) => {
+    // First, resolve uploadId to assetId if needed
+    let resolvedAssetId = assetId;
+    if (!resolvedAssetId && uploadId) {
+      for (let attempt = 0; attempt < 12; attempt++) {
+        await new Promise((r) => setTimeout(r, 5000));
+        const current = mediaRef.current;
+        if (!current.some((item) => item.temporaryId === temporaryId)) return;
+        try {
+          const confirm = await confirmMuxUpload(token, uploadId);
+          if (confirm.playback_url) {
+            const updated = current.map((item) =>
+              item.temporaryId === temporaryId
+                ? { uri: confirm.playback_url!, type: "video" as const, posterUrl: null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: confirm.asset_id }
+                : item,
+            );
+            commitMedia(updated);
+            return;
+          }
+          if (confirm.asset_id) {
+            resolvedAssetId = confirm.asset_id;
+            break;
+          }
+        } catch {}
+      }
+    }
+
+    if (!resolvedAssetId) return;
+
+    // Poll asset status
     const maxAttempts = 24;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise((r) => setTimeout(r, 5000));
       const current = mediaRef.current;
       if (!current.some((item) => item.temporaryId === temporaryId)) return;
       try {
-        const status = await getMuxAssetStatus(token, assetId);
+        const status = await getMuxAssetStatus(token, resolvedAssetId);
         if (status.status === "ready" && status.playback_url) {
           const updated = current.map((item) =>
             item.temporaryId === temporaryId
-              ? { uri: status.playback_url!, type: "video" as const, posterUrl: status.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: assetId }
+              ? { uri: status.playback_url!, type: "video" as const, posterUrl: status.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: resolvedAssetId }
               : item,
           );
           commitMedia(updated);
@@ -225,6 +264,7 @@ export default function UnifiedMediaGallery({
           type: "video",
           processingStatus: "processing",
           muxAssetId: muxResult.mux_asset_id || null,
+          muxUploadId: muxResult.mux_upload_id,
           temporaryId: muxResult.mux_upload_id,
         };
         setItemProgress((prev) => ({ ...prev, [idx]: { phase: "processing", progress: 100 } }));
@@ -234,7 +274,7 @@ export default function UnifiedMediaGallery({
           t("upload.videoProcessingTitle", "Video wird verarbeitet"),
           t("upload.videoProcessingMsg", "Dein Video wird verarbeitet. Du kannst es speichern sobald es fertig ist."),
         );
-        pollMuxProcessing(muxResult.mux_asset_id || "", processingItem.temporaryId!, sessionToken);
+        pollMuxProcessing(muxResult.mux_asset_id || null, muxResult.mux_upload_id, processingItem.temporaryId!, sessionToken);
         return;
       }
 
@@ -277,8 +317,6 @@ export default function UnifiedMediaGallery({
     onChange(media.filter((_, i) => i !== index));
     setMenuIndex(null);
   };
-
-  const gridItems = media.slice(1);
 
   const handleSetCoverImage = (realIdx: number) => {
     onChange(setExplicitCover(media, realIdx, "image"));
@@ -332,16 +370,15 @@ export default function UnifiedMediaGallery({
           <View style={[s.coverBadge, { backgroundColor: COLORS.textDisabled }]}><Text style={s.coverBadgeText}>Item 1</Text></View>
         )}
         {coverItem && isCreator && (
-          <Pressable style={s.removeHeroBtn} onPress={() => removeItem(0)}>
+          <Pressable style={s.removeHeroBtn} onPress={() => removeItem(effectiveCoverIndex)}>
             <Ionicons name="close-circle" size={22} color={COLORS.danger} />
           </Pressable>
         )}
       </Pressable>
 
-      {gridItems.length > 0 && (
+      {gridEntries.length > 0 && (
         <View style={[s.grid, { gap: itemGap }]}>
-          {gridItems.map((item, idx) => {
-            const realIdx = idx + 1;
+          {gridEntries.map(({ item, index: realIdx }) => {
             const progress = itemProgress[realIdx];
             const isUploading = uploadingIndex === realIdx;
 
@@ -412,13 +449,13 @@ export default function UnifiedMediaGallery({
                   <View style={s.gridActions}>
                     {showMenu ? (
                       <View style={s.menuContainer}>
-                        {mediaItem.type === "image" && !mediaItem.processingStatus && (
+                        {mediaItem.type === "image" && isResolved(mediaItem) && (
                           <Pressable style={s.menuItem} onPress={() => handleSetCoverImage(realIdx)}>
                             <Ionicons name="image-outline" size={12} color={COLORS.textPrimary} />
                             <Text style={s.menuItemText}>{t("gallery.setCoverImage") || "Cover Image"}</Text>
                           </Pressable>
                         )}
-                        {mediaItem.type === "video" && !mediaItem.processingStatus && (
+                        {mediaItem.type === "video" && isResolved(mediaItem) && (
                           <Pressable style={s.menuItem} onPress={() => handleSetCoverVideo(realIdx)}>
                             <Ionicons name="videocam-outline" size={12} color={COLORS.textPrimary} />
                             <Text style={s.menuItemText}>{t("gallery.setCoverVideo") || "Cover Video"}</Text>
