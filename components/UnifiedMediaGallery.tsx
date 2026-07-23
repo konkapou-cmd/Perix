@@ -9,6 +9,7 @@ import CoverPositionEditor from "./CoverPositionEditor";
 import GalleryUploadSlot from "./GalleryUploadSlot";
 import MediaThumbnail from "./ui/MediaThumbnail";
 import { uploadMedia, uploadVideoMux, UploadProgress } from "../lib/api";
+import { getMuxAssetStatus } from "../lib/api/mux";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../lib/constants/mediaLimits";
 
@@ -141,6 +142,32 @@ export default function UnifiedMediaGallery({
     }
   };
 
+  const pollMuxProcessing = async (assetId: string, temporaryId: string, token: string, currentMedia: MediaItem[]) => {
+    const maxAttempts = 24;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      try {
+        const status = await getMuxAssetStatus(token, assetId);
+        if (status.status === "ready" && status.playback_url) {
+          const videoUrl = status.playback_url;
+          const updated = currentMedia.map((item) =>
+            item.temporaryId === temporaryId
+              ? { uri: videoUrl, type: "video" as const, posterUrl: status.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: assetId }
+              : item,
+          );
+          onChange(updated);
+          return;
+        }
+      } catch {}
+    }
+    const failed = currentMedia.map((item) =>
+      item.temporaryId === temporaryId
+        ? { ...item, processingStatus: "failed" as const }
+        : item,
+    );
+    onChange(failed);
+  };
+
   const addVideo = async () => {
     if (!sessionToken) return;
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -195,6 +222,7 @@ export default function UnifiedMediaGallery({
           t("upload.videoProcessingTitle", "Video wird verarbeitet"),
           t("upload.videoProcessingMsg", "Dein Video wird verarbeitet. Du kannst es speichern sobald es fertig ist."),
         );
+        pollMuxProcessing(muxResult.mux_asset_id || muxResult.mux_upload_id, processingItem.temporaryId!, sessionToken, combined);
         return;
       }
 

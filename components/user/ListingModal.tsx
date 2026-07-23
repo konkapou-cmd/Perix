@@ -77,14 +77,16 @@ function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_ima
   const ready = media.filter((m) => m.processingStatus !== "processing");
   const images = ready.filter((m) => m.type === "image");
   const videos = ready.filter((m) => m.type === "video");
-  const coverImage = images.find((m) => (m as any).isCoverImage) ?? images[0];
-  const coverVideo = videos.find((m) => (m as any).isCoverVideo);
+  const explicitCoverVideo = videos.find((m) => (m as any).isCoverVideo);
+  const explicitCoverImage = images.find((m) => (m as any).isCoverImage);
+  const coverImage = explicitCoverVideo ? undefined : explicitCoverImage ?? images[0];
+  const primaryVideo = explicitCoverVideo ?? videos[0];
   return {
     cover_image_url: coverImage?.uri,
     image_urls: images.map((m) => m.uri),
     gallery_images: images.filter((m) => m.uri !== coverImage?.uri).map((m) => m.uri),
-    video_url: coverVideo?.uri ?? videos[0]?.uri,
-    gallery_videos: videos.filter((m) => m.uri !== (coverVideo?.uri ?? videos[0]?.uri)).map((m) => m.uri),
+    video_url: primaryVideo?.uri,
+    gallery_videos: videos.filter((m) => m.uri !== primaryVideo?.uri).map((m) => m.uri),
   };
 }
 
@@ -448,7 +450,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 setAddress(addr);
                 setLatitude(lat);
                 setLongitude(lng);
-                if (publicLabel && !publicLocationLabel) {
+                if (publicLabel) {
                   setPublicLocationLabel(publicLabel);
                 }
               }}
