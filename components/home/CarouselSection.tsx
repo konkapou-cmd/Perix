@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, LayoutAnimation, Platform, UIManager } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, LayoutAnimation, Platform, UIManager, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -44,7 +44,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
 
   return (
     <View style={styles.card}>
-      <Pressable onPress={hasContent ? handleToggle : undefined} style={styles.headerRow}>
+      <TouchableOpacity onPress={hasContent ? handleToggle : undefined} style={styles.headerRow} activeOpacity={0.6}>
         <View style={styles.headerLeft}>
           <SectionHeader
             icon={icon}
@@ -62,12 +62,12 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
           )}
         </View>
         {seeAllRoute && (
-          <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={() => router.navigate(seeAllRoute as any)}>
+          <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={(e: any) => { e?.stopPropagation?.(); router.navigate(seeAllRoute as any); }}>
             <Text style={styles.seeAllText} numberOfLines={1}>{t("common.seeAll", "Alle")}</Text>
             <Ionicons name="chevron-forward" size={14} color={COLORS.background} />
           </Pressable>
         )}
-      </Pressable>
+      </TouchableOpacity>
 
       {!collapsed && (
         <>

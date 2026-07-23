@@ -145,6 +145,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!mapBounds) return;
+    setViewportProducts([]);
+    setViewportHomes([]);
     const bounds = { minLat: mapBounds.minLat, maxLat: mapBounds.maxLat, minLng: mapBounds.minLng, maxLng: mapBounds.maxLng };
     const requestId = ++viewportRequestRef.current;
     Promise.all([

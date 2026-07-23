@@ -187,6 +187,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   }, [visible, editingListing]);
 
   const handleSave = async () => {
+    if (saving) return;
     if (!title.trim()) {
       Alert.alert(t("common.error", "Error"), t("common.titleRequired", "Title is required"));
       return;
