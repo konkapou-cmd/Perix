@@ -570,6 +570,7 @@ export default function ServiceModal({
               nearLat={nearLat}
               nearLng={nearLng}
               confirmed={!!form.address}
+              sessionToken={sessionToken}
             />
           </View>
         );

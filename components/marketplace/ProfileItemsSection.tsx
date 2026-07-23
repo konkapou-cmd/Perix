@@ -8,6 +8,18 @@ import { Listing, ListingStatus } from "../../lib/api/listings";
 import { entityRoutes, pushEntityRoute } from "../../lib/navigation/entityRoutes";
 import { MARKETPLACE_CATEGORIES, getCategoryConfig, getSubcategories } from "../../lib/marketplace/marketplaceTaxonomy";
 
+function getMuxThumb(uri?: string): string | null {
+  if (!uri) return null;
+  const m = uri.match(/stream\.mux\.com\/([a-zA-Z0-9]+)/);
+  return m ? `https://image.mux.com/${m[1]}/thumbnail.jpg` : null;
+}
+
+function resolveCardImage(listing: Listing): string | null {
+  return listing.cover_image_url
+    || listing.image_urls?.[0]
+    || getMuxThumb(listing.video_url);
+}
+
 type Props = {
   listings: Listing[];
   isOwner: boolean;
@@ -161,7 +173,7 @@ export default function ProfileItemsSection({ listings, isOwner, canAdd = true, 
 
       {visibleListings.map((listing) => {
         const badge = statusBadge(listing.status, listing.is_active);
-        const img = listing.cover_image_url || listing.image_urls?.[0];
+        const img = resolveCardImage(listing);
         return (
           <Pressable key={listing.listing_id} style={styles.card} onPress={() => handleCardPress(listing)}>
             <View style={styles.cardRow}>
