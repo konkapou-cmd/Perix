@@ -996,7 +996,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
+        {viewportProducts.length > 0 && homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
           <CarouselSection
             title={t("marketplace.productsInArea", "Produkte in der Nähe")}
             icon="pricetag"
@@ -1020,7 +1020,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
+        {viewportHomes.length > 0 && homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
           <CarouselSection
             title={t("marketplace.homesInArea", "Unterkünfte in der Nähe")}
             icon="home"
@@ -1129,6 +1129,7 @@ export default function HomeScreen() {
         removeClippedSubviews={true}
         maxToRenderPerBatch={5}
         windowSize={5}
+        extraData={{ viewportProducts, viewportHomes, feedMode, homeLayout }}
       />
 
       <Modal visible={calendarOpen} animationType="slide">
