@@ -6,7 +6,7 @@ import { CalendarList } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { TimeSlot } from "../../lib/api/core";
-import { getSlots, createSlot, deleteSlot } from "../../lib/api/services";
+import { getSlots, deleteSlot, setAvailability } from "../../lib/api/services";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 type Props = {
@@ -167,13 +167,15 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
     }
     setLoading(true);
     try {
-      await createSlot(sessionToken, {
-        service_id: serviceId,
-        start_time: quickStart,
-        end_time: quickEnd,
-        date: selectedDate,
-        is_recurring: false,
-      });
+      const allSlots = (slots || []).map(s => ({
+        day_of_week: s.day_of_week ?? undefined,
+        date: s.date ?? undefined,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        is_recurring: s.is_recurring,
+      }));
+      allSlots.push({ date: selectedDate, start_time: quickStart, end_time: quickEnd, is_recurring: false, day_of_week: undefined as any });
+      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots });
       await loadSlots();
       setQuickStart("");
       setQuickEnd("");
@@ -188,20 +190,26 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
       Alert.alert(t("common.error", "Error"), t("slotManager.selectDays", "Select at least one day"));
       return;
     }
+    if (!weeklyStart || !weeklyEnd) {
+      Alert.alert(t("common.error", "Error"), t("slotManager.selectStartEnd", "Set start and end times"));
+      return;
+    }
     setLoading(true);
     try {
+      const allSlots = (slots || []).map(s => ({
+        day_of_week: s.day_of_week ?? undefined,
+        date: s.date ?? undefined,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        is_recurring: s.is_recurring,
+      }));
       for (const day of selectedDays) {
-        await createSlot(sessionToken, {
-          service_id: serviceId,
-          day_of_week: day,
-          start_time: weeklyStart,
-          end_time: weeklyEnd,
-          is_recurring: true,
-        });
+        allSlots.push({ day_of_week: day, start_time: weeklyStart, end_time: weeklyEnd, is_recurring: true, date: undefined as any });
       }
+      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots });
       await loadSlots();
       setSelectedDays([]);
-      Alert.alert(t("common.success", "Success"), t("slotManager.slotsCreated", "Weekly slots created"));
+      Alert.alert(t("common.success", "Success"), t("slotManager.weeklySlotsCreated", "Weekly slots created"));
     } catch (err: any) {
       Alert.alert(t("common.error", "Error"), err.message);
     }
