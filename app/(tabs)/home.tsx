@@ -680,6 +680,7 @@ export default function HomeScreen() {
       />
 
       <FlatList
+        key={`feed-${viewportProducts.length}-${viewportHomes.length}`}
         ref={scrollRef}
         data={homeLayout.sections.find(s => s.id === "posts")?.enabled !== false ? sortedPosts : []}
         keyExtractor={(item) => item.post_id}
@@ -941,7 +942,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {sortedRentals.length > 0 && homeLayout.sections.find(s => s.id === "rentals")?.enabled !== false && (
+        {sortedRentals.filter(r => (r.source_type || "business") === "business").length > 0 && homeLayout.sections.find(s => s.id === "rentals")?.enabled !== false && (
           <>
             <CarouselSection
               title={t("rentals.professionalRentals", "Professional Rentals")}
