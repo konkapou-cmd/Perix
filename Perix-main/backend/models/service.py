@@ -13,6 +13,11 @@ class AvailabilitySlotInput(BaseModel):
     is_recurring: bool = False
 
 
+class BulkAvailabilityRequest(BaseModel):
+    timezone: str = "Europe/Berlin"
+    slots: List[AvailabilitySlotInput]
+
+
 class ServiceCreate(BaseModel):
     business_id: str
     root_category: Optional[str] = None

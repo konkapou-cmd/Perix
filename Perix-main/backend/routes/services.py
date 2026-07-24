@@ -12,6 +12,7 @@ from models.service import (
     ServiceCreate, ServiceUpdate, ServiceResponse,
     TimeSlotCreate, TimeSlotResponse, BlockDateRange,
     BookingCreate, BookingResponse,
+    AvailabilitySlotInput, BulkAvailabilityRequest,
 )
 from utils.helpers import generate_id, now_utc
 from routes.dependencies import get_current_user
@@ -712,6 +713,91 @@ async def get_availability(service_id: str, date: Optional[str] = None):
 
     result.sort(key=lambda r: r.start_time)
     return result
+
+
+# ─── Bulk Availability ───
+
+
+def _parse_time(t: str):
+    return tuple(int(x) for x in t.split(":"))
+
+
+def _validate_slots(slots: list[dict]):
+    for i, slot in enumerate(slots):
+        try:
+            sh, sm = _parse_time(slot["start_time"])
+            eh, em = _parse_time(slot["end_time"])
+        except (ValueError, KeyError):
+            raise HTTPException(status_code=400, detail=f"Invalid time format in slot {i}")
+        start_min = sh * 60 + sm
+        end_min = eh * 60 + em
+        if end_min <= start_min:
+            raise HTTPException(status_code=400, detail=f"End time must be after start time in slot {i}")
+        if start_min < 0 or end_min > 1440:
+            raise HTTPException(status_code=400, detail=f"Time out of range 00:00-24:00 in slot {i}")
+        for j in range(i + 1, len(slots)):
+            s2 = slots[j]
+            if slot.get("is_recurring") and s2.get("is_recurring") and slot.get("day_of_week") == s2.get("day_of_week"):
+                s2h, s2m = _parse_time(s2["start_time"])
+                s2_start = s2h * 60 + s2m
+                s2eh, s2em = _parse_time(s2["end_time"])
+                s2_end = s2eh * 60 + s2em
+                if start_min < s2_end and s2_start < end_min:
+                    raise HTTPException(status_code=400, detail=f"Overlapping recurring slots on day {slot.get('day_of_week')}")
+            if slot.get("date") and s2.get("date") and slot.get("date") == s2.get("date"):
+                s2h, s2m = _parse_time(s2["start_time"])
+                s2_start = s2h * 60 + s2m
+                s2eh, s2em = _parse_time(s2["end_time"])
+                s2_end = s2eh * 60 + s2em
+                if start_min < s2_end and s2_start < end_min:
+                    raise HTTPException(status_code=400, detail=f"Overlapping date-specific slots on {slot.get('date')}")
+
+
+@router.put("/{service_id}/availability")
+async def set_availability(
+    service_id: str,
+    payload: BulkAvailabilityRequest,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    service = await db.services.find_one({"service_id": service_id})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    business = await db.businesses.find_one({"business_id": service["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    new_slots = [s.model_dump() for s in payload.slots]
+    _validate_slots(new_slots)
+
+    # Check if any existing slot has bookings
+    old_slot_ids = set()
+    async for old in db.service_slots.find({"service_id": service_id}, {"_id": 0, "slot_id": 1}):
+        old_slot_ids.add(old["slot_id"])
+    if old_slot_ids:
+        booked = await db.bookings.count_documents({"slot_id": {"$in": list(old_slot_ids)}, "status": {"$in": ["confirmed", "completed"]}})
+        if booked > 0:
+            raise HTTPException(status_code=409, detail="Cannot replace schedule — existing confirmed bookings exist")
+
+    try:
+        # Delete old slots
+        await db.service_slots.delete_many({"service_id": service_id})
+        # Insert new slots atomically
+        if new_slots:
+            docs = []
+            for s in new_slots:
+                docs.append({
+                    **s,
+                    "slot_id": generate_id("slt"),
+                    "service_id": service_id,
+                    "is_blocked": False,
+                    "is_booked": False,
+                })
+            await db.service_slots.insert_many(docs)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to save availability schedule")
+
+    slots = await db.service_slots.find({"service_id": service_id}, {"_id": 0}).sort([("date", 1), ("start_time", 1)]).to_list(500)
+    return [TimeSlotResponse(**s) for s in slots]
 
 
 # ─── Time Slots ───
