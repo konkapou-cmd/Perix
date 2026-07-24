@@ -85,7 +85,7 @@ def listing_to_rental(listing: dict, owner: dict = None) -> dict:
         "source_type": "owner",
         "source_badge": "Owner-listed",
         "owner_id": listing.get("owner_id"),
-        "owner_name": owner.get("name") if owner else None,
+        "owner_name": listing.get("business_name") or listing.get("seller_name") or (owner.get("name") if owner else None),
         "owner_photo": owner.get("profile_photo") or owner.get("picture") if owner else None,
         "title": listing.get("title"),
         "description": listing.get("description"),

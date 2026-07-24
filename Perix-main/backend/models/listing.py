@@ -117,6 +117,9 @@ class ListingResponse(BaseModel):
     seller_id: Optional[str] = None
     business_id: Optional[str] = None
     publication_scope: PublicationScope = "profile_and_marketplace"
+    seller_name: Optional[str] = None
+    business_name: Optional[str] = None
+    seller_avatar: Optional[str] = None
 
     # Product
     condition: Optional[str] = None

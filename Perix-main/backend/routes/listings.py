@@ -205,6 +205,34 @@ def _in_bounds(lat: float, lng: float, min_lat: float, max_lat: float, min_lng: 
     return min_lat <= lat <= max_lat and min_lng <= lng <= max_lng
 
 
+async def _enrich_listing_sellers(docs: list[dict]) -> list[dict]:
+    """Batch-enrich listing docs with seller_name, business_name and seller_avatar."""
+    if not docs:
+        return docs
+    user_ids = list({d["seller_id"] for d in docs if d.get("seller_id") and d.get("seller_type") != "business"})
+    biz_ids = list({d["business_id"] for d in docs if d.get("business_id") and d.get("seller_type") == "business"})
+    user_map: dict = {}
+    biz_map: dict = {}
+    if user_ids:
+        users = await db.users.find({"user_id": {"$in": user_ids}}, {"_id": 0, "user_id": 1, "name": 1, "profile_photo": 1}).to_list(500)
+        user_map = {u["user_id"]: u for u in users}
+    if biz_ids:
+        bizs = await db.businesses.find({"business_id": {"$in": biz_ids}}, {"_id": 0, "business_id": 1, "name": 1, "profile_photo": 1}).to_list(500)
+        biz_map = {b["business_id"]: b for b in bizs}
+    for doc in docs:
+        if doc.get("seller_type") == "business" and doc.get("business_id"):
+            biz = biz_map.get(doc["business_id"])
+            if biz:
+                doc["business_name"] = biz.get("name")
+                doc["seller_avatar"] = biz.get("profile_photo") or biz.get("logo_image")
+        elif doc.get("seller_id"):
+            user = user_map.get(doc["seller_id"])
+            if user:
+                doc["seller_name"] = user.get("name")
+                doc["seller_avatar"] = user.get("profile_photo")
+    return docs
+
+
 @router.get("", response_model=list[ListingResponse])
 async def list_listings(
     request: Request,
@@ -348,6 +376,7 @@ async def list_listings(
         results.append(transformed)
 
     paginated = results[skip : skip + limit]
+    paginated = await _enrich_listing_sellers(paginated)
     return [ListingResponse(**doc) for doc in paginated]
 
 
@@ -364,6 +393,7 @@ async def list_my_listings(
         query["status"] = status
 
     docs = await db.listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    docs = await _enrich_listing_sellers(docs)
     return [ListingResponse(**doc) for doc in docs]
 
 
@@ -381,7 +411,9 @@ async def get_user_seller_listings(user_id: str):
         },
         {"_id": 0},
     ).sort("created_at", -1).to_list(100)
-    return [ListingResponse(**public_listing_location(doc)) for doc in docs]
+    docs = [public_listing_location(d) for d in docs]
+    docs = await _enrich_listing_sellers(docs)
+    return [ListingResponse(**doc) for doc in docs]
 
 
 @router.get("/seller/business/{business_id}", response_model=list[ListingResponse])
@@ -390,7 +422,9 @@ async def get_business_seller_listings(business_id: str):
         {"seller_type": "business", "business_id": business_id, "listing_type": "product", "status": "published", "is_active": True},
         {"_id": 0},
     ).sort("created_at", -1).to_list(100)
-    return [ListingResponse(**public_listing_location(doc)) for doc in docs]
+    docs = [public_listing_location(d) for d in docs]
+    docs = await _enrich_listing_sellers(docs)
+    return [ListingResponse(**doc) for doc in docs]
 
 
 @router.get("/manage", response_model=list[ListingResponse])
@@ -405,6 +439,7 @@ async def manage_listings(
     if seller_id:
         query["seller_id"] = seller_id
     docs = await db.listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    docs = await _enrich_listing_sellers(docs)
     return [ListingResponse(**doc) for doc in docs]
 
 
@@ -416,7 +451,9 @@ async def get_listing(listing_id: str):
     )
     if not doc:
         raise HTTPException(status_code=404, detail="Listing not found")
-    return ListingResponse(**public_listing_location(doc))
+    doc = public_listing_location(doc)
+    await _enrich_listing_sellers([doc])
+    return ListingResponse(**doc)
 
 
 @router.put("/{listing_id}", response_model=ListingResponse)
