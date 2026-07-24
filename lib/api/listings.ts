@@ -40,6 +40,9 @@ export type Listing = {
   seller_id?: string;
   business_id?: string;
   publication_scope: PublicationScope;
+  seller_name?: string;
+  business_name?: string;
+  seller_avatar?: string;
   condition?: string;
   brand?: string;
   delivery_method?: string;

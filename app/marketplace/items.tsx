@@ -165,6 +165,11 @@ export default function MarketplaceItemsPage() {
         <View style={styles.cardInfo}>
           <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
           {item.price ? <Text style={styles.cardPrice}>{item.price}</Text> : null}
+          {(item.business_name || item.seller_name) && (
+            <Text style={styles.cardSeller} numberOfLines={1}>
+              {item.business_name || item.seller_name}
+            </Text>
+          )}
           {addressLabel ? (
             <View style={styles.cardAddr}>
               <Ionicons name="location-outline" size={11} color={COLORS.textMuted} />
@@ -337,6 +342,7 @@ const styles = StyleSheet.create({
   cardInfo: { padding: SPACING.small },
   cardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.textPrimary },
   cardPrice: { fontSize: FONT_SIZES.bodySmall, fontWeight: "700", color: COLORS.success, marginTop: 4 },
+  cardSeller: { fontSize: 11, color: COLORS.primary, marginTop: 4 },
   cardAddr: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 },
   cardAddrText: { fontSize: 11, color: COLORS.textMuted, flex: 1 },
   filterRow: {
