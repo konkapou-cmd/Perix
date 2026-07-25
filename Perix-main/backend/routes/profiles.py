@@ -962,70 +962,46 @@ async def get_user_attendance(
 async def delete_user_account(current_user: UserPublic = Depends(get_current_user)):
     """Delete user account — soft-deactivates all public content, removes ephemeral data, creates tombstone."""
     from services.entity_ownership import (
-        deactivate_user_content,
-        cleanup_ephemeral_user_data,
-        cleanup_relationships,
-        create_user_tombstone,
+        run_account_deletion,
+        acquire_deletion_lock,
+        resume_deletion_lock,
         set_deletion_pending,
         prevent_duplicate_deletion,
-        acquire_deletion_lock,
-        record_deletion_step,
-        complete_deletion_operation,
-        fail_deletion_operation,
-        cancel_user_subscriptions,
-        cancel_user_bookings_as_requester,
-        mark_user_reports,
     )
     user_id = current_user.user_id
 
-    # Prevent duplicate deletion operations
-    if await prevent_duplicate_deletion(user_id):
-        raise HTTPException(status_code=409, detail="Account deletion is already in progress or completed")
+    # Check deletion state
+    state = await prevent_duplicate_deletion(user_id)
+    if state == "blocked":
+        raise HTTPException(status_code=409, detail="Account already deleted")
+    if state == "running":
+        raise HTTPException(status_code=409, detail="Account deletion in progress")
 
-    # Acquire atomic lock
+    # Acquire or resume lock atomically
     lock_key = await acquire_deletion_lock(user_id)
-    if not lock_key:
-        raise HTTPException(status_code=409, detail="Account deletion is already in progress")
+    if lock_key:
+        # New deletion — block auth first
+        await set_deletion_pending(user_id)
+    elif state == "pending":
+        # Retry failed operation
+        lock_key = f"account_deletion:{user_id}"
+        if not await resume_deletion_lock(lock_key):
+            raise HTTPException(status_code=409, detail="Cannot resume deletion")
+    else:
+        raise HTTPException(status_code=409, detail="Account deletion unavailable")
 
-    # Block authentication immediately
-    await set_deletion_pending(user_id)
+    # Run orchestrator (handles resume/skip internally)
+    result = await run_account_deletion(user_id, lock_key)
 
-    try:
-        # Step 1: Soft-deactivate all user content
-        await deactivate_user_content(user_id, reason="owner_account_deleted")
-        await record_deletion_step(lock_key, "personal_content")
-
-        # Step 2: Cancel subscriptions
-        await cancel_user_subscriptions(user_id)
-        await record_deletion_step(lock_key, "subscriptions")
-
-        # Step 3: Cancel bookings where user is requester/client
-        await cancel_user_bookings_as_requester(user_id)
-        await record_deletion_step(lock_key, "requester_bookings")
-
-        # Step 4: Hard-delete ephemeral data
-        await cleanup_ephemeral_user_data(user_id)
-        await record_deletion_step(lock_key, "ephemeral_cleanup")
-
-        # Step 5: Mark reports (do not delete)
-        await mark_user_reports(user_id)
-        await record_deletion_step(lock_key, "report_marking")
-
-        # Step 6: Remove user from friends/blocked lists of others
-        await cleanup_relationships(user_id)
-        await record_deletion_step(lock_key, "relationship_cleanup")
-
-        # Step 7: Create user tombstone
-        await create_user_tombstone(user_id)
-        await record_deletion_step(lock_key, "user_tombstone")
-
-    except Exception as e:
-        await fail_deletion_operation(lock_key, "unknown", str(e))
-        raise HTTPException(status_code=500, detail="Account deletion failed. Please try again or contact support.")
-
-    await complete_deletion_operation(lock_key)
-
-    return {"success": True, "message": "User account deleted successfully"}
+    if result["status"] == "completed":
+        return {"success": True, "message": "User account deleted successfully"}
+    elif result["status"] == "review_required":
+        raise HTTPException(
+            status_code=202,
+            detail={"message": "Deletion requires manual review", "reason": result.get("reason", "")},
+        )
+    else:
+        raise HTTPException(status_code=500, detail="Deletion failed. It can be resumed.")
 
 
 # ==================== Push Token Management ====================

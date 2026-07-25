@@ -392,70 +392,37 @@ async def manage_user(
         return {"success": True, "message": "User and all their content restored"}
     
     elif request.action == "delete":
-        # Soft-deactivate user content and create tombstone
         from services.entity_ownership import (
-            deactivate_user_content,
-            cleanup_ephemeral_user_data,
-            cleanup_relationships,
-            create_user_tombstone,
-            set_deletion_pending,
-            prevent_duplicate_deletion,
-            acquire_deletion_lock,
-            record_deletion_step,
-            complete_deletion_operation,
-            cancel_user_subscriptions,
-            cancel_user_bookings_as_requester,
-            mark_user_reports,
+            run_account_deletion, acquire_deletion_lock, resume_deletion_lock,
+            set_deletion_pending, prevent_duplicate_deletion,
         )
         user_id = request.user_id
 
-        # Check if already tombstoned (prevent re-publish)
         user = await db.users.find_one({"user_id": user_id}, {"is_deleted": 1})
         if user and user.get("is_deleted"):
-            raise HTTPException(
-                status_code=409,
-                detail="Deleted accounts require explicit restoration",
-            )
+            raise HTTPException(status_code=409, detail="Deleted accounts require explicit restoration")
 
-        # Prevent duplicate deletion operations
-        if await prevent_duplicate_deletion(user_id):
-            raise HTTPException(status_code=409, detail="Account deletion is already in progress or completed")
+        state = await prevent_duplicate_deletion(user_id)
+        if state == "running":
+            raise HTTPException(status_code=409, detail="Account deletion in progress")
 
-        # Acquire atomic lock
         lock_key = await acquire_deletion_lock(user_id)
-        if not lock_key:
-            raise HTTPException(status_code=409, detail="Account deletion is already in progress")
+        if lock_key:
+            await set_deletion_pending(user_id)
+        elif state == "pending":
+            lock_key = f"account_deletion:{user_id}"
+            if not await resume_deletion_lock(lock_key):
+                raise HTTPException(status_code=409, detail="Cannot resume deletion")
+        else:
+            raise HTTPException(status_code=409, detail="Account deletion unavailable")
 
-        # Block authentication immediately
-        await set_deletion_pending(user_id)
-
-        try:
-            await deactivate_user_content(user_id, reason="owner_account_deleted")
-            await record_deletion_step(lock_key, "personal_content")
-
-            await cancel_user_subscriptions(user_id)
-            await record_deletion_step(lock_key, "subscriptions")
-
-            await cancel_user_bookings_as_requester(user_id)
-            await record_deletion_step(lock_key, "requester_bookings")
-
-            await cleanup_ephemeral_user_data(user_id)
-            await record_deletion_step(lock_key, "ephemeral_cleanup")
-
-            await mark_user_reports(user_id)
-            await record_deletion_step(lock_key, "report_marking")
-
-            await cleanup_relationships(user_id)
-            await record_deletion_step(lock_key, "relationship_cleanup")
-
-            await create_user_tombstone(user_id)
-            await record_deletion_step(lock_key, "user_tombstone")
-        except Exception as e:
-            from services.entity_ownership import fail_deletion_operation
-            await fail_deletion_operation(lock_key, "unknown", str(e))
-            raise HTTPException(status_code=500, detail="Account deletion failed. Please try again or contact support.")
-
-        await complete_deletion_operation(lock_key)
+        result = await run_account_deletion(user_id, lock_key)
+        if result["status"] == "completed":
+            return {"success": True, "message": "Account deleted"}
+        elif result["status"] == "review_required":
+            raise HTTPException(status_code=202, detail={"message": "Manual review required", "reason": result.get("reason", "")})
+        else:
+            raise HTTPException(status_code=500, detail="Deletion failed. It can be resumed.")
 
         return {"success": True, "message": "User content deactivated, tombstone created"}
     

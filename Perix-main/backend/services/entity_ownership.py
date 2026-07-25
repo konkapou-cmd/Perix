@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 DELETION_STEPS = [
     "personal_content",
-    "business_content",
-    "artist_content",
-    "relationship_cleanup",
+    "subscriptions",
+    "requester_bookings",
     "ephemeral_cleanup",
+    "report_marking",
+    "relationship_cleanup",
     "user_tombstone",
-    "completed",
 ]
 
 
@@ -73,55 +73,133 @@ def can_receive_email(user: dict) -> bool:
 
 
 async def acquire_deletion_lock(user_id: str) -> str | None:
-    """Atomically acquire a deletion lock for the given user.
-    Returns the lock_key if acquired, None if another operation is active/completed.
-    Uses $setOnInsert on a unique lock_key index for atomicity.
-    Handles DuplicateKeyError from simultaneous upsert attempts.
-    """
+    """Atomically acquire a deletion lock. Returns lock_key or None."""
     lock_key = f"account_deletion:{user_id}"
     now = _now_utc()
-
     try:
         result = await db.deletion_operations.update_one(
             {"lock_key": lock_key},
-            {
-                "$setOnInsert": {
-                    "lock_key": lock_key,
-                    "user_id": user_id,
-                    "status": "running",
-                    "completed_steps": [],
-                    "failed_step": None,
-                    "last_error": None,
-                    "started_at": now,
-                    "updated_at": now,
-                },
-            },
+            {"$setOnInsert": {
+                "lock_key": lock_key, "user_id": user_id, "status": "running",
+                "completed_steps": [], "current_step": None, "failed_step": None,
+                "last_error": None, "started_at": now, "updated_at": now,
+            }},
             upsert=True,
         )
     except Exception:
-        # DuplicateKeyError from simultaneous upsert by another request
         result = None
-
     if result is not None and result.upserted_id is not None:
-        return lock_key  # New lock acquired
-
-    # Document already exists (or racing write just inserted) — re-read to decide
+        return lock_key
     existing = await db.deletion_operations.find_one({"lock_key": lock_key})
     if not existing:
-        return None  # Unexpected: should not happen
-
+        return None
     status = existing.get("status")
     if status == "failed":
-        # Allow resume of failed operation
+        return lock_key  # Caller must atomically resume
+    return None
+
+
+async def resume_deletion_lock(lock_key: str) -> bool:
+    """Atomically resume a failed deletion. Returns True if lock acquired."""
+    result = await db.deletion_operations.update_one(
+        {"lock_key": lock_key, "status": "failed"},
+        {"$set": {"status": "running", "updated_at": _now_utc(), "last_error": None}},
+    )
+    return result.modified_count == 1
+
+
+async def record_deletion_step(lock_key: str, step: str):
+    """Record a completed step using $addToSet to prevent duplicates."""
+    await db.deletion_operations.update_one(
+        {"lock_key": lock_key},
+        {"$set": {"current_step": step, "updated_at": _now_utc()},
+         "$addToSet": {"completed_steps": step}},
+    )
+
+
+async def fail_deletion_operation(lock_key: str, step: str, error: str):
+    await db.deletion_operations.update_one(
+        {"lock_key": lock_key},
+        {"$set": {"status": "failed", "failed_step": step,
+                  "last_error": str(error)[:1000], "updated_at": _now_utc()}},
+    )
+
+
+async def complete_deletion_operation(lock_key: str):
+    await db.deletion_operations.update_one(
+        {"lock_key": lock_key},
+        {"$set": {"status": "completed", "completed_at": _now_utc(), "updated_at": _now_utc()}},
+    )
+
+
+async def run_account_deletion(user_id: str, lock_key: str) -> dict:
+    """Unified deletion orchestrator with resume/skip support."""
+    op = await db.deletion_operations.find_one({"lock_key": lock_key},
+        {"completed_steps": 1})
+    completed = set(op["completed_steps"]) if op and op.get("completed_steps") else set()
+    result = {"user_id": user_id, "lock_key": lock_key, "steps_run": []}
+
+    async def _step(name, fn):
+        if name in completed:
+            result["steps_run"].append(f"{name}:skipped")
+            return
+        await record_deletion_step(lock_key, name)
+        await fn
+        result["steps_run"].append(f"{name}:done")
+
+    try:
+        # Step 1: Personal content
+        await _step("personal_content",
+                    deactivate_user_content(user_id, reason="owner_account_deleted"))
+
+        # Step 2: Subscriptions
+        async def sub_step():
+            sub_results = await cancel_user_subscriptions(user_id)
+            # Check for manual review
+            manual = sub_results.get("manual_review_required", 0)
+            if manual > 0:
+                raise DeletionNeedsReview("manual_review_required_subscriptions", sub_results)
+        await _step("subscriptions", sub_step())
+
+        # Step 3: Requester bookings
+        await _step("requester_bookings",
+                    cancel_user_bookings_as_requester(user_id))
+
+        # Step 4: Ephemeral data
+        await _step("ephemeral_cleanup",
+                    cleanup_ephemeral_user_data(user_id))
+
+        # Step 5: Reports
+        await _step("report_marking",
+                    mark_user_reports(user_id))
+
+        # Step 6: Relationships
+        await _step("relationship_cleanup",
+                    cleanup_relationships(user_id))
+
+        # Step 7: Tombstone
+        await _step("user_tombstone",
+                    create_user_tombstone(user_id))
+
+        await complete_deletion_operation(lock_key)
+        result["status"] = "completed"
+    except DeletionNeedsReview as e:
         await db.deletion_operations.update_one(
             {"lock_key": lock_key},
-            {"$set": {"status": "running", "updated_at": now, "last_error": None}},
+            {"$set": {"status": "review_required", "review_reason": str(e),
+                      "updated_at": _now_utc()}},
         )
-        return lock_key
-    if status == "completed":
-        return None  # Already done
-    # status == "running": another operation is active
-    return None
+        result["status"] = "review_required"
+        result["reason"] = str(e)
+    except Exception as e:
+        await fail_deletion_operation(lock_key, op.get("current_step", "unknown") if op else "unknown", str(e))
+        result["status"] = "failed"
+        result["error"] = str(e)[:200]
+    return result
+
+
+class DeletionNeedsReview(Exception):
+    pass
 
 
 async def resume_deletion_lock(user_id: str) -> str | None:
@@ -200,32 +278,23 @@ async def deactivate_user_content(
     result = DeactivationResult(user_id=user_id, timestamp=_now_utc().isoformat())
     now = _now_utc()
 
-    # --- Personal Listings ---
+    # --- Personal Listings (incl. legacy without seller_type) ---
     r = await db.listings.update_many(
-        {"owner_id": user_id, "seller_type": "user", "is_active": True},
-        {
-            "$set": {
-                "is_active": False,
-                "status": "hidden",
-                "hidden_reason": reason,
-                "owner_deleted_at": now,
-                "updated_at": now,
-            },
-        },
+        {"owner_id": user_id, "is_active": True,
+         "$or": [{"seller_type": "user"}, {"seller_type": {"$exists": False}}]},
+        {"$set": {"is_active": False, "status": "hidden",
+                  "hidden_reason": reason, "owner_deleted_at": now, "updated_at": now}},
     )
     result.record("listings_personal", r.modified_count)
-    logger.info("deactivate_user_content: hid %d personal listings for %s", r.modified_count, user_id)
 
-    # --- Posts ---
+    # --- Posts (incl. legacy author_id and user actor fields) ---
     r = await db.posts.update_many(
-        {"user_id": user_id, "is_hidden": {"$ne": True}},
-        {
-            "$set": {
-                "is_hidden": True,
-                "hidden_reason": reason,
-                "owner_deleted_at": now,
-            },
-        },
+        {"$or": [
+            {"user_id": user_id},
+            {"author_id": user_id},
+            {"actor_type": "user", "actor_id": user_id},
+        ], "is_hidden": {"$ne": True}},
+        {"$set": {"is_hidden": True, "hidden_reason": reason, "owner_deleted_at": now}},
     )
     result.record("posts", r.modified_count)
 
@@ -575,68 +644,67 @@ async def set_deletion_pending(user_id: str):
     )
 
 
-async def prevent_duplicate_deletion(user_id: str) -> bool:
-    """Check if a deletion operation is already in progress for this user.
-    Returns True if deletion should be blocked.
-    Does NOT check with deletion_operations — checks the operation status later."""
+async def prevent_duplicate_deletion(user_id: str) -> str | None:
+    """Check deletion state. Returns 'blocked' if deletion already completed,
+    'pending' if in progress (confirm before re-entering), or None if clear.
+    Does NOT block failed operations — those are resumable."""
     user = await db.users.find_one({"user_id": user_id}, {"is_deleted": 1, "deletion_pending": 1})
     if not user:
-        return False
+        return None
     if user.get("is_deleted"):
-        return True  # Already tombstoned
+        return "blocked"  # Tombstoned — cannot restart
     if user.get("deletion_pending"):
-        return True  # Deletion already in progress
-    return False
+        # Check if there's a failed operation
+        op = await db.deletion_operations.find_one(
+            {"lock_key": f"account_deletion:{user_id}"},
+            {"status": 1},
+        )
+        if op and op.get("status") == "failed":
+            return None  # Resumable
+        if op and op.get("status") == "running":
+            return "running"
+        return "pending"
+    return None
 
 
 # ─── Subscription Cancellation ───
 
 
 async def cancel_user_subscriptions(user_id: str) -> dict:
-    """Cancel active subscriptions owned by the user or where user is subscriber.
-    Tracks billing_status for audit. Does not log payment credentials.
-    Returns dict with counts and billing_status per subscription.
-    """
+    """Cancel active subscriptions. Provider-backed subs require manual review."""
     counts: Dict[str, int] = {}
     now = _now_utc()
-
     active_statuses = ["active", "trial", "pending"]
 
-    # Owner subscriptions
+    # Owner subscriptions: per-record billing status
     owner_subs = await db.subscriptions.find(
         {"user_id": user_id, "status": {"$in": active_statuses}},
-        {"subscription_id": 1, "paypal_subscription_id": 1, "status": 1},
+        {"subscription_id": 1, "paypal_subscription_id": 1},
     ).to_list(50)
 
-    billing_status = "not_applicable"
+    manual_count = 0
     for sub in owner_subs:
         has_provider = bool(sub.get("paypal_subscription_id"))
-        billing_status = "provider_not_configured" if has_provider else "not_applicable"
-
-    r = await db.subscriptions.update_many(
-        {"user_id": user_id, "status": {"$in": active_statuses}},
-        {
-            "$set": {
+        await db.subscriptions.update_one(
+            {"subscription_id": sub["subscription_id"]},
+            {"$set": {
                 "status": "cancelled_deletion",
                 "cancelled_reason": "owner_account_deleted",
                 "cancelled_at": now,
-                "billing_status": billing_status,
-            },
-        },
-    )
-    counts["subscriptions_owner"] = r.modified_count
+                "billing_status": "manual_review_required" if has_provider else "not_applicable",
+            }},
+        )
+        if has_provider:
+            manual_count += 1
+    counts["subscriptions_owner"] = len(owner_subs)
+    counts["manual_review_required"] = manual_count
 
     # Subscriber subscriptions
     r = await db.subscriptions.update_many(
         {"subscriber_id": user_id, "status": {"$in": active_statuses}},
-        {
-            "$set": {
-                "status": "cancelled_deletion",
-                "cancelled_reason": "subscriber_account_deleted",
-                "cancelled_at": now,
-                "billing_status": "not_applicable",
-            },
-        },
+        {"$set": {"status": "cancelled_deletion",
+                  "cancelled_reason": "subscriber_account_deleted",
+                  "cancelled_at": now, "billing_status": "not_applicable"}},
     )
     counts["subscriptions_subscriber"] = r.modified_count
 
@@ -647,62 +715,41 @@ async def cancel_user_subscriptions(user_id: str) -> dict:
 
 
 async def cancel_user_bookings_as_requester(user_id: str) -> dict:
-    """Cancel service bookings and artist booking requests where the user is the client/requester.
-    Only transitions active states (pending/confirmed/requested).
-    Does not overwrite completed, rejected, refunded, or already-cancelled records.
-    Paid confirmed bookings are marked refund_required.
-    """
+    """Cancel active requester bookings. Paid confirmed ones marked refund_required first."""
     counts: Dict[str, int] = {}
     now = _now_utc()
-
-    # Service bookings (client_id) — only cancel active states
     cancellable_states = ["pending", "requested", "confirmed"]
 
-    # First: cancel standard bookings
+    # Step A: Identify and mark paid confirmed bookings BEFORE general cancellation
+    paid = await db.bookings.find(
+        {"client_id": user_id, "status": "confirmed",
+         "payment_status": {"$in": ["paid", "processing"]}},
+        {"booking_id": 1},
+    ).to_list(100)
+    if paid:
+        pids = [b["booking_id"] for b in paid]
+        await db.bookings.update_many(
+            {"booking_id": {"$in": pids}},
+            {"$set": {"status": "cancelled", "cancel_reason": "requester_account_deleted",
+                      "requester_deleted": True, "refund_required": True,
+                      "manual_review_required": True, "updated_at": now}},
+        )
+        counts["bookings_refund_required"] = len(paid)
+
+    # Step B: Cancel remaining active unpaid confirmed bookings
     r = await db.bookings.update_many(
-        {"client_id": user_id, "status": {"$in": cancellable_states}},
-        {
-            "$set": {
-                "status": "cancelled",
-                "cancel_reason": "requester_account_deleted",
-                "requester_deleted": True,
-                "updated_at": now,
-            },
-        },
+        {"client_id": user_id, "status": {"$in": cancellable_states},
+         "booking_id": {"$nin": pids} if paid else {}},
+        {"$set": {"status": "cancelled", "cancel_reason": "requester_account_deleted",
+                  "requester_deleted": True, "updated_at": now}},
     )
     counts["bookings_as_client"] = r.modified_count
 
-    # Paid confirmed bookings need refund tracking (if any payment metadata exists)
-    paid_confirmed = await db.bookings.find(
-        {"client_id": user_id, "status": "confirmed", "payment_status": "paid"},
-        {"booking_id": 1},
-    ).to_list(100)
-    if paid_confirmed:
-        await db.bookings.update_many(
-            {"booking_id": {"$in": [b["booking_id"] for b in paid_confirmed]}},
-            {
-                "$set": {
-                    "status": "cancelled",
-                    "cancel_reason": "requester_account_deleted",
-                    "requester_deleted": True,
-                    "refund_required": True,
-                    "updated_at": now,
-                },
-            },
-        )
-        counts["bookings_refund_required"] = len(paid_confirmed)
-
-    # Artist booking requests (requester_id)
+    # Step C: Cancel only active artist booking requests
     r = await db.booking_requests.update_many(
         {"requester_id": user_id, "status": {"$in": cancellable_states}},
-        {
-            "$set": {
-                "status": "cancelled",
-                "cancel_reason": "requester_account_deleted",
-                "requester_deleted": True,
-                "updated_at": now,
-            },
-        },
+        {"$set": {"status": "cancelled", "cancel_reason": "requester_account_deleted",
+                  "requester_deleted": True, "updated_at": now}},
     )
     counts["booking_requests_as_requester"] = r.modified_count
 
