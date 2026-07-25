@@ -322,7 +322,7 @@ async def deactivate_user_content(
     # --- Businesses (all owned, including inactive) ---
     businesses = await db.businesses.find({"owner_id": user_id}, {"business_id": 1, "_id": 0}).to_list(200)
     r = await db.businesses.update_many(
-        {"owner_id": user_id, "is_active": True},
+        {"owner_id": user_id, "is_hidden": {"$ne": True}},
         {
             "$set": {
                 "is_active": False,
@@ -622,27 +622,39 @@ async def set_deletion_pending(user_id: str):
     )
 
 
-async def prevent_duplicate_deletion(user_id: str) -> str | None:
-    """Check deletion state. Returns 'blocked' if deletion already completed,
-    'pending' if in progress (confirm before re-entering), or None if clear.
-    Does NOT block failed operations — those are resumable."""
+async def get_account_deletion_state(user_id: str) -> str:
+    """Return explicit deletion state.
+    Values: 'new' | 'running' | 'failed' | 'review_required' | 'completed'
+    """
     user = await db.users.find_one({"user_id": user_id}, {"is_deleted": 1, "deletion_pending": 1})
-    if not user:
-        return None
-    if user.get("is_deleted"):
-        return "blocked"  # Tombstoned — cannot restart
-    if user.get("deletion_pending"):
-        # Check if there's a failed operation
-        op = await db.deletion_operations.find_one(
-            {"lock_key": f"account_deletion:{user_id}"},
-            {"status": 1},
-        )
-        if op and op.get("status") == "failed":
-            return None  # Resumable
-        if op and op.get("status") == "running":
-            return "running"
-        return "pending"
-    return None
+    if user and user.get("is_deleted"):
+        return "completed"
+    op = await db.deletion_operations.find_one(
+        {"lock_key": f"account_deletion:{user_id}"},
+        {"status": 1},
+    )
+    if not op:
+        return "new"
+    s = op.get("status")
+    if s in ("running", "failed", "review_required"):
+        return s
+    if s == "completed":
+        return "completed"
+    return "new"
+
+
+async def check_unresolved_reviews(user_id: str) -> dict:
+    """Return counts of unresolved subscriptions and bookings requiring review."""
+    unresolved_subs = await db.subscriptions.count_documents({
+        "user_id": user_id,
+        "billing_status": "manual_review_required",
+    })
+    unresolved_bookings = await db.bookings.count_documents({
+        "client_id": user_id,
+        "refund_required": True,
+        "refund_resolved": {"$ne": True},
+    })
+    return {"unresolved_subscriptions": unresolved_subs, "unresolved_bookings": unresolved_bookings}
 
 
 # ─── Subscription Cancellation ───

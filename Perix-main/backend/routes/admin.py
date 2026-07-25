@@ -394,8 +394,8 @@ async def manage_user(
     elif request.action == "delete":
         from services.entity_ownership import (
             run_account_deletion, acquire_new_deletion_lock,
-            resume_failed_deletion, resume_resolved_review,
-            set_deletion_pending, prevent_duplicate_deletion, get_deletion_state,
+            resume_failed_deletion,
+            set_deletion_pending, get_account_deletion_state,
         )
         user_id = request.user_id
 
@@ -403,29 +403,23 @@ async def manage_user(
         if user and user.get("is_deleted"):
             raise HTTPException(status_code=409, detail="Deleted accounts require explicit restoration")
 
-        state = await prevent_duplicate_deletion(user_id)
-        if state == "running":
-            raise HTTPException(status_code=409, detail="Account deletion in progress")
-
+        state = await get_account_deletion_state(user_id)
         lock_key = f"account_deletion:{user_id}"
 
-        if state == "pending":
-            op = await get_deletion_state(user_id)
-            if not op:
-                raise HTTPException(status_code=409, detail="No operation found")
-            status = op.get("status")
-            if status == "failed":
-                if not await resume_failed_deletion(lock_key):
-                    raise HTTPException(status_code=409, detail="Already resuming")
-            elif status == "review_required":
-                if not await resume_resolved_review(lock_key):
-                    raise HTTPException(status_code=409, detail="Cannot resolve review state")
-            else:
-                raise HTTPException(status_code=409, detail="Cannot resume in current state")
-        else:
+        if state == "running":
+            raise HTTPException(status_code=409, detail="Account deletion in progress")
+        elif state == "failed":
+            if not await resume_failed_deletion(lock_key):
+                raise HTTPException(status_code=409, detail="Already resuming")
+        elif state == "review_required":
+            # Admin must resolve before retrying
+            raise HTTPException(status_code=202, detail="Resolve pending reviews before retrying deletion")
+        elif state == "new":
             if not await acquire_new_deletion_lock(user_id):
                 raise HTTPException(status_code=409, detail="Lock unavailable")
             await set_deletion_pending(user_id)
+        else:
+            raise HTTPException(status_code=409, detail="Cannot proceed in current state")
 
         result = await run_account_deletion(user_id, lock_key)
         if result["status"] == "completed":
@@ -433,12 +427,74 @@ async def manage_user(
         elif result["status"] == "review_required":
             raise HTTPException(status_code=202, detail={"message": "Manual review required", "reason": result.get("reason", "")})
         else:
-            raise HTTPException(status_code=500, detail="Deletion failed. Retry supported.")
+            raise HTTPException(status_code=500, detail="Deletion failed")
 
-        return {"success": True, "message": "User content deactivated, tombstone created"}
     
     else:
         raise HTTPException(status_code=400, detail="Invalid action")
+
+
+class DeletionResolveRequest(BaseModel):
+    resolution_type: str
+    reference_ids: List[str] = []
+    reason: str
+    evidence_reference: str = ""
+
+
+@router.post("/deletion-operations/{user_id}/resolve")
+async def resolve_deletion_operation(
+    user_id: str,
+    request: DeletionResolveRequest,
+    admin_user: UserPublic = Depends(get_current_user),
+):
+    """Admin: resolve manual-review blocks on a deletion operation."""
+    await verify_admin(admin_user)
+    from services.entity_ownership import check_unresolved_reviews, get_account_deletion_state
+
+    state = await get_account_deletion_state(user_id)
+    if state != "review_required":
+        raise HTTPException(status_code=409, detail="Operation is not in review_required state")
+
+    unresolved = await check_unresolved_reviews(user_id)
+
+    if request.resolution_type == "subscription_cancelled":
+        if unresolved["unresolved_subscriptions"] == 0:
+            raise HTTPException(status_code=400, detail="No unresolved subscriptions")
+        await db.subscriptions.update_many(
+            {"user_id": user_id, "billing_status": "manual_review_required"},
+            {"$set": {
+                "billing_status": "cancelled",
+                "resolved_at": now_utc(),
+                "resolved_by": admin_user.user_id,
+                "resolution_reason": request.reason,
+            }},
+        )
+    elif request.resolution_type == "booking_refunded":
+        if unresolved["unresolved_bookings"] == 0:
+            raise HTTPException(status_code=400, detail="No unresolved bookings")
+        await db.bookings.update_many(
+            {"client_id": user_id, "refund_required": True, "refund_resolved": {"$ne": True}},
+            {"$set": {
+                "refund_resolved": True,
+                "resolved_at": now_utc(),
+                "resolved_by": admin_user.user_id,
+                "resolution_reason": request.reason,
+            }},
+        )
+    elif request.resolution_type == "review_waived":
+        pass
+    else:
+        raise HTTPException(status_code=400, detail="Unknown resolution_type")
+
+    remaining = await check_unresolved_reviews(user_id)
+    if remaining["unresolved_subscriptions"] == 0 and remaining["unresolved_bookings"] == 0:
+        from services.entity_ownership import resume_resolved_review
+        lock_key = f"account_deletion:{user_id}"
+        if not await resume_resolved_review(lock_key):
+            raise HTTPException(status_code=409, detail="Could not transition to ready_to_resume")
+        return {"success": True, "state": "ready_to_resume", "message": "All reviews resolved. Deletion can be retried."}
+
+    return {"success": True, "state": "review_required", "remaining": remaining}
 
 
 @router.get("/posts")
