@@ -120,7 +120,7 @@ async def get_user_content_count(
     stories = await db.stories.count_documents({"user_id": user_id})
     activities = await db.activities.count_documents({"creator_id": user_id})
     activity_messages = await db.activity_messages.count_documents({"user_id": user_id})
-    events = await db.events.count_documents({"created_by": user_id})
+    events = await db.events.count_documents({"creator_id": user_id})
     event_messages = await db.event_messages.count_documents({"user_id": user_id})
     businesses = await db.businesses.count_documents({"owner_id": user_id})
     artists = await db.artists.count_documents({"owner_id": user_id})
@@ -345,7 +345,7 @@ async def manage_user(
         )
         # Hide their events
         await db.events.update_many(
-            {"created_by": request.user_id},
+            {"creator_id": request.user_id},
             {"$set": {"is_hidden": True}}
         )
         return {"success": True, "message": "User and all their content hidden"}
@@ -386,125 +386,78 @@ async def manage_user(
         )
         # Unhide their events
         await db.events.update_many(
-            {"created_by": request.user_id},
+            {"creator_id": request.user_id},
             {"$set": {"is_hidden": False}}
         )
         return {"success": True, "message": "User and all their content restored"}
     
     elif request.action == "delete":
-        # Delete user and ALL their related data
+        # Soft-deactivate user content and create tombstone
+        from services.entity_ownership import (
+            deactivate_user_content,
+            cleanup_ephemeral_user_data,
+            cleanup_relationships,
+            create_user_tombstone,
+            set_deletion_pending,
+            prevent_duplicate_deletion,
+            acquire_deletion_lock,
+            record_deletion_step,
+            complete_deletion_operation,
+            cancel_user_subscriptions,
+            cancel_user_bookings_as_requester,
+            mark_user_reports,
+        )
         user_id = request.user_id
-        
-        # Delete user's posts
-        await db.posts.delete_many({"user_id": user_id})
-        await db.posts.delete_many({"author_id": user_id})
-        
-        # Delete user's stories
-        await db.stories.delete_many({"user_id": user_id})
-        
-        # Delete user's businesses
-        await db.businesses.delete_many({"owner_id": user_id})
-        
-        # Delete user's artists
-        await db.artists.delete_many({"owner_id": user_id})
-        
-        # Delete user's messages (sent and received)
-        await db.messages.delete_many({
-            "$or": [
-                {"from_user_id": user_id},
-                {"to_user_id": user_id}
-            ]
-        })
-        
-        # Delete conversations involving the user
-        await db.conversations.delete_many({
-            "participants": user_id
-        })
-        
-        # Delete user's events
-        await db.events.delete_many({"created_by": user_id})
-        
-        # Delete user's activities (as creator)
-        user_activities = await db.activities.find(
-            {"creator_id": user_id}, 
-            {"activity_id": 1}
-        ).to_list(1000)
-        activity_ids = [a["activity_id"] for a in user_activities]
-        
-        # Delete activity messages for those activities
-        if activity_ids:
-            await db.activity_messages.delete_many({"activity_id": {"$in": activity_ids}})
-        
-        # Delete the activities
-        await db.activities.delete_many({"creator_id": user_id})
-        
-        # Also delete activity messages sent by this user in other activities
-        await db.activity_messages.delete_many({"user_id": user_id})
-        
-        # Delete event messages sent by this user
-        await db.event_messages.delete_many({"user_id": user_id})
-        
-        # Delete user's notifications
-        await db.notifications.delete_many({"user_id": user_id})
-        await db.notifications.delete_many({"from_user_id": user_id})
-        
-        # Delete user's friend relationships
-        await db.friend_requests.delete_many({
-            "$or": [
-                {"from_user_id": user_id},
-                {"to_user_id": user_id}
-            ]
-        })
-        await db.friends.delete_many({
-            "$or": [
-                {"user_id": user_id},
-                {"friend_id": user_id}
-            ]
-        })
-        
-        # Delete reports about this user
-        await db.reports.delete_many({"reported_user_id": user_id})
-        # Delete reports made by this user
-        await db.reports.delete_many({"reporter_id": user_id})
-        
-        # Delete user's calls history
-        await db.calls.delete_many({
-            "$or": [
-                {"caller_id": user_id},
-                {"callee_id": user_id}
-            ]
-        })
-        
-        # Delete user's subscriptions
-        await db.subscriptions.delete_many({"user_id": user_id})
-        await db.subscriptions.delete_many({"subscriber_id": user_id})
-        
-        # Remove user's likes from posts (handle both string and object format)
-        await db.posts.update_many(
-            {},
-            {"$pull": {"likes": user_id}}
-        )
-        await db.posts.update_many(
-            {},
-            {"$pull": {"likes": {"user_id": user_id}}}
-        )
-        
-        # Remove user's comments from posts
-        await db.posts.update_many(
-            {},
-            {"$pull": {"comments": {"user_id": user_id}}}
-        )
-        
-        # Remove user from activity invites
-        await db.activities.update_many(
-            {},
-            {"$pull": {"invites": {"user_id": user_id}}}
-        )
-        
-        # Finally delete the user
-        await db.users.delete_one({"user_id": user_id})
-        
-        return {"success": True, "message": "User and all their data completely deleted"}
+
+        # Check if already tombstoned (prevent re-publish)
+        user = await db.users.find_one({"user_id": user_id}, {"is_deleted": 1})
+        if user and user.get("is_deleted"):
+            raise HTTPException(
+                status_code=409,
+                detail="Deleted accounts require explicit restoration",
+            )
+
+        # Prevent duplicate deletion operations
+        if await prevent_duplicate_deletion(user_id):
+            raise HTTPException(status_code=409, detail="Account deletion is already in progress or completed")
+
+        # Acquire atomic lock
+        lock_key = await acquire_deletion_lock(user_id)
+        if not lock_key:
+            raise HTTPException(status_code=409, detail="Account deletion is already in progress")
+
+        # Block authentication immediately
+        await set_deletion_pending(user_id)
+
+        try:
+            await deactivate_user_content(user_id, reason="owner_account_deleted")
+            await record_deletion_step(lock_key, "personal_content")
+
+            await cancel_user_subscriptions(user_id)
+            await record_deletion_step(lock_key, "subscriptions")
+
+            await cancel_user_bookings_as_requester(user_id)
+            await record_deletion_step(lock_key, "requester_bookings")
+
+            await cleanup_ephemeral_user_data(user_id)
+            await record_deletion_step(lock_key, "ephemeral_cleanup")
+
+            await mark_user_reports(user_id)
+            await record_deletion_step(lock_key, "report_marking")
+
+            await cleanup_relationships(user_id)
+            await record_deletion_step(lock_key, "relationship_cleanup")
+
+            await create_user_tombstone(user_id)
+            await record_deletion_step(lock_key, "user_tombstone")
+        except Exception as e:
+            from services.entity_ownership import fail_deletion_operation
+            await fail_deletion_operation(lock_key, "unknown", str(e))
+            raise HTTPException(status_code=500, detail="Account deletion failed. Please try again or contact support.")
+
+        await complete_deletion_operation(lock_key)
+
+        return {"success": True, "message": "User content deactivated, tombstone created"}
     
     else:
         raise HTTPException(status_code=400, detail="Invalid action")
