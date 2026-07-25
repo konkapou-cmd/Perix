@@ -72,8 +72,8 @@ def can_receive_email(user: dict) -> bool:
 # ─── Resumable Operation Support (atomic lock-based) ───
 
 
-async def acquire_deletion_lock(user_id: str) -> str | None:
-    """Atomically acquire a deletion lock. Returns lock_key or None."""
+async def acquire_new_deletion_lock(user_id: str) -> str | None:
+    """Atomically acquire a NEW deletion lock using setOnInsert."""
     lock_key = f"account_deletion:{user_id}"
     now = _now_utc()
     try:
@@ -87,20 +87,14 @@ async def acquire_deletion_lock(user_id: str) -> str | None:
             upsert=True,
         )
     except Exception:
-        result = None
+        return None
     if result is not None and result.upserted_id is not None:
         return lock_key
-    existing = await db.deletion_operations.find_one({"lock_key": lock_key})
-    if not existing:
-        return None
-    status = existing.get("status")
-    if status == "failed":
-        return lock_key  # Caller must atomically resume
     return None
 
 
-async def resume_deletion_lock(lock_key: str) -> bool:
-    """Atomically resume a failed deletion. Returns True if lock acquired."""
+async def resume_failed_deletion(lock_key: str) -> bool:
+    """Atomically resume a failed deletion. Only succeeds if status == 'failed'."""
     result = await db.deletion_operations.update_one(
         {"lock_key": lock_key, "status": "failed"},
         {"$set": {"status": "running", "updated_at": _now_utc(), "last_error": None}},
@@ -108,12 +102,28 @@ async def resume_deletion_lock(lock_key: str) -> bool:
     return result.modified_count == 1
 
 
-async def record_deletion_step(lock_key: str, step: str):
-    """Record a completed step using $addToSet to prevent duplicates."""
+async def resume_resolved_review(lock_key: str) -> bool:
+    """Atomically resume a review_required deletion after admin resolution."""
+    result = await db.deletion_operations.update_one(
+        {"lock_key": lock_key, "status": "review_required"},
+        {"$set": {"status": "running", "updated_at": _now_utc()}},
+    )
+    return result.modified_count == 1
+
+
+async def set_current_step(lock_key: str, step: str):
     await db.deletion_operations.update_one(
         {"lock_key": lock_key},
-        {"$set": {"current_step": step, "updated_at": _now_utc()},
-         "$addToSet": {"completed_steps": step}},
+        {"$set": {"current_step": step, "updated_at": _now_utc()}},
+    )
+
+
+async def mark_step_completed(lock_key: str, step: str):
+    """Record a completed step using addToSet (idempotent)."""
+    await db.deletion_operations.update_one(
+        {"lock_key": lock_key},
+        {"$addToSet": {"completed_steps": step},
+         "$set": {"updated_at": _now_utc()}},
     )
 
 
@@ -132,67 +142,87 @@ async def complete_deletion_operation(lock_key: str):
     )
 
 
+async def set_review_required(lock_key: str, reason: str):
+    await db.deletion_operations.update_one(
+        {"lock_key": lock_key},
+        {"$set": {"status": "review_required", "review_reason": reason,
+                  "updated_at": _now_utc()}},
+    )
+
+
 async def run_account_deletion(user_id: str, lock_key: str) -> dict:
-    """Unified deletion orchestrator with resume/skip support."""
-    op = await db.deletion_operations.find_one({"lock_key": lock_key},
-        {"completed_steps": 1})
+    """Unified deletion orchestrator with resume/skip, review, and proper step lifecycle.
+    Steps: set_current_step → execute → mark_step_completed (only on success).
+    """
+    op = await db.deletion_operations.find_one(
+        {"lock_key": lock_key},
+        {"completed_steps": 1, "status": 1},
+    )
     completed = set(op["completed_steps"]) if op and op.get("completed_steps") else set()
     result = {"user_id": user_id, "lock_key": lock_key, "steps_run": []}
+    current_step: str | None = None
 
-    async def _step(name, fn):
+    async def _step(name: str, fn):
+        nonlocal current_step
         if name in completed:
             result["steps_run"].append(f"{name}:skipped")
             return
-        await record_deletion_step(lock_key, name)
-        await fn
-        result["steps_run"].append(f"{name}:done")
+        current_step = name
+        await set_current_step(lock_key, name)
+        try:
+            await fn()
+            await mark_step_completed(lock_key, name)
+            result["steps_run"].append(f"{name}:done")
+        except Exception:
+            raise  # re-raise to outer handler
 
     try:
         # Step 1: Personal content
         await _step("personal_content",
-                    deactivate_user_content(user_id, reason="owner_account_deleted"))
+                    lambda: deactivate_user_content(user_id, reason="owner_account_deleted"))
 
-        # Step 2: Subscriptions
+        # Step 2: Subscriptions — check for manual review
+        sub_result = {}
         async def sub_step():
-            sub_results = await cancel_user_subscriptions(user_id)
-            # Check for manual review
-            manual = sub_results.get("manual_review_required", 0)
-            if manual > 0:
-                raise DeletionNeedsReview("manual_review_required_subscriptions", sub_results)
-        await _step("subscriptions", sub_step())
+            nonlocal sub_result
+            sub_result = await cancel_user_subscriptions(user_id)
+            if sub_result.get("manual_review_required", 0) > 0:
+                raise DeletionNeedsReview("manual_review_required_subscriptions")
+        await _step("subscriptions", sub_step)
 
-        # Step 3: Requester bookings
-        await _step("requester_bookings",
-                    cancel_user_bookings_as_requester(user_id))
+        # Step 3: Requester bookings — check for manual review
+        bk_result = {}
+        async def bk_step():
+            nonlocal bk_result
+            bk_result = await cancel_user_bookings_as_requester(user_id)
+            if bk_result.get("bookings_require_review"):
+                raise DeletionNeedsReview("manual_review_required_bookings")
+        await _step("requester_bookings", bk_step)
 
         # Step 4: Ephemeral data
         await _step("ephemeral_cleanup",
-                    cleanup_ephemeral_user_data(user_id))
+                    lambda: cleanup_ephemeral_user_data(user_id))
 
         # Step 5: Reports
         await _step("report_marking",
-                    mark_user_reports(user_id))
+                    lambda: mark_user_reports(user_id))
 
         # Step 6: Relationships
         await _step("relationship_cleanup",
-                    cleanup_relationships(user_id))
+                    lambda: cleanup_relationships(user_id))
 
         # Step 7: Tombstone
         await _step("user_tombstone",
-                    create_user_tombstone(user_id))
+                    lambda: create_user_tombstone(user_id))
 
         await complete_deletion_operation(lock_key)
         result["status"] = "completed"
     except DeletionNeedsReview as e:
-        await db.deletion_operations.update_one(
-            {"lock_key": lock_key},
-            {"$set": {"status": "review_required", "review_reason": str(e),
-                      "updated_at": _now_utc()}},
-        )
+        await set_review_required(lock_key, str(e))
         result["status"] = "review_required"
         result["reason"] = str(e)
     except Exception as e:
-        await fail_deletion_operation(lock_key, op.get("current_step", "unknown") if op else "unknown", str(e))
+        await fail_deletion_operation(lock_key, current_step or "initialisation", str(e))
         result["status"] = "failed"
         result["error"] = str(e)[:200]
     return result
@@ -200,21 +230,6 @@ async def run_account_deletion(user_id: str, lock_key: str) -> dict:
 
 class DeletionNeedsReview(Exception):
     pass
-
-
-async def resume_deletion_lock(user_id: str) -> str | None:
-    """Resume a previously failed deletion. Only works if status is 'failed'."""
-    lock_key = f"account_deletion:{user_id}"
-    existing = await db.deletion_operations.find_one({"lock_key": lock_key})
-    if not existing:
-        return None
-    if existing.get("status") != "failed":
-        return None
-    await db.deletion_operations.update_one(
-        {"lock_key": lock_key},
-        {"$set": {"status": "running", "updated_at": _now_utc()}},
-    )
-    return lock_key
 
 
 async def get_deletion_state(user_id: str) -> dict | None:
@@ -225,45 +240,8 @@ async def get_deletion_state(user_id: str) -> dict | None:
         {"_id": 0, "last_error": 0},
     )
     if doc:
-        doc.pop("last_error", None)  # Never expose error details
+        doc.pop("last_error", None)
     return doc
-
-
-async def record_deletion_step(lock_key: str, step: str):
-    await db.deletion_operations.update_one(
-        {"lock_key": lock_key},
-        {
-            "$push": {"completed_steps": step},
-            "$set": {"updated_at": _now_utc()},
-        },
-    )
-
-
-async def fail_deletion_operation(lock_key: str, step: str, error: str):
-    await db.deletion_operations.update_one(
-        {"lock_key": lock_key},
-        {
-            "$set": {
-                "status": "failed",
-                "failed_step": step,
-                "last_error": str(error)[:1000],
-                "updated_at": _now_utc(),
-            },
-        },
-    )
-
-
-async def complete_deletion_operation(lock_key: str):
-    await db.deletion_operations.update_one(
-        {"lock_key": lock_key},
-        {
-            "$set": {
-                "status": "completed",
-                "completed_steps": DELETION_STEPS,
-                "updated_at": _now_utc(),
-            },
-        },
-    )
 
 
 # ─── Soft Deactivation ───
@@ -341,8 +319,8 @@ async def deactivate_user_content(
     )
     result.record("events", r.modified_count)
 
-    # --- Businesses ---
-    businesses = await db.businesses.find({"owner_id": user_id, "is_active": True}, {"business_id": 1, "_id": 0}).to_list(200)
+    # --- Businesses (all owned, including inactive) ---
+    businesses = await db.businesses.find({"owner_id": user_id}, {"business_id": 1, "_id": 0}).to_list(200)
     r = await db.businesses.update_many(
         {"owner_id": user_id, "is_active": True},
         {
@@ -540,9 +518,9 @@ async def deactivate_artist_content(
     )
     result.record("stories", r.modified_count)
 
-    # --- Booking Requests ---
+    # --- Booking Requests (only active cancellable states) ---
     r = await db.booking_requests.update_many(
-        {"artist_id": artist_id},
+        {"artist_id": artist_id, "status": {"$in": ["pending", "requested", "confirmed"]}},
         {"$set": {"status": "cancelled", "cancelled_reason": reason}},
     )
     result.record("booking_requests", r.modified_count)
@@ -735,6 +713,7 @@ async def cancel_user_bookings_as_requester(user_id: str) -> dict:
                       "manual_review_required": True, "updated_at": now}},
         )
         counts["bookings_refund_required"] = len(paid)
+        counts["bookings_require_review"] = True
 
     # Step B: Cancel remaining active unpaid confirmed bookings
     r = await db.bookings.update_many(

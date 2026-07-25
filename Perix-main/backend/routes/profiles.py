@@ -963,10 +963,12 @@ async def delete_user_account(current_user: UserPublic = Depends(get_current_use
     """Delete user account — soft-deactivates all public content, removes ephemeral data, creates tombstone."""
     from services.entity_ownership import (
         run_account_deletion,
-        acquire_deletion_lock,
-        resume_deletion_lock,
+        acquire_new_deletion_lock,
+        resume_failed_deletion,
+        resume_resolved_review,
         set_deletion_pending,
         prevent_duplicate_deletion,
+        get_deletion_state,
     )
     user_id = current_user.user_id
 
@@ -977,18 +979,27 @@ async def delete_user_account(current_user: UserPublic = Depends(get_current_use
     if state == "running":
         raise HTTPException(status_code=409, detail="Account deletion in progress")
 
-    # Acquire or resume lock atomically
-    lock_key = await acquire_deletion_lock(user_id)
-    if lock_key:
-        # New deletion — block auth first
-        await set_deletion_pending(user_id)
-    elif state == "pending":
-        # Retry failed operation
-        lock_key = f"account_deletion:{user_id}"
-        if not await resume_deletion_lock(lock_key):
-            raise HTTPException(status_code=409, detail="Cannot resume deletion")
+    lock_key = f"account_deletion:{user_id}"
+
+    if state == "pending":
+        # Check if failed (resumable) or review_required
+        op = await get_deletion_state(user_id)
+        if not op:
+            raise HTTPException(status_code=409, detail="Cannot resume — no operation found")
+        status = op.get("status")
+        if status == "failed":
+            if not await resume_failed_deletion(lock_key):
+                raise HTTPException(status_code=409, detail="Could not resume — already resuming")
+        elif status == "review_required":
+            # Only admin can resolve review; self-service gets a status response
+            raise HTTPException(status_code=202, detail={"message": "Deletion requires administrative review"})
+        else:
+            raise HTTPException(status_code=409, detail="Cannot resume deletion in current state")
     else:
-        raise HTTPException(status_code=409, detail="Account deletion unavailable")
+        # New deletion
+        if not await acquire_new_deletion_lock(user_id):
+            raise HTTPException(status_code=409, detail="Deletion lock unavailable")
+        await set_deletion_pending(user_id)
 
     # Run orchestrator (handles resume/skip internally)
     result = await run_account_deletion(user_id, lock_key)
@@ -996,12 +1007,9 @@ async def delete_user_account(current_user: UserPublic = Depends(get_current_use
     if result["status"] == "completed":
         return {"success": True, "message": "User account deleted successfully"}
     elif result["status"] == "review_required":
-        raise HTTPException(
-            status_code=202,
-            detail={"message": "Deletion requires manual review", "reason": result.get("reason", "")},
-        )
+        raise HTTPException(status_code=202, detail={"message": "Deletion requires manual review", "reason": result.get("reason", "")})
     else:
-        raise HTTPException(status_code=500, detail="Deletion failed. It can be resumed.")
+        raise HTTPException(status_code=500, detail="Deletion failed. It can be retried.")
 
 
 # ==================== Push Token Management ====================

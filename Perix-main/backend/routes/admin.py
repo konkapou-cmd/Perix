@@ -393,8 +393,9 @@ async def manage_user(
     
     elif request.action == "delete":
         from services.entity_ownership import (
-            run_account_deletion, acquire_deletion_lock, resume_deletion_lock,
-            set_deletion_pending, prevent_duplicate_deletion,
+            run_account_deletion, acquire_new_deletion_lock,
+            resume_failed_deletion, resume_resolved_review,
+            set_deletion_pending, prevent_duplicate_deletion, get_deletion_state,
         )
         user_id = request.user_id
 
@@ -406,15 +407,25 @@ async def manage_user(
         if state == "running":
             raise HTTPException(status_code=409, detail="Account deletion in progress")
 
-        lock_key = await acquire_deletion_lock(user_id)
-        if lock_key:
-            await set_deletion_pending(user_id)
-        elif state == "pending":
-            lock_key = f"account_deletion:{user_id}"
-            if not await resume_deletion_lock(lock_key):
-                raise HTTPException(status_code=409, detail="Cannot resume deletion")
+        lock_key = f"account_deletion:{user_id}"
+
+        if state == "pending":
+            op = await get_deletion_state(user_id)
+            if not op:
+                raise HTTPException(status_code=409, detail="No operation found")
+            status = op.get("status")
+            if status == "failed":
+                if not await resume_failed_deletion(lock_key):
+                    raise HTTPException(status_code=409, detail="Already resuming")
+            elif status == "review_required":
+                if not await resume_resolved_review(lock_key):
+                    raise HTTPException(status_code=409, detail="Cannot resolve review state")
+            else:
+                raise HTTPException(status_code=409, detail="Cannot resume in current state")
         else:
-            raise HTTPException(status_code=409, detail="Account deletion unavailable")
+            if not await acquire_new_deletion_lock(user_id):
+                raise HTTPException(status_code=409, detail="Lock unavailable")
+            await set_deletion_pending(user_id)
 
         result = await run_account_deletion(user_id, lock_key)
         if result["status"] == "completed":
@@ -422,7 +433,7 @@ async def manage_user(
         elif result["status"] == "review_required":
             raise HTTPException(status_code=202, detail={"message": "Manual review required", "reason": result.get("reason", "")})
         else:
-            raise HTTPException(status_code=500, detail="Deletion failed. It can be resumed.")
+            raise HTTPException(status_code=500, detail="Deletion failed. Retry supported.")
 
         return {"success": True, "message": "User content deactivated, tombstone created"}
     
