@@ -460,11 +460,6 @@ async def resolve_deletion_operation(
         ResolutionOperationInProgress,
         ResolutionExecutionError,
     )
-    from services.entity_ownership import get_account_deletion_state
-
-    state = await get_account_deletion_state(user_id)
-    if state != "review_required":
-        raise HTTPException(status_code=409, detail="Operation is not awaiting review")
 
     try:
         result = await run_resolution_operation(

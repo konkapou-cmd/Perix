@@ -6,7 +6,7 @@ deterministic idempotency hashes, and atomic conditional updates.
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Set
 
 from database import db
@@ -101,20 +101,22 @@ async def _claim_operation(
             result = await db.resolution_operations.update_one(
                 {"resolution_id": existing["resolution_id"], "status": "running",
                  "lease_expires_at": lease},
-                {"$set": {"status": "running", "lease_expires_at": now + datetime.timedelta(minutes=LEASE_MINUTES),
-                          "updated_at": now}},
+                {"$set": {"status": "running", "lease_expires_at": now + timedelta(minutes=LEASE_MINUTES),
+                          "last_error": None, "failed_step": None, "updated_at": now}},
             )
             if result.modified_count == 1:
-                return existing
+                return await db.resolution_operations.find_one(
+                    {"resolution_id": existing["resolution_id"]})
             raise ResolutionOperationInProgress("Could not reclaim expired lease")
         if status == "failed":
             result = await db.resolution_operations.update_one(
                 {"resolution_id": existing["resolution_id"], "status": "failed"},
-                {"$set": {"status": "running", "lease_expires_at": now + datetime.timedelta(minutes=LEASE_MINUTES),
-                          "updated_at": now}},
+                {"$set": {"status": "running", "lease_expires_at": now + timedelta(minutes=LEASE_MINUTES),
+                          "last_error": None, "failed_step": None, "updated_at": now}},
             )
             if result.modified_count == 1:
-                return existing
+                return await db.resolution_operations.find_one(
+                    {"resolution_id": existing["resolution_id"]})
             raise ResolutionOperationInProgress("Could not resume failed operation")
         raise ResolutionOperationInProgress(f"Unexpected status: {status}")
 
@@ -138,7 +140,7 @@ async def _claim_operation(
             "reason": reason,
             "evidence_reference": evidence_reference,
             "resolved_by": admin_user_id,
-            "lease_expires_at": now + datetime.timedelta(minutes=LEASE_MINUTES),
+            "lease_expires_at": now + timedelta(minutes=LEASE_MINUTES),
             "created_at": now,
             "updated_at": now,
         })
@@ -161,7 +163,9 @@ async def _claim_operation(
 async def _set_current_step(resolution_id: str, step: str):
     await db.resolution_operations.update_one(
         {"resolution_id": resolution_id},
-        {"$set": {"current_step": step, "updated_at": _now_utc()}},
+        {"$set": {"current_step": step,
+                  "lease_expires_at": _now_utc() + timedelta(minutes=LEASE_MINUTES),
+                  "updated_at": _now_utc()}},
     )
 
 
@@ -270,22 +274,32 @@ async def run_resolution_operation(
             )
         await _step("validated", validate)
 
-        # Step 2: Update targets (idempotent — accepts same resolution_id)
+        # Step 2: Update targets (per-record conditional, idempotent)
         async def update_targets():
-            if resolution_type == "subscription_cancelled":
-                await db.subscriptions.update_many(
-                    {"subscription_id": {"$in": verified_ids}},
-                    {"$set": {"billing_status": "cancelled", "resolution_id": resolution_id,
-                              "resolved_at": now, "resolved_by": admin_user_id,
-                              "resolution_reason": reason}},
-                )
-            else:
-                await db.bookings.update_many(
-                    {"booking_id": {"$in": verified_ids}},
-                    {"$set": {"refund_resolved": True, "resolution_id": resolution_id,
-                              "resolved_at": now, "resolved_by": admin_user_id,
-                              "resolution_reason": reason}},
-                )
+            for ref_id in verified_ids:
+                if resolution_type == "subscription_cancelled":
+                    r = await db.subscriptions.update_one(
+                        {"subscription_id": ref_id, "user_id": user_id,
+                         "$or": [{"billing_status": "manual_review_required"},
+                                 {"resolution_id": resolution_id}]},
+                        {"$set": {"billing_status": "cancelled", "resolution_id": resolution_id,
+                                  "resolved_at": now, "resolved_by": admin_user_id,
+                                  "resolution_reason": reason}},
+                    )
+                else:
+                    r = await db.bookings.update_one(
+                        {"booking_id": ref_id, "client_id": user_id,
+                         "refund_required": True,
+                         "$or": [{"refund_resolved": {"$ne": True}},
+                                 {"resolution_id": resolution_id}]},
+                        {"$set": {"refund_resolved": True, "resolution_id": resolution_id,
+                                  "resolved_at": now, "resolved_by": admin_user_id,
+                                  "resolution_reason": reason}},
+                    )
+                if r.matched_count != 1:
+                    raise ResolutionExecutionError(
+                        f"Could not update {resolution_type} record {ref_id}"
+                    )
         await _step("targets_updated", update_targets)
 
         # Step 3: Audit (upsert)
@@ -308,7 +322,7 @@ async def run_resolution_operation(
         await _step("audit_recorded", record_audit)
 
         # Step 4: Recheck remaining
-        remaining = {}
+        remaining = op.get("remaining_counts") or {}
         async def recheck():
             nonlocal remaining
             remaining = await check_unresolved_reviews(user_id)
@@ -320,7 +334,10 @@ async def run_resolution_operation(
 
         # Step 5: Transition deletion if all clear
         result_state = "review_required"
-        if remaining.get("unresolved_subscriptions", 0) == 0 and remaining.get("unresolved_bookings", 0) == 0:
+        if "deletion_ready" in completed:
+            from services.entity_ownership import get_account_deletion_state
+            result_state = await get_account_deletion_state(user_id)
+        elif remaining.get("unresolved_subscriptions", 0) == 0 and remaining.get("unresolved_bookings", 0) == 0:
             async def transition():
                 nonlocal result_state
                 from services.entity_ownership import get_account_deletion_state

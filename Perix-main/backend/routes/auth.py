@@ -310,16 +310,23 @@ async def reset_password(payload: ResetPasswordInput):
         raise HTTPException(status_code=400, detail="Invalid or expired token")
     if len(payload.new_password) < 4:
         raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
-    await db.password_reset_tokens.update_one(
-        {"token": payload.token},
-        {"$set": {"used": True}},
-    )
+
+    # Validate user before consuming token
     user_doc = await db.users.find_one({"email": reset_doc["email"]})
     if not user_doc:
         raise HTTPException(status_code=400, detail="User not found")
     from services.entity_ownership import can_receive_email
     if not can_receive_email(user_doc):
         raise HTTPException(status_code=400, detail="Account is unavailable")
+
+    # Atomically consume token
+    result = await db.password_reset_tokens.update_one(
+        {"token": payload.token, "used": False},
+        {"$set": {"used": True}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=400, detail="Token already used")
+
     await db.users.update_one(
         {"email": reset_doc["email"]},
         {"$set": {"password_hash": pwd_context.hash(payload.new_password)}}
