@@ -163,6 +163,15 @@ async def create_indexes():
     await db.deletion_operations.create_index("lock_key", unique=True)
     await db.deletion_operations.create_index([("user_id", 1), ("status", 1), ("updated_at", -1)])
 
+    # Resolution operations (crash-safe review resolution)
+    await db.resolution_operations.create_index(
+        [("lock_key", 1), ("idempotency_key", 1)], unique=True,
+    )
+    await db.resolution_operations.create_index("resolution_id", unique=True)
+
+    # Resolution audit trail
+    await db.resolution_audit.create_index("resolution_id", unique=True)
+
     # Event ID unique index
     await db.events.create_index("event_id", unique=True)
 

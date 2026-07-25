@@ -75,10 +75,10 @@ async def send_push_notification(
 
 
 async def get_user_push_tokens(user_id: str) -> List[str]:
-    """Get all push tokens for a user. Skips deleted/tombstoned users."""
+    """Get all push tokens for a user. Skips deleted/tombstoned/missing users."""
     from services.entity_ownership import can_receive_email
     user = await db.users.find_one({"user_id": user_id}, {"email": 1, "is_deleted": 1, "deletion_pending": 1})
-    if not can_receive_email(user or {}):
+    if not user or not can_receive_email(user):
         return []
     tokens = await db.push_tokens.find(
         {"user_id": user_id},
