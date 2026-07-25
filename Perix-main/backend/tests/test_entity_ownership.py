@@ -245,23 +245,24 @@ class TestOrchestrator:
         assert result["status"] == "completed"
         assert "personal_content:skipped" in result["steps_run"]
 
-    async def test_failed_step_not_marked_complete(self):
+    async def test_failure_injection_excludes_failed_step(self, monkeypatch):
         db = _patch(); uid = "o2"; lk = f"account_deletion:{uid}"
         await db.users.insert_one({"user_id": uid, "email": f"o2@{uid}.app",
             "name": "O2", "password_hash": "x", "deletion_pending": True, "created_at": _now()})
         await db.deletion_operations.insert_one({"lock_key": lk, "user_id": uid,
             "status": "running", "completed_steps": [],
             "started_at": _now(), "updated_at": _now()})
-        # Run orchestrator — it should fail at subscriptions (no subs to cancel)
-        from services.entity_ownership import run_account_deletion
-        result = await run_account_deletion(uid, lk)
-        # Check that completed_steps only contains steps that succeeded
+        import services.entity_ownership as entity_ownership
+
+        async def forced_failure(*args, **kwargs):
+            raise RuntimeError("controlled subscription failure")
+
+        monkeypatch.setattr(entity_ownership, "cancel_user_subscriptions", forced_failure)
+        result = await entity_ownership.run_account_deletion(uid, lk)
+        assert result["status"] == "failed"
+
         op = await db.deletion_operations.find_one({"lock_key": lk})
+        assert op["failed_step"] == "subscriptions"
         completed = set(op.get("completed_steps") or [])
-        # personal_content should have succeeded (even with 0 listings)
         assert "personal_content" in completed
-        # If the orchestrator failed, the failed step should NOT be in completed_steps
-        if result["status"] == "failed":
-            failed_step = op.get("failed_step")
-            assert failed_step is not None
-            assert failed_step not in completed
+        assert "subscriptions" not in completed

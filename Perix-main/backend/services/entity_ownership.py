@@ -121,6 +121,50 @@ async def mark_review_resolved(lock_key: str) -> bool:
     )).modified_count == 1
 
 
+async def start_resolution_operation(lock_key: str, idempotency_key: str,
+                                     admin_user_id: str, resolution_type: str,
+                                     reference_ids: list) -> str:
+    """Create an idempotent, resumable resolution operation. Returns resolution_id."""
+    import uuid
+    resolution_id = f"delres_{uuid.uuid4().hex[:12]}"
+    now = _now_utc()
+    try:
+        await db.resolution_operations.insert_one({
+            "resolution_id": resolution_id,
+            "idempotency_key": idempotency_key,
+            "lock_key": lock_key,
+            "status": "validated",
+            "resolution_type": resolution_type,
+            "reference_ids": reference_ids,
+            "completed_steps": [],
+            "resolved_by": admin_user_id,
+            "created_at": now,
+            "updated_at": now,
+        })
+    except Exception:
+        existing = await db.resolution_operations.find_one(
+            {"idempotency_key": idempotency_key}, {"resolution_id": 1})
+        if existing:
+            return existing["resolution_id"]
+        raise
+    return resolution_id
+
+
+async def record_resolution_step(resolution_id: str, step: str):
+    await db.resolution_operations.update_one(
+        {"resolution_id": resolution_id},
+        {"$addToSet": {"completed_steps": step},
+         "$set": {"updated_at": _now_utc()}},
+    )
+
+
+async def complete_resolution_operation(resolution_id: str):
+    await db.resolution_operations.update_one(
+        {"resolution_id": resolution_id},
+        {"$set": {"status": "completed", "updated_at": _now_utc()}},
+    )
+
+
 async def set_current_step(lock_key: str, step: str):
     await db.deletion_operations.update_one(
         {"lock_key": lock_key},

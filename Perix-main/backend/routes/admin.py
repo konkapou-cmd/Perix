@@ -1,7 +1,7 @@
 """Admin routes for app owner to manage users, posts, and reports."""
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 import re
 
@@ -437,11 +437,12 @@ async def manage_user(
 
 
 class DeletionResolveRequest(BaseModel):
-    confirm: bool = True
-    resolution_type: str
-    reference_ids: List[str]
-    reason: str
-    evidence_reference: str = ""
+    confirm: bool = Field(True, description="Must be True")
+    resolution_type: str = Field(..., pattern="^(subscription_cancelled|booking_refunded)$")
+    reference_ids: List[str] = Field(..., min_length=1)
+    reason: str = Field(..., min_length=10, max_length=1000)
+    evidence_reference: str = Field(..., min_length=1, max_length=1000)
+    idempotency_key: str = Field(..., min_length=8, max_length=100)
 
 
 @router.post("/deletion-operations/{user_id}/resolve")
@@ -450,58 +451,98 @@ async def resolve_deletion_operation(
     request: DeletionResolveRequest,
     admin_user: UserPublic = Depends(get_current_user),
 ):
-    """Admin: resolve manual-review blocks on a deletion operation."""
+    """Admin: resolve manual-review blocks on a deletion operation.
+    Crash-safe: uses idempotent resolution operations with resumable steps."""
     await verify_admin(admin_user)
-    from services.entity_ownership import check_unresolved_reviews, mark_review_resolved
+    from services.entity_ownership import (
+        check_unresolved_reviews, mark_review_resolved, get_account_deletion_state,
+        start_resolution_operation, record_resolution_step, complete_resolution_operation,
+    )
 
     if not request.confirm:
-        raise HTTPException(status_code=400, detail="confirm must be true")
-    if not request.reference_ids:
-        raise HTTPException(status_code=400, detail="reference_ids required")
+        raise HTTPException(status_code=400, detail="confirm must be True")
 
     state = await get_account_deletion_state(user_id)
-    if state not in ("review_required", "ready_to_resume"):
-        raise HTTPException(status_code=409, detail="Operation not in review state")
+    if state != "review_required":
+        raise HTTPException(status_code=409, detail="Operation is not awaiting review")
 
+    lock_key = f"account_deletion:{user_id}"
+
+    # Idempotent resolution operation
+    res_id = await start_resolution_operation(
+        lock_key, request.idempotency_key, admin_user.user_id,
+        request.resolution_type, request.reference_ids,
+    )
+
+    # Step 1: Verify all reference IDs belong to this user
+    verified_ids: List[str] = []
     if request.resolution_type == "subscription_cancelled":
-        r = await db.subscriptions.update_many(
-            {"user_id": user_id, "subscription_id": {"$in": request.reference_ids},
-             "billing_status": "manual_review_required"},
-            {"$set": {"billing_status": "cancelled", "resolved_at": now_utc(),
-                      "resolved_by": admin_user.user_id, "resolution_reason": request.reason}},
-        )
-        if r.modified_count == 0:
-            raise HTTPException(status_code=400, detail="No matching unresolved subscriptions found")
-    elif request.resolution_type == "booking_refunded":
-        r = await db.bookings.update_many(
-            {"client_id": user_id, "booking_id": {"$in": request.reference_ids},
-             "refund_required": True, "refund_resolved": {"$ne": True}},
-            {"$set": {"refund_resolved": True, "resolved_at": now_utc(),
-                      "resolved_by": admin_user.user_id, "resolution_reason": request.reason}},
-        )
-        if r.modified_count == 0:
-            raise HTTPException(status_code=400, detail="No matching unresolved bookings found")
+        matching = await db.subscriptions.find(
+            {"subscription_id": {"$in": request.reference_ids},
+             "user_id": user_id, "billing_status": "manual_review_required"},
+            {"subscription_id": 1},
+        ).to_list(len(request.reference_ids))
+        verified_ids = [s["subscription_id"] for s in matching]
     else:
-        raise HTTPException(status_code=400, detail="Unknown resolution_type")
+        matching = await db.bookings.find(
+            {"booking_id": {"$in": request.reference_ids},
+             "client_id": user_id, "refund_required": True, "refund_resolved": {"$ne": True}},
+            {"booking_id": 1},
+        ).to_list(len(request.reference_ids))
+        verified_ids = [b["booking_id"] for b in matching]
 
-    # Record audit
+    if set(verified_ids) != set(request.reference_ids):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Some reference IDs are invalid or do not belong to this user. Verified: {verified_ids}",
+        )
+
+    await record_resolution_step(res_id, "validated")
+
+    # Step 2: Update records
+    now_ts = now_utc()
+    if request.resolution_type == "subscription_cancelled":
+        await db.subscriptions.update_many(
+            {"subscription_id": {"$in": verified_ids}},
+            {"$set": {"billing_status": "cancelled", "resolved_at": now_ts,
+                      "resolved_by": admin_user.user_id, "resolution_reason": request.reason}},
+        )
+    else:
+        await db.bookings.update_many(
+            {"booking_id": {"$in": verified_ids}},
+            {"$set": {"refund_resolved": True, "resolved_at": now_ts,
+                      "resolved_by": admin_user.user_id, "resolution_reason": request.reason}},
+        )
+
+    await record_resolution_step(res_id, "targets_updated")
+
+    # Step 3: Audit record
     await db.resolution_audit.insert_one({
-        "lock_key": f"account_deletion:{user_id}",
+        "resolution_id": res_id,
+        "idempotency_key": request.idempotency_key,
+        "lock_key": lock_key,
         "resolution_type": request.resolution_type,
-        "reference_ids": request.reference_ids,
+        "reference_ids": verified_ids,
         "resolved_by": admin_user.user_id,
         "reason": request.reason,
         "evidence_reference": request.evidence_reference,
-        "resolved_at": now_utc(),
+        "resolved_at": now_ts,
     })
 
-    # Check if all reviews cleared
+    await record_resolution_step(res_id, "audit_recorded")
+
+    # Step 4: Recheck unresolved
     remaining = await check_unresolved_reviews(user_id)
     if remaining["unresolved_subscriptions"] == 0 and remaining["unresolved_bookings"] == 0:
-        if not await mark_review_resolved(f"account_deletion:{user_id}"):
+        await record_resolution_step(res_id, "reviews_rechecked")
+        if not await mark_review_resolved(lock_key):
             raise HTTPException(status_code=409, detail="Could not transition to ready_to_resume")
-        return {"success": True, "state": "ready_to_resume", "message": "All reviews resolved"}
+        await record_resolution_step(res_id, "deletion_ready")
 
+    await complete_resolution_operation(res_id)
+
+    if remaining["unresolved_subscriptions"] == 0 and remaining["unresolved_bookings"] == 0:
+        return {"success": True, "state": "ready_to_resume", "message": "All reviews resolved"}
     return {"success": True, "state": "review_required", "remaining": remaining}
 
 
