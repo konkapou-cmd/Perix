@@ -160,12 +160,18 @@ class TestIdempotency:
             "evidence_reference": "x", "resolved_by": "adm",
             "lease_expires_at": old, "created_at": old, "updated_at": old,
         })
-        from services.deletion_resolution import acquire_deletion_lock, run_resolution_operation
-        async def claim():
-            return "ok"
-        r = await asyncio.gather(claim(), claim(), return_exceptions=True)
-        successes = [x for x in r if x == "ok"]
-        assert len(successes) >= 1
+        from services.deletion_resolution import run_resolution_operation, ResolutionOperationInProgress
+        async def try_claim():
+            try:
+                return await run_resolution_operation(user_id=uid, idempotency_key="ik_lease",
+                    admin_user_id="adm", resolution_type="subscription_cancelled",
+                    reference_ids=[], reason="test reason long enough",
+                    evidence_reference="evidence-ref")
+            except (ResolutionValidationError, ResolutionOperationInProgress):
+                return None
+        r = await asyncio.gather(try_claim(), try_claim(), return_exceptions=True)
+        results = [x for x in r if isinstance(x, dict)]
+        assert len(results) == 1, "Exactly one concurrent claim should succeed"
 
     async def test_crash_after_validated_resumes(self):
         db = _patch(); uid = "r_v"; lk = await _seed_review_required(db, uid)
@@ -230,7 +236,7 @@ class TestIdempotency:
             admin_user_id="adm", resolution_type="subscription_cancelled",
             reference_ids=["sub_a2"], reason="test reason long enough",
             evidence_reference="evidence-ref")
-        assert r["status"] != "failed" or r.get("success")
+        assert r.get("success") is True or r["state"] in ("ready_to_resume", "review_required")
         audit_count = await db.resolution_audit.count_documents({"resolution_id": "delres_a"})
         assert audit_count <= 1
 
