@@ -103,12 +103,22 @@ async def resume_failed_deletion(lock_key: str) -> bool:
 
 
 async def resume_resolved_review(lock_key: str) -> bool:
-    """Atomically resume a review_required deletion after admin resolution."""
+    """Atomically transition ready_to_resume -> running."""
     result = await db.deletion_operations.update_one(
-        {"lock_key": lock_key, "status": "review_required"},
+        {"lock_key": lock_key, "status": "ready_to_resume"},
         {"$set": {"status": "running", "updated_at": _now_utc()}},
     )
     return result.modified_count == 1
+
+
+async def mark_review_resolved(lock_key: str) -> bool:
+    """Atomically transition review_required -> ready_to_resume."""
+    return (await db.deletion_operations.update_one(
+        {"lock_key": lock_key, "status": "review_required"},
+        {"$set": {"status": "ready_to_resume",
+                  "review_resolved_at": _now_utc(),
+                  "updated_at": _now_utc()}},
+    )).modified_count == 1
 
 
 async def set_current_step(lock_key: str, step: str):
@@ -624,7 +634,7 @@ async def set_deletion_pending(user_id: str):
 
 async def get_account_deletion_state(user_id: str) -> str:
     """Return explicit deletion state.
-    Values: 'new' | 'running' | 'failed' | 'review_required' | 'completed'
+    Values: 'new' | 'running' | 'failed' | 'review_required' | 'ready_to_resume' | 'completed'
     """
     user = await db.users.find_one({"user_id": user_id}, {"is_deleted": 1, "deletion_pending": 1})
     if user and user.get("is_deleted"):
@@ -636,7 +646,7 @@ async def get_account_deletion_state(user_id: str) -> str:
     if not op:
         return "new"
     s = op.get("status")
-    if s in ("running", "failed", "review_required"):
+    if s in ("running", "failed", "review_required", "ready_to_resume"):
         return s
     if s == "completed":
         return "completed"

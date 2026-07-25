@@ -964,7 +964,6 @@ async def delete_user_account(current_user: UserPublic = Depends(get_current_use
     from services.entity_ownership import (
         run_account_deletion,
         acquire_new_deletion_lock,
-        resume_failed_deletion,
         set_deletion_pending,
         get_account_deletion_state,
     )
@@ -973,15 +972,15 @@ async def delete_user_account(current_user: UserPublic = Depends(get_current_use
     state = await get_account_deletion_state(user_id)
     lock_key = f"account_deletion:{user_id}"
 
+    # Self-service flow: only starts deletion once.
+    # Failed or review-required ops must be resumed by admin or background worker
+    # (the user cannot re-authenticate with deletion_pending=True set by get_current_user).
     if state == "completed":
         raise HTTPException(status_code=409, detail="Account already deleted")
-    elif state == "running":
+    elif state in ("failed", "review_required"):
+        raise HTTPException(status_code=202, detail={"message": "Previous deletion requires administrative recovery"})
+    elif state in ("running", "ready_to_resume"):
         raise HTTPException(status_code=409, detail="Account deletion in progress")
-    elif state == "failed":
-        if not await resume_failed_deletion(lock_key):
-            raise HTTPException(status_code=409, detail="Deletion retry already acquired")
-    elif state == "review_required":
-        raise HTTPException(status_code=202, detail={"message": "Deletion requires administrative review"})
     elif state == "new":
         if not await acquire_new_deletion_lock(user_id):
             raise HTTPException(status_code=409, detail="Deletion lock unavailable")

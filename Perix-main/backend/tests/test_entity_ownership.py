@@ -204,51 +204,37 @@ class TestStateMachine:
         successes = [x for x in r if x]
         assert len(successes) == 1
 
-    async def test_review_required_state(self):
+    async def test_mark_review_resolved(self):
         db = _patch(); uid = "s5"; lk = f"account_deletion:{uid}"
         await db.users.insert_one({"user_id": uid, "email": f"s5@{uid}.app",
             "name": "S5", "password_hash": "x", "deletion_pending": True, "created_at": _now()})
         await db.deletion_operations.insert_one({"lock_key": lk, "user_id": uid,
             "status": "review_required", "completed_steps": ["personal_content"],
             "review_reason": "test", "started_at": _now(), "updated_at": _now()})
-        from services.entity_ownership import get_account_deletion_state
+        from services.entity_ownership import mark_review_resolved, get_account_deletion_state
         assert await get_account_deletion_state(uid) == "review_required"
+        assert await mark_review_resolved(lk) is True
+        assert await get_account_deletion_state(uid) == "ready_to_resume"
 
-    async def test_resume_resolved_review(self):
+    async def test_ready_to_resume_transitions(self):
         db = _patch(); uid = "s6"; lk = f"account_deletion:{uid}"
         await db.users.insert_one({"user_id": uid, "email": f"s6@{uid}.app",
             "name": "S6", "password_hash": "x", "created_at": _now()})
         await db.deletion_operations.insert_one({"lock_key": lk, "user_id": uid,
-            "status": "review_required", "completed_steps": ["personal_content"],
+            "status": "ready_to_resume", "completed_steps": ["personal_content"],
             "started_at": _now(), "updated_at": _now()})
-        from services.entity_ownership import resume_resolved_review
+        from services.entity_ownership import resume_resolved_review, get_account_deletion_state
+        assert await get_account_deletion_state(uid) == "ready_to_resume"
         assert await resume_resolved_review(lk) is True
+        assert await get_account_deletion_state(uid) == "running"
 
 
 @pytest.mark.asyncio
 class TestOrchestrator:
-    async def test_step_not_recorded_on_failure(self):
+    async def test_completed_steps_skipped(self):
         db = _patch(); uid = "o1"; lk = f"account_deletion:{uid}"
         await db.users.insert_one({"user_id": uid, "email": f"o1@{uid}.app",
             "name": "O1", "password_hash": "x", "deletion_pending": True, "created_at": _now()})
-        await db.deletion_operations.insert_one({"lock_key": lk, "user_id": uid,
-            "status": "running", "completed_steps": ["personal_content"],
-            "started_at": _now(), "updated_at": _now()})
-        # Should fail because no listings exist to deactivate (still recorded as step)
-        from services.entity_ownership import run_account_deletion
-        result = await run_account_deletion(uid, lk)
-        # If it failed at subscriptions or later, personal_content was already done
-        # The key assertion: failed steps (after personal_content) are NOT in completed_steps
-        op = await db.deletion_operations.find_one({"lock_key": lk})
-        if result["status"] == "failed":
-            # Whatever step failed should not appear as completed
-            if "subscriptions" in result.get("steps_run", [""])[0] or True:
-                pass  # This test validates the structure exists
-
-    async def test_skips_completed_steps(self):
-        db = _patch(); uid = "o2"; lk = f"account_deletion:{uid}"
-        await db.users.insert_one({"user_id": uid, "email": f"o2@{uid}.app",
-            "name": "O2", "password_hash": "x", "deletion_pending": True, "created_at": _now()})
         await db.deletion_operations.insert_one({"lock_key": lk, "user_id": uid,
             "status": "running", "completed_steps": ["personal_content",
             "subscriptions", "requester_bookings", "ephemeral_cleanup",
@@ -258,3 +244,24 @@ class TestOrchestrator:
         result = await run_account_deletion(uid, lk)
         assert result["status"] == "completed"
         assert "personal_content:skipped" in result["steps_run"]
+
+    async def test_failed_step_not_marked_complete(self):
+        db = _patch(); uid = "o2"; lk = f"account_deletion:{uid}"
+        await db.users.insert_one({"user_id": uid, "email": f"o2@{uid}.app",
+            "name": "O2", "password_hash": "x", "deletion_pending": True, "created_at": _now()})
+        await db.deletion_operations.insert_one({"lock_key": lk, "user_id": uid,
+            "status": "running", "completed_steps": [],
+            "started_at": _now(), "updated_at": _now()})
+        # Run orchestrator — it should fail at subscriptions (no subs to cancel)
+        from services.entity_ownership import run_account_deletion
+        result = await run_account_deletion(uid, lk)
+        # Check that completed_steps only contains steps that succeeded
+        op = await db.deletion_operations.find_one({"lock_key": lk})
+        completed = set(op.get("completed_steps") or [])
+        # personal_content should have succeeded (even with 0 listings)
+        assert "personal_content" in completed
+        # If the orchestrator failed, the failed step should NOT be in completed_steps
+        if result["status"] == "failed":
+            failed_step = op.get("failed_step")
+            assert failed_step is not None
+            assert failed_step not in completed
