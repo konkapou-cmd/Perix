@@ -108,6 +108,16 @@ app.add_middleware(
 app.include_router(api_router)
 
 
+@app.post("/api/repair-orphans")
+async def repair_orphans(dry_run: bool = True, request: Request = None):
+    from routes.dependencies import get_current_user
+    user = await get_current_user(request)
+    from services.entity_ownership import repair_orphaned_entities
+    result = await repair_orphaned_entities(dry_run=dry_run)
+    return {"dry_run": dry_run, "checked": result.total_checked,
+            "hidden": result.hidden, "by_collection": result.by_collection}
+
+
 # Reminder processing function
 async def process_event_reminders():
     """Process and send all due event reminders."""
