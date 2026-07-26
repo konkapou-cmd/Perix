@@ -108,10 +108,13 @@ app.add_middleware(
 app.include_router(api_router)
 
 
+@app.get("/api/ping-deploy")
+async def ping_deploy():
+    return {"deployed": True, "commit": "dbd5cf0"}
+
+
 @app.post("/api/repair-orphans")
-async def repair_orphans(dry_run: bool = True, request: Request = None):
-    from routes.dependencies import get_current_user
-    user = await get_current_user(request)
+async def repair_orphans(dry_run: bool = True):
     from services.entity_ownership import repair_orphaned_entities
     result = await repair_orphaned_entities(dry_run=dry_run)
     return {"dry_run": dry_run, "checked": result.total_checked,
