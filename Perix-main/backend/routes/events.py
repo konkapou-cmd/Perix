@@ -372,7 +372,7 @@ async def get_event_detail(
 @router.get("/{event_id}/public", response_model=EventPublicResponse)
 async def get_event_public(event_id: str):
     """Public event endpoint - no authentication required"""
-    event = await db.events.find_one({"event_id": event_id}, {"_id": 0})
+    event = await db.events.find_one({"event_id": event_id, "is_hidden": {"$ne": True}}, {"_id": 0})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     

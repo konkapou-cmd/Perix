@@ -267,7 +267,7 @@ async def get_my_jobs(current_user: UserPublic = Depends(get_current_user)):
 @router.get("/{job_id}")
 async def get_job(job_id: str, current_user: UserPublic = Depends(get_current_user)):
     """Get a specific job by ID"""
-    job = await db.jobs.find_one({"job_id": job_id}, {"_id": 0})
+    job = await db.jobs.find_one({"job_id": job_id, "is_hidden": {"$ne": True}}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     

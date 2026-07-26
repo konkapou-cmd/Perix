@@ -365,7 +365,7 @@ async def get_activity_detail(
     current_user: UserPublic = Depends(get_current_user),
 ):
     """Get a single activity by ID."""
-    activity = await db.activities.find_one({"activity_id": activity_id}, {"_id": 0})
+    activity = await db.activities.find_one({"activity_id": activity_id, "is_hidden": {"$ne": True}}, {"_id": 0})
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
     
