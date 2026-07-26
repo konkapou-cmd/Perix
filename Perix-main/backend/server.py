@@ -121,6 +121,69 @@ async def repair_orphans(dry_run: bool = True):
             "hidden": result.hidden, "by_collection": result.by_collection}
 
 
+@app.post("/api/clean-marketplace")
+async def clean_marketplace():
+    """Transfer orphan personal listings to current user, hide business orphans."""
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    # Find all active user-listings whose owner doesn't exist or is deleted
+    personal = await db.listings.find(
+        {"seller_type": {"$in": ["user", None]}, "is_active": True},
+        {"listing_id": 1, "owner_id": 1, "seller_id": 1, "title": 1}
+    ).to_list(5000)
+
+    owner_ids = list({(l.get("seller_id") or l.get("owner_id")) for l in personal if l.get("seller_id") or l.get("owner_id")})
+    active_users = {u["user_id"] for u in await db.users.find(
+        {"user_id": {"$in": owner_ids}, "is_deleted": {"$ne": True}}, {"user_id": 1}
+    ).to_list(len(owner_ids))}
+
+    transferred = 0
+    hidden_biz = 0
+    for l in personal:
+        owner = l.get("seller_id") or l.get("owner_id")
+        if owner and owner not in active_users:
+            # Find the old user's email
+            old_user = await db.users.find_one({"user_id": owner}, {"email": 1})
+            if old_user and old_user.get("email") == "konkapou@gmail.com":
+                await db.listings.update_one(
+                    {"listing_id": l["listing_id"]},
+                    {"$set": {"owner_id": "user_6577e46653dc",
+                              "seller_id": "user_6577e46653dc",
+                              "seller_type": "user", "updated_at": now}}
+                )
+                transferred += 1
+            else:
+                await db.listings.update_one(
+                    {"listing_id": l["listing_id"]},
+                    {"$set": {"is_active": False, "status": "hidden",
+                              "hidden_reason": "orphaned_owner_missing", "updated_at": now}}
+                )
+                hidden_biz += 1
+
+    # Hide business listings with missing/inactive businesses
+    biz_listings = await db.listings.find(
+        {"seller_type": "business", "is_active": True},
+        {"listing_id": 1, "business_id": 1}
+    ).to_list(5000)
+    if biz_listings:
+        biz_ids = list({l["business_id"] for l in biz_listings if l.get("business_id")})
+        active_biz = {b["business_id"] for b in await db.businesses.find(
+            {"business_id": {"$in": biz_ids}, "is_active": True, "is_hidden": {"$ne": True}},
+            {"business_id": 1}
+        ).to_list(len(biz_ids))}
+        for l in biz_listings:
+            if l.get("business_id") not in active_biz:
+                await db.listings.update_one(
+                    {"listing_id": l["listing_id"]},
+                    {"$set": {"is_active": False, "status": "hidden",
+                              "hidden_reason": "orphaned_business_missing", "updated_at": now}}
+                )
+                hidden_biz += 1
+
+    return {"transferred_to_user": transferred, "hidden_orphans": hidden_biz}
+
+
 # Reminder processing function
 async def process_event_reminders():
     """Process and send all due event reminders."""
