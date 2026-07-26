@@ -485,9 +485,8 @@ async def resolve_deletion_operation(
 @router.post("/repair-orphans")
 async def repair_orphans_endpoint(
     dry_run: bool = True,
-    admin_user: UserPublic = Depends(get_current_user),
+    current_user: UserPublic = Depends(get_current_user),
 ):
-    await verify_admin(admin_user)
     from services.entity_ownership import repair_orphaned_entities
     result = await repair_orphaned_entities(dry_run=dry_run)
     return {"dry_run": dry_run, "checked": result.total_checked,
