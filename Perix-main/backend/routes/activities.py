@@ -308,8 +308,9 @@ async def list_activities(
             {"creator_id": current_user.user_id},
             {"invites.user_id": current_user.user_id},
             {"invites.email": current_user.email},
-            {"is_private": {"$ne": True}},  # Show public activities
-        ]
+            {"is_private": {"$ne": True}},
+        ],
+        "is_hidden": {"$ne": True},
     }
     
     # Add date filtering if provided

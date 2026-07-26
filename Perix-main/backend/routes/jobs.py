@@ -198,6 +198,7 @@ async def get_jobs(
     
     query = {
         "is_active": True,
+        "is_hidden": {"$ne": True},
         "expires_at": {"$gt": now}
     }
     

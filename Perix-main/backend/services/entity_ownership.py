@@ -878,30 +878,107 @@ async def repair_orphaned_entities(
     *,
     dry_run: bool = True,
 ) -> RepairResult:
-    """Find and hide entities whose owner/seller no longer exists."""
+    """Find and hide entities whose owner/seller/parent no longer exists."""
     result = RepairResult(dry_run=dry_run)
+    now = _now_utc()
+    reason = "orphaned_owner_missing"
 
-    # Orphan personal listings
-    orphan_personal = await db.listings.find(
-        {"seller_type": "user", "is_active": True},
-        {"listing_id": 1, "owner_id": 1, "seller_id": 1},
-    ).to_list(1000)
-    result.total_checked += len(orphan_personal)
-
-    for doc in orphan_personal:
-        owner_id = doc.get("seller_id") or doc.get("owner_id")
-        if not owner_id:
-            continue
-        user = await db.users.find_one({"user_id": owner_id, "is_deleted": {"$ne": True}}, {"_id": 1})
-        if not user:
-            result.by_collection["listings_personal_orphan"] = result.by_collection.get("listings_personal_orphan", 0) + 1
+    async def _hide(coll: str, doc_id: str, doc: dict, category: str):
+        if dry_run:
+            result.by_collection[category] = result.by_collection.get(category, 0) + 1
             result.hidden += 1
-            if not dry_run:
-                await db.listings.update_one(
-                    {"listing_id": doc["listing_id"]},
-                    {"$set": {"is_active": False, "status": "hidden", "hidden_reason": "orphaned_owner_missing", "updated_at": _now_utc()}},
-                )
+            return
+        await getattr(db, coll).update_one(
+            {"_id": doc["_id"]} if doc.get("_id") else
+            ({"listing_id": doc_id} if coll == "listings" else
+             {"service_id": doc_id} if coll == "services" else
+             {"job_id": doc_id} if coll == "jobs" else
+             {"event_id": doc_id} if coll == "events" else
+             {"activity_id": doc_id} if coll == "activities" else
+             {"post_id": doc_id} if coll == "posts" else {}),
+            {"$set": {"is_active": False, "is_hidden": True, "status": "hidden",
+                      "hidden_reason": reason, "updated_at": now}},
+        )
+        result.by_collection[category] = result.by_collection.get(category, 0) + 1
+        result.hidden += 1
 
-    # This is a skeleton — full implementation in Commit C
-    logger.info("repair_orphaned_entities: dry_run=%s checked=%d hidden=%d", dry_run, result.total_checked, result.hidden)
+    # 1. Personal listings (user seller, missing/deleted owner)
+    orphan_personal = await db.listings.find(
+        {"seller_type": {"$in": ["user", None]}, "is_active": True},
+        {"listing_id": 1, "owner_id": 1, "seller_id": 1},
+    ).to_list(5000)
+    result.total_checked += len(orphan_personal)
+    user_ids = list({(d.get("seller_id") or d.get("owner_id")) for d in orphan_personal if d.get("seller_id") or d.get("owner_id")})
+    active_users = {u["user_id"] for u in (await db.users.find(
+        {"user_id": {"$in": user_ids}, "is_deleted": {"$ne": True}}, {"user_id": 1}).to_list(len(user_ids)))}
+    for d in orphan_personal:
+        owner = d.get("seller_id") or d.get("owner_id")
+        if owner and owner not in active_users:
+            await _hide("listings", d["listing_id"], d, "listings_personal_orphan")
+
+    # 2. Business listings (business seller, missing/inactive/hidden business)
+    orphan_biz = await db.listings.find(
+        {"seller_type": "business", "is_active": True},
+        {"listing_id": 1, "business_id": 1, "seller_id": 1},
+    ).to_list(5000)
+    result.total_checked += len(orphan_biz)
+    biz_ids = list({(d.get("business_id") or d.get("seller_id")) for d in orphan_biz if d.get("business_id") or d.get("seller_id")})
+    active_biz = {b["business_id"] for b in (await db.businesses.find(
+        {"business_id": {"$in": biz_ids}, "is_active": True, "is_hidden": {"$ne": True}},
+        {"business_id": 1}).to_list(len(biz_ids)))}
+    for d in orphan_biz:
+        parent = d.get("business_id") or d.get("seller_id")
+        if parent and parent not in active_biz:
+            await _hide("listings", d["listing_id"], d, "listings_business_orphan")
+
+    # 3. Orphan services
+    services = await db.services.find({"is_active": True}, {"service_id": 1, "business_id": 1, "_id": 1}).to_list(5000)
+    result.total_checked += len(services)
+    svc_biz_ids = list({s["business_id"] for s in services if s.get("business_id")})
+    svc_active_biz = {b["business_id"] for b in (await db.businesses.find(
+        {"business_id": {"$in": svc_biz_ids}, "is_active": True, "is_hidden": {"$ne": True}},
+        {"business_id": 1}).to_list(len(svc_biz_ids)))}
+    for s in services:
+        if s.get("business_id") and s["business_id"] not in svc_active_biz:
+            await _hide("services", s["service_id"], s, "services_orphan")
+
+    # 4. Orphan jobs
+    jobs = await db.jobs.find({"is_active": True}, {"job_id": 1, "business_id": 1, "_id": 1}).to_list(5000)
+    result.total_checked += len(jobs)
+    job_biz_ids = list({j["business_id"] for j in jobs if j.get("business_id")})
+    job_active_biz = {b["business_id"] for b in (await db.businesses.find(
+        {"business_id": {"$in": job_biz_ids}, "is_active": True, "is_hidden": {"$ne": True}},
+        {"business_id": 1}).to_list(len(job_biz_ids)))}
+    for j in jobs:
+        if j.get("business_id") and j["business_id"] not in job_active_biz:
+            await _hide("jobs", j["job_id"], j, "jobs_orphan")
+
+    # 5. Orphan events (missing creator or missing business)
+    events = await db.events.find({"is_hidden": {"$ne": True}},
+        {"event_id": 1, "creator_id": 1, "business_id": 1, "_id": 1}).to_list(5000)
+    result.total_checked += len(events)
+    evt_user_ids = list({e["creator_id"] for e in events if e.get("creator_id")})
+    evt_active_users = {u["user_id"] for u in (await db.users.find(
+        {"user_id": {"$in": evt_user_ids}, "is_deleted": {"$ne": True}},
+        {"user_id": 1}).to_list(len(evt_user_ids)))}
+    for e in events:
+        if e.get("creator_id") and e["creator_id"] not in evt_active_users:
+            await _hide("events", e["event_id"], e, "events_orphan_creator")
+        elif e.get("business_id") and e["business_id"] not in svc_active_biz:
+            await _hide("events", e["event_id"], e, "events_orphan_business")
+
+    # 6. Orphan activities (missing creator)
+    activities = await db.activities.find({"is_hidden": {"$ne": True}},
+        {"activity_id": 1, "creator_id": 1, "_id": 1}).to_list(5000)
+    result.total_checked += len(activities)
+    act_user_ids = list({a["creator_id"] for a in activities if a.get("creator_id")})
+    act_active_users = {u["user_id"] for u in (await db.users.find(
+        {"user_id": {"$in": act_user_ids}, "is_deleted": {"$ne": True}},
+        {"user_id": 1}).to_list(len(act_user_ids)))}
+    for a in activities:
+        if a.get("creator_id") and a["creator_id"] not in act_active_users:
+            await _hide("activities", a["activity_id"], a, "activities_orphan")
+
+    logger.info("repair_orphaned_entities: dry_run=%s checked=%d hidden=%d",
+                dry_run, result.total_checked, result.hidden)
     return result

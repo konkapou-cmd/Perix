@@ -182,7 +182,7 @@ async def list_events(
             return haversine(latitude, longitude, lat, lng) <= radius_km
         return True
     
-    query: Dict[str, Any] = {}
+    query: Dict[str, Any] = {"is_hidden": {"$ne": True}}
     if business_id:
         query["business_id"] = business_id
     if artist_id:

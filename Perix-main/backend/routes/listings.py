@@ -257,7 +257,7 @@ async def list_listings(
     skip: int = 0,
     limit: int = 50,
 ):
-    query: dict = {"is_active": True, "status": "published"}
+    query: dict = {"is_active": True, "status": "published", "is_hidden": {"$ne": True}}
     if listing_type:
         query["listing_type"] = listing_type
 
@@ -446,7 +446,7 @@ async def manage_listings(
 @router.get("/{listing_id}", response_model=ListingResponse)
 async def get_listing(listing_id: str):
     doc = await db.listings.find_one(
-        {"listing_id": listing_id, "status": "published", "is_active": True},
+        {"listing_id": listing_id, "status": "published", "is_active": True, "is_hidden": {"$ne": True}},
         {"_id": 0},
     )
     if not doc:

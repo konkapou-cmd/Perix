@@ -131,7 +131,7 @@ async def get_rentals(
     limit: int = 20,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    svc_query: dict = {"is_active": True, "status": "published", "type": {"$in": list(RENTAL_SERVICE_TYPES)}}
+    svc_query: dict = {"is_active": True, "status": "published", "is_hidden": {"$ne": True}, "type": {"$in": list(RENTAL_SERVICE_TYPES)}}
     if root_category:
         matching_bizs = await db.businesses.find(
             {"root_category": root_category},
