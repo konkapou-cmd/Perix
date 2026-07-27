@@ -1,9 +1,9 @@
 """Services, Time Slots, and Bookings routes."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel
 import logging
 from database import db, ROOT_SERVICE_TYPES, ROOT_SERVICE_BOOKING_CONFIG
@@ -12,6 +12,7 @@ from models.service import (
     ServiceCreate, ServiceUpdate, ServiceResponse,
     TimeSlotCreate, TimeSlotResponse, BlockDateRange,
     BookingCreate, BookingResponse,
+    AvailabilitySlotInput, BulkAvailabilityRequest,
 )
 from utils.helpers import generate_id, now_utc
 from routes.dependencies import get_current_user
@@ -229,7 +230,7 @@ async def list_services(
     skip: int = 0,
     limit: int = 100,
 ):
-    query = {"is_active": True}
+    query = {"is_active": True, "status": "published", "is_hidden": {"$ne": True}}
     if business_id:
         query["business_id"] = business_id
     if type:
@@ -271,6 +272,18 @@ async def list_services(
 
     total = len(services)
     services = services[skip : skip + limit]
+
+    biz_ids = list({s.get("business_id") for s in services if s.get("business_id")})
+    biz_map = {}
+    if biz_ids:
+        biz_list = await db.businesses.find({"business_id": {"$in": biz_ids}}, {"_id": 0, "business_id": 1, "name": 1, "logo_image": 1}).to_list(len(biz_ids))
+        biz_map = {b["business_id"]: b for b in biz_list}
+    for s in services:
+        bid = s.get("business_id")
+        if bid and bid in biz_map:
+            s["business_name"] = biz_map[bid].get("name")
+            s["business_logo"] = biz_map[bid].get("logo_image")
+
     return {"services": [ServiceResponse(**s) for s in services], "total": total}
 
 
@@ -278,7 +291,7 @@ async def list_services(
 
 @router.post("/bookings", response_model=BookingResponse)
 async def create_booking(payload: BookingCreate, current_user: UserPublic = Depends(get_current_user)):
-    service = await db.services.find_one({"service_id": payload.service_id, "is_active": True})
+    service = await db.services.find_one({"service_id": payload.service_id, "is_active": True, "status": "published"})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
     business_id = service["business_id"]
@@ -437,7 +450,7 @@ async def send_service_inquiry(
     payload: InquiryPayload,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
 
@@ -486,9 +499,15 @@ async def send_service_inquiry(
 
 @router.get("/{service_id}", response_model=ServiceResponse)
 async def get_service(service_id: str):
-    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
+    bid = service.get("business_id")
+    if bid:
+        biz = await db.businesses.find_one({"business_id": bid}, {"_id": 0, "name": 1, "logo_image": 1})
+        if biz:
+            service["business_name"] = biz.get("name")
+            service["business_logo"] = biz.get("logo_image")
     return ServiceResponse(**service)
 
 
@@ -666,7 +685,7 @@ class SlotAvailability(BaseModel):
 
 @router.get("/{service_id}/availability")
 async def get_availability(service_id: str, date: Optional[str] = None):
-    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
 
@@ -714,10 +733,153 @@ async def get_availability(service_id: str, date: Optional[str] = None):
     return result
 
 
+# ─── Bulk Availability ───
+
+
+def _parse_time(t: str):
+    return tuple(int(x) for x in t.split(":"))
+
+
+def _validate_slots(slots: list[dict]):
+    for i, slot in enumerate(slots):
+        try:
+            sh, sm = _parse_time(slot["start_time"])
+            eh, em = _parse_time(slot["end_time"])
+        except (ValueError, KeyError):
+            raise HTTPException(status_code=400, detail=f"Invalid time format in slot {i}")
+        start_min = sh * 60 + sm
+        end_min = eh * 60 + em
+        if end_min <= start_min:
+            raise HTTPException(status_code=400, detail=f"End time must be after start time in slot {i}")
+        if start_min < 0 or end_min > 1440:
+            raise HTTPException(status_code=400, detail=f"Time out of range 00:00-24:00 in slot {i}")
+        for j in range(i + 1, len(slots)):
+            s2 = slots[j]
+            if slot.get("is_recurring") and s2.get("is_recurring") and slot.get("day_of_week") == s2.get("day_of_week"):
+                s2h, s2m = _parse_time(s2["start_time"])
+                s2_start = s2h * 60 + s2m
+                s2eh, s2em = _parse_time(s2["end_time"])
+                s2_end = s2eh * 60 + s2em
+                if start_min < s2_end and s2_start < end_min:
+                    raise HTTPException(status_code=400, detail=f"Overlapping recurring slots on day {slot.get('day_of_week')}")
+            if slot.get("date") and s2.get("date") and slot.get("date") == s2.get("date"):
+                s2h, s2m = _parse_time(s2["start_time"])
+                s2_start = s2h * 60 + s2m
+                s2eh, s2em = _parse_time(s2["end_time"])
+                s2_end = s2eh * 60 + s2em
+                if start_min < s2_end and s2_start < end_min:
+                    raise HTTPException(status_code=400, detail=f"Overlapping date-specific slots on {slot.get('date')}")
+
+
+@router.put("/{service_id}/availability")
+async def set_availability(
+    service_id: str,
+    payload: BulkAvailabilityRequest,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    service = await db.services.find_one({"service_id": service_id})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    business = await db.businesses.find_one({"business_id": service["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    new_slots = [s.model_dump() for s in payload.slots]
+    _validate_slots(new_slots)
+
+    # Check if any existing slot has bookings
+    old_slot_ids = set()
+    async for old in db.service_slots.find({"service_id": service_id}, {"_id": 0, "slot_id": 1}):
+        old_slot_ids.add(old["slot_id"])
+    if old_slot_ids:
+        booked = await db.bookings.count_documents({"slot_id": {"$in": list(old_slot_ids)}, "status": {"$in": ["confirmed", "completed"]}})
+        if booked > 0:
+            raise HTTPException(status_code=409, detail="Cannot replace schedule — existing confirmed bookings exist")
+
+    try:
+        # Delete old slots
+        await db.service_slots.delete_many({"service_id": service_id})
+        # Insert new slots atomically
+        if new_slots:
+            docs = []
+            for s in new_slots:
+                docs.append({
+                    **s,
+                    "slot_id": generate_id("slt"),
+                    "service_id": service_id,
+                    "is_blocked": False,
+                    "is_booked": False,
+                })
+            await db.service_slots.insert_many(docs)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to save availability schedule")
+
+    slots = await db.service_slots.find({"service_id": service_id}, {"_id": 0}).sort([("date", 1), ("start_time", 1)]).to_list(500)
+    return [TimeSlotResponse(**s) for s in slots]
+
+
+@router.get("/{service_id}/available-dates")
+async def get_available_dates(
+    service_id: str,
+    from_date: str = Query(..., alias="from"),
+    to_date: Optional[str] = Query(None, alias="to"),
+):
+    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    capacity = service.get("capacity") or 1
+    from_dt = datetime.strptime(from_date, "%Y-%m-%d")
+    to_dt = datetime.strptime(to_date, "%Y-%m-%d") if to_date else None
+    if not to_dt:
+        to_dt = from_dt + timedelta(days=14)
+
+    all_slots = await db.service_slots.find({"service_id": service_id}, {"_id": 0}).to_list(500)
+    dates_info: dict = {}
+
+    current = from_dt
+    while current <= to_dt:
+        current_str = current.strftime("%Y-%m-%d")
+        day_of_week_sunday = (current.weekday() + 1) % 7
+        available_count = 0
+        first_time = None
+        for slot in all_slots:
+            if slot.get("is_blocked") or slot.get("is_booked"):
+                continue
+            matches = slot.get("is_recurring") and slot.get("day_of_week") == day_of_week_sunday
+            if not matches and slot.get("date") == current_str:
+                matches = True
+            if not matches:
+                continue
+            confirmed = await db.bookings.count_documents({
+                "slot_id": slot["slot_id"],
+                "date": current_str,
+                "status": {"$in": ["confirmed", "completed"]},
+            })
+            spots = max(0, capacity - confirmed)
+            if spots > 0:
+                available_count += spots
+                if not first_time:
+                    first_time = slot["start_time"]
+        if available_count > 0:
+            dates_info[current_str] = {"available_slot_count": available_count, "first_available_time": first_time}
+        current += timedelta(days=1)
+
+    result = []
+    for date_str in sorted(dates_info.keys()):
+        result.append({"date": date_str, **dates_info[date_str]})
+    return {"service_id": service_id, "timezone": "Europe/Berlin", "dates": result}
+
+
 # ─── Time Slots ───
 
 @router.get("/{service_id}/slots")
 async def list_slots(service_id: str):
+    service = await db.services.find_one(
+        {"service_id": service_id, "is_active": True, "status": "published"},
+    )
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
     slots = await db.service_slots.find(
         {"service_id": service_id}, {"_id": 0}
     ).sort([("date", 1), ("start_time", 1)]).to_list(500)

@@ -13,6 +13,11 @@ class AvailabilitySlotInput(BaseModel):
     is_recurring: bool = False
 
 
+class BulkAvailabilityRequest(BaseModel):
+    timezone: str = "Europe/Berlin"
+    slots: List[AvailabilitySlotInput]
+
+
 class ServiceCreate(BaseModel):
     business_id: str
     root_category: Optional[str] = None
@@ -194,6 +199,7 @@ class ServiceResponse(BaseModel):
     video_status: Optional[str] = None
     cover_focal_point: Optional[FocalPoint] = None
     is_active: bool = True
+    status: Optional[str] = None
     created_at: datetime
     instructor: Optional[str] = None
     difficulty_level: Optional[str] = None

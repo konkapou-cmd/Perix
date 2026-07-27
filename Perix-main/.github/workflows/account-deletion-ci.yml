@@ -1,0 +1,63 @@
+name: Account deletion integrity
+
+on:
+  pull_request:
+    paths:
+      - "Perix-main/backend/**"
+      - ".github/workflows/account-deletion-ci.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "Perix-main/backend/**"
+      - ".github/workflows/account-deletion-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  account-deletion-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      MONGO_URL: mongodb://localhost:27017
+      DB_NAME: perix_account_deletion_test
+      TEST_MONGO_URL: mongodb://localhost:27017
+      TEST_DB_NAME: perix_account_deletion_test
+      PYTHONPATH: ${{ github.workspace }}/Perix-main/backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Perix-main/backend/requirements.txt
+          pip install pytest-asyncio==1.4.0
+
+      - name: Run account deletion tests
+        working-directory: Perix-main/backend
+        run: |
+          pytest \
+            tests/test_entity_ownership.py \
+            tests/test_deletion_resolution.py \
+            -vv \
+            --asyncio-mode=auto
+
+      - name: Compile backend
+        run: python -m compileall Perix-main/backend

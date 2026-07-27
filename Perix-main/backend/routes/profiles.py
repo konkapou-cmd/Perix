@@ -960,52 +960,42 @@ async def get_user_attendance(
 
 @router.delete("/users/me")
 async def delete_user_account(current_user: UserPublic = Depends(get_current_user)):
-    """Delete user account and all associated content (businesses, artists, posts, etc.)"""
-    user_id = current_user.user_id
-    
-    # Get user's businesses and artists
-    businesses = await db.businesses.find({"owner_id": user_id}, {"business_id": 1}).to_list(100)
-    artists = await db.artists.find({"owner_id": user_id}, {"artist_id": 1}).to_list(100)
-    
-    business_ids = [b["business_id"] for b in businesses]
-    artist_ids = [a["artist_id"] for a in artists]
-    
-    # Delete all business-related content
-    for business_id in business_ids:
-        await db.events.delete_many({"business_id": business_id})
-        await db.posts.delete_many({"actor_type": "business", "actor_id": business_id})
-        await db.stories.delete_many({"actor_type": "business", "actor_id": business_id})
-    
-    # Delete all artist-related content
-    for artist_id in artist_ids:
-        await db.events.delete_many({"artist_id": artist_id})
-        await db.posts.delete_many({"actor_type": "artist", "actor_id": artist_id})
-        await db.stories.delete_many({"actor_type": "artist", "actor_id": artist_id})
-        await db.booking_requests.delete_many({"artist_id": artist_id})
-    
-    # Delete businesses and artists
-    await db.businesses.delete_many({"owner_id": user_id})
-    await db.artists.delete_many({"owner_id": user_id})
-    
-    # Delete user's own content
-    await db.posts.delete_many({"user_id": user_id})
-    await db.stories.delete_many({"user_id": user_id})
-    await db.activities.delete_many({"creator_id": user_id})
-    await db.messages.delete_many({"$or": [{"from_user_id": user_id}, {"to_user_id": user_id}]})
-    await db.calls.delete_many({"$or": [{"caller_id": user_id}, {"callee_id": user_id}]})
-    await db.notifications.delete_many({"user_id": user_id})
-    await db.sessions.delete_many({"user_id": user_id})
-    
-    # Remove user from friends lists of other users
-    await db.users.update_many(
-        {},
-        {"$pull": {"friends": {"entity_type": "user", "entity_id": user_id}}}
+    """Delete user account — soft-deactivates all public content, removes ephemeral data, creates tombstone."""
+    from services.entity_ownership import (
+        run_account_deletion,
+        acquire_new_deletion_lock,
+        set_deletion_pending,
+        get_account_deletion_state,
     )
-    
-    # Delete user account
-    await db.users.delete_one({"user_id": user_id})
-    
-    return {"success": True, "message": "User account deleted successfully"}
+    user_id = current_user.user_id
+
+    state = await get_account_deletion_state(user_id)
+    lock_key = f"account_deletion:{user_id}"
+
+    # Self-service flow: only starts deletion once.
+    # Failed or review-required ops must be resumed by admin or background worker
+    # (the user cannot re-authenticate with deletion_pending=True set by get_current_user).
+    if state == "completed":
+        raise HTTPException(status_code=409, detail="Account already deleted")
+    elif state in ("failed", "review_required"):
+        raise HTTPException(status_code=202, detail={"message": "Previous deletion requires administrative recovery"})
+    elif state in ("running", "ready_to_resume"):
+        raise HTTPException(status_code=409, detail="Account deletion in progress")
+    elif state == "new":
+        if not await acquire_new_deletion_lock(user_id):
+            raise HTTPException(status_code=409, detail="Deletion lock unavailable")
+        await set_deletion_pending(user_id)
+    else:
+        raise HTTPException(status_code=500, detail="Unknown deletion state")
+
+    result = await run_account_deletion(user_id, lock_key)
+
+    if result["status"] == "completed":
+        return {"success": True, "message": "User account deleted successfully"}
+    elif result["status"] == "review_required":
+        raise HTTPException(status_code=202, detail={"message": "Deletion requires manual review", "reason": result.get("reason", "")})
+    else:
+        raise HTTPException(status_code=500, detail="Deletion failed. Retry supported.")
 
 
 # ==================== Push Token Management ====================

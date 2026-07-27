@@ -130,6 +130,9 @@ async def get_current_user(request: Request) -> UserPublic:
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
+    if user.get("is_deleted") or user.get("deletion_pending"):
+        raise HTTPException(status_code=401, detail="Account is unavailable")
+
     return build_user_public(user)
 
 

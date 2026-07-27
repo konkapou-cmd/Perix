@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from database import db
 from routes.dependencies import get_current_user, UserPublic
+from routes.listings import public_listing_location
 from routes.ws import ws_broadcast_new_message, ws_broadcast_conversation_update
 from utils.helpers import generate_id, now_utc
 from utils.push_notifications import send_message_notification
@@ -84,7 +85,7 @@ def listing_to_rental(listing: dict, owner: dict = None) -> dict:
         "source_type": "owner",
         "source_badge": "Owner-listed",
         "owner_id": listing.get("owner_id"),
-        "owner_name": owner.get("name") if owner else None,
+        "owner_name": listing.get("business_name") or listing.get("seller_name") or (owner.get("name") if owner else None),
         "owner_photo": owner.get("profile_photo") or owner.get("picture") if owner else None,
         "title": listing.get("title"),
         "description": listing.get("description"),
@@ -130,7 +131,7 @@ async def get_rentals(
     limit: int = 20,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    svc_query: dict = {"is_active": True, "type": {"$in": list(RENTAL_SERVICE_TYPES)}}
+    svc_query: dict = {"is_active": True, "status": "published", "is_hidden": {"$ne": True}, "type": {"$in": list(RENTAL_SERVICE_TYPES)}}
     if root_category:
         matching_bizs = await db.businesses.find(
             {"root_category": root_category},
@@ -176,6 +177,7 @@ async def get_rentals(
             owner_map[u["user_id"]] = u
         for lst in owner_listings:
             owner = owner_map.get(lst["owner_id"])
+            lst = public_listing_location(lst)
             rental_obj = listing_to_rental(lst, owner)
             if property_type and rental_obj.get("property_type") != property_type:
                 continue
@@ -248,11 +250,19 @@ async def get_rental(rental_id: str, current_user: UserPublic = Depends(get_curr
             {"user_id": listing["owner_id"]},
             {"_id": 0, "password_hash": 0},
         )
-        return listing_to_rental(listing, owner)
+        return listing_to_rental(public_listing_location(listing), owner)
 
     if rental_id.startswith("svc_"):
         service_id = rental_id[4:]
-        service = await db.services.find_one({"service_id": service_id}, {"_id": 0})
+        service = await db.services.find_one(
+            {
+                "service_id": service_id,
+                "type": {"$in": list(RENTAL_SERVICE_TYPES)},
+                "is_active": True,
+                "status": "published",
+            },
+            {"_id": 0},
+        )
         if not service:
             raise HTTPException(status_code=404, detail="Service not found")
         business = await db.businesses.find_one(
@@ -291,7 +301,7 @@ async def send_rental_inquiry(
         rental_title = listing.get("title", "")
         entity_type = "user"
     elif service_id:
-        service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+        service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
         if not service:
             raise HTTPException(status_code=404, detail="Service not found")
         business_id = service.get("business_id")

@@ -1,7 +1,7 @@
 """Admin routes for app owner to manage users, posts, and reports."""
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Optional
-from pydantic import BaseModel
+from typing import List, Optional, Literal
+from pydantic import BaseModel, Field
 from datetime import datetime
 import re
 
@@ -120,7 +120,7 @@ async def get_user_content_count(
     stories = await db.stories.count_documents({"user_id": user_id})
     activities = await db.activities.count_documents({"creator_id": user_id})
     activity_messages = await db.activity_messages.count_documents({"user_id": user_id})
-    events = await db.events.count_documents({"created_by": user_id})
+    events = await db.events.count_documents({"creator_id": user_id})
     event_messages = await db.event_messages.count_documents({"user_id": user_id})
     businesses = await db.businesses.count_documents({"owner_id": user_id})
     artists = await db.artists.count_documents({"owner_id": user_id})
@@ -345,7 +345,7 @@ async def manage_user(
         )
         # Hide their events
         await db.events.update_many(
-            {"created_by": request.user_id},
+            {"creator_id": request.user_id},
             {"$set": {"is_hidden": True}}
         )
         return {"success": True, "message": "User and all their content hidden"}
@@ -386,128 +386,111 @@ async def manage_user(
         )
         # Unhide their events
         await db.events.update_many(
-            {"created_by": request.user_id},
+            {"creator_id": request.user_id},
             {"$set": {"is_hidden": False}}
         )
         return {"success": True, "message": "User and all their content restored"}
     
     elif request.action == "delete":
-        # Delete user and ALL their related data
+        from services.entity_ownership import (
+            run_account_deletion, acquire_new_deletion_lock,
+            resume_failed_deletion, resume_resolved_review,
+            set_deletion_pending, get_account_deletion_state,
+        )
         user_id = request.user_id
-        
-        # Delete user's posts
-        await db.posts.delete_many({"user_id": user_id})
-        await db.posts.delete_many({"author_id": user_id})
-        
-        # Delete user's stories
-        await db.stories.delete_many({"user_id": user_id})
-        
-        # Delete user's businesses
-        await db.businesses.delete_many({"owner_id": user_id})
-        
-        # Delete user's artists
-        await db.artists.delete_many({"owner_id": user_id})
-        
-        # Delete user's messages (sent and received)
-        await db.messages.delete_many({
-            "$or": [
-                {"from_user_id": user_id},
-                {"to_user_id": user_id}
-            ]
-        })
-        
-        # Delete conversations involving the user
-        await db.conversations.delete_many({
-            "participants": user_id
-        })
-        
-        # Delete user's events
-        await db.events.delete_many({"created_by": user_id})
-        
-        # Delete user's activities (as creator)
-        user_activities = await db.activities.find(
-            {"creator_id": user_id}, 
-            {"activity_id": 1}
-        ).to_list(1000)
-        activity_ids = [a["activity_id"] for a in user_activities]
-        
-        # Delete activity messages for those activities
-        if activity_ids:
-            await db.activity_messages.delete_many({"activity_id": {"$in": activity_ids}})
-        
-        # Delete the activities
-        await db.activities.delete_many({"creator_id": user_id})
-        
-        # Also delete activity messages sent by this user in other activities
-        await db.activity_messages.delete_many({"user_id": user_id})
-        
-        # Delete event messages sent by this user
-        await db.event_messages.delete_many({"user_id": user_id})
-        
-        # Delete user's notifications
-        await db.notifications.delete_many({"user_id": user_id})
-        await db.notifications.delete_many({"from_user_id": user_id})
-        
-        # Delete user's friend relationships
-        await db.friend_requests.delete_many({
-            "$or": [
-                {"from_user_id": user_id},
-                {"to_user_id": user_id}
-            ]
-        })
-        await db.friends.delete_many({
-            "$or": [
-                {"user_id": user_id},
-                {"friend_id": user_id}
-            ]
-        })
-        
-        # Delete reports about this user
-        await db.reports.delete_many({"reported_user_id": user_id})
-        # Delete reports made by this user
-        await db.reports.delete_many({"reporter_id": user_id})
-        
-        # Delete user's calls history
-        await db.calls.delete_many({
-            "$or": [
-                {"caller_id": user_id},
-                {"callee_id": user_id}
-            ]
-        })
-        
-        # Delete user's subscriptions
-        await db.subscriptions.delete_many({"user_id": user_id})
-        await db.subscriptions.delete_many({"subscriber_id": user_id})
-        
-        # Remove user's likes from posts (handle both string and object format)
-        await db.posts.update_many(
-            {},
-            {"$pull": {"likes": user_id}}
-        )
-        await db.posts.update_many(
-            {},
-            {"$pull": {"likes": {"user_id": user_id}}}
-        )
-        
-        # Remove user's comments from posts
-        await db.posts.update_many(
-            {},
-            {"$pull": {"comments": {"user_id": user_id}}}
-        )
-        
-        # Remove user from activity invites
-        await db.activities.update_many(
-            {},
-            {"$pull": {"invites": {"user_id": user_id}}}
-        )
-        
-        # Finally delete the user
-        await db.users.delete_one({"user_id": user_id})
-        
-        return {"success": True, "message": "User and all their data completely deleted"}
+
+        user = await db.users.find_one({"user_id": user_id}, {"is_deleted": 1})
+        if user and user.get("is_deleted"):
+            raise HTTPException(status_code=409, detail="Deleted accounts require explicit restoration")
+
+        state = await get_account_deletion_state(user_id)
+        lock_key = f"account_deletion:{user_id}"
+
+        if state == "running":
+            raise HTTPException(status_code=409, detail="Account deletion in progress")
+        elif state == "failed":
+            if not await resume_failed_deletion(lock_key):
+                raise HTTPException(status_code=409, detail="Already resuming")
+        elif state == "ready_to_resume":
+            if not await resume_resolved_review(lock_key):
+                raise HTTPException(status_code=409, detail="Resume already acquired")
+        elif state == "review_required":
+            raise HTTPException(status_code=202, detail="Resolve pending reviews before retrying deletion")
+        elif state == "new":
+            if not await acquire_new_deletion_lock(user_id):
+                raise HTTPException(status_code=409, detail="Lock unavailable")
+            await set_deletion_pending(user_id)
+        else:
+            raise HTTPException(status_code=409, detail="Cannot proceed in current state")
+
+        result = await run_account_deletion(user_id, lock_key)
+        if result["status"] == "completed":
+            return {"success": True, "message": "Account deleted"}
+        elif result["status"] == "review_required":
+            raise HTTPException(status_code=202, detail={"message": "Manual review required", "reason": result.get("reason", "")})
+        else:
+            raise HTTPException(status_code=500, detail="Deletion failed")
+
     
     else:
         raise HTTPException(status_code=400, detail="Invalid action")
+
+
+class DeletionResolveRequest(BaseModel):
+    confirm: Literal[True]
+    resolution_type: Literal["subscription_cancelled", "booking_refunded"]
+    reference_ids: List[str] = Field(..., min_length=1)
+    reason: str = Field(..., min_length=10, max_length=1000)
+    evidence_reference: str = Field(..., min_length=1, max_length=1000)
+    idempotency_key: str = Field(..., min_length=8, max_length=100)
+
+
+@router.post("/deletion-operations/{user_id}/resolve")
+async def resolve_deletion_operation(
+    user_id: str,
+    request: DeletionResolveRequest,
+    admin_user: UserPublic = Depends(get_current_user),
+):
+    """Admin: resolve manual-review blocks on a deletion operation."""
+    await verify_admin(admin_user)
+    from services.deletion_resolution import (
+        run_resolution_operation,
+        ResolutionValidationError,
+        ResolutionIdempotencyConflict,
+        ResolutionOperationInProgress,
+        ResolutionExecutionError,
+    )
+
+    try:
+        result = await run_resolution_operation(
+            user_id=user_id,
+            idempotency_key=request.idempotency_key,
+            admin_user_id=admin_user.user_id,
+            resolution_type=request.resolution_type,
+            reference_ids=request.reference_ids,
+            reason=request.reason,
+            evidence_reference=request.evidence_reference,
+        )
+        return result
+    except ResolutionValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ResolutionIdempotencyConflict as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ResolutionOperationInProgress as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ResolutionExecutionError as e:
+        raise HTTPException(status_code=500, detail="Resolution failed; retry supported")
+
+
+@router.post("/repair-orphans")
+async def repair_orphans_endpoint(
+    dry_run: bool = True,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    from services.entity_ownership import repair_orphaned_entities
+    result = await repair_orphaned_entities(dry_run=dry_run)
+    return {"dry_run": dry_run, "checked": result.total_checked,
+            "hidden": result.hidden, "by_collection": result.by_collection}
 
 
 @router.get("/posts")

@@ -1,7 +1,17 @@
 """Shared Pydantic model for user listings (products and home rentals)."""
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
+
+LocationVisibility = Literal["approximate", "exact"]
+SellerType = Literal["user", "business"]
+PublicationScope = Literal["profile_only", "profile_and_marketplace"]
+
+CATEGORY_ALIASES: dict = {
+    "home_garden_diy": ["home_garden_diy", "home_garden"],
+    "sports_outdoor": ["sports_outdoor", "sports"],
+    "media_music": ["media_music", "books"],
+}
 
 
 class ListingCreate(BaseModel):
@@ -17,8 +27,16 @@ class ListingCreate(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    public_location_label: Optional[str] = None
+    location_visibility: LocationVisibility = "approximate"
     category: Optional[str] = None
+    subcategory: Optional[str] = None
+    attributes: Dict[str, Any] = Field(default_factory=dict)
     status: str = "draft"  # draft | published | sold | rented
+    seller_type: SellerType = "user"
+    seller_id: Optional[str] = None
+    business_id: Optional[str] = None
+    publication_scope: PublicationScope = "profile_and_marketplace"
 
     # Product fields
     condition: Optional[str] = None  # new | like_new | good | used
@@ -48,7 +66,11 @@ class ListingUpdate(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    public_location_label: Optional[str] = None
+    location_visibility: Optional[LocationVisibility] = None
     category: Optional[str] = None
+    subcategory: Optional[str] = None
+    attributes: Optional[Dict[str, Any]] = None
     status: Optional[str] = None
     condition: Optional[str] = None
     brand: Optional[str] = None
@@ -62,6 +84,10 @@ class ListingUpdate(BaseModel):
     lease_duration: Optional[str] = None
     deposit: Optional[str] = None
     is_active: Optional[bool] = None
+    seller_type: Optional[SellerType] = None
+    seller_id: Optional[str] = None
+    business_id: Optional[str] = None
+    publication_scope: Optional[PublicationScope] = None
 
 
 class ListingResponse(BaseModel):
@@ -79,10 +105,21 @@ class ListingResponse(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    public_location_label: Optional[str] = None
+    location_visibility: LocationVisibility = "approximate"
     category: Optional[str] = None
+    subcategory: Optional[str] = None
+    attributes: Dict[str, Any] = Field(default_factory=dict)
     status: str
     is_active: bool = True
     created_at: datetime
+    seller_type: SellerType = "user"
+    seller_id: Optional[str] = None
+    business_id: Optional[str] = None
+    publication_scope: PublicationScope = "profile_and_marketplace"
+    seller_name: Optional[str] = None
+    business_name: Optional[str] = None
+    seller_avatar: Optional[str] = None
 
     # Product
     condition: Optional[str] = None

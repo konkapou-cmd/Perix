@@ -7,7 +7,7 @@ db = client[DB_NAME]
 async def delete():
     artist = await db.artists.find_one({"name": "Konstantinos"})
     if artist:
-        print(f"Found: {artist.get(\"name\")}")
+        print(f"Found: {artist.get('name')}")
         aid = artist.get("artist_id")
         await db.artists.delete_one({"artist_id": aid})
         await db.posts.delete_many({"actor_type": "artist", "actor_id": aid})

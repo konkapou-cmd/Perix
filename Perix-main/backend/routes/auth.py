@@ -122,6 +122,8 @@ async def login_user(payload: LoginInput, response: Response):
     user = await db.users.find_one({"email": payload.email}, {"_id": 0})
     if not user or not user.get("password_hash"):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    if user.get("is_deleted") or user.get("deletion_pending"):
+        raise HTTPException(status_code=401, detail="Account is unavailable")
 
     if not pwd_context.verify(payload.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -162,6 +164,8 @@ async def google_session(payload: GoogleSessionInput, response: Response):
             "role": "user",
         }
         await db.users.insert_one(user)
+    elif user.get("is_deleted") or user.get("deletion_pending"):
+        raise HTTPException(status_code=401, detail="Account is unavailable")
 
     session_token = data["session_token"]
     existing_session = await db.user_sessions.find_one(
@@ -280,6 +284,9 @@ async def forgot_password(payload: ForgotPasswordInput):
     user_doc = await db.users.find_one({"email": payload.email})
     if not user_doc:
         raise HTTPException(status_code=404, detail="No account found with this email")
+    from services.entity_ownership import can_receive_email
+    if not can_receive_email(user_doc):
+        raise HTTPException(status_code=404, detail="No account found with this email")
     token = secrets.token_urlsafe(32)
     now = datetime.utcnow()
     await db.password_reset_tokens.insert_one({
@@ -303,10 +310,23 @@ async def reset_password(payload: ResetPasswordInput):
         raise HTTPException(status_code=400, detail="Invalid or expired token")
     if len(payload.new_password) < 4:
         raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
-    await db.password_reset_tokens.update_one(
-        {"token": payload.token},
+
+    # Validate user before consuming token
+    user_doc = await db.users.find_one({"email": reset_doc["email"]})
+    if not user_doc:
+        raise HTTPException(status_code=400, detail="User not found")
+    from services.entity_ownership import can_receive_email
+    if not can_receive_email(user_doc):
+        raise HTTPException(status_code=400, detail="Account is unavailable")
+
+    # Atomically consume token
+    result = await db.password_reset_tokens.update_one(
+        {"token": payload.token, "used": False},
         {"$set": {"used": True}},
     )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=400, detail="Token already used")
+
     await db.users.update_one(
         {"email": reset_doc["email"]},
         {"$set": {"password_hash": pwd_context.hash(payload.new_password)}}
