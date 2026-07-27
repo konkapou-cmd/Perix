@@ -12,10 +12,7 @@ import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 import { ContentHero, ContentGallery } from "../../components/shared";
 import { MediaItem } from "../../components/UnifiedMediaGallery";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
-
-const CONDITIONS: Record<string, string> = {
-  new: "New", like_new: "Like New", good: "Good", used: "Used",
-};
+import { formatPrice } from "../../lib/serviceFormat";
 
 export default function ListingDetailScreen() {
   const { t } = useTranslation();
@@ -75,7 +72,7 @@ export default function ListingDetailScreen() {
       Alert.alert(t("common.loginRequired", "Login Required"), t("common.loginToContact", "Please log in to contact the seller."));
       return;
     }
-    router.push({ pathname: `/messages/${listing.owner_id}` as any, params: { name: "Seller", entityType: "user" } as any });
+    router.push({ pathname: `/messages/${listing.owner_id}` as any, params: { name: listing.business_name || listing.seller_name || "Seller", entityType: "user" } as any });
   };
 
   if (!id) {
@@ -149,19 +146,26 @@ export default function ListingDetailScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.title}>{listing.title}</Text>
           {listing.price ? (
-            <Text style={styles.price}>{listing.price}</Text>
+             <Text style={styles.price}>{formatPrice(listing.price)}</Text>
           ) : (
-            <Text style={styles.askPrice}>{t("marketplace.askForPrice", "Ask for price")}</Text>
+            <Text style={styles.askPrice}>{t("marketplace.askForPrice", "Ρωτήστε για τιμή")}</Text>
           )}
 
           {listing.description ? (
             <Text style={styles.description}>{listing.description}</Text>
           ) : null}
 
+          {(listing.business_name || listing.seller_name) && (
+            <View style={styles.sellerRow}>
+              <Ionicons name={listing.seller_type === "business" ? "storefront-outline" : "person-outline"} size={16} color={COLORS.primary} />
+              <Text style={styles.sellerText}>{listing.business_name || listing.seller_name}</Text>
+            </View>
+          )}
+
           <View style={styles.tags}>
-            {listing.condition ? (
+                {listing.condition ? (
               <View style={styles.tag}>
-                <Text style={styles.tagText}>{CONDITIONS[listing.condition] || listing.condition}</Text>
+                <Text style={styles.tagText}>{t(`marketplace.${listing.condition}`, listing.condition)}</Text>
               </View>
             ) : null}
             {listing.brand ? (
@@ -187,7 +191,7 @@ export default function ListingDetailScreen() {
         </View>
 
         {allMediaItems.length > 0 && (
-          <ContentGallery mediaItems={allMediaItems} title="Galerie" />
+          <ContentGallery mediaItems={allMediaItems} title={t("listing.gallery", "Γκαλερί")} />
         )}
 
         <View style={styles.actions}>
@@ -246,5 +250,13 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.background,
     alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: COLORS.border,
+  },
+  sellerRow: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    marginTop: SPACING.small, paddingVertical: SPACING.tiny,
+  },
+  sellerText: {
+    fontSize: FONT_SIZES.bodySmall, fontWeight: "600",
+    color: COLORS.primary,
   },
 });

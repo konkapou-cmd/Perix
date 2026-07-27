@@ -211,7 +211,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [showCoverReposition, setShowCoverReposition] = useState(false);
 
   useEffect(() => {
-    if (activeTab === "items") {
+    if (activeTab === "items" && isOwnProfile) {
       router.push("/my-listings" as any);
       setActiveTab("posts");
     }
@@ -235,7 +235,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
       base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
     }
     if (userListings.length > 0 || userHomeListings.length > 0 || onAddItem) {
-      base.push({ key: "items", label: t("marketplace.listings", "Αγγελίες"), icon: "list-outline", count: userListings.length + userHomeListings.length });
+      base.push({ key: "items", label: t("marketplace.listings", "Anzeigen"), icon: "list-outline", count: userListings.length + userHomeListings.length });
     }
     if (userHomeListings.length > 0) {
       base.push({ key: "homes", label: t("marketplace.homes", "Homes"), icon: "home-outline", count: userHomeListings.length });
@@ -435,7 +435,14 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         />
       )}
       {activeTab === "items" && (
-        <View />
+        <ProfileItemsSection
+          listings={[...userListings, ...userHomeListings]}
+          isOwner={isOwnProfile ?? false}
+          onAdd={isOwnProfile ? onAddItem! : () => {}}
+          onEdit={isOwnProfile ? onEditItem! : (() => {}) as any}
+          onToggleMarketplace={isOwnProfile ? onToggleMarketplace! : (() => {}) as any}
+          onDelete={isOwnProfile ? onDeleteItem! : (() => {}) as any}
+        />
       )}
       {activeTab === "homes" && (
         <ProfileItemsSection
