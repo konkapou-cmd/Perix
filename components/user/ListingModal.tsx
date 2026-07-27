@@ -270,8 +270,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       onClose();
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e?.message || t("common.saveFailed", "Failed to save listing"));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   return (
@@ -299,7 +300,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
             <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder={isProduct ? "e.g. Vintage Watch" : "e.g. Cozy Studio in Mitte"} placeholderTextColor={COLORS.textDisabled} />
 
             <Text style={styles.label}>{t("services.price", "Price")}</Text>
-            <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder={isProduct ? "$20" : "€800/month"} placeholderTextColor={COLORS.textDisabled} keyboardType="numeric" />
+            <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder={isProduct ? "€20" : "€800/μήνα"} placeholderTextColor={COLORS.textDisabled} keyboardType="numeric" />
 
             <Text style={styles.label}>{t("services.description", "Description")}</Text>
             <TextInput style={[styles.input, { height: 80 }]} value={description} onChangeText={setDescription} placeholder={t("services.descriptionPlaceholder", "Describe your listing...")} placeholderTextColor={COLORS.textDisabled} multiline textAlignVertical="top" />
@@ -389,7 +390,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 </View>
 
                 <Text style={styles.label}>{t("services.brand", "Brand")}</Text>
-                <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder="Nike, Apple, etc." placeholderTextColor={COLORS.textDisabled} />
+                <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder={t("marketplace.brandPlaceholder", "π.χ. Αναφέρετε τη μάρκα")} placeholderTextColor={COLORS.textDisabled} />
 
                 <Text style={styles.label}>{t("services.delivery", "Delivery")}</Text>
                 <View style={styles.chipRow}>
@@ -452,9 +453,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 setAddress(addr);
                 setLatitude(lat);
                 setLongitude(lng);
-                if (publicLabel) {
-                  setPublicLocationLabel(publicLabel);
-                }
+                const streetPart = addr.split(",")[0].trim();
+                const streetOnly = streetPart.replace(/\s+\d+.*$/, "").trim() || streetPart;
+                setPublicLocationLabel(streetOnly);
               }}
               placeholder={t("services.addressPlaceholder", "Search address...")}
               confirmed={hasCoordinates}
@@ -483,36 +484,12 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                       </Pressable>
                     </View>
 
-                    <View style={[styles.locationLabelRow, publicLocationLabel ? undefined : { display: "none" as any }]}>
-                      <Pressable
-                        style={styles.locationLabelPressable}
-                        onPress={() => setShowPublicLabelInput(!showPublicLabelInput)}
-                      >
+                    {publicLocationLabel && (
+                      <View style={styles.locationLabelRow}>
                         <Ionicons name="eye-outline" size={14} color={COLORS.textMuted} />
                         <Text style={styles.locationLabelText} numberOfLines={1}>
-                          {publicLocationLabel
-                            ? `${t("marketplace.publicLabel", "Öffentlich")}: ${publicLocationLabel}`
-                            : ""}
+                          {publicLocationLabel}
                         </Text>
-                        <Text style={styles.locationLabelEdit}>{t("common.change", "Ändern")}</Text>
-                      </Pressable>
-                      {(status === "published" && locationVisibility === "approximate" && !publicLocationLabel) && (
-                        <Text style={styles.required}>*</Text>
-                      )}
-                    </View>
-                    {(showPublicLabelInput || !publicLocationLabel) && locationVisibility === "approximate" && (
-                      <View style={styles.field}>
-                        <Text style={styles.label}>
-                          {t("marketplace.publicLabel", "Öffentliche Ortsangabe")}
-                          {status === "published" && <Text style={styles.required}> *</Text>}
-                        </Text>
-                        <TextInput
-                          style={styles.input}
-                          value={publicLocationLabel}
-                          onChangeText={setPublicLocationLabel}
-                          placeholder={isProduct ? "z.B. Berlin" : "z.B. Berlin-Mitte"}
-                          placeholderTextColor={COLORS.textDisabled}
-                        />
                       </View>
                     )}
                   </>
