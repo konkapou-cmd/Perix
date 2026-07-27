@@ -150,7 +150,12 @@ async def clean_marketplace():
                     {"listing_id": l["listing_id"]},
                     {"$set": {"owner_id": "user_6577e46653dc",
                               "seller_id": "user_6577e46653dc",
-                              "seller_type": "user", "updated_at": now}}
+                              "seller_type": "user",
+                              "listing_type": l.get("listing_type") or "product",
+                              "status": "published",
+                              "is_hidden": False,
+                              "is_active": True,
+                              "updated_at": now}}
                 )
                 transferred += 1
             else:
