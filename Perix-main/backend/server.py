@@ -196,7 +196,17 @@ async def clean_marketplace():
                 )
                 hidden_biz += 1
 
-    return {"transferred_to_user": transferred, "hidden_orphans": hidden_biz}
+    # Also fix already-transferred listings owned by the target user
+    repaired = await db.listings.update_many(
+        {"owner_id": "user_6577e46653dc", "status": {"$ne": "published"}},
+        {"$set": {"status": "published", "is_hidden": False, "is_active": True, "updated_at": now}}
+    )
+    repaired2 = await db.listings.update_many(
+        {"owner_id": "user_6577e46653dc", "listing_type": {"$exists": False}},
+        {"$set": {"listing_type": "product", "updated_at": now}}
+    )
+
+    return {"transferred_to_user": transferred, "hidden_orphans": hidden_biz, "repaired": repaired.modified_count + repaired2.modified_count}
 
 
 # Reminder processing function
