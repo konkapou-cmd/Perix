@@ -124,7 +124,7 @@ export function useHomeViewportData({
 
       load("products", getListings(productQuery), setProducts);
       load("homes", getListings(homeQuery), setHomes);
-    }, 300);
+    }, 150);
 
     return () => clearTimeout(timer);
   }, [committedBounds, sessionToken, favoriteCategories, feedMode]);

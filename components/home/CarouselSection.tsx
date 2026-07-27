@@ -66,7 +66,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
               <Ionicons
                 name={collapsed ? "chevron-forward" : "chevron-down"}
                 size={18}
-                color={COLORS.textMuted}
+                color={COLORS.textPrimary}
               />
             </Pressable>
           )}

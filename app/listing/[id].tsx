@@ -137,6 +137,8 @@ export default function ListingDetailScreen() {
         <ContentHero
           coverImageUrl={listing.cover_image_url}
           videoUrl={listing.video_url}
+          muxThumbnailUrl={(listing as any).mux_thumbnail_url}
+          videoStatus={(listing as any).video_status}
           isCoverVideo={!listing.cover_image_url && !!listing.video_url}
           imageUrls={listing.image_urls}
           title={listing.title}
