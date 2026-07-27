@@ -212,7 +212,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
 
   useEffect(() => {
     if (activeTab === "items" && isOwnProfile) {
-      router.push("/my-listings" as any);
+      router.push(`/marketplace/user/${userId}` as any);
       setActiveTab("posts");
     }
   }, [activeTab]);
