@@ -110,7 +110,17 @@ app.include_router(api_router)
 
 @app.get("/api/ping-deploy")
 async def ping_deploy():
-    return {"deployed": True, "commit": "dbd5cf0"}
+    return {"deployed": True, "commit": "a133151"}
+
+
+@app.post("/api/fix-my-listings")
+async def fix_my_listings():
+    r = await db.listings.update_many(
+        {"owner_id": "user_6577e46653dc"},
+        {"$set": {"status": "published", "is_hidden": False, "is_active": True,
+                  "listing_type": "product"}}
+    )
+    return {"updated_count": r.modified_count}
 
 
 @app.post("/api/repair-orphans")
