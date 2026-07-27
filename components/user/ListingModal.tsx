@@ -448,7 +448,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
             </Text>
             <PlacesAutocompleteInput
               value={address}
-              onChangeText={(text) => { setAddress(text); setLatitude(undefined); setLongitude(undefined); }}
+              onChangeText={(text) => { setAddress(text); }}
               onSelectPlace={(addr, lat, lng, publicLabel) => {
                 setAddress(addr);
                 setLatitude(lat);
