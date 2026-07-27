@@ -17,7 +17,7 @@ HEADERS = {
 
 
 def _extract_public_label(address: dict) -> Optional[str]:
-    for key in ("city", "town", "village", "municipality", "county"):
+    for key in ("road", "pedestrian", "city", "town", "village", "municipality", "county"):
         val = address.get(key)
         if val:
             return val
