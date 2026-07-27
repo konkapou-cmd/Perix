@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -121,10 +121,12 @@ interface UserProfilePremiumProps {
   onViewFriends?: () => void;
   initialSavedPostIds?: Set<string>;
   userListings?: Listing[];
+  userHomeListings?: Listing[];
   onAddItem?: () => void;
   onEditItem?: (listing: Listing) => void;
   onToggleMarketplace?: (listing: Listing) => void;
   onDeleteItem?: (listing: Listing) => void;
+  initialTab?: "activities" | "posts" | "items";
 }
 
 export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
@@ -194,17 +196,26 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   onViewFriends,
   initialSavedPostIds,
   userListings = [],
+  userHomeListings = [],
   onAddItem,
   onEditItem,
   onToggleMarketplace,
   onDeleteItem,
+  initialTab,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
   const isScreenFocused = useIsFocused();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("posts");
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab as ProfileTab || "posts");
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "items") {
+      router.push("/my-listings" as any);
+      setActiveTab("posts");
+    }
+  }, [activeTab]);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
 
@@ -223,11 +234,14 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     if (onOpenBookings) {
       base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
     }
-    if (userListings.length > 0 || onAddItem) {
-      base.push({ key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetags-outline", count: userListings.length });
+    if (userListings.length > 0 || userHomeListings.length > 0 || onAddItem) {
+      base.push({ key: "items", label: t("marketplace.listings", "Αγγελίες"), icon: "list-outline", count: userListings.length + userHomeListings.length });
+    }
+    if (userHomeListings.length > 0) {
+      base.push({ key: "homes", label: t("marketplace.homes", "Homes"), icon: "home-outline", count: userHomeListings.length });
     }
     return base;
-  }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, onAddItem]);
+  }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem]);
 
   const theme = user.theme;
   const { themeStyles, themeColors } = useThemeStyles(theme);
@@ -421,10 +435,13 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         />
       )}
       {activeTab === "items" && (
+        <View />
+      )}
+      {activeTab === "homes" && (
         <ProfileItemsSection
-          listings={userListings}
+          listings={userHomeListings}
           isOwner={isOwnProfile ?? false}
-          onAdd={() => onAddItem?.()}
+          onAdd={undefined}
           onEdit={(l) => onEditItem?.(l)}
           onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
           onDelete={(l) => onDeleteItem?.(l)}
