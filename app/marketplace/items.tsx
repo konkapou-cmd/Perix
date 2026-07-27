@@ -8,6 +8,8 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designToke
 import { Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
 import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes";
 import { getCategoryConfig, getCategoryAttributes } from "../../lib/marketplace/marketplaceTaxonomy";
+import { formatPrice } from "../../lib/serviceFormat";
+import { CarouselCard } from "../../components/shared/CarouselCard";
 import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
 import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
@@ -154,30 +156,16 @@ export default function MarketplaceItemsPage() {
       ? item.public_location_label || t("marketplace.approximateLocation", "Ungefahrer Standort")
       : item.address;
     return (
-      <Pressable style={styles.card} onPress={() => handleCardPress(item)}>
-        {img ? (
-          <Image source={{ uri: img }} style={styles.cardImage} />
-        ) : (
-          <View style={[styles.cardImage, styles.cardPlaceholder]}>
-            <Ionicons name="image-outline" size={28} color={COLORS.textDisabled} />
-          </View>
-        )}
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-          {item.price ? <Text style={styles.cardPrice}>{item.price}</Text> : null}
-          {(item.business_name || item.seller_name) && (
-            <Text style={styles.cardSeller} numberOfLines={1}>
-              {item.business_name || item.seller_name}
-            </Text>
-          )}
-          {addressLabel ? (
-            <View style={styles.cardAddr}>
-              <Ionicons name="location-outline" size={11} color={COLORS.textMuted} />
-              <Text style={styles.cardAddrText} numberOfLines={1}>{addressLabel}</Text>
-            </View>
-          ) : null}
-        </View>
-      </Pressable>
+      <CarouselCard
+        key={item.listing_id}
+        imageUrl={img || undefined}
+        videoUrl={item.video_url || undefined}
+        title={item.title}
+        subtitle={`${formatPrice(item.price) || ""}${(item.business_name || item.seller_name) ? `\u00b7 ${item.business_name || item.seller_name}` : ""}`}
+        thirdLine={addressLabel || ""}
+        onPress={() => handleCardPress(item)}
+        fallbackIcon="pricetag"
+      />
     );
   }, [handleCardPress, t]);
 
