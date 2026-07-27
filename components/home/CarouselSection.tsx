@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, LayoutAnimation, Platform, UIManager, TouchableOpacity } from "react-native";
+import React from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View, LayoutAnimation, Platform, UIManager } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import EmptyState from "../ui/EmptyState";
 import { SectionHeader } from "../shared/SectionHeader";
 import { COLORS, SPACING } from "../../lib/designTokens";
 
@@ -27,24 +26,29 @@ interface CarouselSectionProps {
     onChange: (key: string) => void;
   };
   emptyMessage?: string;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  hideWhenEmpty?: boolean;
   children: React.ReactNode;
 }
 
-export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage = "No items", children }: CarouselSectionProps) {
+export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage, isCollapsed, onToggleCollapse, hideWhenEmpty, children }: CarouselSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = isCollapsed ?? false;
   const hasContent = React.Children.count(children) > 0;
   const accent = color || COLORS.primaryDark;
 
   const handleToggle = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setCollapsed(!collapsed);
+    onToggleCollapse?.();
   };
+
+  if (hideWhenEmpty && !hasContent) return null;
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity onPress={hasContent ? handleToggle : undefined} style={styles.headerRow} activeOpacity={0.6}>
+      <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <SectionHeader
             icon={icon}
@@ -52,22 +56,27 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
             accent={accent}
             onSeeAll={undefined}
           />
-          {hasContent && (
-            <Ionicons
-              name={collapsed ? "chevron-forward" : "chevron-down"}
-              size={18}
-              color={COLORS.textMuted}
-              style={{ marginLeft: 4 }}
-            />
+          {onToggleCollapse && (
+            <Pressable
+              onPress={handleToggle}
+              style={styles.chevronBtn}
+              accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
+              hitSlop={4}
+            >
+              <Ionicons
+                name={collapsed ? "chevron-forward" : "chevron-down"}
+                size={18}
+                color={COLORS.textMuted}
+              />
+            </Pressable>
           )}
         </View>
         {seeAllRoute && (
           <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={(e: any) => { e?.stopPropagation?.(); router.navigate(seeAllRoute as any); }}>
-            <Text style={styles.seeAllText} numberOfLines={1}>{t("common.seeAll", "Alle")}</Text>
-            <Ionicons name="chevron-forward" size={14} color={COLORS.background} />
+            <Text style={styles.seeAllText} numberOfLines={1}>{t("common.seeAll", "Όλα")}</Text>
           </Pressable>
         )}
-      </TouchableOpacity>
+      </View>
 
       {!collapsed && (
         <>
@@ -88,11 +97,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
           )}
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
-            {!hasContent ? (
-              <EmptyState message={emptyMessage} muted />
-            ) : (
-              children
-            )}
+            {children}
           </ScrollView>
         </>
       )}
@@ -117,6 +122,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+  },
+  chevronBtn: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 2,
   },
   seeAllBtn: {
     flexDirection: "row",
