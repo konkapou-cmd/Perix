@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Perix",
+    "slug": "perix",
+    "version": "1.19.0",
+    "owner": "konkapou",
+    "extra": {
+      "eas": {
+        "projectId": "a551ab03-fb09-467e-8e04-cec4567ef0bd"
+      }
+    }
+  }
+}

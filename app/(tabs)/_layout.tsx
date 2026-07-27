@@ -1,0 +1,350 @@
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { View, Text, Pressable, StyleSheet, Platform, Alert } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
+import { useBadge } from "../../context/BadgeContext";
+import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
+import TopNavbar from "../../components/TopNavbar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../context/AuthContext";
+import { useState, useEffect, useRef } from "react";
+import BusinessActionsModal, { BusinessAction } from "../../components/business/BusinessActionsModal";
+import CreationSheet, { CreationAction } from "../../components/user/CreationSheet";
+import ListingModal from "../../components/user/ListingModal";
+import type { ListingType } from "../../lib/api/listings";
+import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
+import { getProductPermissions, getManageListings } from "../../lib/api/listings";
+
+function TabBarBackground() {
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.background }} />
+  );
+}
+
+function MessageTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
+  const { totalBadgeCount } = useBadge();
+
+  return (
+    <View>
+      <Ionicons
+        name={filled ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"}
+        size={size}
+        color={color}
+      />
+      {totalBadgeCount > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {totalBadgeCount > 99 ? "99+" : totalBadgeCount}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function HomeTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
+  return <Ionicons name={filled ? "home" : "home-outline"} size={size} color={color} />;
+}
+
+function SearchTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
+  return <Ionicons name={filled ? "map" : "map-outline"} size={size} color={color} />;
+}
+
+function ProfileTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
+  return <Ionicons name={filled ? "person" : "person-outline"} size={size} color={color} />;
+}
+
+function JobsTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
+  return <Ionicons name={filled ? "briefcase" : "briefcase-outline"} size={size} color={color} />;
+}
+
+function CameraTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
+  return <Ionicons name={filled ? "camera" : "camera-outline"} size={size} color={color} />;
+}
+
+export default function TabsLayout() {
+  const { t } = useTranslation();
+  const { isDesktop } = useResponsiveLayout();
+  const showTopNavbar = isDesktop && Platform.OS === "web";
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { activeIdentity } = useAuth();
+  const { sessionToken } = useAuth();
+  const [showBizActions, setShowBizActions] = useState(false);
+  const [showCreateSheet, setShowCreateSheet] = useState(false);
+  const [listingType, setListingType] = useState<ListingType | null>(null);
+  const isBusiness = activeIdentity?.type === "business";
+
+  const [bizActionsLoading, setBizActionsLoading] = useState(false);
+  const [bizActionsProductsEnabled, setBizActionsProductsEnabled] = useState(false);
+  const [bizActionsListingsCount, setBizActionsListingsCount] = useState(0);
+  const bizActionsRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (!showBizActions || !activeIdentity?.id || !sessionToken) return;
+    const requestId = ++bizActionsRequestRef.current;
+    setBizActionsLoading(true);
+    Promise.allSettled([
+      getProductPermissions(activeIdentity.id),
+      getManageListings(sessionToken, "business", activeIdentity.id),
+    ]).then(([permsResult, listingsResult]) => {
+      if (requestId !== bizActionsRequestRef.current) return;
+      if (permsResult.status === "fulfilled") {
+        setBizActionsProductsEnabled(permsResult.value.enabled);
+      } else {
+        setBizActionsProductsEnabled(false);
+      }
+      if (listingsResult.status === "fulfilled") {
+        setBizActionsListingsCount(
+          listingsResult.value.filter(l => l.listing_type === "product").length,
+        );
+      } else {
+        setBizActionsListingsCount(0);
+      }
+      setBizActionsLoading(false);
+    });
+  }, [showBizActions, activeIdentity?.id, sessionToken]);
+
+  const handleBizAction = (action: BusinessAction) => {
+    switch (action) {
+      case "create-city-ad":
+        router.push("/camera");
+        break;
+      case "create-product":
+        router.replace({ pathname: "/(tabs)/profile", params: { openProduct: "1" } });
+        break;
+      case "create-service":
+        router.replace({ pathname: "/(tabs)/profile", params: { openService: "1" } });
+        break;
+      case "create-event":
+        router.replace({ pathname: "/(tabs)/profile", params: { openEvent: "1" } });
+        break;
+      case "create-job":
+        router.replace({ pathname: "/(tabs)/profile", params: { openJob: "1" } });
+        break;
+      case "manage-products":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "items" } });
+        break;
+      case "manage-services":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "services" } });
+        break;
+      case "manage-events":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "events" } });
+        break;
+      case "manage-jobs":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "jobs" } });
+        break;
+      case "manage-bookings":
+        router.replace({ pathname: "/(tabs)/profile", params: { openBookings: "1" } });
+        break;
+      case "manage-media":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "media" } });
+        break;
+    }
+  };
+
+  const handleCreateAction = (action: CreationAction) => {
+    switch (action) {
+      case "business":
+        if (isBusiness) {
+          router.replace("/(tabs)/profile");
+        } else {
+          router.push("/business/create" as any);
+        }
+        break;
+      case "camera":
+        router.push("/camera");
+        break;
+      case "activity":
+        router.replace({ pathname: "/(tabs)/profile", params: { openActivity: "1" } as any });
+        break;
+      case "home_rental":
+      case "product":
+        if (!sessionToken) {
+          router.push("/login" as any);
+          return;
+        }
+        setListingType(action as ListingType);
+        break;
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {showTopNavbar && <TopNavbar />}
+
+      <View style={[
+        styles.mainContent,
+        showTopNavbar && styles.desktopContent
+      ]}>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarActiveTintColor: COLORS.primaryDark,
+            tabBarInactiveTintColor: COLORS.textSecondary,
+            tabBarStyle: showTopNavbar ? { display: "none" } : {
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              paddingBottom: insets.bottom,
+              paddingTop: insets.bottom > 0 ? 0 : 8,
+              backgroundColor: COLORS.background,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: COLORS.border,
+              elevation: 0,
+              height: 52 + insets.bottom,
+            },
+            tabBarBackground: () => <TabBarBackground />,
+            tabBarLabelStyle: {
+              display: "none",
+            },
+            lazy: true,
+            freezeOnBlur: true,
+          }}
+        >
+          <Tabs.Screen
+            name="home"
+            options={{
+              tabBarIcon: ({ color, size, focused }) => (
+                <HomeTabIcon color={color} size={size} filled={focused} />
+              ),
+              lazy: true,
+            }}
+          />
+          <Tabs.Screen
+            name="locator"
+            options={{
+              tabBarIcon: ({ color, size, focused }) => (
+                <SearchTabIcon color={color} size={size} filled={focused} />
+              ),
+              lazy: true,
+            }}
+          />
+          <Tabs.Screen
+            name="profile"
+            options={{
+              tabBarIcon: ({ color, size, focused }) => (
+                <ProfileTabIcon color={color} size={size} filled={focused} />
+              ),
+              lazy: true,
+            }}
+          />
+          <Tabs.Screen
+            name="messages"
+            options={{
+              tabBarIcon: ({ color, size, focused }) => (
+                <MessageTabIcon color={color} size={size} filled={focused} />
+              ),
+              lazy: true,
+            }}
+          />
+          <Tabs.Screen
+            name="jobs"
+            options={{
+              tabBarItemStyle: !isBusiness ? { display: "none" } : undefined,
+              tabBarButton: isBusiness
+                ? (props: any) => (
+                    <Pressable {...props} onPress={() => setShowBizActions(true)} />
+                  )
+                : undefined,
+              tabBarIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
+                <JobsTabIcon color={color} size={size} filled={focused} />
+              ),
+              lazy: true,
+            }}
+          />
+          <Tabs.Screen
+            name="create"
+            options={{
+              tabBarItemStyle: isBusiness ? { display: "none" } : undefined,
+              tabBarButton: !isBusiness
+                ? (props: any) => (
+                    <Pressable {...props} onPress={() => setShowCreateSheet(true)} />
+                  )
+                : undefined,
+              tabBarIcon: ({ color, size, focused }) => (
+                <CameraTabIcon color={color} size={size} filled={focused} />
+              ),
+              lazy: true,
+            }}
+          />
+        </Tabs>
+      </View>
+
+      <BusinessActionsModal
+        visible={showBizActions}
+        loading={bizActionsLoading}
+        businessProductsEnabled={bizActionsProductsEnabled}
+        listingsCount={bizActionsListingsCount}
+        onClose={() => setShowBizActions(false)}
+        onAction={handleBizAction}
+      />
+      <CreationSheet
+        visible={showCreateSheet}
+        onClose={() => setShowCreateSheet(false)}
+        onAction={handleCreateAction}
+        hasBusiness={isBusiness}
+      />
+      <ListingModal
+        visible={listingType !== null}
+        listingType={listingType ?? "product"}
+        sessionToken={sessionToken ?? ""}
+        onClose={() => setListingType(null)}
+        onSave={() => setListingType(null)}
+        onCreated={(listingId) => {
+          setListingType(null);
+          Alert.alert(
+            t("common.success", "Erfolgreich"),
+            t("marketplace.itemCreated", "Dein Eintrag wurde veröffentlicht."),
+            [
+              { text: t("marketplace.viewListing", "Ansehen"), onPress: () => pushEntityRoute(router, entityRoutes.listing(listingId), () => showInvalidEntityAlert(t)) },
+              { text: t("marketplace.myListings", "Meine Einträge"), onPress: () => router.push("/my-listings" as any) },
+              { text: t("common.ok", "OK"), onPress: () => {} },
+            ],
+          );
+        }}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundPage,
+  },
+  mainContent: {
+    flex: 1,
+  },
+  desktopContent: {
+    maxWidth: 1280,
+    width: "100%",
+    marginHorizontal: "auto",
+    ...Platform.select({
+      web: {
+        paddingHorizontal: 24,
+      },
+    }),
+  },
+  badge: {
+    position: "absolute",
+    right: -8,
+    top: -4,
+    backgroundColor: COLORS.error,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+});
