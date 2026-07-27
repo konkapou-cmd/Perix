@@ -119,6 +119,9 @@ export type ListingDiscoveryQuery = {
 
   attributeFilters?: Record<string, string>;
 
+  sellerId?: string;
+  sellerType?: string;
+
   skip?: number;
   limit?: number;
 };
@@ -149,6 +152,9 @@ export const getListings = async (
   if (query.propertyType) params.append("property_type", query.propertyType);
   if (query.minBedrooms != null) params.append("min_bedrooms", String(query.minBedrooms));
   if (query.furnished != null) params.append("furnished", String(query.furnished));
+
+  if (query.sellerId) params.append("seller_id", query.sellerId);
+  if (query.sellerType) params.append("seller_type", query.sellerType);
 
   if (query.attributeFilters) {
     Object.entries(query.attributeFilters).forEach(([key, value]) => {
