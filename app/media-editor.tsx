@@ -276,7 +276,7 @@ export default function MediaEditor() {
           <View style={styles.previewContainer}>
             {isVideo ? (
               <View style={styles.videoWrapper}>
-                <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} />
+                <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} surfaceType="textureView" />
                 <Pressable style={StyleSheet.absoluteFill} onPress={togglePlay}>
                   {!isPlaying && (
                     <View style={styles.playOverlay}>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Alert, Modal, Pressable, ScrollView, StyleSheet,
-  Text, TextInput, View, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Text, TextInput, View, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
@@ -277,7 +278,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={styles.header}>
             <Pressable onPress={onClose} style={styles.closeBtn}>

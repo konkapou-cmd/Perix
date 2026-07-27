@@ -258,6 +258,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
             style={styles.media}
             nativeControls={false}
             contentFit="contain"
+            surfaceType="textureView"
           />
         ) : (
           <Image source={{ uri: story.media_url }} style={styles.media} resizeMode="contain" />
