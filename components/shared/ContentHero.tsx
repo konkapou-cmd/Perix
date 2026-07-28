@@ -81,6 +81,7 @@ export default function ContentHero({
           <AdaptiveVideo
             uri={videoUrl}
             ratio={16 / 9}
+            style={StyleSheet.absoluteFill}
             autoPlay={true}
             initialMuted={true}
             showMuteButton={false}
@@ -115,6 +116,7 @@ export default function ContentHero({
           <AdaptiveVideo
             uri={videoUrl}
             ratio={16 / 9}
+            style={StyleSheet.absoluteFill}
             autoPlay={true}
             initialMuted={true}
             showMuteButton={false}
