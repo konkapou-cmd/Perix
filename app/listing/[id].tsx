@@ -225,7 +225,9 @@ export default function ListingDetailScreen() {
         </View>
 
         {allMediaItems.length > 0 && (
-          <ContentGallery mediaItems={allMediaItems} title={t("listing.gallery", "Γκαλερί")} />
+          <View style={{ marginHorizontal: -SPACING.std }}>
+            <ContentGallery mediaItems={allMediaItems} title={t("listing.gallery", "Γκαλερί")} />
+          </View>
         )}
 
         <View style={styles.actions}>

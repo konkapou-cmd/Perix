@@ -20,8 +20,9 @@ export default function ContentGallery({ mediaItems, title }: ContentGalleryProp
 
   if (mediaItems.length === 0) return null;
 
-  const itemGap = SPACING.compact;
-  const innerWidth = screenWidth - SPACING.page * 2;
+  const itemGap = 8;
+  const sectionPad = 16;
+  const innerWidth = screenWidth - sectionPad * 2;
   const itemWidth = (innerWidth - itemGap * (NUM_COLS - 1)) / NUM_COLS;
   const itemHeight = itemWidth;
 
@@ -83,8 +84,8 @@ function getMuxThumbnail(url: string): string | null {
 
 const styles = StyleSheet.create({
   section: {
-    marginTop: SPACING.compact,
-    paddingHorizontal: SPACING.page,
+    marginTop: 12,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: FONT_SIZES.h3,
