@@ -87,6 +87,7 @@ export default function ContentHero({
             videoStatus={videoStatus}
             muxThumbnailUrl={muxThumbnailUrl || undefined}
             onPress={() => handleMediaTap(0)}
+            resizeMode="cover"
           />
         </View>
       );
@@ -120,6 +121,7 @@ export default function ContentHero({
             videoStatus={videoStatus}
             muxThumbnailUrl={muxThumbnailUrl || undefined}
             onPress={() => handleMediaTap(0)}
+            resizeMode="cover"
           />
         </View>
       );

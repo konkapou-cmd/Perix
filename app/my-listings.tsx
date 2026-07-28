@@ -48,8 +48,12 @@ export default function MyListingsScreen() {
       [
         { text: t("common.cancel", "Cancel"), style: "cancel" },
         { text: t("common.delete", "Delete"), style: "destructive", onPress: async () => {
-          await deleteListing(sessionToken!, listing.listing_id);
-          load();
+          try {
+            await deleteListing(sessionToken!, listing.listing_id);
+            load();
+          } catch (e: any) {
+            Alert.alert(t("common.error", "Error"), e?.message || t("common.deleteFailed", "Failed to delete"));
+          }
         }},
       ],
     );
