@@ -54,9 +54,11 @@ const DEFAULT_LAYOUT: HomeLayoutConfig = {
 };
 
 const STORAGE_KEY = "homeLayout";
+const COLLAPSE_KEY = "collapsedSections";
 
 export function useLayoutPreferences() {
   const [homeLayout, setHomeLayout] = useState<HomeLayoutConfig>(DEFAULT_LAYOUT);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const layoutLoaded = useRef(false);
 
   useEffect(() => {
@@ -76,6 +78,10 @@ export function useLayoutPreferences() {
               return savedSection ? { ...s, ...savedSection } : s;
             }),
           }));
+        }
+        const savedCollapsed = await AsyncStorage.getItem(COLLAPSE_KEY);
+        if (savedCollapsed) {
+          setCollapsedSections(new Set(JSON.parse(savedCollapsed)));
         }
       } catch (e) {
         console.log("Error loading layout preferences:", e);
@@ -116,5 +122,19 @@ export function useLayoutPreferences() {
     setHomeLayout(prev => ({ ...prev, favoriteCategories: categories }));
   }, []);
 
-  return { homeLayout, setHomeLayout, toggleSection, setSorting, setFavoriteCategories };
+  const setSectionCollapsed = useCallback((sectionId: string, collapsed: boolean) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (collapsed) next.add(sectionId);
+      else next.delete(sectionId);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!layoutLoaded.current) return;
+    AsyncStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsedSections])).catch(() => {});
+  }, [collapsedSections]);
+
+  return { homeLayout, setHomeLayout, toggleSection, setSorting, setFavoriteCategories, collapsedSections, setSectionCollapsed };
 }

@@ -104,14 +104,14 @@ import { JobModal } from "../../components/business";
 import { ServiceModal, DEFAULT_SERVICE_FORM, ServiceBookingModal, SlotManagerModal, BookingListModal, UserBookingListModal } from "../../components/business";
 import ActivityModal from "../../components/business/ActivityModal";
 import { useMapBounds } from "../../context/MapBoundsContext";
-import OpeningHoursModal, { HoursData, getDefaultHours } from "../../components/business/OpeningHoursModal";
+import OpeningHoursModal, { DayHours, defaultDayHours } from "../../components/business/OpeningHoursModal";
 import ListingModal from "../../components/user/ListingModal";
 import { getBusinessSellerListings, getManageListings, Listing, updateListing, deleteListing, getProductPermissions } from "../../lib/api/listings";
 import SocialLinksModal from "../../components/SocialLinksModal";
 import PlacesAutocompleteInput from "../../components/PlacesAutocompleteInput";
 
-function normalizeOpeningHoursForState(raw: any): HoursData {
-  if (!raw || typeof raw !== "object") return getDefaultHours();
+function normalizeOpeningHoursForState(raw: any): DayHours {
+  if (!raw || typeof raw !== "object") return defaultDayHours();
   const schedule: Record<string, any> = {};
   const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   const uppercaseDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -285,7 +285,7 @@ export default function ProfileScreen() {
 
   // -- BUSINESS EDIT MODAL STATE --
   const [bizEditModalVisible, setBizEditModalVisible] = useState(false);
-  const [bizEditForm, setBizEditForm] = useState({ name: "", description: "", phone: "", website: "", email: "", tags: "", address: "", latitude: null as number | null, longitude: null as number | null, opening_hours: null as HoursData | null, root_category: "", subcategory: "" });
+  const [bizEditForm, setBizEditForm] = useState({ name: "", description: "", phone: "", website: "", email: "", tags: "", address: "", latitude: null as number | null, longitude: null as number | null, opening_hours: null as DayHours | null, root_category: "", subcategory: "" });
   const [bizLogoNew, setBizLogoNew] = useState<string | null>(null);
   const [bizCoverNew, setBizCoverNew] = useState<string | null>(null);
   const [bizSaving, setBizSaving] = useState(false);
@@ -1223,7 +1223,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   // Business editing state
   const [hoursModalVisible, setHoursModalVisible] = useState(false);
   const [socialLinksModalVisible, setSocialLinksModalVisible] = useState(false);
-  const [businessOpeningHours, setBusinessOpeningHours] = useState<HoursData>(getDefaultHours());
+  const [businessOpeningHours, setBusinessOpeningHours] = useState<DayHours>(defaultDayHours());
   const [businessSocialLinks, setBusinessSocialLinks] = useState<Record<string, string>>({});
   const [bizGalleryImages, setBizGalleryImages] = useState<string[]>([]);
   const [bizGalleryVideos, setBizGalleryVideos] = useState<string[]>([]);

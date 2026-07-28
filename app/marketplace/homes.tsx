@@ -116,6 +116,9 @@ export default function MarketplaceHomesPage() {
 
   const renderCard = useCallback(({ item }: { item: Listing }) => {
     const img = item.cover_image_url || item.image_urls?.[0] || item.gallery_images?.[0];
+    const isCV = !item.cover_image_url && !!item.video_url;
+    const sellerId = item.seller_id || item.owner_id;
+    const sellerName = item.business_name || item.seller_name;
     const addressLabel = item.location_visibility === "approximate"
       ? item.public_location_label || t("marketplace.approximateLocation", "Ungefahrer Standort")
       : item.address;
@@ -124,14 +127,19 @@ export default function MarketplaceHomesPage() {
         key={item.listing_id}
         imageUrl={img || undefined}
         videoUrl={item.video_url || undefined}
+        isCoverVideo={isCV}
+        muxThumbnailUrl={(item as any).mux_thumbnail_url || undefined}
+        videoStatus={(item as any).video_status || undefined}
         title={item.title}
-        subtitle={`${formatPrice(item.price) || ""}${(item.business_name || item.seller_name) ? `\u00b7 ${item.business_name || item.seller_name}` : ""}`}
+        subtitle={`${formatPrice(item.price) || ""}${sellerName ? `\u00b7 ${sellerName}` : ""}`}
+        subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
+        subtitleAvatarUrl={item.seller_avatar || undefined}
         thirdLine={addressLabel || ""}
         onPress={() => handleCardPress(item)}
         fallbackIcon="home"
       />
     );
-  }, [handleCardPress, t]);
+  }, [handleCardPress, router, t]);
 
   if (!viewport.ready) return (
     <SafeAreaView style={styles.container} edges={["top"]}>

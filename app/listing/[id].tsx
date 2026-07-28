@@ -137,8 +137,8 @@ export default function ListingDetailScreen() {
         <ContentHero
           coverImageUrl={listing.cover_image_url}
           videoUrl={listing.video_url}
-          muxThumbnailUrl={(listing as any).mux_thumbnail_url}
-          videoStatus={(listing as any).video_status}
+          muxThumbnailUrl={listing.mux_thumbnail_url}
+          videoStatus={listing.video_status}
           isCoverVideo={!listing.cover_image_url && !!listing.video_url}
           imageUrls={listing.image_urls}
           title={listing.title}
@@ -158,10 +158,20 @@ export default function ListingDetailScreen() {
           ) : null}
 
           {(listing.business_name || listing.seller_name) && (
-            <View style={styles.sellerRow}>
-              <Ionicons name={listing.seller_type === "business" ? "storefront-outline" : "person-outline"} size={16} color={COLORS.primary} />
+            <Pressable
+              style={styles.sellerRow}
+              onPress={() => {
+                const sid = listing.seller_id || listing.owner_id;
+                if (sid) router.push(`/marketplace/user/${sid}` as any);
+              }}
+            >
+              {listing.seller_avatar ? (
+                <Image source={{ uri: listing.seller_avatar }} style={styles.sellerAvatar} />
+              ) : (
+                <Ionicons name={listing.seller_type === "business" ? "storefront-outline" : "person-outline"} size={16} color={COLORS.primary} />
+              )}
               <Text style={styles.sellerText}>{listing.business_name || listing.seller_name}</Text>
-            </View>
+            </Pressable>
           )}
 
           <View style={styles.tags}>
@@ -256,6 +266,10 @@ const styles = StyleSheet.create({
   sellerRow: {
     flexDirection: "row", alignItems: "center", gap: 6,
     marginTop: SPACING.small, paddingVertical: SPACING.tiny,
+  },
+  sellerAvatar: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: COLORS.border,
   },
   sellerText: {
     fontSize: FONT_SIZES.bodySmall, fontWeight: "600",

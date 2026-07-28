@@ -110,7 +110,7 @@ export default function HomeScreen() {
 
   const [feedMode, setFeedMode] = useState<"nearby" | "following">("nearby");
 
-  const { homeLayout, toggleSection, setSorting, setFavoriteCategories } = useLayoutPreferences();
+  const { homeLayout, toggleSection, setSorting, setFavoriteCategories, collapsedSections, setSectionCollapsed } = useLayoutPreferences();
 
   const feedData = useFeedData({
     sessionToken,
@@ -788,6 +788,8 @@ export default function HomeScreen() {
               onChange: (k) => setEventsFilter(k as "all" | "attending" | "mine"),
             }}
             emptyMessage={t("home.noEvents")}
+            isCollapsed={collapsedSections.has("events")}
+            onToggleCollapse={() => setSectionCollapsed("events", !collapsedSections.has("events"))}
           >
             {sortedEvents.map((event) => {
               const eventTheme = (event as any).profile_theme;
@@ -846,6 +848,8 @@ export default function HomeScreen() {
               onChange: (k) => setActivitiesFilter(k as "all" | "attending" | "mine"),
             }}
             emptyMessage={t("activities.noActivities")}
+            isCollapsed={collapsedSections.has("activities")}
+            onToggleCollapse={() => setSectionCollapsed("activities", !collapsedSections.has("activities"))}
           >
             {sortedActivities.map((activity) => {
               const activityTheme = (activity as any).profile_theme;
@@ -894,6 +898,8 @@ export default function HomeScreen() {
             icon="business"
             color={COLORS.businessesAccent}
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
+            isCollapsed={collapsedSections.has("businesses")}
+            onToggleCollapse={() => setSectionCollapsed("businesses", !collapsedSections.has("businesses"))}
           >
             {sortedBusinesses.map((business) => {
               const businessTheme = business.theme;
@@ -923,6 +929,8 @@ export default function HomeScreen() {
             color={COLORS.servicesAccent}
             seeAllRoute="/services"
             emptyMessage={t("services.noServices") || "No services nearby"}
+            isCollapsed={collapsedSections.has("services")}
+            onToggleCollapse={() => setSectionCollapsed("services", !collapsedSections.has("services"))}
           >
             {sortedServices.filter(s => s.type !== "rental_property").map((service) => {
               const serviceImg = service.cover_image_url || (!service.video_url ? (service.image_urls?.[0] || service.gallery_images?.[0]) : undefined);
@@ -950,7 +958,9 @@ export default function HomeScreen() {
               color={COLORS.rentalsAccent}
               seeAllRoute="/rentals"
               emptyMessage={t("rentals.noRentals") || "No rentals nearby"}
-            >
+            isCollapsed={collapsedSections.has("rentals")}
+            onToggleCollapse={() => setSectionCollapsed("rentals", !collapsedSections.has("rentals"))}
+          >
               {sortedRentals.filter((r: any) => (r.source_type || "business") === "business").map((rental) => {
                 const rentalImg = rental.cover_image || (!(rental as any).video_url ? rental.gallery_images?.[0] : undefined);
                 return (
@@ -978,6 +988,8 @@ export default function HomeScreen() {
             color={COLORS.jobsAccent}
             seeAllRoute="/(tabs)/jobs"
             emptyMessage={t("jobs.noJobs") || "No jobs nearby"}
+            isCollapsed={collapsedSections.has("jobs")}
+            onToggleCollapse={() => setSectionCollapsed("jobs", !collapsedSections.has("jobs"))}
           >
             {sortedJobs.map((job) => {
               const jobImg = job.cover_image || (!job.video_url ? (job.image_urls?.[0] || job.gallery_images?.[0] || job.business_logo) : undefined);
@@ -1004,20 +1016,32 @@ export default function HomeScreen() {
             color={COLORS.success}
             seeAllRoute="/marketplace/items"
             emptyMessage={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
+            isCollapsed={collapsedSections.has("marketplace")}
+            onToggleCollapse={() => setSectionCollapsed("marketplace", !collapsedSections.has("marketplace"))}
           >
-            {viewportProducts.map((item) => (
+            {viewportProducts.map((item) => {
+              const sellerId = (item as any).seller_id || item.owner_id;
+              const sellerName = item.business_name || (item as any).seller_name;
+              const isCV = !item.cover_image_url && !!item.video_url;
+              return (
               <CarouselCard
                 key={item.listing_id}
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
                 videoUrl={item.video_url}
+                isCoverVideo={isCV}
+                muxThumbnailUrl={(item as any).mux_thumbnail_url || undefined}
+                videoStatus={(item as any).video_status || undefined}
                 title={item.title}
-                subtitle={`${item.price || ""}${(item.business_name || item.seller_name) ? `\u00b7 ${item.business_name || item.seller_name}` : ""}`}
-                thirdLine={item.public_location_label || item.address || ""}
+                subtitle={`${item.price || ""}${sellerName ? `\u00b7 ${sellerName}` : ""}`}
+                subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
+                subtitleAvatarUrl={(item as any).seller_avatar || undefined}
+                thirdLine={(item as any).public_location_label || item.address || ""}
                 onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="pricetag"
               />
-            ))}
+              );
+            })}
           </CarouselSection>
         )}
         {viewportHomes.length > 0 && homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
@@ -1027,20 +1051,32 @@ export default function HomeScreen() {
             color={COLORS.rentalsAccent}
             seeAllRoute="/marketplace/homes"
             emptyMessage={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
+            isCollapsed={collapsedSections.has("homes-nearby")}
+            onToggleCollapse={() => setSectionCollapsed("homes-nearby", !collapsedSections.has("homes-nearby"))}
           >
-            {viewportHomes.map((item) => (
+            {viewportHomes.map((item) => {
+              const sellerId = (item as any).seller_id || item.owner_id;
+              const sellerName = item.business_name || (item as any).seller_name;
+              const isCV = !item.cover_image_url && !!item.video_url;
+              return (
               <CarouselCard
                 key={item.listing_id}
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
                 videoUrl={item.video_url}
+                isCoverVideo={isCV}
+                muxThumbnailUrl={(item as any).mux_thumbnail_url || undefined}
+                videoStatus={(item as any).video_status || undefined}
                 title={item.title}
-                subtitle={`${item.price || ""}${(item.business_name || item.seller_name) ? `\u00b7 ${item.business_name || item.seller_name}` : ""}`}
-                thirdLine={item.public_location_label || item.address || ""}
+                subtitle={`${item.price || ""}${sellerName ? `\u00b7 ${sellerName}` : ""}`}
+                subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
+                subtitleAvatarUrl={(item as any).seller_avatar || undefined}
+                thirdLine={(item as any).public_location_label || item.address || ""}
                 onPress={() => pushEntityRoute(router, entityRoutes.rental(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="home"
               />
-            ))}
+              );
+            })}
           </CarouselSection>
         )}
 

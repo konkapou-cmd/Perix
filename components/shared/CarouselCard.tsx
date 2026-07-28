@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
@@ -8,9 +8,14 @@ import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
 interface CarouselCardProps {
   imageUrl?: string | null;
   videoUrl?: string | null;
+  isCoverVideo?: boolean;
+  muxThumbnailUrl?: string | null;
+  videoStatus?: string | null;
   focalPoint?: { x: number; y: number } | null;
   title: string;
   subtitle?: string | null;
+  subtitleOnPress?: () => void;
+  subtitleAvatarUrl?: string | null;
   thirdLine?: string | null;
   onPress: () => void;
   isSaved?: boolean;
@@ -22,9 +27,14 @@ interface CarouselCardProps {
 export function CarouselCard({
   imageUrl,
   videoUrl,
+  isCoverVideo,
+  muxThumbnailUrl,
+  videoStatus,
   focalPoint,
   title,
   subtitle,
+  subtitleOnPress,
+  subtitleAvatarUrl,
   thirdLine,
   onPress,
   isSaved,
@@ -32,13 +42,22 @@ export function CarouselCard({
   textColor,
   fallbackIcon = "ellipse",
 }: CarouselCardProps) {
+  const showVideo = isCoverVideo && videoUrl;
+
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageArea}>
-        {imageUrl ? (
+        {showVideo ? (
+          <View style={StyleSheet.absoluteFill}>
+            {muxThumbnailUrl || imageUrl ? (
+              <FocalImage uri={muxThumbnailUrl || imageUrl!} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} style={styles.image} showLoader={false} />
+            ) : null}
+            <AdaptiveVideo uri={videoUrl!} style={styles.image} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} />
+          </View>
+        ) : imageUrl ? (
           <FocalImage uri={imageUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} style={styles.image} showLoader={false} />
         ) : videoUrl ? (
-          <AdaptiveVideo uri={videoUrl} style={styles.image} autoPlay isLooping initialMuted />
+          <AdaptiveVideo uri={videoUrl} style={styles.image} autoPlay isLooping initialMuted videoStatus={videoStatus} />
         ) : (
           <View style={styles.fallback}>
             <Ionicons name={fallbackIcon} size={32} color={COLORS.textPlaceholder} />
@@ -56,9 +75,20 @@ export function CarouselCard({
           {title}
         </Text>
         {subtitle ? (
-          <Text style={[styles.subtitle, textColor ? { color: textColor } : undefined]} numberOfLines={1}>
-            {subtitle}
-          </Text>
+          subtitleOnPress ? (
+            <Pressable onPress={subtitleOnPress} style={styles.subtitleRow}>
+              {subtitleAvatarUrl ? (
+                <Image source={{ uri: subtitleAvatarUrl }} style={styles.subtitleAvatar} />
+              ) : null}
+              <Text style={[styles.subtitle, textColor ? { color: textColor } : undefined, styles.subtitleLink]} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={[styles.subtitle, textColor ? { color: textColor } : undefined]} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          )
         ) : null}
         {thirdLine ? (
           <Text style={styles.thirdLine} numberOfLines={1}>
@@ -132,6 +162,22 @@ const styles = StyleSheet.create({
     color: COLORS.textGray,
     marginTop: 1,
   },
+  subtitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 1,
+  },
+  subtitleAvatar: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.border,
+  },
+  subtitleLink: {
+    color: COLORS.primary,
+    textDecorationLine: "underline",
+  } as const,
   thirdLine: {
     fontSize: Platform.OS === "web" ? 13 : 11,
     color: COLORS.textGray,

@@ -25,6 +25,8 @@ export type Listing = {
   gallery_images: string[];
   gallery_videos: string[];
   video_url?: string;
+  mux_thumbnail_url?: string;
+  video_status?: string;
   address?: string;
   latitude?: number;
   longitude?: number;
