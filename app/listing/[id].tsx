@@ -166,7 +166,7 @@ export default function ListingDetailScreen() {
               style={styles.sellerRow}
               onPress={() => {
                 const sid = listing.seller_id || listing.owner_id;
-                if (sid) router.push(`/marketplace/user/${sid}` as any);
+                if (sid) router.push(`/user/${sid}` as any);
               }}
             >
               {listing.seller_avatar ? (

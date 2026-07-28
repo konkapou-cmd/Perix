@@ -24,7 +24,7 @@ export default function MyListingsScreen() {
     setLoading(true);
     getMyListings(sessionToken, tab)
       .then((items) => setListings(items))
-      .catch(() => {})
+      .catch((e) => { console.log("[MyListings] load failed:", e); })
       .finally(() => setLoading(false));
   };
 

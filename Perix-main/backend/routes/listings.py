@@ -209,8 +209,8 @@ async def _enrich_listing_sellers(docs: list[dict]) -> list[dict]:
     """Batch-enrich listing docs with seller_name, business_name and seller_avatar."""
     if not docs:
         return docs
-    user_ids = list({d["seller_id"] or d.get("owner_id") for d in docs if (d.get("seller_id") or d.get("owner_id")) and d.get("seller_type") != "business"})
-    biz_ids = list({d["business_id"] for d in docs if d.get("business_id") and d.get("seller_type") == "business"})
+    user_ids = list({d.get("seller_id") or d.get("owner_id") for d in docs if (d.get("seller_id") or d.get("owner_id")) and d.get("seller_type") != "business"})
+    biz_ids = list({d.get("business_id") for d in docs if d.get("business_id") and d.get("seller_type") == "business"})
     user_map: dict = {}
     biz_map: dict = {}
     if user_ids:
@@ -221,7 +221,7 @@ async def _enrich_listing_sellers(docs: list[dict]) -> list[dict]:
         biz_map = {b["business_id"]: b for b in bizs}
     for doc in docs:
         if doc.get("seller_type") == "business" and doc.get("business_id"):
-            biz = biz_map.get(doc["business_id"])
+            biz = biz_map.get(doc.get("business_id"))
             if biz:
                 doc["business_name"] = biz.get("name")
                 doc["seller_avatar"] = biz.get("profile_photo") or biz.get("logo_image")
