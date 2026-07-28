@@ -209,7 +209,7 @@ async def _enrich_listing_sellers(docs: list[dict]) -> list[dict]:
     """Batch-enrich listing docs with seller_name, business_name and seller_avatar."""
     if not docs:
         return docs
-    user_ids = list({d["seller_id"] for d in docs if d.get("seller_id") and d.get("seller_type") != "business"})
+    user_ids = list({d["seller_id"] or d.get("owner_id") for d in docs if (d.get("seller_id") or d.get("owner_id")) and d.get("seller_type") != "business"})
     biz_ids = list({d["business_id"] for d in docs if d.get("business_id") and d.get("seller_type") == "business"})
     user_map: dict = {}
     biz_map: dict = {}
@@ -225,11 +225,13 @@ async def _enrich_listing_sellers(docs: list[dict]) -> list[dict]:
             if biz:
                 doc["business_name"] = biz.get("name")
                 doc["seller_avatar"] = biz.get("profile_photo") or biz.get("logo_image")
-        elif doc.get("seller_id"):
-            user = user_map.get(doc["seller_id"])
-            if user:
-                doc["seller_name"] = user.get("name")
-                doc["seller_avatar"] = user.get("profile_photo")
+        else:
+            uid = doc.get("seller_id") or doc.get("owner_id")
+            if uid:
+                user = user_map.get(uid)
+                if user:
+                    doc["seller_name"] = user.get("name")
+                    doc["seller_avatar"] = user.get("profile_photo")
     return docs
 
 
@@ -545,6 +547,7 @@ async def update_listing(
         )
 
     doc = await db.listings.find_one({"listing_id": listing_id})
+    await _enrich_listing_sellers([doc])
     return ListingResponse(**doc)
 
 

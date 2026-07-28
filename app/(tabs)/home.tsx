@@ -1020,8 +1020,8 @@ export default function HomeScreen() {
             onToggleCollapse={() => setSectionCollapsed("marketplace", !collapsedSections.has("marketplace"))}
           >
             {viewportProducts.map((item) => {
-              const sellerId = (item as any).seller_id || item.owner_id;
-              const sellerName = item.business_name || (item as any).seller_name;
+              const sellerId = item.seller_id || item.owner_id;
+              const sellerName = item.business_name || item.seller_name;
               const isCV = !item.cover_image_url && !!item.video_url;
               return (
               <CarouselCard
@@ -1029,13 +1029,13 @@ export default function HomeScreen() {
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
                 videoUrl={item.video_url}
                 isCoverVideo={isCV}
-                muxThumbnailUrl={(item as any).mux_thumbnail_url || undefined}
-                videoStatus={(item as any).video_status || undefined}
+                muxThumbnailUrl={item.mux_thumbnail_url || undefined}
+                videoStatus={item.video_status || undefined}
                 title={item.title}
                 subtitle={`${item.price || ""}${sellerName ? `\u00b7 ${sellerName}` : ""}`}
                 subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
-                subtitleAvatarUrl={(item as any).seller_avatar || undefined}
-                thirdLine={(item as any).public_location_label || item.address || ""}
+                subtitleAvatarUrl={item.seller_avatar || undefined}
+                thirdLine={item.public_location_label || item.address || ""}
                 onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="pricetag"
@@ -1055,8 +1055,8 @@ export default function HomeScreen() {
             onToggleCollapse={() => setSectionCollapsed("homes-nearby", !collapsedSections.has("homes-nearby"))}
           >
             {viewportHomes.map((item) => {
-              const sellerId = (item as any).seller_id || item.owner_id;
-              const sellerName = item.business_name || (item as any).seller_name;
+              const sellerId = item.seller_id || item.owner_id;
+              const sellerName = item.business_name || item.seller_name;
               const isCV = !item.cover_image_url && !!item.video_url;
               return (
               <CarouselCard
@@ -1064,13 +1064,13 @@ export default function HomeScreen() {
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
                 videoUrl={item.video_url}
                 isCoverVideo={isCV}
-                muxThumbnailUrl={(item as any).mux_thumbnail_url || undefined}
-                videoStatus={(item as any).video_status || undefined}
+                muxThumbnailUrl={item.mux_thumbnail_url || undefined}
+                videoStatus={item.video_status || undefined}
                 title={item.title}
                 subtitle={`${item.price || ""}${sellerName ? `\u00b7 ${sellerName}` : ""}`}
                 subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
-                subtitleAvatarUrl={(item as any).seller_avatar || undefined}
-                thirdLine={(item as any).public_location_label || item.address || ""}
+                subtitleAvatarUrl={item.seller_avatar || undefined}
+                thirdLine={item.public_location_label || item.address || ""}
                 onPress={() => pushEntityRoute(router, entityRoutes.rental(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="home"
