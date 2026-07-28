@@ -1092,7 +1092,8 @@ const handleUpdateSlug = async (newSlug: string) => {
     }, [logout, clearMapBounds, t]);
 
    const handleAddPhoto = async () => {
-    if (!sessionToken) return;
+    if (!sessionToken || gallerySaving) return;
+    setGallerySaving(true);
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -1114,24 +1115,28 @@ const handleUpdateSlug = async (newSlug: string) => {
         } else {
           uploadedUrl = await uploadMedia(sessionToken, result.assets[0].uri, "image");
         }
-        if (uploadedUrl) {
-          const updated = await updateProfileGallery(sessionToken, { images: [uploadedUrl] });
-          setGalleryImages(updated.gallery_images || []);
-          setGalleryItems(updated.gallery_items || []);
-          setShowUploadProgress(false);
-          setUploadProgress(null);
-          refreshUser();
+        if (!uploadedUrl) {
+          Alert.alert(t("common.error", "Error"), t("profile.uploadFailed", "Failed to upload image"));
+          return;
         }
+        const updated = await updateProfileGallery(sessionToken, { images: [uploadedUrl] });
+        setGalleryImages(updated.gallery_images || []);
+        setGalleryItems(updated.gallery_items || []);
+        loadUserProfile();
+        Alert.alert(t("common.success", "Success"), t("profile.photoAdded", "Photo added to gallery"));
       }
     } catch (e: any) {
+      Alert.alert(t("common.error", "Error"), e.message || t("common.pleaseTryAgain", "Please try again"));
+    } finally {
       setShowUploadProgress(false);
       setUploadProgress(null);
-      Alert.alert(t("common.error", "Error"), e.message);
+      setGallerySaving(false);
     }
   };
 
   const handleAddVideo = async () => {
-    if (!sessionToken) return;
+    if (!sessionToken || gallerySaving) return;
+    setGallerySaving(true);
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -1156,19 +1161,18 @@ const handleUpdateSlug = async (newSlug: string) => {
           const updated = await updateProfileGallery(sessionToken, { videos: [uploadedUrl] });
           setGalleryVideos(updated.gallery_videos || []);
           setVideoItems(updated.video_items || []);
-          setShowUploadProgress(false);
-          setUploadProgress(null);
-          refreshUser();
+          loadUserProfile();
+          Alert.alert(t("common.success", "Success"), t("profile.videoAdded", "Video added to gallery"));
         } else {
-          setShowUploadProgress(false);
-          setUploadProgress(null);
           Alert.alert(t("common.error", "Error"), "Video upload failed: no playback URL received. Please try again.");
         }
       }
     } catch (e: any) {
+      Alert.alert(t("common.error", "Error"), e.message || t("common.pleaseTryAgain", "Please try again"));
+    } finally {
       setShowUploadProgress(false);
       setUploadProgress(null);
-      Alert.alert(t("common.error", "Error"), e.message);
+      setGallerySaving(false);
     }
   };
 
@@ -1248,6 +1252,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [postVideoPreview, setPostVideoPreview] = useState<string | null>(null);
   const [postMediaRatio, setPostMediaRatio] = useState<number | null>(null);
   const [isPosting, setIsPosting] = useState(false);
+  const [gallerySaving, setGallerySaving] = useState(false);
 
   const loadBusinessFullData = async (bizId: string) => {
     if (!sessionToken) return;
@@ -1895,13 +1900,7 @@ try {
             muxUploadId        // mux_upload_id
           );
 
-        if (actorIdentity.type === 'business') {
-          setBizPosts([newPost, ...bizPosts]);
-        } else if (actorIdentity.type === 'user') {
-          setUserPosts([newPost, ...userPosts]);
-        }
- 
-setPostText("");
+        setPostText("");
         setPostImage(null);
          setPostVideo(null);
          setPostVideoPreview(null);
