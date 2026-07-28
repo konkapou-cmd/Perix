@@ -195,10 +195,19 @@ export default function ListingModal({ visible, listingType, editingListing, ses
     }
 
     if (hasUnresolvedMedia(media)) {
-      Alert.alert(
-        t("upload.processingVideoTitle", "Video wird verarbeitet"),
-        t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
-      );
+      const failed = media.filter((m) => m.processingStatus === "failed");
+      if (failed.length > 0) {
+        Alert.alert(
+          t("upload.failedTitle", "Upload fehlgeschlagen"),
+          t("upload.failedBody", "Ein oder mehrere Uploads sind fehlgeschlagen. Diese werden beim Speichern nicht übernommen."),
+          [{ text: t("common.ok", "OK") }],
+        );
+      } else {
+        Alert.alert(
+          t("upload.processingVideoTitle", "Video wird verarbeitet"),
+          t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
+        );
+      }
       return;
     }
 
@@ -218,8 +227,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
     setSaving(true);
     try {
       const mediaFields = mediaToPayload(media);
-      const payload: ListingCreatePayload = {
-        listing_type: listingType,
+      const payload: any = {
         title: title.trim(),
         description: description || null,
         price: price || null,
@@ -232,15 +240,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         category: listingCategory || null,
         subcategory: listingSubcategory || null,
         attributes: Object.keys(listingAttributes).length > 0 ? listingAttributes : null,
-        seller_type: sellerType,
-        seller_id: sellerType === "business" ? sellerBusinessId : undefined,
-        business_id: sellerType === "business" ? sellerBusinessId : undefined,
         publication_scope: scope,
-        cover_image_url: mediaFields.cover_image_url || null,
-        image_urls: mediaFields.image_urls,
-        gallery_images: mediaFields.gallery_images,
-        gallery_videos: mediaFields.gallery_videos,
-        video_url: mediaFields.video_url || null,
         condition: isProduct ? (condition || null) : undefined,
         brand: isProduct ? (brand || null) : undefined,
         delivery_method: isProduct ? (delivery || null) : undefined,
@@ -253,6 +253,31 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         lease_duration: !isProduct ? (leaseDuration || null) : undefined,
         deposit: !isProduct ? (deposit || null) : undefined,
       };
+
+      if (!isEditing) {
+        payload.listing_type = listingType;
+        payload.seller_type = sellerType;
+        payload.seller_id = sellerType === "business" ? sellerBusinessId : undefined;
+        payload.business_id = sellerType === "business" ? sellerBusinessId : undefined;
+      }
+
+      const isCoverVideo = !!mediaFields.video_url && !mediaFields.cover_image_url;
+
+      if (mediaFields.cover_image_url) {
+        payload.cover_image_url = mediaFields.cover_image_url;
+      }
+      if (mediaFields.video_url) {
+        payload.video_url = mediaFields.video_url;
+      }
+      if (mediaFields.image_urls.length > 0) {
+        payload.image_urls = mediaFields.image_urls;
+      }
+      if (mediaFields.gallery_images.length > 0) {
+        payload.gallery_images = mediaFields.gallery_images;
+      }
+      if (mediaFields.gallery_videos.length > 0) {
+        payload.gallery_videos = mediaFields.gallery_videos;
+      }
 
       if (isEditing) {
         await updateListing(sessionToken, editingListing!.listing_id, payload);
