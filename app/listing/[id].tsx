@@ -9,12 +9,10 @@ import { getListing, Listing } from "../../lib/api/listings";
 import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
-import AdaptiveImage from "../../components/AdaptiveImage";
+import { ContentHero, ContentGallery } from "../../components/shared";
+import { MediaItem } from "../../components/UnifiedMediaGallery";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
-
-const CONDITIONS: Record<string, string> = {
-  new: "New", like_new: "Like New", good: "Good", used: "Used",
-};
+import { formatPrice } from "../../lib/serviceFormat";
 
 export default function ListingDetailScreen() {
   const { t } = useTranslation();
@@ -74,7 +72,7 @@ export default function ListingDetailScreen() {
       Alert.alert(t("common.loginRequired", "Login Required"), t("common.loginToContact", "Please log in to contact the seller."));
       return;
     }
-    router.push({ pathname: `/messages/${listing.owner_id}` as any, params: { name: "Seller", entityType: "user" } as any });
+    router.push({ pathname: `/messages/${listing.owner_id}` as any, params: { name: listing.business_name || listing.seller_name || "Seller", entityType: "user" } as any });
   };
 
   if (!id) {
@@ -115,7 +113,17 @@ export default function ListingDetailScreen() {
     );
   }
 
-  const img = listing.cover_image_url || listing.image_urls?.[0] || listing.gallery_images?.[0];
+  const allMediaItems: MediaItem[] = (() => {
+    const items: MediaItem[] = [];
+    const seen = new Set<string>();
+    const push = (m: MediaItem) => { if (!seen.has(m.uri)) { seen.add(m.uri); items.push(m); } };
+    if (listing.cover_image_url) push({ uri: listing.cover_image_url, type: "image", isCoverImage: true });
+    if (listing.video_url) push({ uri: listing.video_url, type: "video", isCoverVideo: !listing.cover_image_url });
+    listing.image_urls?.forEach((u) => push({ uri: u, type: "image" }));
+    listing.gallery_images?.forEach((u) => push({ uri: u, type: "image" }));
+    listing.gallery_videos?.forEach((v) => push({ uri: v, type: "video" }));
+    return items;
+  })();
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -126,30 +134,40 @@ export default function ListingDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        {img ? (
-          <AdaptiveImage uri={img} ratio={4 / 3} maxHeight={300} borderRadius={12} style={styles.cover} />
-        ) : (
-          <View style={[styles.cover, styles.coverPlaceholder]}>
-            <Ionicons name="pricetag-outline" size={48} color="#9ca3af" />
-          </View>
-        )}
+        <ContentHero
+          coverImageUrl={listing.cover_image_url}
+          videoUrl={listing.video_url}
+          muxThumbnailUrl={(listing as any).mux_thumbnail_url}
+          videoStatus={(listing as any).video_status}
+          isCoverVideo={!listing.cover_image_url && !!listing.video_url}
+          imageUrls={listing.image_urls}
+          title={listing.title}
+          mediaItems={allMediaItems}
+        />
 
         <View style={styles.infoCard}>
           <Text style={styles.title}>{listing.title}</Text>
           {listing.price ? (
-            <Text style={styles.price}>{listing.price}</Text>
+             <Text style={styles.price}>{formatPrice(listing.price)}</Text>
           ) : (
-            <Text style={styles.askPrice}>{t("marketplace.askForPrice", "Ask for price")}</Text>
+            <Text style={styles.askPrice}>{t("marketplace.askForPrice", "Ρωτήστε για τιμή")}</Text>
           )}
 
           {listing.description ? (
             <Text style={styles.description}>{listing.description}</Text>
           ) : null}
 
+          {(listing.business_name || listing.seller_name) && (
+            <View style={styles.sellerRow}>
+              <Ionicons name={listing.seller_type === "business" ? "storefront-outline" : "person-outline"} size={16} color={COLORS.primary} />
+              <Text style={styles.sellerText}>{listing.business_name || listing.seller_name}</Text>
+            </View>
+          )}
+
           <View style={styles.tags}>
-            {listing.condition ? (
+                {listing.condition ? (
               <View style={styles.tag}>
-                <Text style={styles.tagText}>{CONDITIONS[listing.condition] || listing.condition}</Text>
+                <Text style={styles.tagText}>{t(`marketplace.${listing.condition}`, listing.condition)}</Text>
               </View>
             ) : null}
             {listing.brand ? (
@@ -173,6 +191,10 @@ export default function ListingDetailScreen() {
             </View>
           ) : null}
         </View>
+
+        {allMediaItems.length > 0 && (
+          <ContentGallery mediaItems={allMediaItems} title={t("listing.gallery", "Γκαλερί")} />
+        )}
 
         <View style={styles.actions}>
           <Pressable style={styles.contactBtn} onPress={handleContact}>
@@ -230,5 +252,13 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.background,
     alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: COLORS.border,
+  },
+  sellerRow: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    marginTop: SPACING.small, paddingVertical: SPACING.tiny,
+  },
+  sellerText: {
+    fontSize: FONT_SIZES.bodySmall, fontWeight: "600",
+    color: COLORS.primary,
   },
 });

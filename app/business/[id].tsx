@@ -42,6 +42,7 @@ import { COLORS } from "../../lib/designTokens";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 
 import { BusinessProfilePremium } from "../../components/profile/BusinessProfilePremium";
+import { getBusinessSellerListings, Listing } from "../../lib/api/listings";
 import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 
@@ -88,6 +89,8 @@ const [followLoading, setFollowLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
 
+  const [businessListings, setBusinessListings] = useState<Listing[]>([]);
+
   // Booking State
   const [bookingService, setBookingService] = useState<any>(null);
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
@@ -98,6 +101,8 @@ const [followLoading, setFollowLoading] = useState(false);
     try {
       const detail = await getBusinessDetail(sessionToken, id);
       setBusinessDetail(detail);
+
+      getBusinessSellerListings(id).then(setBusinessListings).catch(() => {});
       
       try {
         const { is_saved } = await checkSaved(sessionToken, "business", id);
@@ -458,6 +463,7 @@ const [followLoading, setFollowLoading] = useState(false);
           friendStatus={friendStatus}
           onFollowPress={handleFollowPress}
           onSavePress={handleToggleSave}
+          businessListings={businessListings}
           isSaved={isSaved}
           savingItem={savingItem}
           avatarUri={businessDetail.business.logo_image}

@@ -61,15 +61,15 @@ export function useContentSorting({
   posts = [], events = [], businesses = [], jobs = [], activities = [], rentals = [], services = [],
   sorting, userLocation, mapBounds, eventsFilter, activitiesFilter, mapRefreshKey,
 }: UseContentSortingParams) {
-  const userLat = userLocation?.latitude || mapBounds?.centerLat || 52.52;
-  const userLng = userLocation?.longitude || mapBounds?.centerLng || 13.405;
+  const userLat = userLocation?.latitude ?? mapBounds?.centerLat ?? null;
+  const userLng = userLocation?.longitude ?? mapBounds?.centerLng ?? null;
 
   const sortedEvents = useMemo(() => {
     let upcoming = events.filter(isUpcomingEvent);
     if (eventsFilter === "attending") upcoming = upcoming.filter(e => e.is_attending);
     else if (eventsFilter === "mine") upcoming = upcoming.filter(e => (e as any).is_creator);
     switch (sorting.events) {
-      case "distance": return sortByDistance(upcoming as any[], userLat, userLng);
+      case "distance": return userLat != null && userLng != null ? sortByDistance(upcoming as any[], userLat, userLng) : shuffle(upcoming);
       case "chronological": return [...upcoming].sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
       case "engagement": return [...upcoming].sort((a, b) => (b.attendees_count || 0) - (a.attendees_count || 0));
       default: return shuffle(upcoming);
@@ -78,7 +78,7 @@ export function useContentSorting({
 
   const sortedBusinesses = useMemo(() => {
     switch (sorting.businesses) {
-      case "distance": return sortByDistance(businesses as any[], userLat, userLng);
+      case "distance": return userLat != null && userLng != null ? sortByDistance(businesses as any[], userLat, userLng) : shuffle(businesses);
       case "chronological": return [...businesses].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       case "engagement": return [...businesses].sort((a, b) => ((b as any).followers_count || 0) - ((a as any).followers_count || 0));
       default: return shuffle(businesses);
@@ -87,7 +87,7 @@ export function useContentSorting({
 
   const sortedJobs = useMemo(() => {
     switch (sorting.jobs) {
-      case "distance": return sortByDistance(jobs as any[], userLat, userLng);
+      case "distance": return userLat != null && userLng != null ? sortByDistance(jobs as any[], userLat, userLng) : shuffle(jobs);
       case "chronological": return [...jobs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       default: return shuffle(jobs);
     }
@@ -110,7 +110,7 @@ export function useContentSorting({
 
   const sortedRentals = useMemo(() => {
     switch (sorting.rentals) {
-      case "distance": return sortByDistance(rentals as any[], userLat, userLng);
+      case "distance": return userLat != null && userLng != null ? sortByDistance(rentals as any[], userLat, userLng) : shuffle(rentals);
       case "chronological": return [...rentals].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       default: return shuffle(rentals);
     }
@@ -118,7 +118,7 @@ export function useContentSorting({
 
   const sortedServices = useMemo(() => {
     switch (sorting.services) {
-      case "distance": return sortByDistance(services as any[], userLat, userLng);
+      case "distance": return userLat != null && userLng != null ? sortByDistance(services as any[], userLat, userLng) : shuffle(services);
       case "chronological": return [...services].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       case "engagement": return [...services].sort((a, b) => (b.capacity || 0) - (a.capacity || 0));
       default: return shuffle(services);

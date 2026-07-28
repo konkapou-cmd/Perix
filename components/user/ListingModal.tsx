@@ -1,45 +1,97 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Alert, Modal, Pressable, ScrollView, StyleSheet,
-  Text, TextInput, View, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Text, TextInput, View, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
-import { ListingType, ListingStatus, ListingCreatePayload, Listing } from "../../lib/api/listings";
+import { ListingType, ListingStatus, ListingCreatePayload, Listing, LocationVisibility, SellerType, PublicationScope } from "../../lib/api/listings";
 import { createListing, updateListing } from "../../lib/api/listings";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
+import MarketplaceCategoryPicker from "../marketplace/MarketplaceCategoryPicker";
+import MarketplaceAttributeFields from "../marketplace/MarketplaceAttributeFields";
+import { getCategoryAttributes, getCategoryConfig, normalizeCategory } from "../../lib/marketplace/marketplaceTaxonomy";
 
 type Props = {
   visible: boolean;
   listingType: ListingType;
   editingListing?: Listing | null;
   sessionToken: string;
+  businessId?: string | null;
+  businessAddress?: string | null;
+  businessLatitude?: number | null;
+  businessLongitude?: number | null;
+  businessPublicLocationLabel?: string | null;
+  allowedTaxonomy?: Record<string, "*" | string[]> | null;
   onClose: () => void;
   onSave: () => void;
   onCreated?: (listingId: string) => void;
 };
 
 const HOME_TYPES = ["apartment", "house", "studio", "room"];
-const CONDITIONS = ["new", "like_new", "good", "used"];
-const DELIVERY = ["pickup", "shipping", "both"];
+const CONDITION_LABELS: Record<string, string> = { new: "Neu", like_new: "Wie neu", good: "Gut", used: "Gebraucht" };
+const DELIVERY_LABELS: Record<string, string> = { pickup: "Abholung", shipping: "Versand", both: "Beides" };
+
+function listingToMedia(listing: Listing | null | undefined): MediaItem[] {
+  if (!listing) return [];
+  const items: MediaItem[] = [];
+  const seen = new Set<string>();
+
+  function push(item: MediaItem) {
+    if (!seen.has(item.uri)) {
+      seen.add(item.uri);
+      items.push(item);
+    }
+  }
+
+  if (listing.cover_image_url) {
+    push({ uri: listing.cover_image_url, type: "image", isCoverImage: true });
+  }
+
+  if (listing.video_url) {
+    push({ uri: listing.video_url, type: "video", isCoverVideo: !listing.cover_image_url });
+  }
+
+  if (listing.image_urls) {
+    listing.image_urls.forEach((u) => push({ uri: u, type: "image" }));
+  }
+
+  if (listing.gallery_images) {
+    listing.gallery_images.forEach((u) => push({ uri: u, type: "image" }));
+  }
+
+  if (listing.gallery_videos) {
+    listing.gallery_videos.forEach((u) => push({ uri: u, type: "video" }));
+  }
+
+  return items;
+}
+
+function hasUnresolvedMedia(media: MediaItem[]): boolean {
+  return media.some((m) => m.processingStatus === "processing" || m.processingStatus === "failed");
+}
 
 function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string } {
-  const images = media.filter((m) => m.type === "image");
-  const videos = media.filter((m) => m.type === "video");
-  const coverImage = images.find((m) => (m as any).isCoverImage) ?? images[0];
-  const coverVideo = videos.find((m) => (m as any).isCoverVideo);
+  const ready = media.filter((m) => !m.processingStatus || m.processingStatus === "ready");
+  const images = ready.filter((m) => m.type === "image");
+  const videos = ready.filter((m) => m.type === "video");
+  const explicitCoverVideo = videos.find((m) => (m as any).isCoverVideo);
+  const explicitCoverImage = images.find((m) => (m as any).isCoverImage);
+  const coverImage = explicitCoverVideo ? undefined : explicitCoverImage ?? images[0];
+  const primaryVideo = explicitCoverVideo ?? videos[0];
   return {
     cover_image_url: coverImage?.uri,
     image_urls: images.map((m) => m.uri),
     gallery_images: images.filter((m) => m.uri !== coverImage?.uri).map((m) => m.uri),
-    video_url: coverVideo?.uri ?? videos[0]?.uri,
-    gallery_videos: videos.filter((m) => m.uri !== (coverVideo?.uri ?? videos[0]?.uri)).map((m) => m.uri),
+    video_url: primaryVideo?.uri,
+    gallery_videos: videos.filter((m) => m.uri !== primaryVideo?.uri).map((m) => m.uri),
   };
 }
 
-export default function ListingModal({ visible, listingType, editingListing, sessionToken, onClose, onSave: onSaveProp, onCreated }: Props) {
+export default function ListingModal({ visible, listingType, editingListing, sessionToken, businessId, businessAddress, businessLatitude, businessLongitude, businessPublicLocationLabel, allowedTaxonomy, onClose, onSave: onSaveProp, onCreated }: Props) {
   const { t } = useTranslation();
   const isProduct = listingType === "product";
   const isEditing = !!editingListing;
@@ -51,6 +103,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
+  const [publicLocationLabel, setPublicLocationLabel] = useState("");
+  const [locationVisibility, setLocationVisibility] = useState<LocationVisibility>("approximate");
+  const [showPublicLabelInput, setShowPublicLabelInput] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
 
   // Product fields
@@ -69,6 +124,14 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [deposit, setDeposit] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [listingCategory, setListingCategory] = useState("");
+  const [listingSubcategory, setListingSubcategory] = useState("");
+  const [listingAttributes, setListingAttributes] = useState<Record<string, any>>({});
+  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
+  const [sellerType, setSellerType] = useState<SellerType>(businessId ? "business" : "user");
+  const [sellerBusinessId, setSellerBusinessId] = useState<string | null>(businessId ?? null);
+  const [scope, setScope] = useState<PublicationScope>("profile_and_marketplace");
+
   const hasCoordinates = useMemo(
     () => Number.isFinite(latitude) && Number.isFinite(longitude),
     [latitude, longitude],
@@ -83,6 +146,8 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setAddress(editingListing.address || "");
       setLatitude(editingListing.latitude);
       setLongitude(editingListing.longitude);
+      setPublicLocationLabel(editingListing.public_location_label || "");
+      setLocationVisibility(editingListing.location_visibility || "approximate");
       setCondition(editingListing.condition || "");
       setBrand(editingListing.brand || "");
       setDelivery(editingListing.delivery_method || "");
@@ -94,29 +159,60 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setAvailableFrom(editingListing.available_from || "");
       setLeaseDuration(editingListing.lease_duration || "");
       setDeposit(editingListing.deposit || "");
-      // Load existing media
-      const items: MediaItem[] = [];
-      (editingListing.image_urls || []).forEach((u) => items.push({ uri: u, type: "image" }));
-      (editingListing.gallery_videos || []).forEach((u) => items.push({ uri: u, type: "video" }));
-      if (editingListing.video_url) items.push({ uri: editingListing.video_url, type: "video" });
-      setMedia(items);
+      const cat = normalizeCategory(editingListing.category || "");
+      setListingCategory(cat);
+      setListingSubcategory(editingListing.subcategory || "");
+      setListingAttributes(editingListing.attributes || {});
+      setSellerType(editingListing.seller_type || "user");
+      setSellerBusinessId(editingListing.business_id ?? null);
+      setScope(editingListing.publication_scope || "profile_and_marketplace");
+      setMedia(listingToMedia(editingListing));
     } else if (visible) {
       setTitle(""); setDescription(""); setPrice(""); setStatus("published");
       setAddress(""); setLatitude(undefined); setLongitude(undefined); setMedia([]);
+      setPublicLocationLabel(""); setLocationVisibility("approximate");
       setCondition(""); setBrand(""); setDelivery("");
       setPropertyType("apartment"); setBedrooms(""); setBathrooms("");
       setSizeSqm(""); setFurnished(false); setAvailableFrom(""); setLeaseDuration(""); setDeposit("");
+      setListingCategory(""); setListingSubcategory(""); setListingAttributes({});
+      setSellerType(businessId ? "business" : "user");
+      setSellerBusinessId(businessId ?? null);
+      setScope("profile_and_marketplace");
+      if (businessId) {
+        setAddress(businessAddress ?? "");
+        setLatitude(businessLatitude ?? undefined);
+        setLongitude(businessLongitude ?? undefined);
+        setPublicLocationLabel(businessPublicLocationLabel ?? "");
+      }
     }
   }, [visible, editingListing]);
 
   const handleSave = async () => {
+    if (saving) return;
     if (!title.trim()) {
       Alert.alert(t("common.error", "Error"), t("common.titleRequired", "Title is required"));
       return;
     }
-    if (listingType === "home_rental" && status === "published" && !hasCoordinates) {
-      Alert.alert(t("common.error", "Error"), t("marketplace.locationRequired", "Select and confirm the home's address before publishing."));
+
+    if (hasUnresolvedMedia(media)) {
+      Alert.alert(
+        t("upload.processingVideoTitle", "Video wird verarbeitet"),
+        t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
+      );
       return;
+    }
+
+    let effectiveStatus: ListingStatus = status;
+    if (status === "published") {
+      if (!hasCoordinates) {
+        effectiveStatus = "draft";
+      } else if (locationVisibility === "approximate" && !publicLocationLabel.trim()) {
+        effectiveStatus = "draft";
+      } else if (isProduct && !listingCategory) {
+        effectiveStatus = "draft";
+      } else if (isProduct && !listingSubcategory) {
+        effectiveStatus = "draft";
+      }
     }
 
     setSaving(true);
@@ -127,10 +223,19 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         title: title.trim(),
         description: description || null,
         price: price || null,
-        status,
+        status: effectiveStatus,
         address: address || null,
         latitude: latitude ?? null,
         longitude: longitude ?? null,
+        public_location_label: publicLocationLabel || null,
+        location_visibility: locationVisibility,
+        category: listingCategory || null,
+        subcategory: listingSubcategory || null,
+        attributes: Object.keys(listingAttributes).length > 0 ? listingAttributes : null,
+        seller_type: sellerType,
+        seller_id: sellerType === "business" ? sellerBusinessId : undefined,
+        business_id: sellerType === "business" ? sellerBusinessId : undefined,
+        publication_scope: scope,
         cover_image_url: mediaFields.cover_image_url || null,
         image_urls: mediaFields.image_urls,
         gallery_images: mediaFields.gallery_images,
@@ -155,17 +260,25 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         const created = await createListing(sessionToken, payload);
         onCreated?.(created.listing_id);
       }
+
+      if (effectiveStatus !== status) {
+        Alert.alert(
+          t("common.savedAsDraft", "Als Entwurf gespeichert"),
+          t("marketplace.draftLocationHint", "Füge eine verifizierte Adresse hinzu, bevor du veröffentlichst."),
+        );
+      }
       onSaveProp();
       onClose();
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e?.message || t("common.saveFailed", "Failed to save listing"));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={styles.header}>
             <Pressable onPress={onClose} style={styles.closeBtn}>
@@ -188,7 +301,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
             <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder={isProduct ? "e.g. Vintage Watch" : "e.g. Cozy Studio in Mitte"} placeholderTextColor={COLORS.textDisabled} />
 
             <Text style={styles.label}>{t("services.price", "Price")}</Text>
-            <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder={isProduct ? "$20" : "€800/month"} placeholderTextColor={COLORS.textDisabled} keyboardType="numeric" />
+            <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder={isProduct ? "€20" : "€800/μήνα"} placeholderTextColor={COLORS.textDisabled} keyboardType="numeric" />
 
             <Text style={styles.label}>{t("services.description", "Description")}</Text>
             <TextInput style={[styles.input, { height: 80 }]} value={description} onChangeText={setDescription} placeholder={t("services.descriptionPlaceholder", "Describe your listing...")} placeholderTextColor={COLORS.textDisabled} multiline textAlignVertical="top" />
@@ -200,25 +313,91 @@ export default function ListingModal({ visible, listingType, editingListing, ses
               label={t("marketplace.photosVideos", "Photos & Videos")}
             />
 
+            {isProduct && (
+              <>
+                <Text style={styles.label}>
+                  {t("marketplace.category", "Kategorie")}
+                  {status === "published" && <Text style={styles.required}> *</Text>}
+                </Text>
+                <Pressable
+                  style={styles.input}
+                  onPress={() => setCategoryPickerVisible(true)}
+                >
+                  <Text style={listingCategory ? { color: COLORS.textPrimary } : { color: COLORS.textDisabled }}>
+                    {listingCategory
+                      ? `${getCategoryConfig(listingCategory)?.fallback ?? listingCategory}${listingSubcategory ? ` · ${getCategoryConfig(listingCategory)?.subcategories.find((s) => s.key === listingSubcategory)?.fallback ?? listingSubcategory}` : ""}`
+                      : t("marketplace.selectCategory", "Kategorie auswählen")}
+                  </Text>
+                </Pressable>
+
+                <MarketplaceCategoryPicker
+                  visible={categoryPickerVisible}
+                  selectedCategory={listingCategory}
+                  selectedSubcategory={listingSubcategory}
+                  allowedTaxonomy={allowedTaxonomy}
+                  onSelect={(cat, sub) => {
+                    if (cat !== listingCategory) setListingAttributes({});
+                    setListingCategory(cat);
+                    setListingSubcategory(sub);
+                  }}
+                  onClose={() => setCategoryPickerVisible(false)}
+                />
+
+                {listingCategory && (
+                  <MarketplaceAttributeFields
+                    attributes={getCategoryAttributes(listingCategory, listingSubcategory || undefined)}
+                    values={listingAttributes}
+                    onChange={(key, val) => setListingAttributes((prev) => ({ ...prev, [key]: val }))}
+                  />
+                )}
+
+                <Pressable
+                  style={[styles.toggle, scope === "profile_and_marketplace" && styles.toggleActive]}
+                  onPress={() => setScope(scope === "profile_and_marketplace" ? "profile_only" : "profile_and_marketplace")}
+                >
+                  <Ionicons name={scope === "profile_and_marketplace" ? "checkbox" : "square-outline"} size={20} color={scope === "profile_and_marketplace" ? COLORS.primary : COLORS.textMuted} />
+                  <Text style={styles.toggleText}>{t("marketplace.showInMarketplace", "Im Marktplatz anzeigen")}</Text>
+                </Pressable>
+
+                {businessId && (
+                  <Pressable
+                    style={styles.toggle}
+                    onPress={() => {
+                      if (address) {
+                        setAddress(""); setLatitude(undefined); setLongitude(undefined);
+                      } else {
+                        setAddress(businessAddress || ""); setLatitude(businessLatitude ?? undefined); setLongitude(businessLongitude ?? undefined);
+                      }
+                    }}
+                  >
+                    <Ionicons name={address === businessAddress ? "checkbox" : "square-outline"} size={20} color={address === businessAddress ? COLORS.primary : COLORS.textMuted} />
+                    <Text style={styles.toggleText}>{t("marketplace.useBusinessAddress", "Geschäftsadresse verwenden")}</Text>
+                  </Pressable>
+                )}
+
+                <View style={{ height: SPACING.section }} />
+              </>
+            )}
+
             {isProduct ? (
               <>
                 <Text style={styles.label}>{t("services.condition", "Condition")}</Text>
                 <View style={styles.chipRow}>
-                  {CONDITIONS.map((c) => (
-                    <Pressable key={c} style={[styles.chip, condition === c && styles.chipActive]} onPress={() => setCondition(condition === c ? "" : c)}>
-                      <Text style={[styles.chipText, condition === c && styles.chipTextActive]}>{c}</Text>
+                  {Object.entries(CONDITION_LABELS).map(([key, label]) => (
+                    <Pressable key={key} style={[styles.chip, condition === key && styles.chipActive]} onPress={() => setCondition(condition === key ? "" : key)}>
+                      <Text style={[styles.chipText, condition === key && styles.chipTextActive]}>{label}</Text>
                     </Pressable>
                   ))}
                 </View>
 
                 <Text style={styles.label}>{t("services.brand", "Brand")}</Text>
-                <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder="Nike, Apple, etc." placeholderTextColor={COLORS.textDisabled} />
+                <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder={t("marketplace.brandPlaceholder", "π.χ. Αναφέρετε τη μάρκα")} placeholderTextColor={COLORS.textDisabled} />
 
                 <Text style={styles.label}>{t("services.delivery", "Delivery")}</Text>
                 <View style={styles.chipRow}>
-                  {DELIVERY.map((d) => (
-                    <Pressable key={d} style={[styles.chip, delivery === d && styles.chipActive]} onPress={() => setDelivery(delivery === d ? "" : d)}>
-                      <Text style={[styles.chipText, delivery === d && styles.chipTextActive]}>{d}</Text>
+                  {Object.entries(DELIVERY_LABELS).map(([key, label]) => (
+                    <Pressable key={key} style={[styles.chip, delivery === key && styles.chipActive]} onPress={() => setDelivery(delivery === key ? "" : key)}>
+                      <Text style={[styles.chipText, delivery === key && styles.chipTextActive]}>{label}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -261,17 +440,61 @@ export default function ListingModal({ visible, listingType, editingListing, ses
 
                 <Text style={styles.label}>{t("rentals.deposit", "Deposit")}</Text>
                 <TextInput style={styles.input} value={deposit} onChangeText={setDeposit} placeholder="€1000" placeholderTextColor={COLORS.textDisabled} />
-
-                <Text style={styles.label}>{t("services.address", "Address")} <Text style={styles.required}>*</Text></Text>
-                <PlacesAutocompleteInput
-                  value={address}
-                  onChangeText={(text) => { setAddress(text); setLatitude(undefined); setLongitude(undefined); }}
-                  onSelectPlace={(addr, lat, lng) => { setAddress(addr); setLatitude(lat); setLongitude(lng); }}
-                  placeholder={t("services.addressPlaceholder", "Search address...")}
-                  confirmed={hasCoordinates}
-                />
               </>
             )}
+
+            <Text style={styles.label}>
+              {t("services.address", "Address")}
+              {status === "published" && <Text style={styles.required}> *</Text>}
+            </Text>
+            <PlacesAutocompleteInput
+              value={address}
+              onChangeText={(text) => { setAddress(text); }}
+              onSelectPlace={(addr, lat, lng, publicLabel) => {
+                setAddress(addr);
+                setLatitude(lat);
+                setLongitude(lng);
+                const streetPart = addr.split(",")[0].trim();
+                const streetOnly = streetPart.replace(/\s+\d+.*$/, "").trim() || streetPart;
+                setPublicLocationLabel(streetOnly);
+              }}
+              placeholder={t("services.addressPlaceholder", "Search address...")}
+              confirmed={hasCoordinates}
+              sessionToken={sessionToken}
+            />
+
+                {hasCoordinates && (
+                  <>
+                    <Text style={styles.label}>{t("marketplace.locationVisibility", "Sichtbarkeit des Standorts")}</Text>
+                    <View style={styles.chipRow}>
+                      <Pressable
+                        style={[styles.chip, locationVisibility === "approximate" && styles.chipActive]}
+                        onPress={() => setLocationVisibility("approximate")}
+                      >
+                        <Text style={[styles.chipText, locationVisibility === "approximate" && styles.chipTextActive]}>
+                          {t("marketplace.approximate", "Ungefährer Bereich")}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.chip, locationVisibility === "exact" && styles.chipActive]}
+                        onPress={() => setLocationVisibility("exact")}
+                      >
+                        <Text style={[styles.chipText, locationVisibility === "exact" && styles.chipTextActive]}>
+                          {t("marketplace.exact", "Genaue Adresse")}
+                        </Text>
+                      </Pressable>
+                    </View>
+
+                    {publicLocationLabel && (
+                      <View style={styles.locationLabelRow}>
+                        <Ionicons name="eye-outline" size={14} color={COLORS.textMuted} />
+                        <Text style={styles.locationLabelText} numberOfLines={1}>
+                          {publicLocationLabel}
+                        </Text>
+                      </View>
+                    )}
+                  </>
+                )}
 
             <View style={styles.statusRow}>
               <Pressable style={[styles.statusBtn, status === "draft" && styles.statusBtnDraft]} onPress={() => setStatus("draft")}>
@@ -342,4 +565,13 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md, paddingVertical: 14, alignItems: "center",
   },
   saveBtnText: { fontSize: FONT_SIZES.body, fontWeight: "700", color: "#fff" },
+  locationLabelRow: { marginBottom: SPACING.small },
+  locationLabelPressable: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    padding: SPACING.small, borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.backgroundPage, borderWidth: 1, borderColor: COLORS.border,
+  },
+  locationLabelText: { flex: 1, fontSize: 13, color: COLORS.textPrimary },
+  locationLabelEdit: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
+  field: { marginTop: SPACING.small },
 });

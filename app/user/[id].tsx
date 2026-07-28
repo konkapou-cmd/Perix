@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { UserPublicProfile, getUserPublicProfile, getPosts, reportUser, getFriendshipStatus, toggleFriend, sendFriendRequest, cancelFriendRequest, acceptFriendRequest, FriendshipStatus, toggleSaved, checkSaved, APP_URL, getUserActivities, ActivityItem, getUserFriends, FriendProfile } from "../../lib/api";
 import { COLORS } from "../../lib/designTokens";
 import { useAuth } from "../../context/AuthContext";
+import { getUserSellerListings, Listing } from "../../lib/api/listings";
 
 import { UserProfilePremium } from "../../components/profile/UserProfilePremium";
 
@@ -54,8 +55,13 @@ export default function UserProfileScreen() {
   // Friends List State
   const [friendProfiles, setFriendProfiles] = useState<FriendProfile[]>([]);
 
+  const [userListings, setUserListings] = useState<Listing[]>([]);
+  const listingsRequestRef = useRef(0);
+
   const loadProfile = useCallback(async () => {
     if (!sessionToken || !id) return;
+    const listingsRequestId = ++listingsRequestRef.current;
+    setUserListings([]);
     setLoading(true);
     setError(null);
     try {
@@ -76,6 +82,17 @@ export default function UserProfileScreen() {
         setUserActivities(activities);
       } catch (e) {
         console.log("Failed to load user activities:", e);
+      }
+
+      try {
+        const listings = await getUserSellerListings(id);
+        if (listingsRequestId === listingsRequestRef.current) {
+          setUserListings(listings);
+        }
+      } catch {
+        if (listingsRequestId === listingsRequestRef.current) {
+          setUserListings([]);
+        }
       }
 
       try {
@@ -330,6 +347,7 @@ export default function UserProfileScreen() {
           onViewFriends={() => router.push(`/friends/${id}` as any)}
           slug={id}
           avatarUri={profile.user.profile_photo || profile.user.picture || null}
+          userListings={userListings}
         />
       </View>
 

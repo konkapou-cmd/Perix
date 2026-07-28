@@ -110,6 +110,8 @@ export default function HomeScreen() {
 
   const [feedMode, setFeedMode] = useState<"nearby" | "following">("nearby");
 
+  const { homeLayout, toggleSection, setSorting, setFavoriteCategories } = useLayoutPreferences();
+
   const feedData = useFeedData({
     sessionToken,
     mapBounds,
@@ -117,6 +119,7 @@ export default function HomeScreen() {
     user,
     refreshKey: mapRefreshKey,
     friendsOnly: feedMode === "following",
+    favoriteCategories: (homeLayout?.favoriteCategories?.length ?? 0) > 0 ? homeLayout.favoriteCategories : undefined,
   });
 
   const [localPosts, setLocalPosts] = useState<Post[]>([]);
@@ -136,12 +139,31 @@ export default function HomeScreen() {
     feedError, loading: feedLoading, backgroundLoading, refresh: refreshFeed,
   } = feedData;
 
-  const [marketplaceItems, setMarketplaceItems] = useState<Listing[]>([]);
-  useFocusEffect(
-    useCallback(() => {
-      getListings("product").then(setMarketplaceItems).catch(() => {});
-    }, []),
-  );
+  const [viewportProducts, setViewportProducts] = useState<Listing[]>([]);
+  const [viewportHomes, setViewportHomes] = useState<Listing[]>([]);
+  const viewportRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (!mapBounds) return;
+    setViewportProducts([]);
+    setViewportHomes([]);
+    const bounds = { minLat: mapBounds.minLat, maxLat: mapBounds.maxLat, minLng: mapBounds.minLng, maxLng: mapBounds.maxLng };
+    const requestId = ++viewportRequestRef.current;
+    Promise.all([
+      getListings({ listingType: "product", ...bounds, limit: 100 }),
+      getListings({ listingType: "home_rental", ...bounds, limit: 100 }),
+    ])
+      .then(([products, homes]) => {
+        if (requestId !== viewportRequestRef.current) return;
+        setViewportProducts(products);
+        setViewportHomes(homes);
+      })
+      .catch(() => {
+        if (requestId !== viewportRequestRef.current) return;
+        setViewportProducts([]);
+        setViewportHomes([]);
+      });
+  }, [mapBounds]);
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");
@@ -162,7 +184,12 @@ export default function HomeScreen() {
     }
   }).current;
 
-  const { homeLayout, toggleSection, setSorting } = useLayoutPreferences();
+  const popularCategories = useMemo(() => [
+    "restaurants-bars", "fashion-accessories", "beauty-care", "health-wellness",
+    "shopping-retail", "sports-fitness-wellness", "entertainment-events",
+    "education", "automotive", "professional-services", "pets", "food-dining",
+    "nightlife", "music", "rentals", "technology",
+  ], []);
 
   const { sortedEvents, sortedBusinesses, sortedJobs, sortedActivities, sortedPosts, sortedRentals, sortedServices } = useContentSorting({
     posts, events, businesses, jobs, activities, rentals, services,
@@ -653,6 +680,7 @@ export default function HomeScreen() {
       />
 
       <FlatList
+        key={`feed-${viewportProducts.length}-${viewportHomes.length}`}
         ref={scrollRef}
         data={homeLayout.sections.find(s => s.id === "posts")?.enabled !== false ? sortedPosts : []}
         keyExtractor={(item) => item.post_id}
@@ -732,6 +760,8 @@ export default function HomeScreen() {
             rentals={rentals}
             jobs={jobs}
             services={sortedServices}
+            products={viewportProducts}
+            ownerHomes={viewportHomes}
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
             }}
@@ -742,7 +772,7 @@ export default function HomeScreen() {
           />
         )}
 
-        {homeLayout.sections.find(s => s.id === "events")?.enabled !== false && (
+        {sortedEvents.length > 0 && homeLayout.sections.find(s => s.id === "events")?.enabled !== false && (
           <CarouselSection
             title={t("home.events")}
             icon="calendar"
@@ -800,7 +830,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {homeLayout.sections.find(s => s.id === "activities")?.enabled !== false && (
+        {sortedActivities.length > 0 && homeLayout.sections.find(s => s.id === "activities")?.enabled !== false && (
           <CarouselSection
             title={t("tabs.activities")}
             icon="people"
@@ -858,7 +888,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {homeLayout.sections.find(s => s.id === "businesses")?.enabled !== false && (
+        {sortedBusinesses.length > 0 && homeLayout.sections.find(s => s.id === "businesses")?.enabled !== false && (
           <CarouselSection
             title={t("home.businesses")}
             icon="business"
@@ -886,7 +916,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {homeLayout.sections.find(s => s.id === "services")?.enabled !== false && (
+        {sortedServices.length > 0 && homeLayout.sections.find(s => s.id === "services")?.enabled !== false && (
           <CarouselSection
             title={t("modules.services") || "Services"}
             icon="briefcase"
@@ -912,7 +942,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {homeLayout.sections.find(s => s.id === "rentals")?.enabled !== false && (
+        {sortedRentals.filter(r => (r.source_type || "business") === "business").length > 0 && homeLayout.sections.find(s => s.id === "rentals")?.enabled !== false && (
           <>
             <CarouselSection
               title={t("rentals.professionalRentals", "Professional Rentals")}
@@ -938,35 +968,10 @@ export default function HomeScreen() {
                 );
               })}
             </CarouselSection>
-
-            <CarouselSection
-              title={t("rentals.homesFromOwners", "Homes from Owners")}
-              icon="home"
-              color={COLORS.primaryDark}
-              seeAllRoute="/marketplace?tab=homes"
-              emptyMessage={t("rentals.noOwnerHomes", "No owner-listed homes nearby")}
-            >
-              {sortedRentals.filter((r: any) => r.source_type === "owner").map((rental) => {
-                const rentalImg = rental.cover_image || (!(rental as any).video_url ? rental.gallery_images?.[0] : undefined);
-                return (
-                  <CarouselCard
-                    key={rental.rental_id}
-                    imageUrl={rentalImg}
-                    videoUrl={rental.video_url}
-                    title={rental.title}
-                    subtitle={(rental as any).source_badge ? `🏠 ${(rental as any).source_badge}` : (rental.rent_price || rental.rooms_size || "")}
-                    thirdLine={rental.address || ""}
-                    onPress={() => pushEntityRoute(router, entityRoutes.rental(rental.rental_id as any), () => showInvalidEntityAlert(t))}
-                    isSaved={savedRentalIds.has(rental.rental_id)}
-                    fallbackIcon="home"
-                  />
-                );
-              })}
-            </CarouselSection>
           </>
         )}
 
-        {homeLayout.sections.find(s => s.id === "jobs")?.enabled !== false && (
+        {sortedJobs.length > 0 && homeLayout.sections.find(s => s.id === "jobs")?.enabled !== false && (
           <CarouselSection
             title={t("home.jobs") || "Jobs"}
             icon="briefcase"
@@ -992,25 +997,48 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {marketplaceItems.length > 0 && homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
+        {viewportProducts.length > 0 && homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
           <CarouselSection
-            title={t("home.marketplace", "Marketplace")}
+            title={t("marketplace.productsInArea", "Produkte in der Nähe")}
             icon="pricetag"
-            color={COLORS.warning}
-            seeAllRoute="/marketplace?tab=items"
-            emptyMessage={t("marketplace.noItems", "No items for sale nearby")}
+            color={COLORS.success}
+            seeAllRoute="/marketplace/items"
+            emptyMessage={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
           >
-            {marketplaceItems.map((item) => (
+            {viewportProducts.map((item) => (
               <CarouselCard
                 key={item.listing_id}
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
                 videoUrl={item.video_url}
                 title={item.title}
-                subtitle={`${t("marketplace.forSale", "For sale")}${item.price ? ` · ${item.price}` : ""}`}
-                thirdLine={item.address || ""}
+                subtitle={`${item.price || ""}${(item.business_name || item.seller_name) ? `\u00b7 ${item.business_name || item.seller_name}` : ""}`}
+                thirdLine={item.public_location_label || item.address || ""}
                 onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="pricetag"
+              />
+            ))}
+          </CarouselSection>
+        )}
+        {viewportHomes.length > 0 && homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
+          <CarouselSection
+            title={t("marketplace.homesInArea", "Unterkünfte in der Nähe")}
+            icon="home"
+            color={COLORS.rentalsAccent}
+            seeAllRoute="/marketplace/homes"
+            emptyMessage={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
+          >
+            {viewportHomes.map((item) => (
+              <CarouselCard
+                key={item.listing_id}
+                imageUrl={item.cover_image_url || item.image_urls?.[0]}
+                videoUrl={item.video_url}
+                title={item.title}
+                subtitle={`${item.price || ""}${(item.business_name || item.seller_name) ? `\u00b7 ${item.business_name || item.seller_name}` : ""}`}
+                thirdLine={item.public_location_label || item.address || ""}
+                onPress={() => pushEntityRoute(router, entityRoutes.rental(item.listing_id), () => showInvalidEntityAlert(t))}
+                isSaved={false}
+                fallbackIcon="home"
               />
             ))}
           </CarouselSection>
@@ -1046,6 +1074,29 @@ export default function HomeScreen() {
             </View>
           </View>
         )}
+          {(homeLayout?.favoriteCategories?.length ?? 0) > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryChipRow} contentContainerStyle={{ gap: 6, paddingHorizontal: 16, paddingBottom: 8 }}>
+              <Pressable
+                style={[styles.categoryChip, styles.categoryChipActive]}
+                onPress={() => setFavoriteCategories([])}
+              >
+                <Ionicons name="close" size={12} color="#fff" />
+                <Text style={[styles.categoryChipText, { color: "#fff" }]}>
+                  {t("home.clearCategories", "Filter loschen")}
+                </Text>
+              </Pressable>
+              {homeLayout.favoriteCategories.map((cat) => (
+                <Pressable
+                  key={cat}
+                  style={styles.categoryChip}
+                  onPress={() => setFavoriteCategories(homeLayout.favoriteCategories.filter(c => c !== cat))}
+                >
+                  <Text style={styles.categoryChipText}>{translateCategory(cat, t)}</Text>
+                  <Ionicons name="close" size={12} color={COLORS.textMuted} />
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
           </>
         }
         ListFooterComponent={
@@ -1078,6 +1129,7 @@ export default function HomeScreen() {
         removeClippedSubviews={true}
         maxToRenderPerBatch={5}
         windowSize={5}
+        extraData={{ viewportProducts, viewportHomes, feedMode, homeLayout }}
       />
 
       <Modal visible={calendarOpen} animationType="slide">
@@ -1286,6 +1338,7 @@ export default function HomeScreen() {
         homeLayout={homeLayout}
         onToggleSection={toggleSection}
         onSetSorting={setSorting}
+        onSetFavoriteCategories={setFavoriteCategories}
       />
     </SafeAreaView>
   );
@@ -1434,4 +1487,13 @@ const styles = StyleSheet.create({
   businessItemInfo: { flex: 1 },
   businessItemName: { fontSize: 15, fontWeight: "600", color: COLORS.textPrimary },
   businessItemCategory: { fontSize: 13, color: COLORS.textMuted },
+  categoryChipRow: { paddingTop: 8, paddingBottom: 4 },
+  categoryChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 16, backgroundColor: COLORS.backgroundPage,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+  categoryChipActive: { backgroundColor: COLORS.primaryDark, borderColor: COLORS.primaryDark },
+  categoryChipText: { fontSize: 12, fontWeight: "600", color: COLORS.textSecondary },
 });

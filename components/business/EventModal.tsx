@@ -320,6 +320,7 @@ export default function EventModal({
               style={s.input}
               nearLat={nearLat}
               nearLng={nearLng}
+              sessionToken={sessionToken}
               confirmed={hasCoordinates}
             />
           )}

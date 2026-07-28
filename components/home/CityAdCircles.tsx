@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from "react";
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { GroupedStory, User } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
@@ -24,18 +23,11 @@ interface CityAdCirclesProps {
 }
 
 function AdVideoPreview({ mediaUrl }: { mediaUrl: string }) {
-  const player = useVideoPlayer(mediaUrl, (p) => {
-    p.loop = true;
-    p.muted = true;
-    p.play();
-  });
-
   return (
-    <VideoView
-      player={player}
+    <Image
+      source={{ uri: mediaUrl }}
       style={styles.videoPreview}
-      contentFit="cover"
-      nativeControls={false}
+      resizeMode="cover"
     />
   );
 }

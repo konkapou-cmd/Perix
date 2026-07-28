@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -32,6 +32,8 @@ import { ProfileMedia } from "./ProfileMedia";
 import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
+import { Listing } from "../../lib/api/listings";
+import ProfileItemsSection from "../marketplace/ProfileItemsSection";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import FriendsCarousel from "../FriendsCarousel";
 import { FriendsSection } from "../shared/FriendsSection";
@@ -118,6 +120,13 @@ interface UserProfilePremiumProps {
   onOpenBookings?: () => void;
   onViewFriends?: () => void;
   initialSavedPostIds?: Set<string>;
+  userListings?: Listing[];
+  userHomeListings?: Listing[];
+  onAddItem?: () => void;
+  onEditItem?: (listing: Listing) => void;
+  onToggleMarketplace?: (listing: Listing) => void;
+  onDeleteItem?: (listing: Listing) => void;
+  initialTab?: "activities" | "posts" | "items";
 }
 
 export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
@@ -186,13 +195,27 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   onOpenBookings,
   onViewFriends,
   initialSavedPostIds,
+  userListings = [],
+  userHomeListings = [],
+  onAddItem,
+  onEditItem,
+  onToggleMarketplace,
+  onDeleteItem,
+  initialTab,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
   const isScreenFocused = useIsFocused();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("posts");
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab as ProfileTab || "posts");
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "items" && isOwnProfile) {
+      router.push(`/marketplace/user/${userId}` as any);
+      setActiveTab("posts");
+    }
+  }, [activeTab]);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
 
@@ -211,8 +234,14 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     if (onOpenBookings) {
       base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
     }
+    if (userListings.length > 0 || userHomeListings.length > 0 || onAddItem) {
+      base.push({ key: "items", label: t("marketplace.listings", "Anzeigen"), icon: "list-outline", count: userListings.length + userHomeListings.length });
+    }
+    if (userHomeListings.length > 0) {
+      base.push({ key: "homes", label: t("marketplace.homes", "Homes"), icon: "home-outline", count: userHomeListings.length });
+    }
     return base;
-  }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t]);
+  }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem]);
 
   const theme = user.theme;
   const { themeStyles, themeColors } = useThemeStyles(theme);
@@ -403,6 +432,26 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           cardColor={cardColor}
           textColor={textColor}
           secondaryColor={secondaryColor}
+        />
+      )}
+      {activeTab === "items" && (
+        <ProfileItemsSection
+          listings={[...userListings, ...userHomeListings]}
+          isOwner={isOwnProfile ?? false}
+          onAdd={isOwnProfile ? onAddItem! : () => {}}
+          onEdit={isOwnProfile ? onEditItem! : (() => {}) as any}
+          onToggleMarketplace={isOwnProfile ? onToggleMarketplace! : (() => {}) as any}
+          onDelete={isOwnProfile ? onDeleteItem! : (() => {}) as any}
+        />
+      )}
+      {activeTab === "homes" && (
+        <ProfileItemsSection
+          listings={userHomeListings}
+          isOwner={isOwnProfile ?? false}
+          onAdd={undefined}
+          onEdit={(l) => onEditItem?.(l)}
+          onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
+          onDelete={(l) => onDeleteItem?.(l)}
         />
       )}
     </View>

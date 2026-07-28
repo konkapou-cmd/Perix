@@ -8,7 +8,7 @@ type MapMarker = {
   description?: string;
   isOpen?: boolean;
   pinColor?: string;
-  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service";
+  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product";
 };
 
 type MapBounds = {
@@ -22,6 +22,12 @@ type MapBounds = {
 
 type Props = {
   location: { latitude: number; longitude: number };
+  initialRegion?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  };
   businesses?: Business[];
   events?: EventItem[];
   activities?: ActivityItem[];
@@ -30,6 +36,7 @@ type Props = {
   jobs?: Job[];
   services?: Service[];
   markers?: MapMarker[];
+  extraMarkers?: MapMarker[];
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;

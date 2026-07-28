@@ -1,11 +1,14 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, LayoutAnimation, Platform, UIManager } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import EmptyState from "../ui/EmptyState";
 import { SectionHeader } from "../shared/SectionHeader";
 import { COLORS, SPACING } from "../../lib/designTokens";
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface FilterOption {
   key: string;
@@ -23,47 +26,81 @@ interface CarouselSectionProps {
     onChange: (key: string) => void;
   };
   emptyMessage?: string;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  hideWhenEmpty?: boolean;
   children: React.ReactNode;
 }
 
-export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage = "No items", children }: CarouselSectionProps) {
+export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage, isCollapsed, onToggleCollapse, hideWhenEmpty, children }: CarouselSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
+  const collapsed = isCollapsed ?? false;
   const hasContent = React.Children.count(children) > 0;
   const accent = color || COLORS.primaryDark;
 
+  const handleToggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    onToggleCollapse?.();
+  };
+
+  if (hideWhenEmpty && !hasContent) return null;
+
   return (
     <View style={styles.card}>
-      <SectionHeader
-        icon={icon}
-        title={title}
-        accent={accent}
-        onSeeAll={seeAllRoute ? () => router.navigate(seeAllRoute as any) : undefined}
-      />
-
-      {filters && (
-        <View style={styles.filterChipRow}>
-          {filters.options.map(opt => (
+      <View style={styles.headerRow}>
+        <View style={styles.headerLeft}>
+          <SectionHeader
+            icon={icon}
+            title={title}
+            accent={accent}
+            onSeeAll={undefined}
+          />
+          {onToggleCollapse && (
             <Pressable
-              key={opt.key}
-              style={[styles.filterChip, filters.activeKey === opt.key && { backgroundColor: accent, borderColor: accent }]}
-              onPress={() => filters.onChange(opt.key)}
+              onPress={handleToggle}
+              style={styles.chevronBtn}
+              accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
+              hitSlop={4}
             >
-              <Text style={[styles.filterChipText, filters.activeKey === opt.key && { color: COLORS.textLight, fontWeight: "600" }]}>
-                {opt.label}
-              </Text>
+              <Ionicons
+                name={collapsed ? "chevron-forward" : "chevron-down"}
+                size={18}
+                color={COLORS.textPrimary}
+              />
             </Pressable>
-          ))}
+          )}
         </View>
-      )}
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
-        {!hasContent ? (
-          <EmptyState message={emptyMessage} muted />
-        ) : (
-          children
+        {seeAllRoute && (
+          <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={(e: any) => { e?.stopPropagation?.(); router.navigate(seeAllRoute as any); }}>
+            <Text style={styles.seeAllText} numberOfLines={1}>{t("common.seeAll", "Όλα")}</Text>
+          </Pressable>
         )}
-      </ScrollView>
+      </View>
+
+      {!collapsed && (
+        <>
+          {filters && (
+            <View style={styles.filterChipRow}>
+              {filters.options.map(opt => (
+                <Pressable
+                  key={opt.key}
+                  style={[styles.filterChip, filters.activeKey === opt.key && { backgroundColor: accent, borderColor: accent }]}
+                  onPress={() => filters.onChange(opt.key)}
+                >
+                  <Text style={[styles.filterChipText, filters.activeKey === opt.key && { color: COLORS.textLight, fontWeight: "600" }]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+            {children}
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 }
@@ -75,45 +112,33 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: SPACING.small,
   },
-  sectionHeader: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: SPACING.compact,
   },
-  sectionTitle: {
+  headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    flex: 1,
   },
-  iconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: COLORS.primaryDark,
+  chevronBtn: {
+    minWidth: 44,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 2,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
-  },
-  sectionHeaderRight: {
+  seeAllBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-  },
-  seeAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: SPACING.compact,
+    paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: COLORS.primaryDark,
+    gap: 2,
   },
-  seeAllButtonText: {
+  seeAllText: {
     fontSize: 13,
     fontWeight: "600",
     color: COLORS.textLight,
@@ -136,15 +161,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     color: COLORS.textMuted,
-  },
-  emptyState: {
-    width: 120,
-    paddingHorizontal: 8,
-    alignItems: "center",
-  },
-  emptyText: {
-    fontSize: 12,
-    color: COLORS.textGray,
-    textAlign: "center",
   },
 });

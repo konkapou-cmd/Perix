@@ -14,6 +14,8 @@ type MapMarker = {
   longitude: number;
   title?: string;
   description?: string;
+  pinColor?: string;
+  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product";
 };
 
 type MapBounds = {
@@ -33,6 +35,7 @@ type Props = {
   jobs?: Job[];
   services?: Service[];
   markers?: MapMarker[];
+  extraMarkers?: MapMarker[];
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
@@ -80,6 +83,7 @@ export default function BusinessMap({
   jobs = [],
   services = [],
   markers,
+  extraMarkers,
   showUserLocation,
   onRegionChange,
   onRegionChangeComplete,
@@ -102,7 +106,7 @@ export default function BusinessMap({
   const prevLocationRef = useRef<string>("");
   const router = useRouter();
 
-  const allMarkers: MapMarker[] = markers ?? [
+  const generatedMarkers: MapMarker[] = [
     ...businesses.map((business) => ({
       id: business.business_id,
       latitude: business.latitude,
@@ -155,6 +159,11 @@ export default function BusinessMap({
         title: service.name,
         description: service.address || "",
       })),
+  ];
+
+  const allMarkers: MapMarker[] = markers ?? [
+    ...generatedMarkers,
+    ...(extraMarkers ?? []),
   ];
 
   // Init map
@@ -216,7 +225,7 @@ export default function BusinessMap({
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 10,
-          fillColor: COLORS.success,
+          fillColor: data.pinColor ?? COLORS.success,
           fillOpacity: 1,
           strokeColor: "white",
           strokeWeight: 2,

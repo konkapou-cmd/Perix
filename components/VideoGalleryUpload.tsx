@@ -57,6 +57,7 @@ function ThumbnailPlayer({ uri }: { uri: string }) {
       style={styles.videoPreview}
       contentFit="cover"
       nativeControls={false}
+      surfaceType="textureView"
     />
   );
 }
@@ -467,6 +468,7 @@ export default function VideoGalleryUpload({
                 style={styles.modalVideo}
                 contentFit="contain"
                 nativeControls
+                surfaceType="textureView"
               />
             )}
             {/* Show caption in modal if enabled */}

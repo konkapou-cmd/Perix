@@ -142,6 +142,7 @@ export default function LocatorScreen() {
   >(null);
 
   const [activeTab, setActiveTab] = useState<TabType>("businesses");
+  const [businessAvailabilityFilter, setBusinessAvailabilityFilter] = useState<"all" | "open_now">("all");
   const [locationSearchQuery, setLocationSearchQuery] = useState("");
   const [locationSearchSuggestions, setLocationSearchSuggestions] = useState<
     { description: string; place_id: string; lat: number | null; lng: number | null }[]
@@ -201,23 +202,6 @@ export default function LocatorScreen() {
     if (km < 1) return `${Math.round(km * 1000)}m`;
     if (km < 100) return `${km.toFixed(1)} km`;
     return `${Math.round(km)} km`;
-  };
-
-  const isBusinessOpen = (business: Business): boolean | null => {
-    const openingHours = business.opening_hours as { schedule?: Record<string, { enabled: boolean; periods: { open: string; close: string }[] }> } | undefined;
-    if (!openingHours?.schedule) return null;
-    const now = new Date();
-    const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    const currentDay = days[now.getDay()];
-    const daySchedule = openingHours.schedule[currentDay];
-    if (!daySchedule || !daySchedule.enabled) return false;
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    for (const period of daySchedule.periods) {
-      const [openHour, openMin] = period.open.split(":").map(Number);
-      const [closeHour, closeMin] = period.close.split(":").map(Number);
-      if (currentTime >= openHour*60+openMin && currentTime <= closeHour*60+closeMin) return true;
-    }
-    return false;
   };
 
   const onRefresh = async () => {
@@ -414,7 +398,7 @@ export default function LocatorScreen() {
     setCategoryTree(data);
   }, [sessionToken]);
 
-  const loadBusinesses = useCallback(async (centerLat: number, centerLng: number, bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+  const loadBusinesses = useCallback(async (centerLat: number, centerLng: number, bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, openNow?: boolean) => {
     if (!sessionToken) return;
     const data = await getNearbyBusinesses(
       sessionToken,
@@ -422,10 +406,11 @@ export default function LocatorScreen() {
       centerLng,
       selectedRoot !== "All" ? selectedRoot : undefined,
       selectedSubcategory !== "All" ? selectedSubcategory : undefined,
-      bounds
+      bounds,
+      openNow ?? businessAvailabilityFilter === "open_now",
     );
     setBusinesses(data);
-  }, [sessionToken, selectedRoot, selectedSubcategory]);
+  }, [sessionToken, selectedRoot, selectedSubcategory, businessAvailabilityFilter]);
 
   const loadEvents = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
     if (!sessionToken) return;
@@ -525,6 +510,14 @@ export default function LocatorScreen() {
     };
     reverseGeocode();
   }, [contextLocation]);
+
+  useEffect(() => {
+    if (businessAvailabilityFilter !== "open_now" || !sessionToken || !mapBounds) return;
+    const interval = setInterval(() => {
+      loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [businessAvailabilityFilter, sessionToken, mapBounds, loadBusinesses]);
 
   // Don't auto-request location on mount - wait for user to tap the map
   // Location will only be set when user explicitly taps the disabled map overlay
@@ -811,7 +804,7 @@ export default function LocatorScreen() {
           <View style={styles.mapSection}>
         <BusinessMap
           location={contextLocation || { latitude: mapBounds?.centerLat || 52.52, longitude: mapBounds?.centerLng || 13.405 }}
-          businesses={activeTab === "businesses" ? businesses : []}
+          businesses={activeTab === "businesses" ? visibleBusinesses : []}
           events={activeTab === "events" ? events : []}
           activities={activeTab === "activities" ? activities : []}
           rentals={
@@ -902,6 +895,24 @@ export default function LocatorScreen() {
               borderColor={COLORS.border ?? "#e5e7eb"}
             />
           )}
+          <View style={styles.openNowToggle}>
+            <Pressable
+              style={[styles.openNowBtn, businessAvailabilityFilter === "all" && styles.openNowBtnActive]}
+              onPress={() => setBusinessAvailabilityFilter("all")}
+            >
+              <Text style={[styles.openNowText, businessAvailabilityFilter === "all" && styles.openNowTextActive]}>
+                {t("common.all", "All")}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.openNowBtn, businessAvailabilityFilter === "open_now" && styles.openNowBtnActive]}
+              onPress={() => setBusinessAvailabilityFilter("open_now")}
+            >
+              <Text style={[styles.openNowText, businessAvailabilityFilter === "open_now" && styles.openNowTextActive]}>
+                {t("common.openNow", "Open now")}
+              </Text>
+            </Pressable>
+          </View>
         </>
       )}
       {activeTab === "events" && (
@@ -991,7 +1002,7 @@ export default function LocatorScreen() {
               <EmptyState icon="storefront" message={t('business.noBusinesses')} size="default" muted />
             )}
             {visibleBusinesses.map((business) => {
-              const isOpen = isBusinessOpen(business);
+              const isOpen = business.open_state?.open_now ?? null;
               const dist = getDistance(business.latitude, business.longitude);
               return (
                 <LocatorCard
@@ -2840,5 +2851,30 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingBottom: SPACING.small,
+  },
+  openNowToggle: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 4,
+  },
+  openNowBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  openNowBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  openNowText: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textSecondary,
+    fontWeight: "600",
+  },
+  openNowTextActive: {
+    color: "#fff",
   },
 });

@@ -141,6 +141,7 @@ export function CityAdViewer({
             style={styles.video}
             contentFit="contain"
             nativeControls={false}
+            surfaceType="textureView"
           />
         ) : currentStory?.media_url ? (
           <Image source={{ uri: currentStory.media_url }} style={styles.media} resizeMode="contain" />

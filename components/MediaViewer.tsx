@@ -138,7 +138,7 @@ function MediaPlayer({ item }: { item: MediaItem }) {
 
   return (
     <View style={[styles.videoContainer, { position: "relative" }]}>
-      <VideoView player={player} style={{ width: "100%", height: "100%" }} contentFit="contain" nativeControls={false} />
+      <VideoView player={player} style={{ width: "100%", height: "100%" }} contentFit="contain" nativeControls={false} surfaceType="textureView" />
       <Pressable style={StyleSheet.absoluteFill} onPress={toggle}>
         {!isPlaying && (
           <View style={styles.playIconOverlay}>

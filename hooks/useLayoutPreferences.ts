@@ -12,6 +12,7 @@ export type SectionConfig = {
 
 export type HomeLayoutConfig = {
   sections: SectionConfig[];
+  favoriteCategories: string[];
   featuredContent: {
     enabled: boolean;
     type: "posts" | "events" | "activities" | "businesses" | "jobs" | "none";
@@ -39,6 +40,7 @@ const DEFAULT_LAYOUT: HomeLayoutConfig = {
     { id: "jobs", title: "Jobs", enabled: true, order: 7, layout: "carousel", customStyle: {} },
     { id: "posts", title: "Latest Posts", enabled: true, order: 8, layout: "list", customStyle: {} },
   ],
+  favoriteCategories: [],
   featuredContent: { enabled: false, type: "none", count: 3 },
   sorting: {
     posts: "chronological",
@@ -68,6 +70,7 @@ export function useLayoutPreferences() {
           setHomeLayout(prev => ({
             ...prev,
             ...parsed,
+            favoriteCategories: Array.isArray(parsed.favoriteCategories) ? parsed.favoriteCategories : [],
             sections: prev.sections.map(s => {
               const savedSection = parsed.sections?.find((ps: SectionConfig) => ps.id === s.id);
               return savedSection ? { ...s, ...savedSection } : s;
@@ -109,5 +112,9 @@ export function useLayoutPreferences() {
     }));
   }, []);
 
-  return { homeLayout, setHomeLayout, toggleSection, setSorting };
+  const setFavoriteCategories = useCallback((categories: string[]) => {
+    setHomeLayout(prev => ({ ...prev, favoriteCategories: categories }));
+  }, []);
+
+  return { homeLayout, setHomeLayout, toggleSection, setSorting, setFavoriteCategories };
 }

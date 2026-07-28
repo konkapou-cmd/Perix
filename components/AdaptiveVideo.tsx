@@ -66,6 +66,7 @@ function VideoPlayerCore({
       style={StyleSheet.absoluteFill}
       contentFit={resizeMode}
       nativeControls={useNativeControls}
+      surfaceType="textureView"
     />
   );
 }

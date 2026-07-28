@@ -13,6 +13,7 @@ export interface MapBounds {
 interface MapBoundsContextType {
   mapBounds: MapBounds | null;
   isMapInitialized: boolean;
+  isMapBoundsHydrated: boolean;
   setMapBounds: (bounds: MapBounds) => void;
   clearMapBounds: () => void;
   refreshKey: number;
@@ -25,10 +26,10 @@ const MAP_BOUNDS_STORAGE_KEY = "@perix_map_bounds";
 export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
   const [mapBounds, setMapBoundsState] = useState<MapBounds | null>(null);
   const [isMapInitialized, setIsMapInitialized] = useState(false);
+  const [isMapBoundsHydrated, setIsMapBoundsHydrated] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const prevBoundsRef = useRef<MapBounds | null>(null);
 
-  // Load saved map bounds on mount
   useEffect(() => {
     const loadSavedBounds = async () => {
       try {
@@ -40,6 +41,8 @@ export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (e) {
         console.error("Error loading saved map bounds:", e);
+      } finally {
+        setIsMapBoundsHydrated(true);
       }
     };
     loadSavedBounds();
@@ -87,6 +90,7 @@ export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
       value={{
         mapBounds,
         isMapInitialized,
+        isMapBoundsHydrated,
         setMapBounds,
         clearMapBounds,
         refreshKey,

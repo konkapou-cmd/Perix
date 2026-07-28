@@ -10,12 +10,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import BusinessActionsModal, { BusinessAction } from "../../components/business/BusinessActionsModal";
 import CreationSheet, { CreationAction } from "../../components/user/CreationSheet";
 import ListingModal from "../../components/user/ListingModal";
 import type { ListingType } from "../../lib/api/listings";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
+import { getProductPermissions, getManageListings } from "../../lib/api/listings";
 
 function TabBarBackground() {
   return (
@@ -77,22 +78,70 @@ export default function TabsLayout() {
   const [listingType, setListingType] = useState<ListingType | null>(null);
   const isBusiness = activeIdentity?.type === "business";
 
+  const [bizActionsLoading, setBizActionsLoading] = useState(false);
+  const [bizActionsProductsEnabled, setBizActionsProductsEnabled] = useState(false);
+  const [bizActionsListingsCount, setBizActionsListingsCount] = useState(0);
+  const bizActionsRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (!showBizActions || !activeIdentity?.id || !sessionToken) return;
+    const requestId = ++bizActionsRequestRef.current;
+    setBizActionsLoading(true);
+    Promise.allSettled([
+      getProductPermissions(activeIdentity.id),
+      getManageListings(sessionToken, "business", activeIdentity.id),
+    ]).then(([permsResult, listingsResult]) => {
+      if (requestId !== bizActionsRequestRef.current) return;
+      if (permsResult.status === "fulfilled") {
+        setBizActionsProductsEnabled(permsResult.value.enabled);
+      } else {
+        setBizActionsProductsEnabled(false);
+      }
+      if (listingsResult.status === "fulfilled") {
+        setBizActionsListingsCount(
+          listingsResult.value.filter(l => l.listing_type === "product").length,
+        );
+      } else {
+        setBizActionsListingsCount(0);
+      }
+      setBizActionsLoading(false);
+    });
+  }, [showBizActions, activeIdentity?.id, sessionToken]);
+
   const handleBizAction = (action: BusinessAction) => {
     switch (action) {
-      case "cityad":
+      case "create-city-ad":
         router.push("/camera");
         break;
-      case "event":
-        router.replace({ pathname: "/(tabs)/profile", params: { openEvent: "1" } });
+      case "create-product":
+        router.replace({ pathname: "/(tabs)/profile", params: { openProduct: "1" } });
         break;
-      case "job":
-        router.replace({ pathname: "/(tabs)/profile", params: { openJob: "1" } });
-        break;
-      case "service":
+      case "create-service":
         router.replace({ pathname: "/(tabs)/profile", params: { openService: "1" } });
         break;
-      case "bookings":
+      case "create-event":
+        router.replace({ pathname: "/(tabs)/profile", params: { openEvent: "1" } });
+        break;
+      case "create-job":
+        router.replace({ pathname: "/(tabs)/profile", params: { openJob: "1" } });
+        break;
+      case "manage-products":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "items" } });
+        break;
+      case "manage-services":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "services" } });
+        break;
+      case "manage-events":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "events" } });
+        break;
+      case "manage-jobs":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "jobs" } });
+        break;
+      case "manage-bookings":
         router.replace({ pathname: "/(tabs)/profile", params: { openBookings: "1" } });
+        break;
+      case "manage-media":
+        router.replace({ pathname: "/(tabs)/profile", params: { section: "media" } });
         break;
     }
   };
@@ -228,6 +277,9 @@ export default function TabsLayout() {
 
       <BusinessActionsModal
         visible={showBizActions}
+        loading={bizActionsLoading}
+        businessProductsEnabled={bizActionsProductsEnabled}
+        listingsCount={bizActionsListingsCount}
         onClose={() => setShowBizActions(false)}
         onAction={handleBizAction}
       />
