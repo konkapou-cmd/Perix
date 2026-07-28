@@ -87,7 +87,12 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
     <View style={styles.container}>
       <View style={styles.mapWrapper}>
         <BusinessMap
-          location={{ latitude: mapBounds.centerLat, longitude: mapBounds.centerLng }}
+          initialRegion={{
+            latitude: mapBounds.centerLat,
+            longitude: mapBounds.centerLng,
+            latitudeDelta: mapBounds.maxLat - mapBounds.minLat,
+            longitudeDelta: mapBounds.maxLng - mapBounds.minLng,
+          }}
           businesses={businesses}
           events={events}
           activities={activities}
