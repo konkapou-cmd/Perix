@@ -270,18 +270,6 @@ export default function HomeScreen() {
 
   const hasInitialFocusRef = useRef(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      try {
-        if (!hasInitialFocusRef.current) {
-          hasInitialFocusRef.current = true;
-          return;
-        }
-        refreshFeed();
-      } catch (_) {}
-    }, [refreshFeed])
-  );
-
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
   const [storyViewerIndex, setStoryViewerIndex] = useState(0);
   const [uploadingAd, setUploadingAd] = useState(false);
@@ -371,6 +359,20 @@ export default function HomeScreen() {
   const [shareContentTitle, setShareContentTitle] = useState<string>("");
   const isAnyModalOpen = commentModal || editModal || calendarOpen || activitiesCalendarOpen || showThemeFilter || showBusinessTagModal || showLayoutSettings || showLocationSearch || shareModalVisible;
   const isFocused = useIsFocused();
+  const wasFocusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasInitialFocusRef.current) {
+      hasInitialFocusRef.current = true;
+      return;
+    }
+    if (isFocused && !wasFocusedRef.current) {
+      wasFocusedRef.current = true;
+      refreshFeed();
+    }
+    if (!isFocused) wasFocusedRef.current = false;
+  }, [isFocused, refreshFeed]);
+
   const [userWantsSound, setUserWantsSound] = useState(true);
   const [friends, setFriends] = useState<any[]>([]);
 
