@@ -388,7 +388,7 @@ async def list_my_listings(
     status: Optional[str] = None,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    query = {"owner_id": current_user.user_id}
+    query = {"owner_id": current_user.user_id, "is_hidden": {"$ne": True}}
     if listing_type:
         query["listing_type"] = listing_type
     if status:
@@ -396,7 +396,13 @@ async def list_my_listings(
 
     docs = await db.listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     docs = await _enrich_listing_sellers(docs)
-    return [ListingResponse(**doc) for doc in docs]
+    results = []
+    for doc in docs:
+        try:
+            results.append(ListingResponse(**doc))
+        except Exception:
+            continue
+    return results
 
 
 @router.get("/seller/user/{user_id}", response_model=list[ListingResponse])

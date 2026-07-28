@@ -54,10 +54,10 @@ export function CarouselCard({
   const renderBackground = () => {
     if (showVideo) {
       return (
-        <View style={StyleSheet.absoluteFill}>
-          {(muxThumbnailUrl || imageUrl) && (
-            <FocalImage uri={muxThumbnailUrl || imageUrl!} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} />
-          )}
+        <View style={styles.mediaFill}>
+          {muxThumbnailUrl ? (
+            <FocalImage uri={muxThumbnailUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} />
+          ) : null}
           <AdaptiveVideo uri={videoUrl!} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} />
         </View>
       );
@@ -67,7 +67,7 @@ export function CarouselCard({
     }
     if (videoUrl) {
       return (
-        <View style={StyleSheet.absoluteFill}>
+        <View style={styles.mediaFill}>
           {muxThumbnailUrl && <FocalImage uri={muxThumbnailUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} />}
           <AdaptiveVideo uri={videoUrl} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} />
         </View>
@@ -178,6 +178,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
+  },
+  mediaFill: {
+    ...StyleSheet.absoluteFillObject,
   },
   badgeRow: {
     position: "absolute",

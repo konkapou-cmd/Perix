@@ -125,6 +125,10 @@ export default function ListingDetailScreen() {
     return items;
   })();
 
+  const muxFallback = listing.video_url && !listing.mux_thumbnail_url
+    ? listing.video_url.replace(/stream\.mux\.com\/([a-zA-Z0-9]+).*/, (_: string, id: string) => `https://image.mux.com/${id}/thumbnail.jpg`)
+    : null;
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
@@ -137,7 +141,7 @@ export default function ListingDetailScreen() {
         <ContentHero
           coverImageUrl={listing.cover_image_url}
           videoUrl={listing.video_url}
-          muxThumbnailUrl={listing.mux_thumbnail_url}
+          muxThumbnailUrl={listing.mux_thumbnail_url || muxFallback}
           videoStatus={listing.video_status}
           isCoverVideo={!listing.cover_image_url && !!listing.video_url}
           imageUrls={listing.image_urls}
