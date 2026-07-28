@@ -433,14 +433,20 @@ async def manage_listings(
     seller_id: Optional[str] = Query(None),
     current_user: UserPublic = Depends(get_current_user),
 ):
-    query: dict = {"owner_id": current_user.user_id}
+    query: dict = {"owner_id": current_user.user_id, "is_hidden": {"$ne": True}}
     if seller_type:
         query["seller_type"] = seller_type
     if seller_id:
         query["seller_id"] = seller_id
     docs = await db.listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     docs = await _enrich_listing_sellers(docs)
-    return [ListingResponse(**doc) for doc in docs]
+    results = []
+    for doc in docs:
+        try:
+            results.append(ListingResponse(**doc))
+        except Exception:
+            continue
+    return results
 
 
 @router.get("/{listing_id}", response_model=ListingResponse)
