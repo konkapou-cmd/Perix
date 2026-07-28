@@ -48,6 +48,7 @@ export default function ContentGallery({ mediaItems, title }: ContentGalleryProp
               <AdaptiveImage
                 uri={getThumbnailUrl(item)}
                 style={styles.image}
+                ratio={1}
                 resizeMode="cover"
                 borderRadius={BORDER_RADIUS.lg}
                 showFallbackIcon={false}
