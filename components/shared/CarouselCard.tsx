@@ -58,7 +58,7 @@ export function CarouselCard({
           {muxThumbnailUrl ? (
             <FocalImage uri={muxThumbnailUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} />
           ) : null}
-          <AdaptiveVideo uri={videoUrl!} style={styles.image} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} resizeMode="cover" />
+          <AdaptiveVideo uri={videoUrl!} style={styles.videoFill} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} resizeMode="cover" />
         </View>
       );
     }
@@ -69,7 +69,7 @@ export function CarouselCard({
       return (
         <View style={styles.mediaFill}>
           {muxThumbnailUrl && <FocalImage uri={muxThumbnailUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} />}
-          <AdaptiveVideo uri={videoUrl} style={styles.image} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} resizeMode="cover" />
+          <AdaptiveVideo uri={videoUrl} style={styles.videoFill} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} resizeMode="cover" />
         </View>
       );
     }
@@ -181,6 +181,13 @@ const styles = StyleSheet.create({
   },
   mediaFill: {
     ...StyleSheet.absoluteFillObject,
+  },
+  videoFill: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   badgeRow: {
     position: "absolute",

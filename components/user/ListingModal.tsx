@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Alert, Modal, Pressable, ScrollView, StyleSheet,
   Text, TextInput, View, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -123,6 +123,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [leaseDuration, setLeaseDuration] = useState("");
   const [deposit, setDeposit] = useState("");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const [listingCategory, setListingCategory] = useState("");
   const [listingSubcategory, setListingSubcategory] = useState("");
@@ -188,7 +189,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   }, [visible, editingListing]);
 
   const handleSave = async () => {
-    if (saving) return;
+    if (savingRef.current) return;
     if (!title.trim()) {
       Alert.alert(t("common.error", "Error"), t("common.titleRequired", "Title is required"));
       return;
@@ -224,6 +225,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       }
     }
 
+    savingRef.current = true;
     setSaving(true);
     try {
       const mediaFields = mediaToPayload(media);
@@ -297,6 +299,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e?.message || t("common.saveFailed", "Failed to save listing"));
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
