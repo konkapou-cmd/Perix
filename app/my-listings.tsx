@@ -17,13 +17,14 @@ export default function MyListingsScreen() {
   const [tab, setTab] = useState<ListingType>("product");
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
   const load = () => {
     if (!sessionToken) { setLoading(false); return; }
     setLoading(true);
     getMyListings(sessionToken, tab)
-      .then((items) => setListings(items))
+      .then((items) => setListings(items.filter((i) => i.is_active)))
       .catch((e) => { console.log("[MyListings] load failed:", e); })
       .finally(() => setLoading(false));
   };
@@ -48,11 +49,14 @@ export default function MyListingsScreen() {
       [
         { text: t("common.cancel", "Cancel"), style: "cancel" },
         { text: t("common.delete", "Delete"), style: "destructive", onPress: async () => {
+          setDeleting(listing.listing_id);
           try {
             await deleteListing(sessionToken!, listing.listing_id);
             load();
           } catch (e: any) {
             Alert.alert(t("common.error", "Error"), e?.message || t("common.deleteFailed", "Failed to delete"));
+          } finally {
+            setDeleting(null);
           }
         }},
       ],
@@ -99,8 +103,8 @@ export default function MyListingsScreen() {
         <Pressable style={[styles.actionBtn, { backgroundColor: COLORS.primaryLight }]} onPress={() => setEditingListing(item)}>
           <Ionicons name="create-outline" size={16} color={COLORS.primary} />
         </Pressable>
-        <Pressable style={[styles.actionBtn, { backgroundColor: COLORS.errorBg }]} onPress={() => handleDelete(item)}>
-          <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
+        <Pressable style={[styles.actionBtn, { backgroundColor: COLORS.errorBg }]} onPress={() => handleDelete(item)} disabled={deleting === item.listing_id}>
+          {deleting === item.listing_id ? <ActivityIndicator size="small" color={COLORS.danger} /> : <Ionicons name="trash-outline" size={16} color={COLORS.danger} />}
         </Pressable>
       </View>
     </View>
