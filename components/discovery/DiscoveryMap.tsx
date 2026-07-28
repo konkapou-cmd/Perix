@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useRef, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { COLORS } from "../../lib/designTokens";
 import BusinessMap from "../BusinessMap";
@@ -29,6 +29,20 @@ type Props = {
 };
 
 export default function DiscoveryMap({ markers, initialLocation, initialBounds, onMarkerPress, onViewportChanging, onViewportChange }: Props) {
+  const mountedRef = useRef(false);
+  const readyRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!readyRef.current) {
+      const t = setTimeout(() => { readyRef.current = true; }, 600);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   const mapMarkers = useMemo(
     () =>
@@ -45,6 +59,7 @@ export default function DiscoveryMap({ markers, initialLocation, initialBounds, 
 
   const handleRegionChange = useCallback(
     (bnds: MapBounds) => {
+      if (!readyRef.current) return;
       onViewportChanging?.(bnds);
     },
     [onViewportChanging],
@@ -52,6 +67,7 @@ export default function DiscoveryMap({ markers, initialLocation, initialBounds, 
 
   const handleRegionChangeComplete = useCallback(
     (bnds: MapBounds) => {
+      if (!readyRef.current) return;
       onViewportChange(bnds);
     },
     [onViewportChange],

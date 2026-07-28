@@ -199,7 +199,13 @@ export default function BusinessMap({
   const mapRef = useRef<MapView>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLocationRef = useRef<string>("");
+  const readyRef = useRef(false);
   const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => { readyRef.current = true; }, 800);
+    return () => clearTimeout(t);
+  }, []);
 
   const groupedMarkers = useMemo(() => {
     const groups = new Map<string, MapMarker[]>();
@@ -233,7 +239,7 @@ export default function BusinessMap({
   }, [location]);
 
   const handleRegionChangeComplete = (region: Region) => {
-    if (disabled) return;
+    if (disabled || !readyRef.current) return;
     const bounds: MapBounds = {
       minLat: region.latitude - region.latitudeDelta / 2,
       maxLat: region.latitude + region.latitudeDelta / 2,
