@@ -272,11 +272,13 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!hasInitialFocusRef.current) {
-        hasInitialFocusRef.current = true;
-        return;
-      }
-      refreshFeed();
+      try {
+        if (!hasInitialFocusRef.current) {
+          hasInitialFocusRef.current = true;
+          return;
+        }
+        refreshFeed();
+      } catch (_) {}
     }, [refreshFeed])
   );
 
