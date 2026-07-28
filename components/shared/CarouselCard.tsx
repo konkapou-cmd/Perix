@@ -57,7 +57,12 @@ export function CarouselCard({
         ) : imageUrl ? (
           <FocalImage uri={imageUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} style={styles.image} showLoader={false} />
         ) : videoUrl ? (
-          <AdaptiveVideo uri={videoUrl} style={styles.image} autoPlay isLooping initialMuted videoStatus={videoStatus} />
+          <View style={StyleSheet.absoluteFill}>
+            {muxThumbnailUrl ? (
+              <FocalImage uri={muxThumbnailUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} style={styles.image} showLoader={false} />
+            ) : null}
+            <AdaptiveVideo uri={videoUrl} style={styles.image} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} />
+          </View>
         ) : (
           <View style={styles.fallback}>
             <Ionicons name={fallbackIcon} size={32} color={COLORS.textPlaceholder} />

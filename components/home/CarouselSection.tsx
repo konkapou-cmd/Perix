@@ -59,14 +59,14 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
           {onToggleCollapse && (
             <Pressable
               onPress={handleToggle}
-              style={styles.chevronBtn}
+              style={[styles.chevronBtn, { backgroundColor: accent + "14" }]}
               accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
-              hitSlop={4}
+              hitSlop={8}
             >
               <Ionicons
                 name={collapsed ? "chevron-forward" : "chevron-down"}
-                size={18}
-                color={COLORS.textPrimary}
+                size={20}
+                color={accent}
               />
             </Pressable>
           )}
@@ -124,8 +124,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chevronBtn: {
-    minWidth: 44,
-    minHeight: 44,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 2,
