@@ -210,13 +210,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
 
-  useEffect(() => {
-    if (activeTab === "items" && isOwnProfile) {
-      router.push(`/marketplace/user/${userId}` as any);
-      setActiveTab("posts");
-    }
-  }, [activeTab]);
-
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
 
   const tabs: TabDefinition[] = useMemo(() => {

@@ -403,9 +403,8 @@ async def get_user_seller_listings(user_id: str):
         {
             "$or": [
                 {"seller_type": "user", "seller_id": user_id},
-                {"owner_id": user_id, "seller_type": {"$exists": False}, "seller_id": {"$exists": False}},
+                {"seller_id": {"$exists": False}, "owner_id": user_id},
             ],
-            "listing_type": "product",
             "status": "published",
             "is_active": True,
         },

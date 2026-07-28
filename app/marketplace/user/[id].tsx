@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -6,52 +6,38 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../../lib/designTokens";
 import { pushEntityRoute, entityRoutes } from "../../../lib/navigation/entityRoutes";
-import { getCategoryConfig } from "../../../lib/marketplace/marketplaceTaxonomy";
 import { formatPrice } from "../../../lib/serviceFormat";
 import { CarouselCard } from "../../../components/shared/CarouselCard";
 import { HeaderBackButton } from "../../../components/shared/HeaderBackButton";
-import { useViewportListings } from "../../../hooks/marketplace/useViewportListings";
-import { useMarketplaceInitialViewport } from "../../../hooks/marketplace/useMarketplaceInitialViewport";
-import { useMapBounds } from "../../../context/MapBoundsContext";
-import DiscoveryMap, { DiscoveryMapMarker } from "../../../components/discovery/DiscoveryMap";
+import { getUserSellerListings, Listing } from "../../../lib/api/listings";
 
 export default function UserMarketplaceScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { setMapBounds } = useMapBounds();
-  const viewport = useMarketplaceInitialViewport();
 
   const [tab, setTab] = useState<"items" | "homes">("items");
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { listings, visibleListings, loading, setVisibleBounds, setCommittedBounds } = useViewportListings({
-    listingType: tab === "homes" ? "home_rental" : "product",
-    filters: { sellerId: id as string, sellerType: "user" } as any,
-    limit: 100,
-    initialBounds: viewport.initialBounds,
-  });
+  useEffect(() => {
+    if (!id) { setLoading(false); return; }
+    setLoading(true);
+    getUserSellerListings(id)
+      .then((data) => setListings(data))
+      .catch(() => setListings([]))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const markers: DiscoveryMapMarker[] = useMemo(
-    () => visibleListings.filter(l => l.latitude != null && l.longitude != null).map(l => ({
-      id: l.listing_id, latitude: l.latitude!, longitude: l.longitude!,
-      title: l.title, color: tab === "homes" ? COLORS.rentalsAccent : COLORS.success,
-      type: "product" as const,
-    })),
-    [visibleListings, tab],
+  const filteredListings = listings.filter((l) =>
+    tab === "homes" ? l.listing_type === "home_rental" : l.listing_type !== "home_rental"
   );
 
-  const handleViewportChange = useCallback((bnds: any) => {
-    setVisibleBounds(bnds);
-    setCommittedBounds(bnds);
-    setMapBounds({ minLat: bnds.minLat, maxLat: bnds.maxLat, minLng: bnds.minLng, maxLng: bnds.maxLng,
-      centerLat: (bnds.minLat + bnds.maxLat) / 2, centerLng: (bnds.minLng + bnds.maxLng) / 2 });
-  }, [setVisibleBounds, setCommittedBounds, setMapBounds]);
+  const handleCardPress = useCallback((listing: Listing) => {
+    pushEntityRoute(router, entityRoutes.listing(listing.listing_id), () => {});
+  }, [router]);
 
-  const handleMarkerPress = useCallback((markerId: string) => {
-    pushEntityRoute(router, tab === "homes" ? entityRoutes.rental(markerId) : entityRoutes.listing(markerId), () => {});
-  }, [router, tab]);
-
-  const renderCard = useCallback(({ item }: { item: any }) => {
+  const renderCard = useCallback(({ item }: { item: Listing }) => {
     const img = item.cover_image_url || item.image_urls?.[0] || item.gallery_images?.[0];
     const isCV = !item.cover_image_url && !!item.video_url;
     return (
@@ -60,18 +46,23 @@ export default function UserMarketplaceScreen() {
       imageUrl={img || undefined}
       videoUrl={item.video_url || undefined}
       isCoverVideo={isCV}
-      muxThumbnailUrl={item.mux_thumbnail_url || undefined}
-      videoStatus={item.video_status || undefined}
+      muxThumbnailUrl={(item as any).mux_thumbnail_url || undefined}
+      videoStatus={(item as any).video_status || undefined}
       title={item.title}
       subtitle={`${formatPrice(item.price) || ""}${item.business_name || item.seller_name ? `\u00b7 ${item.business_name || item.seller_name}` : ""}`}
       thirdLine={item.public_location_label || item.address || ""}
-      onPress={() => pushEntityRoute(router, tab === "homes" ? entityRoutes.rental(item.listing_id) : entityRoutes.listing(item.listing_id), () => {})}
+      onPress={() => handleCardPress(item)}
       fallbackIcon={tab === "homes" ? "home" : "pricetag"}
     />
-  )}, [router, tab]);
+  )}, [handleCardPress, tab]);
 
-  if (!viewport.ready) {
-    return <SafeAreaView style={styles.container} edges={["top"]}><ActivityIndicator style={{ marginTop: 100 }} size="large" color={COLORS.primary} /></SafeAreaView>;
+  if (!id) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.header}><HeaderBackButton onPress={() => router.back()} /></View>
+        <View style={styles.empty}><Text style={styles.emptyText}>Invalid user</Text></View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -93,25 +84,15 @@ export default function UserMarketplaceScreen() {
         </Pressable>
       </View>
 
-      {viewport.initialLocation && (
-        <DiscoveryMap
-          markers={markers}
-          initialLocation={viewport.initialLocation!}
-          initialBounds={viewport.initialBounds}
-          onMarkerPress={handleMarkerPress}
-          onViewportChanging={setVisibleBounds}
-          onViewportChange={handleViewportChange}
-        />
-      )}
-
       <FlatList
-        data={visibleListings}
+        data={filteredListings}
         keyExtractor={(item) => item.listing_id}
         renderItem={renderCard}
         numColumns={2}
         columnWrapperStyle={styles.columnWrapper}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={loading ? <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} /> : (
+        ListEmptyComponent={
+          loading ? <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} /> : (
           <View style={styles.empty}>
             <Ionicons name={tab === "homes" ? "home-outline" : "pricetag-outline"} size={40} color={COLORS.textMuted} />
             <Text style={styles.emptyText}>{tab === "homes" ? t("rentals.noRentals", "No homes") : t("marketplace.noProductsNearby", "No items")}</Text>
