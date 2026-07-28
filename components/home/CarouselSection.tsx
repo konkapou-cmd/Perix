@@ -98,7 +98,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
             </View>
           )}
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={Platform.OS === "web" ? 232 : 212} decelerationRate="fast">
             {children}
           </ScrollView>
         </>

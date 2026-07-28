@@ -1,9 +1,13 @@
 import React from "react";
 import { Image, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
 import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
+
+const CARD_WIDTH = Platform.OS === "web" ? 220 : 200;
+const CARD_HEIGHT = Platform.OS === "web" ? 260 : 240;
 
 interface CarouselCardProps {
   imageUrl?: string | null;
@@ -22,6 +26,7 @@ interface CarouselCardProps {
   overlay?: React.ReactNode;
   textColor?: string;
   fallbackIcon?: keyof typeof Ionicons.glyphMap;
+  showGradient?: boolean;
 }
 
 export function CarouselCard({
@@ -41,65 +46,100 @@ export function CarouselCard({
   overlay,
   textColor,
   fallbackIcon = "ellipse",
+  showGradient = true,
 }: CarouselCardProps) {
   const showVideo = isCoverVideo && videoUrl;
+  const hasMedia = !!(imageUrl || videoUrl);
+
+  const renderBackground = () => {
+    if (showVideo) {
+      return (
+        <View style={StyleSheet.absoluteFill}>
+          {(muxThumbnailUrl || imageUrl) && (
+            <FocalImage uri={muxThumbnailUrl || imageUrl!} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} />
+          )}
+          <AdaptiveVideo uri={videoUrl!} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} />
+        </View>
+      );
+    }
+    if (imageUrl) {
+      return <FocalImage uri={imageUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} />;
+    }
+    if (videoUrl) {
+      return (
+        <View style={StyleSheet.absoluteFill}>
+          {muxThumbnailUrl && <FocalImage uri={muxThumbnailUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} />}
+          <AdaptiveVideo uri={videoUrl} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} />
+        </View>
+      );
+    }
+    return (
+      <View style={styles.fallback}>
+        <Ionicons name={fallbackIcon} size={44} color={COLORS.textPlaceholder} />
+      </View>
+    );
+  };
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.imageArea}>
-        {showVideo ? (
-          <View style={StyleSheet.absoluteFill}>
-            {muxThumbnailUrl || imageUrl ? (
-              <FocalImage uri={muxThumbnailUrl || imageUrl!} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} style={styles.image} showLoader={false} />
-            ) : null}
-            <AdaptiveVideo uri={videoUrl!} style={styles.image} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} />
-          </View>
-        ) : imageUrl ? (
-          <FocalImage uri={imageUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} style={styles.image} showLoader={false} />
-        ) : videoUrl ? (
-          <View style={StyleSheet.absoluteFill}>
-            {muxThumbnailUrl ? (
-              <FocalImage uri={muxThumbnailUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} style={styles.image} showLoader={false} />
-            ) : null}
-            <AdaptiveVideo uri={videoUrl} style={styles.image} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} />
-          </View>
-        ) : (
-          <View style={styles.fallback}>
-            <Ionicons name={fallbackIcon} size={32} color={COLORS.textPlaceholder} />
-          </View>
+      <View style={styles.cardInner}>
+        {renderBackground()}
+
+        {showGradient && hasMedia && (
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.75)"]}
+            style={styles.gradient}
+          />
         )}
-        {isSaved && (
-          <View style={styles.savedBadge}>
-            <Ionicons name="bookmark" size={14} color={COLORS.gold} />
+
+        <View style={styles.badgeRow}>
+          <View style={styles.badgeLeft}>
+            {showVideo && (
+              <View style={styles.videoBadge}>
+                <Ionicons name="play-circle" size={14} color="#fff" />
+              </View>
+            )}
           </View>
-        )}
+          <View style={styles.badgeRight}>
+            {isSaved && (
+              <View style={styles.saveBadge}>
+                <Ionicons name="bookmark" size={14} color={COLORS.gold} />
+              </View>
+            )}
+          </View>
+        </View>
+
         {overlay}
-      </View>
-      <View style={styles.textArea}>
-        <Text style={[styles.title, textColor ? { color: textColor } : undefined]} numberOfLines={1}>
-          {title}
-        </Text>
-        {subtitle ? (
-          subtitleOnPress ? (
-            <Pressable onPress={subtitleOnPress} style={styles.subtitleRow}>
-              {subtitleAvatarUrl ? (
-                <Image source={{ uri: subtitleAvatarUrl }} style={styles.subtitleAvatar} />
-              ) : null}
-              <Text style={[styles.subtitle, textColor ? { color: textColor } : undefined, styles.subtitleLink]} numberOfLines={1}>
+
+        <View style={hasMedia ? styles.textOverlay : styles.textArea}>
+          <Text style={[styles.title, !hasMedia && (textColor ? { color: textColor } : styles.titleDark)]} numberOfLines={2}>
+            {title}
+          </Text>
+          {subtitle ? (
+            subtitleOnPress ? (
+              <Pressable onPress={subtitleOnPress} style={styles.subtitleRow}>
+                {subtitleAvatarUrl ? (
+                  <Image source={{ uri: subtitleAvatarUrl }} style={styles.subtitleAvatar} />
+                ) : null}
+                <Text style={[styles.subtitle, !hasMedia && (textColor ? { color: textColor } : styles.subtitleDark)]} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              </Pressable>
+            ) : (
+              <Text style={[styles.subtitle, !hasMedia && (textColor ? { color: textColor } : styles.subtitleDark)]} numberOfLines={1}>
                 {subtitle}
               </Text>
-            </Pressable>
-          ) : (
-            <Text style={[styles.subtitle, textColor ? { color: textColor } : undefined]} numberOfLines={1}>
-              {subtitle}
-            </Text>
-          )
-        ) : null}
-        {thirdLine ? (
-          <Text style={styles.thirdLine} numberOfLines={1}>
-            {thirdLine}
-          </Text>
-        ) : null}
+            )
+          ) : null}
+          {thirdLine ? (
+            <View style={styles.thirdRow}>
+              <Ionicons name="location-outline" size={11} color={hasMedia ? "rgba(255,255,255,0.7)" : COLORS.textMuted} />
+              <Text style={[styles.thirdLine, !hasMedia && styles.thirdLineDark]} numberOfLines={1}>
+                {thirdLine}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
     </Pressable>
   );
@@ -107,85 +147,141 @@ export function CarouselCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: Platform.OS === "web" ? 180 : 145,
-    backgroundColor: COLORS.background,
+    width: CARD_WIDTH,
     marginRight: 12,
-    marginBottom: 4,
-    borderRadius: BORDER_RADIUS.card,
+    borderRadius: 16,
     overflow: "hidden",
-    shadowColor: COLORS.primaryDark,
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    backgroundColor: COLORS.surfaceSoft,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
-  imageArea: {
-    width: Platform.OS === "web" ? 180 : 145,
-    height: Platform.OS === "web" ? 135 : 110,
-    backgroundColor: COLORS.surfaceMuted,
-    alignItems: "center",
-    justifyContent: "center",
+  cardInner: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
     position: "relative",
-    overflow: "hidden",
-    borderTopLeftRadius: BORDER_RADIUS.card,
-    borderTopRightRadius: BORDER_RADIUS.card,
   },
-  image: {
-    width: "100%",
-    height: "100%",
+  gradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "65%",
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   fallback: {
-    width: "100%",
-    height: "100%",
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
     backgroundColor: COLORS.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
   },
-  savedBadge: {
+  badgeRow: {
     position: "absolute",
-    top: 6,
-    right: 6,
+    top: 8,
+    left: 8,
+    right: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    zIndex: 10,
+  },
+  badgeLeft: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  badgeRight: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  videoBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saveBadge: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
+  },
+  textOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    paddingBottom: 12,
   },
   textArea: {
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
+    padding: 10,
+    paddingBottom: 12,
   },
   title: {
-    fontSize: Platform.OS === "web" ? 15 : 13,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#fff",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    marginBottom: 3,
   },
-  subtitle: {
-    fontSize: Platform.OS === "web" ? 13 : 11,
-    color: COLORS.textGray,
-    marginTop: 1,
+  titleDark: {
+    color: COLORS.textPrimary,
+    textShadowColor: "transparent",
+    textShadowRadius: 0,
   },
   subtitleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    marginTop: 1,
+    marginBottom: 2,
   },
   subtitleAvatar: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: COLORS.border,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
-  subtitleLink: {
-    color: COLORS.primary,
-    fontWeight: "600",
-  } as const,
-  thirdLine: {
-    fontSize: Platform.OS === "web" ? 13 : 11,
+  subtitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.85)",
+    textShadowColor: "rgba(0,0,0,0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  subtitleDark: {
     color: COLORS.textGray,
-    marginTop: 1,
+    textShadowColor: "transparent",
+    textShadowRadius: 0,
+  },
+  thirdRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  thirdLine: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.65)",
+    flex: 1,
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  thirdLineDark: {
+    color: COLORS.textMuted,
+    textShadowColor: "transparent",
+    textShadowRadius: 0,
   },
 });
+
+export { CARD_WIDTH, CARD_HEIGHT };
