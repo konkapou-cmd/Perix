@@ -5,7 +5,9 @@ Refactored modular architecture - February 2026
 import asyncio
 import time
 from collections import defaultdict
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends, Query
+from routes.dependencies import get_current_user
+from models.user import UserPublic
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -110,103 +112,120 @@ app.include_router(api_router)
 
 @app.get("/api/ping-deploy")
 async def ping_deploy():
-    return {"deployed": True, "commit": "a133151"}
+    return {"deployed": True, "commit": os.getenv("APP_COMMIT_SHA", "unknown")}
 
 
-@app.post("/api/fix-my-listings")
-async def fix_my_listings():
-    r = await db.listings.update_many(
-        {"owner_id": "user_6577e46653dc"},
-        {"$set": {"status": "published", "is_hidden": False, "is_active": True,
-                  "listing_type": "product"}}
-    )
-    return {"updated_count": r.modified_count}
+@app.post("/api/admin/transfer-marketplace")
+async def transfer_marketplace(
+    source_user_id: str = Query(..., description="Source account ID (deleted/orphaned user)"),
+    destination_user_id: str = Query(..., description="Destination account ID (receives listings)"),
+    dry_run: bool = Query(True, description="Preview without making changes"),
+    confirm: bool = Query(False, description="Required for non-dry-run execution"),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Admin-only: Transfer orphan listings and repair missing canonical fields.
 
-
-@app.post("/api/repair-orphans")
-async def repair_orphans(dry_run: bool = True):
-    from services.entity_ownership import repair_orphaned_entities
-    result = await repair_orphaned_entities(dry_run=dry_run)
-    return {"dry_run": dry_run, "checked": result.total_checked,
-            "hidden": result.hidden, "by_collection": result.by_collection}
-
-
-@app.post("/api/clean-marketplace")
-async def clean_marketplace():
-    """Transfer orphan personal listings to current user, hide business orphans."""
+    - Transfers listings owned by source_user_id to destination_user_id
+    - Sets complete canonical fields: seller_id, seller_type, publication_scope
+    - Preserves existing listing_type (only defaults to "product" when missing)
+    - Also repairs already-transferred listings with missing ownership fields
+    """
+    from routes.admin import verify_admin
     from datetime import datetime, timezone
+    import uuid
+
+    await verify_admin(current_user)
+
+    if not dry_run and not confirm:
+        raise HTTPException(status_code=400, detail="Set confirm=true for non-dry-run execution")
+
     now = datetime.now(timezone.utc)
+    audit_id = str(uuid.uuid4())
 
-    # Find all active user-listings whose owner doesn't exist or is deleted
-    personal = await db.listings.find(
-        {"seller_type": {"$in": ["user", None]}, "is_active": True},
-        {"listing_id": 1, "owner_id": 1, "seller_id": 1, "title": 1}
-    ).to_list(5000)
+    # Transfer orphan personal listings: source → destination
+    transfer_candidates = await db.listings.find(
+        {
+            "seller_type": {"$in": ["user", None]},
+            "is_active": True,
+            "$or": [
+                {"seller_id": source_user_id},
+                {"owner_id": source_user_id},
+            ],
+        },
+        {"listing_id": 1, "title": 1, "listing_type": 1},
+    ).to_list(500)
 
-    owner_ids = list({(l.get("seller_id") or l.get("owner_id")) for l in personal if l.get("seller_id") or l.get("owner_id")})
-    active_users = {u["user_id"] for u in await db.users.find(
-        {"user_id": {"$in": owner_ids}, "is_deleted": {"$ne": True}}, {"user_id": 1}
-    ).to_list(len(owner_ids))}
+    transferred_ids = []
+    for l in transfer_candidates:
+        if not dry_run:
+            update_fields = {
+                "owner_id": destination_user_id,
+                "seller_id": destination_user_id,
+                "seller_type": "user",
+                "status": "published",
+                "is_hidden": False,
+                "is_active": True,
+                "publication_scope": "profile_and_marketplace",
+                "updated_at": now,
+            }
+            if not l.get("listing_type"):
+                update_fields["listing_type"] = "product"
+            await db.listings.update_one(
+                {"listing_id": l["listing_id"]},
+                {"$set": update_fields},
+            )
+        transferred_ids.append(l["listing_id"])
 
-    transferred = 0
-    hidden_biz = 0
-    for l in personal:
-        owner = l.get("seller_id") or l.get("owner_id")
-        if owner and owner not in active_users:
-            # Find the old user's email
-            old_user = await db.users.find_one({"user_id": owner}, {"email": 1})
-            if old_user and old_user.get("email") == "konkapou@gmail.com":
-                await db.listings.update_one(
-                    {"listing_id": l["listing_id"]},
-                    {"$set": {"owner_id": "user_6577e46653dc",
-                              "seller_id": "user_6577e46653dc",
-                              "seller_type": "user",
-                              "listing_type": l.get("listing_type") or "product",
-                              "status": "published",
-                              "is_hidden": False,
-                              "is_active": True,
-                              "updated_at": now}}
-                )
-                transferred += 1
-            else:
-                await db.listings.update_one(
-                    {"listing_id": l["listing_id"]},
-                    {"$set": {"is_active": False, "status": "hidden",
-                              "hidden_reason": "orphaned_owner_missing", "updated_at": now}}
-                )
-                hidden_biz += 1
+    # Repair already-transferred listings with missing canonical ownership fields
+    repair_candidates = await db.listings.find(
+        {
+            "owner_id": destination_user_id,
+            "$or": [
+                {"seller_id": {"$exists": False}},
+                {"seller_id": None},
+                {"seller_type": {"$exists": False}},
+                {"seller_type": None},
+                {"publication_scope": {"$exists": False}},
+                {"publication_scope": None},
+            ],
+        },
+        {"listing_id": 1, "title": 1, "listing_type": 1},
+    ).to_list(500)
 
-    # Hide business listings with missing/inactive businesses
-    biz_listings = await db.listings.find(
-        {"seller_type": "business", "is_active": True},
-        {"listing_id": 1, "business_id": 1}
-    ).to_list(5000)
-    if biz_listings:
-        biz_ids = list({l["business_id"] for l in biz_listings if l.get("business_id")})
-        active_biz = {b["business_id"] for b in await db.businesses.find(
-            {"business_id": {"$in": biz_ids}, "is_active": True, "is_hidden": {"$ne": True}},
-            {"business_id": 1}
-        ).to_list(len(biz_ids))}
-        for l in biz_listings:
-            if l.get("business_id") not in active_biz:
-                await db.listings.update_one(
-                    {"listing_id": l["listing_id"]},
-                    {"$set": {"is_active": False, "status": "hidden",
-                              "hidden_reason": "orphaned_business_missing", "updated_at": now}}
-                )
-                hidden_biz += 1
+    repaired_ids = []
+    for l in repair_candidates:
+        if not dry_run:
+            update_fields = {
+                "seller_id": destination_user_id,
+                "seller_type": "user",
+                "publication_scope": "profile_and_marketplace",
+                "status": "published",
+                "is_hidden": False,
+                "is_active": True,
+                "updated_at": now,
+            }
+            if not l.get("listing_type"):
+                update_fields["listing_type"] = "product"
+            await db.listings.update_one(
+                {"listing_id": l["listing_id"]},
+                {"$set": update_fields},
+            )
+        repaired_ids.append(l["listing_id"])
 
-    # Also fix already-transferred listings owned by the target user
-    repaired = await db.listings.update_many(
-        {"owner_id": "user_6577e46653dc", "status": {"$ne": "published"}},
-        {"$set": {"status": "published", "is_hidden": False, "is_active": True, "updated_at": now}}
-    )
-    repaired2 = await db.listings.update_many(
-        {"owner_id": "user_6577e46653dc", "listing_type": {"$exists": False}},
-        {"$set": {"listing_type": "product", "updated_at": now}}
-    )
-
-    return {"transferred_to_user": transferred, "hidden_orphans": hidden_biz, "repaired": repaired.modified_count + repaired2.modified_count}
+    return {
+        "dry_run": dry_run,
+        "audit_id": audit_id,
+        "source_user_id": source_user_id,
+        "destination_user_id": destination_user_id,
+        "transferred": {
+            "count": len(transferred_ids),
+            "listing_ids": transferred_ids,
+        },
+        "repaired": {
+            "count": len(repaired_ids),
+            "listing_ids": repaired_ids,
+        },
+    }
 
 
 # Reminder processing function
