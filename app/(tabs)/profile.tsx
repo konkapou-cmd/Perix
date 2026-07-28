@@ -1345,7 +1345,11 @@ const handleUpdateSlug = async (newSlug: string) => {
   const handleSaveListing = () => {
     setListingModalVisible(false);
     setEditingListing(null);
-    loadBusinessProfile();
+    if (activeIdentity?.type === "business") {
+      loadBusinessProfile();
+    } else {
+      loadUserProfile();
+    }
   };
 
   const handleSaveBusinessHours = async () => {

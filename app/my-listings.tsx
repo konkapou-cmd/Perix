@@ -23,7 +23,7 @@ export default function MyListingsScreen() {
     if (!sessionToken) { setLoading(false); return; }
     setLoading(true);
     getMyListings(sessionToken, tab)
-      .then((items) => setListings(items.filter((i) => i.is_active)))
+      .then((items) => setListings(items))
       .catch(() => {})
       .finally(() => setLoading(false));
   };
