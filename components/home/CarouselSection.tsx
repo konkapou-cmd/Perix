@@ -50,26 +50,28 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <SectionHeader
-            icon={icon}
-            title={title}
-            accent={accent}
-            onSeeAll={undefined}
-          />
-          {onToggleCollapse && (
-            <Pressable
-              onPress={handleToggle}
-              style={[styles.chevronBtn, { borderColor: accent + "4D", borderWidth: 1.5 }]}
-              accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
-              hitSlop={8}
-            >
-              <Ionicons
-                name={collapsed ? "chevron-forward" : "chevron-down"}
-                size={22}
-                color={accent}
-              />
-            </Pressable>
-          )}
+          <Pressable
+            onPress={handleToggle}
+            style={styles.chevronTouchable}
+            disabled={!onToggleCollapse}
+            hitSlop={8}
+          >
+            <SectionHeader
+              icon={icon}
+              title={title}
+              accent={accent}
+              onSeeAll={undefined}
+            />
+            {onToggleCollapse && (
+              <View style={[styles.chevronBtn, { borderColor: accent + "4D", borderWidth: 1.5 }]}>
+                <Ionicons
+                  name={collapsed ? "chevron-forward" : "chevron-down"}
+                  size={20}
+                  color={accent}
+                />
+              </View>
+            )}
+          </Pressable>
         </View>
         {seeAllRoute && (
           <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={(e: any) => { e?.stopPropagation?.(); router.navigate(seeAllRoute as any); }}>
@@ -123,13 +125,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
+  chevronTouchable: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
   chevronBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 2,
+    marginLeft: 8,
   },
   seeAllBtn: {
     flexDirection: "row",

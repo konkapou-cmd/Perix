@@ -623,9 +623,9 @@ export default function ProfileScreen() {
       const data = await getUserPublicProfile(sessionToken, user.user_id);
       setUserPosts(data.posts || []);
 
-      const listings = await getManageListings(sessionToken, "user", user.user_id);
+      const listings = await getManageListings(sessionToken);
       if (requestId !== userListingsRequestRef.current) return;
-      setUserListings(listings.filter(l => l.listing_type === "product"));
+      setUserListings(listings.filter(l => !l.listing_type || l.listing_type === "product"));
       setUserHomeListings(listings.filter(l => l.listing_type === "home_rental"));
     } catch {
       if (requestId === userListingsRequestRef.current) {

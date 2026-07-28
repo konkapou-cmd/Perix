@@ -72,7 +72,7 @@ export default function ListingDetailScreen() {
       Alert.alert(t("common.loginRequired", "Login Required"), t("common.loginToContact", "Please log in to contact the seller."));
       return;
     }
-    router.push({ pathname: `/messages/${listing.owner_id}` as any, params: { name: listing.business_name || listing.seller_name || "Seller", entityType: "user" } as any });
+    router.push({ pathname: `/messages/${listing.owner_id}` as any, params: { name: listing.business_name || listing.seller_name || t("marketplace.seller", "Anbieter"), entityType: "user" } as any });
   };
 
   if (!id) {

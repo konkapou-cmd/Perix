@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   },
   subtitleLink: {
     color: COLORS.primary,
-    textDecorationLine: "underline",
+    fontWeight: "600",
   } as const,
   thirdLine: {
     fontSize: Platform.OS === "web" ? 13 : 11,

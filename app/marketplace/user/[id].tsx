@@ -51,18 +51,24 @@ export default function UserMarketplaceScreen() {
     pushEntityRoute(router, tab === "homes" ? entityRoutes.rental(markerId) : entityRoutes.listing(markerId), () => {});
   }, [router, tab]);
 
-  const renderCard = useCallback(({ item }: { item: any }) => (
+  const renderCard = useCallback(({ item }: { item: any }) => {
+    const img = item.cover_image_url || item.image_urls?.[0] || item.gallery_images?.[0];
+    const isCV = !item.cover_image_url && !!item.video_url;
+    return (
     <CarouselCard
       key={item.listing_id}
-      imageUrl={item.cover_image_url || item.image_urls?.[0] || item.gallery_images?.[0] || undefined}
+      imageUrl={img || undefined}
       videoUrl={item.video_url || undefined}
+      isCoverVideo={isCV}
+      muxThumbnailUrl={item.mux_thumbnail_url || undefined}
+      videoStatus={item.video_status || undefined}
       title={item.title}
-      subtitle={`${formatPrice(item.price) || ""}`}
+      subtitle={`${formatPrice(item.price) || ""}${item.business_name || item.seller_name ? `\u00b7 ${item.business_name || item.seller_name}` : ""}`}
       thirdLine={item.public_location_label || item.address || ""}
       onPress={() => pushEntityRoute(router, tab === "homes" ? entityRoutes.rental(item.listing_id) : entityRoutes.listing(item.listing_id), () => {})}
       fallbackIcon={tab === "homes" ? "home" : "pricetag"}
     />
-  ), [router, tab]);
+  )}, [router, tab]);
 
   if (!viewport.ready) {
     return <SafeAreaView style={styles.container} edges={["top"]}><ActivityIndicator style={{ marginTop: 100 }} size="large" color={COLORS.primary} /></SafeAreaView>;
