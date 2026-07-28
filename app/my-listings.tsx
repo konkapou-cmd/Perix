@@ -52,7 +52,7 @@ export default function MyListingsScreen() {
           setDeleting(listing.listing_id);
           try {
             await deleteListing(sessionToken!, listing.listing_id);
-            load();
+            setListings((prev) => prev.filter((l) => l.listing_id !== listing.listing_id));
           } catch (e: any) {
             Alert.alert(t("common.error", "Error"), e?.message || t("common.deleteFailed", "Failed to delete"));
           } finally {

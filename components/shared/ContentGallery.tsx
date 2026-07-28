@@ -23,7 +23,7 @@ export default function ContentGallery({ mediaItems, title }: ContentGalleryProp
   const itemGap = SPACING.compact;
   const innerWidth = screenWidth - SPACING.page * 2;
   const itemWidth = (innerWidth - itemGap * (NUM_COLS - 1)) / NUM_COLS;
-  const itemHeight = itemWidth * (4 / 3);
+  const itemHeight = itemWidth;
 
   const getThumbnailUrl = (item: MediaItem): string => {
     if (item.type === "video") {
