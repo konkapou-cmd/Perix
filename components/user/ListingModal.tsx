@@ -243,7 +243,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         location_visibility: locationVisibility,
         category: listingCategory || null,
         subcategory: listingSubcategory || null,
-        attributes: Object.keys(listingAttributes).length > 0 ? listingAttributes : null,
+        attributes: Object.keys(listingAttributes).length > 0 ? listingAttributes : {},
         publication_scope: scope,
         condition: isProduct ? (condition || null) : undefined,
         brand: isProduct ? (brand || null) : undefined,
