@@ -4,6 +4,7 @@ import {
   Text, TextInput, View, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from "react-native";
 import { CalendarList } from "react-native-calendars";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
