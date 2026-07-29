@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Dimensions,
+  useWindowDimensions,
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,8 +16,9 @@ import MediaThumbnail from "../ui/MediaThumbnail";
 import LazyMediaViewer, { MediaItem as MediaViewerItem } from "../LazyMediaViewer";
 import { Post } from "../../lib/api";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const GRID_COLS = 3;
+const NUM_COLS = 3;
+const ITEM_GAP = 8;
+const SECTION_PAD = 16;
 
 function getVideoThumbnailUrl(uri: string): string {
   if (uri.includes("mux.com")) {
@@ -25,8 +26,6 @@ function getVideoThumbnailUrl(uri: string): string {
   }
   return uri.replace("/upload/", "/upload/so_0,vc_00,w_300/");
 }
-const GRID_GAP = 2;
-const ITEM_SIZE = (SCREEN_WIDTH - GRID_GAP * (GRID_COLS + 1)) / GRID_COLS;
 const MAX_GALLERY_ITEMS = 15;
 
 type MediaItem = { uri: string; type: "image" | "video"; source: "post" | "gallery"; id: string };
@@ -56,6 +55,10 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
   const [activeTab, setActiveTab] = useState<"photos" | "videos">("photos");
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+
+  const { width: screenWidth } = useWindowDimensions();
+  const innerWidth = screenWidth - SECTION_PAD * 2;
+  const itemSize = (innerWidth - ITEM_GAP * (NUM_COLS - 1)) / NUM_COLS;
 
   const isWeb = Platform.OS === "web";
 
@@ -175,7 +178,7 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
           {mediaItems.map((item, index) => (
             <Pressable
               key={item.id}
-              style={[styles.webGridItem, !isWeb && { flex: 1, maxWidth: "33%" }]}
+              style={[styles.webGridItem, { width: itemSize, height: itemSize }]}
               onPress={() => handleItemPress(item, index)}
             >
               <MediaThumbnail
@@ -247,13 +250,12 @@ const styles: Record<string, any> = StyleSheet.create({
   webGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    paddingHorizontal: 8,
+    gap: ITEM_GAP,
+    paddingHorizontal: SECTION_PAD,
     paddingTop: 12,
     paddingBottom: 24,
   },
   webGridItem: {
-    width: "calc(33.33% - 8px)" as any,
     aspectRatio: 1,
     borderRadius: 12,
     overflow: "hidden",

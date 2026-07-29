@@ -1252,6 +1252,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [postVideoPreview, setPostVideoPreview] = useState<string | null>(null);
   const [postMediaRatio, setPostMediaRatio] = useState<number | null>(null);
   const [isPosting, setIsPosting] = useState(false);
+  const postingRef = useRef(false);
   const [gallerySaving, setGallerySaving] = useState(false);
 
   const loadBusinessFullData = async (bizId: string) => {
@@ -1824,7 +1825,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   };
 
   const handleCreatePost = async (eventOrText?: any) => {
-    if (isPosting || !sessionToken) return;
+    if (postingRef.current || !sessionToken) return;
      
      // Determine actor identity - use activeIdentity or fallback to user
      let actorIdentity = activeIdentity;
@@ -1849,6 +1850,7 @@ const handleUpdateSlug = async (newSlug: string) => {
      }
 
 try {
+        postingRef.current = true;
         setIsPosting(true);
         // Only show upload progress if there's actual media to upload
         const hasMedia = !!postImage || !!postVideo;
@@ -1929,6 +1931,7 @@ try {
         console.error("Failed to create post:", error);
          Alert.alert(t("common.error", "Error"), t("profile.failedCreatePost", "Failed to create post. Please try again."));
       } finally {
+        postingRef.current = false;
         setIsPosting(false);
       }
    }
