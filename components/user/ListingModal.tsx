@@ -461,7 +461,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 </Pressable>
 
                 <Text style={styles.label}>{t("services.availableFrom", "Available from")}</Text>
-                <TextInput style={styles.input} value={availableFrom} onChangeText={setAvailableFrom} placeholder="2026-08-01" placeholderTextColor={COLORS.textDisabled} />
+                <TextInput style={styles.input} value={availableFrom} onChangeText={setAvailableFrom} placeholder="01-08-2026" placeholderTextColor={COLORS.textDisabled} />
 
                 <Text style={styles.label}>{t("services.leaseDuration", "Lease Duration")}</Text>
                 <TextInput style={styles.input} value={leaseDuration} onChangeText={setLeaseDuration} placeholder="1 year" placeholderTextColor={COLORS.textDisabled} />
