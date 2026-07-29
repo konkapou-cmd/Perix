@@ -238,12 +238,12 @@ const styles: Record<string, any> = StyleSheet.create({
     color: PROFILE_COLORS.TEXT_SECONDARY,
   },
   gridContainer: {
-    padding: GRID_GAP,
+    padding: 8,
   },
   gridItem: {
-    width: ITEM_SIZE,
-    height: ITEM_SIZE,
-    margin: GRID_GAP / 2,
+    width: 100,
+    height: 100,
+    margin: 4,
     position: "relative",
     overflow: "hidden",
   },
