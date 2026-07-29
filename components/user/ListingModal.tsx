@@ -465,7 +465,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 <Text style={styles.label}>{t("services.availableFrom", "Available from")}</Text>
                 <Pressable style={styles.selector} onPress={() => setShowDatePicker(true)}>
                   <Text style={availableFrom ? styles.selectorTextSelected : styles.selectorText}>
-                    {availableFrom || t("services.selectDate", "Select date")}
+                    {availableFrom ? availableFrom.split("-").reverse().join("-") : t("services.selectDate", "Select date")}
                   </Text>
                   <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
                 </Pressable>
