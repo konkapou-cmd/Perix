@@ -1122,7 +1122,6 @@ const handleUpdateSlug = async (newSlug: string) => {
         const updated = await updateProfileGallery(sessionToken, { images: [uploadedUrl] });
         setGalleryImages(updated.gallery_images || []);
         setGalleryItems(updated.gallery_items || []);
-        loadUserProfile();
         Alert.alert(t("common.success", "Success"), t("profile.photoAdded", "Photo added to gallery"));
       }
     } catch (e: any) {
@@ -1132,6 +1131,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       setUploadProgress(null);
       setGallerySaving(false);
     }
+    loadUserProfile().catch(() => {});
   };
 
   const handleAddVideo = async () => {
@@ -1161,7 +1161,6 @@ const handleUpdateSlug = async (newSlug: string) => {
           const updated = await updateProfileGallery(sessionToken, { videos: [uploadedUrl] });
           setGalleryVideos(updated.gallery_videos || []);
           setVideoItems(updated.video_items || []);
-          loadUserProfile();
           Alert.alert(t("common.success", "Success"), t("profile.videoAdded", "Video added to gallery"));
         } else {
           Alert.alert(t("common.error", "Error"), "Video upload failed: no playback URL received. Please try again.");
@@ -1174,6 +1173,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       setUploadProgress(null);
       setGallerySaving(false);
     }
+    loadUserProfile().catch(() => {});
   };
 
   const handleDeleteGalleryItem = async (type: "image" | "video", index: number) => {
