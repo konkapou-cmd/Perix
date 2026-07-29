@@ -3,7 +3,7 @@ import {
   Alert, Modal, Pressable, ScrollView, StyleSheet,
   Text, TextInput, View, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { CalendarList } from "react-native-calendars";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
@@ -124,6 +124,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [deposit, setDeposit] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [listingCategory, setListingCategory] = useState("");
   const [listingSubcategory, setListingSubcategory] = useState("");
@@ -461,7 +462,12 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 </Pressable>
 
                 <Text style={styles.label}>{t("services.availableFrom", "Available from")}</Text>
-                <TextInput style={styles.input} value={availableFrom} onChangeText={setAvailableFrom} placeholder="01-08-2026" placeholderTextColor={COLORS.textDisabled} />
+                <Pressable style={styles.selector} onPress={() => setShowDatePicker(true)}>
+                  <Text style={availableFrom ? styles.selectorTextSelected : styles.selectorText}>
+                    {availableFrom || t("services.selectDate", "Select date")}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+                </Pressable>
 
                 <Text style={styles.label}>{t("services.leaseDuration", "Lease Duration")}</Text>
                 <TextInput style={styles.input} value={leaseDuration} onChangeText={setLeaseDuration} placeholder="1 year" placeholderTextColor={COLORS.textDisabled} />
@@ -544,6 +550,33 @@ export default function ListingModal({ visible, listingType, editingListing, ses
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <Modal visible={showDatePicker} animationType="slide" transparent>
+        <View style={styles.calendarOverlay}>
+          <View style={styles.calendarContainer}>
+            <View style={styles.calendarHeader}>
+              <Pressable onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.calendarDoneText}>{t("common.done", "Done")}</Text>
+              </Pressable>
+            </View>
+            <CalendarList
+              horizontal
+              pagingEnabled
+              showsVerticalScrollIndicator={false}
+              onDayPress={(day) => {
+                setAvailableFrom(day.dateString);
+                setShowDatePicker(false);
+              }}
+              markedDates={availableFrom ? { [availableFrom]: { selected: true, selectedColor: COLORS.primary } } : {}}
+              theme={{
+                todayTextColor: COLORS.primary,
+                selectedDayBackgroundColor: COLORS.primary,
+                arrowColor: COLORS.primary,
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -602,4 +635,47 @@ const styles = StyleSheet.create({
   locationLabelText: { flex: 1, fontSize: 13, color: COLORS.textPrimary },
   locationLabelEdit: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
   field: { marginTop: SPACING.small },
+  selector: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.compact,
+    backgroundColor: COLORS.backgroundPage,
+  },
+  selectorText: {
+    fontSize: FONT_SIZES.body,
+    color: COLORS.textDisabled,
+  },
+  selectorTextSelected: {
+    fontSize: FONT_SIZES.body,
+    color: COLORS.textPrimary,
+  },
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  calendarContainer: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: BORDER_RADIUS.xl,
+    borderTopRightRadius: BORDER_RADIUS.xl,
+    maxHeight: "70%",
+  },
+  calendarHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.compact,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  calendarDoneText: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: "600" as const,
+    color: COLORS.primary,
+  },
 });
