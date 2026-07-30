@@ -776,7 +776,7 @@ export default function HomeScreen() {
           />
         )}
 
-        {sortedEvents.length > 0 && homeLayout.sections.find(s => s.id === "events")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "events")?.enabled !== false && (
           <CarouselSection
             title={t("home.events")}
             icon="calendar"
@@ -836,7 +836,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {sortedActivities.length > 0 && homeLayout.sections.find(s => s.id === "activities")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "activities")?.enabled !== false && (
           <CarouselSection
             title={t("tabs.activities")}
             icon="people"
@@ -896,7 +896,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {sortedBusinesses.length > 0 && homeLayout.sections.find(s => s.id === "businesses")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "businesses")?.enabled !== false && (
           <CarouselSection
             title={t("home.businesses")}
             icon="business"
@@ -926,7 +926,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {sortedServices.length > 0 && homeLayout.sections.find(s => s.id === "services")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "services")?.enabled !== false && (
           <CarouselSection
             title={t("modules.services") || "Services"}
             icon="briefcase"
@@ -985,7 +985,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {sortedJobs.length > 0 && homeLayout.sections.find(s => s.id === "jobs")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "jobs")?.enabled !== false && (
           <CarouselSection
             title={t("home.jobs") || "Jobs"}
             icon="briefcase"
@@ -1013,7 +1013,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {viewportProducts.length > 0 && homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
           <CarouselSection
             title={t("marketplace.productsInArea", "Produkte in der Nähe")}
             icon="pricetag"
@@ -1048,7 +1048,7 @@ export default function HomeScreen() {
             })}
           </CarouselSection>
         )}
-        {viewportHomes.length > 0 && homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
           <CarouselSection
             title={t("marketplace.homesInArea", "Unterkünfte in der Nähe")}
             icon="home"
