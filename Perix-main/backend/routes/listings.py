@@ -198,7 +198,17 @@ async def create_listing(
         "created_at": now_utc(),
     }
     await db.listings.insert_one(doc)
-    return ListingResponse(**doc)
+    try:
+        return ListingResponse(**doc)
+    except Exception:
+        return ListingResponse(
+            listing_id=doc.get("listing_id", ""),
+            owner_id=doc.get("owner_id", ""),
+            listing_type=doc.get("listing_type", "product"),
+            title=doc.get("title", ""),
+            status=doc.get("status", "draft"),
+            created_at=doc.get("created_at", now_utc()),
+        )
 
 
 def _in_bounds(lat: float, lng: float, min_lat: float, max_lat: float, min_lng: float, max_lng: float) -> bool:
