@@ -58,7 +58,7 @@ export default function MarketplaceHomesPage() {
           latitude: l.latitude!,
           longitude: l.longitude!,
           title: l.title,
-          color: COLORS.rentalsAccent, type: "rental",
+          color: COLORS.rentalsAccent, type: "product",
         })),
     [visibleListings],
   );

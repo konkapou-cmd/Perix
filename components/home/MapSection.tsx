@@ -69,7 +69,7 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
     const prod = (products || []).find(p => p.listing_id === id);
     if (prod) { pushEntityRoute(router, entityRoutes.listing(id), () => {}); return; }
     const home = (ownerHomes || []).find(h => h.listing_id === id);
-    if (home) { pushEntityRoute(router, entityRoutes.rental(id), () => {}); return; }
+    if (home) { pushEntityRoute(router, entityRoutes.listing(id), () => {}); return; }
   };
 
   const handleRecenter = async () => {
