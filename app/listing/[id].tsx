@@ -26,11 +26,13 @@ export default function ListingDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showVideoCover, setShowVideoCover] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
 
-  const effectiveVideoCover = listing ? (!listing.cover_image_url && !!listing.video_url) : false;
+  const hasBothCoverAndVideo = listing ? !!(listing.cover_image_url && listing.video_url) : false;
+  const effectiveVideoCover = listing ? (hasBothCoverAndVideo ? showVideoCover : (!listing.cover_image_url && !!listing.video_url)) : false;
 
   useEffect(() => {
     if (!id) {
@@ -170,6 +172,18 @@ export default function ListingDetailScreen() {
               setViewerOpen(true);
             }}
           />
+          {hasBothCoverAndVideo && (
+            <Pressable
+              style={styles.coverToggle}
+              onPress={() => setShowVideoCover((v) => !v)}
+            >
+              <Ionicons
+                name={showVideoCover ? "image-outline" : "videocam-outline"}
+                size={18}
+                color="#fff"
+              />
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.infoCard}>

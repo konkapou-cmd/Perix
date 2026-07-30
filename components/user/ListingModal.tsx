@@ -75,18 +75,18 @@ function hasUnresolvedMedia(media: MediaItem[]): boolean {
   return media.some((m) => m.processingStatus === "processing" || m.processingStatus === "failed");
 }
 
-function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string } {
+function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string | null } {
   const ready = media.filter((m) => !m.processingStatus || m.processingStatus === "ready");
   const images = ready.filter((m) => m.type === "image");
   const videos = ready.filter((m) => m.type === "video");
   const explicitCoverVideo = videos.find((m) => (m as any).isCoverVideo);
   const explicitCoverImage = images.find((m) => (m as any).isCoverImage);
-  const coverImage = explicitCoverVideo ? undefined : explicitCoverImage ?? images[0];
+  const coverImage = explicitCoverVideo ? null : explicitCoverImage ?? images[0] ?? null;
   const primaryVideo = explicitCoverVideo ?? videos[0];
   return {
-    cover_image_url: coverImage?.uri,
+    cover_image_url: coverImage === null ? null : coverImage?.uri,
     image_urls: images.map((m) => m.uri),
-    gallery_images: images.filter((m) => m.uri !== coverImage?.uri).map((m) => m.uri),
+    gallery_images: images.filter((m) => m.uri !== coverImage?.uri && coverImage !== null).map((m) => m.uri),
     video_url: primaryVideo?.uri,
     gallery_videos: videos.filter((m) => m.uri !== primaryVideo?.uri).map((m) => m.uri),
   };
@@ -267,7 +267,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
 
       const isCoverVideo = !!mediaFields.video_url && !mediaFields.cover_image_url;
 
-      if (mediaFields.cover_image_url) {
+      if (mediaFields.cover_image_url !== undefined) {
         payload.cover_image_url = mediaFields.cover_image_url;
       }
       if (mediaFields.video_url) {
