@@ -847,8 +847,15 @@ export default function ProfileScreen() {
       setActivityEditing(null);
       setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
       Alert.alert(t("common.success") || "Success", t("common.confirm") || "Activity saved successfully");
-    } catch (e) {
-      Alert.alert(t("common.error") || "Error", (e as Error)?.message || t("activities.saveFailed") || "Failed to save activity");
+    } catch (e: any) {
+      const msg = (e as Error)?.message || "";
+      if (msg === "Network request failed") {
+        setActivityModalVisible(false);
+        setActivityEditing(null);
+        setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
+      } else {
+        Alert.alert(t("common.error") || "Error", msg || t("activities.saveFailed") || "Failed to save activity");
+      }
     } finally {
       activitySavingRef.current = false;
     }
@@ -1652,7 +1659,14 @@ const handleUpdateSlug = async (newSlug: string) => {
       setServiceForm(DEFAULT_SERVICE_FORM);
     } catch (e: any) {
       console.error("Failed to save service:", e);
-      Alert.alert(t("common.error", "Error"), e?.detail || e?.message || t("services.saveFailed", "Failed to save service"));
+      const msg = e?.detail || e?.message || "";
+      if (msg !== "Network request failed") {
+        Alert.alert(t("common.error", "Error"), msg || t("services.saveFailed", "Failed to save service"));
+      } else {
+        setServiceModalVisible(false);
+        setEditingServiceId(null);
+        setServiceForm(DEFAULT_SERVICE_FORM);
+      }
     }
     setServiceSaving(false);
     loadBusinessProfile().catch(() => {});
@@ -2649,7 +2663,14 @@ currentUserId={businessDetail?.business?.business_id}
               setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], media_items: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
             } catch (error: any) {
               console.error("Failed to save job:", error);
-              Alert.alert(t("common.error", "Error"), error?.detail || error?.message || t("jobs.saveFailed", "Failed to save job"));
+              const msg = error?.detail || error?.message || "";
+              if (msg !== "Network request failed") {
+                Alert.alert(t("common.error", "Error"), msg || t("jobs.saveFailed", "Failed to save job"));
+              } else {
+                setJobModalVisible(false);
+                setEditingJobId(null);
+                setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], media_items: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
+              }
             }
             setJobSaving(false);
             loadBusinessProfile().catch(() => {});
