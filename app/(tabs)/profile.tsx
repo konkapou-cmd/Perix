@@ -795,12 +795,14 @@ export default function ProfileScreen() {
     }
   };
 
+  const activitySavingRef = useRef(false);
   const handleSaveActivity = async () => {
-    if (!sessionToken) return;
+    if (!sessionToken || activitySavingRef.current) return;
     if (!activityForm.title.trim()) {
       Alert.alert(t("common.error") || "Error", t("activities.titleRequired") || "Title is required");
       return;
     }
+    activitySavingRef.current = true;
     try {
       if (activityEditing) {
         await updateActivity(sessionToken, activityEditing.activity_id, {
@@ -848,6 +850,8 @@ export default function ProfileScreen() {
       loadUserActivities();
     } catch (e) {
       Alert.alert(t("common.error") || "Error", (e as Error)?.message || t("activities.saveFailed") || "Failed to save activity");
+    } finally {
+      activitySavingRef.current = false;
     }
   };
 
