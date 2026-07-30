@@ -26,13 +26,11 @@ export default function ListingDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showVideoCover, setShowVideoCover] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
 
-  const hasBothCoverAndVideo = !!(listing?.cover_image_url && listing?.video_url);
-  const effectiveVideoCover = hasBothCoverAndVideo ? showVideoCover : (!listing?.cover_image_url && !!listing?.video_url);
+  const effectiveVideoCover = listing ? (!listing.cover_image_url && !!listing.video_url) : false;
 
   useEffect(() => {
     if (!id) {
@@ -172,18 +170,6 @@ export default function ListingDetailScreen() {
               setViewerOpen(true);
             }}
           />
-          {hasBothCoverAndVideo && (
-            <Pressable
-              style={styles.coverToggle}
-              onPress={() => setShowVideoCover((v) => !v)}
-            >
-              <Ionicons
-                name={showVideoCover ? "image-outline" : "videocam-outline"}
-                size={18}
-                color="#fff"
-              />
-            </Pressable>
-          )}
         </View>
 
         <View style={styles.infoCard}>
@@ -336,18 +322,6 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: FONT_SIZES.body, fontWeight: "600", color: COLORS.textPrimary, flex: 1, marginLeft: SPACING.small },
   body: { padding: SPACING.std, paddingBottom: 60 },
   heroWrap: { position: "relative" },
-  coverToggle: {
-    position: "absolute",
-    bottom: 70,
-    right: 12,
-    zIndex: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   cover: { width: "100%", borderRadius: BORDER_RADIUS.lg, backgroundColor: "#f3f4f6" },
   coverPlaceholder: { height: 240, alignItems: "center", justifyContent: "center" },

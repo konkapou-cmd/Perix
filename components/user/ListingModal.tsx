@@ -296,14 +296,15 @@ export default function ListingModal({ visible, listingType, editingListing, ses
           t("marketplace.draftLocationHint", "Füge eine verifizierte Adresse hinzu, bevor du veröffentlichst."),
         );
       }
-      onSaveProp();
-      onClose();
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e?.message || t("common.saveFailed", "Failed to save listing"));
     } finally {
       savingRef.current = false;
       setSaving(false);
     }
+
+    onSaveProp();
+    onClose();
   };
 
   return (
