@@ -56,6 +56,7 @@ export default function UserProfileScreen() {
   const [friendProfiles, setFriendProfiles] = useState<FriendProfile[]>([]);
 
   const [userListings, setUserListings] = useState<Listing[]>([]);
+  const [userHomeListings, setUserHomeListings] = useState<Listing[]>([]);
   const listingsRequestRef = useRef(0);
 
   const loadProfile = useCallback(async () => {
@@ -87,11 +88,13 @@ export default function UserProfileScreen() {
       try {
         const listings = await getUserSellerListings(id);
         if (listingsRequestId === listingsRequestRef.current) {
-          setUserListings(listings);
+          setUserListings(listings.filter((l: Listing) => !l.listing_type || l.listing_type === "product"));
+          setUserHomeListings(listings.filter((l: Listing) => l.listing_type === "home_rental"));
         }
       } catch {
         if (listingsRequestId === listingsRequestRef.current) {
           setUserListings([]);
+          setUserHomeListings([]);
         }
       }
 
@@ -348,6 +351,7 @@ export default function UserProfileScreen() {
           slug={id}
           avatarUri={profile.user.profile_photo || profile.user.picture || null}
           userListings={userListings}
+          userHomeListings={userHomeListings}
         />
       </View>
 
