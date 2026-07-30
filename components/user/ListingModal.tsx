@@ -303,8 +303,8 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setSaving(false);
     }
 
-    onSaveProp();
-    onClose();
+    try { onSaveProp(); } catch (_) {}
+    try { onClose(); } catch (_) {}
   };
 
   return (

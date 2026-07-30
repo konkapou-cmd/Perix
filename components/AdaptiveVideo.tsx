@@ -141,8 +141,8 @@ export default function AdaptiveVideo({
 
   useEffect(() => {
     if (!player || autoPlay) return;
-    player.muted = true;
-    player.pause();
+    try { player.muted = true; } catch (_) {}
+    try { player.pause(); } catch (_) {}
   }, [autoPlay, player]);
 
   const coverUrl = coverPhoto || muxThumbnailUrl || getMuxThumbnail(videoUri);
@@ -158,11 +158,11 @@ export default function AdaptiveVideo({
   };
 
   useEffect(() => {
-    if (player) player.muted = isMuted;
+    if (player) try { player.muted = isMuted; } catch (_) {}
   }, [isMuted, player]);
 
   useEffect(() => {
-    if (player) player.loop = isLooping;
+    if (player) try { player.loop = isLooping; } catch (_) {}
   }, [isLooping, player]);
 
   useEffect(() => {
