@@ -297,7 +297,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         );
       }
     } catch (e: any) {
-      console.log("[ListingModal] Save failed:", e?.message, e?.status, JSON.stringify(e));
+      console.log("[ListingModal] Save failed:", e?.message, e?.status);
       Alert.alert(t("common.error", "Error"), e?.message || t("common.saveFailed", "Failed to save listing"));
     } finally {
       savingRef.current = false;

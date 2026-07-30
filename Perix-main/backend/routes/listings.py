@@ -563,7 +563,6 @@ async def update_listing(
         )
 
     doc = await db.listings.find_one({"listing_id": listing_id})
-    await _enrich_listing_sellers([doc])
     try:
         return ListingResponse(**doc)
     except Exception:
