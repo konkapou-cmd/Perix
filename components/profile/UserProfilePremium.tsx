@@ -227,8 +227,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     if (onOpenBookings) {
       base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
     }
-    if (userListings.length > 0 || userHomeListings.length > 0 || onAddItem) {
-      base.push({ key: "items", label: t("marketplace.listings", "Anzeigen"), icon: "list-outline", count: userListings.length + userHomeListings.length });
+    if (userListings.length > 0 || onAddItem) {
+      base.push({ key: "items", label: t("marketplace.listings", "Anzeigen"), icon: "list-outline", count: userListings.length });
     }
     if (userHomeListings.length > 0) {
       base.push({ key: "homes", label: t("marketplace.homes", "Homes"), icon: "home-outline", count: userHomeListings.length });
@@ -429,7 +429,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
       )}
       {activeTab === "items" && (
         <ProfileItemsSection
-          listings={[...userListings, ...userHomeListings]}
+          listings={userListings}
           isOwner={isOwnProfile ?? false}
           listingType="product"
           onAdd={isOwnProfile ? onAddItem! : () => {}}
@@ -443,7 +443,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           listings={userHomeListings}
           isOwner={isOwnProfile ?? false}
           listingType="home_rental"
-          onAdd={undefined}
+          onAdd={isOwnProfile ? onAddItem! : undefined}
           onEdit={(l) => onEditItem?.(l)}
           onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
           onDelete={(l) => onDeleteItem?.(l)}

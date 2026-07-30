@@ -49,13 +49,16 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
 
   const catCounts = useMemo(() => {
     const counts: Record<string, { count: number; label: string; icon: string }> = {};
+    const propertyLabels: Record<string, string> = { apartment: "Apartment", house: "Haus", studio: "Studio", room: "Zimmer" };
+    const isHome = listingType === "home_rental";
     listings.forEach((l) => {
-      const cat = l.category || "other";
-      if (!counts[cat]) {
-        const cfg = getCategoryConfig(cat);
-        counts[cat] = { count: 0, label: cfg?.fallback || cat, icon: cfg?.icon || "ellipsis-horizontal-outline" };
+      const catKey = isHome ? (l.property_type || "other") : (l.category || "other");
+      if (!counts[catKey]) {
+        const label = isHome ? (propertyLabels[catKey] || catKey) : (getCategoryConfig(catKey)?.fallback || catKey);
+        const icon = isHome ? "home-outline" : (getCategoryConfig(catKey)?.icon || "ellipsis-horizontal-outline");
+        counts[catKey] = { count: 0, label, icon };
       }
-      counts[cat].count++;
+      counts[catKey].count++;
     });
     // Order by MARKETPLACE_CATEGORIES
     const ordered: { key: string; label: string; icon: string; count: number }[] = [];
@@ -70,12 +73,17 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
 
   const visibleListings = useMemo(() => {
     let filtered = listings;
+    const isHome = listingType === "home_rental";
     if (selectedCat) {
-      filtered = filtered.filter((l) => l.category === selectedCat);
-      if (selectedSub) filtered = filtered.filter((l) => l.subcategory === selectedSub);
+      if (isHome) {
+        filtered = filtered.filter((l) => l.property_type === selectedCat);
+      } else {
+        filtered = filtered.filter((l) => l.category === selectedCat);
+        if (selectedSub) filtered = filtered.filter((l) => l.subcategory === selectedSub);
+      }
     }
     return filtered;
-  }, [listings, selectedCat, selectedSub]);
+  }, [listings, selectedCat, selectedSub, listingType]);
 
   const categoryListings = useMemo(
     () => (selectedCat ? listings.filter((l) => l.category === selectedCat) : []),
