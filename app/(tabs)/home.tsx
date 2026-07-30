@@ -1075,7 +1075,7 @@ export default function HomeScreen() {
                 subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
                 subtitleAvatarUrl={item.seller_avatar || undefined}
                 thirdLine={item.public_location_label || item.address || ""}
-                onPress={() => pushEntityRoute(router, entityRoutes.rental(item.listing_id), () => showInvalidEntityAlert(t))}
+                onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="home"
               />

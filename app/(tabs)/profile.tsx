@@ -2490,7 +2490,7 @@ currentUserId={businessDetail?.business?.business_id}
       <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={uploadContext} mode="inline" onDismiss={() => { setShowUploadProgress(false); setUploadProgress(null); }} />
       <ListingModal
         visible={listingModalVisible}
-        listingType="product"
+        listingType={editingListing?.listing_type || "product"}
         editingListing={editingListing}
         sessionToken={sessionToken || ""}
         businessId={activeIdentity?.type === "business" ? activeIdentity.id : null}

@@ -93,11 +93,11 @@ export default function MarketplaceHomesPage() {
   };
 
   const handleMarkerPress = (id: string) => {
-    pushEntityRoute(router, entityRoutes.rental(id), () => {});
+    pushEntityRoute(router, entityRoutes.listing(id), () => {});
   };
 
   const handleCardPress = (listing: Listing) => {
-    pushEntityRoute(router, entityRoutes.rental(listing.listing_id), () => {});
+    pushEntityRoute(router, entityRoutes.listing(listing.listing_id), () => {});
   };
 
   const handleViewportChange = useCallback(
