@@ -554,7 +554,17 @@ async def update_listing(
 
     doc = await db.listings.find_one({"listing_id": listing_id})
     await _enrich_listing_sellers([doc])
-    return ListingResponse(**doc)
+    try:
+        return ListingResponse(**doc)
+    except Exception:
+        return ListingResponse(
+            listing_id=doc.get("listing_id", listing_id),
+            owner_id=doc.get("owner_id", ""),
+            listing_type=doc.get("listing_type", "product"),
+            title=doc.get("title", ""),
+            status=doc.get("status", "draft"),
+            created_at=doc.get("created_at", now_utc()),
+        )
 
 
 @router.delete("/{listing_id}")
