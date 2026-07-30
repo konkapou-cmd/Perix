@@ -1352,9 +1352,9 @@ const handleUpdateSlug = async (newSlug: string) => {
     setListingModalVisible(false);
     setEditingListing(null);
     if (activeIdentity?.type === "business") {
-      loadBusinessProfile();
+      loadBusinessProfile().catch(() => {});
     } else {
-      loadUserProfile();
+      loadUserProfile().catch(() => {});
     }
   };
 
