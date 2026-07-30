@@ -241,6 +241,59 @@ export default function ListingDetailScreen() {
               <Text style={styles.addressText}>{listing.address}</Text>
             </View>
           ) : null}
+
+          {listing.listing_type === "home_rental" && (
+            <View style={styles.homeDetails}>
+              {listing.property_type ? (
+                <View style={styles.homeDetailItem}>
+                  <Ionicons name="home-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.homeDetailText}>{t(`rentals.${listing.property_type}`, listing.property_type)}</Text>
+                </View>
+              ) : null}
+              {listing.bedrooms ? (
+                <View style={styles.homeDetailItem}>
+                  <Ionicons name="bed-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.homeDetailText}>{listing.bedrooms} {t("rentals.bedrooms", "Bedrooms")}</Text>
+                </View>
+              ) : null}
+              {listing.bathrooms ? (
+                <View style={styles.homeDetailItem}>
+                  <Ionicons name="water-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.homeDetailText}>{listing.bathrooms} {t("rentals.bathrooms", "Bathrooms")}</Text>
+                </View>
+              ) : null}
+              {listing.size_sqm ? (
+                <View style={styles.homeDetailItem}>
+                  <Ionicons name="resize-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.homeDetailText}>{listing.size_sqm} m²</Text>
+                </View>
+              ) : null}
+              {listing.furnished ? (
+                <View style={styles.homeDetailItem}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.success} />
+                  <Text style={[styles.homeDetailText, { color: COLORS.success }]}>{t("services.furnished", "Furnished")}</Text>
+                </View>
+              ) : null}
+              {listing.available_from ? (
+                <View style={styles.homeDetailItem}>
+                  <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.homeDetailText}>{t("services.availableFrom", "Available from")}: {listing.available_from.split("-").reverse().join("-")}</Text>
+                </View>
+              ) : null}
+              {listing.lease_duration ? (
+                <View style={styles.homeDetailItem}>
+                  <Ionicons name="time-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.homeDetailText}>{t("services.leaseDuration", "Lease Duration")}: {listing.lease_duration}</Text>
+                </View>
+              ) : null}
+              {listing.deposit ? (
+                <View style={styles.homeDetailItem}>
+                  <Ionicons name="wallet-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.homeDetailText}>{t("rentals.deposit", "Deposit")}: {listing.deposit}</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
         </View>
 
         {allMediaItems.length > 0 && (
@@ -336,6 +389,29 @@ const styles = StyleSheet.create({
   },
   sellerText: {
     fontSize: FONT_SIZES.bodySmall, fontWeight: "600",
+    color: COLORS.primary,
+  },
+  homeDetails: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.small,
+    marginTop: SPACING.small,
+    paddingTop: SPACING.small,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  homeDetailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.primaryLight + "50",
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  homeDetailText: {
+    fontSize: 12,
+    fontWeight: "600",
     color: COLORS.primary,
   },
 });

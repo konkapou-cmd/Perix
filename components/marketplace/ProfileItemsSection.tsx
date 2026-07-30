@@ -23,6 +23,7 @@ function resolveCardImage(listing: Listing): string | null {
 type Props = {
   listings: Listing[];
   isOwner: boolean;
+  listingType?: "product" | "home_rental";
   canAdd?: boolean;
   addLoading?: boolean;
   addDisabledReason?: string;
@@ -40,7 +41,7 @@ function statusBadge(status: ListingStatus, isActive: boolean): { label: string;
   return { label: status, color: COLORS.textPrimary };
 }
 
-export default function ProfileItemsSection({ listings, isOwner, canAdd = true, addLoading = false, addDisabledReason, onAdd, onEdit, onToggleMarketplace, onDelete }: Props) {
+export default function ProfileItemsSection({ listings, isOwner, listingType = "product", canAdd = true, addLoading = false, addDisabledReason, onAdd, onEdit, onToggleMarketplace, onDelete }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
@@ -119,7 +120,9 @@ export default function ProfileItemsSection({ listings, isOwner, canAdd = true, 
               ? t("common.loading", "Lädt...")
               : !canAdd && addDisabledReason
                 ? addDisabledReason
-                : t("marketplace.addItem", "Artikel hinzufügen")}
+                : listingType === "home_rental"
+                  ? t("marketplace.addHome", "Home hinzufügen")
+                  : t("marketplace.addItem", "Artikel hinzufügen")}
           </Text>
         </Pressable>
       )}

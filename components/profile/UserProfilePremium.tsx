@@ -431,6 +431,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         <ProfileItemsSection
           listings={[...userListings, ...userHomeListings]}
           isOwner={isOwnProfile ?? false}
+          listingType="product"
           onAdd={isOwnProfile ? onAddItem! : () => {}}
           onEdit={isOwnProfile ? onEditItem! : (() => {}) as any}
           onToggleMarketplace={isOwnProfile ? onToggleMarketplace! : (() => {}) as any}
@@ -441,6 +442,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         <ProfileItemsSection
           listings={userHomeListings}
           isOwner={isOwnProfile ?? false}
+          listingType="home_rental"
           onAdd={undefined}
           onEdit={(l) => onEditItem?.(l)}
           onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
