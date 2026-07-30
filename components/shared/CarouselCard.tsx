@@ -56,19 +56,23 @@ export function CarouselCard({
       return (
         <View style={styles.mediaFill}>
           {muxThumbnailUrl ? (
-            <FocalImage uri={muxThumbnailUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} />
+            <FocalImage uri={muxThumbnailUrl} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} style={styles.videoFill} />
           ) : null}
           <AdaptiveVideo uri={videoUrl!} style={styles.videoFill} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} resizeMode="cover" />
         </View>
       );
     }
     if (imageUrl) {
-      return <FocalImage uri={imageUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} />;
+      return (
+        <View style={styles.mediaFill}>
+          <FocalImage uri={imageUrl} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} style={styles.videoFill} />
+        </View>
+      );
     }
     if (videoUrl) {
       return (
         <View style={styles.mediaFill}>
-          {muxThumbnailUrl && <FocalImage uri={muxThumbnailUrl} aspectRatio={4 / 3} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} />}
+          {muxThumbnailUrl && <FocalImage uri={muxThumbnailUrl} focalPoint={focalPoint ?? { x: 0.5, y: 0.5 }} showLoader={false} style={styles.videoFill} />}
           <AdaptiveVideo uri={videoUrl} style={styles.videoFill} autoPlay isLooping initialMuted videoStatus={videoStatus} muxThumbnailUrl={muxThumbnailUrl || undefined} resizeMode="cover" />
         </View>
       );
