@@ -10,7 +10,8 @@ import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 import { ContentHero, ContentGallery } from "../../components/shared";
-import { MediaItem } from "../../components/UnifiedMediaGallery";
+import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
+import { buildMediaItems } from "../../lib/api/mediaUtils";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { formatPrice } from "../../lib/serviceFormat";
 
@@ -26,6 +27,9 @@ export default function ListingDetailScreen() {
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showVideoCover, setShowVideoCover] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
 
   const hasBothCoverAndVideo = !!(listing?.cover_image_url && listing?.video_url);
   const effectiveVideoCover = hasBothCoverAndVideo ? showVideoCover : (!listing?.cover_image_url && !!listing?.video_url);
@@ -117,19 +121,17 @@ export default function ListingDetailScreen() {
     );
   }
 
-  const allMediaItems: MediaItem[] = (() => {
-    const items: MediaItem[] = [];
-    const seen = new Set<string>();
-    const push = (m: MediaItem) => { if (!seen.has(m.uri)) { seen.add(m.uri); items.push(m); } };
-    if (listing.cover_image_url) push({ uri: listing.cover_image_url, type: "image", isCoverImage: true });
-    if (listing.video_url) push({ uri: listing.video_url, type: "video", isCoverVideo: !listing.cover_image_url });
-    listing.image_urls?.forEach((u) => push({ uri: u, type: "image" }));
-    listing.gallery_images?.forEach((u) => push({ uri: u, type: "image" }));
-    listing.gallery_videos?.forEach((v) => push({ uri: v, type: "video" }));
-    return items;
-  })();
+  const allMediaItems: MediaItem[] = listing ? buildMediaItems({
+    video_url: listing.video_url,
+    cover_image_url: listing.cover_image_url,
+    image_urls: listing.image_urls,
+    gallery_images: listing.gallery_images,
+    gallery_videos: listing.gallery_videos,
+    mux_thumbnail_url: listing.mux_thumbnail_url,
+    video_status: listing.video_status,
+  }) : [];
 
-  const muxFallback = listing.video_url && !listing.mux_thumbnail_url
+  const muxFallback = listing?.video_url && !listing?.mux_thumbnail_url
     ? listing.video_url.replace(/stream\.mux\.com\/([a-zA-Z0-9]+).*/, (_: string, id: string) => `https://image.mux.com/${id}/thumbnail.jpg`)
     : null;
 
@@ -149,9 +151,26 @@ export default function ListingDetailScreen() {
             muxThumbnailUrl={listing.mux_thumbnail_url || muxFallback}
             videoStatus={listing.video_status}
             isCoverVideo={effectiveVideoCover}
+            coverFocalPoint={listing.cover_focal_point}
             imageUrls={listing.image_urls}
             title={listing.title}
+            badges={[
+              listing.price ? { icon: "pricetag", text: formatPrice(listing.price) } : null,
+              listing.listing_type === "home_rental" ? { icon: "home", text: t("marketplace.home", "Home") } : { icon: "pricetag", text: t("marketplace.product", "Product") },
+              listing.condition ? { icon: "star", text: listing.condition } : null,
+            ].filter(Boolean) as any}
+            subtitle={{
+              text: listing.business_name || listing.seller_name || "",
+              icon: listing.seller_type === "business" ? "storefront-outline" : "person-outline",
+              avatarUrl: listing.seller_avatar || undefined,
+              onPress: listing.seller_id ? () => router.push(`/user/${listing.seller_id}` as any) : undefined,
+            }}
             mediaItems={allMediaItems}
+            onMediaPress={(idx) => {
+              setViewerMedia(allMediaItems);
+              setViewerIndex(idx);
+              setViewerOpen(true);
+            }}
           />
           {hasBothCoverAndVideo && (
             <Pressable
@@ -243,6 +262,13 @@ export default function ListingDetailScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      <LazyMediaViewer
+        visible={viewerOpen}
+        media={viewerMedia}
+        initialIndex={viewerIndex}
+        onClose={() => setViewerOpen(false)}
+      />
     </SafeAreaView>
   );
 }

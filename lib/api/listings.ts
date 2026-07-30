@@ -27,6 +27,7 @@ export type Listing = {
   video_url?: string;
   mux_thumbnail_url?: string;
   video_status?: string;
+  cover_focal_point?: { x: number; y: number } | null;
   address?: string;
   latitude?: number;
   longitude?: number;
