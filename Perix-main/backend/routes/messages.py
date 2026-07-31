@@ -386,26 +386,54 @@ async def get_messages(
             .to_list(500)
         )
     else:
-        messages = (
-            await db.messages.find(
-                {
-                    "$or": [
-                        {
-                            "from_user_id": current_user.user_id,
-                            "to_user_id": entity_id,
-                        },
-                        {
-                            "from_user_id": entity_id,
-                            "to_user_id": current_user.user_id,
-                        },
-                    ]
-                },
+        if entity_type == "activity":
+            msgs = await db.activity_messages.find(
+                {"activity_id": entity_id},
                 {"_id": 0},
+            ).sort("created_at", 1).to_list(500)
+            messages = [{**m, "message_id": m.get("message_id", ""), "from_user_id": m.get("user_id", ""), "to_user_id": "", "text": m.get("text", ""), "media_url": m.get("media_url"), "media_type": m.get("media_type"), "created_at": m.get("created_at", ""), "read": True} for m in msgs]
+        elif entity_type == "event":
+            msgs = await db.event_messages.find(
+                {"event_id": entity_id},
+                {"_id": 0},
+            ).sort("created_at", 1).to_list(500)
+            messages = [{**m, "message_id": m.get("message_id", ""), "from_user_id": m.get("user_id", ""), "to_user_id": "", "text": m.get("text", ""), "media_url": m.get("media_url"), "media_type": m.get("media_type"), "created_at": m.get("created_at", ""), "read": True} for m in msgs]
+        else:
+            messages = (
+                await db.messages.find(
+                    {
+                        "$or": [
+                            {
+                                "from_user_id": current_user.user_id,
+                                "to_user_id": entity_id,
+                            },
+                            {
+                                "from_user_id": entity_id,
+                                "to_user_id": current_user.user_id,
+                            },
+                        ]
+                    },
+                    {"_id": 0},
+                )
+                .sort("created_at", 1)
+                .to_list(500)
             )
-            .sort("created_at", 1)
-            .to_list(500)
-        )
-    return [MessageResponse(**message) for message in messages]
+    results = []
+    for message in messages:
+        try:
+            results.append(MessageResponse(**message))
+        except Exception:
+            results.append(MessageResponse(
+                message_id=message.get("message_id", ""),
+                from_user_id=message.get("from_user_id", ""),
+                to_user_id=message.get("to_user_id", ""),
+                text=message.get("text", ""),
+                created_at=message.get("created_at", ""),
+                media_url=message.get("media_url"),
+                media_type=message.get("media_type"),
+                read=message.get("read", True),
+            ))
+    return results
 
 
 @router.post("", response_model=MessageResponse)

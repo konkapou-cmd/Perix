@@ -154,10 +154,10 @@ export default function GroupChatScreen() {
       setUploadingMedia(true);
       const mediaUrl = await uploadMedia(sessionToken, result.assets[0].uri, "image");
       if (chatType === "activity") {
-        const msg = await sendActivityMessage(sessionToken, id, "", mediaUrl);
+        const msg = await sendActivityMessage(sessionToken, id, "", mediaUrl, "image");
         setMessages((prev) => [...prev, msg]);
       } else {
-        const msg = await sendEventMessage(sessionToken, id, "", mediaUrl);
+        const msg = await sendEventMessage(sessionToken, id, "", mediaUrl, "image");
         setMessages((prev) => [...prev, msg]);
       }
     } catch (e) {
@@ -223,6 +223,11 @@ export default function GroupChatScreen() {
                   <Pressable onPress={() => senderId && router.push(`/user/${senderId}`)}>
                     <Text style={styles.chatBubbleName}>{senderName}</Text>
                   </Pressable>
+                )}
+                {msg.media_url && (
+                  <View style={styles.chatMediaContainer}>
+                    <Image source={{ uri: msg.media_url }} style={styles.chatMediaImage} resizeMode="cover" />
+                  </View>
                 )}
                 {isMe ? (
                   <LinearGradient
@@ -368,6 +373,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.primary,
     marginBottom: 4,
+  },
+  chatMediaContainer: {
+    borderRadius: BORDER_RADIUS.md,
+    overflow: "hidden",
+    marginBottom: 4,
+  },
+  chatMediaImage: {
+    width: 200,
+    height: 150,
+    borderRadius: BORDER_RADIUS.md,
   },
   chatBubbleText: {
     fontSize: FONT_SIZES.body,
