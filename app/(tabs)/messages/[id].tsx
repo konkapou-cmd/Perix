@@ -356,6 +356,10 @@ export default function ChatScreen() {
             mediaUrl = await uploadMedia(sessionToken, result.assets[0].uri, mediaType);
           }
 
+          if (!mediaUrl) {
+            throw new Error("Upload succeeded but no URL returned. Please try again.");
+          }
+
           const newMessage = await sendMediaMessage(sessionToken, id, mediaUrl, mediaType, text.trim() || undefined, convEntityType);
           setMessages([...messages, newMessage]);
           setText("");
