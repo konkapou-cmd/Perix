@@ -346,7 +346,7 @@ export default function ProfileScreen() {
   const [themedAlertVisible, setThemedAlertVisible] = useState(false);
   const [themedAlertMessage, setThemedAlertMessage] = useState("");
   const [activityEditing, setActivityEditing] = useState<ActivityItem | null>(null);
-  const [activityForm, setActivityForm] = useState<{title: string; description: string; date: string; time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; max_attendees?: number | null; is_private: boolean; theme: string; password: string; gallery_images: string[]; gallery_videos: string[]; media_items: any[]}>({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
+  const [activityForm, setActivityForm] = useState<{title: string; description: string; date: string; time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; max_attendees: number; is_private: boolean; theme: string; password: string; gallery_images: string[]; gallery_videos: string[]; media_items: any[]}>({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
   const [activityDate, setActivityDate] = useState<Date>(new Date());
   const [activityTime, setActivityTime] = useState<Date>(new Date());
   const [showActivityDatePicker, setShowActivityDatePicker] = useState(false);
@@ -845,14 +845,14 @@ export default function ProfileScreen() {
       }
       setActivityModalVisible(false);
       setActivityEditing(null);
-      setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
+      setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
       Alert.alert(t("common.success") || "Success", t("common.confirm") || "Activity saved successfully");
     } catch (e: any) {
       const msg = (e as Error)?.message || "";
       if (msg === "Network request failed") {
         setActivityModalVisible(false);
         setActivityEditing(null);
-        setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
+        setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
       } else {
         Alert.alert(t("common.error") || "Error", msg || t("activities.saveFailed") || "Failed to save activity");
       }
@@ -2599,7 +2599,7 @@ currentUserId={businessDetail?.business?.business_id}
         />
         <ActivityModal
           visible={activityModalVisible}
-          onClose={() => { setActivityModalVisible(false); setActivityEditing(null); setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] }); }}
+          onClose={() => { setActivityModalVisible(false); setActivityEditing(null); setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] }); }}
           activityForm={activityForm}
           onFormChange={setActivityForm}
           activityEditing={activityEditing}

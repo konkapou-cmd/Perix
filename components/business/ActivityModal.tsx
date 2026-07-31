@@ -31,7 +31,7 @@ type ActivityForm = {
   cover_image_url?: string;
   image_urls: string[];
   video_url?: string;
-  max_attendees?: number | null;
+  max_attendees: number;
   is_private: boolean;
   theme: string;
   password: string;
@@ -154,7 +154,7 @@ export default function ActivityModal({
         cover_image_url: (activityEditing as any).cover_image_url || undefined,
         image_urls: (activityEditing as any).image_urls || [],
         video_url: (activityEditing as any).video_url ?? undefined,
-        max_attendees: activityEditing.max_attendees,
+        max_attendees: activityEditing.max_attendees || 10,
         is_private: activityEditing.is_private || false,
         theme: activityEditing.theme || "",
         password: (activityEditing as any).password || "",
@@ -162,7 +162,7 @@ export default function ActivityModal({
         gallery_videos: (activityEditing as any).gallery_videos || [],
       });
     } else {
-      onFormChange({ title: "", description: "", date: "", time: "", location: businessAddress || "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [] });
+      onFormChange({ title: "", description: "", date: "", time: "", location: businessAddress || "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [] });
     }
   }, [activityEditing]);
 
@@ -298,7 +298,7 @@ export default function ActivityModal({
           <TextInput
             style={s.input}
             value={activityForm.max_attendees ? String(activityForm.max_attendees) : ""}
-            onChangeText={(text) => onFormChange({ ...activityForm, max_attendees: text ? Number(text) : undefined })}
+            onChangeText={(text) => onFormChange({ ...activityForm, max_attendees: text ? Number(text) : 10 })}
             placeholder={t("activities.maxAttendeesPlaceholder") || "No limit"}
             placeholderTextColor={COLORS.textDisabled}
             keyboardType="numeric"
