@@ -197,7 +197,7 @@ export default function ActivityDetailPage() {
     if (!sessionToken || !id || sendingMessage) return;
     setSendingMessage(true);
     try {
-      const newMsg = await sendActivityMessage(sessionToken, id, "", mediaUrl);
+      const newMsg = await sendActivityMessage(sessionToken, id, "", mediaUrl, mediaType);
       setChatMessages(prev => [...prev, newMsg]);
       setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (_) { showThemedAlert(t("common.pleaseTryAgain")); }

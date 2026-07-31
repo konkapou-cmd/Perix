@@ -220,7 +220,7 @@ export default function EventDetailPage() {
     if (!sessionToken || !id || sendingMessage) return;
     setSendingMessage(true);
     try {
-      const newMsg = await sendEventMessage(sessionToken, id, "", mediaUrl);
+      const newMsg = await sendEventMessage(sessionToken, id, "", mediaUrl, mediaType);
       setChatMessages(prev => [...prev, newMsg]);
       setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (_) {

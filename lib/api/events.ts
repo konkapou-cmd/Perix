@@ -200,9 +200,9 @@ export const getEventMessages = async (token: string, eventId: string): Promise<
   return apiRequest<import("./core").ChatMessage[]>(`/events/${eventId}/messages`, "GET", token);
 };
 
-export const sendEventMessage = async (token: string, eventId: string, text: string, mediaUrl?: string): Promise<import("./core").ChatMessage> => {
+export const sendEventMessage = async (token: string, eventId: string, text: string, mediaUrl?: string, mediaType?: string): Promise<import("./core").ChatMessage> => {
   const payload: any = { text };
-  if (mediaUrl) payload.media_url = mediaUrl;
+  if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType || "image"; }
   return apiRequest<import("./core").ChatMessage>(`/events/${eventId}/messages`, "POST", token, payload);
 };
 

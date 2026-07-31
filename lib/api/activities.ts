@@ -103,9 +103,9 @@ export const getActivityMessages = async (token: string, activityId: string): Pr
   return msgs.map(m => ({ ...m, user_id: m.from_user_id || m.user_id }));
 };
 
-export const sendActivityMessage = async (token: string, activityId: string, text: string, mediaUrl?: string): Promise<ChatMessage> => {
+export const sendActivityMessage = async (token: string, activityId: string, text: string, mediaUrl?: string, mediaType?: string): Promise<ChatMessage> => {
   const payload: any = { text };
-  if (mediaUrl) payload.media_url = mediaUrl;
+  if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType || "image"; }
   const msg: any = await apiRequest<any>(`/activities/${activityId}/messages`, "POST", token, payload);
   return { ...msg, user_id: msg.from_user_id || msg.user_id };
 };
