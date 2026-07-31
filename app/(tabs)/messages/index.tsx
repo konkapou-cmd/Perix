@@ -382,39 +382,27 @@ export default function MessagesScreen() {
         {/* Unified Conversation List */}
         {(() => {
           const unified = [
-            ...filteredConversations.map(c => {
-              const lm = c.last_message as any;
-              const hasMedia = lm?.media_url || lm?.media_type;
-              const preview = typeof c.last_message === "string"
-                ? c.last_message
-                : (lm?.text) || (hasMedia ? (lm?.media_type === "video" ? "🎬 Video" : "📷 Photo") : "");
-              return {
+            ...filteredConversations.map(c => ({
               id: c.other_user?.user_id || c.conversation_id || "",
               type: "direct" as const,
               name: c.name || c.other_user?.name || c.other_user?.display_name || "",
               image: c.other_user?.profile_photo || c.other_user?.picture || null,
-              lastMessage: preview,
+              lastMessage: typeof c.last_message === "string" ? c.last_message : ((c.last_message as any)?.text) || (((c.last_message as any)?.media_url) ? ((c.last_message as any)?.media_type === "video" ? "🎬 Video" : "📷 Photo") : ""),
               lastMessageTime: typeof c.last_message === "object" && c.last_message ? (c.last_message as any)?.created_at || "" : "",
               unreadCount: c.unread_count || 0,
               entityType: c.entity_type,
               conv: c,
-            }})),
-            ...filteredGroupConversations.map(c => {
-              const lm = c.last_message as any;
-              const hasMedia = lm?.media_url || lm?.media_type;
-              const preview = typeof lm === "string"
-                ? lm
-                : (lm?.text) || (lm?.media_url ? (lm?.media_type === "video" ? "🎬 Video" : "📷 Photo") : "");
-              return {
+            })),
+            ...filteredGroupConversations.map(c => ({
               id: c.conversation_id || "",
               type: c.type as "activity" | "event",
               name: c.name || "",
               image: c.image || null,
-              lastMessage: preview,
+              lastMessage: typeof c.last_message === "string" ? c.last_message : ((c.last_message as any)?.text) || (((c.last_message as any)?.media_url) ? ((c.last_message as any)?.media_type === "video" ? "🎬 Video" : "📷 Photo") : ""),
               lastMessageTime: c.last_message_time || "",
               unreadCount: c.unread_count || 0,
               conv: c,
-            }})),
+            })),
           ].sort((a, b) => {
             const tA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
             const tB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
