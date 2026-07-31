@@ -183,9 +183,14 @@ export default function ChatSection({
                       </Pressable>
                     )}
                     {msg.media_url && (
-                      <Pressable style={styles.chatMediaContainer}>
-                        <Image source={{ uri: msg.media_url }} style={styles.chatMediaImage} resizeMode="cover" />
-                      </Pressable>
+                      <View style={styles.chatMediaContainer}>
+                        <Image 
+                          source={{ uri: msg.media_url }} 
+                          style={styles.chatMediaImage} 
+                          resizeMode="cover"
+                          onError={() => console.log("[ChatSection] Image load failed:", msg.media_url)}
+                        />
+                      </View>
                     )}
                     {msg.text && (
                       isMe ? (
@@ -460,10 +465,15 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     overflow: "hidden",
     marginBottom: SPACING.tiny,
+    backgroundColor: "#e5e7eb",
+    minWidth: 200,
+    minHeight: 150,
   },
   chatMediaImage: {
     width: 200,
     height: 150,
     borderRadius: BORDER_RADIUS.md,
+    minWidth: 200,
+    minHeight: 150,
   },
 });
