@@ -202,11 +202,11 @@ export default function HomeScreen() {
   });
 
   const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
-  const shuffledEvents = useMemo(() => shuffle(sortedEvents), [mapRefreshKey, sortedEvents.length]);
-  const shuffledActivities = useMemo(() => shuffle(sortedActivities), [mapRefreshKey, sortedActivities.length]);
-  const shuffledBusinesses = useMemo(() => shuffle(sortedBusinesses), [mapRefreshKey, sortedBusinesses.length]);
-  const shuffledServices = useMemo(() => shuffle(sortedServices), [mapRefreshKey, sortedServices.length]);
-  const shuffledJobs = useMemo(() => shuffle(sortedJobs), [mapRefreshKey, sortedJobs.length]);
+  const shuffledEvents = useMemo(() => shuffle(sortedEvents), [sortedEvents]);
+  const shuffledActivities = useMemo(() => shuffle(sortedActivities), [sortedActivities]);
+  const shuffledBusinesses = useMemo(() => shuffle(sortedBusinesses), [sortedBusinesses]);
+  const shuffledServices = useMemo(() => shuffle(sortedServices), [sortedServices]);
+  const shuffledJobs = useMemo(() => shuffle(sortedJobs), [sortedJobs]);
 
   useEffect(() => {
     if (globalLocation) setUserLocation({ latitude: globalLocation.latitude, longitude: globalLocation.longitude });
