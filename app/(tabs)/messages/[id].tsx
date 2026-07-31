@@ -656,11 +656,12 @@ export default function ChatScreen() {
                       isMine ? styles.myBubble : styles.theirBubble,
                     ]}
                   >
-                    {hasMedia && (message.media_type === "image" || !message.media_type) && (
+                    {hasMedia && (
                       <Image 
                         source={{ uri: message.media_url }} 
                         style={styles.messageImage}
                         resizeMode="cover"
+                        onError={(e) => console.log("[Messages] Image load failed:", message.media_url, e.nativeEvent?.error)}
                       />
                     )}
                     {hasMedia && message.media_type === "video" && (
