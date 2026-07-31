@@ -215,16 +215,25 @@ export default function GroupChatScreen() {
             const senderId = msg.user_id || msg.from_user_id;
             const senderName = msg.sender_name || msg.user_name || msg.author?.name;
 
-            return (
-              <View
-                key={msg.message_id}
-                style={[styles.chatBubble, isMe ? styles.chatBubbleMe : styles.chatBubbleOther]}
-              >
-                {!isMe && senderName && (
-                  <Pressable onPress={() => senderId && router.push(`/user/${senderId}`)}>
-                    <Text style={styles.chatBubbleName}>{senderName}</Text>
-                  </Pressable>
-                )}
+              return (
+                <View
+                  key={msg.message_id}
+                  style={[styles.chatBubble, isMe ? styles.chatBubbleMe : styles.chatBubbleOther]}
+                >
+                  {!isMe && (
+                    <View style={styles.senderRow}>
+                      <Pressable onPress={() => senderId && router.push(`/user/${senderId}`)} style={styles.senderPressable}>
+                        <View style={styles.senderAvatar}>
+                          <Text style={styles.senderAvatarText}>
+                            {(senderName || "?").charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        {senderName && (
+                          <Text style={styles.chatBubbleName}>{senderName}</Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  )}
                 {msg.media_url && (
                   <Pressable style={styles.chatMediaContainer} onPress={() => setPreviewUrl(msg.media_url!)}>
                     <Image source={{ uri: msg.media_url }} style={styles.chatMediaImage} resizeMode="cover" />
@@ -386,7 +395,29 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.caption,
     fontWeight: "600",
     color: COLORS.primary,
+    marginLeft: 6,
+  },
+  senderRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
+  },
+  senderPressable: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  senderAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryLight || "#e0e7ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  senderAvatarText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.primary,
   },
   chatMediaContainer: {
     borderRadius: BORDER_RADIUS.md,
