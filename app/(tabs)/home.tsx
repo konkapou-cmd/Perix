@@ -938,7 +938,7 @@ export default function HomeScreen() {
             title={t("modules.services") || "Services"}
             icon="briefcase"
             color={COLORS.servicesAccent}
-            seeAllRoute="/services"
+            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
             emptyMessage={t("services.noServices") || "No services nearby"}
             isCollapsed={collapsedSections.has("services")}
             onToggleCollapse={() => setSectionCollapsed("services", !collapsedSections.has("services"))}
