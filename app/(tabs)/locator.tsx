@@ -819,10 +819,20 @@ export default function LocatorScreen() {
           onMarkerPress={(id) => {
             if (activeTab === "businesses") {
               const rental = rentals.find(r => r.rental_id === id);
-              if (rental) { pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any) as any), () => showInvalidEntityAlert(t)); return; }
+              if (rental) {
+                const navId = getRentalNavigationId(rental as any) as any;
+                const route = (rental as any).source_type === "owner" ? entityRoutes.listing(navId) : entityRoutes.rental(navId);
+                pushEntityRoute(router, route, () => showInvalidEntityAlert(t)); return;
+              }
               router.push(`/business/${id}` as any); return;
             }
-            if (activeTab === "rentals") { pushEntityRoute(router, entityRoutes.rental(id), () => showInvalidEntityAlert(t)); return; }
+            if (activeTab === "rentals") {
+              const rental = rentals.find(r => r.rental_id === id);
+              if (rental && (rental as any).source_type === "owner") {
+                pushEntityRoute(router, entityRoutes.listing((rental as any).listing_id || id), () => showInvalidEntityAlert(t)); return;
+              }
+              pushEntityRoute(router, entityRoutes.rental(id), () => showInvalidEntityAlert(t)); return;
+            }
             if (activeTab === "jobs") { pushEntityRoute(router, entityRoutes.job(id), () => showInvalidEntityAlert(t)); return; }
             if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
@@ -1090,7 +1100,11 @@ export default function LocatorScreen() {
                   } as any}
                   distance={dist !== null ? formatDistance(dist) : null}
                   isOpen={null}
-                  onPress={() => pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any) as any), () => showInvalidEntityAlert(t))}
+                  onPress={() => {
+                    const navId = getRentalNavigationId(rental as any) as any;
+                    const route = (rental as any).source_type === "owner" ? entityRoutes.listing(navId) : entityRoutes.rental(navId);
+                    pushEntityRoute(router, route, () => showInvalidEntityAlert(t));
+                  }}
                 />
               );
             })}
