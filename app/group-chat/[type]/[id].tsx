@@ -51,6 +51,7 @@ export default function GroupChatScreen() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const chatType: ChatType = (type as ChatType) || "event";
 
@@ -225,34 +226,41 @@ export default function GroupChatScreen() {
                   </Pressable>
                 )}
                 {msg.media_url && (
-                  <View style={styles.chatMediaContainer}>
+                  <Pressable style={styles.chatMediaContainer} onPress={() => setPreviewUrl(msg.media_url!)}>
                     <Image source={{ uri: msg.media_url }} style={styles.chatMediaImage} resizeMode="cover" />
-                  </View>
+                    {!msg.text && (
+                      <Text style={styles.chatMediaTime}>
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </Text>
+                    )}
+                  </Pressable>
                 )}
-                {isMe ? (
-                  <LinearGradient
-                    colors={[COLORS.primaryDark || "#1a1a2e", COLORS.primary]}
-                    style={styles.chatBubbleMeGradient}
-                  >
-                    <Text style={styles.chatBubbleTextMe}>{msg.text}</Text>
-                    <Text style={styles.chatBubbleTimeMe}>
-                      {new Date(msg.created_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                  </LinearGradient>
-                ) : (
-                  <>
-                    <Text style={styles.chatBubbleText}>{msg.text}</Text>
-                    <Text style={styles.chatBubbleTime}>
-                      {new Date(msg.created_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                  </>
-                )}
+                {msg.text ? (
+                  isMe ? (
+                    <LinearGradient
+                      colors={[COLORS.primaryDark || "#1a1a2e", COLORS.primary]}
+                      style={styles.chatBubbleMeGradient}
+                    >
+                      <Text style={styles.chatBubbleTextMe}>{msg.text}</Text>
+                      <Text style={styles.chatBubbleTimeMe}>
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                    </LinearGradient>
+                  ) : (
+                    <>
+                      <Text style={styles.chatBubbleText}>{msg.text}</Text>
+                      <Text style={styles.chatBubbleTime}>
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                    </>
+                  )
+                ) : null}
               </View>
             );
           })}
@@ -290,6 +298,12 @@ export default function GroupChatScreen() {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {previewUrl && (
+        <Pressable style={styles.previewOverlay} onPress={() => setPreviewUrl(null)}>
+          <Image source={{ uri: previewUrl }} style={styles.previewImage} resizeMode="contain" />
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 }
@@ -383,6 +397,30 @@ const styles = StyleSheet.create({
     width: 200,
     height: 150,
     borderRadius: BORDER_RADIUS.md,
+  },
+  chatMediaTime: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    fontSize: 10,
+    color: "#fff",
+    fontWeight: "600",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    overflow: "hidden",
+  },
+  previewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    zIndex: 100,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  previewImage: {
+    width: "90%",
+    height: "70%",
   },
   chatBubbleText: {
     fontSize: FONT_SIZES.body,
