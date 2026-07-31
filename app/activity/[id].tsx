@@ -87,6 +87,7 @@ export default function ActivityDetailPage() {
   };
 
   const isCreator = activity?.is_creator ?? (activity?.creator_id === user?.user_id);
+  const goingCount = activity?.invites?.filter((i: any) => i.status === "going" || i.status === "accepted").length ?? 0;
 
   const shareActivity = async () => {
     try {
@@ -401,6 +402,25 @@ export default function ActivityDetailPage() {
             <ContentGallery mediaItems={allMediaItems} title="Galerie" />
           )}
 
+          {activity.max_attendees ? (
+            <View style={styles.attendeeCard}>
+              <View style={styles.attendeeRow}>
+                <Ionicons name="people-outline" size={20} color={COLORS.activityAccent} />
+                <Text style={styles.attendeeTitle}>
+                  {t("activities.attendees", "Teilnehmer")} ({goingCount}/{activity.max_attendees})
+                </Text>
+              </View>
+              {activity.max_attendees - goingCount <= 3 && activity.max_attendees - goingCount > 0 ? (
+                <Text style={styles.attendeeAlmostFull}>
+                  {t("activities.spotsRemaining", "Nur noch {{count}} Plätze frei!", { count: activity.max_attendees - goingCount })}
+                </Text>
+              ) : null}
+              {activity.max_attendees - goingCount <= 0 ? (
+                <Text style={styles.attendeeFull}>{t("activities.fullyBooked", "Ausgebucht!")}</Text>
+              ) : null}
+            </View>
+          ) : null}
+
           {!isCreator && (
             <View style={styles.rsvpCard}>
               <Text style={styles.rsvpTitle}>{t("activities.yourResponse") || "Deine Antwort"}</Text>
@@ -543,6 +563,17 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: COLORS.activityAccent, backgroundColor: COLORS.background,
   },
   rsvpBtnText: { fontSize: FONT_SIZES.small, fontWeight: "700", color: COLORS.activityAccent },
+  attendeeCard: {
+    backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.xl, padding: SPACING.std,
+    marginHorizontal: SPACING.page, marginTop: SPACING.small, ...SHADOWS.subtle,
+  },
+  attendeeRow: {
+    flexDirection: "row", alignItems: "center", gap: SPACING.small,
+    marginBottom: SPACING.small,
+  },
+  attendeeTitle: { fontSize: FONT_SIZES.body, fontWeight: "700", color: COLORS.textPrimary },
+  attendeeAlmostFull: { fontSize: FONT_SIZES.small, color: "#f59e0b", fontWeight: "600", marginTop: 4 },
+  attendeeFull: { fontSize: FONT_SIZES.body, color: "#ef4444", fontWeight: "700", marginTop: 4 },
   themedAlertOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: SPACING.section },
   themedAlertContainer: { backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.xl, padding: SPACING.page, width: "100%", maxWidth: 320, alignItems: "center" },
   themedAlertMessage: { fontSize: FONT_SIZES.body, color: COLORS.textPrimary, textAlign: "center", marginBottom: SPACING.section, lineHeight: 22 },
