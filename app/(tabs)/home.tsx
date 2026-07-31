@@ -201,6 +201,13 @@ export default function HomeScreen() {
     mapRefreshKey,
   });
 
+  const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
+  const shuffledEvents = useMemo(() => shuffle(sortedEvents), [mapRefreshKey, sortedEvents.length]);
+  const shuffledActivities = useMemo(() => shuffle(sortedActivities), [mapRefreshKey, sortedActivities.length]);
+  const shuffledBusinesses = useMemo(() => shuffle(sortedBusinesses), [mapRefreshKey, sortedBusinesses.length]);
+  const shuffledServices = useMemo(() => shuffle(sortedServices), [mapRefreshKey, sortedServices.length]);
+  const shuffledJobs = useMemo(() => shuffle(sortedJobs), [mapRefreshKey, sortedJobs.length]);
+
   useEffect(() => {
     if (globalLocation) setUserLocation({ latitude: globalLocation.latitude, longitude: globalLocation.longitude });
   }, [globalLocation]);
@@ -758,12 +765,12 @@ export default function HomeScreen() {
         {mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
           <MapSection
             mapBounds={mapBounds}
-            businesses={businesses}
-            events={events}
-            activities={activities}
-            rentals={rentals}
-            jobs={jobs}
-            services={sortedServices}
+            businesses={shuffledBusinesses}
+            events={shuffledEvents}
+            activities={shuffledActivities}
+            rentals={sortedRentals}
+            jobs={shuffledJobs}
+            services={shuffledServices}
             products={viewportProducts}
             ownerHomes={viewportHomes}
             onRegionChange={(bounds) => {
@@ -795,7 +802,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("events")}
             onToggleCollapse={() => setSectionCollapsed("events", !collapsedSections.has("events"))}
           >
-            {sortedEvents.map((event) => {
+            {shuffledEvents.map((event) => {
               const eventTheme = (event as any).profile_theme;
               const themeColors = getThemeColors(eventTheme);
               const textColor = themeColors.textColor;
@@ -855,7 +862,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("activities")}
             onToggleCollapse={() => setSectionCollapsed("activities", !collapsedSections.has("activities"))}
           >
-            {sortedActivities.map((activity) => {
+            {shuffledActivities.map((activity) => {
               const activityTheme = (activity as any).profile_theme;
               const themeColors = getThemeColors(activityTheme);
               const textColor = themeColors.textColor;
@@ -905,7 +912,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("businesses")}
             onToggleCollapse={() => setSectionCollapsed("businesses", !collapsedSections.has("businesses"))}
           >
-            {sortedBusinesses.map((business) => {
+            {shuffledBusinesses.map((business) => {
               const businessTheme = business.theme;
               const themeColors = getThemeColors(businessTheme);
               const primaryColor = themeColors.primaryColor;
@@ -936,7 +943,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("services")}
             onToggleCollapse={() => setSectionCollapsed("services", !collapsedSections.has("services"))}
           >
-            {sortedServices.filter(s => s.type !== "rental_property").map((service) => {
+            {shuffledServices.filter(s => s.type !== "rental_property").map((service) => {
               const serviceImg = service.cover_image_url || (!service.video_url ? (service.image_urls?.[0] || service.gallery_images?.[0]) : undefined);
               return (
                 <CarouselCard
@@ -995,7 +1002,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("jobs")}
             onToggleCollapse={() => setSectionCollapsed("jobs", !collapsedSections.has("jobs"))}
           >
-            {sortedJobs.map((job) => {
+            {shuffledJobs.map((job) => {
               const jobImg = job.cover_image || (!job.video_url ? (job.image_urls?.[0] || job.gallery_images?.[0] || job.business_logo) : undefined);
               return (
                 <CarouselCard
