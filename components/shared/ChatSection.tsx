@@ -175,8 +175,14 @@ export default function ChatSection({
                     {!isMe && senderName && (
                       <Pressable
                         onPress={() => senderId && router.push(`/user/${senderId}`)}
+                        style={styles.senderRow}
                         hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                       >
+                        <View style={styles.senderAvatar}>
+                          <Text style={styles.senderAvatarText}>
+                            {senderName.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
                         <Text style={[styles.chatBubbleName, { color: themeColor }]}>
                           {senderName}
                         </Text>
@@ -364,7 +370,26 @@ const styles = StyleSheet.create({
   chatBubbleName: {
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.semibold,
+    marginLeft: 6,
     marginBottom: 4,
+  },
+  senderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  senderAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#e0e7ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  senderAvatarText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.primary,
   },
   chatBubbleText: {
     fontSize: FONT_SIZES.body,
