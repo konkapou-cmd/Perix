@@ -504,33 +504,46 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   borderColor = PROFILE_COLORS.BORDER,
   themeStyles,
 }) => {
+  const useScroll = tabs.length > 6;
+
+  const tabButtons = tabs.map((tab) => {
+    const active = tab.key === activeTab;
+    return (
+      <Pressable
+        key={tab.key}
+        onPress={() => onTabChange(tab.key)}
+        style={[
+          iconStyles.tab,
+          !useScroll && iconStyles.tabFlex,
+          active && { backgroundColor: primaryColor + "18" },
+        ]}
+      >
+        <Ionicons
+          name={tab.icon as any}
+          size={22}
+          color={active ? primaryColor : PROFILE_COLORS.TEXT_SECONDARY || "#999"}
+        />
+        {tab.count !== undefined && tab.count > 0 && (
+          <View style={[iconStyles.badge, { backgroundColor: active ? primaryColor : (PROFILE_COLORS.TEXT_SECONDARY || "#999") }]}>
+            <Text style={iconStyles.badgeText}>{tab.count > 99 ? "99+" : tab.count}</Text>
+          </View>
+        )}
+      </Pressable>
+    );
+  });
+
+  if (useScroll) {
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={iconStyles.tabBar}>
+        {tabButtons}
+      </ScrollView>
+    );
+  }
+
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={iconStyles.tabBar}>
-      {tabs.map((tab) => {
-        const active = tab.key === activeTab;
-        return (
-          <Pressable
-            key={tab.key}
-            onPress={() => onTabChange(tab.key)}
-            style={[
-              iconStyles.tab,
-              active && { backgroundColor: primaryColor + "18" },
-            ]}
-          >
-            <Ionicons
-              name={tab.icon as any}
-              size={22}
-              color={active ? primaryColor : PROFILE_COLORS.TEXT_SECONDARY || "#999"}
-            />
-            {tab.count !== undefined && tab.count > 0 && (
-              <View style={[iconStyles.badge, { backgroundColor: active ? primaryColor : (PROFILE_COLORS.TEXT_SECONDARY || "#999") }]}>
-                <Text style={iconStyles.badgeText}>{tab.count > 99 ? "99+" : tab.count}</Text>
-              </View>
-            )}
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+    <View style={iconStyles.tabBarEven}>
+      {tabButtons}
+    </View>
   );
 };
 
@@ -541,7 +554,13 @@ const iconStyles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "transparent",
+  },
+  tabBarEven: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-evenly",
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   tab: {
     width: 44,
@@ -550,7 +569,10 @@ const iconStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-    marginHorizontal: 2,
+  },
+  tabFlex: {
+    flex: 1,
+    maxWidth: 56,
   },
   badge: {
     position: "absolute",
