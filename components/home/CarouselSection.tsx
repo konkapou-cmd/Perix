@@ -50,12 +50,14 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <SectionHeader
-            icon={icon}
-            title={title}
-            accent={accent}
-            onSeeAll={undefined}
-          />
+          <View style={styles.titleWrap}>
+            <SectionHeader
+              icon={icon}
+              title={title}
+              accent={accent}
+              onSeeAll={undefined}
+            />
+          </View>
           {onToggleCollapse && (
             <Pressable
               onPress={handleToggle}
@@ -122,6 +124,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    minWidth: 0,
+  },
+  titleWrap: {
+    flexShrink: 1,
     minWidth: 0,
   },
   chevronBtn: {
