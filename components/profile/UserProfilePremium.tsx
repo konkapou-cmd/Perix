@@ -11,7 +11,6 @@ import {
   Share,
   Pressable,
   Dimensions,
-  InteractionManager,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -212,12 +211,20 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [showCoverReposition, setShowCoverReposition] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const tabsYRef = useRef(0);
+  const snapToTabsRef = useRef(false);
+
+  useEffect(() => {
+    if (!snapToTabsRef.current) return;
+    snapToTabsRef.current = false;
+    const t = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
+    }, 50);
+    return () => clearTimeout(t);
+  }, [activeTab]);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
+    snapToTabsRef.current = true;
     setActiveTab(tab);
-    InteractionManager.runAfterInteractions(() => {
-      scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
-    });
   }, []);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
