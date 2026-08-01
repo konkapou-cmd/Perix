@@ -211,28 +211,16 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [showCoverReposition, setShowCoverReposition] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollYRef = useRef(0);
-  const restoreRef = useRef(false);
 
   useEffect(() => {
-    restoreRef.current = true;
     const t = setTimeout(() => {
-      if (restoreRef.current) {
-        scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-        restoreRef.current = false;
-      }
-    }, 150);
-    return () => { clearTimeout(t); restoreRef.current = false; };
+      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
+    }, 100);
+    return () => clearTimeout(t);
   }, [activeTab]);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
     setActiveTab(tab);
-  }, []);
-
-  const handleContentLayout = useCallback(() => {
-    if (restoreRef.current) {
-      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-      restoreRef.current = false;
-    }
   }, []);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
@@ -557,8 +545,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
-        <View style={{ position: "relative", minHeight: 800 }}>
-        <View style={[activeTab === "posts" ? styles.tabVisible : styles.tabHidden, activeTab !== "posts" && styles.tabAbsolute]} pointerEvents={activeTab === "posts" ? "auto" : "none"}>
+        {activeTab === "posts" ? (
           <ProfilePosts
             posts={userPosts}
             primaryColor={primaryColor}
@@ -599,11 +586,9 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
             onRefresh={onRefresh}
             initialSavedPostIds={initialSavedPostIds}
           />
-        </View>
-        <View style={[activeTab === "posts" ? styles.tabHidden : styles.tabVisible, activeTab === "posts" && styles.tabAbsolute]}>
-          {tabContentNonPosts}
-        </View>
-        </View>
+        ) : (
+          tabContentNonPosts
+        )}
       </ScrollView>
 
       {user.cover_photo && (
@@ -673,21 +658,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#fff",
-  },
-  tabVisible: {
-    opacity: 1,
-  },
-  tabHidden: {
-    opacity: 0,
-    height: 0,
-    overflow: "hidden",
-  },
-  tabAbsolute: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    opacity: 0,
-    zIndex: -1,
   },
 });
