@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -266,27 +266,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState("posts");
   const [privateActiveTab, setPrivateActiveTab] = useState("posts");
   const [showCoverReposition, setShowCoverReposition] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollYRef = useRef(0);
-  const restoreRef = useRef(false);
-
-  useEffect(() => {
-    restoreRef.current = true;
-    const t = setTimeout(() => {
-      if (restoreRef.current) {
-        scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-        restoreRef.current = false;
-      }
-    }, 150);
-    return () => { clearTimeout(t); restoreRef.current = false; };
-  }, [activeTab, privateActiveTab]);
-
-  const handleContentLayout = useCallback(() => {
-    if (restoreRef.current) {
-      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-      restoreRef.current = false;
-    }
-  }, []);
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -713,12 +692,10 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
       <ScrollView
-        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
-        onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
-        scrollEventThrottle={16}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 10 }}
         refreshControl={
           refreshing !== undefined && onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
