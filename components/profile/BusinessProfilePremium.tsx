@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -266,6 +266,25 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState("posts");
   const [privateActiveTab, setPrivateActiveTab] = useState("posts");
   const [showCoverReposition, setShowCoverReposition] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
+    }, 50);
+    return () => clearTimeout(t);
+  }, [activeTab, privateActiveTab]);
+
+  const handleTabChange = useCallback((tab: string) => {
+    scrollYRef.current = 0;
+    setActiveTab(tab);
+  }, []);
+
+  const handlePrivateTabChange = useCallback((tab: string) => {
+    scrollYRef.current = 0;
+    setPrivateActiveTab(tab);
+  }, []);
   const [coverRepositionFp, setCoverRepositionFp] = useState(detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 });
 
   const publicTabs: TabDefinition[] = useMemo(() => {
@@ -604,7 +623,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
               {profileHeaderContent}
               <BusinessProfilePicker
                 activeTab={privateActiveTab}
-                onTabChange={setPrivateActiveTab}
+                onTabChange={handlePrivateTabChange}
                 tabs={privateTabs}
                 primaryColor={primaryColor}
                 bgColor={cardColor}
@@ -654,7 +673,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
               {profileHeaderContent}
               <BusinessProfilePicker
                 activeTab={activeTab}
-                onTabChange={setActiveTab}
+                onTabChange={handleTabChange}
                 tabs={publicTabs}
                 primaryColor={primaryColor}
                 bgColor={cardColor}
@@ -684,9 +703,12 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
+        onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}
         refreshControl={
           refreshing !== undefined && onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
@@ -699,7 +721,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           <>
             <BusinessProfilePicker
               activeTab={activeTab}
-              onTabChange={setActiveTab}
+              onTabChange={handleTabChange}
               tabs={publicTabs}
               primaryColor={primaryColor}
               bgColor={cardColor}
@@ -788,7 +810,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           <>
             <BusinessProfilePicker
               activeTab={privateActiveTab}
-              onTabChange={setPrivateActiveTab}
+              onTabChange={handlePrivateTabChange}
               tabs={privateTabs}
               primaryColor={primaryColor}
               bgColor={cardColor}

@@ -209,6 +209,20 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab as ProfileTab || "posts");
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
+    }, 50);
+    return () => clearTimeout(t);
+  }, [activeTab]);
+
+  const handleTabChange = useCallback((tab: ProfileTab) => {
+    scrollYRef.current = 0;
+    setActiveTab(tab);
+  }, []);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
 
@@ -364,7 +378,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
 
       <ProfileTabs
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         tabs={tabs}
         primaryColor={primaryColor}
         bgColor={cardColor}
@@ -519,9 +533,12 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
+        onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}
         refreshControl={
           refreshing !== undefined && onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
