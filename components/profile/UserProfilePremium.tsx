@@ -526,6 +526,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 10 }}
         refreshControl={
           refreshing !== undefined && onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
@@ -533,8 +534,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
-        <View style={{ minHeight: 2000 }}>
-          {activeTab === "posts" ? (
+        {activeTab === "posts" ? (
             <ProfilePosts
               posts={userPosts}
               primaryColor={primaryColor}
@@ -578,7 +578,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           ) : (
             tabContentNonPosts
           )}
-        </View>
       </ScrollView>
 
       {user.cover_photo && (
