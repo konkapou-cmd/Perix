@@ -210,17 +210,13 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  const scrollYRef = useRef(0);
-
-  useEffect(() => {
-    const sub = InteractionManager.runAfterInteractions(() => {
-      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-    });
-    return () => { if (sub?.cancel) sub.cancel(); };
-  }, [activeTab]);
+  const tabsYRef = useRef(0);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
     setActiveTab(tab);
+    InteractionManager.runAfterInteractions(() => {
+      scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
+    });
   }, []);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
@@ -375,15 +371,17 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         />
       )}
 
-      <ProfileTabs
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        tabs={tabs}
-        primaryColor={primaryColor}
-        bgColor={cardColor}
-        borderColor={borderColor}
-        themeStyles={themeStyles}
-      />
+      <View onLayout={(e) => { tabsYRef.current = e.nativeEvent.layout.y; }}>
+        <ProfileTabs
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          tabs={tabs}
+          primaryColor={primaryColor}
+          bgColor={cardColor}
+          borderColor={borderColor}
+          themeStyles={themeStyles}
+        />
+      </View>
     </>
   );
 
@@ -536,8 +534,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
-        onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
-        scrollEventThrottle={16}
         refreshControl={
           refreshing !== undefined && onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
