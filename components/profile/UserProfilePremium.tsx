@@ -11,8 +11,8 @@ import {
   Share,
   Pressable,
   Dimensions,
+  InteractionManager,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useIsFocused } from "@react-navigation/native";
 import { COLORS } from "../../lib/designTokens";
@@ -213,10 +213,10 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const scrollYRef = useRef(0);
 
   useEffect(() => {
-    const t = setTimeout(() => {
+    const sub = InteractionManager.runAfterInteractions(() => {
       scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-    }, 100);
-    return () => clearTimeout(t);
+    });
+    return () => { if (sub?.cancel) sub.cancel(); };
   }, [activeTab]);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
