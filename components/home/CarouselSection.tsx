@@ -49,26 +49,28 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <SectionHeader
-          icon={icon}
-          title={title}
-          accent={accent}
-          onSeeAll={undefined}
-        />
-        {onToggleCollapse && (
-          <Pressable
-            onPress={handleToggle}
-            style={[styles.chevronBtn, { borderColor: accent + "4D", borderWidth: 1.5 }]}
-            accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
-            hitSlop={8}
-          >
-            <Ionicons
-              name={collapsed ? "chevron-forward" : "chevron-down"}
-              size={18}
-              color={accent}
-            />
-          </Pressable>
-        )}
+        <View style={styles.headerLeft}>
+          <SectionHeader
+            icon={icon}
+            title={title}
+            accent={accent}
+            onSeeAll={undefined}
+          />
+          {onToggleCollapse && (
+            <Pressable
+              onPress={handleToggle}
+              style={[styles.chevronBtn, { borderColor: accent + "4D", borderWidth: 1.5 }]}
+              accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={collapsed ? "chevron-forward" : "chevron-down"}
+                size={18}
+                color={accent}
+              />
+            </Pressable>
+          )}
+        </View>
         {seeAllRoute && (
           <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={(e: any) => { e?.stopPropagation?.(); router.navigate(seeAllRoute as any); }}>
             <Text style={styles.seeAllText} numberOfLines={1}>{t("common.seeAll", "Όλα")}</Text>
@@ -115,6 +117,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: SPACING.compact,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    minWidth: 0,
   },
   chevronBtn: {
     width: 30,
