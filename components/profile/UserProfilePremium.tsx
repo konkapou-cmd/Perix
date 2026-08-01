@@ -533,7 +533,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
-        {activeTab === "posts" ? (
+        <View style={{ minHeight: 2000 }}>
+          {activeTab === "posts" ? (
             <ProfilePosts
               posts={userPosts}
               primaryColor={primaryColor}
@@ -577,6 +578,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           ) : (
             tabContentNonPosts
           )}
+        </View>
       </ScrollView>
 
       {user.cover_photo && (
