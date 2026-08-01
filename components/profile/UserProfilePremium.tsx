@@ -13,6 +13,7 @@ import {
   Dimensions,
   InteractionManager,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useIsFocused } from "@react-navigation/native";
 import { COLORS } from "../../lib/designTokens";
