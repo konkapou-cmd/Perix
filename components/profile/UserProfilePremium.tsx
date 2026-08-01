@@ -546,7 +546,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
-        {activeTab === "posts" ? (
+        <View style={activeTab === "posts" ? styles.tabVisible : styles.tabHidden} pointerEvents={activeTab === "posts" ? "auto" : "none"}>
           <ProfilePosts
             posts={userPosts}
             primaryColor={primaryColor}
@@ -587,9 +587,10 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
             onRefresh={onRefresh}
             initialSavedPostIds={initialSavedPostIds}
           />
-        ) : (
-          tabContentNonPosts
-        )}
+        </View>
+        <View style={activeTab === "posts" ? styles.tabHidden : styles.tabVisible}>
+          {tabContentNonPosts}
+        </View>
       </ScrollView>
 
       {user.cover_photo && (
@@ -660,5 +661,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
   },
-  
+  tabVisible: {
+    opacity: 1,
+  },
+  tabHidden: {
+    opacity: 0,
+    height: 0,
+    overflow: "hidden",
+  },
 });
