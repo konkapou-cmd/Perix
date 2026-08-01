@@ -211,16 +211,28 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [showCoverReposition, setShowCoverReposition] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollYRef = useRef(0);
+  const restoreRef = useRef(false);
 
   useEffect(() => {
+    restoreRef.current = true;
     const t = setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-    }, 100);
-    return () => clearTimeout(t);
+      if (restoreRef.current) {
+        scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
+        restoreRef.current = false;
+      }
+    }, 150);
+    return () => { clearTimeout(t); restoreRef.current = false; };
   }, [activeTab]);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
     setActiveTab(tab);
+  }, []);
+
+  const handleContentLayout = useCallback(() => {
+    if (restoreRef.current) {
+      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
+      restoreRef.current = false;
+    }
   }, []);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
@@ -536,7 +548,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
-        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 10 }}
         onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
         scrollEventThrottle={16}
         refreshControl={
@@ -546,7 +557,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
-        <View style={{ minHeight: Dimensions.get("window").height * 1.2 }}>
+        <View style={{ minHeight: Dimensions.get("window").height * 1.2 }} onLayout={handleContentLayout}>
         <View style={activeTab === "posts" ? styles.tabVisible : styles.tabHidden} pointerEvents={activeTab === "posts" ? "auto" : "none"}>
           <ProfilePosts
             posts={userPosts}

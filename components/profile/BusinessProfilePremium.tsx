@@ -268,13 +268,25 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const [showCoverReposition, setShowCoverReposition] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollYRef = useRef(0);
+  const restoreRef = useRef(false);
 
   useEffect(() => {
+    restoreRef.current = true;
     const t = setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-    }, 100);
-    return () => clearTimeout(t);
+      if (restoreRef.current) {
+        scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
+        restoreRef.current = false;
+      }
+    }, 150);
+    return () => { clearTimeout(t); restoreRef.current = false; };
   }, [activeTab, privateActiveTab]);
+
+  const handleContentLayout = useCallback(() => {
+    if (restoreRef.current) {
+      scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
+      restoreRef.current = false;
+    }
+  }, []);
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -705,7 +717,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
-        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 10 }}
         onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
         scrollEventThrottle={16}
         refreshControl={
