@@ -557,8 +557,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
-        <View style={{ minHeight: Dimensions.get("window").height * 1.2 }} onLayout={handleContentLayout}>
-        <View style={activeTab === "posts" ? styles.tabVisible : styles.tabHidden} pointerEvents={activeTab === "posts" ? "auto" : "none"}>
+        <View style={{ position: "relative", minHeight: 800 }}>
+        <View style={[activeTab === "posts" ? styles.tabVisible : styles.tabHidden, activeTab !== "posts" && styles.tabAbsolute]} pointerEvents={activeTab === "posts" ? "auto" : "none"}>
           <ProfilePosts
             posts={userPosts}
             primaryColor={primaryColor}
@@ -600,7 +600,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
             initialSavedPostIds={initialSavedPostIds}
           />
         </View>
-        <View style={activeTab === "posts" ? styles.tabHidden : styles.tabVisible}>
+        <View style={[activeTab === "posts" ? styles.tabHidden : styles.tabVisible, activeTab === "posts" && styles.tabAbsolute]}>
           {tabContentNonPosts}
         </View>
         </View>
@@ -681,5 +681,13 @@ const styles = StyleSheet.create({
     opacity: 0,
     height: 0,
     overflow: "hidden",
+  },
+  tabAbsolute: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    opacity: 0,
+    zIndex: -1,
   },
 });
