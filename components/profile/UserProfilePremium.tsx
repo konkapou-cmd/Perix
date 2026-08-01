@@ -365,6 +365,16 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           showFriendRequests={false}
         />
       )}
+
+      <ProfileTabs
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        tabs={tabs}
+        primaryColor={primaryColor}
+        bgColor={cardColor}
+        borderColor={borderColor}
+        themeStyles={themeStyles}
+      />
     </>
   );
 
@@ -516,7 +526,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
-        stickyHeaderIndices={[1]}
         refreshControl={
           refreshing !== undefined && onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
@@ -524,19 +533,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
-        <View style={styles.tabStickyBar}>
-          <ProfileTabs
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            tabs={tabs}
-            primaryColor={primaryColor}
-            bgColor={cardColor}
-            borderColor={borderColor}
-            themeStyles={themeStyles}
-          />
-        </View>
-        <View style={styles.tabContentWrapper}>
-          {activeTab === "posts" ? (
+        {activeTab === "posts" ? (
             <ProfilePosts
               posts={userPosts}
               primaryColor={primaryColor}
@@ -580,7 +577,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           ) : (
             tabContentNonPosts
           )}
-        </View>
       </ScrollView>
 
       {user.cover_photo && (
@@ -615,15 +611,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingBottom: 32,
     marginTop: 12,
-  },
-  tabStickyBar: {
-    backgroundColor: "#fff",
-    paddingBottom: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border,
-  },
-  tabContentWrapper: {
-    minHeight: 500,
   },
   tabSection: {
     paddingTop: 12,
