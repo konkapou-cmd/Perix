@@ -21,7 +21,6 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
-import ProgressivePicker from "../navigation/ProgressivePicker";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -505,25 +504,71 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   borderColor = PROFILE_COLORS.BORDER,
   themeStyles,
 }) => {
-  const { t } = useTranslation();
-
   return (
-    <ProgressivePicker
-      label={t("navigation.section", "Bereich")}
-      value={activeTab}
-      options={tabs.map((tab) => ({
-        key: tab.key,
-        label: tab.label,
-        icon: tab.icon as any,
-        count: tab.count,
-      }))}
-      onChange={onTabChange}
-      primaryColor={primaryColor}
-      backgroundColor={bgColor}
-      borderColor={borderColor}
-    />
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={iconStyles.tabBar}>
+      {tabs.map((tab) => {
+        const active = tab.key === activeTab;
+        return (
+          <Pressable
+            key={tab.key}
+            onPress={() => onTabChange(tab.key)}
+            style={[
+              iconStyles.tab,
+              active && { backgroundColor: primaryColor + "18" },
+            ]}
+          >
+            <Ionicons
+              name={tab.icon as any}
+              size={22}
+              color={active ? primaryColor : PROFILE_COLORS.TEXT_SECONDARY || "#999"}
+            />
+            {tab.count !== undefined && tab.count > 0 && (
+              <View style={[iconStyles.badge, { backgroundColor: active ? primaryColor : (PROFILE_COLORS.TEXT_SECONDARY || "#999") }]}>
+                <Text style={iconStyles.badgeText}>{tab.count > 99 ? "99+" : tab.count}</Text>
+              </View>
+            )}
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 };
+
+const iconStyles = StyleSheet.create({
+  tabBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "transparent",
+  },
+  tab: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    marginHorizontal: 2,
+  },
+  badge: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#fff",
+  },
+});
 
 const styles = StyleSheet.create({
   headerContainer: {
