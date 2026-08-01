@@ -213,7 +213,9 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const tabsYRef = useRef(0);
 
   useEffect(() => {
+    console.log("[ProfileTabs] tab changed to:", activeTab, "tabsY:", tabsYRef.current);
     const t = setTimeout(() => {
+      console.log("[ProfileTabs] scrolling to:", tabsYRef.current);
       scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
     }, 200);
     return () => clearTimeout(t);
