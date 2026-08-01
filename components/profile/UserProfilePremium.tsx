@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import {
   View,
   Text,
@@ -212,10 +212,13 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const scrollRef = useRef<ScrollView>(null);
   const tabsYRef = useRef(0);
 
-  const handleTabChange = useCallback((tab: ProfileTab) => {
+  useLayoutEffect(() => {
     if (tabsYRef.current > 0) {
       scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
     }
+  }, [activeTab]);
+
+  const handleTabChange = useCallback((tab: ProfileTab) => {
     setActiveTab(tab);
   }, []);
 
