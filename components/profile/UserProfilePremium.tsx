@@ -215,12 +215,11 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   useEffect(() => {
     const t = setTimeout(() => {
       scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-    }, 50);
+    }, 100);
     return () => clearTimeout(t);
   }, [activeTab]);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
-    scrollYRef.current = 0;
     setActiveTab(tab);
   }, []);
 
@@ -537,6 +536,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 10 }}
         onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
         scrollEventThrottle={16}
         refreshControl={

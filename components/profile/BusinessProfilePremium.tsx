@@ -272,17 +272,15 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   useEffect(() => {
     const t = setTimeout(() => {
       scrollRef.current?.scrollTo({ y: scrollYRef.current, animated: false });
-    }, 50);
+    }, 100);
     return () => clearTimeout(t);
   }, [activeTab, privateActiveTab]);
 
   const handleTabChange = useCallback((tab: string) => {
-    scrollYRef.current = 0;
     setActiveTab(tab);
   }, []);
 
   const handlePrivateTabChange = useCallback((tab: string) => {
-    scrollYRef.current = 0;
     setPrivateActiveTab(tab);
   }, []);
   const [coverRepositionFp, setCoverRepositionFp] = useState(detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 });
@@ -707,6 +705,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 10 }}
         onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
         scrollEventThrottle={16}
         refreshControl={
