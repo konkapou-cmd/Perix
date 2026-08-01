@@ -485,6 +485,7 @@ pendingMentionIds = [],
       ) : (
         <FlatList
           data={postsData}
+          nestedScrollEnabled={true}
           keyExtractor={(post) => post.post_id}
           renderItem={({ item: post }) => (
             <PostCard
