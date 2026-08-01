@@ -50,29 +50,26 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <View style={styles.titleWrap}>
-            <SectionHeader
-              icon={icon}
-              title={title}
-              accent={accent}
-              onSeeAll={undefined}
-            />
-          </View>
-          {onToggleCollapse && (
-            <Pressable
-              onPress={handleToggle}
-              style={[styles.chevronBtn, { borderColor: accent + "4D", borderWidth: 1.5 }]}
-              accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
-              hitSlop={8}
-            >
-              <Ionicons
-                name={collapsed ? "chevron-forward" : "chevron-down"}
-                size={18}
-                color={accent}
-              />
-            </Pressable>
-          )}
+          <SectionHeader
+            icon={icon}
+            title={title}
+            accent={accent}
+            onSeeAll={undefined}
+          />
         </View>
+        {onToggleCollapse && (
+          <Pressable
+            onPress={handleToggle}
+            style={[styles.chevronBtn, { marginRight: 4 }]}
+            hitSlop={8}
+          >
+            <Ionicons
+              name={collapsed ? "chevron-forward" : "chevron-down"}
+              size={20}
+              color={accent}
+            />
+          </Pressable>
+        )}
         {seeAllRoute && (
           <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={(e: any) => { e?.stopPropagation?.(); router.navigate(seeAllRoute as any); }}>
             <Text style={styles.seeAllText} numberOfLines={1}>{t("common.seeAll", "Όλα")}</Text>
@@ -121,13 +118,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.compact,
   },
   headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
     flex: 1,
-    minWidth: 0,
-  },
-  titleWrap: {
-    flexShrink: 1,
     minWidth: 0,
   },
   chevronBtn: {
@@ -136,7 +127,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 8,
+    flexShrink: 0,
   },
   seeAllBtn: {
     flexDirection: "row",
