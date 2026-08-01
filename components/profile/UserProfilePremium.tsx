@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -209,14 +209,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab as ProfileTab || "posts");
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
-  const tabsYRef = useRef(0);
-
-  useLayoutEffect(() => {
-    if (tabsYRef.current > 0) {
-      scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
-    }
-  }, [activeTab]);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
     setActiveTab(tab);
@@ -373,18 +365,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           showFriendRequests={false}
         />
       )}
-
-      <View onLayout={(e) => { tabsYRef.current = e.nativeEvent.layout.y; }}>
-        <ProfileTabs
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          tabs={tabs}
-          primaryColor={primaryColor}
-          bgColor={cardColor}
-          borderColor={borderColor}
-          themeStyles={themeStyles}
-        />
-      </View>
     </>
   );
 
@@ -533,10 +513,10 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
       <ScrollView
-        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
+        stickyHeaderIndices={[1]}
         refreshControl={
           refreshing !== undefined && onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
@@ -544,50 +524,63 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
-        {activeTab === "posts" ? (
-          <ProfilePosts
-            posts={userPosts}
+        <View style={styles.tabStickyBar}>
+          <ProfileTabs
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            tabs={tabs}
             primaryColor={primaryColor}
-            cardColor={cardColor}
-            textColor={textColor}
-            textSecondaryColor={secondaryColor}
-            bgColor={bgColor}
-            readOnly={readOnly}
-            postText={postText}
-            setPostText={setPostText}
-            postImage={postImage}
-            postVideo={postVideo}
-            postVideoPreview={postVideoPreview}
-            pickPostImage={pickPostImage}
-            pickPostVideo={pickPostVideo}
-            onDiscardMedia={onDiscardMedia}
-            handleCreatePost={handleCreatePost}
-            isPosting={isPosting}
-            uploadPercent={uploadPercent}
-            onDeletePost={onDeletePost}
-            onEditPost={onEditPost}
-            currentUserId={currentUserId}
-            avatarUri={avatarUri}
+            bgColor={cardColor}
+            borderColor={borderColor}
             themeStyles={themeStyles}
-            onOpenTagModal={onOpenTagModal}
-            onEditTags={onEditTags}
-            friends={friends}
-            businesses={businesses}
-            showMentionSuggestions={showMentionSuggestions}
-            mentionSuggestions={mentionSuggestions}
-            onSelectMention={onSelectMention}
-            pendingMentionIds={pendingMentionIds}
-            onRefreshPosts={onRefreshPosts}
-            isOwnProfile={isOwnProfile}
-            onCreateStory={onCreateStory}
-            isScreenFocused={isScreenFocused}
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            initialSavedPostIds={initialSavedPostIds}
           />
-        ) : (
-          tabContentNonPosts
-        )}
+        </View>
+        <View style={styles.tabContentWrapper}>
+          {activeTab === "posts" ? (
+            <ProfilePosts
+              posts={userPosts}
+              primaryColor={primaryColor}
+              cardColor={cardColor}
+              textColor={textColor}
+              textSecondaryColor={secondaryColor}
+              bgColor={bgColor}
+              readOnly={readOnly}
+              postText={postText}
+              setPostText={setPostText}
+              postImage={postImage}
+              postVideo={postVideo}
+              postVideoPreview={postVideoPreview}
+              pickPostImage={pickPostImage}
+              pickPostVideo={pickPostVideo}
+              onDiscardMedia={onDiscardMedia}
+              handleCreatePost={handleCreatePost}
+              isPosting={isPosting}
+              uploadPercent={uploadPercent}
+              onDeletePost={onDeletePost}
+              onEditPost={onEditPost}
+              currentUserId={currentUserId}
+              avatarUri={avatarUri}
+              themeStyles={themeStyles}
+              onOpenTagModal={onOpenTagModal}
+              onEditTags={onEditTags}
+              friends={friends}
+              businesses={businesses}
+              showMentionSuggestions={showMentionSuggestions}
+              mentionSuggestions={mentionSuggestions}
+              onSelectMention={onSelectMention}
+              pendingMentionIds={pendingMentionIds}
+              onRefreshPosts={onRefreshPosts}
+              isOwnProfile={isOwnProfile}
+              onCreateStory={onCreateStory}
+              isScreenFocused={isScreenFocused}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              initialSavedPostIds={initialSavedPostIds}
+            />
+          ) : (
+            tabContentNonPosts
+          )}
+        </View>
       </ScrollView>
 
       {user.cover_photo && (
@@ -622,6 +615,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingBottom: 32,
     marginTop: 12,
+  },
+  tabStickyBar: {
+    backgroundColor: "#fff",
+    paddingBottom: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
+  },
+  tabContentWrapper: {
+    minHeight: 500,
   },
   tabSection: {
     paddingTop: 12,
