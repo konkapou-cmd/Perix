@@ -221,10 +221,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     }, 500);
   }, []);
 
-  const handleTabChange = useCallback((tab: ProfileTab) => {
-    setActiveTab(tab);
-  }, []);
-
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
 
   const tabs: TabDefinition[] = useMemo(() => {
