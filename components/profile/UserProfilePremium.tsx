@@ -546,6 +546,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         }
       >
         {profileHeaderContent}
+        <View style={{ minHeight: Dimensions.get("window").height * 1.2 }}>
         <View style={activeTab === "posts" ? styles.tabVisible : styles.tabHidden} pointerEvents={activeTab === "posts" ? "auto" : "none"}>
           <ProfilePosts
             posts={userPosts}
@@ -590,6 +591,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         </View>
         <View style={activeTab === "posts" ? styles.tabHidden : styles.tabVisible}>
           {tabContentNonPosts}
+        </View>
         </View>
       </ScrollView>
 
