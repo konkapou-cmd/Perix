@@ -211,22 +211,14 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [showCoverReposition, setShowCoverReposition] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const tabsYRef = useRef(0);
-  const scrollPendingRef = useRef(false);
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    scrollPendingRef.current = true;
-  }, [activeTab]);
-
-  const handleContentSizeChange = useCallback(() => {
-    if (!scrollPendingRef.current || tabsYRef.current <= 0) return;
-    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-    scrollTimerRef.current = setTimeout(() => {
-      if (scrollPendingRef.current && tabsYRef.current > 0) {
-        scrollPendingRef.current = false;
+  const handleTabChange = useCallback((tab: ProfileTab) => {
+    setActiveTab(tab);
+    setTimeout(() => {
+      if (tabsYRef.current > 0) {
         scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
       }
-    }, 300);
+    }, 500);
   }, []);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
@@ -548,7 +540,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
-        onContentSizeChange={handleContentSizeChange}
         refreshControl={
           refreshing !== undefined && onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
