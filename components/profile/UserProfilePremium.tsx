@@ -211,18 +211,12 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [showCoverReposition, setShowCoverReposition] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const tabsYRef = useRef(0);
-  const prevTabRef = useRef(activeTab);
 
   useEffect(() => {
-    if (activeTab === prevTabRef.current) return;
-    prevTabRef.current = activeTab;
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        if (tabsYRef.current > 0) {
-          scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
-        }
-      }, 100);
-    });
+    const t = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
+    }, 200);
+    return () => clearTimeout(t);
   }, [activeTab]);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
