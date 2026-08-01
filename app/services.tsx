@@ -151,7 +151,7 @@ export default function ServicesScreen() {
       const data = await getNearbyServices(sessionToken, mapBounds ?? undefined, {
         latitude: centerLat,
         longitude: centerLng,
-      }, rootCategory || undefined, subcategory || undefined);
+      });
       const svcList: Service[] = Array.isArray(data) ? data : (data.services || []);
       setServices(svcList.filter((s: any) => s.type !== "rental_property"));
       if (sessionToken && svcList.length > 0) {
