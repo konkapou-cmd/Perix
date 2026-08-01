@@ -213,12 +213,10 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const tabsYRef = useRef(0);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
+    if (tabsYRef.current > 0) {
+      scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
+    }
     setActiveTab(tab);
-    setTimeout(() => {
-      if (tabsYRef.current > 0) {
-        scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: false });
-      }
-    }, 500);
   }, []);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
