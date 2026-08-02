@@ -136,8 +136,8 @@ export default function HomeScreen() {
 
   const posts = localPosts;
   const savedPostIds = localSavedPostIds ?? feedData.savedPostIds;
-  const { events, businesses, jobs, rentals, activities, storyGroups, services,
-    savedEventIds, savedActivityIds, savedBusinessIds, savedJobIds, savedRentalIds, savedServiceIds,
+  const { events, businesses, hotels, jobs, rentals, activities, storyGroups, services,
+    savedEventIds, savedActivityIds, savedBusinessIds, savedHotelIds, savedJobIds, savedRentalIds, savedServiceIds,
     feedError, loading: feedLoading, backgroundLoading, refresh: refreshFeed,
   } = feedData;
 
@@ -214,15 +214,7 @@ export default function HomeScreen() {
   const shuffledEvents = useMemo(() => shuffle(sortedEvents), [sortedEvents]);
   const shuffledActivities = useMemo(() => shuffle(sortedActivities), [sortedActivities]);
   const shuffledBusinesses = useMemo(() => shuffle(sortedBusinesses), [sortedBusinesses]);
-  const localHotels = useMemo(
-    () => sortedBusinesses.filter(b => (b as any).root_category === "local-hotels"),
-    [sortedBusinesses],
-  );
-  const nonHotelBusinesses = useMemo(
-    () => shuffledBusinesses.filter(b => (b as any).root_category !== "local-hotels"),
-    [shuffledBusinesses],
-  );
-  const shuffledHotels = useMemo(() => shuffle(localHotels), [localHotels]);
+  const shuffledHotels = useMemo(() => shuffle(hotels), [hotels]);
   const shuffledServices = useMemo(() => shuffle(sortedServices), [sortedServices]);
   const shuffledJobs = useMemo(() => shuffle(sortedJobs), [sortedJobs]);
 
@@ -936,7 +928,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("businesses")}
             onToggleCollapse={() => setSectionCollapsed("businesses", !collapsedSections.has("businesses"))}
           >
-            {nonHotelBusinesses.map((business) => {
+            {shuffledBusinesses.map((business) => {
               const businessTheme = business.theme;
               const themeColors = getThemeColors(businessTheme);
               const primaryColor = themeColors.primaryColor;
@@ -979,7 +971,7 @@ export default function HomeScreen() {
                   title={hotel.name}
                   subtitle={translateCategory(hotel.subcategory, t)}
                   onPress={() => router.push(`/business/${hotel.business_id}`)}
-                  isSaved={savedBusinessIds.has(hotel.business_id)}
+                  isSaved={savedHotelIds.has(hotel.business_id)}
                   textColor={primaryColor}
                   fallbackIcon="bed"
                 />

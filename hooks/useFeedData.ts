@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getHomeFeed,
   getNearbyBusinesses,
+  getNearbyHotels,
   getJobs,
   getRentals,
   getStories,
@@ -34,6 +35,7 @@ interface UseFeedDataResult {
   posts: Post[];
   events: EventItem[];
   businesses: Business[];
+  hotels: Business[];
   jobs: Job[];
   rentals: Rental[];
   activities: ActivityItem[];
@@ -41,6 +43,7 @@ interface UseFeedDataResult {
   savedEventIds: Set<string>;
   savedActivityIds: Set<string>;
   savedBusinessIds: Set<string>;
+  savedHotelIds: Set<string>;
   savedJobIds: Set<string>;
   savedPostIds: Set<string>;
   savedRentalIds: Set<string>;
@@ -71,6 +74,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [hotels, setHotels] = useState<Business[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -78,6 +82,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
   const [savedEventIds, setSavedEventIds] = useState<Set<string>>(new Set());
   const [savedActivityIds, setSavedActivityIds] = useState<Set<string>>(new Set());
   const [savedBusinessIds, setSavedBusinessIds] = useState<Set<string>>(new Set());
+  const [savedHotelIds, setSavedHotelIds] = useState<Set<string>>(new Set());
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
   const [savedRentalIds, setSavedRentalIds] = useState<Set<string>>(new Set());
@@ -123,19 +128,21 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
       const activitiesPromise = getActivities(sessionToken, bounds);
       const bizCat = (favoriteCategories && favoriteCategories.length > 0) ? favoriteCategories[0] : undefined;
       const businessesPromise = getNearbyBusinesses(sessionToken, userLat, userLng, bizCat, undefined, bounds);
+      const hotelsPromise = getNearbyHotels(sessionToken, bounds);
       const jobsPromise = getJobs(sessionToken, bounds, { latitude: userLat, longitude: userLng });
       const rentalsPromise = getRentals(sessionToken, bounds, { latitude: userLat, longitude: userLng });
       const servicesPromise = getNearbyServices(sessionToken, bounds, { latitude: userLat, longitude: userLng });
       const storiesPromise = getStories(sessionToken, { minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng });
 
       const results = await Promise.allSettled([
-        feedPromise, eventsPromise, activitiesPromise, businessesPromise, jobsPromise, rentalsPromise, servicesPromise, storiesPromise,
+        feedPromise, eventsPromise, activitiesPromise, businessesPromise, hotelsPromise, jobsPromise, rentalsPromise, servicesPromise, storiesPromise,
       ]);
-      const [feedResult, eventsResult, activitiesResult, bizResult, jobsResult, rentalsResult, servicesResult, storiesResult] = results as [
+      const [feedResult, eventsResult, activitiesResult, bizResult, hotelsResult, jobsResult, rentalsResult, servicesResult, storiesResult] = results as [
         PromiseSettledResult<Awaited<typeof feedPromise>>,
         PromiseSettledResult<Awaited<typeof eventsPromise>>,
         PromiseSettledResult<Awaited<typeof activitiesPromise>>,
         PromiseSettledResult<Awaited<typeof businessesPromise>>,
+        PromiseSettledResult<Awaited<typeof hotelsPromise>>,
         PromiseSettledResult<Awaited<typeof jobsPromise>>,
         PromiseSettledResult<Awaited<typeof rentalsPromise>>,
         PromiseSettledResult<Awaited<typeof servicesPromise>>,
@@ -188,6 +195,17 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         }
       } else {
         console.error("Businesses load failed:", bizResult.reason);
+      }
+
+      if (hotelsResult.status === "fulfilled") {
+        const h = (hotelsResult.value as any) || [];
+        const hotelList = Array.isArray(h) ? h : h.businesses || [];
+        setHotels(hotelList);
+        if (hotelList.length > 0) {
+          batchCheckSaved(sessionToken, "business", hotelList.map((b: Business) => b.business_id)).then((r: { saved_ids: string[] }) => setSavedHotelIds(new Set(r.saved_ids))).catch(() => {});
+        }
+      } else {
+        console.error("Hotels load failed:", hotelsResult.reason);
       }
 
       if (jobsResult.status === "fulfilled") {
@@ -248,8 +266,8 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
   }, [sessionToken, refreshKey]);
 
   return {
-    posts, events, businesses, jobs, rentals, activities, services, storyGroups,
-    savedEventIds, savedActivityIds, savedBusinessIds, savedJobIds, savedPostIds, savedRentalIds, savedServiceIds,
+    posts, events, businesses, hotels, jobs, rentals, activities, services, storyGroups,
+    savedEventIds, savedActivityIds, savedBusinessIds, savedHotelIds, savedJobIds, savedPostIds, savedRentalIds, savedServiceIds,
     feedError, loading, backgroundLoading, refresh: loadData,
   };
 }
