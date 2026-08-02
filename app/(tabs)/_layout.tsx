@@ -61,8 +61,8 @@ function JobsTabIcon({ color, size, filled }: { color: string; size: number; fil
   return <Ionicons name={filled ? "briefcase" : "briefcase-outline"} size={size} color={color} />;
 }
 
-function CameraTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
-  return <Ionicons name={filled ? "camera" : "camera-outline"} size={size} color={color} />;
+function CreateTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
+  return <Ionicons name={filled ? "color-wand" : "color-wand-outline"} size={size} color={color} />;
 }
 
 export default function TabsLayout() {
@@ -148,13 +148,6 @@ export default function TabsLayout() {
 
   const handleCreateAction = (action: CreationAction) => {
     switch (action) {
-      case "business":
-        if (isBusiness) {
-          router.replace("/(tabs)/profile");
-        } else {
-          router.push("/business/create" as any);
-        }
-        break;
       case "camera":
         router.push("/camera");
         break;
@@ -267,7 +260,7 @@ export default function TabsLayout() {
                   )
                 : undefined,
               tabBarIcon: ({ color, size, focused }) => (
-                <CameraTabIcon color={color} size={size} filled={focused} />
+                <CreateTabIcon color={color} size={size} filled={focused} />
               ),
               lazy: true,
             }}
@@ -287,7 +280,6 @@ export default function TabsLayout() {
         visible={showCreateSheet}
         onClose={() => setShowCreateSheet(false)}
         onAction={handleCreateAction}
-        hasBusiness={isBusiness}
       />
       <ListingModal
         visible={listingType !== null}

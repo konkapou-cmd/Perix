@@ -4,27 +4,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 
-export type CreationAction = "business" | "camera" | "activity" | "home_rental" | "product";
+export type CreationAction = "camera" | "activity" | "home_rental" | "product";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
   onAction: (action: CreationAction) => void;
-  hasBusiness?: boolean;
 };
 
-export default function CreationSheet({ visible, onClose, onAction, hasBusiness }: Props) {
+export default function CreationSheet({ visible, onClose, onAction }: Props) {
   const { t } = useTranslation();
 
   const actions = [
-    {
-      id: "business" as CreationAction,
-      title: t("creation.business", "Business"),
-      subtitle: hasBusiness
-        ? t("creation.businessSubtitleOpen", "Open your business profile")
-        : t("creation.businessSubtitleCreate", "Create your business profile"),
-      icon: "business-outline",
-    },
     {
       id: "camera" as CreationAction,
       title: t("creation.camera", "Photo or Video"),
