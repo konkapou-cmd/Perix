@@ -557,6 +557,8 @@ export default function ProfileScreen() {
     params.openJob,
     params.openBookings,
     params.openProduct,
+    params.openActivity,
+    params.createBusiness,
     params.section,
     businessDetail,
     businessPermsLoading,
