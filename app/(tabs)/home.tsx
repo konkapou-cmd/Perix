@@ -215,21 +215,24 @@ export default function HomeScreen() {
   const shuffledActivities = useMemo(() => shuffle(sortedActivities), [sortedActivities]);
   const shuffledBusinesses = useMemo(() => shuffle(sortedBusinesses), [sortedBusinesses]);
   const hotelIds = useMemo(() => new Set(hotels.map(h => h.business_id)), [hotels]);
+  const hasValidAddress = (b: Business) =>
+    b.address && b.address !== "Not set" && b.latitude && b.latitude !== 0 && b.longitude && b.longitude !== 0;
   const nonHotelBusinesses = useMemo(
-    () => shuffledBusinesses.filter(b => !hotelIds.has(b.business_id)),
+    () => shuffledBusinesses.filter(b => !hotelIds.has(b.business_id) && hasValidAddress(b)),
     [shuffledBusinesses, hotelIds],
   );
   const sortedHotels = useMemo(() => {
+    const validHotels = hotels.filter(hasValidAddress);
     const userLat = userLocation?.latitude ?? mapBounds?.centerLat ?? null;
     const userLng = userLocation?.longitude ?? mapBounds?.centerLng ?? null;
     if (userLat != null && userLng != null) {
-      return [...hotels].sort((a, b) => {
-        const dA = (a.latitude != null && a.longitude != null) ? Math.hypot(a.latitude - userLat, a.longitude - userLng) : Infinity;
-        const dB = (b.latitude != null && b.longitude != null) ? Math.hypot(b.latitude - userLat, b.longitude - userLng) : Infinity;
+      return [...validHotels].sort((a, b) => {
+        const dA = Math.hypot(a.latitude! - userLat, a.longitude! - userLng);
+        const dB = Math.hypot(b.latitude! - userLat, b.longitude! - userLng);
         return dA - dB;
       });
     }
-    return hotels;
+    return validHotels;
   }, [hotels, userLocation, mapBounds]);
   const shuffledHotels = useMemo(() => shuffle(sortedHotels), [sortedHotels]);
   const shuffledServices = useMemo(() => shuffle(sortedServices), [sortedServices]);

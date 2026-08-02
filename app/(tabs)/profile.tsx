@@ -1713,9 +1713,10 @@ const handleUpdateSlug = async (newSlug: string) => {
       if (!validation.valid) {
         Alert.alert(t("common.error", "Error"), validation.error || "Invalid media file");
         setIsUploading(false);
-        return;
-      }
-      try {
+      return;
+    }
+    creatingBusinessRef.current = true;
+    try {
         setShowUploadProgress(true);
         setUploadProgress({ phase: "uploading", progress: 30 });
         const imageUrl = await uploadMedia(sessionToken, result.assets[0].uri, "image", (progress) => {
@@ -2089,6 +2090,18 @@ try {
   const handleCreateNewBusiness = async () => {
     if (!sessionToken || !user || !pickerRoot || !pickerSub) return;
     if (creatingBusinessRef.current) return;
+    const hasAddress = user.location && user.location !== "Not set" && user.latitude && user.longitude;
+    if (!hasAddress) {
+      Alert.alert(
+        t("common.info", "Info"),
+        t("business.setAddressFirst", "Please set your location/address in your profile settings before creating a business. This is required for your business to appear publicly."),
+        [
+          { text: t("common.cancel", "Cancel"), style: "cancel" },
+          { text: t("profile.editProfile", "Edit Profile"), onPress: () => { setShowCategoryPicker(false); setUserEditModalVisible(true); } },
+        ],
+      );
+      return;
+    }
     creatingBusinessRef.current = true;
     try {
       const latitude = user.latitude || 0;
