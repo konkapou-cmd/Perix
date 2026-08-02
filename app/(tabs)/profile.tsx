@@ -325,6 +325,7 @@ export default function ProfileScreen() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [pickerRoot, setPickerRoot] = useState("");
   const [pickerSub, setPickerSub] = useState("");
+  const creatingBusinessRef = useRef(false);
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [eventEditing, setEventEditing] = useState<EventItem | null>(null);
   const [eventForm, setEventForm] = useState<{title: string; description: string; start_time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; theme: string; gallery_images: string[]; gallery_videos: string[]; media_items: any[]; is_private: boolean; password: string; tagged_artist_ids: string[]}>({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
@@ -2087,6 +2088,8 @@ try {
 
   const handleCreateNewBusiness = async () => {
     if (!sessionToken || !user || !pickerRoot || !pickerSub) return;
+    if (creatingBusinessRef.current) return;
+    creatingBusinessRef.current = true;
     try {
       const latitude = user.latitude || 0;
       const longitude = user.longitude || 0;
@@ -2107,6 +2110,8 @@ try {
       refreshUser();
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e.message || t("business.failedCreate", "Failed to create business profile"));
+    } finally {
+      creatingBusinessRef.current = false;
     }
   };
 
@@ -2986,7 +2991,12 @@ currentUserId={businessDetail?.business?.business_id}
                 <Pressable
                   key={cat.slug}
                   style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#e5e7eb" }}
-                  onPress={() => { setPickerRoot(cat.slug); setPickerSub(""); }}
+                  onPress={() => {
+                    setPickerRoot(cat.slug);
+                    setPickerSub("");
+                    const subs = getSubcategories(categoryTree, cat.slug);
+                    if (subs.length === 1) setPickerSub(subs[0].slug);
+                  }}
                 >
                   <Text style={{ fontSize: 14, fontWeight: "600", color: pickerRoot === cat.slug ? "#fff" : "#374151" }}>{cat.name}</Text>
                 </Pressable>

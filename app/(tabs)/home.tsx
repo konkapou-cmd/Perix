@@ -146,11 +146,11 @@ export default function HomeScreen() {
   const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
   const viewportRequestRef = useRef(0);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (sessionToken) {
       getMyBusinesses(sessionToken).then(setMyBusinesses).catch(() => {});
     }
-  }, [sessionToken]);
+  }, [sessionToken]));
 
   useEffect(() => {
     if (!mapBounds) return;
