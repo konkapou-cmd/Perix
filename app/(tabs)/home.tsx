@@ -689,7 +689,7 @@ export default function HomeScreen() {
               onSelectIdentity={(type, id, name, avatar) => {
                 setActiveIdentity?.({ type, id, name, avatar });
               }}
-              onCreateBusiness={() => router.push("/(tabs)/profile")}
+              onCreateBusiness={() => router.push("/(tabs)/profile?createBusiness=1")}
             />
           </View>
         </View>

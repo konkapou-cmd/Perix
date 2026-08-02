@@ -248,7 +248,7 @@ export default function ProfileScreen() {
   const { user, logout, sessionToken, activeIdentity, setActiveIdentity, refreshUser } = useAuth();
   const { clearMapBounds } = useMapBounds();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string; openProduct?: string; openActivity?: string; section?: string }>();
+  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string; openProduct?: string; openActivity?: string; section?: string; createBusiness?: string }>();
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -485,6 +485,13 @@ export default function ProfileScreen() {
     if (shouldOpenActivity) {
       router.setParams({ openActivity: undefined } as any);
       setUserInitialTab("activities");
+      return;
+    }
+
+    const shouldCreateBusiness = params.createBusiness === "1";
+    if (shouldCreateBusiness) {
+      router.setParams({ createBusiness: undefined } as any);
+      setShowCategoryPicker(true);
       return;
     }
 
