@@ -2981,7 +2981,7 @@ currentUserId={businessDetail?.business?.business_id}
             <Text style={{ fontSize: 18, fontWeight: "700", color: COLORS.textPrimary }}>{t("business.chooseCategory", "Choose Category")}</Text>
             <View style={{ width: 28 }} />
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+          <ScrollView contentContainerStyle={{ padding: 16 }} style={{ flex: 1 }}>
             <Text style={{ fontSize: 14, color: "#6b7280", marginBottom: 16 }}>{t("business.selectRootHint", "Select a business category")}</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
               {categoryTree.map((cat) => (
@@ -2997,7 +2997,7 @@ currentUserId={businessDetail?.business?.business_id}
             {pickerRoot && getSubcategories(categoryTree, pickerRoot).length > 0 && (
               <>
                 <Text style={{ fontSize: 14, color: "#6b7280", marginBottom: 12 }}>{t("business.selectSubHint", "Select a subcategory")}</Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 20 }}>
                   {getSubcategories(categoryTree, pickerRoot).map((sub) => (
                     <Pressable
                       key={sub.slug}
@@ -3011,7 +3011,7 @@ currentUserId={businessDetail?.business?.business_id}
               </>
             )}
           </ScrollView>
-          <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 16 + insets.bottom, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e5e7eb" }}>
+          <View style={{ padding: 16, paddingBottom: 16 + insets.bottom, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e5e7eb" }}>
             <Pressable
               style={{ backgroundColor: pickerRoot && pickerSub ? COLORS.textPrimary : "#d1d5db", borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
               disabled={!pickerRoot || !pickerSub}
