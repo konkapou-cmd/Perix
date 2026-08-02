@@ -62,13 +62,13 @@ function JobsTabIcon({ color, size, filled }: { color: string; size: number; fil
 }
 
 function CreateTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
-  const s = size * 0.34;
-  const pad = size * 0.24;
+  const s = size * 0.44;
+  const pad = size * 0.22;
   return (
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
       <Ionicons name="add" size={size * 0.9} color={color} />
       <Ionicons name="star" size={s} color={color} style={{ position: "absolute", top: 0, right: pad, opacity: 0.65 }} />
-      <Ionicons name="star" size={s * 0.85} color={color} style={{ position: "absolute", top: pad, left: 0, opacity: 0.55 }} />
+      <Ionicons name="star" size={s} color={color} style={{ position: "absolute", top: pad, left: 0, opacity: 0.55 }} />
       <Ionicons name="star" size={s} color={color} style={{ position: "absolute", bottom: pad, right: 0, opacity: 0.7 }} />
     </View>
   );
