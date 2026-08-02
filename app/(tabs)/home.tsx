@@ -214,7 +214,24 @@ export default function HomeScreen() {
   const shuffledEvents = useMemo(() => shuffle(sortedEvents), [sortedEvents]);
   const shuffledActivities = useMemo(() => shuffle(sortedActivities), [sortedActivities]);
   const shuffledBusinesses = useMemo(() => shuffle(sortedBusinesses), [sortedBusinesses]);
-  const shuffledHotels = useMemo(() => shuffle(hotels), [hotels]);
+  const hotelIds = useMemo(() => new Set(hotels.map(h => h.business_id)), [hotels]);
+  const nonHotelBusinesses = useMemo(
+    () => shuffledBusinesses.filter(b => !hotelIds.has(b.business_id)),
+    [shuffledBusinesses, hotelIds],
+  );
+  const sortedHotels = useMemo(() => {
+    const userLat = userLocation?.latitude ?? mapBounds?.centerLat ?? null;
+    const userLng = userLocation?.longitude ?? mapBounds?.centerLng ?? null;
+    if (userLat != null && userLng != null) {
+      return [...hotels].sort((a, b) => {
+        const dA = (a.latitude != null && a.longitude != null) ? Math.hypot(a.latitude - userLat, a.longitude - userLng) : Infinity;
+        const dB = (b.latitude != null && b.longitude != null) ? Math.hypot(b.latitude - userLat, b.longitude - userLng) : Infinity;
+        return dA - dB;
+      });
+    }
+    return hotels;
+  }, [hotels, userLocation, mapBounds]);
+  const shuffledHotels = useMemo(() => shuffle(sortedHotels), [sortedHotels]);
   const shuffledServices = useMemo(() => shuffle(sortedServices), [sortedServices]);
   const shuffledJobs = useMemo(() => shuffle(sortedJobs), [sortedJobs]);
 
@@ -928,7 +945,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("businesses")}
             onToggleCollapse={() => setSectionCollapsed("businesses", !collapsedSections.has("businesses"))}
           >
-            {shuffledBusinesses.map((business) => {
+            {nonHotelBusinesses.map((business) => {
               const businessTheme = business.theme;
               const themeColors = getThemeColors(businessTheme);
               const primaryColor = themeColors.primaryColor;
