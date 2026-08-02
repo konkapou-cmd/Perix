@@ -15,8 +15,6 @@ ROOT_SERVICE_TYPES: Dict[str, List[str]] = {
     "professional-services": ["pro_consultation", "pro_package", "pro_retainer"],
     "education-creativity": ["edu_class", "edu_lesson", "edu_workshop", "edu_course"],
     "food-dining": ["menu_item", "table_reservation"],
-    "rentals": ["rental_property"],
-    "rental-real-estate": ["rental_property"],
     "nightlife-social": ["table_reservation", "vip_package"],
     "entertainment-events": ["ent_booking", "ent_performance"],
     "shopping-retail": ["retail_product", "retail_custom"],
@@ -24,6 +22,7 @@ ROOT_SERVICE_TYPES: Dict[str, List[str]] = {
     "automotive": ["auto_vehicle", "auto_rental", "auto_repair", "auto_wash"],
     "healthcare": ["health_appointment", "health_procedure", "health_test"],
     "pets": ["pet_appointment", "pet_product"],
+    "local-hotels": ["hotel_room"],
 }
 
 ROOT_SERVICE_BOOKING_CONFIG: Dict[str, Dict[str, Dict[str, bool]]] = {
@@ -53,12 +52,6 @@ ROOT_SERVICE_BOOKING_CONFIG: Dict[str, Dict[str, Dict[str, bool]]] = {
     "food-dining": {
         "menu_item":        {"booking": False, "slots": False},
         "table_reservation": {"booking": True, "slots": True},
-    },
-    "rentals": {
-        "rental_property": {"booking": True, "slots": False},
-    },
-    "rental-real-estate": {
-        "rental_property": {"booking": True, "slots": False},
     },
     "nightlife-social": {
         "table_reservation": {"booking": True, "slots": True},
@@ -91,6 +84,9 @@ ROOT_SERVICE_BOOKING_CONFIG: Dict[str, Dict[str, Dict[str, bool]]] = {
     "pets": {
         "pet_appointment": {"booking": True,  "slots": True},
         "pet_product":     {"booking": False, "slots": False},
+    },
+    "local-hotels": {
+        "hotel_room": {"booking": True, "slots": True},
     },
 }
 CATEGORY_TREE: List[Dict] = []
@@ -270,8 +266,6 @@ def build_category_tree() -> None:
                 base["salon"] = True
             elif category_slug == "food-dining":
                 base["menu"] = True
-            elif category_slug in ("rentals", "rental-real-estate"):
-                base["rentals"] = True
         service_types = ROOT_SERVICE_TYPES.get(category_slug, [])
         base["service_types"] = service_types
         return base, service_types
@@ -388,17 +382,7 @@ def build_category_tree() -> None:
                 {
                     "name": "Consulting & Marketing",
                     "slug": "consulting-marketing",
-                    "subcategories": ["consulting", "marketing-digital", "translation-services"],
-                },
-                {
-                    "name": "Tech & IT",
-                    "slug": "tech-it",
-                    "subcategories": ["it-services", "software-development", "web-design"],
-                },
-                {
-                    "name": "Real Estate",
-                    "slug": "real-estate",
-                    "subcategories": ["real-estate-agents", "property-management"],
+                    "subcategories": ["consulting", "translation-services"],
                 },
             ],
         },
@@ -466,13 +450,13 @@ def build_category_tree() -> None:
             ],
         },
         {
-            "name": "🏠 Rentals",
-            "slug": "rentals",
+            "name": "🏨 Local Hotels",
+            "slug": "local-hotels",
             "groups": [
                 {
-                    "name": "Rentals",
-                    "slug": "rentals",
-                    "subcategories": ["apartments", "houses", "studios", "rooms"],
+                    "name": "Hotels",
+                    "slug": "hotels",
+                    "subcategories": ["hotels"],
                 },
             ],
         },
