@@ -34,7 +34,6 @@ export type TabDefinition = {
 };
 
 interface ProfileBaseProps {
-  identityPicker?: React.ReactNode;
   children: React.ReactNode;
   activeTab: ProfileTab;
   onTabChange: (tab: ProfileTab) => void;
@@ -47,7 +46,6 @@ interface ProfileBaseProps {
 }
 
 export const ProfileBase: React.FC<ProfileBaseProps> = ({
-  identityPicker,
   children,
   activeTab,
   onTabChange,
@@ -59,7 +57,6 @@ export const ProfileBase: React.FC<ProfileBaseProps> = ({
 };
 
 interface ProfileHeaderProps {
-  identityPicker?: React.ReactNode;
   coverUri?: string | null;
   coverVideoUri?: string | null;
   coverFocalPoint?: { x: number; y: number } | null;
@@ -185,7 +182,6 @@ const abStyles = StyleSheet.create({
 });
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
-  identityPicker,
   coverUri,
   coverVideoUri,
   coverFocalPoint,
@@ -270,11 +266,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           >
             <Ionicons name="camera" size={14} color="#fff" />
           </Pressable>
-        )}
-        {identityPicker && (
-          <View style={styles.identityOverlay}>
-            {identityPicker}
-          </View>
         )}
       </Pressable>
 
@@ -621,13 +612,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-  },
-  identityOverlay: {
-    position: "absolute",
-    bottom: 56,
-    left: 12,
-    right: 12,
-    zIndex: 20,
   },
   avatarRow: {
     alignItems: "flex-start",

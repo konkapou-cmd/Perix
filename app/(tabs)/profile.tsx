@@ -92,7 +92,6 @@ import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { hasServiceModules, getDefaultModule } from "../../lib/config/serviceCategoryMatrix";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
 import { LanguagePicker } from "../../components/LanguagePicker";
-import { IdentityDropdown } from "../../components/profile/IdentityDropdown";
 
 // Optional toggle to easily revert background color change for the profile switcher
 
@@ -2104,14 +2103,6 @@ try {
     }
   };
 
-  const identityPicker = (
-    <IdentityDropdown
-      businesses={businesses}
-      onSelectIdentity={(type, id, name, avatar) => setActiveIdentity({ type, id, name, avatar })}
-      onCreateBusiness={() => { setPickerRoot(""); setPickerSub(""); setShowCategoryPicker(true); }}
-    />
-  );
-
   const openTagModal = () => {
     // Insert @ for inline tagging
     setPostText(postText + "@");
@@ -2238,7 +2229,6 @@ try {
           sessionToken={sessionToken || ""}
           themeModalVisible={themeModalVisible}
           setThemeModalVisible={setThemeModalVisible}
-          identityPicker={identityPicker}
             setInviteModalVisible={setInviteModalVisible}
             savingInfo={savingInfo}
             handleSaveProfileInfo={handleSaveProfileInfo}
@@ -2428,9 +2418,8 @@ onDeletePost={handleDeletePost}
                  onEditPost={handleEditPost}
                  onRefreshPosts={loadBusinessProfile}
 currentUserId={businessDetail?.business?.business_id}
-                isOwnProfile={activeIdentity?.type === 'business'}
-                 identityPicker={identityPicker}
-                  onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
+                 isOwnProfile={activeIdentity?.type === 'business'}
+                   onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
                   onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
                   onUploadCityAd={async () => {
                     if (!sessionToken) return;

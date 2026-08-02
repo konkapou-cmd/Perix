@@ -120,7 +120,6 @@ interface BusinessProfilePremiumProps {
   onDeletePost?: (post: Post) => void;
   onEditPost?: (post: Post) => void;
   currentUserId?: string;
-  identityPicker?: React.ReactNode;
   showMessageButton?: boolean;
   onMessagePress?: () => void;
   friendStatus?: "friends" | "request_sent" | "request_received" | "none";
@@ -221,7 +220,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   onEditPost,
   currentUserId,
   slug,
-  identityPicker,
   showMessageButton,
   onMessagePress,
   friendStatus,
@@ -463,7 +461,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const profileHeaderContent = (
     <>
       <ProfileHeader
-        identityPicker={identityPicker}
         coverUri={detail.business.cover_image}
         coverVideoUri={(!detail.business.cover_image && (detail.business as any).video_url) ? (detail.business as any).video_url : undefined}
         coverFocalPoint={detail.business.cover_focal_point}

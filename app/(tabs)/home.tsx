@@ -76,6 +76,8 @@ import { CityAdCircles } from "../../components/home/CityAdCircles";
 import { CarouselSection } from "../../components/home/CarouselSection";
 import { MapSection } from "../../components/home/MapSection";
 import { getListings, Listing } from "../../lib/api/listings";
+import { IdentityDropdown } from "../../components/profile/IdentityDropdown";
+import { getMyBusinesses, Business } from "../../lib/api";
 import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
 import { PostCard } from "../../components/home/PostCard";
@@ -101,7 +103,7 @@ function HomeSkeleton() {
 
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const { user, sessionToken, activeIdentity, logout } = useAuth();
+  const { user, sessionToken, activeIdentity, setActiveIdentity } = useAuth();
   const { location: globalLocation } = useLocation();
   const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
   const router = useRouter();
@@ -141,7 +143,14 @@ export default function HomeScreen() {
 
   const [viewportProducts, setViewportProducts] = useState<Listing[]>([]);
   const [viewportHomes, setViewportHomes] = useState<Listing[]>([]);
+  const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
   const viewportRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (sessionToken) {
+      getMyBusinesses(sessionToken).then(setMyBusinesses).catch(() => {});
+    }
+  }, [sessionToken]);
 
   useEffect(() => {
     if (!mapBounds) return;
@@ -674,9 +683,15 @@ export default function HomeScreen() {
           <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.filterIconBg }]} onPress={() => setShowLayoutSettings(true)}>
             <Ionicons name="options-outline" size={22} color={COLORS.filterIcon} />
           </Pressable>
-          <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.errorBorder }]} onPress={async () => { await logout(); }}>
-            <Text style={{ color: COLORS.errorText, fontWeight: "700", fontSize: 11 }}>CLR</Text>
-          </Pressable>
+          <View style={styles.identityDropWrap}>
+            <IdentityDropdown
+              businesses={myBusinesses}
+              onSelectIdentity={(type, id, name, avatar) => {
+                setActiveIdentity?.({ type, id, name, avatar });
+              }}
+              onCreateBusiness={() => router.push("/(tabs)/profile")}
+            />
+          </View>
         </View>
       </View>
 
@@ -1461,6 +1476,7 @@ const styles = StyleSheet.create({
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
   stickyHeaderRight: { flexDirection: "row", gap: 4 },
   stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.backgroundPage, alignItems: "center", justifyContent: "center" },
+  identityDropWrap: { marginLeft: 4 },
   modalContainer: { flex: 1, backgroundColor: COLORS.background },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   modalTitle: { fontSize: 18, fontWeight: "600", color: COLORS.textPrimary },

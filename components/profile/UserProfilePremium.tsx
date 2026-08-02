@@ -97,7 +97,6 @@ interface UserProfilePremiumProps {
   isOwnProfile?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
-  identityPicker?: React.ReactNode;
   friendStatus?: FriendshipStatus;
   onFriendPress?: () => void;
   showMessageButton?: boolean;
@@ -176,7 +175,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   isPosting = false,
   uploadPercent = 0,
   isOwnProfile = false,
-  identityPicker,
   avatarUri,
   friendStatus,
   onFriendPress,
@@ -289,7 +287,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const profileHeaderContent = (
     <>
       <ProfileHeader
-        identityPicker={identityPicker}
         coverUri={user.cover_photo}
         coverVideoUri={(!user.cover_photo && (user as any).video_url) ? (user as any).video_url : undefined}
         coverFocalPoint={user.cover_focal_point}
