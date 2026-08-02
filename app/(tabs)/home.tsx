@@ -214,6 +214,15 @@ export default function HomeScreen() {
   const shuffledEvents = useMemo(() => shuffle(sortedEvents), [sortedEvents]);
   const shuffledActivities = useMemo(() => shuffle(sortedActivities), [sortedActivities]);
   const shuffledBusinesses = useMemo(() => shuffle(sortedBusinesses), [sortedBusinesses]);
+  const localHotels = useMemo(
+    () => sortedBusinesses.filter(b => (b as any).root_category === "local-hotels"),
+    [sortedBusinesses],
+  );
+  const nonHotelBusinesses = useMemo(
+    () => shuffledBusinesses.filter(b => (b as any).root_category !== "local-hotels"),
+    [shuffledBusinesses],
+  );
+  const shuffledHotels = useMemo(() => shuffle(localHotels), [localHotels]);
   const shuffledServices = useMemo(() => shuffle(sortedServices), [sortedServices]);
   const shuffledJobs = useMemo(() => shuffle(sortedJobs), [sortedJobs]);
 
@@ -927,7 +936,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("businesses")}
             onToggleCollapse={() => setSectionCollapsed("businesses", !collapsedSections.has("businesses"))}
           >
-            {shuffledBusinesses.map((business) => {
+            {nonHotelBusinesses.map((business) => {
               const businessTheme = business.theme;
               const themeColors = getThemeColors(businessTheme);
               const primaryColor = themeColors.primaryColor;
@@ -942,6 +951,37 @@ export default function HomeScreen() {
                   isSaved={savedBusinessIds.has(business.business_id)}
                   textColor={primaryColor}
                   fallbackIcon="business"
+                />
+              );
+            })}
+          </CarouselSection>
+        )}
+
+        {homeLayout.sections.find(s => s.id === "hotels")?.enabled !== false && (
+          <CarouselSection
+            title={t("home.hotels", "Local Hotels")}
+            icon="bed"
+            color={COLORS.businessesAccent}
+            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
+            emptyMessage={t("home.noHotels", "No hotels nearby")}
+            isCollapsed={collapsedSections.has("hotels")}
+            onToggleCollapse={() => setSectionCollapsed("hotels", !collapsedSections.has("hotels"))}
+          >
+            {shuffledHotels.map((hotel) => {
+              const hotelTheme = hotel.theme;
+              const themeColors = getThemeColors(hotelTheme);
+              const primaryColor = themeColors.primaryColor;
+              const hotelImg = hotel.logo_image || hotel.profile_photo || hotel.cover_image;
+              return (
+                <CarouselCard
+                  key={`${hotel.business_id}-${mapRefreshKey}`}
+                  imageUrl={hotelImg}
+                  title={hotel.name}
+                  subtitle={translateCategory(hotel.subcategory, t)}
+                  onPress={() => router.push(`/business/${hotel.business_id}`)}
+                  isSaved={savedBusinessIds.has(hotel.business_id)}
+                  textColor={primaryColor}
+                  fallbackIcon="bed"
                 />
               );
             })}
