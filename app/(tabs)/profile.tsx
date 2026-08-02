@@ -181,9 +181,7 @@ const FALLBACK_CATEGORY_TREE: CategoryGroup[] = [
     name: "🏢 Professional Services", slug: "professional-services",
     groups: [
       { name: "Legal & Financial", slug: "legal-financial", subcategories: ["law-firms","accounting","tax-services","insurance"].map(s => sub(s)) },
-      { name: "Consulting & Marketing", slug: "consulting-marketing", subcategories: ["consulting","marketing-digital","translation-services"].map(s => sub(s)) },
-      { name: "Tech & IT", slug: "tech-it", subcategories: ["it-services","software-development","web-design"].map(s => sub(s)) },
-      { name: "Real Estate", slug: "real-estate", subcategories: ["real-estate-agents","property-management"].map(s => sub(s)) },
+      { name: "Consulting & Marketing", slug: "consulting-marketing", subcategories: ["consulting","translation-services"].map(s => sub(s)) },
     ],
   },
   {
@@ -211,9 +209,9 @@ const FALLBACK_CATEGORY_TREE: CategoryGroup[] = [
     ],
   },
   {
-    name: "🏠 Rentals", slug: "rentals",
+    name: "🏨 Local Hotels", slug: "local-hotels",
     groups: [
-      { name: "Rentals", slug: "rentals", subcategories: ["apartments","houses","studios","rooms","commercial-spaces"].map(s => sub(s, { ...DEFAULT_MODULES, rentals: true }, ["events","tickets","jobs","bookings","services","rentals"])) },
+      { name: "Hotels", slug: "hotels", subcategories: ["hotels","guesthouses","hostels"].map(s => sub(s, { ...DEFAULT_MODULES, hotel: true }, ["events","tickets","jobs","bookings","services","hotel"])) },
     ],
   },
   {
