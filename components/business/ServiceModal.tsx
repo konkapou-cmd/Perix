@@ -235,10 +235,16 @@ function getCategoryPlaceholders(rootCategory?: string) {
       name: "e.g. General Checkup, Dental Cleaning, Blood Test",
       desc: "Describe the procedure, preparation needed and duration...",
     },
-    pets: {
+        pets: {
       name: "e.g. Dog Grooming, Vet Checkup, Pet Boarding",
       desc: "Describe the service, duration and any requirements for your pet...",
     },
+    "local-hotels": {
+      name: "e.g. Standard Room, Deluxe Suite, Family Room",
+      desc: "Describe the room, bed configuration, view and amenities included...",
+    },
+
+
   };
   if (rootCategory && labels[rootCategory]) {
     return labels[rootCategory];

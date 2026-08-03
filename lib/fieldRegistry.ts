@@ -376,4 +376,36 @@ export const FIELD_REGISTRY: FieldRegistry = {
     showOnCard: true,
     options: ["wifi", "ac", "tv", "pool", "parking", "breakfast", "balcony", "minibar", "safe", "desk", "pet-friendly", "elevator", "gym"],
   },
+  bed_config: {
+    component: "chips",
+    labelKey: "services.bedConfig",
+    showOnCard: true,
+    options: ["single", "double", "queen", "king", "twin", "bunk", "sofa-bed"],
+  },
+  room_view: {
+    component: "chips",
+    labelKey: "services.roomView",
+    showOnCard: true,
+    options: ["sea", "mountain", "city", "garden", "pool", "courtyard", "street"],
+  },
+  room_size_sqm: {
+    component: "number",
+    labelKey: "services.roomSizeSqm",
+    placeholderKey: "services.sizePlaceholder",
+    showOnCard: true,
+    min: 5,
+    max: 500,
+    displayFormat: "sqm",
+  },
+  amenities: {
+    component: "chips-multi",
+    labelKey: "services.amenities",
+    showOnCard: false,
+    options: ["tv", "wifi", "ac", "minibar", "safe", "hair-dryer", "iron", "coffee-maker", "bathtub", "shower", "balcony", "room-service", "desk", "sofa", "kitchenette"],
+  },
+  available_until: {
+    component: "date",
+    labelKey: "services.availableUntil",
+    showOnCard: true,
+  },
 };
