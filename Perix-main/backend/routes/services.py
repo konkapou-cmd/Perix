@@ -442,8 +442,6 @@ async def complete_booking(booking_id: str, current_user: UserPublic = Depends(g
         raise HTTPException(status_code=400, detail="Only confirmed bookings can be completed")
 
     await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"status": "completed"}})
-    booking["status"] = "completed"
-    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
     booking["service_name"] = service["name"] if service else None
     booking["business_name"] = business.get("name")
     return BookingResponse(**booking)
@@ -948,17 +946,44 @@ async def block_slots(service_id: str, payload: BlockDateRange, current_user: Us
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    count = await db.service_slots.count_documents({
-        "service_id": service_id,
-        "date": {"$gte": payload.from_date, "$lte": payload.to_date},
-    })
-    await db.service_slots.update_many(
-        {"service_id": service_id, "date": {"$gte": payload.from_date, "$lte": payload.to_date}},
-        {"$set": {"is_blocked": True}},
-    )
-    return {"success": True, "blocked_count": count}
-    booking["status"] = "completed"
-    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
-    booking["service_name"] = service["name"] if service else None
-    booking["business_name"] = business.get("name")
-    return BookingResponse(**booking)
+    from datetime import datetime, timedelta
+    start = datetime.strptime(payload.from_date, "%Y-%m-%d")
+    end = datetime.strptime(payload.to_date, "%Y-%m-%d")
+
+    # 1. Mark overlapping date-range slots (hotel rooms etc.) as blocked
+    date_slots = await db.service_slots.find(
+        {"service_id": service_id, "$or": [
+            {"date": {"$gte": payload.from_date, "$lte": payload.to_date}},
+            {"start_time": {"$lte": payload.to_date}, "end_time": {"$gte": payload.from_date}, "date": None},
+        ]}
+    ).to_list(500)
+    blocked_slot_ids = [s["slot_id"] for s in date_slots]
+    if blocked_slot_ids:
+        await db.service_slots.update_many(
+            {"slot_id": {"$in": blocked_slot_ids}},
+            {"$set": {"is_blocked": True}},
+        )
+
+    # 2. For individual days in the range not yet blocked, create blocked entries
+    blocked_dates = set(s.get("date") for s in date_slots if s.get("date"))
+    current = start
+    new_docs = []
+    while current <= end:
+        ds = current.strftime("%Y-%m-%d")
+        if ds not in blocked_dates:
+            new_docs.append({
+                "slot_id": generate_id("slt"),
+                "service_id": service_id,
+                "date": ds,
+                "start_time": "00:00",
+                "end_time": "23:59",
+                "is_recurring": False,
+                "is_blocked": True,
+                "is_booked": False,
+                "created_at": now_utc(),
+            })
+        current += timedelta(days=1)
+    if new_docs:
+        await db.service_slots.insert_many(new_docs)
+
+    return {"success": True, "blocked_count": len(blocked_slot_ids) + len(new_docs)}
