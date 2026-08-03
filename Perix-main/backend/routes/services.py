@@ -890,7 +890,7 @@ async def get_available_dates(
 @router.get("/{service_id}/slots")
 async def list_slots(service_id: str):
     service = await db.services.find_one(
-        {"service_id": service_id, "is_active": True, "status": "published"},
+        {"service_id": service_id, "is_active": True, "status": {"$in": ["published", "draft"]}},
     )
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
