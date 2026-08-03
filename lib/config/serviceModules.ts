@@ -499,6 +499,19 @@ export const SERVICE_MODULES: Record<string, ServiceModuleConfig> = {
     mediaRequiredForPublish: false,
     allowedRootCategories: ["pets"],
   },
+  hotel_room: {
+    key: "hotel_room",
+    labelKey: "services.typeHotelRoom",
+    fallbackLabel: "Room / Unit",
+    icon: "bed",
+    ctaType: "booking",
+    bookingEnabled: true,
+    requiresSlots: true,
+    fields: ["max_guests", "bed_config", "room_size_sqm", "floor", "amenities", "available_from", "available_until", "room_view"],
+    requiredFields: ["name", "type", "price"],
+    mediaRequiredForPublish: true,
+    allowedRootCategories: ["local-hotels"],
+  },
 };
 
 // ─── Helpers ───
