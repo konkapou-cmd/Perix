@@ -414,7 +414,8 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
               </Pressable>
             </View>
             );
-
+          })
+          }
           {!isHotel && (
           <>
           <Text style={s.quickLabel}>{t("slotManager.addSlotDate", "Add slot for this date")}</Text>
