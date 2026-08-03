@@ -77,6 +77,19 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
         return;
       }
 
+      const isDateRange = slot.start_time && slot.end_time && slot.start_time.match(/^\d{4}-\d{2}-\d{2}$/) && slot.end_time.match(/^\d{4}-\d{2}-\d{2}$/);
+      if (isDateRange) {
+        const dotColor = slot.is_booked ? COLORS.textMuted : COLORS.success;
+        const sD = new Date(slot.start_time + "T00:00:00");
+        const eD = new Date(slot.end_time + "T00:00:00");
+        for (let d = new Date(sD); d < eD; d.setDate(d.getDate() + 1)) {
+          const ds = d.toISOString().split("T")[0];
+          if (!marks[ds]) marks[ds] = { dots: [] };
+          marks[ds].dots.push({ key: `d-${slot.slot_id}`, color: dotColor });
+        }
+        return;
+      }
+
       if (slot.is_recurring && slot.day_of_week != null) {
         const today = new Date();
         for (let i = 0; i < 90; i++) {
@@ -345,11 +358,16 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
             <Text style={s.emptySlots}>{t("slotManager.noSlotsDate", "No slots for this date")}</Text>
           )}
 
-          {dateSlots.map((slot) => (
+          {dateSlots.map((slot) => {
+            const isDateRange = !!slot.start_time && slot.start_time.match(/^\d{4}-\d{2}-\d{2}$/);
+            const slotDisplay = isDateRange
+              ? `${slot.start_time?.split("-").reverse().join(" ")} – ${slot.end_time?.split("-").reverse().join(" ")}`
+              : `${slot.is_recurring ? "Recurring" : "Specific"} ${slot.start_time} - ${slot.end_time}`;
+            return (
             <View key={slot.slot_id} style={s.slotRow}>
               <View style={{ flex: 1 }}>
                 <Text style={s.slotInfo}>
-                  {slot.is_recurring ? "Recurring" : "Specific"} {slot.start_time} - {slot.end_time}
+                  {slotDisplay}
                   {slot.is_blocked ? ` (${t("slotManager.blocked", "blocked")})` : ""}
                   {slot.is_booked ? ` (${t("slotManager.booked", "booked")})` : ""}
                 </Text>
@@ -358,7 +376,7 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
                 <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
               </Pressable>
             </View>
-          ))}
+            );
 
           <Text style={s.quickLabel}>{t("slotManager.addSlotDate", "Add slot for this date")}</Text>
           <View style={s.quickRow}>

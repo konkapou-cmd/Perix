@@ -88,6 +88,11 @@ export type ServiceForm = {
   insurance_info: string;
   pet_name: string;
   pet_type: string;
+  bed_config: string;
+  room_size_sqm: string;
+  room_view: string;
+  available_until: string;
+  amenities: string[];
   status: "draft" | "published" | "hidden";
   sort_order: string;
   availability_slots: { day_of_week?: number; date?: string; start_time: string; end_time: string; is_recurring: boolean }[];
@@ -174,6 +179,11 @@ const DEFAULT_FORM: ServiceForm = {
   insurance_info: "",
   pet_name: "",
   pet_type: "",
+  bed_config: "",
+  room_size_sqm: "",
+  room_view: "",
+  available_until: "",
+  amenities: [],
   status: "draft",
   sort_order: "0",
   availability_slots: [],

@@ -1184,6 +1184,11 @@ export type Service = {
   insurance_info?: string | null;
   pet_name?: string | null;
   pet_type?: string | null;
+  bed_config?: string | null;
+  room_size_sqm?: number | null;
+  room_view?: string | null;
+  available_until?: string | null;
+  amenities: string[];
 };
 
 export type TimeSlot = {
