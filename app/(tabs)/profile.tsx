@@ -286,6 +286,7 @@ export default function ProfileScreen() {
   const [bizLogoNew, setBizLogoNew] = useState<string | null>(null);
   const [bizCoverNew, setBizCoverNew] = useState<string | null>(null);
   const [bizSaving, setBizSaving] = useState(false);
+  const bizSavingRef = useRef(false);
   const [bizCategoryModalVisible, setBizCategoryModalVisible] = useState(false);
   const [bizSubcategoryModalVisible, setBizSubcategoryModalVisible] = useState(false);
 
@@ -1031,6 +1032,8 @@ export default function ProfileScreen() {
 
   const handleSaveBusinessInfo = async () => {
     if (!sessionToken || !businessDetail) return;
+    if (bizSavingRef.current) return;
+    bizSavingRef.current = true;
     setBizSaving(true);
     try {
       const payload: any = {
@@ -1056,6 +1059,7 @@ export default function ProfileScreen() {
     } catch (error) {
       Alert.alert(t('common.error'), t('profile.updateFailed'));
     } finally {
+      bizSavingRef.current = false;
       setBizSaving(false);
     }
   };
@@ -2104,14 +2108,12 @@ try {
     }
     creatingBusinessRef.current = true;
     try {
-      const latitude = user.latitude || 0;
-      const longitude = user.longitude || 0;
       const created = await createBusiness(sessionToken, {
         name: user.name + " Business",
         description: "",
-        address: user.location || "Not set",
-        latitude,
-        longitude,
+        address: "",
+        latitude: null as any,
+        longitude: null as any,
         root_category: pickerRoot,
         subcategory: pickerSub,
       });
