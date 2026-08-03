@@ -54,9 +54,11 @@ def normalize_slots(slots: list) -> str:
 def validate_availability_slots(
     slots: list,
     duration_minutes: Optional[int] = None,
+    service_type: Optional[str] = None,
 ) -> None:
-    from datetime import datetime, timezone as dt_timezone
+    from datetime import datetime, timezone as dt_timezone, date as dt_date
     today = datetime.now(dt_timezone.utc)
+    is_date_range = service_type == "hotel_room"
 
     for slot in slots:
         start = slot.get("start_time", "")
@@ -64,6 +66,18 @@ def validate_availability_slots(
 
         if not start or not end:
             raise HTTPException(status_code=400, detail="Each availability entry must have a start and end time")
+
+        if is_date_range:
+            try:
+                start_date = datetime.fromisoformat(start).date()
+                end_date = datetime.fromisoformat(end).date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Date range must use YYYY-MM-DD format")
+            if end_date <= start_date:
+                raise HTTPException(status_code=400, detail="End date must be after start date")
+            if start_date < today.date():
+                raise HTTPException(status_code=400, detail="Date range cannot start in the past")
+            continue
 
         start_min = parse_time(start)
         end_min = parse_time(end)
@@ -178,7 +192,7 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
                     status_code=400,
                     detail="Add at least one available date and time before publishing this service.",
                 )
-            validate_availability_slots(slots, payload.duration_minutes)
+            validate_availability_slots(slots, payload.duration_minutes, payload.type)
         elif not getattr(payload, "available_from", None):
             raise HTTPException(
                 status_code=400,
@@ -568,7 +582,7 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
                     status_code=400,
                     detail="Add at least one available date and time before publishing this service.",
                 )
-            validate_availability_slots(effective_slots, effective_duration)
+            validate_availability_slots(effective_slots, effective_duration, service.get("type", ""))
         elif not effective_available_from:
             raise HTTPException(
                 status_code=400,
