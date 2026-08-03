@@ -1412,6 +1412,7 @@ const handleUpdateSlug = async (newSlug: string) => {
     setServiceForm({
       ...DEFAULT_SERVICE_FORM,
       type: type || getDefaultModule(rootCategory || "") || DEFAULT_SERVICE_FORM.type,
+      status: type === "hotel_room" || getDefaultModule(rootCategory || "") === "hotel_room" ? "published" : DEFAULT_SERVICE_FORM.status,
     });
     setServiceModalVisible(true);
   };
@@ -1633,6 +1634,11 @@ const handleUpdateSlug = async (newSlug: string) => {
         insurance_info: serviceForm.insurance_info || undefined,
         pet_name: serviceForm.pet_name || undefined,
         pet_type: serviceForm.pet_type || undefined,
+        bed_config: serviceForm.bed_config || undefined,
+        room_size_sqm: serviceForm.room_size_sqm ? parseFloat(serviceForm.room_size_sqm) : undefined,
+        room_view: serviceForm.room_view || undefined,
+        available_until: serviceForm.available_until || undefined,
+        amenities: serviceForm.amenities || undefined,
         status: serviceForm.status || undefined,
         sort_order: serviceForm.sort_order ? parseInt(serviceForm.sort_order, 10) : undefined,
       };
