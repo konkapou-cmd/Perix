@@ -319,12 +319,14 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
             <Ionicons name="close" size={24} color={COLORS.textPrimary} />
           </Pressable>
           <Text style={s.headerTitle}>{t("services.manageSlots", "Manage Time Slots")}</Text>
+          {!isHotel && (
           <Pressable
             onPress={() => { setBlockMode(!blockMode); setBlockStart(null); setBlockEnd(null); }}
             style={[s.headerBtn, blockMode && { backgroundColor: COLORS.danger + "20", borderRadius: BORDER_RADIUS.md }]}
           >
             <Ionicons name={blockMode ? "close-circle" : "lock-closed"} size={22} color={blockMode ? COLORS.danger : COLORS.textMuted} />
           </Pressable>
+          )}
         </View>
 
         {blockMode && (
@@ -429,10 +431,16 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
           {isHotel && (
             <View style={{ marginTop: 8 }}>
               <Text style={s.quickLabel}>{rangeMode ? t("services.tapDatesForRange") : t("services.addDateRange")}</Text>
-              <Pressable style={[s.createBtn, { marginTop: 8, backgroundColor: rangeMode ? COLORS.success : COLORS.primary }]} onPress={() => { setRangeMode(!rangeMode); setRangeStart(null); }} disabled={loading}>
-                <Ionicons name={rangeMode ? "close-circle" : "add-circle-outline"} size={18} color="#fff" />
-                <Text style={s.createBtnText}> {rangeMode ? t("common.cancel") : t("services.addRange")}</Text>
-              </Pressable>
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                <Pressable style={[s.createBtn, { flex: 1, backgroundColor: rangeMode ? COLORS.success : COLORS.primary }]} onPress={() => { setRangeMode(!rangeMode); setRangeStart(null); }} disabled={loading}>
+                  <Ionicons name={rangeMode ? "close-circle" : "add-circle-outline"} size={18} color="#fff" />
+                  <Text style={s.createBtnText}> {rangeMode ? t("common.cancel") : t("services.addRange")}</Text>
+                </Pressable>
+                <Pressable style={[s.createBtn, { flex: 1, backgroundColor: blockMode ? COLORS.danger : COLORS.warningDark || "#b45309" }]} onPress={() => { setBlockMode(!blockMode); setBlockStart(null); setBlockEnd(null); }} disabled={loading}>
+                  <Ionicons name={blockMode ? "close-circle" : "lock-closed"} size={18} color="#fff" />
+                  <Text style={s.createBtnText}> {blockMode ? t("common.cancel") : t("slotManager.blockDates", "Block Dates")}</Text>
+                </Pressable>
+              </View>
             </View>
           )}
           {loading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: SPACING.small }} />}

@@ -91,6 +91,11 @@ class ServiceCreate(BaseModel):
     insurance_info: Optional[str] = None
     pet_name: Optional[str] = None
     pet_type: Optional[str] = None
+    bed_config: Optional[str] = None
+    room_size_sqm: Optional[float] = None
+    room_view: Optional[str] = None
+    amenities: List[str] = Field(default_factory=list)
+    available_until: Optional[str] = None
     status: Optional[str] = None
     sort_order: Optional[int] = Field(default=0)
     cover_focal_point: Optional[FocalPoint] = None
@@ -167,6 +172,11 @@ class ServiceUpdate(BaseModel):
     insurance_info: Optional[str] = None
     pet_name: Optional[str] = None
     pet_type: Optional[str] = None
+    bed_config: Optional[str] = None
+    room_size_sqm: Optional[float] = None
+    room_view: Optional[str] = None
+    amenities: Optional[List[str]] = None
+    available_until: Optional[str] = None
     status: Optional[str] = None
     sort_order: Optional[int] = None
     cover_focal_point: Optional[FocalPoint] = None
@@ -249,6 +259,11 @@ class ServiceResponse(BaseModel):
     insurance_info: Optional[str] = None
     pet_name: Optional[str] = None
     pet_type: Optional[str] = None
+    bed_config: Optional[str] = None
+    room_size_sqm: Optional[float] = None
+    room_view: Optional[str] = None
+    amenities: List[str] = Field(default_factory=list)
+    available_until: Optional[str] = None
     status: Optional[str] = None
     sort_order: Optional[int] = 0
 

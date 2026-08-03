@@ -509,7 +509,7 @@ export const SERVICE_MODULES: Record<string, ServiceModuleConfig> = {
     requiresSlots: true,
     fields: [
       "max_guests", "bed_config", "room_size_sqm", "floor", "room_view",
-      "amenities", "address",
+      "amenities",
     ],
     requiredFields: ["name", "type", "price"],
     mediaRequiredForPublish: true,
