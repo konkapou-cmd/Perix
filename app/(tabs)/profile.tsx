@@ -1264,6 +1264,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [bookingService, setBookingService] = useState<Service | null>(null);
   const [slotManagerVisible, setSlotManagerVisible] = useState(false);
   const [slotManagerServiceId, setSlotManagerServiceId] = useState("");
+  const [slotManagerServiceType, setSlotManagerServiceType] = useState("");
   const [bookingListVisible, setBookingListVisible] = useState(false);
   const [userBookingListVisible, setUserBookingListVisible] = useState(false);
 
@@ -1700,8 +1701,9 @@ const handleUpdateSlug = async (newSlug: string) => {
     setBookingModalVisible(true);
   };
 
-  const handleOpenSlotManager = (serviceId: string) => {
+  const handleOpenSlotManager = (serviceId: string, serviceType?: string) => {
     setSlotManagerServiceId(serviceId);
+    setSlotManagerServiceType(serviceType || "");
     setSlotManagerVisible(true);
   };
 
@@ -2739,6 +2741,7 @@ currentUserId={businessDetail?.business?.business_id}
         <SlotManagerModal
           visible={slotManagerVisible}
           serviceId={slotManagerServiceId}
+          serviceType={slotManagerServiceType}
           sessionToken={sessionToken || ""}
           onClose={() => { setSlotManagerVisible(false); setSlotManagerServiceId(""); }}
         />

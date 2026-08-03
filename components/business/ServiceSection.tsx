@@ -17,7 +17,7 @@ type Props = {
   onServicePress?: (service: Service) => void;
   onEditService?: (service: Service) => void;
   onDeleteService?: (serviceId: string) => void;
-  onOpenSlotManager?: (serviceId: string) => void;
+  onOpenSlotManager?: (serviceId: string, serviceType?: string) => void;
   primaryColor?: string;
   cardColor?: string;
   textColor?: string;
@@ -112,7 +112,7 @@ export default function ServiceSection({
                   {!readOnly && (onEditService || onDeleteService || onOpenSlotManager) && (
                     <View style={s.actionRow}>
                       {onOpenSlotManager && (
-                        <Pressable onPress={() => onOpenSlotManager(item.service_id)} hitSlop={8} style={s.actionBtn}>
+                        <Pressable onPress={() => onOpenSlotManager(item.service_id, item.type)} hitSlop={8} style={s.actionBtn}>
                           <Ionicons name="time-outline" size={16} color={primaryColor} />
                         </Pressable>
                       )}

@@ -13,13 +13,15 @@ type Props = {
   visible: boolean;
   serviceId: string;
   sessionToken: string;
+  serviceType?: string;
   onClose: () => void;
 };
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-export default function SlotManagerModal({ visible, serviceId, sessionToken, onClose }: Props) {
+export default function SlotManagerModal({ visible, serviceId, sessionToken, serviceType, onClose }: Props) {
   const { t } = useTranslation();
+  const isHotel = serviceType === "hotel_room";
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todayISO());
@@ -34,6 +36,8 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
   const [blockStart, setBlockStart] = useState<string | null>(null);
   const [blockEnd, setBlockEnd] = useState<string | null>(null);
   const [blockMode, setBlockMode] = useState(false);
+  const [rangeMode, setRangeMode] = useState(false);
+  const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [timePickerTarget, setTimePickerTarget] = useState<string | null>(null);
 
   const loadSlots = useCallback(async () => {
@@ -151,6 +155,18 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
   }, [slots, selectedDate]);
 
   const handleDayPress = (day: { dateString: string }) => {
+    if (rangeMode) {
+      if (!rangeStart) {
+        setRangeStart(day.dateString);
+      } else {
+        const end = day.dateString;
+        const start = end < rangeStart ? end : rangeStart;
+        addDateRangeSlot(start, end < rangeStart ? rangeStart : end);
+        setRangeStart(null);
+        setRangeMode(false);
+      }
+      return;
+    }
     if (blockMode) {
       if (!blockStart) {
         setBlockStart(day.dateString);
@@ -240,7 +256,28 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
     setLoading(false);
   };
 
+  const addDateRangeSlot = async (startDate: string, endDate: string) => {
+    setLoading(true);
+    try {
+      const allSlots = (slots || []).map(s => ({
+        day_of_week: s.day_of_week ?? undefined,
+        date: s.date ?? undefined,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        is_recurring: s.is_recurring,
+      }));
+      allSlots.push({ start_time: startDate, end_time: endDate, is_recurring: false, day_of_week: undefined as any, date: undefined as any });
+      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots });
+      await loadSlots();
+      Alert.alert(t("common.success"), t("services.dateRangeAdded"));
+    } catch (err: any) {
+      Alert.alert(t("common.error"), err.message);
+    }
+    setLoading(false);
+  };
+
   const handleBlockRange = async () => {
+    if (!blockStart || !blockEnd) {
     if (!blockStart || !blockEnd) {
       Alert.alert(t("common.error", "Error"), t("slotManager.selectDates", "Select date range"));
       return;
@@ -378,6 +415,8 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
             </View>
             );
 
+          {!isHotel && (
+          <>
           <Text style={s.quickLabel}>{t("slotManager.addSlotDate", "Add slot for this date")}</Text>
           <View style={s.quickRow}>
             <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("quickStart")}>
@@ -391,9 +430,24 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
               <Ionicons name="add" size={20} color="#fff" />
             </Pressable>
           </View>
+          </>
+          )}
+
+          {isHotel && (
+            <View style={{ marginTop: 8 }}>
+              <Text style={s.quickLabel}>
+                {rangeMode ? t("services.tapDatesForRange", "Tap start and end dates on calendar") : t("services.addDateRange", "Add date range")}
+              </Text>
+              <Pressable style={[s.createBtn, { marginTop: 8, backgroundColor: rangeMode ? COLORS.success : COLORS.primary }]} onPress={() => { setRangeMode(!rangeMode); setRangeStart(null); }} disabled={loading}>
+                <Ionicons name={rangeMode ? "close-circle" : "add-circle-outline"} size={18} color="#fff" />
+                <Text style={s.createBtnText}> {rangeMode ? t("common.cancel", "Cancel") : t("services.addRange", "Add Date Range")}</Text>
+              </Pressable>
+            </View>
+          )}
           {loading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: SPACING.small }} />}
         </View>
 
+        {!isHotel && (
         <ScrollView style={s.bottomSection} contentContainerStyle={{ paddingBottom: SPACING.section }}>
           <Text style={s.sectionTitle}>{t("services.weeklyRecurring", "Weekly Recurring")}</Text>
           <View style={s.dayRow}>
@@ -420,6 +474,7 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
             <Text style={s.createBtnText}>{t("slotManager.createSlots", "Create Weekly Slots")}</Text>
           </Pressable>
         </ScrollView>
+        )}
 
         {timePickerTarget && (
           <View style={s.pickerOverlay}>
