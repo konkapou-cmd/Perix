@@ -747,7 +747,9 @@ export default function ServiceModal({
                   {(form.availability_slots || []).map((slot, idx) => (
                     <View key={idx} style={styles.slotRow}>
                       <Ionicons name="bed" size={14} color={COLORS.primaryDark} />
-                      <Text style={styles.slotLabel}>{slot.start_time} – {slot.end_time}</Text>
+                      <Text style={styles.slotLabel}>
+                        {slot.start_time ? slot.start_time.split("-").reverse().join(" ") : ""} – {slot.end_time ? slot.end_time.split("-").reverse().join(" ") : ""}
+                      </Text>
                       <Pressable onPress={() => {
                         const slots = [...(form.availability_slots || [])];
                         slots.splice(idx, 1);
@@ -767,14 +769,14 @@ export default function ServiceModal({
                     <View style={{ flex: 1 }}>
                       <Text style={styles.label}>{t("services.from", "From")}</Text>
                       <Pressable style={styles.selector} onPress={() => { setSlotDateTarget("from"); setShowSlotDatePicker(true); }}>
-                        <Text style={slotFromDate ? styles.selectorTextSelected : styles.selectorText}>{slotFromDate || "YYYY-MM-DD"}</Text>
+                        <Text style={slotFromDate ? styles.selectorTextSelected : styles.selectorText}>{slotFromDate ? slotFromDate.split("-").reverse().join(" ") : "DD MM YYYY"}</Text>
                         <Ionicons name="calendar-outline" size={16} color={COLORS.textMuted} />
                       </Pressable>
                     </View>
                     <View style={{ flex: 1, marginLeft: 8 }}>
                       <Text style={styles.label}>{t("services.to", "To")}</Text>
                       <Pressable style={styles.selector} onPress={() => { setSlotDateTarget("to"); setShowSlotDatePicker(true); }}>
-                        <Text style={slotToDate ? styles.selectorTextSelected : styles.selectorText}>{slotToDate || "YYYY-MM-DD"}</Text>
+                        <Text style={slotToDate ? styles.selectorTextSelected : styles.selectorText}>{slotToDate ? slotToDate.split("-").reverse().join(" ") : "DD MM YYYY"}</Text>
                         <Ionicons name="calendar-outline" size={16} color={COLORS.textMuted} />
                       </Pressable>
                     </View>
