@@ -363,8 +363,8 @@ async def get_business(
         db.businesses.find_one({"business_id": business_id}, {"_id": 0}),
         db.events.find({"business_id": business_id}, {"_id": 0}).sort("start_time", 1).to_list(100),
         db.jobs.find({"business_id": business_id, "is_active": True}, {"_id": 0}).sort("created_at", -1).to_list(100),
-        db.services.find({"business_id": business_id, "type": {"$in": list(RENTAL_SERVICE_TYPES)}, "is_active": True, "status": "published"}, {"_id": 0}).sort("created_at", -1).to_list(100),
-        db.services.find({"business_id": business_id, "is_active": True, "status": "published"}, {"_id": 0}).sort("created_at", -1).to_list(100),
+        db.services.find({"business_id": business_id, "type": {"$in": list(RENTAL_SERVICE_TYPES)}, "is_active": True}, {"_id": 0}).sort("created_at", -1).to_list(100),
+        db.services.find({"business_id": business_id, "is_active": True}, {"_id": 0}).sort("created_at", -1).to_list(100),
         db.posts.find({"$or": [{"business_id": business_id}, {"actor_type": "business", "actor_id": business_id}]}, {"_id": 0}).sort("created_at", -1).to_list(100),
     )
     if not business:
@@ -421,6 +421,8 @@ async def get_business(
     is_favorited = current_user.user_id in business.get("favorites", [])
     
     service_responses = [ServiceResponse(**s).model_dump(mode="json") for s in services]
+    if not is_owner:
+        service_responses = [s for s in service_responses if s.get("status") == "published"]
 
     return BusinessDetail(
         business=build_business_response(business),
