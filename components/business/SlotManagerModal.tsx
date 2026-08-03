@@ -159,9 +159,9 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
       if (!rangeStart) {
         setRangeStart(day.dateString);
       } else {
-        const end = day.dateString;
-        const start = end < rangeStart ? end : rangeStart;
-        addDateRangeSlot(start, end < rangeStart ? rangeStart : end);
+        const start = day.dateString < rangeStart ? day.dateString : rangeStart;
+        const end = day.dateString < rangeStart ? rangeStart : day.dateString;
+        addDateRangeSlot(start, end);
         setRangeStart(null);
         setRangeMode(false);
       }
@@ -256,28 +256,7 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
     setLoading(false);
   };
 
-  const addDateRangeSlot = async (startDate: string, endDate: string) => {
-    setLoading(true);
-    try {
-      const allSlots = (slots || []).map(s => ({
-        day_of_week: s.day_of_week ?? undefined,
-        date: s.date ?? undefined,
-        start_time: s.start_time,
-        end_time: s.end_time,
-        is_recurring: s.is_recurring,
-      }));
-      allSlots.push({ start_time: startDate, end_time: endDate, is_recurring: false, day_of_week: undefined as any, date: undefined as any });
-      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots });
-      await loadSlots();
-      Alert.alert(t("common.success"), t("services.dateRangeAdded"));
-    } catch (err: any) {
-      Alert.alert(t("common.error"), err.message);
-    }
-    setLoading(false);
-  };
-
   const handleBlockRange = async () => {
-    if (!blockStart || !blockEnd) {
     if (!blockStart || !blockEnd) {
       Alert.alert(t("common.error", "Error"), t("slotManager.selectDates", "Select date range"));
       return;
@@ -298,6 +277,26 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
   };
 
   const selDayName = DAYS[new Date(selectedDate + "T00:00:00").getDay()];
+
+  const addDateRangeSlot = async (startDate: string, endDate: string) => {
+    setLoading(true);
+    try {
+      const allSlots = (slots || []).map(s => ({
+        day_of_week: s.day_of_week ?? undefined,
+        date: s.date ?? undefined,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        is_recurring: s.is_recurring,
+      }));
+      allSlots.push({ start_time: startDate, end_time: endDate, is_recurring: false, day_of_week: undefined as any, date: undefined as any });
+      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots });
+      await loadSlots();
+      Alert.alert(t("common.success"), t("services.dateRangeAdded"));
+    } catch (err: any) {
+      Alert.alert(t("common.error"), err.message);
+    }
+    setLoading(false);
+  };
 
   const handleTimeChange = (_: any, selectedDate?: Date) => {
     if (!selectedDate || !timePickerTarget) return;
@@ -395,16 +394,13 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
             <Text style={s.emptySlots}>{t("slotManager.noSlotsDate", "No slots for this date")}</Text>
           )}
 
-          {dateSlots.map((slot) => {
-            const isDateRange = !!slot.start_time && slot.start_time.match(/^\d{4}-\d{2}-\d{2}$/);
-            const slotDisplay = isDateRange
-              ? `${slot.start_time?.split("-").reverse().join(" ")} – ${slot.end_time?.split("-").reverse().join(" ")}`
-              : `${slot.is_recurring ? "Recurring" : "Specific"} ${slot.start_time} - ${slot.end_time}`;
-            return (
+          {dateSlots.map((slot) => (
             <View key={slot.slot_id} style={s.slotRow}>
               <View style={{ flex: 1 }}>
                 <Text style={s.slotInfo}>
-                  {slotDisplay}
+                  {(slot.start_time || "").match(/^\d{4}-\d{2}-\d{2}$/)
+                    ? `${slot.start_time!.split("-").reverse().join(" ")} \u2013 ${slot.end_time!.split("-").reverse().join(" ")}`
+                    : `${slot.is_recurring ? "Recurring" : "Specific"} ${slot.start_time} - ${slot.end_time}`}
                   {slot.is_blocked ? ` (${t("slotManager.blocked", "blocked")})` : ""}
                   {slot.is_booked ? ` (${t("slotManager.booked", "booked")})` : ""}
                 </Text>
@@ -413,11 +409,9 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
                 <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
               </Pressable>
             </View>
-            );
-          })
-          }
-          {!isHotel && (
-          <>
+          ))}
+
+          {!isHotel && (<>
           <Text style={s.quickLabel}>{t("slotManager.addSlotDate", "Add slot for this date")}</Text>
           <View style={s.quickRow}>
             <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("quickStart")}>
@@ -431,17 +425,13 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
               <Ionicons name="add" size={20} color="#fff" />
             </Pressable>
           </View>
-          </>
-          )}
-
+          </>)}
           {isHotel && (
             <View style={{ marginTop: 8 }}>
-              <Text style={s.quickLabel}>
-                {rangeMode ? t("services.tapDatesForRange", "Tap start and end dates on calendar") : t("services.addDateRange", "Add date range")}
-              </Text>
+              <Text style={s.quickLabel}>{rangeMode ? t("services.tapDatesForRange") : t("services.addDateRange")}</Text>
               <Pressable style={[s.createBtn, { marginTop: 8, backgroundColor: rangeMode ? COLORS.success : COLORS.primary }]} onPress={() => { setRangeMode(!rangeMode); setRangeStart(null); }} disabled={loading}>
                 <Ionicons name={rangeMode ? "close-circle" : "add-circle-outline"} size={18} color="#fff" />
-                <Text style={s.createBtnText}> {rangeMode ? t("common.cancel", "Cancel") : t("services.addRange", "Add Date Range")}</Text>
+                <Text style={s.createBtnText}> {rangeMode ? t("common.cancel") : t("services.addRange")}</Text>
               </Pressable>
             </View>
           )}
