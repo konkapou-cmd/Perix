@@ -304,6 +304,7 @@ export default function ServiceModal({
 }: Props) {
   const { t } = useTranslation();
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState<"available_from" | "available_until">("available_from");
   const [showSlotDatePicker, setShowSlotDatePicker] = useState(false);
   const [slotDraft, setSlotDraft] = useState({ is_recurring: true, day_of_week: 1, start_time: "09:00", end_time: "10:00", date: "" as string | undefined });
   const [showSlotEditor, setShowSlotEditor] = useState(false);
@@ -552,7 +553,7 @@ export default function ServiceModal({
         return (
           <View key={fieldName}>
             <Text style={styles.label}>{labelWithAsterisk}</Text>
-            <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+            <Pressable style={styles.input} onPress={() => { setDatePickerTarget(fieldName as any); setShowDatePicker(true); }}>
               <Text style={[styles.dateText, !(value as string) && styles.dateTextPlaceholder]}>
                 {(value as string) ? (value as string).split("-").reverse().join(".") : t("services.selectDate", "DD.MM.YYYY")}
               </Text>
@@ -671,7 +672,7 @@ export default function ServiceModal({
                     pagingEnabled
                     showsVerticalScrollIndicator={false}
                     onDayPress={(day) => {
-                      updateField("available_from", day.dateString);
+                      updateField(datePickerTarget, day.dateString);
                       setShowDatePicker(false);
                     }}
                     markedDates={form.available_from ? { [form.available_from]: { selected: true, selectedColor: COLORS.primary } } : {}}
@@ -826,12 +827,33 @@ export default function ServiceModal({
           ) : (
             <View>
               <Text style={styles.label}>{t("services.availableFrom", "Verfügbar ab")}</Text>
-              <Pressable style={styles.selector} onPress={() => setShowDatePicker(true)}>
+              <Pressable style={styles.selector} onPress={() => { setDatePickerTarget("available_from"); setShowDatePicker(true); }}>
                 <Text style={form.available_from ? styles.selectorTextSelected : styles.selectorText}>
                   {form.available_from || t("services.selectDate", "Datum wählen")}
                 </Text>
                 <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
               </Pressable>
+
+              {form.type === "hotel_room" && (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={styles.label}>{t("services.availableUntil", "Verfügbar bis")}</Text>
+                  <Pressable style={styles.selector} onPress={() => {
+                    setDatePickerTarget("available_until");
+                    setShowDatePicker(true);
+                  }}>
+                    <Text style={form.available_until ? styles.selectorTextSelected : styles.selectorText}>
+                      {form.available_until || t("services.selectDate", "Datum wählen")}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+                  </Pressable>
+                </View>
+              )}
+
+              {form.available_from && form.type === "hotel_room" && (
+                <Text style={styles.pricePerLabel}>
+                  {t("services.perNight", "per night")}
+                </Text>
+              )}
             </View>
           )}
 
@@ -948,6 +970,7 @@ const styles = StyleSheet.create({
   selectorText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textDisabled },
   selectorTextSelected: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
   availabilityHint: { fontSize: FONT_SIZES.caption, color: COLORS.danger, marginTop: SPACING.small },
+  pricePerLabel: { fontSize: 12, color: COLORS.success, marginTop: 4, fontStyle: "italic", fontWeight: "600" },
   slotEditor: { paddingVertical: SPACING.small },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: 4 },
   chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
