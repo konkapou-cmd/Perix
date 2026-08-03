@@ -43,7 +43,6 @@ import {
   TabDefinition,
 } from "./ProfileBase";
 import { ProfilePosts } from "./ProfilePosts";
-import BusinessProfilePicker from "./BusinessProfilePicker";
 import { ProfileMedia } from "./ProfileMedia";
 import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
@@ -607,7 +606,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           listHeaderComponent={
             <>
               {profileHeaderContent}
-              <BusinessProfilePicker
+              <ProfileTabs
                 activeTab={privateActiveTab}
                 onTabChange={handlePrivateTabChange}
                 tabs={privateTabs}
@@ -657,7 +656,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           listHeaderComponent={
             <>
               {profileHeaderContent}
-              <BusinessProfilePicker
+              <ProfileTabs
                 activeTab={activeTab}
                 onTabChange={handleTabChange}
                 tabs={publicTabs}
@@ -703,7 +702,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 
         {readOnly ? (
           <>
-            <BusinessProfilePicker
+            <ProfileTabs
               activeTab={activeTab}
               onTabChange={handleTabChange}
               tabs={publicTabs}
@@ -792,7 +791,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           </>
         ) : (
           <>
-            <BusinessProfilePicker
+            <ProfileTabs
               activeTab={privateActiveTab}
               onTabChange={handlePrivateTabChange}
               tabs={privateTabs}
