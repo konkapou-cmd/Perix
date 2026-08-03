@@ -308,6 +308,9 @@ export default function ServiceModal({
   const [showSlotDatePicker, setShowSlotDatePicker] = useState(false);
   const [slotDraft, setSlotDraft] = useState({ is_recurring: true, day_of_week: 1, start_time: "09:00", end_time: "10:00", date: "" as string | undefined });
   const [showSlotEditor, setShowSlotEditor] = useState(false);
+  const [slotFromDate, setSlotFromDate] = useState("");
+  const [slotToDate, setSlotToDate] = useState("");
+  const [slotDateTarget, setSlotDateTarget] = useState<"from" | "to">("from");
   const [coverPhotoError, setCoverPhotoError] = useState<string | null>(null);
 
   const allowedModules = rootCategory ? getAllowedModules(rootCategory) : [];
@@ -737,7 +740,92 @@ export default function ServiceModal({
             {form.status === "published" && <Text style={styles.required}> *</Text>}
           </Text>
 
-          {requiresServiceSlots(form.type) ? (
+          {form.type === "hotel_room" ? (
+            <View>
+              {(form.availability_slots || []).length > 0 && (
+                <View style={{ marginBottom: 8, gap: 4 }}>
+                  {(form.availability_slots || []).map((slot, idx) => (
+                    <View key={idx} style={styles.slotRow}>
+                      <Ionicons name="bed" size={14} color={COLORS.primaryDark} />
+                      <Text style={styles.slotLabel}>{slot.start_time} – {slot.end_time}</Text>
+                      <Pressable onPress={() => {
+                        const slots = [...(form.availability_slots || [])];
+                        slots.splice(idx, 1);
+                        setForm(prev => ({ ...prev, availability_slots: slots }));
+                      }} hitSlop={8}>
+                        <Ionicons name="close-circle" size={16} color={COLORS.danger} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {showSlotEditor ? (
+                <View style={styles.slotEditor}>
+                  <Text style={styles.label}>{t("services.dateRange", "Date range")}</Text>
+                  <View style={styles.row}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.label}>{t("services.from", "From")}</Text>
+                      <Pressable style={styles.selector} onPress={() => { setSlotDateTarget("from"); setShowSlotDatePicker(true); }}>
+                        <Text style={slotFromDate ? styles.selectorTextSelected : styles.selectorText}>{slotFromDate || "YYYY-MM-DD"}</Text>
+                        <Ionicons name="calendar-outline" size={16} color={COLORS.textMuted} />
+                      </Pressable>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 8 }}>
+                      <Text style={styles.label}>{t("services.to", "To")}</Text>
+                      <Pressable style={styles.selector} onPress={() => { setSlotDateTarget("to"); setShowSlotDatePicker(true); }}>
+                        <Text style={slotToDate ? styles.selectorTextSelected : styles.selectorText}>{slotToDate || "YYYY-MM-DD"}</Text>
+                        <Ionicons name="calendar-outline" size={16} color={COLORS.textMuted} />
+                      </Pressable>
+                    </View>
+                  </View>
+                  <View style={styles.addSlotRow}>
+                    <Pressable style={[styles.addSlotBtn, { borderColor: COLORS.success }]} onPress={() => {
+                      if (!slotFromDate || !slotToDate || slotToDate < slotFromDate) return;
+                      const slots = [...(form.availability_slots || []), { is_recurring: false, start_time: slotFromDate, end_time: slotToDate }];
+                      setForm(prev => ({ ...prev, availability_slots: slots }));
+                      setShowSlotEditor(false);
+                      setSlotFromDate(""); setSlotToDate("");
+                    }}>
+                      <Ionicons name="checkmark" size={16} color={COLORS.success} /><Text style={{ color: COLORS.success, fontWeight: "600", fontSize: 13, marginLeft: 4 }}>{t("common.add", "Add")}</Text>
+                    </Pressable>
+                    <Pressable style={[styles.addSlotBtn, { borderColor: COLORS.textMuted }]} onPress={() => { setShowSlotEditor(false); setSlotFromDate(""); setSlotToDate(""); }}>
+                      <Text style={{ color: COLORS.textMuted, fontWeight: "600", fontSize: 13 }}>{t("common.cancel", "Cancel")}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <Pressable style={[styles.addSlotBtn, { borderColor: COLORS.primary, alignSelf: "flex-start" }]} onPress={() => setShowSlotEditor(true)}>
+                  <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
+                  <Text style={{ color: COLORS.primary, fontWeight: "600", fontSize: 13, marginLeft: 4 }}>{t("services.addDateRange", "Add date range")}</Text>
+                </Pressable>
+              )}
+
+              <Modal visible={showSlotDatePicker} animationType="slide" transparent>
+                <View style={styles.datePickerOverlay}>
+                  <View style={styles.datePickerContainer}>
+                    <Text style={styles.datePickerLabel}>{t("services.selectDate", "Select date")}</Text>
+                    <CalendarList
+                      onDayPress={(day) => {
+                        if (slotDateTarget === "from") setSlotFromDate(day.dateString);
+                        else setSlotToDate(day.dateString);
+                        setShowSlotDatePicker(false);
+                      }}
+                      markedDates={{
+                        ...(slotFromDate ? { [slotFromDate]: { selected: true, selectedColor: COLORS.primary } } : {}),
+                        ...(slotToDate ? { [slotToDate]: { selected: true, selectedColor: COLORS.success } } : {}),
+                      }}
+                      pastScrollRange={0} futureScrollRange={12}
+                      theme={{ selectedDayBackgroundColor: COLORS.primary, todayTextColor: COLORS.primary, arrowColor: COLORS.primary }}
+                    />
+                    <Pressable onPress={() => setShowSlotDatePicker(false)} style={{ padding: 12, alignItems: "center" }}>
+                      <Text style={{ fontSize: 15, fontWeight: "600", color: "#6b7280" }}>{t("common.cancel", "Cancel")}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </Modal>
+            </View>
+          ) : requiresServiceSlots(form.type) ? (
             <View>
               {(form.availability_slots || []).map((slot, idx) => (
                 <View key={idx} style={styles.slotRow}>
