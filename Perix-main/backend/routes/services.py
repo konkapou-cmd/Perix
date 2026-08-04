@@ -511,7 +511,7 @@ async def send_service_inquiry(
 
 @router.get("/{service_id}", response_model=ServiceResponse)
 async def get_service(service_id: str):
-    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
+    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
     bid = service.get("business_id")
