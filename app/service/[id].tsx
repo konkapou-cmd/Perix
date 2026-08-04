@@ -425,7 +425,7 @@ export default function ServiceDetailPage() {
             {service.price && (
               <InfoCard
                 icon="cash-outline"
-                label="Preis ab"
+                label={service.type === "hotel_room" ? "Preis / Nacht" : "Preis ab"}
                 value={formatPrice(service.price)}
                 accentColor={COLORS.warning}
               />
@@ -439,7 +439,7 @@ export default function ServiceDetailPage() {
                 const config = FIELD_REGISTRY[fieldName];
                 if (!config) return null;
                 let displayValue = config.displayFormat === "duration" ? formatDuration(Number(value)) : String(value);
-                if (fieldName === "size_sqm") displayValue = String(value) + " m²";
+                if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
                 if (fieldName === "capacity" || fieldName === "max_guests") displayValue = "Bis " + value;
                 return (
                   <InfoCard
@@ -477,7 +477,7 @@ export default function ServiceDetailPage() {
                   if (!config || value === undefined || value === null) return null;
                   let displayValue = String(value);
                   if (config.component === "number" && config.displayFormat === "duration") displayValue = formatDuration(Number(value));
-                  if (fieldName === "size_sqm") displayValue = String(value) + " m²";
+                  if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
                   if (fieldName === "calories") displayValue = String(value) + " kcal";
                   if (fieldName === "mileage_km") displayValue = String(value) + " km";
                   if (fieldName === "duration_days") displayValue = String(value) + " Tage";
