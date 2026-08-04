@@ -418,7 +418,7 @@ export default function ServiceModal({
 
   const getPriceLabel = () => {
     if (isRental) return t("rentals.rentPrice", "Rent Price");
-    if (selectedType === "hotel_room") return t("services.pricePerNight", "Price / night");
+    if (form.type === "hotel_room") return t("services.pricePerNight", "Price / night");
     return t("services.price", "Price");
   };
 
