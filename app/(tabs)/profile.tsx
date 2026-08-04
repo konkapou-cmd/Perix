@@ -1698,6 +1698,7 @@ const handleUpdateSlug = async (newSlug: string) => {
     if (activeIdentity?.type === "business") {
       loadBusinessFullData(activeIdentity.id).catch(() => {});
     }
+  };
 
   // Booking / Slot Manager / Booking List handlers
   const handleOpenBooking = (service: Service) => {
