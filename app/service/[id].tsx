@@ -276,19 +276,19 @@ export default function ServiceDetailPage() {
   const excludedFromDetailCards = ["duration_minutes", "capacity", "bedrooms", "bathrooms", "size_sqm", "property_type", "floor", "deposit", "available_from", "lease_duration", "furnished", "max_guests", "address", "facilities"];
 
   const getFieldIcon = (name: string) => {
-    const map: Record<string, string> = { instructor: "person-outline", specialist_name: "person", difficulty_level: "options", session_type: "calendar", treatment_type: "medkit", service_category: "cut", consultation_type: "briefcase", meeting_type: "videocam", menu_category: "list", calories: "flame", spice_level: "thermometer", make: "car-sport", model: "car-sport", year: "calendar", mileage_km: "speedometer", fuel_type: "water", transmission: "settings", brand: "pricetag", stock_status: "checkmark-circle", condition: "reload", max_guests: "people", capacity: "people-outline", duration_minutes: "time-outline", bedrooms: "bed-outline", bathrooms: "water-outline", size_sqm: "resize-outline", property_type: "home-outline", floor: "layers-outline", deposit: "wallet-outline", available_from: "calendar-outline", lease_duration: "time-outline", furnished: "home-outline", dietary_tags: "leaf", allergens: "warning", facilities: "star-outline", pet_name: "paw", pet_type: "paw", pickup_location: "location", dropoff_location: "location", reason_for_visit: "document-text", insurance_info: "shield", includes: "list", sessions_count: "layers", duration_days: "calendar", duration_months: "calendar", duration_per_session: "timer", visits_included: "footsteps", valid_days: "calendar", included_services: "grid", special_requests: "star" };
+    const map: Record<string, string> = { instructor: "person-outline", specialist_name: "person", difficulty_level: "options", session_type: "calendar", treatment_type: "medkit", service_category: "cut", consultation_type: "briefcase", meeting_type: "videocam", menu_category: "list", calories: "flame", spice_level: "thermometer", make: "car-sport", model: "car-sport", year: "calendar", mileage_km: "speedometer", fuel_type: "water", transmission: "settings", brand: "pricetag", stock_status: "checkmark-circle", condition: "reload", max_guests: "people", bed_config: "bed", room_size_sqm: "resize", room_view: "eye", amenities: "star", capacity: "people-outline", duration_minutes: "time-outline", bedrooms: "bed-outline", bathrooms: "water-outline", size_sqm: "resize-outline", property_type: "home-outline", floor: "layers-outline", deposit: "wallet-outline", available_from: "calendar-outline", lease_duration: "time-outline", furnished: "home-outline", dietary_tags: "leaf", allergens: "warning", facilities: "star-outline", pet_name: "paw", pet_type: "paw", pickup_location: "location", dropoff_location: "location", reason_for_visit: "document-text", insurance_info: "shield", includes: "list", sessions_count: "layers", duration_days: "calendar", duration_months: "calendar", duration_per_session: "timer", visits_included: "footsteps", valid_days: "calendar", included_services: "grid", special_requests: "star" };
     return map[name] || "information-circle";
   };
 
   const handleShareService = async () => {
     if (!service) return;
-    const message = `${service.name} — ${formatPrice(service.price)} on Perix`;
+    const message = `${service.name} — ${formatPrice(service.price)}${service.type === "hotel_room" ? " / night" : ""} on Perix`;
     await Share.share({ message });
   };
 
   const handleWhatsAppShare = async () => {
     if (!service) return;
-    const message = `${service.name} — ${formatPrice(service.price)} on Perix`;
+    const message = `${service.name} — ${formatPrice(service.price)}${service.type === "hotel_room" ? " / night" : ""} on Perix`;
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
     try {
       const supported = await Linking.canOpenURL(whatsappUrl);
@@ -319,7 +319,8 @@ export default function ServiceDetailPage() {
       else if (f === "reason_for_visit" || f === "insurance_info" || f === "pet_name" || f === "pet_type") health.push(f);
       else if (f === "includes" || f === "included_services" || f === "special_requests") included.push(f);
       else if (f === "instructor" || f === "specialist_name" || f === "difficulty_level" || f === "session_type" || f === "treatment_type" || f === "service_category" || f === "consultation_type" || f === "meeting_type" || f === "capacity" || f === "max_guests") specs.push(f);
-      else if (f === "pickup_location" || f === "dropoff_location" || f === "available_from" || f === "lease_duration" || f === "furnished" || f === "floor" || f === "bedrooms" || f === "bathrooms" || f === "size_sqm") specs.push(f);
+      else if (f === "pickup_location" || f === "dropoff_location" || f === "available_from" || f === "lease_duration" || f === "furnished" || f === "floor" || f === "bedrooms" || f === "bathrooms" || f === "size_sqm" || f === "room_size_sqm" || f === "room_view" || f === "bed_config") specs.push(f);
+      else if (f === "amenities") specs.push(f);
       else if (f === "brand" || f === "stock_status" || f === "condition") specs.push(f);
     }
 

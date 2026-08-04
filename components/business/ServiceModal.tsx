@@ -747,7 +747,9 @@ export default function ServiceModal({
       {isServiceBookable(form.type) && (
         <View style={styles.availabilitySection}>
           <Text style={styles.sectionTitle}>
-            {t("services.availability", "Verfügbarkeit")}
+            {form.type === "hotel_room"
+              ? t("services.availabilityDates", "Available dates (check-in → check-out)")
+              : t("services.availability", "Verfügbarkeit")}
             {form.status === "published" && <Text style={styles.required}> *</Text>}
           </Text>
 

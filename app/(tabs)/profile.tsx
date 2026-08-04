@@ -1695,8 +1695,9 @@ const handleUpdateSlug = async (newSlug: string) => {
       }
     }
     setServiceSaving(false);
-    loadBusinessProfile().catch(() => {});
-  };
+    if (activeIdentity?.type === "business") {
+      loadBusinessFullData(activeIdentity.id).catch(() => {});
+    }
 
   // Booking / Slot Manager / Booking List handlers
   const handleOpenBooking = (service: Service) => {
