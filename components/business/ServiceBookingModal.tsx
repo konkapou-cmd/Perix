@@ -413,6 +413,7 @@ export default function ServiceBookingModal({
               </Pressable>
             </View>
           )}
+          </>)}
 
           {!isDateRange && (
           <>
@@ -427,8 +428,7 @@ export default function ServiceBookingModal({
             </Pressable>
           </View>
           </>)}
-          </View>
-          </>)}
+
           <TextInput style={s.input} value={name} onChangeText={setName} placeholder="John Doe" placeholderTextColor={COLORS.textDisabled} />
 
           <Text style={s.sectionTitle}>{t("services.yourEmail", "Your email")}</Text>
