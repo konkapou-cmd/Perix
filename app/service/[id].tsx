@@ -27,6 +27,7 @@ import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { Service, TimeSlot } from "../../lib/api/core";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
+import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
@@ -168,7 +169,7 @@ export default function ServiceDetailPage() {
 
   const handleCta = () => {
     if (ctaType === "booking") {
-      setShowBooking(true); setBookingName(user?.name || ""); setBookingEmail(user?.email || "");
+      setShowBooking(true);
     } else {
       setShowInquiry(true);
       setInquiryName(user?.name || "");
@@ -554,95 +555,16 @@ export default function ServiceDetailPage() {
       <LazyMediaViewer visible={mediaViewerVisible} media={mediaViewerItems} initialIndex={mediaViewerIndex} onClose={() => setMediaViewerVisible(false)} />
 
       {/* Booking Modal */}
-      <Modal visible={showBooking} animationType="slide" onRequestClose={() => { setShowBooking(false); setSelectedSlot(null); setBookingNotes(""); setShowCalendarView(false); }}>
-        <SafeAreaView style={styles.bookingContainer} edges={["top", "bottom"]}>
-          <View style={styles.bookingHeader}>
-            <Pressable onPress={() => { setShowBooking(false); setSelectedSlot(null); setBookingNotes(""); setShowCalendarView(false); }}><Ionicons name="close" size={24} color={COLORS.servicesAccent} /></Pressable>
-            <Text style={styles.bookingTitle}>{t("services.requestBooking")}</Text>
-            <View style={{ width: 24 }} />
-          </View>
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <ScrollView style={styles.bookingForm} keyboardShouldPersistTaps="handled">
-            <Text style={styles.bookingServiceName}>{service.name}</Text>
-            {service.price && <Text style={styles.bookingServicePrice}>{formatPrice(service.price)}</Text>}
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.modalSectionTitle}>{t("services.selectDate")}</Text>
-              <Pressable onPress={() => setShowCalendarView(!showCalendarView)} style={styles.calendarToggleBtn}>
-                <Ionicons name={showCalendarView ? "list" : "calendar"} size={18} color={COLORS.servicesAccent} />
-              </Pressable>
-            </View>
-            {showCalendarView ? (
-              <View style={styles.calendarWrapper}>
-                <Calendar
-                  current={selectedDate || dates[0]}
-                  onDayPress={(day: { dateString: string }) => { setSelectedDate(day.dateString); setSelectedSlot(null); setShowCalendarView(false); }}
-                  markedDates={calendarMarkedDates}
-                  markingType="simple"
-                  firstDay={1}
-                  theme={{ backgroundColor: "#fff", calendarBackground: "#fff", textSectionTitleColor: COLORS.textSecondary, selectedDayBackgroundColor: COLORS.servicesAccent, selectedDayTextColor: "#fff", todayTextColor: COLORS.servicesAccent, dayTextColor: COLORS.textDark, textDisabledColor: "#d1d5db", arrowColor: COLORS.servicesAccent, monthTextColor: COLORS.textPrimary, textDayFontWeight: "500", textMonthFontWeight: "700", textDayFontSize: 14 }}
-                />
-              </View>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateRow}>
-                {dates.map((d) => {
-                  const isSelected = selectedDate === d;
-                  const dateObj = new Date(d + "T00:00:00");
-                  const dayNum = dateObj.getDate();
-                  const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dateObj.getDay()];
-                  return (
-                    <Pressable key={d} style={[styles.dateChip, isSelected && styles.dateChipSelected]} onPress={() => { setSelectedDate(d); setSelectedSlot(null); }}>
-                      <Text style={[styles.dateChipDay, isSelected && styles.dateChipDaySelected]}>{dayName}</Text>
-                      <Text style={[styles.dateChipNum, isSelected && styles.dateChipNumSelected]}>{dayNum}</Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            )}
-            {selectedDate && requiresSlots && slots.length > 0 && (
-              <>
-                <Text style={styles.modalSectionTitle}>{t("services.selectTime")}</Text>
-                <View style={styles.slotsGrid}>
-                  {slots.map((slot) => {
-                    const avail = availabilities[slot.slot_id];
-                    const isFull = avail?.is_full ?? false;
-                    const spotsText = avail != null ? ` • ${avail.available_spots}/${avail.capacity}` : "";
-                    return (
-                      <Pressable key={slot.slot_id} style={[styles.slotChip, selectedSlot?.slot_id === slot.slot_id && styles.slotChipSelected, isFull && styles.slotChipFull]} onPress={() => !isFull && setSelectedSlot(slot)}>
-                        <Text style={[styles.slotChipText, selectedSlot?.slot_id === slot.slot_id && styles.slotChipTextSelected, isFull && styles.slotChipTextFull]}>{formatTime(slot.start_time)} - {formatTime(slot.end_time)}{spotsText}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </>
-            )}
-            {selectedDate && !requiresSlots && (
-              <>
-                <Text style={styles.modalSectionTitle}>Preferred time (optional)</Text>
-                <TextInput style={styles.input} placeholder="e.g. Morning, 10:00–12:00" value={bookingNotes} onChangeText={setBookingNotes} />
-              </>
-            )}
-            <Text style={styles.modalSectionTitle}>{t("services.yourName")}</Text>
-            <TextInput style={styles.input} value={bookingName} onChangeText={setBookingName} placeholder={user?.name || "Name"} />
-            <Text style={styles.modalSectionTitle}>{t("services.yourEmail")}</Text>
-            <TextInput style={styles.input} value={bookingEmail} onChangeText={setBookingEmail} placeholder={user?.email || "email@example.com"} keyboardType="email-address" />
-            <View style={styles.guestRow}>
-              <Text style={styles.modalSectionTitle}>{t("services.guests")}</Text>
-              <View style={styles.stepper}>
-                <Pressable style={styles.stepperBtn} onPress={() => setBookingGuests(String(Math.max(1, parseInt(bookingGuests, 10) - 1)))}><Ionicons name="remove" size={18} color={COLORS.servicesAccent} /></Pressable>
-                <Text style={styles.stepperValue}>{bookingGuests}</Text>
-                <Pressable style={styles.stepperBtn} onPress={() => setBookingGuests(String(parseInt(bookingGuests, 10) + 1))}><Ionicons name="add" size={18} color={COLORS.servicesAccent} /></Pressable>
-              </View>
-            </View>
-            <Text style={styles.modalSectionTitle}>{t("services.notes")}</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={bookingNotes} onChangeText={setBookingNotes} placeholder={t("services.notesPlaceholder")} multiline numberOfLines={3} />
-            <Pressable style={[styles.submitButton, submitting && styles.submitButtonDisabled]} onPress={handleRequestBooking} disabled={submitting}>
-              {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>{t("services.sendRequest")}</Text>}
-            </Pressable>
-            <View style={{ height: 20 }} />
-          </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </Modal>
+      <ServiceBookingModal
+        visible={showBooking}
+        service={service}
+        rootCategory={service?.root_category || ""}
+        sessionToken={sessionToken || ""}
+        userName={user?.name}
+        userEmail={user?.email}
+        onClose={() => setShowBooking(false)}
+        onSuccess={() => setShowBooking(false)}
+      />
 
       {/* Inquiry Modal */}
       <Modal visible={showInquiry} animationType="slide" onRequestClose={() => { setShowInquiry(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage(""); }}>
