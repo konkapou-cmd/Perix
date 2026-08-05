@@ -57,9 +57,11 @@ def validate_availability_slots(
     duration_minutes: Optional[int] = None,
     service_type: Optional[str] = None,
 ) -> None:
-    from datetime import datetime, timezone as dt_timezone, date as dt_date
+    from datetime import datetime, timezone as dt_timezone
     today = datetime.now(dt_timezone.utc)
-    is_date_range = service_type == "hotel_room"
+
+    if service_type == "hotel_room":
+        raise HTTPException(status_code=400, detail="Hotel rooms use date-range availability, not time slots")
 
     for slot in slots:
         start = slot.get("start_time", "")
@@ -67,18 +69,6 @@ def validate_availability_slots(
 
         if not start or not end:
             raise HTTPException(status_code=400, detail="Each availability entry must have a start and end time")
-
-        if is_date_range:
-            try:
-                start_date = datetime.fromisoformat(start).date()
-                end_date = datetime.fromisoformat(end).date()
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Date range must use YYYY-MM-DD format")
-            if end_date <= start_date:
-                raise HTTPException(status_code=400, detail="End date must be after start date")
-            if start_date < today.date():
-                raise HTTPException(status_code=400, detail="Date range cannot start in the past")
-            continue
 
         start_min = parse_time(start)
         end_min = parse_time(end)
@@ -404,13 +394,58 @@ async def confirm_booking(booking_id: str, current_user: UserPublic = Depends(ge
     business = await db.businesses.find_one({"business_id": booking["business_id"]})
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    if booking.get("booking_mode") == "date_range":
+        from services.date_range_booking import confirm_date_range_booking
+        confirmed = await confirm_date_range_booking(booking, service=service, business=business)
+        return BookingResponse(**confirmed)
+
     if booking["status"] != "pending":
         raise HTTPException(status_code=400, detail=f"Booking is already {booking['status']}")
 
-    await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"status": "confirmed"}})
+    confirmed_at = now_utc()
+    await db.bookings.update_one(
+        {"booking_id": booking_id, "status": "pending"},
+        {"$set": {"status": "confirmed", "confirmed_at": confirmed_at}},
+    )
     booking["status"] = "confirmed"
-    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
-    booking["service_name"] = service["name"] if service else None
+    booking["confirmed_at"] = confirmed_at
+    from services.date_range_booking import enrich_booking
+    booking = await enrich_booking(booking, service=service, business=business)
+    return BookingResponse(**booking)
+
+
+@router.put("/bookings/{booking_id}/decline", response_model=BookingResponse)
+async def decline_booking(booking_id: str, current_user: UserPublic = Depends(get_current_user)):
+    booking = await db.bookings.find_one({"booking_id": booking_id})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    business = await db.businesses.find_one({"business_id": booking["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if booking["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Only pending bookings can be declined")
+
+    declined_at = now_utc()
+    await db.bookings.update_one(
+        {"booking_id": booking_id, "status": "pending"},
+        {
+            "$set": {
+                "status": "declined",
+                "declined_at": declined_at,
+                "cancelled_by": "business",
+            },
+            "$unset": {"hold_expires_at": ""},
+        },
+    )
+    booking["status"] = "declined"
+    booking["declined_at"] = declined_at
+    booking["cancelled_by"] = "business"
+    booking["hold_expires_at"] = None
     booking["business_name"] = business.get("name")
     return BookingResponse(**booking)
 
@@ -421,26 +456,36 @@ async def cancel_booking(booking_id: str, current_user: UserPublic = Depends(get
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    is_owner = False
-    if booking["client_id"] == current_user.user_id:
-        is_owner = False
-    else:
-        business = await db.businesses.find_one({"business_id": booking["business_id"]})
-        is_owner = business and business["owner_id"] == current_user.user_id
-
-    if not is_owner and booking["client_id"] != current_user.user_id:
+    business = await db.businesses.find_one({"business_id": booking["business_id"]})
+    is_business_owner = bool(business and business.get("owner_id") == current_user.user_id)
+    is_client = booking["client_id"] == current_user.user_id
+    if not is_business_owner and not is_client:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"status": "cancelled"}})
-    # Free the slot
+    if booking["status"] not in {"pending", "confirmed"}:
+        raise HTTPException(status_code=400, detail=f"Cannot cancel a {booking['status']} booking")
+
+    cancelled_at = now_utc()
+    cancelled_by = "business" if is_business_owner else "client"
+    await db.bookings.update_one(
+        {"booking_id": booking_id, "status": {"$in": ["pending", "confirmed"]}},
+        {
+            "$set": {
+                "status": "cancelled",
+                "cancelled_at": cancelled_at,
+                "cancelled_by": cancelled_by,
+            },
+            "$unset": {"hold_expires_at": ""},
+        },
+    )
     if booking.get("slot_id"):
         await db.service_slots.update_one({"slot_id": booking["slot_id"]}, {"$set": {"is_booked": False}})
 
     booking["status"] = "cancelled"
-    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
-    booking["service_name"] = service["name"] if service else None
-    biz = await db.businesses.find_one({"business_id": booking["business_id"]})
-    booking["business_name"] = biz["name"] if biz else None
+    booking["cancelled_at"] = cancelled_at
+    booking["cancelled_by"] = cancelled_by
+    booking["hold_expires_at"] = None
+    booking["business_name"] = business.get("name") if business else None
     return BookingResponse(**booking)
 
 
