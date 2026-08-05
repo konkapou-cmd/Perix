@@ -14,13 +14,15 @@ type Props = {
   onClose: () => void;
 };
 
-const TABS = ["pending", "confirmed", "completed", "cancelled"] as const;
+const TABS = ["pending", "confirmed", "completed", "declined", "cancelled", "expired"] as const;
 type Tab = typeof TABS[number];
 
 const STATUS_COLORS: Record<string, string> = {
   pending: COLORS.warning,
   confirmed: COLORS.success,
+  declined: COLORS.danger,
   cancelled: COLORS.danger,
+  expired: COLORS.textMuted,
   completed: COLORS.info,
 };
 
@@ -91,8 +93,21 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
           </View>
         </View>
         <Text style={s.bookingDetail}>{booking.date}{booking.start_time ? ` | ${booking.start_time}${booking.end_time ? ` - ${booking.end_time}` : ""}` : ""}</Text>
-        {booking.guests && <Text style={s.bookingDetail}>{t("services.guests", "Guests")}: {booking.guests}</Text>}
-        {booking.total_price && <Text style={s.bookingPrice}>{formatPrice(booking.total_price)}</Text>}
+        {booking.booking_mode === "date_range" && booking.end_date && (
+          <>
+            <Text style={s.bookingDetail}>{booking.date.split("-").reverse().join(" ")} → {booking.end_date.split("-").reverse().join(" ")}</Text>
+            <Text style={s.bookingDetail}>{booking.nights} nights · {booking.room_count || 1} room(s)</Text>
+            <Text style={s.bookingDetail}>{booking.adults || 1} adults · {booking.children || 0} children</Text>
+            {booking.confirmation_code && <Text style={s.bookingDetail}>{booking.confirmation_code}</Text>}
+            {booking.service_name && <Text style={s.bookingDetail}>{booking.service_name}</Text>}
+          </>
+        )}
+        {booking.guests && !booking.booking_mode && <Text style={s.bookingDetail}>{t("services.guests", "Guests")}: {booking.guests}</Text>}
+        {booking.total_amount != null && booking.currency ? (
+          <Text style={s.bookingPrice}>{(booking.total_amount / 100).toFixed(2)} {booking.currency}</Text>
+        ) : booking.total_price ? (
+          <Text style={s.bookingPrice}>{formatPrice(booking.total_price)}</Text>
+        ) : null}
         {booking.notes && <Text style={s.bookingNotes}>{"\u201C"}{booking.notes}{"\u201D"}</Text>}
         {booking.pet_name && <Text style={s.bookingDetail}>{t("services.petName", "Pet name")}: {booking.pet_name} ({booking.pet_type || "?"})</Text>}
         {booking.reason_for_visit && <Text style={s.bookingDetail}>{t("services.reasonForVisit", "Reason")}: {booking.reason_for_visit}</Text>}
