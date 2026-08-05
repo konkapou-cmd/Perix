@@ -1105,7 +1105,8 @@ export type ServiceType =
   | "retail_product" | "retail_custom" | "tailoring_alteration" | "custom_order"
   | "auto_vehicle" | "auto_rental" | "auto_repair" | "auto_wash"
   | "health_appointment" | "health_procedure" | "health_test"
-  | "pet_appointment" | "pet_product";
+  | "pet_appointment" | "pet_product"
+  | "hotel_room";
 
 export type Service = {
   service_id: string;
@@ -1189,6 +1190,15 @@ export type Service = {
   room_view?: string | null;
   available_until?: string | null;
   amenities: string[];
+  inventory_count?: number | null;
+  max_adults?: number | null;
+  max_children?: number | null;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  min_nights?: number | null;
+  max_nights?: number | null;
+  cancellation_policy?: string | null;
+  currency?: string | null;
 };
 
 export type TimeSlot = {
@@ -1213,7 +1223,7 @@ export type SlotAvailability = {
   is_full: boolean;
 };
 
-export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
+export type BookingStatus = "pending" | "confirmed" | "declined" | "cancelled" | "expired" | "completed";
 
 export type Booking = {
   booking_id: string;
@@ -1228,12 +1238,36 @@ export type Booking = {
   start_time?: string | null;
   end_time?: string | null;
   guests?: number | null;
+  room_count?: number | null;
+  adults?: number | null;
+  children?: number | null;
+  nights?: number | null;
   total_price?: string | null;
+  currency?: string | null;
+  nightly_rate_amount?: number | null;
+  subtotal_amount?: number | null;
+  total_amount?: number | null;
+  booking_mode?: string | null;
+  confirmation_code?: string | null;
+  request_id?: string | null;
+  hold_expires_at?: string | null;
   status: BookingStatus;
   notes?: string | null;
   created_at: string;
+  confirmed_at?: string | null;
+  declined_at?: string | null;
+  cancelled_at?: string | null;
+  completed_at?: string | null;
+  cancelled_by?: string | null;
+  cancellation_reason?: string | null;
   service_name?: string | null;
+  service_type?: string | null;
+  service_cover_image?: string | null;
+  service_address?: string | null;
   business_name?: string | null;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  cancellation_policy?: string | null;
   pet_name?: string | null;
   pet_type?: string | null;
   pickup_location?: string | null;
@@ -1241,4 +1275,33 @@ export type Booking = {
   insurance_info?: string | null;
   reason_for_visit?: string | null;
   special_requests?: string | null;
+};
+
+export type StayAvailability = {
+  service_id: string;
+  available: boolean;
+  check_in: string;
+  check_out: string;
+  nights: number;
+  requested_rooms: number;
+  inventory_count: number;
+  minimum_available_rooms: number;
+  adults: number;
+  children: number;
+  currency: string;
+  nightly_rate_amount: number;
+  subtotal_amount: number;
+  total_amount: number;
+  unavailable_dates: string[];
+};
+
+export type DateBlock = {
+  block_id: string;
+  service_id: string;
+  start_date: string;
+  end_date: string;
+  blocked_units: number;
+  reason?: string | null;
+  is_active: boolean;
+  created_at: string;
 };
