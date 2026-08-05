@@ -112,6 +112,51 @@ def validate_availability_slots(
                 raise HTTPException(status_code=400, detail="Time slots cannot overlap.")
 
 
+def get_service_booking_config(root_category: str = "", service_type: str = "") -> dict:
+    resolved = "rentals" if root_category == "rental-real-estate" else root_category
+    return ROOT_SERVICE_BOOKING_CONFIG.get(resolved, {}).get(service_type, {"booking": False, "slots": False, "mode": "none"})
+
+
+def require_time_slot_service(service: dict) -> None:
+    from services.date_range_booking import booking_mode_from_config
+    config = get_service_booking_config(service.get("root_category", ""), service.get("type", ""))
+    if booking_mode_from_config(config) != "time_slot":
+        raise HTTPException(status_code=400, detail="This service does not use time-slot availability")
+
+
+def validate_date_range_service_for_publish(service_data: dict) -> None:
+    from services.date_range_utils import parse_iso_date, parse_price_to_cents
+    inventory = int(service_data.get("inventory_count") or 0)
+    max_guests = int(service_data.get("max_guests") or 0)
+    max_adults = int(service_data.get("max_adults") if service_data.get("max_adults") is not None else max_guests)
+    max_children = int(service_data.get("max_children") or 0)
+    min_nights = int(service_data.get("min_nights") or 1)
+    max_nights = int(service_data.get("max_nights") or 30)
+    if inventory < 1:
+        raise HTTPException(status_code=400, detail="Room inventory must be at least 1")
+    if max_guests < 1:
+        raise HTTPException(status_code=400, detail="Maximum guests must be at least 1")
+    if max_adults < 1:
+        raise HTTPException(status_code=400, detail="Maximum adults must be at least 1")
+    if max_nights < min_nights:
+        raise HTTPException(status_code=400, detail="Maximum nights cannot be below minimum nights")
+    parse_price_to_cents(service_data.get("price"))
+    available_from = service_data.get("available_from")
+    available_until = service_data.get("available_until")
+    if not available_from or not available_until:
+        raise HTTPException(status_code=400, detail="Bookable from and bookable until dates are required")
+    start = parse_iso_date(available_from, "Bookable from")
+    end = parse_iso_date(available_until, "Bookable until")
+    if end <= start:
+        raise HTTPException(status_code=400, detail="Bookable until must be after bookable from")
+    check_in = service_data.get("check_in_time")
+    check_out = service_data.get("check_out_time")
+    if not check_in or not check_out:
+        raise HTTPException(status_code=400, detail="Check-in and checkout times are required")
+    parse_time(check_in)
+    parse_time(check_out)
+
+
 # ─── Services CRUD ───
 
 @router.post("", response_model=ServiceResponse)
@@ -175,20 +220,19 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
     booking_config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved_category, {}).get(
         payload.type, {"booking": False, "slots": False}
     )
+    from services.date_range_booking import booking_mode_from_config
+    booking_mode = booking_mode_from_config(booking_config)
 
     if publish_status == "published" and booking_config.get("booking"):
-        if booking_config.get("slots"):
+        if booking_mode == "time_slot":
             if not slots:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Add at least one available date and time before publishing this service.",
-                )
+                raise HTTPException(status_code=400, detail="Add at least one available date and time before publishing this service.")
             validate_availability_slots(slots, payload.duration_minutes, payload.type)
+        elif booking_mode == "date_range":
+            validate_date_range_service_for_publish(payload_data)
+            slots = []
         elif not getattr(payload, "available_from", None):
-            raise HTTPException(
-                status_code=400,
-                detail="Add an availability date before publishing this service.",
-            )
+            raise HTTPException(status_code=400, detail="Add an availability date before publishing this service.")
 
     doc = {
         **payload_data,
@@ -750,23 +794,21 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
 
     # Availability validation — placed outside if update_data to catch slots-only requests
     resolved = "rentals" if (business.get("root_category") or "") == "rental-real-estate" else (business.get("root_category") or "")
-    booking_config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved, {}).get(
-        service.get("type", ""), {"booking": False, "slots": False}
-    )
+    from services.date_range_booking import booking_mode_from_config
+    booking_mode = booking_mode_from_config(booking_config)
 
     if publish_status == "published" and booking_config.get("booking"):
-        if booking_config.get("slots"):
+        if booking_mode == "time_slot":
             if not effective_slots:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Add at least one available date and time before publishing this service.",
-                )
+                raise HTTPException(status_code=400, detail="Add at least one available date and time before publishing this service.")
             validate_availability_slots(effective_slots, effective_duration, service.get("type", ""))
+        elif booking_mode == "date_range":
+            effective_service_data = {**service, **update_data}
+            validate_date_range_service_for_publish(effective_service_data)
+            incoming_slots = None
+            effective_slots = []
         elif not effective_available_from:
-            raise HTTPException(
-                status_code=400,
-                detail="Add an availability date before publishing this service.",
-            )
+            raise HTTPException(status_code=400, detail="Add an availability date before publishing this service.")
 
     # Check booked slots before replacing
     slots_changed = (
@@ -977,6 +1019,8 @@ async def set_availability(
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
+    require_time_slot_service(service)
+
     new_slots = [s.model_dump() for s in payload.slots]
     _validate_slots(new_slots)
 
@@ -1089,6 +1133,7 @@ async def create_slot(service_id: str, payload: TimeSlotCreate, current_user: Us
     business = await db.businesses.find_one({"business_id": service["business_id"]})
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    require_time_slot_service(service)
 
     doc = {
         **payload.model_dump(),
@@ -1108,6 +1153,7 @@ async def delete_slot(service_id: str, slot_id: str, current_user: UserPublic = 
     business = await db.businesses.find_one({"business_id": service["business_id"]})
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    require_time_slot_service(service)
 
     await db.service_slots.delete_one({"slot_id": slot_id})
     # Cancel unconfirmed bookings on this slot
@@ -1126,6 +1172,7 @@ async def block_slots(service_id: str, payload: BlockDateRange, current_user: Us
     business = await db.businesses.find_one({"business_id": service["business_id"]})
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    require_time_slot_service(service)
 
     from datetime import datetime, timedelta
     start = datetime.strptime(payload.from_date, "%Y-%m-%d")
