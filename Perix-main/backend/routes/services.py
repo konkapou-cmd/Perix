@@ -308,9 +308,8 @@ async def create_booking(payload: BookingCreate, current_user: UserPublic = Depe
     service = await db.services.find_one({"service_id": payload.service_id, "is_active": True, "status": "published"})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
-    business_id = service["business_id"]
 
-    # Determine booking mode from service type config
+    business_id = service["business_id"]
     root_cat = service.get("root_category", "")
     svc_type = service.get("type", "")
     resolved_cat = "rentals" if root_cat == "rental-real-estate" else root_cat
@@ -319,42 +318,56 @@ async def create_booking(payload: BookingCreate, current_user: UserPublic = Depe
     if type_config is not None and not type_config["booking"]:
         raise HTTPException(status_code=400, detail="This service does not accept bookings.")
 
-    requires_slots = type_config["slots"] if type_config else True
+    from services.date_range_booking import booking_mode_from_config, create_date_range_booking, enrich_booking
+    booking_mode = booking_mode_from_config(type_config)
 
-    # Check available_from for rentals
+    if booking_mode == "date_range":
+        booking = await create_date_range_booking(
+            payload,
+            service=service,
+            business_id=business_id,
+            client_id=current_user.user_id,
+        )
+        return BookingResponse(**booking)
+
     available_from = service.get("available_from")
     if available_from and payload.date < available_from:
         raise HTTPException(status_code=400, detail=f"Service is not available until {available_from}")
 
-    # Check slot availability if required
     slot = None
-    if requires_slots:
+    if booking_mode == "time_slot":
         if not payload.slot_id:
             raise HTTPException(status_code=400, detail="A time slot must be selected for this service.")
-        slot = await db.service_slots.find_one({"slot_id": payload.slot_id})
-        if not slot or slot["is_booked"] or slot["is_blocked"]:
-            raise HTTPException(status_code=400, detail="Slot not available")
+        slot = await db.service_slots.find_one_and_update(
+            {"slot_id": payload.slot_id, "service_id": payload.service_id, "is_booked": False, "is_blocked": False},
+            {"$set": {"is_booked": True}},
+        )
+        if not slot:
+            raise HTTPException(status_code=409, detail="Slot not available")
+
+    payload_data = payload.model_dump()
+    payload_data.pop("total_price", None)
 
     doc = {
-        **payload.model_dump(),
+        **payload_data,
         "booking_id": generate_id("bkg"),
         "business_id": business_id,
         "client_id": current_user.user_id,
+        "booking_mode": booking_mode,
         "status": "pending",
         "created_at": now_utc(),
         "start_time": slot.get("start_time") if slot else payload.start_time,
         "end_time": slot.get("end_time") if slot else payload.end_time,
     }
-    await db.bookings.insert_one(doc)
 
-    # Mark slot as booked
-    if slot:
-        await db.service_slots.update_one({"slot_id": slot["slot_id"]}, {"$set": {"is_booked": True}})
+    try:
+        await db.bookings.insert_one(doc)
+    except Exception:
+        if slot:
+            await db.service_slots.update_one({"slot_id": slot["slot_id"]}, {"$set": {"is_booked": False}})
+        raise
 
-    booking = doc.copy()
-    booking["service_name"] = service.get("name")
-    biz = await db.businesses.find_one({"business_id": business_id})
-    booking["business_name"] = biz["name"] if biz else None
+    booking = await enrich_booking(doc, service=service)
     return BookingResponse(**booking)
 
 
