@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Platform, ActivityIndicator, Alert, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { Calendar } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
@@ -58,7 +59,9 @@ export default function ServiceBookingModal({
   const [children, setChildren] = useState(0);
   const [stayQuote, setStayQuote] = useState<StayAvailability | null>(null);
   const [loadingStayQuote, setLoadingStayQuote] = useState(false);
+  const [stayQuoteError, setStayQuoteError] = useState("");
   const [requestId, setRequestId] = useState(createRequestId());
+  const [datePickerTarget, setDatePickerTarget] = useState<"checkIn" | "checkOut" | null>(null);
 
   const ctaType: ServiceCtaType = service ? getServiceCtaType(service.type) : "get_in_touch";
   const bookingMode = service ? getBookingMode(service.type) : "none";
@@ -126,15 +129,19 @@ export default function ServiceBookingModal({
   useEffect(() => {
     if (!visible || !service || !isDateRange || !isValidStayRange(checkIn, checkOut)) {
       setStayQuote(null);
+      setStayQuoteError("");
       return;
     }
     let active = true;
-    setLoadingStayQuote(true);
-    getStayAvailability(service.service_id, { checkIn, checkOut, rooms, adults, children })
-      .then((quote) => { if (active) setStayQuote(quote); })
-      .catch(() => { if (active) setStayQuote(null); })
-      .finally(() => { if (active) setLoadingStayQuote(false); });
-    return () => { active = false; };
+    setStayQuoteError("");
+    const timer = setTimeout(() => {
+      setLoadingStayQuote(true);
+      getStayAvailability(service.service_id, { checkIn, checkOut, rooms, adults, children })
+        .then((quote) => { if (active) setStayQuote(quote); })
+        .catch((e: any) => { if (active) { setStayQuote(null); setStayQuoteError(e?.message || "Could not check availability"); } })
+        .finally(() => { if (active) setLoadingStayQuote(false); });
+    }, 300);
+    return () => { active = false; clearTimeout(timer); };
   }, [visible, service, isDateRange, checkIn, checkOut, rooms, adults, children]);
 
   const today = new Date();
@@ -286,13 +293,13 @@ export default function ServiceBookingModal({
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.fieldLabel}>{t("services.checkIn", "Check-in")}</Text>
-                  <Pressable style={s.input}>
+                  <Pressable style={s.input} onPress={() => setDatePickerTarget("checkIn")}>
                     <Text style={s.inputText}>{checkIn.split("-").reverse().join(" ")}</Text>
                   </Pressable>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.fieldLabel}>{t("services.checkOut", "Check-out")}</Text>
-                  <Pressable style={s.input}>
+                  <Pressable style={s.input} onPress={() => setDatePickerTarget("checkOut")}>
                     <Text style={s.inputText}>{checkOut.split("-").reverse().join(" ")}</Text>
                   </Pressable>
                 </View>
@@ -437,6 +444,7 @@ export default function ServiceBookingModal({
           </View>
           </>)}
 
+          <Text style={s.sectionTitle}>{t("services.yourName", "Your name")} *</Text>
           <TextInput style={s.input} value={name} onChangeText={setName} placeholder="John Doe" placeholderTextColor={COLORS.textDisabled} />
 
           <Text style={s.sectionTitle}>{t("services.yourEmail", "Your email")}</Text>
@@ -497,6 +505,33 @@ export default function ServiceBookingModal({
         )}
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <Modal visible={datePickerTarget !== null} animationType="slide" transparent onRequestClose={() => setDatePickerTarget(null)}>
+        <View style={s.datePickerOverlay}>
+          <View style={s.datePickerContainer}>
+            <View style={s.datePickerHeader}>
+              <Text style={s.datePickerTitle}>{datePickerTarget === "checkIn" ? t("services.checkIn") : t("services.checkOut")}</Text>
+              <Pressable onPress={() => setDatePickerTarget(null)}><Ionicons name="close" size={22} color={COLORS.textPrimary} /></Pressable>
+            </View>
+            <Calendar
+              minDate={datePickerTarget === "checkOut" ? addDays(checkIn, 1) : (service?.available_from && service.available_from > todayText ? service.available_from : todayText)}
+              maxDate={service?.available_until || undefined}
+              markedDates={{ [checkIn]: { startingDay: true, color: COLORS.primary, textColor: "#fff" }, [checkOut]: { endingDay: true, color: COLORS.primary, textColor: "#fff" } }}
+              markingType="period"
+              firstDay={1}
+              onDayPress={(day) => {
+                if (!service) return;
+                if (datePickerTarget === "checkIn") {
+                  setCheckIn(day.dateString);
+                  if (checkOut <= day.dateString) setCheckOut(addDays(day.dateString, Math.max(1, service.min_nights || 1)));
+                } else { setCheckOut(day.dateString); }
+                setDatePickerTarget(null);
+              }}
+              theme={{ todayTextColor: COLORS.primary, arrowColor: COLORS.primary, monthTextColor: COLORS.textPrimary }}
+            />
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -577,6 +612,10 @@ const s = StyleSheet.create({
   quoteTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
   quoteLine: { marginTop: SPACING.tiny, fontSize: FONT_SIZES.caption, color: COLORS.textSecondary },
   quoteTotal: { marginTop: SPACING.small, fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success },
+  datePickerOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
+  datePickerContainer: { backgroundColor: COLORS.background, borderTopLeftRadius: BORDER_RADIUS.lg, borderTopRightRadius: BORDER_RADIUS.lg, padding: SPACING.std },
+  datePickerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.small },
+  datePickerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
   input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, marginBottom: SPACING.small },
   bookBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.section },
   bookBtnText: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
