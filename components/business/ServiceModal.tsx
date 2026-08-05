@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
-import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, isServiceBookable, requiresServiceSlots, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
+import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, isServiceBookable, requiresServiceSlots, getBookingMode, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
 import { getDefaultModule, getAllowedModules, getCategoryQuestions } from "../../lib/config/serviceCategoryMatrix";
 import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect, useRef } from "react";
@@ -336,9 +336,6 @@ export default function ServiceModal({
   const [showSlotDatePicker, setShowSlotDatePicker] = useState(false);
   const [slotDraft, setSlotDraft] = useState({ is_recurring: true, day_of_week: 1, start_time: "09:00", end_time: "10:00", date: "" as string | undefined });
   const [showSlotEditor, setShowSlotEditor] = useState(false);
-  const [slotFromDate, setSlotFromDate] = useState("");
-  const [slotToDate, setSlotToDate] = useState("");
-  const [slotDateTarget, setSlotDateTarget] = useState<"from" | "to">("from");
   const [coverPhotoError, setCoverPhotoError] = useState<string | null>(null);
 
   const allowedModules = rootCategory ? getAllowedModules(rootCategory) : [];
@@ -771,7 +768,13 @@ export default function ServiceModal({
             {form.status === "published" && <Text style={styles.required}> *</Text>}
           </Text>
 
-          {form.type === "hotel_room" ? (
+          {getBookingMode(form.type) === "date_range" ? (
+            <View>
+              {renderFieldInput("available_from")}
+              {renderFieldInput("available_until")}
+              {renderFieldInput("inventory_count")}
+            </View>
+          ) : requiresServiceSlots(form.type) ? (
             <View>
               {(form.availability_slots || []).length > 0 && (
                 <View style={{ marginBottom: 8, gap: 4 }}>
