@@ -1709,9 +1709,10 @@ const handleUpdateSlug = async (newSlug: string) => {
       if (msg !== "Network request failed") {
         Alert.alert(t("common.error", "Error"), msg || t("services.saveFailed", "Failed to save service"));
       } else {
-        setServiceModalVisible(false);
-        setEditingServiceId(null);
-        setServiceForm(DEFAULT_SERVICE_FORM);
+        Alert.alert(t("common.info", "Info"), t("services.saveMayHaveSucceeded", "The service may have been saved despite the network error. Your edits are still open."));
+        // Keep modal open — never discard edits after a failed save
+        setServiceSaving(false);
+        return;
       }
     }
     setServiceSaving(false);
