@@ -377,6 +377,33 @@ export default function ServiceModal({
       setCoverPhotoError(t("services.coverRequired", "Bitte füge ein Titelbild hinzu, bevor du den Dienst veröffentlichst."));
       return;
     }
+    // Hotel publish validation
+    if (form.status === "published" && getBookingMode(form.type) === "date_range") {
+      const inventory = Number(form.inventory_count);
+      const maxGuests = Number(form.max_guests);
+      const price = Number(String(form.price).replace(",", "."));
+      if (!form.available_from || !form.available_until) {
+        Alert.alert(t("common.error"), t("services.hotelWindowRequired", "Select bookable-from and bookable-until dates."));
+        return;
+      }
+      if (form.available_until <= form.available_from) {
+        Alert.alert(t("common.error"), t("services.hotelWindowInvalid", "Bookable-until must be after bookable-from."));
+        return;
+      }
+      if (!Number.isInteger(inventory) || inventory < 1) {
+        Alert.alert(t("common.error"), t("services.inventoryInvalid", "Room inventory must be at least 1."));
+        return;
+      }
+      if (!Number.isInteger(maxGuests) || maxGuests < 1) {
+        Alert.alert(t("common.error"), t("services.maxGuestsInvalid", "Maximum guests must be at least 1."));
+        return;
+      }
+      if (!Number.isFinite(price) || price <= 0) {
+        Alert.alert(t("common.error"), t("services.priceInvalid", "Enter a valid nightly price."));
+        return;
+      }
+    }
+
     // Availability validation for publishing bookable services
     if (form.status === "published" && isServiceBookable(form.type)) {
       if (requiresServiceSlots(form.type)) {
