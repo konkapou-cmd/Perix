@@ -93,6 +93,15 @@ export type ServiceForm = {
   room_view: string;
   available_until: string;
   amenities: string[];
+  inventory_count: string;
+  max_adults: string;
+  max_children: string;
+  check_in_time: string;
+  check_out_time: string;
+  min_nights: string;
+  max_nights: string;
+  cancellation_policy: string;
+  currency: string;
   status: "draft" | "published" | "hidden";
   sort_order: string;
   availability_slots: { day_of_week?: number; date?: string; start_time: string; end_time: string; is_recurring: boolean }[];
@@ -184,6 +193,15 @@ const DEFAULT_FORM: ServiceForm = {
   room_view: "",
   available_until: "",
   amenities: [],
+  inventory_count: "1",
+  max_adults: "2",
+  max_children: "1",
+  check_in_time: "15:00",
+  check_out_time: "11:00",
+  min_nights: "1",
+  max_nights: "30",
+  cancellation_policy: "",
+  currency: "EUR",
   status: "draft",
   sort_order: "0",
   availability_slots: [],
