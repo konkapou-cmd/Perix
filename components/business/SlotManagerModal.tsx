@@ -21,7 +21,9 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 
 export default function SlotManagerModal({ visible, serviceId, sessionToken, serviceType, onClose }: Props) {
   const { t } = useTranslation();
-  const isHotel = serviceType === "hotel_room";
+
+  if (serviceType === "hotel_room") return null;
+
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todayISO());
@@ -36,8 +38,6 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
   const [blockStart, setBlockStart] = useState<string | null>(null);
   const [blockEnd, setBlockEnd] = useState<string | null>(null);
   const [blockMode, setBlockMode] = useState(false);
-  const [rangeMode, setRangeMode] = useState(false);
-  const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [timePickerTarget, setTimePickerTarget] = useState<string | null>(null);
 
   const loadSlots = useCallback(async () => {
@@ -77,19 +77,6 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
           if (!marks[date]) marks[date] = { dots: [] };
           marks[date].dots = marks[date].dots || [];
           marks[date].dots.push({ key: `b-${slot.slot_id}`, color: COLORS.danger });
-        }
-        return;
-      }
-
-      const isDateRange = slot.start_time && slot.end_time && slot.start_time.match(/^\d{4}-\d{2}-\d{2}$/) && slot.end_time.match(/^\d{4}-\d{2}-\d{2}$/);
-      if (isDateRange) {
-        const dotColor = slot.is_booked ? COLORS.textMuted : COLORS.success;
-        const sD = new Date(slot.start_time + "T00:00:00");
-        const eD = new Date(slot.end_time + "T00:00:00");
-        for (let d = new Date(sD); d < eD; d.setDate(d.getDate() + 1)) {
-          const ds = d.toISOString().split("T")[0];
-          if (!marks[ds]) marks[ds] = { dots: [] };
-          marks[ds].dots.push({ key: `d-${slot.slot_id}`, color: dotColor });
         }
         return;
       }
@@ -155,18 +142,6 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
   }, [slots, selectedDate]);
 
   const handleDayPress = (day: { dateString: string }) => {
-    if (rangeMode) {
-      if (!rangeStart) {
-        setRangeStart(day.dateString);
-      } else {
-        const start = day.dateString < rangeStart ? day.dateString : rangeStart;
-        const end = day.dateString < rangeStart ? rangeStart : day.dateString;
-        addDateRangeSlot(start, end);
-        setRangeStart(null);
-        setRangeMode(false);
-      }
-      return;
-    }
     if (blockMode) {
       if (!blockStart) {
         setBlockStart(day.dateString);
@@ -278,26 +253,6 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
 
   const selDayName = DAYS[new Date(selectedDate + "T00:00:00").getDay()];
 
-  const addDateRangeSlot = async (startDate: string, endDate: string) => {
-    setLoading(true);
-    try {
-      const allSlots = (slots || []).map(s => ({
-        day_of_week: s.day_of_week ?? undefined,
-        date: s.date ?? undefined,
-        start_time: s.start_time,
-        end_time: s.end_time,
-        is_recurring: s.is_recurring,
-      }));
-      allSlots.push({ start_time: startDate, end_time: endDate, is_recurring: false, day_of_week: undefined as any, date: undefined as any });
-      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots });
-      await loadSlots();
-      Alert.alert(t("common.success"), t("services.dateRangeAdded"));
-    } catch (err: any) {
-      Alert.alert(t("common.error"), err.message);
-    }
-    setLoading(false);
-  };
-
   const handleTimeChange = (_: any, selectedDate?: Date) => {
     if (!selectedDate || !timePickerTarget) return;
     const timeStr = selectedDate.toTimeString().slice(0, 5);
@@ -319,14 +274,12 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
             <Ionicons name="close" size={24} color={COLORS.textPrimary} />
           </Pressable>
           <Text style={s.headerTitle}>{t("services.manageSlots", "Manage Time Slots")}</Text>
-          {!isHotel && (
           <Pressable
             onPress={() => { setBlockMode(!blockMode); setBlockStart(null); setBlockEnd(null); }}
             style={[s.headerBtn, blockMode && { backgroundColor: COLORS.danger + "20", borderRadius: BORDER_RADIUS.md }]}
           >
             <Ionicons name={blockMode ? "close-circle" : "lock-closed"} size={22} color={blockMode ? COLORS.danger : COLORS.textMuted} />
           </Pressable>
-          )}
         </View>
 
         {blockMode && (
@@ -413,7 +366,6 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
             </View>
           ))}
 
-          {!isHotel && (<>
           <Text style={s.quickLabel}>{t("slotManager.addSlotDate", "Add slot for this date")}</Text>
           <View style={s.quickRow}>
             <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("quickStart")}>
@@ -427,26 +379,9 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
               <Ionicons name="add" size={20} color="#fff" />
             </Pressable>
           </View>
-          </>)}
-          {isHotel && (
-            <View style={{ marginTop: 8 }}>
-              <Text style={s.quickLabel}>{rangeMode ? t("services.tapDatesForRange") : t("services.addDateRange")}</Text>
-              <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-                <Pressable style={[s.createBtn, { flex: 1, backgroundColor: rangeMode ? COLORS.success : COLORS.primary }]} onPress={() => { setRangeMode(!rangeMode); setRangeStart(null); }} disabled={loading}>
-                  <Ionicons name={rangeMode ? "close-circle" : "add-circle-outline"} size={18} color="#fff" />
-                  <Text style={s.createBtnText}> {rangeMode ? t("common.cancel") : t("services.addRange")}</Text>
-                </Pressable>
-                <Pressable style={[s.createBtn, { flex: 1, backgroundColor: blockMode ? COLORS.danger : COLORS.warningDark || "#b45309" }]} onPress={() => { setBlockMode(!blockMode); setBlockStart(null); setBlockEnd(null); }} disabled={loading}>
-                  <Ionicons name={blockMode ? "close-circle" : "lock-closed"} size={18} color="#fff" />
-                  <Text style={s.createBtnText}> {blockMode ? t("common.cancel") : t("slotManager.blockDates", "Block Dates")}</Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
           {loading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: SPACING.small }} />}
         </View>
 
-        {!isHotel && (
         <ScrollView style={s.bottomSection} contentContainerStyle={{ paddingBottom: SPACING.section }}>
           <Text style={s.sectionTitle}>{t("services.weeklyRecurring", "Weekly Recurring")}</Text>
           <View style={s.dayRow}>
@@ -473,7 +408,6 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, ser
             <Text style={s.createBtnText}>{t("slotManager.createSlots", "Create Weekly Slots")}</Text>
           </Pressable>
         </ScrollView>
-        )}
 
         {timePickerTarget && (
           <View style={s.pickerOverlay}>
