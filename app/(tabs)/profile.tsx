@@ -90,6 +90,7 @@ import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/medi
 import { validateMedia } from "../../lib/media/mediaValidation";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { hasServiceModules, getDefaultModule } from "../../lib/config/serviceCategoryMatrix";
+import { getBookingMode } from "../../lib/config/serviceModules";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
 import { LanguagePicker } from "../../components/LanguagePicker";
 
@@ -100,7 +101,7 @@ import { UserProfilePremium } from "../../components/profile/UserProfilePremium"
 import { BusinessProfilePremium } from "../../components/profile/BusinessProfilePremium";
 import { EventModal } from "../../components/business";
 import { JobModal } from "../../components/business";
-import { ServiceModal, DEFAULT_SERVICE_FORM, ServiceBookingModal, SlotManagerModal, BookingListModal, UserBookingListModal } from "../../components/business";
+import { ServiceModal, DEFAULT_SERVICE_FORM, ServiceBookingModal, SlotManagerModal, BookingListModal, UserBookingListModal, HotelAvailabilityModal } from "../../components/business";
 import ActivityModal from "../../components/business/ActivityModal";
 import { useMapBounds } from "../../context/MapBoundsContext";
 import OpeningHoursModal, { DayHours, defaultDayHours } from "../../components/business/OpeningHoursModal";
@@ -1265,6 +1266,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [slotManagerVisible, setSlotManagerVisible] = useState(false);
   const [slotManagerServiceId, setSlotManagerServiceId] = useState("");
   const [slotManagerServiceType, setSlotManagerServiceType] = useState("");
+  const [hotelAvailabilityService, setHotelAvailabilityService] = useState<Service | null>(null);
   const [bookingListVisible, setBookingListVisible] = useState(false);
   const [userBookingListVisible, setUserBookingListVisible] = useState(false);
 
@@ -1725,6 +1727,10 @@ const handleUpdateSlug = async (newSlug: string) => {
   };
 
   const handleOpenSlotManager = (serviceId: string, serviceType?: string) => {
+    if (serviceType && getBookingMode(serviceType) === "date_range") {
+      const service = bizServices.find(s => s.service_id === serviceId);
+      if (service) { setHotelAvailabilityService(service); return; }
+    }
     setSlotManagerServiceId(serviceId);
     setSlotManagerServiceType(serviceType || "");
     setSlotManagerVisible(true);
@@ -2768,6 +2774,17 @@ currentUserId={businessDetail?.business?.business_id}
           sessionToken={sessionToken || ""}
           onClose={() => { setSlotManagerVisible(false); setSlotManagerServiceId(""); }}
         />
+
+      <HotelAvailabilityModal
+        visible={Boolean(hotelAvailabilityService)}
+        service={hotelAvailabilityService}
+        sessionToken={sessionToken || ""}
+        onClose={() => setHotelAvailabilityService(null)}
+        onSaved={async () => {
+          await loadBusinessProfile();
+          setHotelAvailabilityService(null);
+        }}
+      />
       )}
 
       <BookingListModal
