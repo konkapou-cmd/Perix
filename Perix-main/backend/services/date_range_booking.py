@@ -109,8 +109,10 @@ async def build_stay_quote(
     adults: int,
     children: int,
     exclude_booking_id: Optional[str] = None,
+    expire_stale: bool = True,
 ) -> dict[str, Any]:
-    await expire_stale_pending_bookings()
+    if expire_stale:
+        await expire_stale_pending_bookings()
 
     min_nights = int(service.get("min_nights") or 1)
     max_nights = int(service.get("max_nights") or 30)
@@ -404,6 +406,7 @@ async def confirm_date_range_booking(
                 adults=int(booking.get("adults") or 1),
                 children=int(booking.get("children") or 0),
                 exclude_booking_id=booking["booking_id"],
+                expire_stale=False,
             )
             if not quote["available"]:
                 await db.bookings.update_one(
@@ -421,21 +424,13 @@ async def confirm_date_range_booking(
                 )
 
         confirmed_at = now_utc()
-        await db.bookings.update_one(
-            {
-                "booking_id": booking["booking_id"],
-                "status": "pending",
-            },
-            {
-                "$set": {
-                    "status": "confirmed",
-                    "confirmed_at": confirmed_at,
-                },
-                "$unset": {
-                    "hold_expires_at": "",
-                },
-            },
+        result = await db.bookings.update_one(
+            {"booking_id": booking["booking_id"], "status": "pending"},
+            {"$set": {"status": "confirmed", "confirmed_at": confirmed_at}, "$unset": {"hold_expires_at": ""}},
         )
+        if result.modified_count != 1:
+            current = await db.bookings.find_one({"booking_id": booking["booking_id"]}, {"_id": 0})
+            raise HTTPException(status_code=409, detail=f"Booking is already {current.get('status') if current else 'unavailable'}")
         booking["status"] = "confirmed"
         booking["confirmed_at"] = confirmed_at
         booking["hold_expires_at"] = None
