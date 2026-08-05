@@ -10,7 +10,11 @@ export interface FieldConfig {
   options?: string[];
   min?: number;
   max?: number;
-  displayFormat?: "duration" | "price" | "default";
+  displayFormat?:
+    | "duration"
+    | "price"
+    | "default"
+    | "sqm";
 }
 
 export interface FieldRegistry {
@@ -407,5 +411,69 @@ export const FIELD_REGISTRY: FieldRegistry = {
     component: "date",
     labelKey: "services.availableUntil",
     showOnCard: true,
+  },
+  inventory_count: {
+    component: "number",
+    labelKey: "services.inventoryCount",
+    placeholderKey: "services.inventoryCountPlaceholder",
+    showOnCard: false,
+    min: 1,
+    max: 1000,
+  },
+  max_adults: {
+    component: "number",
+    labelKey: "services.maxAdults",
+    placeholderKey: "services.maxAdultsPlaceholder",
+    showOnCard: false,
+    min: 1,
+    max: 100,
+  },
+  max_children: {
+    component: "number",
+    labelKey: "services.maxChildren",
+    placeholderKey: "services.maxChildrenPlaceholder",
+    showOnCard: false,
+    min: 0,
+    max: 100,
+  },
+  check_in_time: {
+    component: "text",
+    labelKey: "services.checkInTime",
+    placeholderKey: "services.checkInTimePlaceholder",
+    showOnCard: false,
+  },
+  check_out_time: {
+    component: "text",
+    labelKey: "services.checkOutTime",
+    placeholderKey: "services.checkOutTimePlaceholder",
+    showOnCard: false,
+  },
+  min_nights: {
+    component: "number",
+    labelKey: "services.minNights",
+    placeholderKey: "services.minNightsPlaceholder",
+    showOnCard: false,
+    min: 1,
+    max: 365,
+  },
+  max_nights: {
+    component: "number",
+    labelKey: "services.maxNights",
+    placeholderKey: "services.maxNightsPlaceholder",
+    showOnCard: false,
+    min: 1,
+    max: 365,
+  },
+  cancellation_policy: {
+    component: "textarea",
+    labelKey: "services.cancellationPolicy",
+    placeholderKey: "services.cancellationPolicyPlaceholder",
+    showOnCard: false,
+  },
+  currency: {
+    component: "chips",
+    labelKey: "services.currency",
+    showOnCard: false,
+    options: ["EUR", "USD", "GBP", "CHF"],
   },
 };
