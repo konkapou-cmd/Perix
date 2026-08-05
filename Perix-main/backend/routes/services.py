@@ -13,6 +13,7 @@ from models.service import (
     TimeSlotCreate, TimeSlotResponse, BlockDateRange,
     BookingCreate, BookingResponse,
     AvailabilitySlotInput, BulkAvailabilityRequest,
+    StayAvailabilityResponse, DateBlockCreate, DateBlockResponse,
 )
 from utils.helpers import generate_id, now_utc
 from routes.dependencies import get_current_user
@@ -454,7 +455,14 @@ async def complete_booking(booking_id: str, current_user: UserPublic = Depends(g
     if booking["status"] != "confirmed":
         raise HTTPException(status_code=400, detail="Only confirmed bookings can be completed")
 
-    await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"status": "completed"}})
+    completed_at = now_utc()
+    await db.bookings.update_one(
+        {"booking_id": booking_id, "status": "confirmed"},
+        {"$set": {"status": "completed", "completed_at": completed_at}},
+    )
+    booking["status"] = "completed"
+    booking["completed_at"] = completed_at
+    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
     booking["service_name"] = service["name"] if service else None
     booking["business_name"] = business.get("name")
     return BookingResponse(**booking)
@@ -520,6 +528,121 @@ async def send_service_inquiry(
     await ws_broadcast_conversation_update(owner_id, {"conversation_id": business_id, "last_message": message_doc})
 
     return {"success": True, "message_id": message_doc["message_id"]}
+
+
+@router.get("/{service_id}/stay-availability", response_model=StayAvailabilityResponse)
+async def get_stay_availability(
+    service_id: str,
+    check_in: str,
+    check_out: str,
+    rooms: int = Query(default=1, ge=1, le=20),
+    adults: int = Query(default=1, ge=1, le=100),
+    children: int = Query(default=0, ge=0, le=100),
+):
+    service = await db.services.find_one(
+        {"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0},
+    )
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    from services.date_range_booking import booking_mode_from_config, build_stay_quote
+    root_cat = service.get("root_category", "")
+    resolved_cat = "rentals" if root_cat == "rental-real-estate" else root_cat
+    config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved_cat, {}).get(service.get("type", ""), {})
+    if booking_mode_from_config(config) != "date_range":
+        raise HTTPException(status_code=400, detail="This service does not use stay availability")
+
+    quote = await build_stay_quote(
+        service,
+        check_in_text=check_in,
+        check_out_text=check_out,
+        room_count=rooms,
+        adults=adults,
+        children=children,
+    )
+    return StayAvailabilityResponse(**quote)
+
+
+@router.get("/{service_id}/date-blocks", response_model=List[DateBlockResponse])
+async def list_date_blocks(service_id: str, current_user: UserPublic = Depends(get_current_user)):
+    service = await db.services.find_one({"service_id": service_id})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    business = await db.businesses.find_one({"business_id": service["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    blocks = await db.service_date_blocks.find(
+        {"service_id": service_id, "is_active": {"$ne": False}}, {"_id": 0},
+    ).sort("start_date", 1).to_list(1000)
+    return [DateBlockResponse(**block) for block in blocks]
+
+
+@router.post("/{service_id}/date-blocks", response_model=DateBlockResponse)
+async def create_date_block(
+    service_id: str, payload: DateBlockCreate,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    from services.date_range_booking import acquire_service_booking_lock, release_service_booking_lock
+    from services.date_range_utils import parse_iso_date
+
+    service = await db.services.find_one({"service_id": service_id})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    business = await db.businesses.find_one({"business_id": service["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    start = parse_iso_date(payload.start_date, "Block start")
+    end = parse_iso_date(payload.end_date, "Block end")
+    if end <= start:
+        raise HTTPException(status_code=400, detail="Block end must be after block start")
+
+    inventory_count = int(service.get("inventory_count") or 1)
+    if payload.blocked_units > inventory_count:
+        raise HTTPException(status_code=400, detail="Blocked units cannot exceed room inventory")
+
+    lock_token = await acquire_service_booking_lock(service_id)
+    try:
+        conflict = await db.bookings.find_one({
+            "service_id": service_id,
+            "date": {"$lt": payload.end_date},
+            "end_date": {"$gt": payload.start_date},
+            "status": {"$in": ["pending", "confirmed"]},
+        })
+        if conflict:
+            raise HTTPException(status_code=409, detail="This date range contains an active reservation")
+
+        doc = {
+            "block_id": generate_id("blk"),
+            "service_id": service_id,
+            "start_date": payload.start_date,
+            "end_date": payload.end_date,
+            "blocked_units": payload.blocked_units,
+            "reason": payload.reason,
+            "is_active": True,
+            "created_at": now_utc(),
+        }
+        await db.service_date_blocks.insert_one(doc)
+        return DateBlockResponse(**doc)
+    finally:
+        await release_service_booking_lock(service_id, lock_token)
+
+
+@router.delete("/{service_id}/date-blocks/{block_id}")
+async def delete_date_block(service_id: str, block_id: str, current_user: UserPublic = Depends(get_current_user)):
+    service = await db.services.find_one({"service_id": service_id})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    business = await db.businesses.find_one({"business_id": service["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    result = await db.service_date_blocks.update_one(
+        {"service_id": service_id, "block_id": block_id},
+        {"$set": {"is_active": False, "deleted_at": now_utc()}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Date block not found")
+    return {"success": True}
 
 
 @router.get("/{service_id}", response_model=ServiceResponse)
