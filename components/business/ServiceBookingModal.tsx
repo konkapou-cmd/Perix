@@ -61,7 +61,10 @@ export default function ServiceBookingModal({
   const [requestId, setRequestId] = useState(createRequestId());
 
   const ctaType: ServiceCtaType = service ? getServiceCtaType(service.type) : "get_in_touch";
-  const hasSlots = service ? requiresServiceSlots(service.type) : false;
+  const bookingMode = service ? getBookingMode(service.type) : "none";
+  const isDateRange = bookingMode === "date_range";
+  const requiresSlot = bookingMode === "time_slot";
+
   useEffect(() => {
     if (visible && service) {
       setSelectedSlot(null);
@@ -73,23 +76,36 @@ export default function ServiceBookingModal({
       setPetType("");
       setReasonForVisit("");
       setPickupLocation("");
-      getSlots(service.service_id).then(setAllSlots).catch(() => setAllSlots([]));
+
+      if (getBookingMode(service.type) === "time_slot") {
+        getSlots(service.service_id).then(setAllSlots).catch(() => setAllSlots([]));
+      } else {
+        setAllSlots([]);
+      }
+
+      if (isDateRange) {
+        const initialCheckIn = service.available_from && service.available_from > todayText
+          ? service.available_from : todayText;
+        setCheckIn(initialCheckIn);
+        setCheckOut(addDays(initialCheckIn, Math.max(1, service.min_nights || 1)));
+        setRooms(1);
+        setAdults(1);
+        setChildren(0);
+        setStayQuote(null);
+        setRequestId(createRequestId());
+      }
     }
   }, [visible, service]);
 
   useEffect(() => {
     if (!service || !selectedDate) return;
-    if (ctaType !== "booking") return;
+    if (bookingMode !== "time_slot") return;
     setLoadingSlots(true);
-    Promise.all([
-      getSlots(service.service_id),
-      getAvailability(service.service_id, selectedDate).catch(() => []),
-    ])
-      .then(([slotData, availData]) => {
-        const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    getSlots(service.service_id)
+      .then((slotData) => {
         const dateObj = new Date(selectedDate + "T00:00:00");
         const dayOfWeek = dateObj.getDay();
-        const matching = slotData.filter((s) => {
+        const matching = (slotData || []).filter((s) => {
           if (s.is_blocked || s.is_booked) return false;
           if (s.date === selectedDate) return true;
           if (s.is_recurring && s.day_of_week === dayOfWeek) return true;
@@ -97,15 +113,24 @@ export default function ServiceBookingModal({
         });
         matching.sort((a, b) => a.start_time.localeCompare(b.start_time));
         setSlots(matching);
-        const availMap: Record<string, { available_spots: number; capacity: number; is_full: boolean }> = {};
-        availData.forEach((a) => {
-          availMap[a.slot_id] = { available_spots: a.available_spots, capacity: a.capacity, is_full: a.is_full };
-        });
-        setAvailabilities(availMap);
       })
-      .catch(() => { setSlots([]); setAvailabilities({}); })
+      .catch(() => { setSlots([]); })
       .finally(() => setLoadingSlots(false));
-  }, [service, selectedDate, ctaType]);
+  }, [service, selectedDate, bookingMode]);
+
+  useEffect(() => {
+    if (!visible || !service || !isDateRange || !isValidStayRange(checkIn, checkOut)) {
+      setStayQuote(null);
+      return;
+    }
+    let active = true;
+    setLoadingStayQuote(true);
+    getStayAvailability(service.service_id, { checkIn, checkOut, rooms, adults, children })
+      .then((quote) => { if (active) setStayQuote(quote); })
+      .catch(() => { if (active) setStayQuote(null); })
+      .finally(() => { if (active) setLoadingStayQuote(false); });
+    return () => { active = false; };
+  }, [visible, service, isDateRange, checkIn, checkOut, rooms, adults, children]);
 
   const today = new Date();
   const dates: string[] = [];
@@ -247,6 +272,65 @@ export default function ServiceBookingModal({
             />
           )}
 
+          {isDateRange && service && (
+            <View>
+              <Text style={s.sectionTitle}>{t("services.stayDates", "Stay dates")}</Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldLabel}>{t("services.checkIn", "Check-in")}</Text>
+                  <Pressable style={s.input}>
+                    <Text style={s.inputText}>{checkIn.split("-").reverse().join(" ")}</Text>
+                  </Pressable>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldLabel}>{t("services.checkOut", "Check-out")}</Text>
+                  <Pressable style={s.input}>
+                    <Text style={s.inputText}>{checkOut.split("-").reverse().join(" ")}</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={s.stepperRow}>
+                <Text style={s.stepperLabel}>{t("services.rooms", "Rooms")}</Text>
+                <View style={s.stepperControls}>
+                  <Pressable style={s.stepperBtn} disabled={rooms <= 1} onPress={() => setRooms(Math.max(1, rooms - 1))}><Ionicons name="remove" size={18} color={COLORS.textPrimary} /></Pressable>
+                  <Text style={s.stepperValue}>{rooms}</Text>
+                  <Pressable style={s.stepperBtn} disabled={rooms >= (service.inventory_count || 1)} onPress={() => setRooms(Math.min(service.inventory_count || 1, rooms + 1))}><Ionicons name="add" size={18} color={COLORS.textPrimary} /></Pressable>
+                </View>
+              </View>
+
+              <View style={s.stepperRow}>
+                <Text style={s.stepperLabel}>{t("services.adults", "Adults")}</Text>
+                <View style={s.stepperControls}>
+                  <Pressable style={s.stepperBtn} disabled={adults <= 1} onPress={() => setAdults(Math.max(1, adults - 1))}><Ionicons name="remove" size={18} color={COLORS.textPrimary} /></Pressable>
+                  <Text style={s.stepperValue}>{adults}</Text>
+                  <Pressable style={s.stepperBtn} disabled={adults >= Math.max(1, (service.max_adults || service.max_guests || 1) * rooms)} onPress={() => setAdults(Math.min(Math.max(1, (service.max_adults || service.max_guests || 1) * rooms), adults + 1))}><Ionicons name="add" size={18} color={COLORS.textPrimary} /></Pressable>
+                </View>
+              </View>
+
+              <View style={s.stepperRow}>
+                <Text style={s.stepperLabel}>{t("services.children", "Children")}</Text>
+                <View style={s.stepperControls}>
+                  <Pressable style={s.stepperBtn} disabled={children <= 0} onPress={() => setChildren(Math.max(0, children - 1))}><Ionicons name="remove" size={18} color={COLORS.textPrimary} /></Pressable>
+                  <Text style={s.stepperValue}>{children}</Text>
+                  <Pressable style={s.stepperBtn} disabled={children >= Math.max(0, (service.max_children || 0) * rooms)} onPress={() => setChildren(Math.min(Math.max(0, (service.max_children || 0) * rooms), children + 1))}><Ionicons name="add" size={18} color={COLORS.textPrimary} /></Pressable>
+                </View>
+              </View>
+
+              {loadingStayQuote && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 12 }} />}
+              {!loadingStayQuote && stayQuote && (
+                <View style={{ marginTop: 12, padding: 12, backgroundColor: COLORS.success + "15", borderRadius: BORDER_RADIUS.md }}>
+                  <Text style={s.quoteTitle}>{stayQuote.nights} {t("services.nights", "nights")}</Text>
+                  <Text style={s.quoteLine}>{(stayQuote.nightly_rate_amount / 100).toFixed(2)} {stayQuote.currency} / night</Text>
+                  <Text style={s.quoteTotal}>Total: {(stayQuote.total_amount / 100).toFixed(2)} {stayQuote.currency}</Text>
+                  {!stayQuote.available && <Text style={{ color: COLORS.danger, marginTop: 4 }}>{t("services.stayUnavailable")}</Text>}
+                </View>
+              )}
+            </View>
+          )}
+
+          {!isDateRange && (
+          <>
           <Text style={s.sectionTitle}>{t("services.selectDate", "Select a date")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.dateRow}>
             {displayDates.map((d) => {
@@ -330,6 +414,8 @@ export default function ServiceBookingModal({
             </View>
           )}
 
+          {!isDateRange && (
+          <>
           <Text style={s.sectionTitle}>{t("services.guests", "Guests")}</Text>
           <View style={s.stepperRow}>
             <Pressable style={s.stepperBtn} onPress={() => setGuests(Math.max(1, guests - 1))}>
@@ -340,8 +426,9 @@ export default function ServiceBookingModal({
               <Ionicons name="add" size={20} color={COLORS.textPrimary} />
             </Pressable>
           </View>
-
-          <Text style={s.sectionTitle}>{t("services.yourName", "Your name")} *</Text>
+          </>)}
+          </View>
+          </>)}
           <TextInput style={s.input} value={name} onChangeText={setName} placeholder="John Doe" placeholderTextColor={COLORS.textDisabled} />
 
           <Text style={s.sectionTitle}>{t("services.yourEmail", "Your email")}</Text>
@@ -387,8 +474,15 @@ export default function ServiceBookingModal({
             </Pressable>
             <Pressable
               style={[s.saveBtn, (!selectedDate || submitting || (ctaType === "booking" && !selectedSlot)) && { opacity: 0.5 }]}
+  const bookingDisabled =
+    submitting ||
+    !name.trim() ||
+    (requiresSlot && (!selectedDate || !selectedSlot)) ||
+    (isDateRange && (!isValidStayRange(checkIn, checkOut) || !stayQuote?.available));
+
+  // ... (near the button)
               onPress={handleBook}
-              disabled={!selectedDate || submitting || (ctaType === "booking" && !selectedSlot)}
+              disabled={bookingDisabled}
             >
               {submitting ? (
                 <ActivityIndicator size="small" color="#fff" />
