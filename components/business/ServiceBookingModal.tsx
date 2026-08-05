@@ -4,10 +4,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
-import { getServiceCtaType, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
-import { Service, TimeSlot } from "../../lib/api/core";
-import { getSlots, createBooking, getAvailability } from "../../lib/api/services";
+import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
+import { Service, TimeSlot, StayAvailability } from "../../lib/api/core";
+import { getSlots, createBooking, getStayAvailability } from "../../lib/api/services";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
+import { addDays, createRequestId, isValidStayRange, toLocalISODate } from "../../lib/booking/dateRange";
 import AdaptiveImage from "../AdaptiveImage";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 
@@ -47,6 +48,17 @@ export default function ServiceBookingModal({
 
   const [allSlots, setAllSlots] = useState<TimeSlot[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Date-range booking state
+  const todayText = toLocalISODate(new Date());
+  const [checkIn, setCheckIn] = useState(todayText);
+  const [checkOut, setCheckOut] = useState(addDays(todayText, 1));
+  const [rooms, setRooms] = useState(1);
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [stayQuote, setStayQuote] = useState<StayAvailability | null>(null);
+  const [loadingStayQuote, setLoadingStayQuote] = useState(false);
+  const [requestId, setRequestId] = useState(createRequestId());
 
   const ctaType: ServiceCtaType = service ? getServiceCtaType(service.type) : "get_in_touch";
   const hasSlots = service ? requiresServiceSlots(service.type) : false;
@@ -125,7 +137,11 @@ export default function ServiceBookingModal({
       Alert.alert(t("common.error", "Error"), t("services.nameRequired", "Please enter your name"));
       return;
     }
-    if (ctaType === "booking" && !selectedSlot) {
+    if (isDateRange && (!isValidStayRange(checkIn, checkOut) || !stayQuote?.available)) {
+      Alert.alert(t("common.error", "Error"), t("services.selectAvailableStay", "Select an available check-in and checkout."));
+      return;
+    }
+    if (!isDateRange && ctaType === "booking" && !selectedSlot) {
       Alert.alert(t("common.error", "Error"), t("services.selectTime", "Please select a time slot"));
       return;
     }
@@ -133,20 +149,26 @@ export default function ServiceBookingModal({
     try {
       const payload: any = {
         service_id: service.service_id,
-        date: selectedDate,
+        date: isDateRange ? checkIn : selectedDate,
         client_name: name.trim(),
         client_email: email.trim() || undefined,
-        guests,
+        guests: isDateRange ? adults + children : guests,
         notes: notes.trim() || undefined,
+        request_id: isDateRange ? requestId : undefined,
       };
+      if (isDateRange) {
+        payload.end_date = checkOut;
+        payload.room_count = rooms;
+        payload.adults = adults;
+        payload.children = children;
+      }
       if (selectedSlot) payload.slot_id = selectedSlot.slot_id;
       if (petName) payload.pet_name = petName;
       if (petType) payload.pet_type = petType;
       if (reasonForVisit) payload.reason_for_visit = reasonForVisit;
       if (pickupLocation) payload.pickup_location = pickupLocation;
-      if (preferredTime) payload.notes = (payload.notes ? payload.notes + "\n" : "") + "Preferred time: " + preferredTime;
       await createBooking(sessionToken, payload);
-      Alert.alert(t("services.bookingConfirmed", "Booking confirmed!"), t("services.bookingPending", "Booking request sent! The business will confirm shortly."));
+      Alert.alert(t("services.requestSent"), t("services.bookingPending", "Booking request sent! The business will confirm shortly."));
       onSuccess?.();
       onClose();
     } catch (err: any) {
@@ -156,7 +178,9 @@ export default function ServiceBookingModal({
     }
   };
 
-  const requiresSlot = service ? requiresServiceSlots(service.type) : false;
+  const bookingMode = service ? getBookingMode(service.type) : "none";
+  const isDateRange = bookingMode === "date_range";
+  const requiresSlot = bookingMode === "time_slot";
   const showPets = rootCategory === "pets";
   const showHealthcare = rootCategory === "healthcare";
   const showAutoRental = rootCategory === "automotive" && service?.type === "auto_rental";
