@@ -341,6 +341,7 @@ export default function ServiceBookingModal({
                   {!stayQuote.available && <Text style={{ color: COLORS.danger, marginTop: 4 }}>{t("services.stayUnavailable")}</Text>}
                 </View>
               )}
+              {stayQuoteError ? <Text style={s.errorText}>{stayQuoteError}</Text> : null}
             </View>
           )}
 
@@ -616,6 +617,7 @@ const s = StyleSheet.create({
   datePickerContainer: { backgroundColor: COLORS.background, borderTopLeftRadius: BORDER_RADIUS.lg, borderTopRightRadius: BORDER_RADIUS.lg, padding: SPACING.std },
   datePickerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.small },
   datePickerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  errorText: { marginTop: SPACING.small, fontSize: FONT_SIZES.caption, color: COLORS.danger },
   input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, marginBottom: SPACING.small },
   bookBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.section },
   bookBtnText: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
