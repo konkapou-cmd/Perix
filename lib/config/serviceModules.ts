@@ -8,6 +8,12 @@ export type ServiceCtaType =
   | "request_quote"
   | "browse_only";
 
+export type BookingMode =
+  | "time_slot"
+  | "date_range"
+  | "request"
+  | "none";
+
 export type ServiceModuleConfig = {
   key: string;
   labelKey: string;
@@ -15,6 +21,7 @@ export type ServiceModuleConfig = {
   icon: keyof typeof Ionicons.glyphMap;
   ctaType: ServiceCtaType;
   bookingEnabled: boolean;
+  bookingMode?: BookingMode;
   requiresSlots?: boolean;
   fields: string[];
   requiredFields: string[];
@@ -506,18 +513,37 @@ export const SERVICE_MODULES: Record<string, ServiceModuleConfig> = {
     icon: "bed",
     ctaType: "booking",
     bookingEnabled: true,
-    requiresSlots: true,
+    bookingMode: "date_range",
+    requiresSlots: false,
     fields: [
-      "max_guests", "bed_config", "room_size_sqm", "floor", "room_view",
-      "amenities",
+      "max_guests", "max_adults", "max_children",
+      "bed_config", "room_size_sqm", "floor", "room_view",
+      "amenities", "inventory_count",
+      "check_in_time", "check_out_time",
+      "min_nights", "max_nights",
+      "cancellation_policy",
+      "available_from", "available_until",
     ],
-    requiredFields: ["name", "type", "price"],
+    requiredFields: [
+      "name", "type", "price",
+      "inventory_count", "max_guests",
+      "available_from", "available_until",
+    ],
     mediaRequiredForPublish: true,
     allowedRootCategories: ["local-hotels"],
   },
 };
 
 // ─── Helpers ───
+
+export function getBookingMode(type: string): BookingMode {
+  const config = SERVICE_MODULES[type];
+  if (!config) return "none";
+  if (config.bookingMode) return config.bookingMode;
+  if (config.requiresSlots) return "time_slot";
+  if (config.bookingEnabled) return "request";
+  return "none";
+}
 
 export function getServiceModuleConfig(type: string): ServiceModuleConfig | undefined {
   return SERVICE_MODULES[type];
@@ -538,11 +564,15 @@ export function getServiceCtaType(type: string): ServiceCtaType {
 }
 
 export function isServiceBookable(type: string): boolean {
-  return SERVICE_MODULES[type]?.bookingEnabled ?? false;
+  return getBookingMode(type) !== "none";
 }
 
 export function requiresServiceSlots(type: string): boolean {
-  return SERVICE_MODULES[type]?.requiresSlots ?? false;
+  return getBookingMode(type) === "time_slot";
+}
+
+export function requiresServiceDateRange(type: string): boolean {
+  return getBookingMode(type) === "date_range";
 }
 
 export function getServiceFields(type: string): string[] {

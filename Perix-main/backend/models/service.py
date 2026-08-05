@@ -1,6 +1,6 @@
 """Services, Time Slots, and Bookings models."""
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 from models.focal_point import FocalPoint
 
@@ -96,6 +96,15 @@ class ServiceCreate(BaseModel):
     room_view: Optional[str] = None
     amenities: List[str] = Field(default_factory=list)
     available_until: Optional[str] = None
+    inventory_count: Optional[int] = Field(default=None, ge=1, le=1000)
+    max_adults: Optional[int] = Field(default=None, ge=1, le=100)
+    max_children: Optional[int] = Field(default=0, ge=0, le=100)
+    check_in_time: Optional[str] = None
+    check_out_time: Optional[str] = None
+    min_nights: Optional[int] = Field(default=1, ge=1, le=365)
+    max_nights: Optional[int] = Field(default=30, ge=1, le=365)
+    cancellation_policy: Optional[str] = None
+    currency: Optional[str] = Field(default="EUR", min_length=3, max_length=3)
     status: Optional[str] = None
     sort_order: Optional[int] = Field(default=0)
     cover_focal_point: Optional[FocalPoint] = None
@@ -177,6 +186,15 @@ class ServiceUpdate(BaseModel):
     room_view: Optional[str] = None
     amenities: Optional[List[str]] = None
     available_until: Optional[str] = None
+    inventory_count: Optional[int] = Field(default=None, ge=1, le=1000)
+    max_adults: Optional[int] = Field(default=None, ge=1, le=100)
+    max_children: Optional[int] = Field(default=None, ge=0, le=100)
+    check_in_time: Optional[str] = None
+    check_out_time: Optional[str] = None
+    min_nights: Optional[int] = Field(default=None, ge=1, le=365)
+    max_nights: Optional[int] = Field(default=None, ge=1, le=365)
+    cancellation_policy: Optional[str] = None
+    currency: Optional[str] = Field(default=None, min_length=3, max_length=3)
     status: Optional[str] = None
     sort_order: Optional[int] = None
     cover_focal_point: Optional[FocalPoint] = None
@@ -264,6 +282,15 @@ class ServiceResponse(BaseModel):
     room_view: Optional[str] = None
     amenities: List[str] = Field(default_factory=list)
     available_until: Optional[str] = None
+    inventory_count: Optional[int] = None
+    max_adults: Optional[int] = None
+    max_children: Optional[int] = None
+    check_in_time: Optional[str] = None
+    check_out_time: Optional[str] = None
+    min_nights: Optional[int] = None
+    max_nights: Optional[int] = None
+    cancellation_policy: Optional[str] = None
+    currency: Optional[str] = "EUR"
     status: Optional[str] = None
     sort_order: Optional[int] = 0
 
@@ -298,15 +325,25 @@ class BlockDateRange(BaseModel):
 class BookingCreate(BaseModel):
     service_id: str
     slot_id: Optional[str] = None
+
     date: str
     end_date: Optional[str] = None
+
     start_time: Optional[str] = None
     end_time: Optional[str] = None
-    client_name: str
-    client_email: Optional[str] = None
-    guests: Optional[int] = None
+
+    room_count: int = Field(default=1, ge=1, le=20)
+    adults: int = Field(default=1, ge=1, le=100)
+    children: int = Field(default=0, ge=0, le=100)
+
+    client_name: str = Field(min_length=1, max_length=160)
+    client_email: Optional[str] = Field(default=None, max_length=320)
+    guests: Optional[int] = Field(default=None, ge=1, le=100)
+
     total_price: Optional[str] = None
-    notes: Optional[str] = None
+
+    request_id: Optional[str] = Field(default=None, min_length=8, max_length=80)
+    notes: Optional[str] = Field(default=None, max_length=3000)
     pet_name: Optional[str] = None
     pet_type: Optional[str] = None
     pickup_location: Optional[str] = None
@@ -324,17 +361,48 @@ class BookingResponse(BaseModel):
     client_id: str
     client_name: str
     client_email: Optional[str] = None
+
     date: str
     end_date: Optional[str] = None
     start_time: Optional[str] = None
     end_time: Optional[str] = None
+
     guests: Optional[int] = None
+    room_count: Optional[int] = None
+    adults: Optional[int] = None
+    children: Optional[int] = None
+    nights: Optional[int] = None
+
     total_price: Optional[str] = None
-    status: str  # pending | confirmed | cancelled | completed
+    currency: Optional[str] = None
+    nightly_rate_amount: Optional[int] = None
+    subtotal_amount: Optional[int] = None
+    total_amount: Optional[int] = None
+
+    booking_mode: Optional[str] = None
+    confirmation_code: Optional[str] = None
+    request_id: Optional[str] = None
+    hold_expires_at: Optional[datetime] = None
+
+    status: str
     notes: Optional[str] = None
     created_at: datetime
+    confirmed_at: Optional[datetime] = None
+    declined_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    cancelled_by: Optional[str] = None
+    cancellation_reason: Optional[str] = None
+
     service_name: Optional[str] = None
+    service_type: Optional[str] = None
+    service_cover_image: Optional[str] = None
+    service_address: Optional[str] = None
     business_name: Optional[str] = None
+    check_in_time: Optional[str] = None
+    check_out_time: Optional[str] = None
+    cancellation_policy: Optional[str] = None
+
     pet_name: Optional[str] = None
     pet_type: Optional[str] = None
     pickup_location: Optional[str] = None
@@ -342,3 +410,39 @@ class BookingResponse(BaseModel):
     insurance_info: Optional[str] = None
     reason_for_visit: Optional[str] = None
     special_requests: Optional[str] = None
+
+
+class StayAvailabilityResponse(BaseModel):
+    service_id: str
+    available: bool
+    check_in: str
+    check_out: str
+    nights: int
+    requested_rooms: int
+    inventory_count: int
+    minimum_available_rooms: int
+    adults: int
+    children: int
+    currency: str
+    nightly_rate_amount: int
+    subtotal_amount: int
+    total_amount: int
+    unavailable_dates: List[str] = Field(default_factory=list)
+
+
+class DateBlockCreate(BaseModel):
+    start_date: str
+    end_date: str
+    blocked_units: int = Field(default=1, ge=1, le=1000)
+    reason: Optional[str] = Field(default=None, max_length=500)
+
+
+class DateBlockResponse(BaseModel):
+    block_id: str
+    service_id: str
+    start_date: str
+    end_date: str
+    blocked_units: int
+    reason: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime

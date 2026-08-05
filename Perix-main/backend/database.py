@@ -1,6 +1,6 @@
 """Database connection and category management."""
 from motor.motor_asyncio import AsyncIOMotorClient
-from typing import Dict, List
+from typing import Any, Dict, List
 from config import MONGO_URL, DB_NAME
 
 # MongoDB client
@@ -25,7 +25,7 @@ ROOT_SERVICE_TYPES: Dict[str, List[str]] = {
     "local-hotels": ["hotel_room"],
 }
 
-ROOT_SERVICE_BOOKING_CONFIG: Dict[str, Dict[str, Dict[str, bool]]] = {
+ROOT_SERVICE_BOOKING_CONFIG: Dict[str, Dict[str, Dict[str, Any]]] = {
     "sports-fitness-wellness": {
         "gym_class":      {"booking": True,  "slots": True},
         "gym_session":    {"booking": True,  "slots": True},
@@ -86,7 +86,7 @@ ROOT_SERVICE_BOOKING_CONFIG: Dict[str, Dict[str, Dict[str, bool]]] = {
         "pet_product":     {"booking": False, "slots": False},
     },
     "local-hotels": {
-        "hotel_room": {"booking": True, "slots": True},
+        "hotel_room": {"booking": True, "slots": False, "mode": "date_range"},
     },
 }
 CATEGORY_TREE: List[Dict] = []
@@ -198,6 +198,33 @@ async def create_indexes():
     await db.service_slots.create_index("slot_id", unique=True)
     await db.service_slots.create_index("service_id")
     await db.service_slots.create_index([("service_id", 1), ("date", 1)])
+
+    # Date-range booking indexes
+    await _safe_create_index(
+        db.bookings,
+        [("service_id", 1), ("date", 1), ("end_date", 1), ("status", 1)],
+    )
+    await _safe_create_index(
+        db.bookings,
+        [("client_id", 1), ("request_id", 1)],
+        unique=True,
+        sparse=True,
+    )
+    await _safe_create_index(
+        db.bookings,
+        [("status", 1), ("hold_expires_at", 1)],
+    )
+
+    # Booking lock collection
+    await _safe_create_index(db.service_booking_locks, "service_id", unique=True)
+    await _safe_create_index(db.service_booking_locks, "expires_at", expireAfterSeconds=0)
+
+    # Date block collection
+    await _safe_create_index(db.service_date_blocks, "block_id", unique=True)
+    await _safe_create_index(
+        db.service_date_blocks,
+        [("service_id", 1), ("start_date", 1), ("end_date", 1)],
+    )
 
     # Jobs store location as address string; geo filtering uses
     # Python-side haversine on latitude/longitude fields, so no 2dsphere.
