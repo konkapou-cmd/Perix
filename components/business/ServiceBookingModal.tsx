@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
 import { Service, TimeSlot, StayAvailability } from "../../lib/api/core";
-import { getSlots, createBooking, getStayAvailability } from "../../lib/api/services";
+import { getSlots, getAvailability, createBooking, getStayAvailability } from "../../lib/api/services";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { addDays, createRequestId, isValidStayRange, toLocalISODate } from "../../lib/booking/dateRange";
 import AdaptiveImage from "../AdaptiveImage";
@@ -98,24 +98,29 @@ export default function ServiceBookingModal({
   }, [visible, service]);
 
   useEffect(() => {
-    if (!service || !selectedDate) return;
-    if (bookingMode !== "time_slot") return;
+    if (!service || !selectedDate || bookingMode !== "time_slot") return;
+    let active = true;
     setLoadingSlots(true);
-    getSlots(service.service_id)
-      .then((slotData) => {
-        const dateObj = new Date(selectedDate + "T00:00:00");
-        const dayOfWeek = dateObj.getDay();
-        const matching = (slotData || []).filter((s) => {
-          if (s.is_blocked || s.is_booked) return false;
-          if (s.date === selectedDate) return true;
-          if (s.is_recurring && s.day_of_week === dayOfWeek) return true;
-          return false;
-        });
-        matching.sort((a, b) => a.start_time.localeCompare(b.start_time));
-        setSlots(matching);
-      })
-      .catch(() => { setSlots([]); })
-      .finally(() => setLoadingSlots(false));
+    Promise.all([
+      getSlots(service.service_id),
+      getAvailability(service.service_id, selectedDate).catch(() => []),
+    ]).then(([slotData, availabilityData]) => {
+      if (!active) return;
+      const dateObj = new Date(selectedDate + "T00:00:00");
+      const dayOfWeek = dateObj.getDay();
+      const matching = (slotData || []).filter((s) => {
+        if (s.is_blocked || s.is_booked) return false;
+        if (s.date === selectedDate) return true;
+        if (s.is_recurring && s.day_of_week === dayOfWeek) return true;
+        return false;
+      }).sort((a, b) => a.start_time.localeCompare(b.start_time));
+      setSlots(matching);
+      const availMap: Record<string, any> = {};
+      (availabilityData || []).forEach((a: any) => { availMap[a.slot_id] = a; });
+      setAvailabilities(availMap);
+    }).catch(() => { if (active) { setSlots([]); setAvailabilities({}); } })
+    .finally(() => { if (active) setLoadingSlots(false); });
+    return () => { active = false; };
   }, [service, selectedDate, bookingMode]);
 
   useEffect(() => {
@@ -203,9 +208,6 @@ export default function ServiceBookingModal({
     }
   };
 
-  const bookingMode = service ? getBookingMode(service.type) : "none";
-  const isDateRange = bookingMode === "date_range";
-  const requiresSlot = bookingMode === "time_slot";
   const showPets = rootCategory === "pets";
   const showHealthcare = rootCategory === "healthcare";
   const showAutoRental = rootCategory === "automotive" && service?.type === "auto_rental";
@@ -232,6 +234,12 @@ export default function ServiceBookingModal({
     });
     return items;
   }, [service]);
+
+  const bookingDisabled =
+    submitting ||
+    !name.trim() ||
+    (requiresSlot && (!selectedDate || !selectedSlot)) ||
+    (isDateRange && (!isValidStayRange(checkIn, checkOut) || !stayQuote?.available));
 
   return (
     <Modal visible={visible} animationType="slide">
@@ -473,14 +481,7 @@ export default function ServiceBookingModal({
               <Text style={s.cancelBtnText}>{t("common.cancel", "Cancel")}</Text>
             </Pressable>
             <Pressable
-              style={[s.saveBtn, (!selectedDate || submitting || (ctaType === "booking" && !selectedSlot)) && { opacity: 0.5 }]}
-  const bookingDisabled =
-    submitting ||
-    !name.trim() ||
-    (requiresSlot && (!selectedDate || !selectedSlot)) ||
-    (isDateRange && (!isValidStayRange(checkIn, checkOut) || !stayQuote?.available));
-
-  // ... (near the button)
+              style={[s.saveBtn, bookingDisabled && { opacity: 0.5 }]}
               onPress={handleBook}
               disabled={bookingDisabled}
             >
@@ -566,9 +567,16 @@ const s = StyleSheet.create({
   slotTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
   slotTextFull: { textDecorationLine: "line-through" },
   emptyText: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, textAlign: "center", marginVertical: SPACING.section },
-  stepperRow: { flexDirection: "row", alignItems: "center", gap: SPACING.std },
+  stepperRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: SPACING.small },
   stepperBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" },
   stepperValue: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary, minWidth: 30, textAlign: "center" },
+  stepperLabel: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  stepperControls: { flexDirection: "row", alignItems: "center", gap: SPACING.small },
+  fieldLabel: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textSecondary, marginBottom: SPACING.tiny },
+  inputText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  quoteTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  quoteLine: { marginTop: SPACING.tiny, fontSize: FONT_SIZES.caption, color: COLORS.textSecondary },
+  quoteTotal: { marginTop: SPACING.small, fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success },
   input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, marginBottom: SPACING.small },
   bookBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.section },
   bookBtnText: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
