@@ -587,7 +587,7 @@ export default function ServiceModal({
             <Text style={styles.label}>{labelWithAsterisk}</Text>
             <Pressable style={styles.input} onPress={() => { setDatePickerTarget(fieldName as any); setShowDatePicker(true); }}>
               <Text style={[styles.dateText, !(value as string) && styles.dateTextPlaceholder]}>
-                {(value as string) ? (value as string).split("-").reverse().join(".") : t("services.selectDate", "DD.MM.YYYY")}
+                {(value as string) ? (value as string).split("-").reverse().join(" ") : t("services.selectDate", "DD MM YYYY")}
               </Text>
             </Pressable>
           </View>

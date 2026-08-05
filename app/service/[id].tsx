@@ -485,7 +485,7 @@ export default function ServiceDetailPage() {
                   if (fieldName === "sessions_count") displayValue = String(value) + " Sitzungen";
                   if (config.component === "chips" || config.component === "chips-multi") displayValue = String(value);
                   if (fieldName === "available_from") {
-                    try { displayValue = new Date(String(value)).toLocaleDateString("de-DE"); } catch {}
+                    try { displayValue = String(value).split("-").reverse().join(" "); } catch {}
                   }
                   return (
                     <View key={fieldName} style={styles.moduleItem}>

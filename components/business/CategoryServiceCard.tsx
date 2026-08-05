@@ -78,7 +78,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
     }
 
     if (fieldName === "available_from") {
-      return <Text key={fieldName} style={s.meta}>Ab {String(value).split("-").reverse().join(".")}</Text>;
+      return <Text key={fieldName} style={s.meta}>Ab {String(value).split("-").reverse().join(" ")}</Text>;
     }
 
     switch (config.component) {
