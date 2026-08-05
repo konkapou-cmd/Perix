@@ -408,6 +408,8 @@ async def create_booking(payload: BookingCreate, current_user: UserPublic = Depe
 
 @router.get("/bookings", response_model=List[BookingResponse])
 async def list_bookings(business_id: Optional[str] = None, status: Optional[str] = None, current_user: UserPublic = Depends(get_current_user)):
+    from services.date_range_booking import enrich_booking, expire_stale_pending_bookings
+    await expire_stale_pending_bookings()
     query = {}
     if business_id:
         business = await db.businesses.find_one({"business_id": business_id})
@@ -419,14 +421,17 @@ async def list_bookings(business_id: Optional[str] = None, status: Optional[str]
     if status:
         query["status"] = status
 
-    bookings = await db.bookings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    bookings = await db.bookings.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    service_ids = list({b["service_id"] for b in bookings if b.get("service_id")})
+    business_ids = list({b["business_id"] for b in bookings if b.get("business_id")})
+    services = await db.services.find({"service_id": {"$in": service_ids}}, {"_id": 0}).to_list(len(service_ids) or 1)
+    businesses = await db.businesses.find({"business_id": {"$in": business_ids}}, {"_id": 0}).to_list(len(business_ids) or 1)
+    service_map = {s["service_id"]: s for s in services}
+    business_map = {b["business_id"]: b for b in businesses}
     result = []
-    for b in bookings:
-        service = await db.services.find_one({"service_id": b["service_id"]}, {"_id": 0, "name": 1})
-        business = await db.businesses.find_one({"business_id": b["business_id"]}, {"_id": 0, "name": 1})
-        b["service_name"] = service["name"] if service else None
-        b["business_name"] = business["name"] if business else None
-        result.append(BookingResponse(**b))
+    for booking in bookings:
+        enriched = await enrich_booking(booking, service=service_map.get(booking["service_id"]), business=business_map.get(booking["business_id"]))
+        result.append(BookingResponse(**enriched))
     return result
 
 
