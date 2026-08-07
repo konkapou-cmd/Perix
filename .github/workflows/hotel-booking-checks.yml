@@ -38,4 +38,4 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: pytest tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py
+      - run: pytest tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py
