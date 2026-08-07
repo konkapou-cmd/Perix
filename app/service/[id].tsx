@@ -1,33 +1,15 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Linking,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Calendar } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
 import Constants from "expo-constants";
 import { useAuth } from "../../context/AuthContext";
-import { getServiceDetail, getSlots, createBooking, getAvailability, sendServiceInquiry } from "../../lib/api/services";
+import { getServiceDetail, sendServiceInquiry } from "../../lib/api/services";
 import { toggleSaved, checkSaved } from "../../lib/api/saved";
-import { Service, TimeSlot } from "../../lib/api/core";
+import { Service } from "../../lib/api/core";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
-import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
-import ServiceBookingModal from "../../components/business/ServiceBookingModal";
+import { getServiceCtaType, isServiceBookable, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
@@ -42,7 +24,7 @@ import ErrorState from "../../components/shared/ErrorState";
 import { ChecklistCard } from "../../components/shared/ChecklistCard";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
-import { EntityHeader } from "../../components/shared/EntityHeader";
+import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -59,18 +41,8 @@ export default function ServiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
-  const [slots, setSlots] = useState<TimeSlot[]>([]);
-  const [availabilities, setAvailabilities] = useState<Record<string, { available_spots: number; capacity: number; is_full: boolean }>>({});
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [bookingName, setBookingName] = useState("");
-  const [bookingEmail, setBookingEmail] = useState("");
-  const [bookingGuests, setBookingGuests] = useState("1");
-  const [bookingNotes, setBookingNotes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [showInquiry, setShowInquiry] = useState(false);
-  const [showCalendarView, setShowCalendarView] = useState(false);
   const [inquiryName, setInquiryName] = useState("");
   const [inquiryEmail, setInquiryEmail] = useState("");
   const [inquiryMessage, setInquiryMessage] = useState("");
@@ -116,28 +88,7 @@ export default function ServiceDetailPage() {
     return getServiceCtaType(service.type);
   }, [service]);
 
-  const dates = useMemo(() => {
-    const result: string[] = [];
-    const today = new Date();
-    for (let i = 0; i < 14; i++) { const d = new Date(today); d.setDate(d.getDate() + i); result.push(d.toISOString().split("T")[0]); }
-    return result;
-  }, []);
-
-  const calendarMarkedDates = useMemo(() => {
-    const marks: Record<string, any> = {};
-    if (selectedDate) marks[selectedDate] = { selected: true, selectedColor: COLORS.servicesAccent, selectedTextColor: "#fff" };
-    const today = new Date();
-    for (let i = 0; i < 60; i++) {
-      const d = new Date(today); d.setDate(d.getDate() + i);
-      const ds = d.toISOString().split("T")[0];
-      if (ds === selectedDate) continue;
-      const avail = availabilities[ds];
-      if (avail) marks[ds] = { selected: true, selectedColor: avail.is_full ? "#ef4444" : "#10b981", selectedTextColor: "#fff" };
-    }
-    return marks;
-  }, [selectedDate, availabilities]);
-
-  if (!id) {
+  const handleToggleSave = async () => {
     return (
       <SafeAreaView style={styles.centered} edges={["top"]}>
         <ErrorState
