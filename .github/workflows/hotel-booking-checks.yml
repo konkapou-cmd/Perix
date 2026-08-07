@@ -24,6 +24,14 @@ jobs:
     defaults:
       run:
         working-directory: Perix-main/backend
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    env:
+      MONGO_URL: mongodb://localhost:27017
+      DB_NAME: perix_hotel_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
