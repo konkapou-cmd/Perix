@@ -205,6 +205,7 @@ export default function ServiceBookingModal({
       if (reasonForVisit) payload.reason_for_visit = reasonForVisit;
       if (pickupLocation) payload.pickup_location = pickupLocation;
       await createBooking(sessionToken, payload);
+      setRequestId(createRequestId());
       Alert.alert(t("services.requestSent"), t("services.bookingPending", "Booking request sent! The business will confirm shortly."));
       onSuccess?.();
       onClose();
@@ -516,7 +517,7 @@ export default function ServiceBookingModal({
             </View>
             <Calendar
               minDate={datePickerTarget === "checkOut" ? addDays(checkIn, 1) : (service?.available_from && service.available_from > todayText ? service.available_from : todayText)}
-              maxDate={service?.available_until || undefined}
+              maxDate={service?.available_until ? (service.max_nights ? addDays(checkIn, service.max_nights) > service.available_until ? service.available_until : addDays(checkIn, service.max_nights) : service.available_until) : undefined}
               markedDates={{ [checkIn]: { startingDay: true, color: COLORS.primary, textColor: "#fff" }, [checkOut]: { endingDay: true, color: COLORS.primary, textColor: "#fff" } }}
               markingType="period"
               firstDay={1}
