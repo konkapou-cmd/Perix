@@ -135,19 +135,20 @@ export default function ServiceDetailPage() {
     }
   };
 
-  const handleRequestBooking = async () => {
-    if (!sessionToken || !service) { Alert.alert("Error", t("services.loginRequired")); return; }
-    if (!selectedDate) { Alert.alert("Error", t("services.selectDate")); return; }
-    if (requiresSlots && !selectedSlot) { Alert.alert("Error", t("services.selectTime")); return; }
-    setSubmitting(true);
+  const handleToggleSave = async () => {
+    if (savingItem) return;
+    if (!sessionToken) {
+      Alert.alert(t("common.loginRequired") || "Login Required", t("common.loginToSave") || "Please log in",
+        [{ text: t("common.cancel") || "Cancel", style: "cancel" }, { text: t("auth.login") || "Login", onPress: () => router.push("/login") }]);
+      return;
+    }
+    if (!service?.service_id) return;
+    setSavingItem(true);
     try {
-      const payload: any = { service_id: service.service_id, date: selectedDate, client_name: bookingName.trim() || user?.name || "", client_email: bookingEmail.trim() || user?.email || "", guests: parseInt(bookingGuests, 10) || 1, notes: bookingNotes.trim() || undefined };
-      if (selectedSlot) payload.slot_id = selectedSlot.slot_id;
-      await createBooking(sessionToken, payload);
-      Alert.alert(t("services.bookingSent"), t("services.bookingSentMsg"));
-      setShowBooking(false); setSelectedSlot(null); setBookingNotes("");
-    } catch (e: any) { Alert.alert("Error", e.message || t("services.bookingFailed")); }
-    finally { setSubmitting(false); }
+      const { is_saved } = await toggleSaved(sessionToken, "service", service.service_id);
+      setIsSaved(is_saved);
+    } catch (e: any) { Alert.alert("Error", e.message || "Save failed"); }
+    finally { setSavingItem(false); }
   };
 
   const handleSendInquiry = async () => {
