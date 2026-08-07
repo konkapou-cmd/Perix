@@ -126,18 +126,22 @@ def require_time_slot_service(service: dict) -> None:
 
 def validate_date_range_service_for_publish(service_data: dict) -> None:
     from services.date_range_utils import parse_iso_date, parse_price_to_cents
-    inventory = int(service_data.get("inventory_count") or 0)
-    max_guests = int(service_data.get("max_guests") or 0)
+    inventory = int(service_data.get("inventory_count") if service_data.get("inventory_count") is not None else 0)
+    max_guests = int(service_data.get("max_guests") if service_data.get("max_guests") is not None else 0)
     max_adults = int(service_data.get("max_adults") if service_data.get("max_adults") is not None else max_guests)
-    max_children = int(service_data.get("max_children") or 0)
-    min_nights = int(service_data.get("min_nights") or 1)
-    max_nights = int(service_data.get("max_nights") or 30)
+    max_children = int(service_data.get("max_children") if service_data.get("max_children") is not None else 0)
+    min_nights = int(service_data.get("min_nights") if service_data.get("min_nights") is not None else 1)
+    max_nights = int(service_data.get("max_nights") if service_data.get("max_nights") is not None else 30)
     if inventory < 1:
         raise HTTPException(status_code=400, detail="Room inventory must be at least 1")
     if max_guests < 1:
         raise HTTPException(status_code=400, detail="Maximum guests must be at least 1")
     if max_adults < 1:
         raise HTTPException(status_code=400, detail="Maximum adults must be at least 1")
+    if max_children < 0:
+        raise HTTPException(status_code=400, detail="Maximum children cannot be negative")
+    if min_nights < 1:
+        raise HTTPException(status_code=400, detail="Minimum nights must be at least 1")
     if max_nights < min_nights:
         raise HTTPException(status_code=400, detail="Maximum nights cannot be below minimum nights")
     parse_price_to_cents(service_data.get("price"))
