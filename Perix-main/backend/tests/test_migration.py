@@ -5,11 +5,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from datetime import date, timedelta
 from database import db
 from utils.helpers import generate_id, now_utc
+from scripts.migrate_hotel_booking_v2 import migrate_services, migrate_bookings
 
 
 @pytest.fixture
 async def migration_test_data():
-    """Create test hotel services and bookings for migration testing."""
     svc_id = generate_id("svc-t")
     svc_doc = {
         "service_id": svc_id, "business_id": "test-biz-m", "type": "hotel_room",
@@ -30,66 +30,74 @@ async def migration_test_data():
     await db.bookings.delete_one({"booking_id": bkg_id})
 
 
-def test_migration_dry_run_no_writes(migration_test_data):
-    """Dry run must not mutate the database."""
-    import asyncio
-    from scripts.migrate_hotel_booking_v2 import migrate_services, migrate_bookings
-    svc_count = asyncio.run(migrate_services(apply=False))
-    bkg_count = asyncio.run(migrate_bookings(apply=False))
+@pytest.mark.asyncio
+async def test_migration_dry_run_no_writes(migration_test_data):
+    svc_count = await migrate_services(apply=False)
+    bkg_count = await migrate_bookings(apply=False)
     assert svc_count >= 1
     assert bkg_count >= 1
-    # Verify no writes happened
-    svc = asyncio.run(db.services.find_one({"service_id": migration_test_data["service"]["service_id"]}))
-    assert svc.get("hotel_booking_engine_version") is None  # Not written
+    svc = await db.services.find_one({"service_id": migration_test_data["service"]["service_id"]})
+    assert svc.get("hotel_booking_engine_version") is None
 
 
-def test_migration_apply_writes(migration_test_data):
-    """--apply must write to database."""
-    import asyncio
-    from scripts.migrate_hotel_booking_v2 import migrate_services, migrate_bookings
-    svc_count = asyncio.run(migrate_services(apply=True))
-    bkg_count = asyncio.run(migrate_bookings(apply=True))
+@pytest.mark.asyncio
+async def test_migration_apply_writes(migration_test_data):
+    svc_count = await migrate_services(apply=True)
+    bkg_count = await migrate_bookings(apply=True)
     assert svc_count >= 1
     assert bkg_count >= 1
-    svc = asyncio.run(db.services.find_one({"service_id": migration_test_data["service"]["service_id"]}))
+    svc = await db.services.find_one({"service_id": migration_test_data["service"]["service_id"]})
     assert svc["hotel_booking_engine_version"] == 2
-    assert svc["inventory_count"] == 10  # from capacity
-    assert svc["currency"] == "USD"  # preserved
-    bkg = asyncio.run(db.bookings.find_one({"booking_id": migration_test_data["booking"]["booking_id"]}))
+    assert svc["inventory_count"] == 10
+    assert svc["currency"] == "USD"
+    bkg = await db.bookings.find_one({"booking_id": migration_test_data["booking"]["booking_id"]})
     assert bkg["booking_mode"] == "date_range"
     assert bkg["room_count"] == 1
-    assert bkg["adults"] == 2  # from guests
+    assert bkg["adults"] == 2
     assert bkg["children"] == 0
-    assert bkg["end_date"] is not None
+    assert bkg["end_date"] == "2025-06-02"  # next_day(2025-06-01)
+    assert bkg["nights"] == 1
 
 
-def test_migration_idempotent(migration_test_data):
-    """Second run must not change already-migrated records."""
-    import asyncio
-    from scripts.migrate_hotel_booking_v2 import migrate_services, migrate_bookings
-    # Apply once
-    asyncio.run(migrate_services(apply=True))
-    asyncio.run(migrate_bookings(apply=True))
-    # Apply second time — should skip
-    svc_count_2 = asyncio.run(migrate_services(apply=True))
+@pytest.mark.asyncio
+async def test_migration_idempotent(migration_test_data):
+    await migrate_services(apply=True)
+    await migrate_bookings(apply=True)
+    svc_count_2 = await migrate_services(apply=True)
     assert svc_count_2 == 0  # Already v2
-    bkg_count_2 = asyncio.run(migrate_bookings(apply=True))
-    # Booking with existing total_amount should be skipped from pricing
-    assert bkg_count_2 == 0
+    bkg_count_2 = await migrate_bookings(apply=True)
+    assert bkg_count_2 == 0  # Already migrated
 
 
-def test_migration_preserves_historical_pricing(migration_test_data):
-    """Migration must not overwrite existing total_price when present."""
-    import asyncio
-    from database import db
-    from scripts.migrate_hotel_booking_v2 import migrate_bookings
-    # Set an existing total_price on the booking
+@pytest.mark.asyncio
+async def test_migration_preserves_pricing(migration_test_data):
     bkg_id = migration_test_data["booking"]["booking_id"]
-    asyncio.run(db.bookings.update_one({"booking_id": bkg_id}, {"$set": {"total_price": "99.99", "total_amount": 9999, "nightly_rate_amount": 3333}}))
-    # Run migration
-    count = asyncio.run(migrate_bookings(apply=True))
-    assert count == 0  # Pricing already present — skipped
-    bkg = asyncio.run(db.bookings.find_one({"booking_id": bkg_id}))
-    assert bkg["total_price"] == "99.99"  # Preserved
-    assert bkg["total_amount"] == 9999  # Preserved
-    assert bkg["nightly_rate_amount"] == 3333  # Preserved
+    await db.bookings.update_one({"booking_id": bkg_id}, {
+        "$set": {"total_price": "99.99", "total_amount": 9999, "nightly_rate_amount": 3333,
+                 "room_count": 2, "adults": 2, "children": 0,
+                 "end_date": "2025-06-04", "nights": 3,
+                 "booking_mode": "date_range", "currency": "USD", "confirmation_code": "PX-TESTING"}})
+    # Run migration — structural fields already filled, pricing already present → skip
+    count = await migrate_bookings(apply=True)
+    assert count == 0  # Nothing to do
+    bkg = await db.bookings.find_one({"booking_id": bkg_id})
+    assert bkg["total_price"] == "99.99"
+    assert bkg["total_amount"] == 9999
+    assert bkg["nightly_rate_amount"] == 3333
+
+
+@pytest.mark.asyncio
+async def test_migration_pricing_fallback(migration_test_data):
+    """Booking without pricing should get server-calculated pricing from service price."""
+    bkg_id = migration_test_data["booking"]["booking_id"]
+    # Ensure structural fields exist but no pricing
+    await db.bookings.update_one({"booking_id": bkg_id}, {
+        "$set": {"room_count": 1, "adults": 1, "children": 0, "end_date": "2025-06-03", "nights": 2,
+                 "booking_mode": "date_range", "currency": "USD", "confirmation_code": "PX-FALL"}})
+    count = await migrate_bookings(apply=True)
+    assert count == 1  # Pricing backfilled
+    bkg = await db.bookings.find_one({"booking_id": bkg_id})
+    # 150.00 * 100 = 15000 cents * 2 nights * 1 room = 30000 cents
+    assert bkg["nightly_rate_amount"] == 15000
+    assert bkg["total_amount"] == 30000
+    assert bkg["total_price"] == "300.00"

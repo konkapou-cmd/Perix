@@ -116,11 +116,7 @@ async def test_booking_vs_block_race(hotel_service_single):
 
     async def do_block():
         try:
-            # Use production block creation path
-            from routes.services import create_date_block
-            from models.service import DateBlockCreate
-            payload = DateBlockCreate(start_date="2026-11-01", end_date="2026-11-04", blocked_units=1)
-            # Simpler: direct DB insert to avoid circular imports
+            # Direct DB write simulates the race condition — bypasses lock
             doc = {"block_id": generate_id("blk"), "service_id": svc["service_id"],
                    "start_date": "2026-11-01", "end_date": "2026-11-04",
                    "blocked_units": 1, "is_active": True, "created_at": now_utc()}
@@ -240,6 +236,38 @@ async def test_double_cancel_only_one_succeeds(hotel_service_single):
                 return {"error": str(e)}
 
         r1, r2 = await asyncio.gather(cancel(), cancel(), return_exceptions=True)
+        successes = sum(1 for r in [r1, r2] if isinstance(r, dict) and "error" not in r)
+        assert successes == 1
+    finally:
+        await db.bookings.delete_one({"booking_id": booking["booking_id"]})
+
+
+@pytest.mark.asyncio
+async def test_confirm_vs_cancel_race(hotel_service_single):
+    """Confirm vs cancel — only one succeeds."""
+    svc = hotel_service_single
+    booking = await create_date_range_booking(
+        make_booking(svc["service_id"], "g"), service=svc, business_id="test-biz-rc", client_id="g")
+    try:
+        async def do_confirm():
+            try:
+                return await confirm_date_range_booking(booking, service=svc, business={"name": "Biz", "owner_id": "to"})
+            except Exception as e:
+                return {"error": str(e)}
+
+        async def do_cancel():
+            try:
+                result = await db.bookings.update_one(
+                    {"booking_id": booking["booking_id"], "status": {"$in": ["pending", "confirmed"]}},
+                    {"$set": {"status": "cancelled", "cancelled_at": now_utc(), "cancelled_by": "client"},
+                     "$unset": {"hold_expires_at": ""}})
+                if result.modified_count != 1:
+                    return {"error": "409"}
+                return {"status": "cancelled"}
+            except Exception as e:
+                return {"error": str(e)}
+
+        r1, r2 = await asyncio.gather(do_confirm(), do_cancel(), return_exceptions=True)
         successes = sum(1 for r in [r1, r2] if isinstance(r, dict) and "error" not in r)
         assert successes == 1
     finally:
