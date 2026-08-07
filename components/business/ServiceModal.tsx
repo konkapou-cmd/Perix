@@ -405,7 +405,7 @@ export default function ServiceModal({
     }
 
     // Availability validation for publishing bookable services
-    if (form.status === "published" && isServiceBookable(form.type)) {
+    if (form.status === "published" && isServiceBookable(form.type) && getBookingMode(form.type) !== "date_range") {
       if (requiresServiceSlots(form.type)) {
         if (!form.availability_slots || form.availability_slots.length === 0) {
           Alert.alert(t("common.error", "Fehler"), t("services.availabilityTimesRequired", "Bitte füge mindestens eine verfügbare Zeit hinzu, bevor du den Dienst veröffentlichst."));
