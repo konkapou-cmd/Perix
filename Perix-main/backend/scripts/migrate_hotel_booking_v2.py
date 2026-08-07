@@ -85,47 +85,60 @@ async def migrate_bookings(apply: bool = False) -> int:
         if not service:
             continue
 
-        # Skip if already has server-calculated total
-        if booking.get("total_amount") is not None:
-            continue
+        update = {}
+        changed_any = False
 
-        update = {
-            "booking_mode": "date_range",
-            "room_count": int(booking.get("room_count") or 1),
-            "adults": int(booking.get("adults") or booking.get("guests") or 1),
-            "children": int(booking.get("children") or 0),
-        }
-
-        end_date = booking.get("end_date")
-        if not end_date:
-            end_date = next_day(booking["date"])
+        # Structural fields — backfill each independently when missing
+        if booking.get("booking_mode") is None:
+            update["booking_mode"] = "date_range"
+            changed_any = True
+        if booking.get("room_count") is None:
+            update["room_count"] = 1
+            changed_any = True
+        if booking.get("adults") is None:
+            update["adults"] = int(booking.get("guests") or 1)
+            changed_any = True
+        if booking.get("children") is None:
+            update["children"] = 0
+            changed_any = True
+        if booking.get("nights") is None:
+            end_date = booking.get("end_date") or next_day(booking["date"])
             update["end_date"] = end_date
-
-        nights = (date.fromisoformat(end_date) - date.fromisoformat(booking["date"])).days
-        update["nights"] = max(1, nights)
-
-        try:
-            nightly = Decimal(str(service.get("price") or "0"))
-            if nightly <= 0:
-                print(f"[WARN] Booking {booking.get('booking_id')}: zero/negative price, skipping pricing migration")
-                nightly_cents = None
-            else:
-                nightly_cents = int((nightly * Decimal("100")).quantize(Decimal("1")))
-        except InvalidOperation:
-            print(f"[WARN] Booking {booking.get('booking_id')}: invalid price, skipping pricing migration")
-            nightly_cents = None
-
-        if nightly_cents is not None:
-            total = nightly_cents * update["nights"] * update["room_count"]
+            update["nights"] = max(1, (date.fromisoformat(end_date) - date.fromisoformat(booking["date"])).days)
+            changed_any = True
+        if booking.get("currency") is None:
             update["currency"] = service.get("currency") or "EUR"
-            update["nightly_rate_amount"] = nightly_cents
-            update["subtotal_amount"] = total
-            update["total_amount"] = total
-            update["total_price"] = f"{total / 100:.2f}"
-
-        if not booking.get("confirmation_code"):
+            changed_any = True
+        if booking.get("confirmation_code") is None:
             update["confirmation_code"] = f'PX-{booking["booking_id"][-8:].upper()}'
+            changed_any = True
 
+        # Pricing — only backfill when ALL pricing fields are missing
+        has_existing_pricing = (
+            booking.get("nightly_rate_amount") is not None
+            or booking.get("total_amount") is not None
+            or booking.get("total_price") is not None
+        )
+        if not has_existing_pricing:
+            try:
+                nightly = Decimal(str(service.get("price") or "0"))
+                if nightly > 0:
+                    nightly_cents = int((nightly * Decimal("100")).quantize(Decimal("1")))
+                    n = update.get("nights") or booking.get("nights") or 1
+                    r = update.get("room_count") or booking.get("room_count") or 1
+                    total = nightly_cents * n * r
+                    update["nightly_rate_amount"] = nightly_cents
+                    update["subtotal_amount"] = total
+                    update["total_amount"] = total
+                    update["total_price"] = f"{total / 100:.2f}"
+                    changed_any = True
+                else:
+                    print(f"[WARN] Booking {booking.get('booking_id')}: zero/negative price, skipping pricing migration")
+            except (InvalidOperation, ValueError):
+                print(f"[WARN] Booking {booking.get('booking_id')}: invalid price, skipping pricing migration")
+
+        if not update:
+            continue
         proposed += 1
         print(f"[DRY-RUN] Would update booking {booking.get('booking_id')}: {list(update.keys())}")
 
