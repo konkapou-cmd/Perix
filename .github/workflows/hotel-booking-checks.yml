@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: 20
           cache: yarn
-      - run: yarn install --frozen-lockfile || yarn install
+      - run: yarn install --frozen-lockfile
       - run: yarn typecheck
       - run: yarn lint
 
@@ -30,4 +30,4 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: pytest tests/test_date_range_utils.py
+      - run: pytest tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py
