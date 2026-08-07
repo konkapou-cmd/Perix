@@ -85,10 +85,10 @@ def parse_price_to_cents(raw_value: str | None) -> int:
             detail="Nightly price must be a plain numeric value",
         )
 
-    if amount < 0:
+    if amount <= 0:
         raise HTTPException(
             status_code=400,
-            detail="Nightly price cannot be negative",
+            detail="Nightly price must be greater than zero",
         )
 
     cents = (amount * Decimal("100")).quantize(

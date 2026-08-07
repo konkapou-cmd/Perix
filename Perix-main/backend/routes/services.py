@@ -223,6 +223,9 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
     from services.date_range_booking import booking_mode_from_config
     booking_mode = booking_mode_from_config(booking_config)
 
+    if booking_mode == "date_range":
+        slots = []
+
     if publish_status == "published" and booking_config.get("booking"):
         if booking_mode == "time_slot":
             if not slots:
@@ -230,7 +233,6 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
             validate_availability_slots(slots, payload.duration_minutes, payload.type)
         elif booking_mode == "date_range":
             validate_date_range_service_for_publish(payload_data)
-            slots = []
         elif not getattr(payload, "available_from", None):
             raise HTTPException(status_code=400, detail="Add an availability date before publishing this service.")
 
@@ -240,6 +242,9 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
         "is_active": True,
         "created_at": now_utc(),
     }
+
+    if booking_mode == "date_range":
+        slots = []  # Never create legacy slots for date-range services
 
     slot_docs = [
         {
@@ -457,10 +462,12 @@ async def confirm_booking(booking_id: str, current_user: UserPublic = Depends(ge
         raise HTTPException(status_code=400, detail=f"Booking is already {booking['status']}")
 
     confirmed_at = now_utc()
-    await db.bookings.update_one(
+    result = await db.bookings.update_one(
         {"booking_id": booking_id, "status": "pending"},
         {"$set": {"status": "confirmed", "confirmed_at": confirmed_at}},
     )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
     booking["status"] = "confirmed"
     booking["confirmed_at"] = confirmed_at
     from services.date_range_booking import enrich_booking
@@ -480,17 +487,12 @@ async def decline_booking(booking_id: str, current_user: UserPublic = Depends(ge
         raise HTTPException(status_code=400, detail="Only pending bookings can be declined")
 
     declined_at = now_utc()
-    await db.bookings.update_one(
+    result = await db.bookings.update_one(
         {"booking_id": booking_id, "status": "pending"},
-        {
-            "$set": {
-                "status": "declined",
-                "declined_at": declined_at,
-                "cancelled_by": "business",
-            },
-            "$unset": {"hold_expires_at": ""},
-        },
+        {"$set": {"status": "declined", "declined_at": declined_at, "cancelled_by": "business"}, "$unset": {"hold_expires_at": ""}},
     )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
     booking["status"] = "declined"
     booking["declined_at"] = declined_at
     booking["cancelled_by"] = "business"
@@ -516,17 +518,12 @@ async def cancel_booking(booking_id: str, current_user: UserPublic = Depends(get
 
     cancelled_at = now_utc()
     cancelled_by = "business" if is_business_owner else "client"
-    await db.bookings.update_one(
+    result = await db.bookings.update_one(
         {"booking_id": booking_id, "status": {"$in": ["pending", "confirmed"]}},
-        {
-            "$set": {
-                "status": "cancelled",
-                "cancelled_at": cancelled_at,
-                "cancelled_by": cancelled_by,
-            },
-            "$unset": {"hold_expires_at": ""},
-        },
+        {"$set": {"status": "cancelled", "cancelled_at": cancelled_at, "cancelled_by": cancelled_by}, "$unset": {"hold_expires_at": ""}},
     )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
     if booking.get("slot_id"):
         await db.service_slots.update_one({"slot_id": booking["slot_id"]}, {"$set": {"is_booked": False}})
 
@@ -550,10 +547,12 @@ async def complete_booking(booking_id: str, current_user: UserPublic = Depends(g
         raise HTTPException(status_code=400, detail="Only confirmed bookings can be completed")
 
     completed_at = now_utc()
-    await db.bookings.update_one(
+    result = await db.bookings.update_one(
         {"booking_id": booking_id, "status": "confirmed"},
         {"$set": {"status": "completed", "completed_at": completed_at}},
     )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
     booking["status"] = "completed"
     booking["completed_at"] = completed_at
     service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
@@ -697,14 +696,38 @@ async def create_date_block(
 
     lock_token = await acquire_service_booking_lock(service_id)
     try:
-        conflict = await db.bookings.find_one({
+        from services.date_range_booking import expire_stale_pending_bookings
+        from services.date_range_utils import iter_stay_dates
+        await expire_stale_pending_bookings()
+
+        bookings = await db.bookings.find({
             "service_id": service_id,
             "date": {"$lt": payload.end_date},
             "end_date": {"$gt": payload.start_date},
             "status": {"$in": ["pending", "confirmed"]},
-        })
-        if conflict:
-            raise HTTPException(status_code=409, detail="This date range contains an active reservation")
+        }, {"_id": 0, "date": 1, "end_date": 1, "room_count": 1, "status": 1, "hold_expires_at": 1}).to_list(10000)
+
+        blocks = await db.service_date_blocks.find({
+            "service_id": service_id,
+            "start_date": {"$lt": payload.end_date},
+            "end_date": {"$gt": payload.start_date},
+            "is_active": {"$ne": False},
+        }, {"_id": 0, "start_date": 1, "end_date": 1, "blocked_units": 1}).to_list(1000)
+
+        now = now_utc()
+        active_bookings = [b for b in bookings if b["status"] == "confirmed" or (b["status"] == "pending" and (not b.get("hold_expires_at") or b["hold_expires_at"] > now))]
+
+        conflicting_date = None
+        for d in iter_stay_dates(start, end):
+            ds = d.isoformat()
+            reserved = sum(int(b.get("room_count") or 1) for b in active_bookings if b["end_date"] and b["date"] <= ds < b["end_date"])
+            blocked = sum(int(bl.get("blocked_units") or inventory_count) for bl in blocks if bl["start_date"] <= ds < bl["end_date"])
+            if reserved + blocked + payload.blocked_units > inventory_count:
+                conflicting_date = ds
+                break
+
+        if conflicting_date:
+            raise HTTPException(status_code=409, detail=f"Insufficient inventory on {conflicting_date}")
 
         doc = {
             "block_id": generate_id("blk"),
@@ -799,8 +822,15 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
 
     # Availability validation — placed outside if update_data to catch slots-only requests
     resolved = "rentals" if (business.get("root_category") or "") == "rental-real-estate" else (business.get("root_category") or "")
+    effective_root_category = update_data.get("root_category") or service.get("root_category") or business.get("root_category") or ""
+    effective_type = update_data.get("type") or service.get("type") or ""
+    booking_config = get_service_booking_config(effective_root_category, effective_type)
     from services.date_range_booking import booking_mode_from_config
     booking_mode = booking_mode_from_config(booking_config)
+
+    if booking_mode == "date_range":
+        incoming_slots = None
+        effective_slots = []
 
     if publish_status == "published" and booking_config.get("booking"):
         if booking_mode == "time_slot":
@@ -810,8 +840,6 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
         elif booking_mode == "date_range":
             effective_service_data = {**service, **update_data}
             validate_date_range_service_for_publish(effective_service_data)
-            incoming_slots = None
-            effective_slots = []
         elif not effective_available_from:
             raise HTTPException(status_code=400, detail="Add an availability date before publishing this service.")
 
