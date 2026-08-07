@@ -249,6 +249,12 @@ export default function ServiceBookingModal({
     (requiresSlot && (!selectedDate || !selectedSlot)) ||
     (isDateRange && (!isValidStayRange(checkIn, checkOut) || !stayQuote?.available));
 
+  const minimumCheckout = addDays(checkIn, Math.max(1, service?.min_nights || 1));
+  const maxCheckoutByStay = addDays(checkIn, Math.max(service?.min_nights || 1, service?.max_nights || 30));
+  const effectiveMaxCheckout = service?.available_until
+    ? (maxCheckoutByStay > service.available_until ? service.available_until : maxCheckoutByStay)
+    : undefined;
+
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={s.container} edges={["top", "bottom"]}>
@@ -516,8 +522,8 @@ export default function ServiceBookingModal({
               <Pressable onPress={() => setDatePickerTarget(null)}><Ionicons name="close" size={22} color={COLORS.textPrimary} /></Pressable>
             </View>
             <Calendar
-              minDate={datePickerTarget === "checkOut" ? addDays(checkIn, 1) : (service?.available_from && service.available_from > todayText ? service.available_from : todayText)}
-              maxDate={service?.available_until ? (service.max_nights ? addDays(checkIn, service.max_nights) > service.available_until ? service.available_until : addDays(checkIn, service.max_nights) : service.available_until) : undefined}
+              minDate={datePickerTarget === "checkOut" ? minimumCheckout : (service?.available_from && service.available_from > todayText ? service.available_from : todayText)}
+              maxDate={effectiveMaxCheckout}
               markedDates={{ [checkIn]: { startingDay: true, color: COLORS.primary, textColor: "#fff" }, [checkOut]: { endingDay: true, color: COLORS.primary, textColor: "#fff" } }}
               markingType="period"
               firstDay={1}
@@ -525,7 +531,9 @@ export default function ServiceBookingModal({
                 if (!service) return;
                 if (datePickerTarget === "checkIn") {
                   setCheckIn(day.dateString);
-                  if (checkOut <= day.dateString) setCheckOut(addDays(day.dateString, Math.max(1, service.min_nights || 1)));
+                  const minCo = addDays(day.dateString, Math.max(1, service.min_nights || 1));
+                  if (checkOut < minCo) setCheckOut(minCo);
+                  if (effectiveMaxCheckout && checkOut > effectiveMaxCheckout) setCheckOut(effectiveMaxCheckout);
                 } else { setCheckOut(day.dateString); }
                 setDatePickerTarget(null);
               }}
