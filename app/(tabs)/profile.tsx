@@ -2775,6 +2775,7 @@ currentUserId={businessDetail?.business?.business_id}
           sessionToken={sessionToken || ""}
           onClose={() => { setSlotManagerVisible(false); setSlotManagerServiceId(""); }}
         />
+      )}
 
       <HotelAvailabilityModal
         visible={Boolean(hotelAvailabilityService)}
@@ -2786,7 +2787,6 @@ currentUserId={businessDetail?.business?.business_id}
           setHotelAvailabilityService(null);
         }}
       />
-      )}
 
       <BookingListModal
         visible={bookingListVisible}
