@@ -96,15 +96,26 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
         {booking.booking_mode === "date_range" && booking.end_date && (
           <>
             <Text style={s.bookingDetail}>{booking.date.split("-").reverse().join(" ")} → {booking.end_date.split("-").reverse().join(" ")}</Text>
-            <Text style={s.bookingDetail}>{booking.nights} nights · {booking.room_count || 1} room(s)</Text>
-            <Text style={s.bookingDetail}>{booking.adults || 1} adults · {booking.children || 0} children</Text>
-            {booking.confirmation_code && <Text style={s.bookingDetail}>{booking.confirmation_code}</Text>}
+            <Text style={s.bookingDetail}>{booking.nights} {t("bookingList.nights", "nights")} · {booking.room_count || 1} {t("bookingList.rooms", "room(s)")}</Text>
+            <Text style={s.bookingDetail}>{booking.adults || 1} {t("bookingList.adults", "adults")} · {booking.children || 0} {t("bookingList.children", "children")}</Text>
+            {booking.confirmation_code && <Text style={s.bookingCode}>{booking.confirmation_code}</Text>}
             {booking.service_name && <Text style={s.bookingDetail}>{booking.service_name}</Text>}
+            {booking.service_address && <Text style={s.bookingDetail}><Ionicons name="location" size={12} /> {booking.service_address}</Text>}
+            {booking.business_name && <Text style={s.bookingDetail}><Ionicons name="business" size={12} /> {booking.business_name}</Text>}
+            {booking.check_in_time && booking.check_out_time && (
+              <Text style={s.bookingDetail}>Check-in: {booking.check_in_time} · Check-out: {booking.check_out_time}</Text>
+            )}
+            {booking.cancellation_policy && <Text style={s.bookingNotes}>{booking.cancellation_policy}</Text>}
           </>
         )}
         {booking.guests && !booking.booking_mode && <Text style={s.bookingDetail}>{t("services.guests", "Guests")}: {booking.guests}</Text>}
         {booking.total_amount != null && booking.currency ? (
-          <Text style={s.bookingPrice}>{(booking.total_amount / 100).toFixed(2)} {booking.currency}</Text>
+          <View>
+            {booking.nightly_rate_amount != null && (
+              <Text style={s.bookingDetail}>{(booking.nightly_rate_amount / 100).toFixed(2)} {booking.currency} / night</Text>
+            )}
+            <Text style={s.bookingPrice}>{(booking.total_amount / 100).toFixed(2)} {booking.currency}</Text>
+          </View>
         ) : booking.total_price ? (
           <Text style={s.bookingPrice}>{formatPrice(booking.total_price)}</Text>
         ) : null}
@@ -201,6 +212,7 @@ const s = StyleSheet.create({
   statusBadge: { paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: BORDER_RADIUS.full, marginLeft: SPACING.small },
   statusText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any },
   bookingDetail: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, marginTop: SPACING.tiny },
+  bookingCode: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.primary, marginTop: SPACING.tiny },
   bookingPrice: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success, marginTop: SPACING.tiny },
   bookingNotes: { fontSize: FONT_SIZES.small, color: COLORS.textSecondary, fontStyle: "italic", marginTop: SPACING.tiny },
   actionRow: { flexDirection: "row", gap: SPACING.small, marginTop: SPACING.compact },

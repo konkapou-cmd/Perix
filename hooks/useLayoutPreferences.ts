@@ -50,6 +50,7 @@ const DEFAULT_LAYOUT: HomeLayoutConfig = {
     businesses: "chronological",
     hotels: "chronological",
     jobs: "distance",
+    rentals: "distance",
     services: "distance",
   },
 };

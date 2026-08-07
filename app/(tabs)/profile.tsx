@@ -135,7 +135,7 @@ function normalizeOpeningHoursForState(raw: any): DayHours {
   return { timezone: raw.timezone || "Europe/Berlin", schedule };
 }
 
-const DEFAULT_MODULES = { events: true, tickets: true, jobs: true, bookings: true, services: true, menu: false, rentals: false, gym: false, salon: false };
+const DEFAULT_MODULES = { events: true, tickets: true, jobs: true, bookings: true, services: true, menu: false, rentals: false, gym: false, salon: false, hotel: false };
 const DEFAULT_TOOLS = ["events", "tickets", "jobs", "bookings", "services"];
 
 function sub(slug: string, modules = DEFAULT_MODULES, tools = DEFAULT_TOOLS) {
