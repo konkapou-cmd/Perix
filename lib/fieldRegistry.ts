@@ -10,11 +10,7 @@ export interface FieldConfig {
   options?: string[];
   min?: number;
   max?: number;
-  displayFormat?:
-    | "duration"
-    | "price"
-    | "default"
-    | "sqm";
+  displayFormat?: "duration" | "price" | "default" | "sqm";
 }
 
 export interface FieldRegistry {

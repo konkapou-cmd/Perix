@@ -530,10 +530,13 @@ export default function ServiceBookingModal({
               onDayPress={(day) => {
                 if (!service) return;
                 if (datePickerTarget === "checkIn") {
-                  setCheckIn(day.dateString);
-                  const minCo = addDays(day.dateString, Math.max(1, service.min_nights || 1));
+                  const newCheckIn = day.dateString;
+                  setCheckIn(newCheckIn);
+                  const minCo = addDays(newCheckIn, Math.max(1, service.min_nights || 1));
                   if (checkOut < minCo) setCheckOut(minCo);
-                  if (effectiveMaxCheckout && checkOut > effectiveMaxCheckout) setCheckOut(effectiveMaxCheckout);
+                  const localMax = addDays(newCheckIn, Math.max(service.min_nights || 1, service.max_nights || 30));
+                  const localMaxCheckout = service?.available_until ? (localMax > service.available_until ? service.available_until : localMax) : undefined;
+                  if (localMaxCheckout && checkOut > localMaxCheckout) setCheckOut(localMaxCheckout);
                 } else { setCheckOut(day.dateString); }
                 setDatePickerTarget(null);
               }}

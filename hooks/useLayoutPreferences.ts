@@ -26,6 +26,7 @@ export type HomeLayoutConfig = {
     jobs: "chronological" | "distance" | "random" | "custom";
     rentals: "chronological" | "distance" | "random" | "custom";
     services: "chronological" | "distance" | "engagement" | "random" | "custom";
+  hotels: "chronological" | "distance" | "engagement" | "random" | "custom";
   };
 };
 
