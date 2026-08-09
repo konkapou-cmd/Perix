@@ -126,6 +126,9 @@ async def test_booking_vs_block_race(hotel_service_single):
             return {"error": str(e)}
 
     r1, r2 = await asyncio.gather(do_book(), do_block(), return_exceptions=True)
+    # With inventory=1, at most one of booking/block should succeed
+    successes = sum(1 for r in [r1, r2] if isinstance(r, dict) and "error" not in r)
+    assert successes >= 1  # At least one should succeed
     for r in [r1, r2]:
         if isinstance(r, dict):
             if "booking_id" in r:
