@@ -26,7 +26,7 @@ const getWebUrl = () => {
   return BACKEND_URL.replace("/api", "").replace("api.", "app.");
 };
 
-export type ShareableContentType = "profile" | "event" | "activity" | "business" | "post" | "job";
+export type ShareableContentType = "profile" | "event" | "activity" | "business" | "post" | "job" | "service";
 
 interface ShareContentProps {
   visible: boolean;

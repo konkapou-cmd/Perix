@@ -110,6 +110,7 @@ export * from "./api/jobs";
 export * from "./api/rentals";
 export * from "./api/services";
 export * from "./api/mux";
+export { reportBusiness } from "./api/businesses";
 export * from "./api/social";
 export * from "./api/notifications";
 export * from "./api/subscriptions";

@@ -106,6 +106,7 @@ const uploadToMuxDirect = async (
     },
     uploadType: FileSystemUploadType.BINARY_CONTENT as any,
     fieldName: "file",
+    // @ts-ignore — uploadCallback not in Expo type defs
     uploadCallback: (progressEvent: any) => {
       const total = progressEvent?.totalBytesExpectedToSend;
       const sent = progressEvent?.totalBytesSent;

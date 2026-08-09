@@ -123,22 +123,6 @@ export default function ServiceDetailPage() {
   const handleToggleSave = async () => {
     if (savingItem) return;
     if (!sessionToken) {
-      Alert.alert(t("common.loginRequired") || "Login Required", t("common.loginToSave") || "Please log in",
-        [{ text: t("common.cancel") || "Cancel", style: "cancel" }, { text: t("auth.login") || "Login", onPress: () => router.push("/login") }]);
-      return;
-    }
-    if (!service?.service_id) return;
-    setSavingItem(true);
-    try {
-      const { is_saved } = await toggleSaved(sessionToken, "service", service.service_id);
-      setIsSaved(is_saved);
-    } catch (e: any) { Alert.alert("Error", e.message || "Save failed"); }
-    finally { setSavingItem(false); }
-  };
-
-  const handleToggleSave = async () => {
-    if (savingItem) return;
-    if (!sessionToken) {
       Alert.alert(t("common.loginRequired", "Login Required"), t("common.loginToSave", "Please log in"),
         [{ text: t("common.cancel", "Cancel"), style: "cancel" }, { text: t("auth.login", "Login"), onPress: () => router.push("/login") }]);
       return;
@@ -560,7 +544,7 @@ const styles = StyleSheet.create({
   dateChipNum: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: COLORS.textPrimary },
   dateChipNumSelected: { color: "#fff" },
   slotsGrid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: SPACING.std },
-  slotChip: { paddingHorizontal: SPACING.compact, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.section, borderWidth: 1, borderColor: COLORS.borderGray, backgroundColor: "#fff" },
+  slotChip: { paddingHorizontal: SPACING.compact, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.borderGray, backgroundColor: "#fff" },
   slotChipSelected: { backgroundColor: COLORS.servicesAccent, borderColor: COLORS.servicesAccent },
   slotChipFull: { opacity: 0.4, borderColor: COLORS.danger },
   slotChipText: { fontSize: FONT_SIZES.small, color: COLORS.textDark },
