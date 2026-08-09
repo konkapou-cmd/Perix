@@ -15,7 +15,7 @@ async def test_db():
     database.db = d
 
     # Patch production modules that import db from database
-    for mod_name in ["services.date_range_booking", "routes.services"]:
+    for mod_name in ["services.date_range_booking", "routes.services", "scripts.migrate_hotel_booking_v2"]:
         try:
             import importlib
             mod = importlib.import_module(mod_name)
