@@ -64,7 +64,7 @@ export const pushEntityRoute = (
   router.push(route as any);
 };
 
-export const showInvalidEntityAlert = (t: (key: string, fb?: string) => string) => {
+export const showInvalidEntityAlert = (t: any) => {
   Alert.alert(
     t("common.error", "Fehler"),
     t("common.unavailable", "Dieser Eintrag kann nicht geöffnet werden."),
