@@ -1,36 +1,34 @@
-"""Integration tests for date-range booking engine.
-
-These tests require a running MongoDB (Motor) database. They use async
-Pytest with a real (possibly test) database connection.
-"""
+"""Integration tests for date-range booking engine."""
 import sys, os, pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import asyncio
 from datetime import date, timedelta
 from decimal import Decimal
+from motor.motor_asyncio import AsyncIOMotorClient
 
-from database import db
+from config import MONGO_URL, DB_NAME
 from services.date_range_booking import (
-    build_stay_quote,
-    create_date_range_booking,
-    confirm_date_range_booking,
-    expire_stale_pending_bookings,
-    acquire_service_booking_lock,
-    release_service_booking_lock,
+    build_stay_quote, create_date_range_booking, confirm_date_range_booking,
 )
-from services.date_range_utils import (
-    parse_price_to_cents,
-    calculate_total_cents,
-    validate_stay_dates,
-    iter_stay_dates,
-)
-from models.service import BookingCreate
+from services.date_range_utils import parse_price_to_cents, calculate_total_cents
 from utils.helpers import generate_id, now_utc
 
 
 @pytest.fixture
-async def hotel_service():
+async def db():
+    """Fresh Motor client in pytest's event loop — patches database.db + services."""
+    import database
+    import services.date_range_booking as sdrb
+    client = AsyncIOMotorClient(MONGO_URL)
+    d = client[DB_NAME]
+    database.db = d
+    sdrb.db = d  # Patch the module-level reference used by build_stay_quote etc.
+    yield d
+    client.close()
+
+
+@pytest.fixture
+async def hotel_service(db):
     """Create a test hotel service with inventory=3, price=120/night."""
     svc_id = generate_id("svc")
     doc = {
@@ -144,7 +142,7 @@ async def test_pricing_server_calculated(hotel_service):
 
 
 @pytest.mark.asyncio
-async def test_full_capacity_fully_booked(hotel_service):
+async def test_full_capacity_fully_booked(db, hotel_service):
     """Book all 3 rooms — stay quote should show unavailable."""
     # Create a confirmed booking for all 3 rooms
     booking_doc = {
@@ -181,7 +179,7 @@ async def test_full_capacity_fully_booked(hotel_service):
 
 
 @pytest.mark.asyncio
-async def test_stale_pending_does_not_consume(hotel_service):
+async def test_stale_pending_does_not_consume(db, hotel_service):
     """Expired pending booking should not block inventory."""
     booking_doc = {
         "booking_id": generate_id("bkg"),
@@ -212,7 +210,7 @@ async def test_stale_pending_does_not_consume(hotel_service):
 
 
 @pytest.mark.asyncio
-async def test_request_id_idempotent(hotel_service):
+async def test_request_id_idempotent(db, hotel_service):
     """Same request_id should not create duplicate booking."""
     from models.service import BookingCreate
     payload = BookingCreate(
@@ -239,7 +237,7 @@ async def test_request_id_idempotent(hotel_service):
 
 
 @pytest.mark.asyncio
-async def test_partial_block_allowed(hotel_service):
+async def test_partial_block_allowed(db, hotel_service):
     """Create a block that doesn't exceed inventory should succeed."""
     # Block 1 room for Sep 10-13
     block_doc = {
