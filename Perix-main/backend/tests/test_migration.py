@@ -9,7 +9,7 @@ from scripts.migrate_hotel_booking_v2 import migrate_services, migrate_bookings
 
 
 @pytest.fixture
-async def migration_test_data():
+async def migration_test_data(test_db):
     svc_id = generate_id("svc-t")
     svc_doc = {
         "service_id": svc_id, "business_id": "test-biz-m", "type": "hotel_room",

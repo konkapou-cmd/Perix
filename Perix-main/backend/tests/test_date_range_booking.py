@@ -14,7 +14,7 @@ from utils.helpers import generate_id, now_utc
 
 
 @pytest.fixture
-async def hotel_service():
+async def hotel_service(test_db):
     """Create a test hotel service with inventory=3, price=120/night."""
     svc_id = generate_id("svc")
     """Create a test hotel service with inventory=3, price=120/night."""

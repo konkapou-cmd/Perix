@@ -12,7 +12,7 @@ from utils.helpers import generate_id, now_utc
 
 
 @pytest.fixture
-async def hotel_service_single():
+async def hotel_service_single(test_db):
     svc_id = generate_id("svc")
     doc = {
         "service_id": svc_id, "business_id": "test-biz-rc", "type": "hotel_room",
@@ -31,7 +31,7 @@ async def hotel_service_single():
 
 
 @pytest.fixture
-async def hotel_service_multi():
+async def hotel_service_multi(test_db):
     svc_id = generate_id("svc")
     doc = {
         "service_id": svc_id, "business_id": "test-biz-mc", "type": "hotel_room",
