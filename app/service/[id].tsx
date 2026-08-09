@@ -25,6 +25,7 @@ import ErrorState from "../../components/shared/ErrorState";
 import { ChecklistCard } from "../../components/shared/ChecklistCard";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
+import { EntityHeader } from "../../components/shared/EntityHeader";
 import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 
 const BACKEND_URL =
@@ -89,23 +90,6 @@ export default function ServiceDetailPage() {
     return getServiceCtaType(service.type);
   }, [service]);
 
-  const handleToggleSave = async () => {
-    return (
-      <SafeAreaView style={styles.centered} edges={["top"]}>
-        <ErrorState
-          message={t("services.invalidService", "Dieser Dienst kann nicht geöffnet werden.")}
-          fullWidth
-        />
-        <Pressable
-          style={[styles.backButton, { backgroundColor: COLORS.servicesAccent }]}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>{t("common.back", "Zurück")}</Text>
-        </Pressable>
-      </SafeAreaView>
-    );
-  }
-
   const ctaLabel =
     ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
     : ctaType === "reservation" ? t("services.reserve", "Reservieren")
@@ -152,6 +136,22 @@ export default function ServiceDetailPage() {
     finally { setSavingItem(false); }
   };
 
+  const handleToggleSave = async () => {
+    if (savingItem) return;
+    if (!sessionToken) {
+      Alert.alert(t("common.loginRequired", "Login Required"), t("common.loginToSave", "Please log in"),
+        [{ text: t("common.cancel", "Cancel"), style: "cancel" }, { text: t("auth.login", "Login"), onPress: () => router.push("/login") }]);
+      return;
+    }
+    if (!service?.service_id) return;
+    setSavingItem(true);
+    try {
+      const { is_saved } = await toggleSaved(sessionToken, "service", service.service_id);
+      setIsSaved(is_saved);
+    } catch (e: any) { Alert.alert("Error", e.message || "Save failed"); }
+    finally { setSavingItem(false); }
+  };
+
   const handleSendInquiry = async () => {
     if (!sessionToken || !service) { Alert.alert("Error", t("services.loginRequired")); return; }
     if (!inquiryName.trim() || !inquiryMessage.trim()) { Alert.alert("Error", t("services.fillRequired")); return; }
@@ -162,39 +162,6 @@ export default function ServiceDetailPage() {
       setShowInquiry(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage("");
     } catch (e: any) { Alert.alert("Error", e.message || t("services.inquiryFailed")); }
     finally { setSubmittingInquiry(false); }
-  };
-
-  const handleToggleSave = async () => {
-    if (savingItem) return;
-
-    if (!sessionToken) {
-      Alert.alert(
-        t("common.loginRequired") || "Login Required",
-        t("common.loginToSave") || "Please log in",
-        [
-          { text: t("common.cancel") || "Cancel", style: "cancel" },
-          { text: t("auth.login") || "Login", onPress: () => router.push("/login") },
-        ],
-      );
-      return;
-    }
-
-    if (!service?.service_id) return;
-
-    setSavingItem(true);
-
-    try {
-      const { is_saved } = await toggleSaved(sessionToken, "service", service.service_id);
-      setIsSaved(is_saved);
-    } catch (error) {
-      console.error("Failed to toggle saved service:", error);
-      Alert.alert(
-        t("common.error") || "Error",
-        t("common.pleaseTryAgain") || "Please try again",
-      );
-    } finally {
-      setSavingItem(false);
-    }
   };
 
   const formatTime = (time: string) => { const [h, m] = time.split(":"); return `${h}:${m}`; };
