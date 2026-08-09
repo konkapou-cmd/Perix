@@ -10,7 +10,7 @@ import { getServiceDetail, sendServiceInquiry } from "../../lib/api/services";
 import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { Service } from "../../lib/api/core";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
-import { getServiceCtaType, isServiceBookable, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
+import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
@@ -25,7 +25,6 @@ import ErrorState from "../../components/shared/ErrorState";
 import { ChecklistCard } from "../../components/shared/ChecklistCard";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
-import { EntityHeader } from "../../components/shared/EntityHeader";
 import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 
 const BACKEND_URL =
@@ -77,7 +76,7 @@ export default function ServiceDetailPage() {
 
   const requiresSlots = useMemo(() => {
     if (!service) return true;
-    return isServiceBookable(service.type);
+    return requiresServiceSlots(service.type);
   }, [service]);
 
   const requiresBooking = useMemo(() => {
@@ -90,9 +89,10 @@ export default function ServiceDetailPage() {
     return getServiceCtaType(service.type);
   }, [service]);
 
-  if (!id) {
+  const handleToggleSave = async () => {
     return (
       <SafeAreaView style={styles.centered} edges={["top"]}>
+        <ErrorState
           message={t("services.invalidService", "Dieser Dienst kann nicht geöffnet werden.")}
           fullWidth
         />
@@ -164,6 +164,7 @@ export default function ServiceDetailPage() {
     finally { setSubmittingInquiry(false); }
   };
 
+  const handleToggleSave = async () => {
     if (savingItem) return;
 
     if (!sessionToken) {
