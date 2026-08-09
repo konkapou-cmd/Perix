@@ -679,8 +679,7 @@ async def create_date_block(
     service_id: str, payload: DateBlockCreate,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    from services.date_range_booking import acquire_service_booking_lock, release_service_booking_lock
-    from services.date_range_utils import parse_iso_date
+    from services.date_range_booking import create_service_date_block
 
     service = await db.services.find_one({"service_id": service_id})
     if not service:
@@ -689,64 +688,14 @@ async def create_date_block(
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    start = parse_iso_date(payload.start_date, "Block start")
-    end = parse_iso_date(payload.end_date, "Block end")
-    if end <= start:
-        raise HTTPException(status_code=400, detail="Block end must be after block start")
-
-    inventory_count = int(service.get("inventory_count") or 1)
-    if payload.blocked_units > inventory_count:
-        raise HTTPException(status_code=400, detail="Blocked units cannot exceed room inventory")
-
-    lock_token = await acquire_service_booking_lock(service_id)
-    try:
-        from services.date_range_booking import expire_stale_pending_bookings
-        from services.date_range_utils import iter_stay_dates
-        await expire_stale_pending_bookings()
-
-        bookings = await db.bookings.find({
-            "service_id": service_id,
-            "date": {"$lt": payload.end_date},
-            "end_date": {"$gt": payload.start_date},
-            "status": {"$in": ["pending", "confirmed"]},
-        }, {"_id": 0, "date": 1, "end_date": 1, "room_count": 1, "status": 1, "hold_expires_at": 1}).to_list(10000)
-
-        blocks = await db.service_date_blocks.find({
-            "service_id": service_id,
-            "start_date": {"$lt": payload.end_date},
-            "end_date": {"$gt": payload.start_date},
-            "is_active": {"$ne": False},
-        }, {"_id": 0, "start_date": 1, "end_date": 1, "blocked_units": 1}).to_list(1000)
-
-        now = now_utc()
-        active_bookings = [b for b in bookings if b["status"] == "confirmed" or (b["status"] == "pending" and (not b.get("hold_expires_at") or b["hold_expires_at"] > now))]
-
-        conflicting_date = None
-        for d in iter_stay_dates(start, end):
-            ds = d.isoformat()
-            reserved = sum(int(b.get("room_count") or 1) for b in active_bookings if b["end_date"] and b["date"] <= ds < b["end_date"])
-            blocked = sum(int(bl.get("blocked_units") or inventory_count) for bl in blocks if bl["start_date"] <= ds < bl["end_date"])
-            if reserved + blocked + payload.blocked_units > inventory_count:
-                conflicting_date = ds
-                break
-
-        if conflicting_date:
-            raise HTTPException(status_code=409, detail=f"Insufficient inventory on {conflicting_date}")
-
-        doc = {
-            "block_id": generate_id("blk"),
-            "service_id": service_id,
-            "start_date": payload.start_date,
-            "end_date": payload.end_date,
-            "blocked_units": payload.blocked_units,
-            "reason": payload.reason,
-            "is_active": True,
-            "created_at": now_utc(),
-        }
-        await db.service_date_blocks.insert_one(doc)
-        return DateBlockResponse(**doc)
-    finally:
-        await release_service_booking_lock(service_id, lock_token)
+    block = await create_service_date_block(
+        service_id=service_id,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        blocked_units=payload.blocked_units,
+        reason=payload.reason,
+    )
+    return DateBlockResponse(**block)
 
 
 @router.delete("/{service_id}/date-blocks/{block_id}")
