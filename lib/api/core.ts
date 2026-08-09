@@ -1199,6 +1199,8 @@ export type Service = {
   max_nights?: number | null;
   cancellation_policy?: string | null;
   currency?: string | null;
+  business_name?: string | null;
+  business_logo?: string | null;
 };
 
 export type TimeSlot = {

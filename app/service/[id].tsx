@@ -25,6 +25,7 @@ import ErrorState from "../../components/shared/ErrorState";
 import { ChecklistCard } from "../../components/shared/ChecklistCard";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
+import { EntityHeader } from "../../components/shared/EntityHeader";
 import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 
 const BACKEND_URL =
@@ -76,7 +77,7 @@ export default function ServiceDetailPage() {
 
   const requiresSlots = useMemo(() => {
     if (!service) return true;
-    return requiresServiceSlots(service.type);
+    return isServiceBookable(service.type);
   }, [service]);
 
   const requiresBooking = useMemo(() => {
@@ -89,10 +90,9 @@ export default function ServiceDetailPage() {
     return getServiceCtaType(service.type);
   }, [service]);
 
-  const handleToggleSave = async () => {
+  if (!id) {
     return (
       <SafeAreaView style={styles.centered} edges={["top"]}>
-        <ErrorState
           message={t("services.invalidService", "Dieser Dienst kann nicht geöffnet werden.")}
           fullWidth
         />
@@ -164,7 +164,6 @@ export default function ServiceDetailPage() {
     finally { setSubmittingInquiry(false); }
   };
 
-  const handleToggleSave = async () => {
     if (savingItem) return;
 
     if (!sessionToken) {
