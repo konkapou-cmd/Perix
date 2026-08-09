@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from pymongo.errors import DuplicateKeyError
 
 from database import db
+
 from models.service import BookingCreate
 from utils.helpers import generate_id, now_utc
 from services.date_range_utils import (
@@ -438,3 +439,44 @@ async def confirm_date_range_booking(
         return await enrich_booking(booking, service=service, business=business)
     finally:
         await release_service_booking_lock(service["service_id"], lock_token)
+
+
+async def create_service_date_block(
+    service_id: str, start_date: str, end_date: str,
+    blocked_units: int = 1, reason: Optional[str] = None,
+) -> dict[str, Any]:
+    """Create a date block with inventory validation under lock. No auth."""
+    from services.date_range_utils import parse_iso_date, iter_stay_dates
+    svc = await db.services.find_one({"service_id": service_id})
+    if not svc:
+        raise HTTPException(status_code=404, detail="Service not found")
+    start = parse_iso_date(start_date, "Block start")
+    end = parse_iso_date(end_date, "Block end")
+    if end <= start:
+        raise HTTPException(status_code=400, detail="Block end must be after block start")
+    inv = int(svc.get("inventory_count") or 1)
+    if blocked_units > inv:
+        raise HTTPException(status_code=400, detail="Blocked units cannot exceed room inventory")
+    lock_token = await acquire_service_booking_lock(service_id)
+    try:
+        await expire_stale_pending_bookings()
+        bookings = await db.bookings.find({
+            "service_id": service_id, "date": {"$lt": end_date}, "end_date": {"$gt": start_date},
+            "status": {"$in": ["pending", "confirmed"]},
+        }, {"_id": 0, "date": 1, "end_date": 1, "room_count": 1, "status": 1, "hold_expires_at": 1}).to_list(10000)
+        blks = await db.service_date_blocks.find({
+            "service_id": service_id, "start_date": {"$lt": end_date}, "end_date": {"$gt": start_date},
+            "is_active": {"$ne": False}}, {"_id": 0}).to_list(1000)
+        now = now_utc()
+        active = [b for b in bookings if b["status"] == "confirmed" or (b["status"] == "pending" and (not b.get("hold_expires_at") or b["hold_expires_at"] > now))]
+        for d in iter_stay_dates(start, end):
+            ds = d.isoformat()
+            r = sum(int(b.get("room_count") or 1) for b in active if b["end_date"] and b["date"] <= ds < b["end_date"])
+            bl = sum(int(b.get("blocked_units") or inv) for b in blks if b["start_date"] <= ds < b["end_date"])
+            if r + bl + blocked_units > inv:
+                raise HTTPException(status_code=409, detail=f"Insufficient inventory on {ds}")
+        doc = {"block_id": generate_id("blk"), "service_id": service_id, "start_date": start_date, "end_date": end_date, "blocked_units": blocked_units, "reason": reason, "is_active": True, "created_at": now}
+        await db.service_date_blocks.insert_one(doc)
+        return doc
+    finally:
+        await release_service_booking_lock(service_id, lock_token)

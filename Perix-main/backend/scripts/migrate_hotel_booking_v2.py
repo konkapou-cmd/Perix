@@ -106,6 +106,9 @@ async def migrate_bookings(apply: bool = False) -> int:
             update["end_date"] = (date.fromisoformat(booking["date"]) + timedelta(days=nights)).isoformat()
             update["nights"] = nights
             changed_any = True
+        elif booking.get("nights") is None:
+            update["nights"] = max(1, (date.fromisoformat(booking["end_date"]) - date.fromisoformat(booking["date"])).days)
+            changed_any = True
         if booking.get("currency") is None:
             update["currency"] = service.get("currency") or "EUR"
             changed_any = True

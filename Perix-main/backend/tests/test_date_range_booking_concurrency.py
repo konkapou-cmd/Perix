@@ -116,19 +116,16 @@ async def test_booking_vs_block_race(hotel_service_single):
 
     async def do_block():
         try:
-            # Direct DB write simulates the race condition — bypasses lock
-            doc = {"block_id": generate_id("blk"), "service_id": svc["service_id"],
-                   "start_date": "2026-11-01", "end_date": "2026-11-04",
-                   "blocked_units": 1, "is_active": True, "created_at": now_utc()}
-            await database.db.service_date_blocks.insert_one(doc)
-            return {"block_id": doc["block_id"]}
+            from services.date_range_booking import create_service_date_block
+            return await create_service_date_block(
+                svc["service_id"], start_date="2026-11-01", end_date="2026-11-04", blocked_units=1)
         except Exception as e:
             return {"error": str(e)}
 
     r1, r2 = await asyncio.gather(do_book(), do_block(), return_exceptions=True)
-    # With inventory=1, at most one of booking/block should succeed
+    # With inventory=1, exactly one of booking/block should succeed
     successes = sum(1 for r in [r1, r2] if isinstance(r, dict) and "error" not in r)
-    assert successes >= 1  # At least one should succeed
+    assert successes == 1
     for r in [r1, r2]:
         if isinstance(r, dict):
             if "booking_id" in r:

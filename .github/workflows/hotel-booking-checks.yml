@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: 20
       - run: node --version && npm --version
-      - run: npm ci --ignore-scripts
+      - run: npm ci --ignore-scripts --loglevel verbose
       - run: npx expo postinstall 2>/dev/null || true
       - run: npm run typecheck:hotel
       - run: npm run lint
@@ -39,6 +39,6 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -c "import database; database.db.command('ping')"  # verify DB alive
+      - run: python -c "import asyncio, database; asyncio.run(database.db.command('ping'))"
       - run: python -m pytest --collect-only -q tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py
-      - run: pytest -v --tb=short tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py
+      - run: python -m pytest -v --tb=short tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py
