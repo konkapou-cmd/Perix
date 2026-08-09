@@ -14,13 +14,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-      - run: node --version && yarn --version
-      - run: ls package.json yarn.lock package-lock.json 2>/dev/null || echo "no package-lock.json"
-      - run: yarn install --frozen-lockfile --ignore-scripts --verbose
-      - run: yarn run postinstall
-      - run: yarn typecheck:hotel
-      - run: yarn lint
+      - run: node --version && npm --version
+      - run: npm ci --ignore-scripts
+      - run: npx expo postinstall 2>/dev/null || true
+      - run: npm run typecheck:hotel
+      - run: npm run lint
 
   backend-unit:
     runs-on: ubuntu-latest
