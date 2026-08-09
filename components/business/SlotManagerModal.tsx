@@ -19,11 +19,13 @@ type Props = {
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-export default function SlotManagerModal({ visible, serviceId, sessionToken, serviceType, onClose }: Props) {
+export default function SlotManagerModal(props: Props) {
+  if (props.serviceType === "hotel_room") return null;
+  return <SlotManagerModalContent {...props} />;
+}
+
+function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType, onClose }: Props) {
   const { t } = useTranslation();
-
-  if (serviceType === "hotel_room") return null;
-
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todayISO());

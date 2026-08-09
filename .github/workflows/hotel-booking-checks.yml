@@ -18,7 +18,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run postinstall
       - run: npm run typecheck:hotel
-      - run: npm run lint
+      - run: npm run lint:hotel
 
   backend-unit:
     runs-on: ubuntu-latest
