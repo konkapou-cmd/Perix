@@ -3,7 +3,7 @@ import sys, os, pytest, asyncio
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datetime import timedelta
-from database import db
+import database
 from services.date_range_booking import (
     build_stay_quote, create_date_range_booking, confirm_date_range_booking,
 )
@@ -23,11 +23,11 @@ async def hotel_service_single():
         "available_until": "2027-12-31", "is_active": True, "status": "published",
         "created_at": now_utc(),
     }
-    await db.services.insert_one(doc)
+    await database.db.services.insert_one(doc)
     yield doc
-    await db.services.delete_one({"service_id": svc_id})
-    await db.bookings.delete_many({"service_id": svc_id})
-    await db.service_date_blocks.delete_many({"service_id": svc_id})
+    await database.db.services.delete_one({"service_id": svc_id})
+    await database.db.bookings.delete_many({"service_id": svc_id})
+    await database.db.service_date_blocks.delete_many({"service_id": svc_id})
 
 
 @pytest.fixture
@@ -42,11 +42,11 @@ async def hotel_service_multi():
         "available_until": "2027-12-31", "is_active": True, "status": "published",
         "created_at": now_utc(),
     }
-    await db.services.insert_one(doc)
+    await database.db.services.insert_one(doc)
     yield doc
-    await db.services.delete_one({"service_id": svc_id})
-    await db.bookings.delete_many({"service_id": svc_id})
-    await db.service_date_blocks.delete_many({"service_id": svc_id})
+    await database.db.services.delete_one({"service_id": svc_id})
+    await database.db.bookings.delete_many({"service_id": svc_id})
+    await database.db.service_date_blocks.delete_many({"service_id": svc_id})
 
 
 def make_booking(service_id: str, client_id: str, date="2026-10-01"):
@@ -57,7 +57,7 @@ def make_booking(service_id: str, client_id: str, date="2026-10-01"):
 
 async def cleanup_booking(b):
     if isinstance(b, dict) and "booking_id" in b:
-        await db.bookings.delete_one({"booking_id": b["booking_id"]})
+        await database.db.bookings.delete_one({"booking_id": b["booking_id"]})
 
 
 # ─── Final room race ───
@@ -98,7 +98,7 @@ async def test_double_confirm_only_one_succeeds(hotel_service_single):
         successes = sum(1 for r in [r1, r2] if isinstance(r, dict) and r.get("status") == "confirmed")
         assert successes == 1
     finally:
-        await db.bookings.delete_one({"booking_id": booking["booking_id"]})
+        await database.db.bookings.delete_one({"booking_id": booking["booking_id"]})
 
 
 # ─── Booking vs owner block race ───
@@ -120,7 +120,7 @@ async def test_booking_vs_block_race(hotel_service_single):
             doc = {"block_id": generate_id("blk"), "service_id": svc["service_id"],
                    "start_date": "2026-11-01", "end_date": "2026-11-04",
                    "blocked_units": 1, "is_active": True, "created_at": now_utc()}
-            await db.service_date_blocks.insert_one(doc)
+            await database.db.service_date_blocks.insert_one(doc)
             return {"block_id": doc["block_id"]}
         except Exception as e:
             return {"error": str(e)}
@@ -129,9 +129,9 @@ async def test_booking_vs_block_race(hotel_service_single):
     for r in [r1, r2]:
         if isinstance(r, dict):
             if "booking_id" in r:
-                await db.bookings.delete_one({"booking_id": r["booking_id"]})
+                await database.db.bookings.delete_one({"booking_id": r["booking_id"]})
             if "block_id" in r:
-                await db.service_date_blocks.delete_one({"block_id": r["block_id"]})
+                await database.db.service_date_blocks.delete_one({"block_id": r["block_id"]})
 
 
 # ─── Confirm vs decline race ───
@@ -152,7 +152,7 @@ async def test_confirm_vs_decline_race(hotel_service_single):
             try:
                 from routes.services import decline_booking
                 # Use the route handler
-                result = await db.bookings.update_one(
+                result = await database.db.bookings.update_one(
                     {"booking_id": booking["booking_id"], "status": "pending"},
                     {"$set": {"status": "declined", "declined_at": now_utc(), "cancelled_by": "business"},
                      "$unset": {"hold_expires_at": ""}})
@@ -169,7 +169,7 @@ async def test_confirm_vs_decline_race(hotel_service_single):
         assert successes == 1
         assert errors == 1
     finally:
-        await db.bookings.delete_one({"booking_id": booking["booking_id"]})
+        await database.db.bookings.delete_one({"booking_id": booking["booking_id"]})
 
 
 # ─── Cancel vs complete race ───
@@ -184,7 +184,7 @@ async def test_cancel_vs_complete_race(hotel_service_single):
     try:
         async def do_cancel():
             try:
-                result = await db.bookings.update_one(
+                result = await database.db.bookings.update_one(
                     {"booking_id": booking["booking_id"], "status": {"$in": ["pending", "confirmed"]}},
                     {"$set": {"status": "cancelled", "cancelled_at": now_utc(), "cancelled_by": "client"},
                      "$unset": {"hold_expires_at": ""}})
@@ -196,7 +196,7 @@ async def test_cancel_vs_complete_race(hotel_service_single):
 
         async def do_complete():
             try:
-                result = await db.bookings.update_one(
+                result = await database.db.bookings.update_one(
                     {"booking_id": booking["booking_id"], "status": "confirmed"},
                     {"$set": {"status": "completed", "completed_at": now_utc()}})
                 if result.modified_count != 1:
@@ -212,7 +212,7 @@ async def test_cancel_vs_complete_race(hotel_service_single):
         assert successes == 1
         assert errors == 1
     finally:
-        await db.bookings.delete_one({"booking_id": booking["booking_id"]})
+        await database.db.bookings.delete_one({"booking_id": booking["booking_id"]})
 
 
 # ─── Double cancel ───
@@ -225,7 +225,7 @@ async def test_double_cancel_only_one_succeeds(hotel_service_single):
     try:
         async def cancel():
             try:
-                result = await db.bookings.update_one(
+                result = await database.db.bookings.update_one(
                     {"booking_id": booking["booking_id"], "status": {"$in": ["pending", "confirmed"]}},
                     {"$set": {"status": "cancelled", "cancelled_at": now_utc(), "cancelled_by": "client"},
                      "$unset": {"hold_expires_at": ""}})
@@ -239,7 +239,7 @@ async def test_double_cancel_only_one_succeeds(hotel_service_single):
         successes = sum(1 for r in [r1, r2] if isinstance(r, dict) and "error" not in r)
         assert successes == 1
     finally:
-        await db.bookings.delete_one({"booking_id": booking["booking_id"]})
+        await database.db.bookings.delete_one({"booking_id": booking["booking_id"]})
 
 
 @pytest.mark.asyncio
@@ -257,7 +257,7 @@ async def test_confirm_vs_cancel_race(hotel_service_single):
 
         async def do_cancel():
             try:
-                result = await db.bookings.update_one(
+                result = await database.db.bookings.update_one(
                     {"booking_id": booking["booking_id"], "status": {"$in": ["pending", "confirmed"]}},
                     {"$set": {"status": "cancelled", "cancelled_at": now_utc(), "cancelled_by": "client"},
                      "$unset": {"hold_expires_at": ""}})
@@ -271,4 +271,4 @@ async def test_confirm_vs_cancel_race(hotel_service_single):
         successes = sum(1 for r in [r1, r2] if isinstance(r, dict) and "error" not in r)
         assert successes == 1
     finally:
-        await db.bookings.delete_one({"booking_id": booking["booking_id"]})
+        await database.db.bookings.delete_one({"booking_id": booking["booking_id"]})

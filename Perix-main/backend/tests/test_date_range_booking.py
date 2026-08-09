@@ -4,9 +4,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datetime import date, timedelta
 from decimal import Decimal
-from motor.motor_asyncio import AsyncIOMotorClient
 
-from config import MONGO_URL, DB_NAME
+import database
 from services.date_range_booking import (
     build_stay_quote, create_date_range_booking, confirm_date_range_booking,
 )
@@ -15,20 +14,9 @@ from utils.helpers import generate_id, now_utc
 
 
 @pytest.fixture
-async def db():
-    """Fresh Motor client in pytest's event loop — patches database.db + services."""
-    import database
-    import services.date_range_booking as sdrb
-    client = AsyncIOMotorClient(MONGO_URL)
-    d = client[DB_NAME]
-    database.db = d
-    sdrb.db = d  # Patch the module-level reference used by build_stay_quote etc.
-    yield d
-    client.close()
-
-
-@pytest.fixture
-async def hotel_service(db):
+async def hotel_service():
+    """Create a test hotel service with inventory=3, price=120/night."""
+    svc_id = generate_id("svc")
     """Create a test hotel service with inventory=3, price=120/night."""
     svc_id = generate_id("svc")
     doc = {
@@ -54,12 +42,12 @@ async def hotel_service(db):
         "status": "published",
         "created_at": now_utc(),
     }
-    await db.services.insert_one(doc)
+    await database.db.services.insert_one(doc)
     yield doc
     # Cleanup
-    await db.services.delete_one({"service_id": svc_id})
-    await db.bookings.delete_many({"service_id": svc_id})
-    await db.service_date_blocks.delete_many({"service_id": svc_id})
+    await database.db.services.delete_one({"service_id": svc_id})
+    await database.db.bookings.delete_many({"service_id": svc_id})
+    await database.db.service_date_blocks.delete_many({"service_id": svc_id})
 
 
 @pytest.mark.asyncio
@@ -142,7 +130,7 @@ async def test_pricing_server_calculated(hotel_service):
 
 
 @pytest.mark.asyncio
-async def test_full_capacity_fully_booked(db, hotel_service):
+async def test_full_capacity_fully_booked(hotel_service):
     """Book all 3 rooms — stay quote should show unavailable."""
     # Create a confirmed booking for all 3 rooms
     booking_doc = {
@@ -164,7 +152,7 @@ async def test_full_capacity_fully_booked(db, hotel_service):
         "hold_expires_at": None,
         "created_at": now_utc(),
     }
-    await db.bookings.insert_one(booking_doc)
+    await database.db.bookings.insert_one(booking_doc)
     try:
         quote = await build_stay_quote(
             hotel_service,
@@ -175,11 +163,11 @@ async def test_full_capacity_fully_booked(db, hotel_service):
         assert not quote["available"]
         assert "2026-09-10" in quote["unavailable_dates"]
     finally:
-        await db.bookings.delete_one({"booking_id": booking_doc["booking_id"]})
+        await database.db.bookings.delete_one({"booking_id": booking_doc["booking_id"]})
 
 
 @pytest.mark.asyncio
-async def test_stale_pending_does_not_consume(db, hotel_service):
+async def test_stale_pending_does_not_consume(hotel_service):
     """Expired pending booking should not block inventory."""
     booking_doc = {
         "booking_id": generate_id("bkg"),
@@ -196,7 +184,7 @@ async def test_stale_pending_does_not_consume(db, hotel_service):
         "hold_expires_at": now_utc() - timedelta(hours=48),  # expired
         "created_at": now_utc(),
     }
-    await db.bookings.insert_one(booking_doc)
+    await database.db.bookings.insert_one(booking_doc)
     try:
         quote = await build_stay_quote(
             hotel_service,
@@ -206,11 +194,11 @@ async def test_stale_pending_does_not_consume(db, hotel_service):
         )
         assert quote["available"]  # Expired, so available
     finally:
-        await db.bookings.delete_one({"booking_id": booking_doc["booking_id"]})
+        await database.db.bookings.delete_one({"booking_id": booking_doc["booking_id"]})
 
 
 @pytest.mark.asyncio
-async def test_request_id_idempotent(db, hotel_service):
+async def test_request_id_idempotent(hotel_service):
     """Same request_id should not create duplicate booking."""
     from models.service import BookingCreate
     payload = BookingCreate(
@@ -233,11 +221,11 @@ async def test_request_id_idempotent(db, hotel_service):
         # Same booking_id returned
         assert b2["booking_id"] == b1["booking_id"]
     finally:
-        await db.bookings.delete_one({"booking_id": b1["booking_id"]})
+        await database.db.bookings.delete_one({"booking_id": b1["booking_id"]})
 
 
 @pytest.mark.asyncio
-async def test_partial_block_allowed(db, hotel_service):
+async def test_partial_block_allowed(hotel_service):
     """Create a block that doesn't exceed inventory should succeed."""
     # Block 1 room for Sep 10-13
     block_doc = {
@@ -249,7 +237,7 @@ async def test_partial_block_allowed(db, hotel_service):
         "is_active": True,
         "created_at": now_utc(),
     }
-    await db.service_date_blocks.insert_one(block_doc)
+    await database.db.service_date_blocks.insert_one(block_doc)
     try:
         # Book 1 room (inventory=3, blocked=1 → 2 available)
         quote = await build_stay_quote(
@@ -260,4 +248,4 @@ async def test_partial_block_allowed(db, hotel_service):
         )
         assert quote["available"]  # 3 - 1 blocked = 2 available, requesting 2 -> OK
     finally:
-        await db.service_date_blocks.delete_one({"block_id": block_doc["block_id"]})
+        await database.db.service_date_blocks.delete_one({"block_id": block_doc["block_id"]})
