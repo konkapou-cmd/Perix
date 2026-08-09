@@ -4,7 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from config import MONGO_URL, DB_NAME
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 async def test_db():
     """Create fresh Motor client in pytest's event loop and patch database.db.
     Only used by test files that explicitly request this fixture."""
