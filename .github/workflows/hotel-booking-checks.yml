@@ -16,7 +16,7 @@ jobs:
           node-version: 20
           cache: yarn
       - run: yarn install --frozen-lockfile
-      - run: yarn typecheck
+      - run: yarn typecheck:hotel
       - run: yarn lint
 
   backend-unit:
