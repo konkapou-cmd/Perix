@@ -2,9 +2,6 @@
   "extends": "./tsconfig.json",
   "include": [
     "app/service/[id].tsx",
-    "app/(tabs)/profile.tsx",
-    "app/(tabs)/home.tsx",
-    "app/(tabs)/_layout.tsx",
     "components/business/ServiceBookingModal.tsx",
     "components/business/ServiceModal.tsx",
     "components/business/HotelAvailabilityModal.tsx",
@@ -13,10 +10,8 @@
     "components/business/UserBookingListModal.tsx",
     "components/business/CategoryServiceCard.tsx",
     "components/business/ServiceSection.tsx",
+    "components/business/BusinessActionsModal.tsx",
     "components/business/index.ts",
-    "components/profile/UserProfilePremium.tsx",
-    "components/profile/BusinessProfilePremium.tsx",
-    "components/profile/ProfileBase.tsx",
     "components/user/CreationSheet.tsx",
     "lib/config/serviceModules.ts",
     "lib/config/serviceCategoryMatrix.ts",
@@ -25,13 +20,8 @@
     "lib/api/businesses.ts",
     "lib/fieldRegistry.ts",
     "lib/booking/dateRange.ts",
-    "lib/serviceFormat.ts",
-    "lib/designTokens.ts",
     "lib/navigation/entityRoutes.ts",
     "hooks/useFeedData.ts",
-    "hooks/useLayoutPreferences.ts",
-    "hooks/useContentSorting.ts",
-    "i18n/locales/en.json",
-    "i18n/locales/de.json"
+    "hooks/useLayoutPreferences.ts"
   ]
 }
