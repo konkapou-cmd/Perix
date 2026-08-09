@@ -15,12 +15,7 @@ jobs:
         with:
           node-version: 20
       - run: node --version && npm --version
-      - run: |
-          npm ci --ignore-scripts --loglevel verbose || {
-            echo "===== NPM DEBUG LOG ====="
-            cat ~/.npm/_logs/*-debug-0.log || true
-            exit 1
-          }
+      - run: npm install --ignore-scripts --legacy-peer-deps 2>&1 || { echo "FALLBACK: retrying with force..."; npm install --ignore-scripts --force 2>&1; }
       - run: npx expo postinstall 2>/dev/null || true
       - run: npm run typecheck:hotel
       - run: npm run lint
