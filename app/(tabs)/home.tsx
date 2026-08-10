@@ -974,7 +974,7 @@ export default function HomeScreen() {
             title={t("home.hotels", "Local Hotels")}
             icon="bed"
             color={COLORS.businessesAccent}
-            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
+            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses", root_category: "local-hotels" } } as any}
             emptyMessage={t("home.noHotels", "No hotels nearby")}
             isCollapsed={collapsedSections.has("hotels")}
             onToggleCollapse={() => setSectionCollapsed("hotels", !collapsedSections.has("hotels"))}

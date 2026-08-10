@@ -100,7 +100,7 @@ interface DateFilter {
 export default function LocatorScreen() {
   const { t } = useTranslation();
   const { sessionToken, user } = useAuth();
-  const params = useLocalSearchParams<{ tab?: string }>();
+  const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
   const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
   const { location: contextLocation, setManualLocation, radiusKm } = useLocation();
   const router = useRouter();
@@ -222,7 +222,10 @@ export default function LocatorScreen() {
     if (params.tab && ["events", "activities", "businesses"].includes(params.tab)) {
       setActiveTab(params.tab as TabType);
     }
-  }, [params.tab]);
+    if (params.root_category) {
+      setSelectedRoot(params.root_category);
+    }
+  }, [params.tab, params.root_category]);
    
    // Helper: check if date is within filter range
    const isDateInRange = (dateStr: string | null | undefined, range: DateFilter): boolean => {

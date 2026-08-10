@@ -210,6 +210,7 @@ export default function ServiceDetailPage() {
     const sections: { title: string; icon: string; fields: string[] }[] = [];
 
     const specs: string[] = [];
+    const stay: string[] = [];
     const vehicle: string[] = [];
     const food: string[] = [];
     const health: string[] = [];
@@ -218,19 +219,21 @@ export default function ServiceDetailPage() {
 
     for (const f of moduleFields) {
       if (!hasDetailValue(f)) continue;
-      if (f === "duration_minutes" || f === "sessions_count" || f === "duration_days" || f === "duration_months" || f === "duration_per_session" || f === "visits_included" || f === "valid_days") timing.push(f);
+      if (f === "check_in_time" || f === "check_out_time" || f === "min_nights" || f === "max_nights" || f === "cancellation_policy" || f === "available_from" || f === "available_until") stay.push(f);
+      else if (f === "duration_minutes" || f === "sessions_count" || f === "duration_days" || f === "duration_months" || f === "duration_per_session" || f === "visits_included" || f === "valid_days") timing.push(f);
       else if (f === "make" || f === "model" || f === "year" || f === "mileage_km" || f === "fuel_type" || f === "transmission") vehicle.push(f);
       else if (f === "menu_category" || f === "dietary_tags" || f === "allergens" || f === "calories" || f === "spice_level") food.push(f);
       else if (f === "reason_for_visit" || f === "insurance_info" || f === "pet_name" || f === "pet_type") health.push(f);
       else if (f === "includes" || f === "included_services" || f === "special_requests") included.push(f);
       else if (f === "instructor" || f === "specialist_name" || f === "difficulty_level" || f === "session_type" || f === "treatment_type" || f === "service_category" || f === "consultation_type" || f === "meeting_type" || f === "capacity" || f === "max_guests") specs.push(f);
-      else if (f === "pickup_location" || f === "dropoff_location" || f === "available_from" || f === "lease_duration" || f === "furnished" || f === "floor" || f === "bedrooms" || f === "bathrooms" || f === "size_sqm" || f === "room_size_sqm" || f === "room_view" || f === "bed_config") specs.push(f);
+      else if (f === "pickup_location" || f === "dropoff_location" || f === "lease_duration" || f === "furnished" || f === "floor" || f === "bedrooms" || f === "bathrooms" || f === "size_sqm" || f === "room_size_sqm" || f === "room_view" || f === "bed_config") specs.push(f);
       else if (f === "amenities") specs.push(f);
       else if (f === "brand" || f === "stock_status" || f === "condition") specs.push(f);
     }
 
     if (timing.length) sections.push({ title: t("detail.timing", "Dauer & Verfügbarkeit"), icon: "time-outline", fields: timing });
     if (specs.length) sections.push({ title: t("detail.specs", "Details"), icon: "information-circle-outline", fields: specs });
+    if (stay.length) sections.push({ title: t("detail.stay", "Stay Information"), icon: "bed", fields: stay });
     if (vehicle.length) sections.push({ title: t("detail.vehicle", "Fahrzeugdaten"), icon: "car-sport-outline", fields: vehicle });
     if (food.length) sections.push({ title: t("detail.food", "Gerichtinfos"), icon: "restaurant-outline", fields: food });
     if (health.length) sections.push({ title: t("detail.health", "Gesundheit & Pflege"), icon: "medkit-outline", fields: health });
@@ -389,9 +392,11 @@ export default function ServiceDetailPage() {
                   if (fieldName === "duration_months") displayValue = String(value) + " Monate";
                   if (fieldName === "sessions_count") displayValue = String(value) + " Sitzungen";
                   if (config.component === "chips" || config.component === "chips-multi") displayValue = String(value);
-                  if (fieldName === "available_from") {
+                  if (fieldName === "available_from" || fieldName === "available_until") {
                     try { displayValue = String(value).split("-").reverse().join(" "); } catch {}
                   }
+                  if (fieldName === "min_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));
+                  if (fieldName === "max_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));
                   return (
                     <View key={fieldName} style={styles.moduleItem}>
                       <Ionicons name={(getFieldIcon(fieldName) || "information-circle") as any} size={18} color={COLORS.textMuted} />

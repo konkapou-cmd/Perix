@@ -17,6 +17,7 @@ export type BookingMode =
 export type ServiceModuleConfig = {
   key: string;
   labelKey: string;
+  tabLabelKey?: string;
   fallbackLabel: string;
   icon: keyof typeof Ionicons.glyphMap;
   ctaType: ServiceCtaType;
@@ -509,6 +510,7 @@ export const SERVICE_MODULES: Record<string, ServiceModuleConfig> = {
   hotel_room: {
     key: "hotel_room",
     labelKey: "services.typeHotelRoom",
+    tabLabelKey: "services.typeHotelRoomTab",
     fallbackLabel: "Room / Unit",
     icon: "bed",
     ctaType: "booking",
@@ -552,6 +554,13 @@ export function getServiceModuleConfig(type: string): ServiceModuleConfig | unde
 export function getServiceModuleLabel(type: string, t: (key: string, fallback?: string) => string): string {
   const cfg = SERVICE_MODULES[type];
   if (!cfg) return type;
+  return t(cfg.labelKey, cfg.fallbackLabel);
+}
+
+export function getServiceModuleTabLabel(type: string, t: (key: string, fallback?: string) => string): string {
+  const cfg = SERVICE_MODULES[type];
+  if (!cfg) return type;
+  if (cfg.tabLabelKey) return t(cfg.tabLabelKey, cfg.fallbackLabel);
   return t(cfg.labelKey, cfg.fallbackLabel);
 }
 

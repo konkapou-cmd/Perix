@@ -420,9 +420,9 @@ async def get_business(
     is_owner = business.get("owner_id") == current_user.user_id
     is_favorited = current_user.user_id in business.get("favorites", [])
     
-    service_responses = [ServiceResponse(**s).model_dump(mode="json") for s in services]
     if not is_owner:
-        service_responses = [s for s in service_responses if s.get("status") == "published"]
+        services = [s for s in services if s.get("status") == "published" and not s.get("is_hidden")]
+    service_responses = [ServiceResponse(**s).model_dump(mode="json") for s in services]
 
     return BusinessDetail(
         business=build_business_response(business),

@@ -21,6 +21,7 @@ async def test_business(test_db, test_user):
     doc = {
         "business_id": biz_id, "owner_id": test_user.user_id, "name": "Test Hotel Biz",
         "root_category": "local-hotels", "subcategory": "hotels",
+        "category": "Hotels",
         "address": "123 Test St", "latitude": 52.5, "longitude": 13.4,
         "enabled_modules": {"services": True},
         "subscription_status": "active", "trial_expires_at": "2027-12-31T00:00:00Z",
@@ -244,3 +245,68 @@ async def test_hotel_smoke_create_availability_book(test_db, test_business, test
         if "booking" in dir() and booking.booking_id:
             await database.db.bookings.delete_one({"booking_id": booking.booking_id})
         await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+# ── Draft Isolation Regression Tests ──
+
+@pytest.mark.asyncio
+async def test_owner_sees_draft_hotel(test_db, test_business, test_user):
+    """Owner sees draft hotel room; non-owner cannot (business detail isolation)."""
+    from routes.services import create_service
+    from routes.businesses import get_business
+    other = UserPublic(user_id="other-user", name="Other", email="other@test.com", created_at=now_utc())
+    payload = make_hotel_payload(test_business["business_id"], "draft")
+    svc = await create_service(payload, test_user)
+    try:
+        detail = await get_business(test_business["business_id"], test_user)
+        assert svc.service_id in [s["service_id"] for s in detail.services]
+
+        detail2 = await get_business(test_business["business_id"], other)
+        assert svc.service_id not in [s["service_id"] for s in detail2.services]
+    finally:
+        await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+@pytest.mark.asyncio
+async def test_direct_get_draft_returns_404(test_db, test_business, test_user):
+    """Direct GET /services/{id} on a draft room returns 404."""
+    from routes.services import create_service, get_service
+    payload = make_hotel_payload(test_business["business_id"], "draft")
+    svc = await create_service(payload, test_user)
+    try:
+        with pytest.raises(HTTPException) as exc:
+            await get_service(svc.service_id)
+        assert exc.value.status_code == 404
+    finally:
+        await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+@pytest.mark.asyncio
+async def test_published_room_visible_to_nonowner(test_db, test_business, test_user):
+    """Published room visible to non-owner (business detail) + direct GET succeeds."""
+    from routes.services import create_service, get_service
+    payload = make_hotel_payload(test_business["business_id"], "published")
+    svc = await create_service(payload, test_user)
+    try:
+        result = await get_service(svc.service_id)
+        assert result.service_id == svc.service_id
+    finally:
+        await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+@pytest.mark.asyncio
+async def test_nonhotel_business_cannot_create_hotel_room(test_db, test_business, test_user):
+    """A non-local-hotels business cannot create a hotel_room service."""
+    from routes.services import create_service
+    # Modify business root_category to something else
+    await database.db.businesses.update_one(
+        {"business_id": test_business["business_id"]},
+        {"$set": {"root_category": "food-dining"}},
+    )
+    try:
+        payload = make_hotel_payload(test_business["business_id"], "draft")
+        with pytest.raises(HTTPException) as exc:
+            await create_service(payload, test_user)
+        assert exc.value.status_code == 400
+    finally:
+        await database.db.services.delete_many({"business_id": test_business["business_id"]})

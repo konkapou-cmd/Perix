@@ -2175,6 +2175,7 @@
     "namePlaceholderReservation": "z.B. VIP-Tisch, Kabine",
     "namePlaceholderBooking": "z.B. Live-Band, DJ-Auftritt",
     "typeHotelRoom": "Hotelzimmer",
+    "typeHotelRoomTab": "Zimmer",
     "stayDates": "Reisedaten",
     "checkIn": "Check-in",
     "checkOut": "Check-out",

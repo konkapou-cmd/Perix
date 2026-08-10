@@ -49,7 +49,7 @@ import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE_COLORS } from "./ProfileDesign";
 import { COLORS, resolveCategory } from "../../lib/designTokens";
 import { hasServiceModules, getAllowedModules, getDefaultModule, getCategoryIcon } from "../../lib/config/serviceCategoryMatrix";
-import { getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
+import { getServiceModuleIcon, getServiceModuleLabel, getServiceModuleTabLabel } from "../../lib/config/serviceModules";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import useResponsiveLayout from "../../hooks/useResponsiveLayout";
@@ -255,6 +255,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 }) => {
   const { t } = useTranslation();
   const serviceLabel = (type: string, fallback?: string) => getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? fallback ?? type));
+  const tabServiceLabel = (type: string, fallback?: string) => getServiceModuleTabLabel(type, (k: string, fb?: string) => t(k, fb ?? fallback ?? type));
   const serviceIcon = (type: string) => getServiceModuleIcon(type);
   const router = useRouter();
   const isScreenFocused = useIsFocused();
@@ -293,7 +294,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     const hasModule = hasServiceModules(rootCat);
     if (hasModule) {
       const seen = new Set<string>();
-      (services || []).filter(s => s.is_active).forEach(s => {
+      (services || []).filter(s => s.is_active && s.status === "published").forEach(s => {
         const cat = resolveCategory(s.root_category || "");
         const tabKey = `svc:${cat}:${s.type}`;
         if (!seen.has(tabKey)) {
@@ -305,7 +306,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           ).length;
           tabs.push({
             key: tabKey,
-            label: serviceLabel(s.type),
+            label: tabServiceLabel(s.type),
             icon: serviceIcon(s.type),
             count,
           });
@@ -337,7 +338,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           ).length;
           tabs.push({
             key: tabKey,
-            label: serviceLabel(s.type),
+            label: tabServiceLabel(s.type),
             icon: serviceIcon(s.type),
             count,
           });
@@ -348,7 +349,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         const resolvedCat = resolveCategory(rootCat);
         tabs.push({
           key: `svc:${resolvedCat}:${defaultModule}`,
-          label: serviceLabel(defaultModule, t("services.services", "Dienste")),
+          label: tabServiceLabel(defaultModule, t("services.services", "Dienste")),
           icon: serviceIcon(defaultModule) || getCategoryIcon(rootCat) || "grid",
           count: 0,
         });
@@ -759,7 +760,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   const filteredServices = (services || []).filter(s =>
                     resolveCategory(s.root_category || "") === cat &&
                     s.type === type &&
-                    s.is_active
+                    s.is_active &&
+                    s.status === "published"
                   );
                   return (
                     <ServiceSection

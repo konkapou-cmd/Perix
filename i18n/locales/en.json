@@ -2080,6 +2080,7 @@
     "namePlaceholderReservation": "e.g. VIP Table, Booth",
     "namePlaceholderBooking": "e.g. Live Band, DJ Set",
     "typeHotelRoom": "Hotel Room",
+    "typeHotelRoomTab": "Rooms",
     "stayDates": "Stay dates",
     "checkIn": "Check-in",
     "checkOut": "Check-out",
