@@ -490,19 +490,9 @@ async def decline_booking(booking_id: str, current_user: UserPublic = Depends(ge
     if booking["status"] != "pending":
         raise HTTPException(status_code=400, detail="Only pending bookings can be declined")
 
-    declined_at = now_utc()
-    result = await db.bookings.update_one(
-        {"booking_id": booking_id, "status": "pending"},
-        {"$set": {"status": "declined", "declined_at": declined_at, "cancelled_by": "business"}, "$unset": {"hold_expires_at": ""}},
-    )
-    if result.modified_count != 1:
-        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
-    booking["status"] = "declined"
-    booking["declined_at"] = declined_at
-    booking["cancelled_by"] = "business"
-    booking["hold_expires_at"] = None
-    booking["business_name"] = business.get("name")
-    return BookingResponse(**booking)
+    from services.date_range_booking import decline_service_booking
+    declined = await decline_service_booking(booking_id)
+    return BookingResponse(**declined)
 
 
 @router.put("/bookings/{booking_id}/cancel", response_model=BookingResponse)
@@ -520,23 +510,10 @@ async def cancel_booking(booking_id: str, current_user: UserPublic = Depends(get
     if booking["status"] not in {"pending", "confirmed"}:
         raise HTTPException(status_code=400, detail=f"Cannot cancel a {booking['status']} booking")
 
-    cancelled_at = now_utc()
     cancelled_by = "business" if is_business_owner else "client"
-    result = await db.bookings.update_one(
-        {"booking_id": booking_id, "status": {"$in": ["pending", "confirmed"]}},
-        {"$set": {"status": "cancelled", "cancelled_at": cancelled_at, "cancelled_by": cancelled_by}, "$unset": {"hold_expires_at": ""}},
-    )
-    if result.modified_count != 1:
-        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
-    if booking.get("slot_id"):
-        await db.service_slots.update_one({"slot_id": booking["slot_id"]}, {"$set": {"is_booked": False}})
-
-    booking["status"] = "cancelled"
-    booking["cancelled_at"] = cancelled_at
-    booking["cancelled_by"] = cancelled_by
-    booking["hold_expires_at"] = None
-    booking["business_name"] = business.get("name") if business else None
-    return BookingResponse(**booking)
+    from services.date_range_booking import cancel_service_booking
+    cancelled = await cancel_service_booking(booking_id, cancelled_by)
+    return BookingResponse(**cancelled)
 
 
 @router.put("/bookings/{booking_id}/complete", response_model=BookingResponse)
@@ -550,19 +527,10 @@ async def complete_booking(booking_id: str, current_user: UserPublic = Depends(g
     if booking["status"] != "confirmed":
         raise HTTPException(status_code=400, detail="Only confirmed bookings can be completed")
 
-    completed_at = now_utc()
-    result = await db.bookings.update_one(
-        {"booking_id": booking_id, "status": "confirmed"},
-        {"$set": {"status": "completed", "completed_at": completed_at}},
-    )
-    if result.modified_count != 1:
-        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
-    booking["status"] = "completed"
-    booking["completed_at"] = completed_at
-    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
-    booking["service_name"] = service["name"] if service else None
+    from services.date_range_booking import complete_service_booking
+    completed = await complete_service_booking(booking_id)
     booking["business_name"] = business.get("name")
-    return BookingResponse(**booking)
+    return BookingResponse(**completed)
 
 
 # ─── Inquiries ───

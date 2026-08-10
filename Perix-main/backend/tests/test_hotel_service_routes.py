@@ -1,119 +1,152 @@
-"""Hotel service route regression tests — create, update, draft, slot isolation."""
+"""Hotel service route regression tests — create, update, publish, slot isolation."""
 import sys, os, pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from datetime import date
+from fastapi import HTTPException
 import database
 from utils.helpers import generate_id, now_utc
+from models.service import ServiceCreate, ServiceUpdate, BlockDateRange, TimeSlotCreate
+from models.user import UserPublic
+
+
+@pytest.fixture
+def test_user():
+    return UserPublic(user_id="test-owner", name="Test Owner", email="test@test.com", created_at=now_utc())
+
+
+@pytest.fixture
+async def test_business(test_db, test_user):
+    biz_id = generate_id("biz")
+    doc = {
+        "business_id": biz_id, "owner_id": test_user.user_id, "name": "Test Hotel Biz",
+        "root_category": "local-hotels", "subcategory": "hotels",
+        "address": "123 Test St", "latitude": 52.5, "longitude": 13.4,
+        "enabled_modules": {"services": True},
+        "subscription_status": "active", "trial_expires_at": "2027-12-31T00:00:00Z",
+        "created_at": now_utc(),
+    }
+    await database.db.businesses.insert_one(doc)
+    yield doc
+    await database.db.businesses.delete_one({"business_id": biz_id})
+
+
+def make_hotel_payload(biz_id: str, status: str = "draft"):
+    return ServiceCreate(
+        business_id=biz_id, type="hotel_room", root_category="local-hotels",
+        name="Route Test Room", price="100.00", inventory_count=2,
+        max_guests=2, max_adults=2, max_children=1,
+        check_in_time="15:00", check_out_time="11:00",
+        min_nights=1, max_nights=30, currency="EUR",
+        available_from="2026-10-01", available_until="2026-12-31",
+        cover_image_url="https://example.com/img.jpg", status=status,
+    )
 
 
 @pytest.mark.asyncio
-async def test_create_draft_hotel_no_slots(test_db):
-    """Draft hotel creation must not create legacy service_slots."""
-    svc_id = generate_id("svc")
-    hotel = {
-        "service_id": svc_id, "business_id": "biz-rt", "type": "hotel_room",
-        "root_category": "local-hotels", "name": "Route Test", "price": "100.00",
-        "inventory_count": 2, "max_guests": 2, "max_adults": 2, "max_children": 1,
-        "check_in_time": "15:00", "check_out_time": "11:00",
-        "min_nights": 1, "max_nights": 30, "currency": "EUR",
-        "available_from": "2026-10-01", "available_until": "2026-12-31",
-        "is_active": True, "status": "draft", "cover_image_url": "https://example.com/img.jpg",
-        "created_at": now_utc(),
-    }
-    await database.db.services.insert_one(hotel)
+async def test_create_draft_hotel(test_db, test_business, test_user):
+    """Draft hotel create succeeds and creates zero legacy slots."""
+    from routes.services import create_service
+    payload = make_hotel_payload(test_business["business_id"], "draft")
+    svc = await create_service(payload, test_user)
     try:
-        # Verify no service_slots created
-        slot_count = await database.db.service_slots.count_documents({"service_id": svc_id})
+        assert svc.service_id
+        assert svc.status == "draft"
+        slot_count = await database.db.service_slots.count_documents({"service_id": svc.service_id})
         assert slot_count == 0
     finally:
-        await database.db.services.delete_one({"service_id": svc_id})
+        await database.db.services.delete_one({"service_id": svc.service_id})
 
 
 @pytest.mark.asyncio
-async def test_create_draft_hotel_ignores_slots(test_db):
-    """Draft hotel with availability_slots must ignore them."""
-    svc_id = generate_id("svc")
-    hotel = {
-        "service_id": svc_id, "business_id": "biz-rt", "type": "hotel_room",
-        "root_category": "local-hotels", "name": "Route Test 2", "price": "100.00",
-        "inventory_count": 2, "max_guests": 2, "max_adults": 2, "max_children": 1,
-        "check_in_time": "15:00", "check_out_time": "11:00",
-        "min_nights": 1, "max_nights": 30, "currency": "EUR",
-        "available_from": "2026-10-01", "available_until": "2026-12-31",
-        "is_active": True, "status": "draft", "cover_image_url": "https://example.com/img.jpg",
-        "availability_slots": [{"start_time": "09:00", "end_time": "10:00", "is_recurring": False}],
-        "created_at": now_utc(),
-    }
-    await database.db.services.insert_one(hotel)
+async def test_create_draft_ignores_slots(test_db, test_business, test_user):
+    """Draft hotel with availability_slots creates zero legacy slots."""
+    from routes.services import create_service
+    payload = make_hotel_payload(test_business["business_id"], "draft")
+    payload.availability_slots = [
+        {"start_time": "09:00", "end_time": "10:00", "is_recurring": False}]
+    svc = await create_service(payload, test_user)
     try:
-        slot_count = await database.db.service_slots.count_documents({"service_id": svc_id})
-        assert slot_count == 0  # Hotel must not create legacy slots
+        slot_count = await database.db.service_slots.count_documents({"service_id": svc.service_id})
+        assert slot_count == 0  # Hotels never create legacy slots
     finally:
-        await database.db.services.delete_one({"service_id": svc_id})
+        await database.db.services.delete_one({"service_id": svc.service_id})
 
 
 @pytest.mark.asyncio
-async def test_published_hotel_requires_window(test_db):
-    """Publishing a hotel without available_from/available_until must fail."""
-    svc_id = generate_id("svc")
-    hotel = {
-        "service_id": svc_id, "business_id": "biz-rt", "type": "hotel_room",
-        "root_category": "local-hotels", "name": "Route Test 3", "price": "100.00",
-        "inventory_count": 2, "max_guests": 2, "max_adults": 2, "max_children": 1,
-        "check_in_time": "15:00", "check_out_time": "11:00",
-        "min_nights": 1, "max_nights": 30, "currency": "EUR",
-        "is_active": True, "status": "published", "cover_image_url": "https://example.com/img.jpg",
-        "created_at": now_utc(),
-    }
-    await database.db.services.insert_one(hotel)
-    try:
-        published = await database.db.services.find_one({"service_id": svc_id, "status": "published"})
-        assert published is not None  # Service exists but validation happens at API level
-    finally:
-        await database.db.services.delete_one({"service_id": svc_id})
+async def test_published_no_window_rejected(test_db, test_business, test_user):
+    """Published hotel without available_from/until must raise 400."""
+    from routes.services import create_service
+    payload = make_hotel_payload(test_business["business_id"], "published")
+    payload.available_from = None
+    payload.available_until = None
+    with pytest.raises(HTTPException) as exc:
+        await create_service(payload, test_user)
+    assert exc.value.status_code == 400
 
 
 @pytest.mark.asyncio
-async def test_published_hotel_valid_window(test_db):
-    """Hotel with valid window and all required fields can be published."""
-    svc_id = generate_id("svc")
-    hotel = {
-        "service_id": svc_id, "business_id": "biz-rt", "type": "hotel_room",
-        "root_category": "local-hotels", "name": "Route Test 4", "price": "100.00",
-        "inventory_count": 2, "max_guests": 2, "max_adults": 2, "max_children": 1,
-        "check_in_time": "15:00", "check_out_time": "11:00",
-        "min_nights": 1, "max_nights": 30, "currency": "EUR",
-        "available_from": "2026-10-01", "available_until": "2026-12-31",
-        "is_active": True, "status": "published", "cover_image_url": "https://example.com/img.jpg",
-        "created_at": now_utc(),
-    }
-    await database.db.services.insert_one(hotel)
+async def test_published_hotel_succeeds(test_db, test_business, test_user):
+    """Valid published hotel create succeeds."""
+    from routes.services import create_service
+    payload = make_hotel_payload(test_business["business_id"], "published")
+    svc = await create_service(payload, test_user)
     try:
-        svc = await database.db.services.find_one({"service_id": svc_id, "status": "published"})
-        assert svc is not None
+        assert svc.service_id
+        assert svc.status == "published"
+        slot_count = await database.db.service_slots.count_documents({"service_id": svc.service_id})
+        assert slot_count == 0
     finally:
-        await database.db.services.delete_one({"service_id": svc_id})
+        await database.db.services.delete_one({"service_id": svc.service_id})
 
 
 @pytest.mark.asyncio
-async def test_hotel_rejects_slot_endpoints(test_db):
-    """Hotel date-range service must reject legacy slot mutation endpoints."""
-    svc_id = generate_id("svc")
-    hotel = {
-        "service_id": svc_id, "business_id": "biz-rt", "type": "hotel_room",
-        "root_category": "local-hotels", "name": "Route Test 5", "price": "100.00",
-        "inventory_count": 2, "max_guests": 2, "max_adults": 2, "max_children": 1,
-        "check_in_time": "15:00", "check_out_time": "11:00",
-        "min_nights": 1, "max_nights": 30, "currency": "EUR",
-        "available_from": "2026-10-01", "available_until": "2026-12-31",
-        "is_active": True, "status": "published", "cover_image_url": "https://example.com/img.jpg",
-        "created_at": now_utc(),
-    }
-    await database.db.services.insert_one(hotel)
+async def test_update_hotel_window(test_db, test_business, test_user):
+    """Update hotel inventory and window persists."""
+    from routes.services import create_service, update_service
+    payload = make_hotel_payload(test_business["business_id"], "draft")
+    svc = await create_service(payload, test_user)
     try:
-        # Verify hotel exists
-        svc = await database.db.services.find_one({"service_id": svc_id})
-        assert svc["type"] == "hotel_room"
-        # Slot mutations would be rejected by require_time_slot_service guard
+        upd = ServiceUpdate(inventory_count=10, available_from="2026-11-01", available_until="2026-11-30")
+        updated = await update_service(svc.service_id, upd, test_user)
+        assert updated.inventory_count == 10
+        assert updated.available_from == "2026-11-01"
+        assert updated.available_until == "2026-11-30"
     finally:
-        await database.db.services.delete_one({"service_id": svc_id})
+        await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+@pytest.mark.asyncio
+async def test_update_hotel_slots_rejected(test_db, test_business, test_user):
+    """Hotel update with availability_slots must not create legacy slots."""
+    from routes.services import create_service, update_service
+    payload = make_hotel_payload(test_business["business_id"], "draft")
+    svc = await create_service(payload, test_user)
+    try:
+        upd = ServiceUpdate(availability_slots=[
+            {"start_time": "09:00", "end_time": "10:00", "is_recurring": False}])
+        updated = await update_service(svc.service_id, upd, test_user)
+        slot_count = await database.db.service_slots.count_documents({"service_id": svc.service_id})
+        assert slot_count == 0  # Hotels never create legacy slots
+    finally:
+        await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+@pytest.mark.asyncio
+async def test_hotel_slot_endpoints_reject(test_db, test_business, test_user):
+    """Hotel rejects legacy slot creation/deletion/block endpoints."""
+    from routes.services import create_service, create_slot, delete_slot, block_slots
+    payload = make_hotel_payload(test_business["business_id"], "published")
+    svc = await create_service(payload, test_user)
+    try:
+        slot_payload = TimeSlotCreate(service_id=svc.service_id, start_time="09:00", end_time="10:00", date="2026-10-10")
+        with pytest.raises(HTTPException) as exc:
+            await create_slot(svc.service_id, slot_payload, test_user)
+        assert exc.value.status_code == 400  # Hotel rejects time-slot mutations
+
+        block_payload = BlockDateRange(from_date="2026-10-01", to_date="2026-10-05")
+        with pytest.raises(HTTPException) as exc:
+            await block_slots(svc.service_id, block_payload, test_user)
+        assert exc.value.status_code == 400  # Hotel rejects legacy block
+    finally:
+        await database.db.services.delete_one({"service_id": svc.service_id})
