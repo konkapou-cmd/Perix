@@ -292,6 +292,7 @@ async def list_activities(
     date: Optional[str] = None,
     theme: Optional[str] = None,
     category: Optional[str] = None,
+    include_past: Optional[bool] = None,
 ):
     def is_in_bounds(lat: float, lng: float) -> bool:
         if lat is None or lng is None:
@@ -321,7 +322,7 @@ async def list_activities(
             base_query["date"] = {"$gte": filter_date.isoformat()}
         except ValueError:
             pass
-    else:
+    elif not include_past:
         # Default: only show today and future activities
         from datetime import date as date_type
         base_query["date"] = {"$gte": date_type.today().isoformat()}

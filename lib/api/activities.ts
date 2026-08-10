@@ -25,7 +25,7 @@ export const getActivities = async (
 };
 
 export const getUserActivities = async (token: string, userId: string): Promise<ActivityItem[]> => {
-  return apiRequest<ActivityItem[]>(`/activities?creator_id=${encodeURIComponent(userId)}`, "GET", token);
+  return apiRequest<ActivityItem[]>(`/activities?creator_id=${encodeURIComponent(userId)}&include_past=true`, "GET", token);
 };
 
 export const createActivity = async (
