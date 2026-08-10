@@ -6,7 +6,7 @@ from datetime import date
 from fastapi import HTTPException
 import database
 from utils.helpers import generate_id, now_utc
-from models.service import ServiceCreate, ServiceUpdate, BlockDateRange, TimeSlotCreate
+from models.service import ServiceCreate, ServiceUpdate, BlockDateRange, TimeSlotCreate, BookingCreate
 from models.user import UserPublic
 
 
@@ -209,4 +209,38 @@ async def test_draft_to_published_valid(test_db, test_business, test_user):
         slot_count = await database.db.service_slots.count_documents({"service_id": svc.service_id})
         assert slot_count == 0
     finally:
+        await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+@pytest.mark.asyncio
+async def test_hotel_smoke_create_availability_book(test_db, test_business, test_user):
+    """End-to-end hotel smoke test: create published hotel -> availability -> booking."""
+    from routes.services import create_service, get_stay_availability, create_booking
+
+    payload = make_hotel_payload(test_business["business_id"], "published")
+    svc = await create_service(payload, test_user)
+    try:
+        avail = await get_stay_availability(
+            svc.service_id, check_in="2026-10-10", check_out="2026-10-12",
+            rooms=1, adults=1, children=0,
+        )
+        assert avail.available is True
+        assert avail.nights == 2
+        assert avail.total_amount > 0
+
+        booking = await create_booking(BookingCreate(
+            service_id=svc.service_id,
+            date="2026-10-10", end_date="2026-10-12",
+            room_count=1, adults=1, children=0,
+            client_name="Smoke Test Guest",
+        ), test_user)
+        assert booking.booking_id
+        assert booking.status == "pending"
+
+        stored = await database.db.bookings.find_one({"booking_id": booking.booking_id})
+        assert stored is not None
+        assert stored["status"] == "pending"
+    finally:
+        if "booking" in dir() and booking.booking_id:
+            await database.db.bookings.delete_one({"booking_id": booking.booking_id})
         await database.db.services.delete_one({"service_id": svc.service_id})
