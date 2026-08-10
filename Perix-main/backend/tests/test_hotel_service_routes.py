@@ -134,19 +134,79 @@ async def test_update_hotel_slots_rejected(test_db, test_business, test_user):
 
 @pytest.mark.asyncio
 async def test_hotel_slot_endpoints_reject(test_db, test_business, test_user):
-    """Hotel rejects legacy slot creation/deletion/block endpoints."""
-    from routes.services import create_service, create_slot, delete_slot, block_slots
+    """Hotel rejects create_slot, delete_slot, set_availability, and block_slots."""
+    from routes.services import create_service, create_slot, delete_slot, set_availability, block_slots
     payload = make_hotel_payload(test_business["business_id"], "published")
     svc = await create_service(payload, test_user)
     try:
+        # create_slot
         slot_payload = TimeSlotCreate(service_id=svc.service_id, start_time="09:00", end_time="10:00", date="2026-10-10")
         with pytest.raises(HTTPException) as exc:
             await create_slot(svc.service_id, slot_payload, test_user)
-        assert exc.value.status_code == 400  # Hotel rejects time-slot mutations
+        assert exc.value.status_code == 400
 
+        # set_availability (bulk)
+        avail_payload = {"timezone": "Europe/Berlin", "slots": [
+            {"start_time": "09:00", "end_time": "10:00", "is_recurring": False, "date": "2026-10-10"}]}
+        with pytest.raises(HTTPException) as exc:
+            await set_availability(svc.service_id, avail_payload, test_user)
+        assert exc.value.status_code == 400
+
+        # block_slots
         block_payload = BlockDateRange(from_date="2026-10-01", to_date="2026-10-05")
         with pytest.raises(HTTPException) as exc:
             await block_slots(svc.service_id, block_payload, test_user)
-        assert exc.value.status_code == 400  # Hotel rejects legacy block
+        assert exc.value.status_code == 400
+
+        # Verify zero legacy slots after all attempted mutations
+        slot_count = await database.db.service_slots.count_documents({"service_id": svc.service_id})
+        assert slot_count == 0
+    finally:
+        await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+@pytest.mark.asyncio
+async def test_delete_slot_hotel_rejected(test_db, test_business, test_user):
+    """delete_slot on a hotel service must raise 400."""
+    from routes.services import create_service, delete_slot
+    payload = make_hotel_payload(test_business["business_id"], "published")
+    svc = await create_service(payload, test_user)
+    try:
+        with pytest.raises(HTTPException) as exc:
+            await delete_slot(svc.service_id, "nonexistent", test_user)
+        assert exc.value.status_code == 400
+    finally:
+        await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+@pytest.mark.asyncio
+async def test_draft_to_published_invalid(test_db, test_business, test_user):
+    """Draft hotel missing available_from → published must raise 400."""
+    from routes.services import create_service, update_service
+    payload = make_hotel_payload(test_business["business_id"], "draft")
+    payload.available_from = None
+    payload.available_until = None
+    svc = await create_service(payload, test_user)
+    try:
+        upd = ServiceUpdate(status="published")
+        with pytest.raises(HTTPException) as exc:
+            await update_service(svc.service_id, upd, test_user)
+        assert exc.value.status_code == 400
+    finally:
+        await database.db.services.delete_one({"service_id": svc.service_id})
+
+
+@pytest.mark.asyncio
+async def test_draft_to_published_valid(test_db, test_business, test_user):
+    """Draft hotel with valid config → published succeeds."""
+    from routes.services import create_service, update_service
+    payload = make_hotel_payload(test_business["business_id"], "draft")
+    svc = await create_service(payload, test_user)
+    try:
+        upd = ServiceUpdate(status="published")
+        updated = await update_service(svc.service_id, upd, test_user)
+        assert updated.status == "published"
+        slot_count = await database.db.service_slots.count_documents({"service_id": svc.service_id})
+        assert slot_count == 0
     finally:
         await database.db.services.delete_one({"service_id": svc.service_id})
