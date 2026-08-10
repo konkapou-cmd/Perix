@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
 import type { Business, EventItem, ActivityItem } from "../../lib/api";
-import { formatEventDate } from "../../lib/formatDate";
+import { formatEventDate, formatDate } from "../../lib/formatDate";
 
 type BusinessCardProps = {
   type: "business";
@@ -93,8 +93,9 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
   const primaryColor = themeColors.primaryColor;
   const coverImage = data.cover_image_url || data.image_urls?.[0] || data.gallery_images?.[0];
   const formattedDate = formatEventDate(data.start_time);
-  const [dateDay = "", dateRest = ""] = formattedDate.split(/[./-]/);
-  const dateMonth = dateRest ? `/${dateRest}` : "";
+  const parts = formattedDate.split(".");
+  const dateDay = parts[0] || "";
+  const dateMonth = parts[1] ? `/${parts[1]}` : "";
   const businessName = data.business?.name || data.creator?.name || "";
 
   return (
@@ -149,7 +150,7 @@ function ActivityCard({ data, distance, onPress }: ActivityCardProps) {
   const primaryColor = themeColors.primaryColor;
   const coverImage = data.cover_image_url || data.image_urls?.[0];
   const timeStr = data.time || "";
-  const dateStr = data.date || "";
+  const dateStr = data.date ? formatDate(data.date) : "";
 
   return (
     <Pressable style={styles.card} onPress={onPress}>

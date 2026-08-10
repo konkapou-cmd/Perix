@@ -1218,6 +1218,8 @@
     "noCommonFriends": "No common friends yet.",
     "attending": "Attending",
     "activities": "Activities",
+    "noActivities": "No activities yet",
+    "addFirstActivity": "Create your first activity",
     "events": "Events",
     "stories": "Stories",
     "noStories": "No stories yet.",
