@@ -3,7 +3,7 @@ import {
   Alert, Modal, Pressable, ScrollView, StyleSheet,
   Text, TextInput, View, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from "react-native";
-import { CalendarList } from "react-native-calendars";
+import DatePickerModal from "../shared/DatePickerModal";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -554,32 +554,15 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      <Modal visible={showDatePicker} animationType="slide" transparent>
-        <View style={styles.calendarOverlay}>
-          <View style={styles.calendarContainer}>
-            <View style={styles.calendarHeader}>
-              <Pressable onPress={() => setShowDatePicker(false)}>
-                <Text style={styles.calendarDoneText}>{t("common.done", "Done")}</Text>
-              </Pressable>
-            </View>
-            <CalendarList
-              horizontal
-              pagingEnabled
-              showsVerticalScrollIndicator={false}
-              onDayPress={(day) => {
-                setAvailableFrom(day.dateString);
-                setShowDatePicker(false);
-              }}
-              markedDates={availableFrom ? { [availableFrom]: { selected: true, selectedColor: COLORS.primary } } : {}}
-              theme={{
-                todayTextColor: COLORS.primary,
-                selectedDayBackgroundColor: COLORS.primary,
-                arrowColor: COLORS.primary,
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        variant="sheet"
+        horizontal
+        value={{ startDate: availableFrom, endDate: null }}
+        onApply={(v) => setAvailableFrom(v.startDate ?? "")}
+        accentColor={COLORS.primary}
+      />
     </Modal>
   );
 }

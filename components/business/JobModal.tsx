@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
-import { CalendarList } from "react-native-calendars";
+import DatePickerModal from "../shared/DatePickerModal";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import FormScreen from "../ui/FormScreen";
@@ -256,32 +256,15 @@ export default function JobModal({
     </FormScreen>
 
       {/* Date picker modal */}
-      <Modal visible={showDatePicker} animationType="slide" transparent>
-        <View style={s.calendarOverlay}>
-          <View style={s.calendarContainer}>
-            <View style={s.calendarHeader}>
-              <Pressable onPress={() => setShowDatePicker(false)}>
-                <Text style={s.calendarDoneText}>{t("common.done", "Done")}</Text>
-              </Pressable>
-            </View>
-            <CalendarList
-              horizontal
-              pagingEnabled
-              showsVerticalScrollIndicator={false}
-              onDayPress={(day) => {
-                handleFormChange("expires_at", day.dateString);
-                setShowDatePicker(false);
-              }}
-              markedDates={jobForm.expires_at ? { [jobForm.expires_at]: { selected: true, selectedColor: COLORS.primary } } : {}}
-              theme={{
-                todayTextColor: COLORS.primary,
-                selectedDayBackgroundColor: COLORS.primary,
-                arrowColor: COLORS.primary,
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        variant="sheet"
+        horizontal
+        value={{ startDate: jobForm.expires_at, endDate: null }}
+        onApply={(v) => handleFormChange("expires_at", v.startDate ?? "")}
+        accentColor={COLORS.primary}
+      />
     </>
   );
 }

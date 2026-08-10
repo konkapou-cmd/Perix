@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { CalendarList } from "react-native-calendars";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import DatePickerModal from "../shared/DatePickerModal";
 import { ActivityItem, ACTIVITY_TYPES, ACTIVITY_CATEGORIES, ACTIVITY_SUBCATEGORIES } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
@@ -239,37 +239,18 @@ export default function ActivityModal({
             </View>
           </View>
 
-          <Modal visible={showCalendar} animationType="slide" transparent>
-            <View style={s.calendarOverlay}>
-              <View style={s.calendarContainer}>
-                <View style={s.calendarHeader}>
-                  <Pressable onPress={() => setShowCalendar(false)}>
-                    <Text style={s.calendarDoneText}>{t("common.done", "Done")}</Text>
-                  </Pressable>
-                </View>
-                <CalendarList
-                  onDayPress={(day) => {
-                    const dateStr = day.dateString;
-                    onFormChange({ ...activityForm, date: dateStr });
-                    onDateChange(null, new Date(dateStr + "T00:00:00"));
-                    setShowCalendar(false);
-                  }}
-                  markedDates={activityForm.date ? { [activityForm.date]: { selected: true, selectedColor: COLORS.primary } } : {}}
-                  firstDay={1}
-                  style={s.calendar}
-                  theme={{
-                    todayTextColor: COLORS.primary,
-                    selectedDayBackgroundColor: COLORS.primary,
-                    selectedDayTextColor: "#fff",
-                    dayTextColor: COLORS.textPrimary,
-                    textDisabledColor: COLORS.textDisabled,
-                    arrowColor: COLORS.primary,
-                    monthTextColor: COLORS.textPrimary,
-                  }}
-                />
-              </View>
-            </View>
-          </Modal>
+          <DatePickerModal
+            visible={showCalendar}
+            onClose={() => setShowCalendar(false)}
+            variant="sheet"
+            value={{ startDate: activityForm.date, endDate: null }}
+            onApply={(v) => {
+              const dateStr = v.startDate ?? "";
+              onFormChange({ ...activityForm, date: dateStr });
+              onDateChange(null, new Date(dateStr + "T00:00:00"));
+            }}
+            accentColor={COLORS.primary}
+          />
 
           {showActivityTimePicker && (
             <View>

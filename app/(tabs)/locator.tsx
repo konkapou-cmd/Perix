@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import BusinessMap from "../../components/BusinessMap";
 import { SkeletonBox, EmptyState } from "../../components/shared";
+import DatePickerModal from "../../components/shared/DatePickerModal";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import LocatorCard from "../../components/locator/LocatorCard";
@@ -30,7 +31,6 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { CalendarList } from "react-native-calendars";
 import { useAuth } from "../../context/AuthContext";
 import { useMapBounds } from "../../context/MapBoundsContext";
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
@@ -153,7 +153,6 @@ export default function LocatorScreen() {
   
   // Date filter state
   const [dateFilter, setDateFilter] = useState<DateFilter>({ startDate: null, endDate: null });
-  const [pendingDateFilter, setPendingDateFilter] = useState<DateFilter>({ startDate: null, endDate: null });
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -1155,67 +1154,16 @@ export default function LocatorScreen() {
       </ScrollView>
 
       {/* Calendar Modal */}
-      <Modal visible={showCalendar} animationType="slide">
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }}>
-          <View style={styles.calendarModalHeader}>
-            <View style={styles.calendarHeaderContent}>
-              <View style={styles.calendarHeaderIcon}>
-                <Ionicons name="calendar" size={24} color={COLORS.background} />
-              </View>
-              <View>
-                <Text style={styles.calendarModalTitle}>{t('home.eventsCalendar') || 'Select Dates'}</Text>
-                <Text style={styles.calendarModalSubtitle}>
-                  {pendingDateFilter.startDate || t('common.selectDateRange') || 'Choose a date range'}
-                </Text>
-              </View>
-            </View>
-            <Pressable style={styles.calendarCloseButton} onPress={() => setShowCalendar(false)}>
-              <Ionicons name="close" size={24} color={COLORS.background} />
-            </Pressable>
-          </View>
-          <View style={styles.calendarBody}>
-            <CalendarList
-              style={{ flex: 1 }}
-              firstDay={1}
-              markingType="period"
-              onDayPress={(day: any) => {
-                if (!pendingDateFilter.startDate) {
-                  setPendingDateFilter({ startDate: day.dateString, endDate: null });
-                } else if (!pendingDateFilter.endDate) {
-                  const start = pendingDateFilter.startDate;
-                  const end = day.dateString;
-                  if (end < start) {
-                    setPendingDateFilter({ startDate: end, endDate: start });
-                  } else {
-                    setPendingDateFilter({ startDate: start, endDate: end });
-                  }
-                } else {
-                  setPendingDateFilter({ startDate: day.dateString, endDate: null });
-                }
-              }}
-              markedDates={{
-                ...(pendingDateFilter.startDate ? { [pendingDateFilter.startDate]: { selected: true, color: COLORS.primary } } : {}),
-                ...(pendingDateFilter.endDate ? { [pendingDateFilter.endDate]: { selected: true, color: COLORS.primary } } : {}),
-              }}
-            />
-          </View>
-          <View style={styles.calendarFooter}>
-            <Pressable style={styles.calendarActionButton} onPress={() => {
-              setDateFilter({ startDate: null, endDate: null });
-              setPendingDateFilter({ startDate: null, endDate: null });
-              setShowCalendar(false);
-            }}>
-              <Text style={styles.calendarActionButtonText}>{t("common.reset", "Zurücksetzen")}</Text>
-            </Pressable>
-            <Pressable style={[styles.calendarActionButton, styles.calendarApplyButton]} onPress={() => {
-              setDateFilter(pendingDateFilter);
-              setShowCalendar(false);
-            }}>
-              <Text style={[styles.calendarActionButtonText, styles.calendarApplyButtonText]}>Apply</Text>
-            </Pressable>
-          </View>
-        </SafeAreaView>
-      </Modal>
+      <DatePickerModal
+        visible={showCalendar}
+        onClose={() => setShowCalendar(false)}
+        mode="range"
+        value={{ startDate: dateFilter.startDate, endDate: dateFilter.endDate }}
+        onApply={(v) => setDateFilter(v)}
+        onReset={() => { setDateFilter({ startDate: null, endDate: null }); }}
+        title={t("home.eventsCalendar", "Select Dates")}
+        accentColor={COLORS.primaryDark}
+      />
 
       <Modal visible={categoryModal} animationType="slide">
         <View style={styles.modalContainer}>
