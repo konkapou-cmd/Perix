@@ -480,3 +480,43 @@ async def create_service_date_block(
         return doc
     finally:
         await release_service_booking_lock(service_id, lock_token)
+
+
+async def decline_service_booking(booking_id: str) -> dict[str, Any]:
+    """Decline a pending booking with atomic status check. No auth."""
+    result = await db.bookings.update_one(
+        {"booking_id": booking_id, "status": "pending"},
+        {"$set": {"status": "declined", "declined_at": now_utc(), "cancelled_by": "business"},
+         "$unset": {"hold_expires_at": ""}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
+    booking = await db.bookings.find_one({"booking_id": booking_id}, {"_id": 0})
+    return await enrich_booking(booking)
+
+
+async def cancel_service_booking(booking_id: str, cancelled_by: str = "client") -> dict[str, Any]:
+    """Cancel a pending or confirmed booking with atomic status check. No auth."""
+    result = await db.bookings.update_one(
+        {"booking_id": booking_id, "status": {"$in": ["pending", "confirmed"]}},
+        {"$set": {"status": "cancelled", "cancelled_at": now_utc(), "cancelled_by": cancelled_by},
+         "$unset": {"hold_expires_at": ""}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
+    booking = await db.bookings.find_one({"booking_id": booking_id}, {"_id": 0})
+    if booking and booking.get("slot_id"):
+        await db.service_slots.update_one({"slot_id": booking["slot_id"]}, {"$set": {"is_booked": False}})
+    return await enrich_booking(booking)
+
+
+async def complete_service_booking(booking_id: str) -> dict[str, Any]:
+    """Complete a confirmed booking with atomic status check. No auth."""
+    result = await db.bookings.update_one(
+        {"booking_id": booking_id, "status": "confirmed"},
+        {"$set": {"status": "completed", "completed_at": now_utc()}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
+    booking = await db.bookings.find_one({"booking_id": booking_id}, {"_id": 0})
+    return await enrich_booking(booking)

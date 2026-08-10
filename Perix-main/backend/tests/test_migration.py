@@ -101,3 +101,48 @@ async def test_migration_pricing_fallback(migration_test_data):
     assert bkg["nightly_rate_amount"] == 15000
     assert bkg["total_amount"] == 30000
     assert bkg["total_price"] == "300.00"
+
+
+@pytest.mark.asyncio
+async def test_migration_nights_to_end_date(migration_test_data):
+    """Booking with nights=3 but no end_date — end_date = date + 3."""
+    bkg_id = migration_test_data["booking"]["booking_id"]
+    await database.db.bookings.update_one({"booking_id": bkg_id}, {
+        "$set": {"nights": 3}, "$unset": {"end_date": ""}})
+    count = await migrate_bookings(apply=True)
+    assert count == 1
+    bkg = await database.db.bookings.find_one({"booking_id": bkg_id})
+    assert bkg["end_date"] == "2025-06-04"  # 2025-06-01 + 3 nights
+    assert bkg["nights"] == 3
+
+
+@pytest.mark.asyncio
+async def test_migration_end_date_to_nights(migration_test_data):
+    """Booking with end_date=2025-06-04 but no nights — nights = 3."""
+    bkg_id = migration_test_data["booking"]["booking_id"]
+    await database.db.bookings.update_one({"booking_id": bkg_id}, {
+        "$set": {"end_date": "2025-06-04"}, "$unset": {"nights": ""}})
+    count = await migrate_bookings(apply=True)
+    assert count == 1
+    bkg = await database.db.bookings.find_one({"booking_id": bkg_id})
+    assert bkg["nights"] == 3
+
+
+@pytest.mark.asyncio
+async def test_migration_unversioned_service(migration_test_data):
+    """Structurally complete hotel missing version marker still gets versioned."""
+    svc_id = migration_test_data["service"]["service_id"]
+    from scripts.migrate_hotel_booking_v2 import migrate_services
+    # Pre-fill all structural fields but no version
+    await database.db.services.update_one({"service_id": svc_id}, {"$set": {
+        "inventory_count": 5, "max_adults": 2, "max_children": 1,
+        "check_in_time": "15:00", "check_out_time": "11:00",
+        "min_nights": 1, "max_nights": 30, "currency": "USD",
+    }})
+    count = await migrate_services(apply=True)
+    assert count == 1  # Should be counted even though no structural fields changed
+    svc = await database.db.services.find_one({"service_id": svc_id})
+    assert svc["hotel_booking_engine_version"] == 2
+    # Second run should skip
+    count2 = await migrate_services(apply=True)
+    assert count2 == 0

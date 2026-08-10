@@ -150,16 +150,8 @@ async def test_confirm_vs_decline_race(hotel_service_single):
 
         async def do_decline():
             try:
-                from routes.services import decline_booking
-                # Use the route handler
-                result = await database.db.bookings.update_one(
-                    {"booking_id": booking["booking_id"], "status": "pending"},
-                    {"$set": {"status": "declined", "declined_at": now_utc(), "cancelled_by": "business"},
-                     "$unset": {"hold_expires_at": ""}})
-                if result.modified_count != 1:
-                    return {"error": "409"}
-                booking["status"] = "declined"
-                return booking
+                from services.date_range_booking import decline_service_booking
+                return await decline_service_booking(booking["booking_id"])
             except Exception as e:
                 return {"error": str(e)}
 
@@ -196,12 +188,8 @@ async def test_cancel_vs_complete_race(hotel_service_single):
 
         async def do_complete():
             try:
-                result = await database.db.bookings.update_one(
-                    {"booking_id": booking["booking_id"], "status": "confirmed"},
-                    {"$set": {"status": "completed", "completed_at": now_utc()}})
-                if result.modified_count != 1:
-                    return {"error": "409"}
-                return {"booking_id": booking["booking_id"], "status": "completed"}
+                from services.date_range_booking import complete_service_booking
+                return await complete_service_booking(booking["booking_id"])
             except Exception as e:
                 return {"error": str(e)}
 
@@ -257,13 +245,8 @@ async def test_confirm_vs_cancel_race(hotel_service_single):
 
         async def do_cancel():
             try:
-                result = await database.db.bookings.update_one(
-                    {"booking_id": booking["booking_id"], "status": {"$in": ["pending", "confirmed"]}},
-                    {"$set": {"status": "cancelled", "cancelled_at": now_utc(), "cancelled_by": "client"},
-                     "$unset": {"hold_expires_at": ""}})
-                if result.modified_count != 1:
-                    return {"error": "409"}
-                return {"status": "cancelled"}
+                from services.date_range_booking import cancel_service_booking
+                return await cancel_service_booking(booking["booking_id"])
             except Exception as e:
                 return {"error": str(e)}
 

@@ -47,5 +47,5 @@ jobs:
               print(result)
           asyncio.run(main())
           PY
-      - run: python -m pytest --collect-only -q tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py
-      - run: python -m pytest -x -vv --tb=long tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py
+      - run: python -m pytest --collect-only -q tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py tests/test_hotel_service_routes.py
+      - run: python -m pytest -x -vv --tb=long tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py tests/test_hotel_service_routes.py

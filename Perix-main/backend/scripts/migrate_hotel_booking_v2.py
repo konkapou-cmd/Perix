@@ -58,11 +58,15 @@ async def migrate_services(apply: bool = False) -> int:
         if service.get("currency") is None:
             update["currency"] = "EUR"
 
+        # Always set version marker — structurally complete hotels still need it
+        if service.get("hotel_booking_engine_version") != 2:
+            update["hotel_booking_engine_version"] = 2
+        if service.get("legacy_hotel_slots_preserved") is None:
+            update["legacy_hotel_slots_preserved"] = True
+
         if not update:
             continue
 
-        update["hotel_booking_engine_version"] = 2
-        update["legacy_hotel_slots_preserved"] = True
         update["hotel_booking_migrated_at"] = now_utc()
         proposed += 1
 
