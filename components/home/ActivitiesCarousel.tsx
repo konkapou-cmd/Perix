@@ -7,6 +7,7 @@ import { SectionHeader } from "../shared/SectionHeader";
 import EmptyState from "../shared/EmptyState";
 import { ActivityItem } from "../../lib/api";
 import { ACTIVITY_TYPES } from "../../lib/api/core";
+import { formatDate } from "../../lib/formatDate";
 
 function getThemeEmoji(theme?: string | null): string {
   if (!theme) return "✨";

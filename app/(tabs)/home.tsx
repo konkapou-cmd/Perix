@@ -650,7 +650,7 @@ export default function HomeScreen() {
 
   const markedDates = useMemo(() => {
     const marks: Record<string, any> = {};
-    events.forEach((event) => { const dateKey = formatEventDate(event.start_time); marks[dateKey] = { marked: true, dotColor: COLORS.primaryDark }; });
+    events.forEach((event) => { const dateKey = event.start_time?.split("T")[0]; if (dateKey) marks[dateKey] = { marked: true, dotColor: COLORS.primaryDark }; });
     return marks;
   }, [events]);
 
