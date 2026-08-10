@@ -57,6 +57,7 @@ import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
 import { translateCategory } from "../../lib/categoryTranslation";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
+import { formatDate } from "../../lib/formatDate";
 import { ACTIVITY_CATEGORIES, ACTIVITY_TYPES } from "../../lib/api";
 
 const BACKEND_URL =
@@ -944,7 +945,7 @@ export default function LocatorScreen() {
           <ProgressivePicker
             label={t("common.date", "Datum")}
             value={dateFilter.startDate ?? "this-week"}
-            displayValue={dateFilter.startDate ? `${dateFilter.startDate} → ${dateFilter.endDate || "..."}` : t("common.thisWeek", "Diese Woche")}
+            displayValue={dateFilter.startDate ? `${formatDate(dateFilter.startDate)} → ${dateFilter.endDate ? formatDate(dateFilter.endDate) : "..."}` : t("common.thisWeek", "Diese Woche")}
             onPressOverride={() => setShowCalendar(true)}
             options={[{ key: "this-week" as any, label: t("common.thisWeek", "Diese Woche") }]}
             onChange={() => {}}
@@ -969,7 +970,7 @@ export default function LocatorScreen() {
           <ProgressivePicker
             label={t("common.date", "Datum")}
             value={dateFilter.startDate ?? "this-week"}
-            displayValue={dateFilter.startDate ? `${dateFilter.startDate} → ${dateFilter.endDate || "..."}` : t("common.thisWeek", "Diese Woche")}
+            displayValue={dateFilter.startDate ? `${formatDate(dateFilter.startDate)} → ${dateFilter.endDate ? formatDate(dateFilter.endDate) : "..."}` : t("common.thisWeek", "Diese Woche")}
             onPressOverride={() => setShowCalendar(true)}
             options={[{ key: "this-week" as any, label: t("common.thisWeek", "Diese Woche") }]}
             onChange={() => {}}
@@ -1174,6 +1175,9 @@ export default function LocatorScreen() {
           </View>
           <View style={styles.calendarBody}>
             <CalendarList
+              style={{ flex: 1 }}
+              firstDay={1}
+              markingType="period"
               onDayPress={(day: any) => {
                 if (!pendingDateFilter.startDate) {
                   setPendingDateFilter({ startDate: day.dateString, endDate: null });
