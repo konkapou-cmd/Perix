@@ -302,7 +302,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           const count = (services || []).filter(sv =>
             resolveCategory(sv.root_category || "") === cat &&
             sv.type === s.type &&
-            sv.is_active
+            sv.is_active &&
+            sv.status === "published"
           ).length;
           tabs.push({
             key: tabKey,

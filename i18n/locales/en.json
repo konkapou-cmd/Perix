@@ -2126,6 +2126,15 @@
     "bookableWindow": "Bookable Window",
     "saveMayHaveSucceeded": "The service may have been saved despite the network error. Your edits are still open."
   },
+  "detail": {
+    "stay": "Stay Information",
+    "timing": "Duration & Availability",
+    "specs": "Details",
+    "vehicle": "Vehicle Data",
+    "food": "Food Info",
+    "health": "Health & Care",
+    "included": "Included"
+  },
   "menu": {
     "starter": "Starters",
     "main": "Mains",

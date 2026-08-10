@@ -2221,6 +2221,15 @@
     "bookableWindow": "Buchbares Fenster",
     "saveMayHaveSucceeded": "Der Dienst wurde möglicherweise trotz Netzwerkfehler gespeichert. Ihre Änderungen bleiben geöffnet."
   },
+  "detail": {
+    "stay": "Aufenthaltsinformationen",
+    "timing": "Dauer & Verfügbarkeit",
+    "specs": "Details",
+    "vehicle": "Fahrzeugdaten",
+    "food": "Gerichtinfos",
+    "health": "Gesundheit & Pflege",
+    "included": "Enthalten"
+  },
   "menu": {
     "starter": "Vorspeisen",
     "main": "Hauptgerichte",

@@ -212,7 +212,7 @@ const FALLBACK_CATEGORY_TREE: CategoryGroup[] = [
   {
     name: "🏨 Local Hotels", slug: "local-hotels",
     groups: [
-      { name: "Hotels", slug: "hotels", subcategories: ["hotels","guesthouses","hostels"].map(s => sub(s, { ...DEFAULT_MODULES, hotel: true }, ["events","tickets","jobs","bookings","services","hotel"])) },
+      { name: "Hotels", slug: "hotels", subcategories: ["hotels"].map(s => sub(s, { ...DEFAULT_MODULES, hotel: true }, ["events","tickets","jobs","bookings","services","hotel"])) },
     ],
   },
   {
