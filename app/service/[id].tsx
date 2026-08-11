@@ -94,7 +94,6 @@ export default function ServiceDetailPage() {
   const ctaLabel =
     ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
     : ctaType === "reservation" ? t("services.reserve", "Reservieren")
-    : ctaType === "request_quote" && service?.type === "hotel_room" ? t("services.requestBooking", "Request Booking")
     : ctaType === "request_quote" ? t("services.requestQuote", "Angebot anfragen")
     : ctaType === "get_in_touch" ? t("services.getInTouch", "Kontakt aufnehmen")
     : t("services.learnMore", "Mehr erfahren");
@@ -113,12 +112,7 @@ export default function ServiceDetailPage() {
       setInquiryName(user?.name || "");
       setInquiryEmail(user?.email || "");
       if (ctaType === "request_quote") {
-        const name = service?.name || "";
-        const price = service?.price ? `€${service.price}/night` : "";
-        const from = service?.available_from ? formatDate(String(service.available_from)) : "";
-        const until = service?.available_until ? formatDate(String(service.available_until)) : "";
-        const window = from && until ? ` (${from} – ${until})` : "";
-        setInquiryMessage(`Hello, I would like to request a booking for: ${name}${price ? ` at ${price}` : ""}${window}.\n\nMy preferred dates: \nNumber of guests: \n\nAdditional details about my trip: `);
+        setInquiryMessage(`Ich interessiere mich für: ${service?.name || ""}`);
       } else if (ctaType === "reservation") {
         setInquiryMessage(`Hallo, ich möchte ${service?.name || ""} reservieren. Bitte teilen Sie mir die Verfügbarkeit mit.`);
       } else {

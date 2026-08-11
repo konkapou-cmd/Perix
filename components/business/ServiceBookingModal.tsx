@@ -7,8 +7,9 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
 import { Service, TimeSlot, StayAvailability } from "../../lib/api/core";
-import { getSlots, getAvailability, createBooking, getStayAvailability } from "../../lib/api/services";
+import { getSlots, getAvailability, createBooking, getStayAvailability, sendServiceInquiry } from "../../lib/api/services";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
+import { formatDate } from "../../lib/formatDate";
 import { addDays, createRequestId, isValidStayRange, toLocalISODate } from "../../lib/booking/dateRange";
 import AdaptiveImage from "../AdaptiveImage";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
@@ -184,6 +185,22 @@ export default function ServiceBookingModal({
     }
     setSubmitting(true);
     try {
+      const isHotel = service.type === "hotel_room";
+
+      if (isHotel) {
+        const price = service.price ? `€${service.price}/night` : "";
+        const msg = `Hello, I would like to request a booking for: ${service.name} at ${price}.\n\nCheck-in: ${checkIn ? formatDate(checkIn) : ""}\nCheck-out: ${checkOut ? formatDate(checkOut) : ""}\nRooms: ${rooms}\nAdults: ${adults}\nChildren: ${children}\n\n${notes ? `Notes: ${notes}\n\n` : ""}Please confirm availability and price.`;
+        await sendServiceInquiry(sessionToken, service.service_id, {
+          name: name.trim(),
+          email: email.trim() || "",
+          message: msg,
+        });
+        Alert.alert(t("services.requestSent"), t("services.inquirySent", "Your inquiry has been sent! The business will respond shortly."));
+        onSuccess?.();
+        onClose();
+        return;
+      }
+
       const payload: any = {
         service_id: service.service_id,
         date: isDateRange ? checkIn : selectedDate,
