@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, Modal, Pressable, ScrollView, ActivityIndicator
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { Booking } from "../../lib/api/core";
 import { getBookings, confirmBooking, declineBooking, cancelBooking, completeBooking } from "../../lib/api/services";
 import { formatPrice } from "../../lib/serviceFormat";
+import { formatDate } from "../../lib/formatDate";
 
 type Props = {
   visible: boolean;
@@ -29,6 +31,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function BookingListModal({ visible, businessId, sessionToken, onClose }: Props) {
   const { t } = useTranslation();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("pending");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,15 +113,21 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
     return (
       <View key={booking.booking_id} style={s.bookingCard}>
         <View style={s.bookingHeader}>
-          <Text style={s.clientName}>{booking.client_name}</Text>
+          {booking.client_id ? (
+            <Pressable onPress={() => router.push(`/user/${booking.client_id}` as any)}>
+              <Text style={[s.clientName, { color: COLORS.primaryDark }]}>{booking.client_name}</Text>
+            </Pressable>
+          ) : (
+            <Text style={s.clientName}>{booking.client_name}</Text>
+          )}
           <View style={[s.statusBadge, { backgroundColor: statusColor + "20" }]}>
             <Text style={[s.statusText, { color: statusColor }]}>{t(`bookingList.${booking.status}`, booking.status)}</Text>
           </View>
         </View>
-        <Text style={s.bookingDetail}>{booking.date} {booking.start_time ? `| ${booking.start_time}` : ""}{booking.end_time ? ` - ${booking.end_time}` : ""}</Text>
+        <Text style={s.bookingDetail}>{formatDate(booking.date)} {booking.start_time ? `| ${booking.start_time}` : ""}{booking.end_time ? ` - ${booking.end_time}` : ""}</Text>
         {booking.booking_mode === "date_range" && booking.end_date && (
           <>
-            <Text style={s.bookingDetail}>{booking.date.split("-").reverse().join(" ")} → {booking.end_date.split("-").reverse().join(" ")}</Text>
+            <Text style={s.bookingDetail}>{formatDate(booking.date)} → {formatDate(booking.end_date)}</Text>
             <Text style={s.bookingDetail}>{booking.nights} {t("bookingList.nights", "nights")} · {booking.room_count || 1} {t("bookingList.rooms", "room(s)")}</Text>
             <Text style={s.bookingDetail}>{booking.adults || 1} {t("bookingList.adults", "adults")} · {booking.children || 0} {t("bookingList.children", "children")}</Text>
             {booking.confirmation_code && <Text style={s.bookingCode}>{booking.confirmation_code}</Text>}
