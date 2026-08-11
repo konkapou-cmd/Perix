@@ -92,7 +92,8 @@ export default function ServiceDetailPage() {
   }, [service]);
 
   const ctaLabel =
-    ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
+    ctaType === "booking" && service?.type === "hotel_room" ? t("services.requestBooking", "Request Booking")
+    : ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
     : ctaType === "reservation" ? t("services.reserve", "Reservieren")
     : ctaType === "request_quote" ? t("services.requestQuote", "Angebot anfragen")
     : ctaType === "get_in_touch" ? t("services.getInTouch", "Kontakt aufnehmen")

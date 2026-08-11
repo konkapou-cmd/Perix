@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
 import { Service, TimeSlot, StayAvailability } from "../../lib/api/core";
@@ -33,6 +34,7 @@ export default function ServiceBookingModal({
   onClose, onSuccess, onAskAbout, cardColor = "#fff", textColor = COLORS.textPrimary,
 }: Props) {
   const { t } = useTranslation();
+  const router = useRouter();
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [availabilities, setAvailabilities] = useState<Record<string, { available_spots: number; capacity: number; is_full: boolean }>>({});
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -195,9 +197,16 @@ export default function ServiceBookingModal({
           email: email.trim() || "",
           message: msg,
         });
-        Alert.alert(t("services.requestSent"), t("services.inquirySent", "Your inquiry has been sent! The business will respond shortly."));
-        onSuccess?.();
         onClose();
+        Alert.alert(
+          t("services.requestSent"),
+          t("services.inquirySent", "Your booking request has been sent to the business!"),
+          [
+            { text: t("common.ok", "OK"), style: "cancel" },
+            { text: t("messages.title", "View Messages"), onPress: () => router.push("/(tabs)/messages" as any) },
+          ],
+        );
+        onSuccess?.();
         return;
       }
 
@@ -522,7 +531,9 @@ export default function ServiceBookingModal({
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Text style={s.saveBtnText}>
-                  {ctaType === "booking" ? t("services.bookNow", "Jetzt buchen") : t("services.requestBooking", "Anfrage senden")}
+                  {service?.type === "hotel_room" ? t("services.sendRequest", "Send Request")
+                   : ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
+                   : t("services.requestBooking", "Anfrage senden")}
                 </Text>
               )}
             </Pressable>
