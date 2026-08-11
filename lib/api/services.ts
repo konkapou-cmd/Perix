@@ -31,8 +31,8 @@ export const getNearbyServices = async (
   return apiRequest<{ services: Service[]; total: number }>(`/services?${params.toString()}`, "GET", token);
 };
 
-export const getServiceDetail = async (serviceId: string): Promise<Service> => {
-  return apiRequest<Service>(`/services/${serviceId}`, "GET");
+export const getServiceDetail = async (serviceId: string, token?: string | null): Promise<Service> => {
+  return apiRequest<Service>(`/services/${serviceId}`, "GET", token ?? undefined);
 };
 
 export const createService = async (token: string, payload: Partial<Service> & { business_id: string; type: string; name: string }): Promise<Service> => {

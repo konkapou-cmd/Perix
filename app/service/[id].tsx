@@ -64,7 +64,7 @@ export default function ServiceDetailPage() {
   const loadService = useCallback(async () => {
     if (!id) { setLoading(false); return; }
     try {
-      const data = await getServiceDetail(id);
+      const data = await getServiceDetail(id, sessionToken);
       setService(data);
       if (sessionToken) {
         try { const { is_saved } = await checkSaved(sessionToken, "service", id); setIsSaved(is_saved); } catch {}
