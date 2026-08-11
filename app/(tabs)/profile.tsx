@@ -1415,7 +1415,7 @@ const handleUpdateSlug = async (newSlug: string) => {
     setServiceForm({
       ...DEFAULT_SERVICE_FORM,
       type: type || getDefaultModule(rootCategory || "") || DEFAULT_SERVICE_FORM.type,
-      status: type === "hotel_room" || getDefaultModule(rootCategory || "") === "hotel_room" ? "draft" : DEFAULT_SERVICE_FORM.status,
+      status: type === "hotel_room" || getDefaultModule(rootCategory || "") === "hotel_room" ? "published" : DEFAULT_SERVICE_FORM.status,
       address: businessDetail?.business.address || "",
       latitude: businessDetail?.business.latitude?.toString() || "",
       longitude: businessDetail?.business.longitude?.toString() || "",
