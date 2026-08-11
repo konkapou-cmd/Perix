@@ -136,6 +136,14 @@ async def get_current_user(request: Request) -> UserPublic:
     return build_user_public(user)
 
 
+async def get_current_user_optional(request: Request) -> Optional[UserPublic]:
+    """Get authenticated user if session exists, otherwise None."""
+    try:
+        return await get_current_user(request)
+    except HTTPException:
+        return None
+
+
 async def get_user_by_token(token: str) -> Optional[dict]:
     """Get user dict from a session token (for WebSocket auth)."""
     session = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})

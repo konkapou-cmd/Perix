@@ -1,5 +1,5 @@
 """Services, Time Slots, and Bookings routes."""
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from typing import List, Optional
 import asyncio
 import json
@@ -684,10 +684,25 @@ async def delete_date_block(service_id: str, block_id: str, current_user: UserPu
 
 
 @router.get("/{service_id}", response_model=ServiceResponse)
-async def get_service(service_id: str):
-    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published", "is_hidden": {"$ne": True}}, {"_id": 0})
+async def get_service(service_id: str, request: Request = None):
+    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
+
+    current_user = None
+    if request:
+        try:
+            from routes.dependencies import get_current_user
+            current_user = await get_current_user(request)
+        except HTTPException:
+            pass
+
+    business = await db.businesses.find_one({"business_id": service.get("business_id")}, {"_id": 0, "owner_id": 1})
+    is_owner = business and current_user and current_user.user_id == business.get("owner_id")
+
+    if not is_owner and (service.get("is_hidden") or service.get("status") != "published"):
+        raise HTTPException(status_code=404, detail="Service not found")
+
     bid = service.get("business_id")
     if bid:
         biz = await db.businesses.find_one({"business_id": bid}, {"_id": 0, "name": 1, "logo_image": 1})
