@@ -485,6 +485,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         onViewPublic={handleViewPublic}
         onCustomizeTheme={() => setThemeModalVisible?.(true)}
         onPlan={onPlan}
+        onBookings={onOpenBookingList}
         onEditProfile={onEditProfile}
         onSettings={() => router.push("/settings")}
         onLogout={() => {}}

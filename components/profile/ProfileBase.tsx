@@ -85,6 +85,7 @@ interface ProfileHeaderProps {
   showLogout?: boolean;
   onSaved?: () => void;
   onPlan?: () => void;
+  onBookings?: () => void;
   showMessageButton?: boolean;
   onMessagePress?: () => void;
   friendStatus?: "friends" | "request_sent" | "request_received" | "none";
@@ -206,6 +207,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onEditProfile,
   onCustomizeTheme,
   onPlan,
+  onBookings,
   onViewPublic,
   onLogout,
   showLogout = false,
@@ -391,6 +393,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   label={t("subscription.plan", "Plan")}
                   variant="secondaryIcon"
                   onPress={onPlan}
+                />
+              )}
+              {onBookings && (
+                <ProfileActionButton
+                  icon="calendar-outline"
+                  label={t("services.manageBookings", "Manage Bookings")}
+                  variant="secondaryIcon"
+                  onPress={onBookings}
                 />
               )}
               <ProfileActionButton
