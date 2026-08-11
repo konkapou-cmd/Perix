@@ -229,6 +229,7 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
       </SafeAreaView>
 
       <DatePickerModal
+        key={datePickerTarget}
         visible={datePickerTarget !== null}
         onClose={() => setDatePickerTarget(null)}
         variant="sheet"
