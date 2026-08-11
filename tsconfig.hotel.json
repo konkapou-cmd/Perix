@@ -9,6 +9,7 @@
     "components/business/SlotManagerModal.tsx",
     "components/business/BookingListModal.tsx",
     "components/business/UserBookingListModal.tsx",
+    "components/shared/DatePickerModal.tsx",
     "components/ShareContent.tsx",
     "lib/config/serviceModules.ts",
     "lib/config/serviceCategoryMatrix.ts",
