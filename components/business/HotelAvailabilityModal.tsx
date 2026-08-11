@@ -82,12 +82,14 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
         available_from: availableFrom,
         available_until: availableUntil,
         inventory_count: inventory,
+        status: "published",
       } as any);
       onSaved();
+      onClose();
     } catch (e: any) {
       Alert.alert(t("common.error"), e.message || t("common.saveFailed"));
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleCreateBlock = async () => {
