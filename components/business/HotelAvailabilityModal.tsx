@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View, Text, StyleSheet, Modal, Pressable, ScrollView,
   ActivityIndicator, Alert, Platform, KeyboardAvoidingView, TextInput,
@@ -44,6 +44,8 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
   const [blockReason, setBlockReason] = useState("");
   const [blockMode, setBlockMode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const savingRef = useRef(false);
+  const blockingRef = useRef(false);
 
   useEffect(() => {
     if (!visible || !service) return;
@@ -66,7 +68,7 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
   };
 
   const handleSaveWindow = async () => {
-    if (!service || !sessionToken) return;
+    if (!service || !sessionToken || savingRef.current) return;
     const inventory = Number(inventoryCount);
     if (!Number.isInteger(inventory) || inventory < 1) {
       Alert.alert(t("common.error"), t("services.inventoryInvalid", "Room inventory must be at least 1."));
@@ -76,6 +78,7 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
       Alert.alert(t("common.error"), t("services.hotelWindowInvalid", "Select a valid bookable date window."));
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     try {
       await updateService(sessionToken, service.service_id, {
@@ -89,11 +92,12 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
     } catch (e: any) {
       Alert.alert(t("common.error"), e.message || t("common.saveFailed"));
       setSaving(false);
+      savingRef.current = false;
     }
   };
 
   const handleCreateBlock = async () => {
-    if (!service || !sessionToken || !blockStart || !blockEnd) return;
+    if (!service || !sessionToken || !blockStart || !blockEnd || blockingRef.current) return;
     if (blockEnd <= blockStart) { Alert.alert(t("common.error"), "End date must be after start"); return; }
     const units = Number(blockedUnits);
     const inventory = Number(inventoryCount);
@@ -101,6 +105,7 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
       Alert.alert(t("common.error"), t("services.blockedUnitsInvalid", "Blocked rooms must be between 1 and total inventory."));
       return;
     }
+    blockingRef.current = true;
     setLoading(true);
     try {
       await createDateBlock(sessionToken, service.service_id, {
@@ -111,6 +116,7 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
       loadBlocks();
     } catch (e: any) { Alert.alert(t("common.error"), e.message); }
     setLoading(false);
+    blockingRef.current = false;
   };
 
   const handleDeleteBlock = async (blockId: string) => {
