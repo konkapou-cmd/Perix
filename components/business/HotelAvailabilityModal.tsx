@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
+import DatePickerModal from "../shared/DatePickerModal";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { Service, DateBlock } from "../../lib/api/core";
@@ -225,31 +226,22 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      <Modal visible={datePickerTarget !== null} animationType="slide" transparent onRequestClose={() => setDatePickerTarget(null)}>
-        <View style={styles.pickerOverlay}>
-          <View style={styles.pickerContainer}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <Text style={styles.sectionTitle}>{datePickerTarget === "available_from" ? "Bookable from" : "Bookable until"}</Text>
-              <Pressable onPress={() => setDatePickerTarget(null)}><Ionicons name="close" size={22} color={COLORS.textPrimary} /></Pressable>
-            </View>
-            <Calendar
-              minDate={datePickerTarget === "available_until" && availableFrom ? addDaysStr(availableFrom, 1) : undefined}
-              markingType="period"
-              firstDay={1}
-              onDayPress={(day) => {
-                if (datePickerTarget === "available_from") setAvailableFrom(day.dateString);
-                else setAvailableUntil(day.dateString);
-                setDatePickerTarget(null);
-              }}
-              markedDates={{
-                ...(availableFrom ? { [availableFrom]: { selected: true, selectedColor: COLORS.primary } } : {}),
-                ...(availableUntil ? { [availableUntil]: { selected: true, selectedColor: COLORS.primary } } : {}),
-              }}
-              theme={{ todayTextColor: COLORS.primary, arrowColor: COLORS.primary }}
-            />
-          </View>
-        </View>
-      </Modal>
+      <DatePickerModal
+        visible={datePickerTarget !== null}
+        onClose={() => setDatePickerTarget(null)}
+        variant="sheet"
+        value={{
+          startDate: datePickerTarget === "available_from" ? availableFrom : availableUntil,
+          endDate: null,
+        }}
+        onApply={(v) => {
+          if (datePickerTarget === "available_from") setAvailableFrom(v.startDate ?? "");
+          else setAvailableUntil(v.startDate ?? "");
+          setDatePickerTarget(null);
+        }}
+        minDate={datePickerTarget === "available_until" && availableFrom ? addDaysStr(availableFrom, 1) : undefined}
+        accentColor={COLORS.primary}
+      />
     </Modal>
   );
 }
