@@ -403,6 +403,21 @@ export default function ServiceModal({
         Alert.alert(t("common.error"), t("services.priceInvalid", "Enter a valid nightly price."));
         return;
       }
+      const minNights = Number(form.min_nights) || 1;
+      const maxNights = Number(form.max_nights) || 30;
+      const availableDays = Math.floor((new Date(form.available_until).getTime() - new Date(form.available_from).getTime()) / 86400000);
+      if (minNights < 1) {
+        Alert.alert(t("common.error"), t("services.minNightsInvalid", "Minimum nights must be at least 1."));
+        return;
+      }
+      if (maxNights < minNights) {
+        Alert.alert(t("common.error"), t("services.maxNightsInvalid", "Maximum nights must be >= minimum nights."));
+        return;
+      }
+      if (maxNights > availableDays) {
+        Alert.alert(t("common.error"), t("services.maxNightsExceedsWindow", "Maximum nights cannot exceed the bookable window (" + availableDays + " days)."));
+        return;
+      }
     }
 
     // Availability validation for publishing bookable services

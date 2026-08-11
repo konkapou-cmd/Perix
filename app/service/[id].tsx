@@ -14,6 +14,7 @@ import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceF
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
+import { formatDate } from "../../lib/formatDate";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import ShareContent from "../../components/ShareContent";
@@ -93,6 +94,7 @@ export default function ServiceDetailPage() {
   const ctaLabel =
     ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
     : ctaType === "reservation" ? t("services.reserve", "Reservieren")
+    : ctaType === "request_quote" && service?.type === "hotel_room" ? t("services.requestBooking", "Request Booking")
     : ctaType === "request_quote" ? t("services.requestQuote", "Angebot anfragen")
     : ctaType === "get_in_touch" ? t("services.getInTouch", "Kontakt aufnehmen")
     : t("services.learnMore", "Mehr erfahren");
@@ -111,7 +113,12 @@ export default function ServiceDetailPage() {
       setInquiryName(user?.name || "");
       setInquiryEmail(user?.email || "");
       if (ctaType === "request_quote") {
-        setInquiryMessage(`Ich interessiere mich für: ${service?.name || ""}`);
+        const name = service?.name || "";
+        const price = service?.price ? `€${service.price}/night` : "";
+        const from = service?.available_from ? formatDate(String(service.available_from)) : "";
+        const until = service?.available_until ? formatDate(String(service.available_until)) : "";
+        const window = from && until ? ` (${from} – ${until})` : "";
+        setInquiryMessage(`Hello, I would like to request a booking for: ${name}${price ? ` at ${price}` : ""}${window}.\n\nMy preferred dates: \nNumber of guests: \n\nAdditional details about my trip: `);
       } else if (ctaType === "reservation") {
         setInquiryMessage(`Hallo, ich möchte ${service?.name || ""} reservieren. Bitte teilen Sie mir die Verfügbarkeit mit.`);
       } else {

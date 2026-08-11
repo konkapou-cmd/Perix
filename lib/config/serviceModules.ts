@@ -513,7 +513,7 @@ export const SERVICE_MODULES: Record<string, ServiceModuleConfig> = {
     tabLabelKey: "services.typeHotelRoomTab",
     fallbackLabel: "Room / Unit",
     icon: "bed",
-    ctaType: "booking",
+    ctaType: "request_quote",
     bookingEnabled: true,
     bookingMode: "date_range",
     requiresSlots: false,
