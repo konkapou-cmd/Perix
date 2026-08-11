@@ -38,7 +38,7 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
     try {
       const data = await getBookings(sessionToken, businessId, activeTab);
       setBookings(data);
-    } catch { /* ignore */ }
+    } catch (e: any) { console.log("loadBookings error:", e?.message || e); }
   }, [sessionToken, businessId, activeTab]);
 
   useEffect(() => {

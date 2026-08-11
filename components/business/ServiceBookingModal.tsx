@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Platform, ActivityIndicator, Alert, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,6 +35,7 @@ export default function ServiceBookingModal({
 }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
+  const submittingRef = useRef(false);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [availabilities, setAvailabilities] = useState<Record<string, { available_spots: number; capacity: number; is_full: boolean }>>({});
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -173,6 +174,7 @@ export default function ServiceBookingModal({
   const displayDates = allSlots.length > 0 ? availableDates : dates;
 
   const handleBook = async () => {
+    if (submittingRef.current) return;
     if (!service || !name.trim()) {
       Alert.alert(t("common.error", "Error"), t("services.nameRequired", "Please enter your name"));
       return;
@@ -186,6 +188,7 @@ export default function ServiceBookingModal({
       return;
     }
     setSubmitting(true);
+    submittingRef.current = true;
     try {
       const isHotel = service.type === "hotel_room";
 
@@ -252,6 +255,7 @@ export default function ServiceBookingModal({
       Alert.alert(t("common.error", "Error"), err.message || "Booking failed");
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
