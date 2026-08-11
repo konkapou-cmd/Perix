@@ -451,7 +451,7 @@ export default function ServiceModal({
     categoryQuestions.some((q) => q.field === field && q.importance === "required");
 
   const sortedFields = selectedFields
-    .filter((f) => f !== "address" && f !== "deposit" && f !== "price")
+    .filter((f) => f !== "address" && f !== "deposit" && f !== "price" && f !== "available_from" && f !== "available_until" && f !== "inventory_count")
     .map((field, index) => ({ field, index }))
     .sort((a, b) => {
       const importanceDiff = (fieldImportance.get(a.field) ?? 2) - (fieldImportance.get(b.field) ?? 2);
