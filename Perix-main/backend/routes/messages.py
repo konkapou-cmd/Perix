@@ -191,8 +191,8 @@ async def list_all_conversations(current_user: UserPublic = Depends(get_current_
                 result.append({
                     "type": "direct",
                     "conversation_id": other_id,
-                    "name": other_user.display_name,
-                    "image": other_user.profile_image,
+                    "name": other_user.name,
+                    "image": other_user.profile_photo,
                     "last_message": last_msg.get("text", ""),
                     "last_message_time": last_msg.get("created_at"),
                     "other_user": other_user.model_dump() if other_user else None,
