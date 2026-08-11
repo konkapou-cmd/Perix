@@ -191,16 +191,29 @@ export default function ServiceBookingModal({
 
       if (isHotel) {
         const price = service.price ? `€${service.price}/night` : "";
+        const payload: any = {
+          service_id: service.service_id,
+          date: checkIn,
+          end_date: checkOut,
+          client_name: name.trim(),
+          client_email: email.trim() || undefined,
+          guests: adults + children,
+          room_count: rooms,
+          adults,
+          children,
+          notes: notes.trim() || undefined,
+          request_id: requestId,
+        };
+        await createBooking(sessionToken, payload);
+        setRequestId(createRequestId());
+
         const msg = `Hello, I would like to request a booking for: ${service.name} at ${price}.\n\nCheck-in: ${checkIn ? formatDate(checkIn) : ""}\nCheck-out: ${checkOut ? formatDate(checkOut) : ""}\nRooms: ${rooms}\nAdults: ${adults}\nChildren: ${children}\n\n${notes ? `Notes: ${notes}\n\n` : ""}Please confirm availability and price.`;
-        await sendServiceInquiry(sessionToken, service.service_id, {
-          name: name.trim(),
-          email: email.trim() || "",
-          message: msg,
-        });
+        try { await sendServiceInquiry(sessionToken, service.service_id, { name: name.trim(), email: email.trim() || "", message: msg }); } catch {}
+
         onClose();
         Alert.alert(
           t("services.requestSent"),
-          t("services.inquirySent", "Your booking request has been sent to the business!"),
+          t("services.bookingPending", "Booking request sent! The business will confirm shortly."),
           [
             { text: t("common.ok", "OK"), style: "cancel" },
             { text: t("messages.title", "View Messages"), onPress: () => router.push("/(tabs)/messages" as any) },
