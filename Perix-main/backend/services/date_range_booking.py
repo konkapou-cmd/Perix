@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import HTTPException
@@ -90,6 +90,13 @@ async def release_service_booking_lock(service_id: str, token: str) -> None:
     )
 
 
+def _make_aware(dt: Optional[datetime]) -> Optional[datetime]:
+    """Convert a naive datetime (from MongoDB) to UTC-aware for comparison with now_utc()."""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def _is_active_inventory_booking(booking: dict[str, Any], now: datetime) -> bool:
     status = booking.get("status")
     if status == "confirmed":
@@ -97,7 +104,7 @@ def _is_active_inventory_booking(booking: dict[str, Any], now: datetime) -> bool
     if status != "pending":
         return False
 
-    hold_expires_at = booking.get("hold_expires_at")
+    hold_expires_at = _make_aware(booking.get("hold_expires_at"))
     return hold_expires_at is None or hold_expires_at > now
 
 
@@ -395,7 +402,7 @@ async def confirm_date_range_booking(
     try:
         hold_expired = (
             booking.get("hold_expires_at") is not None
-            and booking["hold_expires_at"] <= now_utc()
+            and _make_aware(booking["hold_expires_at"]) <= now_utc()
         )
 
         if hold_expired:
