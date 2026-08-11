@@ -459,8 +459,15 @@ async def confirm_booking(booking_id: str, current_user: UserPublic = Depends(ge
 
     if booking.get("booking_mode") == "date_range":
         from services.date_range_booking import confirm_date_range_booking
-        confirmed = await confirm_date_range_booking(booking, service=service, business=business)
-        return BookingResponse(**confirmed)
+        try:
+            confirmed = await confirm_date_range_booking(booking, service=service, business=business)
+            return BookingResponse(**confirmed)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            logger.error(f"confirm_booking failed for {booking_id}: {e}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=f"Confirmation failed: {str(e)}")
 
     if booking["status"] != "pending":
         raise HTTPException(status_code=400, detail=f"Booking is already {booking['status']}")
