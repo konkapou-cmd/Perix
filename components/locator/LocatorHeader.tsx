@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING } from "../../lib/designTokens";
 import ProgressivePicker from "../navigation/ProgressivePicker";
 
-type TabType = "businesses" | "events" | "activities" | "rentals" | "jobs";
+type TabType = "businesses" | "hotels" | "events" | "activities" | "rentals" | "jobs";
 
 type Props = {
   activeTab: TabType;
@@ -13,7 +13,8 @@ type Props = {
   t: (key: string, options?: any) => string;
 };
 
-const SECTION_OPTIONS: { key: TabType; label: string; icon: "business-outline" | "calendar-outline" | "people-outline" | "home-outline" | "briefcase-outline" }[] = [
+const SECTION_OPTIONS: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: "hotels", label: "Hotels", icon: "bed" },
   { key: "businesses", label: "Businesses", icon: "business-outline" },
   { key: "events", label: "Events", icon: "calendar-outline" },
   { key: "activities", label: "Activities", icon: "people-outline" },

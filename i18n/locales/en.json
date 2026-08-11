@@ -525,6 +525,8 @@
     "profile": "Profile",
     "jobs": "Jobs",
     "businesses": "Businesses",
+    "hotels": "Hotels",
+    "rentals": "Rentals",
     "events": "Events",
     "locator": "Locator"
   },

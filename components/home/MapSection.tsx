@@ -13,6 +13,7 @@ import { entityRoutes, pushEntityRoute, getRentalNavigationId } from "../../lib/
 interface MapSectionProps {
   mapBounds: MapBounds;
   businesses: Business[];
+  hotels?: Business[];
   events: EventItem[];
   activities: ActivityItem[];
   rentals: Rental[];
@@ -24,8 +25,14 @@ interface MapSectionProps {
   onRecenter?: (lat: number, lng: number) => void;
 }
 
-export function MapSection({ mapBounds, businesses, events, activities, rentals, jobs, services, products, ownerHomes, onRegionChange, onRecenter }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, onRegionChange, onRecenter }: MapSectionProps) {
   const router = useRouter();
+
+  const allBusinesses = useMemo(() => {
+    if (!hotels || hotels.length === 0) return businesses;
+    const bizIds = new Set(businesses.map(b => b.business_id));
+    return [...businesses, ...hotels.filter(h => !bizIds.has(h.business_id))];
+  }, [businesses, hotels]);
 
   const productMarkers = useMemo(() =>
     (products || []).filter(l => l.latitude != null && l.longitude != null).map(l => ({
@@ -54,7 +61,8 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
   const extraMarkers = useMemo(() => [...productMarkers, ...homeMarkers], [productMarkers, homeMarkers]);
 
   const handleMarkerPress = (id: string) => {
-    const biz = businesses.find(b => b.business_id === id);
+    const all = [...allBusinesses, ...(hotels || [])];
+    const biz = all.find(b => b.business_id === id);
     if (biz) { router.push(`/business/${id}` as any); return; }
     const ev = events.find(e => e.event_id === id);
     if (ev) { router.push(`/event/${id}` as any); return; }
@@ -93,7 +101,7 @@ export function MapSection({ mapBounds, businesses, events, activities, rentals,
             latitudeDelta: mapBounds.maxLat - mapBounds.minLat,
             longitudeDelta: mapBounds.maxLng - mapBounds.minLng,
           }}
-          businesses={businesses}
+          businesses={allBusinesses}
           events={events}
           activities={activities}
           rentals={rentals}

@@ -91,7 +91,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const itemWidth = (Dimensions.get("window").width - 48) / 3;
 
-type TabType = "events" | "activities" | "businesses" | "rentals" | "jobs";
+type TabType = "hotels" | "businesses" | "events" | "activities" | "rentals" | "jobs";
 
 interface DateFilter {
   startDate: string | null;
@@ -219,7 +219,7 @@ export default function LocatorScreen() {
   };
 
   useEffect(() => {
-    if (params.tab && ["events", "activities", "businesses"].includes(params.tab)) {
+    if (params.tab && ["hotels", "events", "activities", "businesses"].includes(params.tab)) {
       setActiveTab(params.tab as TabType);
     }
     if (params.root_category) {
@@ -280,6 +280,10 @@ export default function LocatorScreen() {
      }
      return result;
    }, [businesses, mapBounds, businessSearchQuery]);
+
+  const visibleHotels = useMemo(() => {
+    return visibleBusinesses.filter(b => b.root_category === "local-hotels");
+  }, [visibleBusinesses]);
 
    const visibleEvents = useMemo(() => {
      let result = events;
@@ -807,7 +811,7 @@ export default function LocatorScreen() {
           <View style={styles.mapSection}>
         <BusinessMap
           location={contextLocation || { latitude: mapBounds?.centerLat || 52.52, longitude: mapBounds?.centerLng || 13.405 }}
-          businesses={activeTab === "businesses" ? visibleBusinesses : []}
+          businesses={activeTab === "businesses" ? visibleBusinesses : activeTab === "hotels" ? visibleHotels : []}
           events={activeTab === "events" ? events : []}
           activities={activeTab === "activities" ? activities : []}
           rentals={
@@ -928,6 +932,13 @@ export default function LocatorScreen() {
           </View>
         </>
       )}
+      {activeTab === "hotels" && (
+        <View style={{ paddingHorizontal: 12, paddingBottom: 4 }}>
+          <Text style={{ fontSize: 13, color: COLORS.textMuted }}>
+            {t("home.hotels", "Local Hotels")} — {visibleHotels.length} {t("tabs.hotels", "Hotels")}
+          </Text>
+        </View>
+      )}
       {activeTab === "events" && (
         <>
           <ProgressivePicker
@@ -1015,6 +1026,29 @@ export default function LocatorScreen() {
               <EmptyState icon="storefront" message={t('business.noBusinesses')} size="default" muted />
             )}
             {visibleBusinesses.map((business) => {
+              const isOpen = business.open_state?.open_now ?? null;
+              const dist = getDistance(business.latitude, business.longitude);
+              return (
+                <LocatorCard
+                  key={business.business_id}
+                  type="business"
+                  data={business}
+                  distance={dist !== null ? formatDistance(dist) : null}
+                  isOpen={isOpen}
+                  onPress={() => router.push(`/business/${business.business_id}`)}
+                />
+              );
+            })}
+          </View>
+        )}
+
+        {/* Hotel List */}
+        {activeTab === "hotels" && (
+          <View style={styles.list}>
+            <Text style={styles.listTitle}>{visibleHotels.length} {t("tabs.hotels", "Hotels")}</Text>
+            {visibleHotels.length === 0 ? (
+              <EmptyState icon="bed" message={t("home.noHotels", "No hotels nearby")} size="default" muted />
+            ) : visibleHotels.map((business) => {
               const isOpen = business.open_state?.open_now ?? null;
               const dist = getDistance(business.latitude, business.longitude);
               return (
