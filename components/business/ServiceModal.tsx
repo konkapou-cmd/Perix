@@ -17,6 +17,7 @@ import { getDefaultModule, getAllowedModules, getCategoryQuestions } from "../..
 import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect, useRef } from "react";
 import { CalendarList } from "react-native-calendars";
+import DatePickerModal from "../shared/DatePickerModal";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import FormScreen from "../ui/FormScreen";
@@ -715,32 +716,18 @@ export default function ServiceModal({
             {hasField("deposit") && renderFieldInput("deposit")}
 
             {/* Date picker modal */}
-            <Modal visible={showDatePicker} animationType="slide" transparent>
-              <View style={styles.datePickerOverlay}>
-                <View style={styles.datePickerContainer}>
-                  <View style={styles.datePickerHeader}>
-                    <Pressable onPress={() => setShowDatePicker(false)}>
-                      <Text style={styles.datePickerDone}>{t("common.done", "Done")}</Text>
-                    </Pressable>
-                  </View>
-                  <CalendarList
-                    horizontal
-                    pagingEnabled
-                    showsVerticalScrollIndicator={false}
-                    onDayPress={(day) => {
-                      updateField(datePickerTarget, day.dateString);
-                      setShowDatePicker(false);
-                    }}
-                    markedDates={form.available_from ? { [form.available_from]: { selected: true, selectedColor: COLORS.primary } } : {}}
-                    theme={{
-                      todayTextColor: COLORS.primary,
-                      selectedDayBackgroundColor: COLORS.primary,
-                      arrowColor: COLORS.primary,
-                    }}
-                  />
-                </View>
-              </View>
-            </Modal>
+            <DatePickerModal
+              visible={showDatePicker}
+              onClose={() => setShowDatePicker(false)}
+              variant="sheet"
+              horizontal
+              value={{ startDate: form[datePickerTarget] ?? null, endDate: null }}
+              onApply={(v) => {
+                updateField(datePickerTarget, v.startDate ?? "");
+                setShowDatePicker(false);
+              }}
+              accentColor={COLORS.primary}
+            />
 
             {/* Slot date picker modal */}
             <Modal

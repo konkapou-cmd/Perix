@@ -32,6 +32,8 @@ interface DatePickerModalProps {
   futureScrollRange?: number;
   horizontal?: boolean;
   accentColor?: string;
+  hideFooter?: boolean;
+  children?: React.ReactNode;
 }
 
 export default function DatePickerModal({
@@ -51,6 +53,8 @@ export default function DatePickerModal({
   futureScrollRange = 12,
   horizontal = false,
   accentColor = COLORS.primaryDark,
+  hideFooter = false,
+  children,
 }: DatePickerModalProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<DatePickerValue>({ startDate: null, endDate: null });
@@ -208,19 +212,23 @@ export default function DatePickerModal({
           />
         </View>
 
-        <View style={fullStyles.footer}>
-          {onReset && (
-            <Pressable style={fullStyles.actionBtn} onPress={handleReset}>
-              <Text style={fullStyles.actionText}>{t("common.reset", "Reset")}</Text>
+        {children}
+
+        {!hideFooter && (
+          <View style={fullStyles.footer}>
+            {onReset && (
+              <Pressable style={fullStyles.actionBtn} onPress={handleReset}>
+                <Text style={fullStyles.actionText}>{t("common.reset", "Reset")}</Text>
+              </Pressable>
+            )}
+            <Pressable
+              style={[fullStyles.actionBtn, fullStyles.applyBtn, { backgroundColor: accentColor }]}
+              onPress={handleApply}
+            >
+              <Text style={[fullStyles.actionText, fullStyles.applyText]}>{t("common.apply", "Apply")}</Text>
             </Pressable>
-          )}
-          <Pressable
-            style={[fullStyles.actionBtn, fullStyles.applyBtn, { backgroundColor: accentColor }]}
-            onPress={handleApply}
-          >
-            <Text style={[fullStyles.actionText, fullStyles.applyText]}>{t("common.apply", "Apply")}</Text>
-          </Pressable>
-        </View>
+          </View>
+        )}
       </SafeAreaView>
     </Modal>
   );

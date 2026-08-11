@@ -21,7 +21,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import { CalendarList } from "react-native-calendars";
+import DatePickerModal from "../../components/shared/DatePickerModal";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
@@ -1246,54 +1246,51 @@ export default function HomeScreen() {
         extraData={{ viewportProducts, viewportHomes, feedMode, homeLayout }}
       />
 
-      <Modal visible={calendarOpen} animationType="slide">
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.calendarModalHeader}>
-            <View style={styles.calendarHeaderContent}>
-              <View style={styles.calendarHeaderIcon}><Ionicons name="calendar" size={24} color={COLORS.textLight} /></View>
-              <View>
-                <Text style={styles.calendarModalTitle}>{t("home.eventsCalendar")}</Text>
-                <Text style={styles.calendarModalSubtitle}>{calendarDate ? calendarDate : t("home.upcomingEvents")}</Text>
-              </View>
-            </View>
-            <Pressable style={styles.calendarCloseButton} onPress={() => setCalendarOpen(false)}><Ionicons name="close-circle" size={32} color={COLORS.textPlaceholder} /></Pressable>
-          </View>
-          <View style={{ flex: 1, backgroundColor: "#fafafa" }}>
-            <CalendarList onDayPress={(day) => setCalendarDate(day.dateString)} markedDates={{ ...markedDates, ...(calendarDate ? { [calendarDate]: { selected: true, selectedColor: COLORS.primaryDark, selectedTextColor: COLORS.textLight } } : {}) }} pastScrollRange={3} futureScrollRange={6} style={styles.calendarList} theme={{ backgroundColor: COLORS.background, calendarBackground: COLORS.background, textSectionTitleColor: COLORS.textGray, selectedDayBackgroundColor: COLORS.primaryDark, selectedDayTextColor: COLORS.textLight, todayTextColor: COLORS.primaryDark, dayTextColor: COLORS.textDark, textDisabledColor: COLORS.borderLight, dotColor: COLORS.primaryDark, selectedDotColor: COLORS.textLight, arrowColor: COLORS.primaryDark, monthTextColor: COLORS.textPrimary, textDayFontWeight: "500", textMonthFontWeight: "700", textDayFontSize: 14 }} />
-          </View>
-          <View style={styles.themeFilterContainer}>
-            <Pressable style={styles.themeFilterButton} onPress={() => setShowThemeFilter(true)} data-testid="calendar-theme-filter">
-              <Ionicons name="musical-notes" size={18} color={COLORS.primaryDark} />
-              <Text style={styles.themeFilterText}>{selectedTheme ? getThemeLabel(selectedTheme) : t("events.allThemes")}</Text>
-              <Ionicons name="chevron-down" size={16} color={COLORS.textGray} />
-            </Pressable>
-          </View>
-          <View style={styles.calendarEventsSection}>
-            <Text style={styles.calendarEventsTitle}>{calendarDate ? t("home.eventsOn", { date: calendarDate }) : t("home.upcomingEvents")}</Text>
-            <ScrollView style={{ maxHeight: 180 }}>
-              {eventsForDate.length === 0 ? (
-                <View style={styles.emptyEventState}><Ionicons name="calendar-outline" size={40} color={COLORS.borderLight} /><Text style={styles.emptyText}>{t("common.noEventsDate")}</Text></View>
-              ) : eventsForDate.map((event) => (
-                <Pressable key={event.event_id} style={styles.calendarEventCard} onPress={() => { setCalendarOpen(false); router.push(`/event/${event.event_id}`); }}>
-                  <View style={styles.eventThumbContainer}>
-                    {event.video_url ? (
-                      <AdaptiveVideo uri={event.video_url} style={styles.eventThumbCard} autoPlay isLooping initialMuted />
-                    ) : (event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0]) ? (
-                      <AdaptiveImage uri={event.cover_image_url ?? event.image_urls?.[0] ?? event.gallery_images?.[0] ?? ""} style={styles.eventThumbCard} fallbackColor={COLORS.primaryDark} />
-                    ) : (<View style={[styles.eventThumbCard, styles.eventThumbPlaceholder]}><Ionicons name="musical-note" size={18} color={COLORS.primaryDark} /></View>)}
-                  </View>
-                  <View style={styles.eventInfo}>
-                    <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-                    <View style={styles.eventMetaRow}><Ionicons name="business" size={12} color={COLORS.textGray} /><Text style={styles.eventMeta}>{event.business?.name || event.artist?.name || "Event"}</Text></View>
-                    <View style={styles.eventMetaRow}><Ionicons name="calendar-outline" size={12} color={COLORS.primaryDark} /><Text style={[styles.eventMeta, { color: COLORS.primaryDark }]}>{formatEventDate(event.start_time)}</Text>{event.theme && (<View style={styles.eventThemeBadge}><Text style={styles.eventThemeText}>{getThemeLabel(event.theme)}</Text></View>)}</View>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={COLORS.borderLight} />
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        </SafeAreaView>
-      </Modal>
+      <DatePickerModal
+        visible={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        mode="single"
+        hideFooter
+        markedDates={markedDates}
+        value={{ startDate: calendarDate, endDate: null }}
+        onApply={(v) => setCalendarDate(v.startDate ?? null)}
+        title={t("home.eventsCalendar")}
+        accentColor={COLORS.primaryDark}
+        pastScrollRange={3}
+        futureScrollRange={6}
+      >
+        <View style={styles.themeFilterContainer}>
+          <Pressable style={styles.themeFilterButton} onPress={() => setShowThemeFilter(true)} data-testid="calendar-theme-filter">
+            <Ionicons name="musical-notes" size={18} color={COLORS.primaryDark} />
+            <Text style={styles.themeFilterText}>{selectedTheme ? getThemeLabel(selectedTheme) : t("events.allThemes")}</Text>
+            <Ionicons name="chevron-down" size={16} color={COLORS.textGray} />
+          </Pressable>
+        </View>
+        <View style={styles.calendarEventsSection}>
+          <Text style={styles.calendarEventsTitle}>{calendarDate ? t("home.eventsOn", { date: calendarDate }) : t("home.upcomingEvents")}</Text>
+          <ScrollView style={{ maxHeight: 180 }}>
+            {eventsForDate.length === 0 ? (
+              <View style={styles.emptyEventState}><Ionicons name="calendar-outline" size={40} color={COLORS.borderLight} /><Text style={styles.emptyText}>{t("common.noEventsDate")}</Text></View>
+            ) : eventsForDate.map((event) => (
+              <Pressable key={event.event_id} style={styles.calendarEventCard} onPress={() => { setCalendarOpen(false); router.push(`/event/${event.event_id}`); }}>
+                <View style={styles.eventThumbContainer}>
+                  {event.video_url ? (
+                    <AdaptiveVideo uri={event.video_url} style={styles.eventThumbCard} autoPlay isLooping initialMuted />
+                  ) : (event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0]) ? (
+                    <AdaptiveImage uri={event.cover_image_url ?? event.image_urls?.[0] ?? event.gallery_images?.[0] ?? ""} style={styles.eventThumbCard} fallbackColor={COLORS.primaryDark} />
+                  ) : (<View style={[styles.eventThumbCard, styles.eventThumbPlaceholder]}><Ionicons name="musical-note" size={18} color={COLORS.primaryDark} /></View>)}
+                </View>
+                <View style={styles.eventInfo}>
+                  <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                  <View style={styles.eventMetaRow}><Ionicons name="business" size={12} color={COLORS.textGray} /><Text style={styles.eventMeta}>{event.business?.name || event.artist?.name || "Event"}</Text></View>
+                  <View style={styles.eventMetaRow}><Ionicons name="calendar-outline" size={12} color={COLORS.primaryDark} /><Text style={[styles.eventMeta, { color: COLORS.primaryDark }]}>{formatEventDate(event.start_time)}</Text>{event.theme && (<View style={styles.eventThemeBadge}><Text style={styles.eventThemeText}>{getThemeLabel(event.theme)}</Text></View>)}</View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.borderLight} />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      </DatePickerModal>
 
       <Modal visible={showThemeFilter} animationType="slide" transparent>
         <View style={styles.themeModalOverlay}>
@@ -1311,47 +1308,44 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      <Modal visible={activitiesCalendarOpen} animationType="slide">
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.activitiesCalendarModalHeader}>
-            <View style={styles.calendarHeaderContent}>
-              <View style={styles.activitiesCalendarHeaderIcon}><Ionicons name="people" size={24} color={COLORS.textLight} /></View>
-              <View>
-                <Text style={styles.calendarModalTitle}>{t("home.activitiesCalendar")}</Text>
-                <Text style={styles.activitiesCalendarModalSubtitle}>{activitiesCalendarDate ? activitiesCalendarDate : t("home.upcomingActivities")}</Text>
-              </View>
-            </View>
-            <Pressable style={styles.calendarCloseButton} onPress={() => setActivitiesCalendarOpen(false)}><Ionicons name="close-circle" size={32} color="#c4b5fd" /></Pressable>
-          </View>
-          <View style={{ flex: 1, backgroundColor: "#fafafa" }}>
-            <CalendarList onDayPress={(day) => setActivitiesCalendarDate(day.dateString)} markedDates={{ ...activitiesMarkedDates, ...(activitiesCalendarDate ? { [activitiesCalendarDate]: { selected: true, selectedColor: COLORS.primaryDark, selectedTextColor: COLORS.textLight } } : {}) }} pastScrollRange={3} futureScrollRange={6} style={styles.calendarList} theme={{ backgroundColor: COLORS.background, calendarBackground: COLORS.background, textSectionTitleColor: COLORS.textGray, selectedDayBackgroundColor: COLORS.primaryDark, selectedDayTextColor: COLORS.textLight, todayTextColor: COLORS.primaryDark, dayTextColor: COLORS.textDark, textDisabledColor: COLORS.borderLight, dotColor: COLORS.primaryDark, selectedDotColor: COLORS.textLight, arrowColor: COLORS.primaryDark, monthTextColor: COLORS.textPrimary, textDayFontWeight: "500", textMonthFontWeight: "700", textDayFontSize: 14 }} />
-          </View>
-          <View style={[styles.calendarEventsSection, { backgroundColor: "#f5f3ff" }]}>
-            <Text style={[styles.calendarEventsTitle, { color: COLORS.primaryDark }]}>{activitiesCalendarDate ? t("home.activitiesOn", { date: activitiesCalendarDate }) : t("home.upcomingActivities")}</Text>
-            <ScrollView style={{ maxHeight: 180 }}>
-              {activitiesForDate.length === 0 ? (
-                <View style={styles.emptyEventState}><Ionicons name="people-outline" size={40} color="#c4b5fd" /><Text style={styles.emptyText}>{t("common.noActivitiesDate")}</Text></View>
-              ) : activitiesForDate.map((activity) => (
-                <Pressable key={activity.activity_id} style={[styles.calendarEventCard, { borderColor: "#e9d5ff" }]} onPress={() => { setActivitiesCalendarOpen(false); router.push(`/activity/${activity.activity_id}`); }}>
-                  <View style={styles.eventThumbContainer}>
-                    {activity.video_url ? (
-                      <AdaptiveVideo uri={activity.video_url} style={styles.eventThumbCard} autoPlay isLooping initialMuted />
-                    ) : (activity.cover_image_url || activity.image_urls?.[0] || activity.gallery_images?.[0]) ? (
-                      <AdaptiveImage uri={activity.cover_image_url ?? activity.image_urls?.[0] ?? activity.gallery_images?.[0] ?? ""} style={styles.eventThumbCard} fallbackColor={COLORS.primaryDark} />
-                    ) : (<View style={[styles.eventThumbCard, { backgroundColor: "#f3e8ff" }]}><Ionicons name="people" size={20} color={COLORS.primaryDark} /></View>)}
-                  </View>
-                  <View style={styles.eventInfo}>
-                    <Text style={styles.eventTitle} numberOfLines={1}>{activity.title}</Text>
-                    <View style={styles.eventMetaRow}><Ionicons name="time-outline" size={12} color={COLORS.textGray} /><Text style={styles.eventMeta}>{activity.date}</Text></View>
-                    {activity.is_private && (<View style={styles.eventThemeBadge}><Ionicons name="lock-closed" size={10} color={COLORS.warning} /><Text style={[styles.eventThemeText, { color: COLORS.warning }]}>{t("activities.private")}</Text></View>)}
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#c4b5fd" />
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        </SafeAreaView>
-      </Modal>
+      <DatePickerModal
+        visible={activitiesCalendarOpen}
+        onClose={() => setActivitiesCalendarOpen(false)}
+        mode="single"
+        hideFooter
+        markedDates={activitiesMarkedDates}
+        value={{ startDate: activitiesCalendarDate, endDate: null }}
+        onApply={(v) => setActivitiesCalendarDate(v.startDate ?? null)}
+        title={t("home.activitiesCalendar")}
+        accentColor={COLORS.primaryDark}
+        pastScrollRange={3}
+        futureScrollRange={6}
+      >
+        <View style={[styles.calendarEventsSection, { backgroundColor: "#f5f3ff" }]}>
+          <Text style={[styles.calendarEventsTitle, { color: COLORS.primaryDark }]}>{activitiesCalendarDate ? t("home.activitiesOn", { date: activitiesCalendarDate }) : t("home.upcomingActivities")}</Text>
+          <ScrollView style={{ maxHeight: 180 }}>
+            {activitiesForDate.length === 0 ? (
+              <View style={styles.emptyEventState}><Ionicons name="people-outline" size={40} color="#c4b5fd" /><Text style={styles.emptyText}>{t("common.noActivitiesDate")}</Text></View>
+            ) : activitiesForDate.map((activity) => (
+              <Pressable key={activity.activity_id} style={[styles.calendarEventCard, { borderColor: "#e9d5ff" }]} onPress={() => { setActivitiesCalendarOpen(false); router.push(`/activity/${activity.activity_id}`); }}>
+                <View style={styles.eventThumbContainer}>
+                  {activity.video_url ? (
+                    <AdaptiveVideo uri={activity.video_url} style={styles.eventThumbCard} autoPlay isLooping initialMuted />
+                  ) : (activity.cover_image_url || activity.image_urls?.[0] || activity.gallery_images?.[0]) ? (
+                    <AdaptiveImage uri={activity.cover_image_url ?? activity.image_urls?.[0] ?? activity.gallery_images?.[0] ?? ""} style={styles.eventThumbCard} fallbackColor={COLORS.primaryDark} />
+                  ) : (<View style={[styles.eventThumbCard, { backgroundColor: "#f3e8ff" }]}><Ionicons name="people" size={20} color={COLORS.primaryDark} /></View>)}
+                </View>
+                <View style={styles.eventInfo}>
+                  <Text style={styles.eventTitle} numberOfLines={1}>{activity.title}</Text>
+                  <View style={styles.eventMetaRow}><Ionicons name="time-outline" size={12} color={COLORS.textGray} /><Text style={styles.eventMeta}>{activity.date}</Text></View>
+                  {activity.is_private && (<View style={styles.eventThemeBadge}><Ionicons name="lock-closed" size={10} color={COLORS.warning} /><Text style={[styles.eventThemeText, { color: COLORS.warning }]}>{t("activities.private")}</Text></View>)}
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#c4b5fd" />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      </DatePickerModal>
 
       <Modal visible={commentModal} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
