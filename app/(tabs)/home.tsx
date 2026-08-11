@@ -104,7 +104,7 @@ function HomeSkeleton() {
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { user, sessionToken, activeIdentity, setActiveIdentity } = useAuth();
-  const { location: globalLocation } = useLocation();
+  const { location: globalLocation, setManualLocation } = useLocation();
   const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -720,9 +720,10 @@ export default function HomeScreen() {
         visible={showLocationSearch}
         sessionToken={sessionToken}
         onClose={() => setShowLocationSearch(false)}
-        onSelectPlace={(lat, lng) => {
+        onSelectPlace={(lat, lng, name) => {
           const d = 0.09;
           setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
+          setManualLocation(lat, lng, name);
         }}
       />
 
