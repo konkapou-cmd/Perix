@@ -6,6 +6,7 @@ import { Service } from "../../lib/api";
 import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES, FONT_WEIGHTS, SHADOWS } from "../../lib/designTokens";
 import { getServiceCtaType, getServiceModuleIcon, getServiceFields, getServiceModuleLabel } from "../../lib/config/serviceModules";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
+import { formatDate } from "../../lib/formatDate";
 import { FIELD_REGISTRY } from "../../lib/fieldRegistry";
 import AdaptiveImage from "../AdaptiveImage";
 import AdaptiveVideo from "../AdaptiveVideo";
@@ -78,7 +79,12 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
     }
 
     if (fieldName === "available_from") {
-      return <Text key={fieldName} style={s.meta}>Ab {String(value).split("-").reverse().join(" ")}</Text>;
+      const from = formatDate(String(value));
+      const until = service.available_until ? formatDate(service.available_until) : null;
+      return <Text key={fieldName} style={s.meta}>{until ? `${from} – ${until}` : `Ab ${from}`}</Text>;
+    }
+    if (fieldName === "available_until") {
+      return null; // rendered together with available_from above
     }
 
     switch (config.component) {
