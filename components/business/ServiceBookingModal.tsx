@@ -219,7 +219,7 @@ export default function ServiceBookingModal({
           t("services.bookingPending", "Booking request sent! The business will confirm shortly."),
           [
             { text: t("common.ok", "OK"), style: "cancel" },
-            { text: t("messages.title", "View Messages"), onPress: () => router.push("/(tabs)/messages" as any) },
+            { text: t("messages.title", "View Messages"), onPress: () => router.navigate("/(tabs)/messages") },
           ],
         );
         onSuccess?.();
