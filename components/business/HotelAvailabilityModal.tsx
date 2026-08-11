@@ -10,6 +10,7 @@ import DatePickerModal from "../shared/DatePickerModal";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { Service, DateBlock } from "../../lib/api/core";
+import { formatDate } from "../../lib/formatDate";
 import {
   updateService, getDateBlocks, createDateBlock, deleteDateBlock,
 } from "../../lib/api/services";
@@ -23,9 +24,9 @@ type Props = {
 };
 
 function addDaysStr(date: string, n: number): string {
-  const d = new Date(date + "T00:00:00");
-  d.setDate(d.getDate() + n);
-  return d.toISOString().split("T")[0];
+  const [y, m, d] = date.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + n));
+  return dt.toISOString().split("T")[0];
 }
 
 export default function HotelAvailabilityModal({ visible, service, sessionToken, onClose, onSaved }: Props) {
@@ -134,10 +135,12 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
 
   const marks: Record<string, any> = {};
   dateBlocks.forEach(b => {
-    const sD = new Date(b.start_date + "T00:00:00");
-    const eD = new Date(b.end_date + "T00:00:00");
-    for (let d = new Date(sD); d < eD; d.setDate(d.getDate() + 1)) {
-      const ds = d.toISOString().split("T")[0];
+    const [sy, sm, sd] = b.start_date.split("-").map(Number);
+    const [ey, em, ed] = b.end_date.split("-").map(Number);
+    const sD = new Date(Date.UTC(sy, sm - 1, sd));
+    const eD = new Date(Date.UTC(ey, em - 1, ed));
+    for (let d = sD.getTime(); d < eD.getTime(); d += 86400000) {
+      const ds = new Date(d).toISOString().split("T")[0];
       marks[ds] = { startingDay: ds === b.start_date, endingDay: ds === addDaysStr(b.end_date, -1),
         color: COLORS.danger, textColor: "#fff" };
     }
@@ -145,10 +148,12 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
   if (blockMode && blockStart) {
     marks[blockStart] = { startingDay: true, color: COLORS.danger + "AA", textColor: "#fff" };
     if (blockEnd) {
-      const sD = new Date(blockStart + "T00:00:00");
-      const eD = new Date(blockEnd + "T00:00:00");
-      for (let d = new Date(sD); d < eD; d.setDate(d.getDate() + 1)) {
-        const ds = d.toISOString().split("T")[0];
+      const [sy, sm, sd] = blockStart.split("-").map(Number);
+      const [ey, em, ed] = blockEnd.split("-").map(Number);
+      const sD = new Date(Date.UTC(sy, sm - 1, sd));
+      const eD = new Date(Date.UTC(ey, em - 1, ed));
+      for (let d = sD.getTime(); d < eD.getTime(); d += 86400000) {
+        const ds = new Date(d).toISOString().split("T")[0];
         marks[ds] = { color: COLORS.danger + "AA", textColor: "#fff" };
       }
     }
@@ -169,12 +174,12 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
 
             <Pressable style={styles.dateBtn} onPress={() => setDatePickerTarget("available_from")}>
               <Text style={styles.label}>Available from</Text>
-              <Text style={styles.value}>{availableFrom?.split("-").reverse().join(" ") || "Tap to select"}</Text>
+              <Text style={styles.value}>{availableFrom ? formatDate(availableFrom) : "Tap to select"}</Text>
             </Pressable>
 
             <Pressable style={styles.dateBtn} onPress={() => setDatePickerTarget("available_until")}>
               <Text style={styles.label}>Available until</Text>
-              <Text style={styles.value}>{availableUntil?.split("-").reverse().join(" ") || "Tap to select"}</Text>
+              <Text style={styles.value}>{availableUntil ? formatDate(availableUntil) : "Tap to select"}</Text>
             </Pressable>
 
             <View style={styles.row}>
@@ -205,8 +210,8 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
 
             {blockMode && (
               <View style={{ marginTop: 12, gap: 8 }}>
-                <Text style={styles.label}>Start: {blockStart?.split("-").reverse().join(" ") || "tap calendar"}
-                  {blockEnd ? ` → End: ${blockEnd.split("-").reverse().join(" ")}` : ""}</Text>
+                <Text style={styles.label}>Start: {blockStart ? formatDate(blockStart) : "tap calendar"}
+                  {blockEnd ? ` → End: ${formatDate(blockEnd)}` : ""}</Text>
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.label}>Blocked rooms</Text>
@@ -226,7 +231,7 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
             {dateBlocks.map(block => (
               <View key={block.block_id} style={styles.blockRow}>
                 <Ionicons name="lock-closed" size={14} color={COLORS.danger} />
-                <Text style={styles.blockLabel}>{block.start_date.split("-").reverse().join(" ")} – {block.end_date.split("-").reverse().join(" ")} ({block.blocked_units}u{block.reason ? `, ${block.reason}` : ""})</Text>
+                <Text style={styles.blockLabel}>{formatDate(block.start_date)} – {formatDate(block.end_date)} ({block.blocked_units}u{block.reason ? `, ${block.reason}` : ""})</Text>
                 <Pressable onPress={() => handleDeleteBlock(block.block_id)}><Ionicons name="trash-outline" size={16} color={COLORS.danger} /></Pressable>
               </View>
             ))}
