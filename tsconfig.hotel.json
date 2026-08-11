@@ -4,8 +4,6 @@
   "files": [
     "app/service/[id].tsx",
     "app/(tabs)/home.tsx",
-    "app/(tabs)/locator.tsx",
-    "app/(tabs)/profile.tsx",
     "components/business/ServiceBookingModal.tsx",
     "components/business/ServiceModal.tsx",
     "components/business/HotelAvailabilityModal.tsx",
@@ -15,7 +13,6 @@
     "components/business/ActivityModal.tsx",
     "components/business/JobModal.tsx",
     "components/business/CategoryServiceCard.tsx",
-    "components/business/ActivitiesSection.tsx",
     "components/user/ListingModal.tsx",
     "components/home/MapSection.tsx",
     "components/home/ActivitiesCarousel.tsx",
@@ -33,9 +30,6 @@
     "lib/formatDate.ts",
     "lib/api/services.ts",
     "lib/api/activities.ts",
-    "lib/api/core.ts",
-    "i18n/locales/en.json",
-    "i18n/locales/de.json",
     "hooks/useLayoutPreferences.ts"
   ],
   "include": [],
