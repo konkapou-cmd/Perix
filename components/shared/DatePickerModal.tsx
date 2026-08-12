@@ -199,10 +199,18 @@ export default function DatePickerModal({
 
         <View style={fullStyles.body}>
           <CalendarList
+            style={{ flex: 1 }}
             firstDay={1}
             onDayPress={handleDayPress}
             markedDates={buildMarkedDates()}
-            markingType={mode === "range" ? "period" : "simple"}
+            markingType={mode === "range" ? "period" : undefined}
+            minDate={minDate}
+            maxDate={maxDate}
+            pastScrollRange={pastScrollRange}
+            futureScrollRange={futureScrollRange}
+            current={pending.startDate ? pending.startDate.split("T")[0] : undefined}
+            showsVerticalScrollIndicator={false}
+            theme={calendarTheme}
           />
         </View>
 
