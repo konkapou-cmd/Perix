@@ -177,7 +177,8 @@ export default function ActivityModal({
   const pad = (n: number) => n.toString().padStart(2, "0");
   const formatDateShort = (dateStr: string) => {
     if (!dateStr) return t("activities.selectDate", "Select date");
-    const [y, m, d] = dateStr.split("-");
+    const clean = dateStr.split("T")[0];
+    const [y, m, d] = clean.split("-");
     return `${d}.${m}.${y}`;
   };
   const formatDate = (date: Date) =>
