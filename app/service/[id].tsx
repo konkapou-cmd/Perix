@@ -395,7 +395,7 @@ export default function ServiceDetailPage() {
                   if (fieldName === "sessions_count") displayValue = String(value) + " Sitzungen";
                   if (config.component === "chips" || config.component === "chips-multi") displayValue = String(value);
                   if (fieldName === "available_from" || fieldName === "available_until") {
-                    try { displayValue = String(value).split("-").reverse().join(" "); } catch {}
+                    try { displayValue = formatDate(String(value)); } catch {}
                   }
                   if (fieldName === "min_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));
                   if (fieldName === "max_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));

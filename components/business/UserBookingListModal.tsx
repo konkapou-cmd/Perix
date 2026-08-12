@@ -7,6 +7,7 @@ import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../
 import { Booking } from "../../lib/api/core";
 import { getBookings, cancelBooking } from "../../lib/api/services";
 import { formatPrice } from "../../lib/serviceFormat";
+import { formatDate } from "../../lib/formatDate";
 
 type Props = {
   visible: boolean;
@@ -95,7 +96,7 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
         <Text style={s.bookingDetail}>{booking.date}{booking.start_time ? ` | ${booking.start_time}${booking.end_time ? ` - ${booking.end_time}` : ""}` : ""}</Text>
         {booking.booking_mode === "date_range" && booking.end_date && (
           <>
-            <Text style={s.bookingDetail}>{booking.date.split("-").reverse().join(" ")} → {booking.end_date.split("-").reverse().join(" ")}</Text>
+            <Text style={s.bookingDetail}>{formatDate(booking.date)} → {formatDate(booking.end_date)}</Text>
             <Text style={s.bookingDetail}>{booking.nights} {t("bookingList.nights", "nights")} · {booking.room_count || 1} {t("bookingList.rooms", "room(s)")}</Text>
             <Text style={s.bookingDetail}>{booking.adults || 1} {t("bookingList.adults", "adults")} · {booking.children || 0} {t("bookingList.children", "children")}</Text>
             {booking.confirmation_code && <Text style={s.bookingCode}>{booking.confirmation_code}</Text>}

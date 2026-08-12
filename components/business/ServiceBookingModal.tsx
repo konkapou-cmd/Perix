@@ -344,13 +344,13 @@ export default function ServiceBookingModal({
                 <View style={{ flex: 1 }}>
                   <Text style={s.fieldLabel}>{t("services.checkIn", "Check-in")}</Text>
                   <Pressable style={s.input} onPress={() => setDatePickerTarget("checkIn")}>
-                    <Text style={s.inputText}>{checkIn.split("-").reverse().join(" ")}</Text>
+                    <Text style={s.inputText}>{formatDate(checkIn)}</Text>
                   </Pressable>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.fieldLabel}>{t("services.checkOut", "Check-out")}</Text>
                   <Pressable style={s.input} onPress={() => setDatePickerTarget("checkOut")}>
-                    <Text style={s.inputText}>{checkOut.split("-").reverse().join(" ")}</Text>
+                    <Text style={s.inputText}>{formatDate(checkOut)}</Text>
                   </Pressable>
                 </View>
               </View>

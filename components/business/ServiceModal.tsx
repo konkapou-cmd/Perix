@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { formatDate } from "../../lib/formatDate";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
 import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, isServiceBookable, requiresServiceSlots, getBookingMode, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
 import { getDefaultModule, getAllowedModules, getCategoryQuestions } from "../../lib/config/serviceCategoryMatrix";
@@ -627,7 +628,7 @@ export default function ServiceModal({
             <Text style={styles.label}>{labelWithAsterisk}</Text>
             <Pressable style={styles.input} onPress={() => { setDatePickerTarget(fieldName as any); setShowDatePicker(true); }}>
               <Text style={[styles.dateText, !(value as string) && styles.dateTextPlaceholder]}>
-                {(value as string) ? (value as string).split("-").reverse().join(" ") : t("services.selectDate", "DD MM YYYY")}
+                {(value as string) ? formatDate(value as string) : t("services.selectDate", "DD MM YYYY")}
               </Text>
             </Pressable>
           </View>

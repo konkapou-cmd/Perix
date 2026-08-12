@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
+import { formatDate } from "../../lib/formatDate";
 import { ListingType, ListingStatus, ListingCreatePayload, Listing, LocationVisibility, SellerType, PublicationScope } from "../../lib/api/listings";
 import { createListing, updateListing } from "../../lib/api/listings";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
@@ -467,7 +468,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 <Text style={styles.label}>{t("services.availableFrom", "Available from")}</Text>
                 <Pressable style={styles.selector} onPress={() => setShowDatePicker(true)}>
                   <Text style={availableFrom ? styles.selectorTextSelected : styles.selectorText}>
-                    {availableFrom ? availableFrom.split("-").reverse().join("-") : t("services.selectDate", "Select date")}
+                    {availableFrom ? formatDate(availableFrom) : t("services.selectDate", "Select date")}
                   </Text>
                   <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
                 </Pressable>
