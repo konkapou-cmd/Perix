@@ -503,10 +503,10 @@ export default function ActivityDetailPage() {
           contentType="activity"
           contentId={activity?.activity_id || ""}
           title={activity?.title || ""}
-          description={activity ? `${activity.title} - ${activity.date} ${activity.time}${activity.location ? ` @ ${activity.location}` : ""}` : ""}
+          description={activity ? `${activity.title} - ${formatDate(activity.date)} ${activity.time}${activity.location ? ` @ ${activity.location}` : ""}` : ""}
           extraData={{
             location: activity?.location || undefined,
-            date: activity ? `${activity.date} ${activity.time}` : undefined,
+            date: activity ? `${formatDate(activity.date)} ${activity.time}` : undefined,
           }}
         />
       </KeyboardAvoidingView>

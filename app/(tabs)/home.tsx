@@ -1339,7 +1339,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.eventInfo}>
                   <Text style={styles.eventTitle} numberOfLines={1}>{activity.title}</Text>
-                  <View style={styles.eventMetaRow}><Ionicons name="time-outline" size={12} color={COLORS.textGray} /><Text style={styles.eventMeta}>{activity.date}</Text></View>
+                  <View style={styles.eventMetaRow}><Ionicons name="time-outline" size={12} color={COLORS.textGray} /><Text style={styles.eventMeta}>{formatEventDate(activity.date)}</Text></View>
                   {activity.is_private && (<View style={styles.eventThemeBadge}><Ionicons name="lock-closed" size={10} color={COLORS.warning} /><Text style={[styles.eventThemeText, { color: COLORS.warning }]}>{t("activities.private")}</Text></View>)}
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#c4b5fd" />

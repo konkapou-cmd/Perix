@@ -134,7 +134,7 @@ export default function BusinessMap({
         latitude: activity.latitude!,
         longitude: activity.longitude!,
         title: activity.title,
-        description: activity.location || `${activity.date} ${activity.time || ''}`,
+        description: activity.location || `${formatEventDate(activity.date)} ${activity.time || ''}`,
         type: "activity" as const,
         pinColor: COLORS.pinActivity,
       })),
