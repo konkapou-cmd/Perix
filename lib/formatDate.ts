@@ -1,11 +1,9 @@
 export function formatDate(dateStr: string): string {
   try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr.split("T")[0];
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yyyy = d.getFullYear();
-    return `${dd}.${mm}.${yyyy}`;
+    const parts = dateStr.split("T")[0].split("-");
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d.padStart(2, "0")}.${m.padStart(2, "0")}.${y}`;
   } catch {
     return dateStr.split("T")[0];
   }
