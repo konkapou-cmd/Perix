@@ -208,7 +208,6 @@ export default function DatePickerModal({
             maxDate={maxDate}
             pastScrollRange={pastScrollRange}
             futureScrollRange={futureScrollRange}
-            theme={calendarTheme}
           />
         </View>
 
