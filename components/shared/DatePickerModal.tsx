@@ -58,6 +58,7 @@ export default function DatePickerModal({
 }: DatePickerModalProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<DatePickerValue>({ startDate: null, endDate: null });
+  const [bodyHeight, setBodyHeight] = useState(0);
 
   useEffect(() => {
     if (visible) {
@@ -197,21 +198,29 @@ export default function DatePickerModal({
           </Pressable>
         </View>
 
-        <View style={fullStyles.body}>
-          <CalendarList
-            style={{ flex: 1 }}
-            firstDay={1}
-            onDayPress={handleDayPress}
-            markedDates={buildMarkedDates()}
-            markingType={mode === "range" ? "period" : undefined}
-            minDate={minDate}
-            maxDate={maxDate}
-            pastScrollRange={pastScrollRange}
-            futureScrollRange={futureScrollRange}
-            current={pending.startDate ? pending.startDate.split("T")[0] : undefined}
-            showsVerticalScrollIndicator={false}
-            theme={calendarTheme}
-          />
+        <View
+          style={fullStyles.body}
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h > 0 && h !== bodyHeight) setBodyHeight(h);
+          }}
+        >
+          {bodyHeight > 0 && (
+            <CalendarList
+              style={{ flex: 1 }}
+              firstDay={1}
+              onDayPress={handleDayPress}
+              markedDates={buildMarkedDates()}
+              markingType={mode === "range" ? "period" : undefined}
+              minDate={minDate}
+              maxDate={maxDate}
+              pastScrollRange={pastScrollRange}
+              futureScrollRange={futureScrollRange}
+              current={pending.startDate ? pending.startDate.split("T")[0] : undefined}
+              showsVerticalScrollIndicator={false}
+              theme={calendarTheme}
+            />
+          )}
         </View>
 
         {children}
