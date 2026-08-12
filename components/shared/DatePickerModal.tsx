@@ -36,6 +36,23 @@ interface DatePickerModalProps {
   children?: React.ReactNode;
 }
 
+function todayISO(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function addDaysISO(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + days);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
 export default function DatePickerModal({
   visible,
   onClose,
@@ -58,7 +75,6 @@ export default function DatePickerModal({
 }: DatePickerModalProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<DatePickerValue>({ startDate: null, endDate: null });
-  const [bodyHeight, setBodyHeight] = useState(0);
 
   useEffect(() => {
     if (visible) {
@@ -87,18 +103,28 @@ export default function DatePickerModal({
 
   const buildMarkedDates = (): Record<string, any> => {
     const marks: Record<string, any> = { ...externalMarkedDates };
-    if (pending.startDate) {
+    if (!pending.startDate) return marks;
+
+    if (mode === "range") {
+      const start = pending.startDate;
+      const end = pending.endDate ?? pending.startDate;
+      let cursor = start;
+      let guard = 0;
+      while (cursor <= end && guard < 400) {
+        const isStart = cursor === start;
+        const isEnd = cursor === end;
+        marks[cursor] = {
+          startingDay: isStart,
+          endingDay: isEnd,
+          color: accentColor,
+          textColor: COLORS.background,
+        };
+        cursor = addDaysISO(cursor, 1);
+        guard++;
+      }
+    } else {
       marks[pending.startDate] = {
         selected: true,
-        startingDay: true,
-        color: accentColor,
-        textColor: COLORS.background,
-      };
-    }
-    if (pending.endDate) {
-      marks[pending.endDate] = {
-        selected: true,
-        endingDay: true,
         color: accentColor,
         textColor: COLORS.background,
       };
@@ -180,6 +206,8 @@ export default function DatePickerModal({
     return t("common.selectDateRange", "Select a date range");
   };
 
+  const initialCalendarDate = pending.startDate?.split("T")[0] ?? todayISO();
+
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={fullStyles.container}>
@@ -198,29 +226,23 @@ export default function DatePickerModal({
           </Pressable>
         </View>
 
-        <View
-          style={fullStyles.body}
-          onLayout={(e) => {
-            const h = e.nativeEvent.layout.height;
-            if (h > 0 && h !== bodyHeight) setBodyHeight(h);
-          }}
-        >
-          {bodyHeight > 0 && (
-            <CalendarList
-              style={{ flex: 1 }}
-              firstDay={1}
-              onDayPress={handleDayPress}
-              markedDates={buildMarkedDates()}
-              markingType={mode === "range" ? "period" : undefined}
-              minDate={minDate}
-              maxDate={maxDate}
-              pastScrollRange={pastScrollRange}
-              futureScrollRange={futureScrollRange}
-              current={pending.startDate ? pending.startDate.split("T")[0] : undefined}
-              showsVerticalScrollIndicator={false}
-              theme={calendarTheme}
-            />
-          )}
+        <View style={fullStyles.body}>
+          <CalendarList
+            style={fullStyles.calendar}
+            horizontal={horizontal}
+            pagingEnabled={horizontal}
+            showsVerticalScrollIndicator={!horizontal}
+            firstDay={1}
+            onDayPress={handleDayPress}
+            markedDates={buildMarkedDates()}
+            markingType={mode === "range" ? "period" : undefined}
+            minDate={minDate}
+            maxDate={maxDate}
+            pastScrollRange={pastScrollRange}
+            futureScrollRange={futureScrollRange}
+            current={initialCalendarDate}
+            theme={calendarTheme}
+          />
         </View>
 
         {children}
@@ -260,6 +282,7 @@ const fullStyles = StyleSheet.create({
   subtitle: { fontSize: Platform.OS === "web" ? 14 : 13, color: "rgba(255,255,255,0.85)", marginTop: 2 },
   closeBtn: { padding: 4 },
   body: { flex: 1, backgroundColor: COLORS.background, marginTop: 8 },
+  calendar: { flex: 1 },
   footer: {
     flexDirection: "row", padding: 16, gap: 12,
     backgroundColor: COLORS.background,
