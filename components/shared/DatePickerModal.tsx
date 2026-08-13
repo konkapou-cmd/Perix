@@ -175,6 +175,7 @@ export default function DatePickerModal({
               pagingEnabled={horizontal}
               showsVerticalScrollIndicator={!horizontal}
               firstDay={1}
+              current={pending.startDate ?? todayISO()}
               onDayPress={(day) => {
                 handleDayPress(day);
                 onApply({ startDate: day.dateString, endDate: null });
@@ -185,6 +186,7 @@ export default function DatePickerModal({
               maxDate={maxDate}
               pastScrollRange={pastScrollRange}
               futureScrollRange={futureScrollRange}
+              style={sheetStyles.calendar}
               theme={calendarTheme}
             />
           </View>
@@ -282,7 +284,7 @@ const fullStyles = StyleSheet.create({
   subtitle: { fontSize: Platform.OS === "web" ? 14 : 13, color: "rgba(255,255,255,0.85)", marginTop: 2 },
   closeBtn: { padding: 4 },
   body: { flex: 1, backgroundColor: COLORS.background, marginTop: 8 },
-  calendar: { flex: 1 },
+  calendar: { height: 400 },
   footer: {
     flexDirection: "row", padding: 16, gap: 12,
     backgroundColor: COLORS.background,
@@ -310,5 +312,6 @@ const sheetStyles = StyleSheet.create({
     flexDirection: "row", justifyContent: "flex-end",
     paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4,
   },
+  calendar: { height: 400 },
   doneText: { fontSize: 16, fontWeight: "600" },
 });

@@ -765,6 +765,7 @@ export default function ServiceModal({
                     horizontal
                     pagingEnabled
                     minDate={new Date().toISOString().slice(0, 10)}
+                    style={{ height: 380 }}
                     onDayPress={(day: any) => {
                       setSlotDraft((previous) => ({
                         ...previous,
