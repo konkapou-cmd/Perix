@@ -88,6 +88,8 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
         inventory_count: inventory,
         status: "published",
       } as any);
+      setSaving(false);
+      savingRef.current = false;
       onSaved();
       onClose();
     } catch (e: any) {

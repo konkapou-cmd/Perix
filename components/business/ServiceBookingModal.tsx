@@ -148,12 +148,9 @@ export default function ServiceBookingModal({
     return () => { active = false; clearTimeout(timer); };
   }, [visible, service, isDateRange, checkIn, checkOut, rooms, adults, children]);
 
-  const today = new Date();
   const dates: string[] = [];
   for (let i = 0; i < 14; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    dates.push(d.toISOString().split("T")[0]);
+    dates.push(addDays(todayText, i));
   }
 
   const formatDate = (dateStr: string) => {
