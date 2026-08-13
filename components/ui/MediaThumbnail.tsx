@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Image, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -25,13 +25,20 @@ export default function MediaThumbnail({
   showTypeBadge = true,
   borderRadius = 10,
 }: MediaThumbnailProps) {
+  const [hasError, setHasError] = useState(false);
   const containerStyle = width && height
     ? { width, height }
     : { aspectRatio, width: width ?? "100%" as any };
 
   return (
     <Pressable style={[styles.container, containerStyle, { borderRadius }]} onPress={onPress}>
-      <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+      {!hasError ? (
+        <Image source={{ uri }} style={styles.image} resizeMode="cover" onError={() => setHasError(true)} />
+      ) : (
+        <View style={styles.errorFallback}>
+          <Ionicons name="image-outline" size={22} color="#9ca3af" />
+        </View>
+      )}
       {showTypeBadge && type === "video" && (
         <View style={styles.videoBadge}>
           <Ionicons name="play" size={14} color="#ffffff" />
@@ -54,6 +61,13 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
+  },
+  errorFallback: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
   },
   videoBadge: {
     position: "absolute",

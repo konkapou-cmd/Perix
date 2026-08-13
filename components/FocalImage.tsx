@@ -9,6 +9,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export type FocalPoint = {
   x: number;
@@ -110,7 +111,9 @@ export default function FocalImage({
       style={[styles.container, { aspectRatio, borderRadius }, style]}
     >
       {!uri || failed ? (
-        <View style={styles.fallback} />
+        <View style={styles.fallback}>
+          <Ionicons name="image-outline" size={failed ? 28 : 22} color="#C3CBD6" />
+        </View>
       ) : coverLayout ? (
         <Image
           source={{ uri }}
@@ -121,10 +124,11 @@ export default function FocalImage({
           ]}
         />
       ) : (
-        <>
+        <View style={styles.loading}>
           {showLoader && <ActivityIndicator />}
-          <Image source={{ uri }} style={styles.preload} resizeMode="cover" />
-        </>
+          {!showLoader && <Ionicons name="image-outline" size={22} color="#C3CBD6" />}
+          <Image source={{ uri }} style={styles.preload} />
+        </View>
       )}
     </View>
   );
@@ -134,5 +138,6 @@ const styles = StyleSheet.create({
   container: { width: "100%", overflow: "hidden", backgroundColor: "#F3F5FA", justifyContent: "center", alignItems: "center" },
   image: { position: "absolute" },
   preload: { width: 1, height: 1, opacity: 0 },
-  fallback: { width: "100%", height: "100%", backgroundColor: "#F3F5FA" },
+  loading: { justifyContent: "center", alignItems: "center" },
+  fallback: { width: "100%", height: "100%", backgroundColor: "#F3F5FA", justifyContent: "center", alignItems: "center" },
 });
