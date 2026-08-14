@@ -734,7 +734,6 @@ export default function HomeScreen() {
       />
 
       <FlatList
-        key={`feed-${viewportProducts.length}-${viewportHomes.length}`}
         ref={scrollRef}
         data={homeLayout.sections.find(s => s.id === "posts")?.enabled !== false ? sortedPosts : []}
         keyExtractor={(item) => item.post_id}
