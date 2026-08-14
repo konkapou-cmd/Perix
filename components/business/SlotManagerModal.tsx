@@ -13,13 +13,17 @@ type Props = {
   visible: boolean;
   serviceId: string;
   sessionToken: string;
+  serviceType?: string;
   onClose: () => void;
 };
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-export default function SlotManagerModal({ visible, serviceId, sessionToken, onClose }: Props) {
+export default function SlotManagerModal({ visible, serviceId, sessionToken, serviceType, onClose }: Props) {
   const { t } = useTranslation();
+
+  if (serviceType === "hotel_room") return null;
+
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todayISO());
@@ -349,7 +353,9 @@ export default function SlotManagerModal({ visible, serviceId, sessionToken, onC
             <View key={slot.slot_id} style={s.slotRow}>
               <View style={{ flex: 1 }}>
                 <Text style={s.slotInfo}>
-                  {slot.is_recurring ? "Recurring" : "Specific"} {slot.start_time} - {slot.end_time}
+                  {(slot.start_time || "").match(/^\d{4}-\d{2}-\d{2}$/)
+                    ? `${slot.start_time!.split("-").reverse().join(" ")} \u2013 ${slot.end_time!.split("-").reverse().join(" ")}`
+                    : `${slot.is_recurring ? "Recurring" : "Specific"} ${slot.start_time} - ${slot.end_time}`}
                   {slot.is_blocked ? ` (${t("slotManager.blocked", "blocked")})` : ""}
                   {slot.is_booked ? ` (${t("slotManager.booked", "booked")})` : ""}
                 </Text>

@@ -90,9 +90,9 @@ import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/medi
 import { validateMedia } from "../../lib/media/mediaValidation";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { hasServiceModules, getDefaultModule } from "../../lib/config/serviceCategoryMatrix";
+import { getBookingMode } from "../../lib/config/serviceModules";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
 import { LanguagePicker } from "../../components/LanguagePicker";
-import { IdentityDropdown } from "../../components/profile/IdentityDropdown";
 
 // Optional toggle to easily revert background color change for the profile switcher
 
@@ -101,7 +101,7 @@ import { UserProfilePremium } from "../../components/profile/UserProfilePremium"
 import { BusinessProfilePremium } from "../../components/profile/BusinessProfilePremium";
 import { EventModal } from "../../components/business";
 import { JobModal } from "../../components/business";
-import { ServiceModal, DEFAULT_SERVICE_FORM, ServiceBookingModal, SlotManagerModal, BookingListModal, UserBookingListModal } from "../../components/business";
+import { ServiceModal, DEFAULT_SERVICE_FORM, ServiceBookingModal, SlotManagerModal, BookingListModal, UserBookingListModal, HotelAvailabilityModal } from "../../components/business";
 import ActivityModal from "../../components/business/ActivityModal";
 import { useMapBounds } from "../../context/MapBoundsContext";
 import OpeningHoursModal, { DayHours, defaultDayHours } from "../../components/business/OpeningHoursModal";
@@ -135,7 +135,7 @@ function normalizeOpeningHoursForState(raw: any): DayHours {
   return { timezone: raw.timezone || "Europe/Berlin", schedule };
 }
 
-const DEFAULT_MODULES = { events: true, tickets: true, jobs: true, bookings: true, services: true, menu: false, rentals: false, gym: false, salon: false };
+const DEFAULT_MODULES = { events: true, tickets: true, jobs: true, bookings: true, services: true, menu: false, rentals: false, gym: false, salon: false, hotel: false };
 const DEFAULT_TOOLS = ["events", "tickets", "jobs", "bookings", "services"];
 
 function sub(slug: string, modules = DEFAULT_MODULES, tools = DEFAULT_TOOLS) {
@@ -182,9 +182,7 @@ const FALLBACK_CATEGORY_TREE: CategoryGroup[] = [
     name: "🏢 Professional Services", slug: "professional-services",
     groups: [
       { name: "Legal & Financial", slug: "legal-financial", subcategories: ["law-firms","accounting","tax-services","insurance"].map(s => sub(s)) },
-      { name: "Consulting & Marketing", slug: "consulting-marketing", subcategories: ["consulting","marketing-digital","translation-services"].map(s => sub(s)) },
-      { name: "Tech & IT", slug: "tech-it", subcategories: ["it-services","software-development","web-design"].map(s => sub(s)) },
-      { name: "Real Estate", slug: "real-estate", subcategories: ["real-estate-agents","property-management"].map(s => sub(s)) },
+      { name: "Consulting & Marketing", slug: "consulting-marketing", subcategories: ["consulting","translation-services"].map(s => sub(s)) },
     ],
   },
   {
@@ -212,9 +210,9 @@ const FALLBACK_CATEGORY_TREE: CategoryGroup[] = [
     ],
   },
   {
-    name: "🏠 Rentals", slug: "rentals",
+    name: "🏨 Local Hotels", slug: "local-hotels",
     groups: [
-      { name: "Rentals", slug: "rentals", subcategories: ["apartments","houses","studios","rooms","commercial-spaces"].map(s => sub(s, { ...DEFAULT_MODULES, rentals: true }, ["events","tickets","jobs","bookings","services","rentals"])) },
+      { name: "Hotels", slug: "hotels", subcategories: ["hotels","guesthouses","hostels"].map(s => sub(s, { ...DEFAULT_MODULES, hotel: true }, ["events","tickets","jobs","bookings","services","hotel"])) },
     ],
   },
   {
@@ -249,7 +247,7 @@ export default function ProfileScreen() {
   const { user, logout, sessionToken, activeIdentity, setActiveIdentity, refreshUser } = useAuth();
   const { clearMapBounds } = useMapBounds();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string; openProduct?: string; openActivity?: string; section?: string }>();
+  const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string; openProduct?: string; openActivity?: string; section?: string; createBusiness?: string }>();
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -289,6 +287,7 @@ export default function ProfileScreen() {
   const [bizLogoNew, setBizLogoNew] = useState<string | null>(null);
   const [bizCoverNew, setBizCoverNew] = useState<string | null>(null);
   const [bizSaving, setBizSaving] = useState(false);
+  const bizSavingRef = useRef(false);
   const [bizCategoryModalVisible, setBizCategoryModalVisible] = useState(false);
   const [bizSubcategoryModalVisible, setBizSubcategoryModalVisible] = useState(false);
 
@@ -328,6 +327,7 @@ export default function ProfileScreen() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [pickerRoot, setPickerRoot] = useState("");
   const [pickerSub, setPickerSub] = useState("");
+  const creatingBusinessRef = useRef(false);
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [eventEditing, setEventEditing] = useState<EventItem | null>(null);
   const [eventForm, setEventForm] = useState<{title: string; description: string; start_time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; theme: string; gallery_images: string[]; gallery_videos: string[]; media_items: any[]; is_private: boolean; password: string; tagged_artist_ids: string[]}>({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
@@ -346,7 +346,7 @@ export default function ProfileScreen() {
   const [themedAlertVisible, setThemedAlertVisible] = useState(false);
   const [themedAlertMessage, setThemedAlertMessage] = useState("");
   const [activityEditing, setActivityEditing] = useState<ActivityItem | null>(null);
-  const [activityForm, setActivityForm] = useState<{title: string; description: string; date: string; time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; max_attendees?: number | null; is_private: boolean; theme: string; password: string; gallery_images: string[]; gallery_videos: string[]; media_items: any[]}>({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
+  const [activityForm, setActivityForm] = useState<{title: string; description: string; date: string; time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; max_attendees: number; is_private: boolean; theme: string; password: string; gallery_images: string[]; gallery_videos: string[]; media_items: any[]}>({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
   const [activityDate, setActivityDate] = useState<Date>(new Date());
   const [activityTime, setActivityTime] = useState<Date>(new Date());
   const [showActivityDatePicker, setShowActivityDatePicker] = useState(false);
@@ -489,6 +489,13 @@ export default function ProfileScreen() {
       return;
     }
 
+    const shouldCreateBusiness = params.createBusiness === "1";
+    if (shouldCreateBusiness) {
+      router.setParams({ createBusiness: undefined } as any);
+      setShowCategoryPicker(true);
+      return;
+    }
+
     const shouldOpenProduct = params.openProduct === "1";
     if (shouldOpenProduct && businessDetail && !businessPermsLoading) {
       router.setParams({ openProduct: undefined } as any);
@@ -551,6 +558,8 @@ export default function ProfileScreen() {
     params.openJob,
     params.openBookings,
     params.openProduct,
+    params.openActivity,
+    params.createBusiness,
     params.section,
     businessDetail,
     businessPermsLoading,
@@ -623,9 +632,9 @@ export default function ProfileScreen() {
       const data = await getUserPublicProfile(sessionToken, user.user_id);
       setUserPosts(data.posts || []);
 
-      const listings = await getManageListings(sessionToken, "user", user.user_id);
+      const listings = await getManageListings(sessionToken);
       if (requestId !== userListingsRequestRef.current) return;
-      setUserListings(listings.filter(l => l.listing_type === "product"));
+      setUserListings(listings.filter(l => !l.listing_type || l.listing_type === "product"));
       setUserHomeListings(listings.filter(l => l.listing_type === "home_rental"));
     } catch {
       if (requestId === userListingsRequestRef.current) {
@@ -795,12 +804,14 @@ export default function ProfileScreen() {
     }
   };
 
+  const activitySavingRef = useRef(false);
   const handleSaveActivity = async () => {
-    if (!sessionToken) return;
+    if (!sessionToken || activitySavingRef.current) return;
     if (!activityForm.title.trim()) {
       Alert.alert(t("common.error") || "Error", t("activities.titleRequired") || "Title is required");
       return;
     }
+    activitySavingRef.current = true;
     try {
       if (activityEditing) {
         await updateActivity(sessionToken, activityEditing.activity_id, {
@@ -843,12 +854,21 @@ export default function ProfileScreen() {
       }
       setActivityModalVisible(false);
       setActivityEditing(null);
-      setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
+      setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
       Alert.alert(t("common.success") || "Success", t("common.confirm") || "Activity saved successfully");
-      loadUserActivities();
-    } catch (e) {
-      Alert.alert(t("common.error") || "Error", (e as Error)?.message || t("activities.saveFailed") || "Failed to save activity");
+    } catch (e: any) {
+      const msg = (e as Error)?.message || "";
+      if (msg === "Network request failed") {
+        setActivityModalVisible(false);
+        setActivityEditing(null);
+        setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
+      } else {
+        Alert.alert(t("common.error") || "Error", msg || t("activities.saveFailed") || "Failed to save activity");
+      }
+    } finally {
+      activitySavingRef.current = false;
     }
+    loadUserActivities().catch(() => {});
   };
 
   const handleDeleteActivity = async (activityId: string) => {
@@ -1013,6 +1033,8 @@ export default function ProfileScreen() {
 
   const handleSaveBusinessInfo = async () => {
     if (!sessionToken || !businessDetail) return;
+    if (bizSavingRef.current) return;
+    bizSavingRef.current = true;
     setBizSaving(true);
     try {
       const payload: any = {
@@ -1038,6 +1060,7 @@ export default function ProfileScreen() {
     } catch (error) {
       Alert.alert(t('common.error'), t('profile.updateFailed'));
     } finally {
+      bizSavingRef.current = false;
       setBizSaving(false);
     }
   };
@@ -1092,7 +1115,8 @@ const handleUpdateSlug = async (newSlug: string) => {
     }, [logout, clearMapBounds, t]);
 
    const handleAddPhoto = async () => {
-    if (!sessionToken) return;
+    if (!sessionToken || gallerySaving) return;
+    setGallerySaving(true);
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -1114,24 +1138,28 @@ const handleUpdateSlug = async (newSlug: string) => {
         } else {
           uploadedUrl = await uploadMedia(sessionToken, result.assets[0].uri, "image");
         }
-        if (uploadedUrl) {
-          const updated = await updateProfileGallery(sessionToken, { images: [uploadedUrl] });
-          setGalleryImages(updated.gallery_images || []);
-          setGalleryItems(updated.gallery_items || []);
-          setShowUploadProgress(false);
-          setUploadProgress(null);
-          refreshUser();
+        if (!uploadedUrl) {
+          Alert.alert(t("common.error", "Error"), t("profile.uploadFailed", "Failed to upload image"));
+          return;
         }
+        const updated = await updateProfileGallery(sessionToken, { images: [uploadedUrl] });
+        setGalleryImages(updated.gallery_images || []);
+        setGalleryItems(updated.gallery_items || []);
+        Alert.alert(t("common.success", "Success"), t("profile.photoAdded", "Photo added to gallery"));
       }
     } catch (e: any) {
+      Alert.alert(t("common.error", "Error"), e.message || t("common.pleaseTryAgain", "Please try again"));
+    } finally {
       setShowUploadProgress(false);
       setUploadProgress(null);
-      Alert.alert(t("common.error", "Error"), e.message);
+      setGallerySaving(false);
     }
+    loadUserProfile().catch(() => {});
   };
 
   const handleAddVideo = async () => {
-    if (!sessionToken) return;
+    if (!sessionToken || gallerySaving) return;
+    setGallerySaving(true);
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -1156,20 +1184,19 @@ const handleUpdateSlug = async (newSlug: string) => {
           const updated = await updateProfileGallery(sessionToken, { videos: [uploadedUrl] });
           setGalleryVideos(updated.gallery_videos || []);
           setVideoItems(updated.video_items || []);
-          setShowUploadProgress(false);
-          setUploadProgress(null);
-          refreshUser();
+          Alert.alert(t("common.success", "Success"), t("profile.videoAdded", "Video added to gallery"));
         } else {
-          setShowUploadProgress(false);
-          setUploadProgress(null);
           Alert.alert(t("common.error", "Error"), "Video upload failed: no playback URL received. Please try again.");
         }
       }
     } catch (e: any) {
+      Alert.alert(t("common.error", "Error"), e.message || t("common.pleaseTryAgain", "Please try again"));
+    } finally {
       setShowUploadProgress(false);
       setUploadProgress(null);
-      Alert.alert(t("common.error", "Error"), e.message);
+      setGallerySaving(false);
     }
+    loadUserProfile().catch(() => {});
   };
 
   const handleDeleteGalleryItem = async (type: "image" | "video", index: number) => {
@@ -1238,6 +1265,8 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [bookingService, setBookingService] = useState<Service | null>(null);
   const [slotManagerVisible, setSlotManagerVisible] = useState(false);
   const [slotManagerServiceId, setSlotManagerServiceId] = useState("");
+  const [slotManagerServiceType, setSlotManagerServiceType] = useState("");
+  const [hotelAvailabilityService, setHotelAvailabilityService] = useState<Service | null>(null);
   const [bookingListVisible, setBookingListVisible] = useState(false);
   const [userBookingListVisible, setUserBookingListVisible] = useState(false);
 
@@ -1248,6 +1277,8 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [postVideoPreview, setPostVideoPreview] = useState<string | null>(null);
   const [postMediaRatio, setPostMediaRatio] = useState<number | null>(null);
   const [isPosting, setIsPosting] = useState(false);
+  const postingRef = useRef(false);
+  const [gallerySaving, setGallerySaving] = useState(false);
 
   const loadBusinessFullData = async (bizId: string) => {
     if (!sessionToken) return;
@@ -1345,7 +1376,11 @@ const handleUpdateSlug = async (newSlug: string) => {
   const handleSaveListing = () => {
     setListingModalVisible(false);
     setEditingListing(null);
-    loadBusinessProfile();
+    if (activeIdentity?.type === "business") {
+      loadBusinessProfile().catch(() => {});
+    } else {
+      loadUserProfile().catch(() => {});
+    }
   };
 
   const handleSaveBusinessHours = async () => {
@@ -1380,6 +1415,10 @@ const handleUpdateSlug = async (newSlug: string) => {
     setServiceForm({
       ...DEFAULT_SERVICE_FORM,
       type: type || getDefaultModule(rootCategory || "") || DEFAULT_SERVICE_FORM.type,
+      status: type === "hotel_room" || getDefaultModule(rootCategory || "") === "hotel_room" ? "draft" : DEFAULT_SERVICE_FORM.status,
+      address: businessDetail?.business.address || "",
+      latitude: businessDetail?.business.latitude?.toString() || "",
+      longitude: businessDetail?.business.longitude?.toString() || "",
     });
     setServiceModalVisible(true);
   };
@@ -1463,6 +1502,20 @@ const handleUpdateSlug = async (newSlug: string) => {
         insurance_info: service.insurance_info || "",
         pet_name: service.pet_name || "",
         pet_type: service.pet_type || "",
+        bed_config: service.bed_config || "",
+        room_size_sqm: service.room_size_sqm?.toString() || "",
+        room_view: service.room_view || "",
+        available_until: service.available_until || "",
+        amenities: service.amenities || [],
+        inventory_count: service.inventory_count?.toString() || "1",
+        max_adults: service.max_adults?.toString() || "2",
+        max_children: service.max_children?.toString() || "1",
+        check_in_time: service.check_in_time || "15:00",
+        check_out_time: service.check_out_time || "11:00",
+        min_nights: service.min_nights?.toString() || "1",
+        max_nights: service.max_nights?.toString() || "30",
+        cancellation_policy: service.cancellation_policy || "",
+        currency: service.currency || "EUR",
         status: (service.status as "draft" | "published" | "hidden") || "published",
         sort_order: service.sort_order?.toString() || "0",
         availability_slots: normalizedSlots,
@@ -1601,6 +1654,20 @@ const handleUpdateSlug = async (newSlug: string) => {
         insurance_info: serviceForm.insurance_info || undefined,
         pet_name: serviceForm.pet_name || undefined,
         pet_type: serviceForm.pet_type || undefined,
+        bed_config: serviceForm.bed_config || undefined,
+        room_size_sqm: serviceForm.room_size_sqm ? parseFloat(serviceForm.room_size_sqm) : undefined,
+        room_view: serviceForm.room_view || undefined,
+        available_until: serviceForm.available_until || undefined,
+        amenities: serviceForm.amenities || undefined,
+        inventory_count: serviceForm.inventory_count ? parseInt(serviceForm.inventory_count, 10) : undefined,
+        max_adults: serviceForm.max_adults ? parseInt(serviceForm.max_adults, 10) : undefined,
+        max_children: serviceForm.max_children ? parseInt(serviceForm.max_children, 10) : undefined,
+        check_in_time: serviceForm.check_in_time || undefined,
+        check_out_time: serviceForm.check_out_time || undefined,
+        min_nights: serviceForm.min_nights ? parseInt(serviceForm.min_nights, 10) : undefined,
+        max_nights: serviceForm.max_nights ? parseInt(serviceForm.max_nights, 10) : undefined,
+        cancellation_policy: serviceForm.cancellation_policy || undefined,
+        currency: serviceForm.currency || "EUR",
         status: serviceForm.status || undefined,
         sort_order: serviceForm.sort_order ? parseInt(serviceForm.sort_order, 10) : undefined,
       };
@@ -1636,12 +1703,22 @@ const handleUpdateSlug = async (newSlug: string) => {
       setServiceModalVisible(false);
       setEditingServiceId(null);
       setServiceForm(DEFAULT_SERVICE_FORM);
-      loadBusinessProfile();
     } catch (e: any) {
       console.error("Failed to save service:", e);
-      Alert.alert(t("common.error", "Error"), e?.detail || e?.message || t("services.saveFailed", "Failed to save service"));
+      const msg = e?.detail || e?.message || "";
+      if (msg !== "Network request failed") {
+        Alert.alert(t("common.error", "Error"), msg || t("services.saveFailed", "Failed to save service"));
+      } else {
+        Alert.alert(t("common.info", "Info"), t("services.saveMayHaveSucceeded", "The service may have been saved despite the network error. Your edits are still open."));
+        // Keep modal open — never discard edits after a failed save
+        setServiceSaving(false);
+        return;
+      }
     }
     setServiceSaving(false);
+    if (activeIdentity?.type === "business") {
+      loadBusinessFullData(activeIdentity.id).catch(() => {});
+    }
   };
 
   // Booking / Slot Manager / Booking List handlers
@@ -1650,8 +1727,13 @@ const handleUpdateSlug = async (newSlug: string) => {
     setBookingModalVisible(true);
   };
 
-  const handleOpenSlotManager = (serviceId: string) => {
+  const handleOpenSlotManager = (serviceId: string, serviceType?: string) => {
+    if (serviceType && getBookingMode(serviceType) === "date_range") {
+      const service = bizServices.find(s => s.service_id === serviceId);
+      if (service) { setHotelAvailabilityService(service); return; }
+    }
     setSlotManagerServiceId(serviceId);
+    setSlotManagerServiceType(serviceType || "");
     setSlotManagerVisible(true);
   };
 
@@ -1678,9 +1760,10 @@ const handleUpdateSlug = async (newSlug: string) => {
       if (!validation.valid) {
         Alert.alert(t("common.error", "Error"), validation.error || "Invalid media file");
         setIsUploading(false);
-        return;
-      }
-      try {
+      return;
+    }
+    creatingBusinessRef.current = true;
+    try {
         setShowUploadProgress(true);
         setUploadProgress({ phase: "uploading", progress: 30 });
         const imageUrl = await uploadMedia(sessionToken, result.assets[0].uri, "image", (progress) => {
@@ -1815,7 +1898,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   };
 
   const handleCreatePost = async (eventOrText?: any) => {
-    if (isPosting || !sessionToken) return;
+    if (postingRef.current || !sessionToken) return;
      
      // Determine actor identity - use activeIdentity or fallback to user
      let actorIdentity = activeIdentity;
@@ -1840,6 +1923,7 @@ const handleUpdateSlug = async (newSlug: string) => {
      }
 
 try {
+        postingRef.current = true;
         setIsPosting(true);
         // Only show upload progress if there's actual media to upload
         const hasMedia = !!postImage || !!postVideo;
@@ -1891,13 +1975,7 @@ try {
             muxUploadId        // mux_upload_id
           );
 
-        if (actorIdentity.type === 'business') {
-          setBizPosts([newPost, ...bizPosts]);
-        } else if (actorIdentity.type === 'user') {
-          setUserPosts([newPost, ...userPosts]);
-        }
- 
-setPostText("");
+        setPostText("");
         setPostImage(null);
          setPostVideo(null);
          setPostVideoPreview(null);
@@ -1926,6 +2004,7 @@ setPostText("");
         console.error("Failed to create post:", error);
          Alert.alert(t("common.error", "Error"), t("profile.failedCreatePost", "Failed to create post. Please try again."));
       } finally {
+        postingRef.current = false;
         setIsPosting(false);
       }
    }
@@ -2057,15 +2136,27 @@ setPostText("");
 
   const handleCreateNewBusiness = async () => {
     if (!sessionToken || !user || !pickerRoot || !pickerSub) return;
+    if (creatingBusinessRef.current) return;
+    const hasAddress = user.location && user.location !== "Not set" && user.latitude && user.longitude;
+    if (!hasAddress) {
+      Alert.alert(
+        t("common.info", "Info"),
+        t("business.setAddressFirst", "Please set your location/address in your profile settings before creating a business. This is required for your business to appear publicly."),
+        [
+          { text: t("common.cancel", "Cancel"), style: "cancel" },
+          { text: t("profile.editProfile", "Edit Profile"), onPress: () => { setShowCategoryPicker(false); setUserEditModalVisible(true); } },
+        ],
+      );
+      return;
+    }
+    creatingBusinessRef.current = true;
     try {
-      const latitude = user.latitude || 0;
-      const longitude = user.longitude || 0;
       const created = await createBusiness(sessionToken, {
         name: user.name + " Business",
         description: "",
-        address: user.location || "Not set",
-        latitude,
-        longitude,
+        address: "",
+        latitude: null as any,
+        longitude: null as any,
         root_category: pickerRoot,
         subcategory: pickerSub,
       });
@@ -2077,16 +2168,10 @@ setPostText("");
       refreshUser();
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e.message || t("business.failedCreate", "Failed to create business profile"));
+    } finally {
+      creatingBusinessRef.current = false;
     }
   };
-
-  const identityPicker = (
-    <IdentityDropdown
-      businesses={businesses}
-      onSelectIdentity={(type, id, name, avatar) => setActiveIdentity({ type, id, name, avatar })}
-      onCreateBusiness={() => { setPickerRoot(""); setPickerSub(""); setShowCategoryPicker(true); }}
-    />
-  );
 
   const openTagModal = () => {
     // Insert @ for inline tagging
@@ -2214,7 +2299,6 @@ setPostText("");
           sessionToken={sessionToken || ""}
           themeModalVisible={themeModalVisible}
           setThemeModalVisible={setThemeModalVisible}
-          identityPicker={identityPicker}
             setInviteModalVisible={setInviteModalVisible}
             savingInfo={savingInfo}
             handleSaveProfileInfo={handleSaveProfileInfo}
@@ -2404,9 +2488,8 @@ onDeletePost={handleDeletePost}
                  onEditPost={handleEditPost}
                  onRefreshPosts={loadBusinessProfile}
 currentUserId={businessDetail?.business?.business_id}
-                isOwnProfile={activeIdentity?.type === 'business'}
-                 identityPicker={identityPicker}
-                  onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
+                 isOwnProfile={activeIdentity?.type === 'business'}
+                   onOpenTagModal={TAGGING_ENABLED ? openTagModal : undefined}
                   onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
                   onUploadCityAd={async () => {
                     if (!sessionToken) return;
@@ -2484,7 +2567,7 @@ currentUserId={businessDetail?.business?.business_id}
       <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={uploadContext} mode="inline" onDismiss={() => { setShowUploadProgress(false); setUploadProgress(null); }} />
       <ListingModal
         visible={listingModalVisible}
-        listingType="product"
+        listingType={editingListing?.listing_type || "product"}
         editingListing={editingListing}
         sessionToken={sessionToken || ""}
         businessId={activeIdentity?.type === "business" ? activeIdentity.id : null}
@@ -2575,7 +2658,7 @@ currentUserId={businessDetail?.business?.business_id}
         />
         <ActivityModal
           visible={activityModalVisible}
-          onClose={() => { setActivityModalVisible(false); setActivityEditing(null); setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: undefined, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] }); }}
+          onClose={() => { setActivityModalVisible(false); setActivityEditing(null); setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] }); }}
           activityForm={activityForm}
           onFormChange={setActivityForm}
           activityEditing={activityEditing}
@@ -2637,12 +2720,19 @@ currentUserId={businessDetail?.business?.business_id}
               setJobModalVisible(false);
               setEditingJobId(null);
               setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], media_items: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
-              loadBusinessProfile();
             } catch (error: any) {
               console.error("Failed to save job:", error);
-              Alert.alert(t("common.error", "Error"), error?.detail || error?.message || t("jobs.saveFailed", "Failed to save job"));
+              const msg = error?.detail || error?.message || "";
+              if (msg !== "Network request failed") {
+                Alert.alert(t("common.error", "Error"), msg || t("jobs.saveFailed", "Failed to save job"));
+              } else {
+                setJobModalVisible(false);
+                setEditingJobId(null);
+                setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], media_items: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
+              }
             }
             setJobSaving(false);
+            loadBusinessProfile().catch(() => {});
           }}
           isSaving={jobSaving}
           editingId={editingJobId}
@@ -2681,10 +2771,22 @@ currentUserId={businessDetail?.business?.business_id}
         <SlotManagerModal
           visible={slotManagerVisible}
           serviceId={slotManagerServiceId}
+          serviceType={slotManagerServiceType}
           sessionToken={sessionToken || ""}
           onClose={() => { setSlotManagerVisible(false); setSlotManagerServiceId(""); }}
         />
       )}
+
+      <HotelAvailabilityModal
+        visible={Boolean(hotelAvailabilityService)}
+        service={hotelAvailabilityService}
+        sessionToken={sessionToken || ""}
+        onClose={() => setHotelAvailabilityService(null)}
+        onSaved={async () => {
+          await loadBusinessProfile();
+          setHotelAvailabilityService(null);
+        }}
+      />
 
       <BookingListModal
         visible={bookingListVisible}
@@ -2952,14 +3054,19 @@ currentUserId={businessDetail?.business?.business_id}
             <Text style={{ fontSize: 18, fontWeight: "700", color: COLORS.textPrimary }}>{t("business.chooseCategory", "Choose Category")}</Text>
             <View style={{ width: 28 }} />
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+          <ScrollView contentContainerStyle={{ padding: 16 }} style={{ flex: 1 }}>
             <Text style={{ fontSize: 14, color: "#6b7280", marginBottom: 16 }}>{t("business.selectRootHint", "Select a business category")}</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
               {categoryTree.map((cat) => (
                 <Pressable
                   key={cat.slug}
                   style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#e5e7eb" }}
-                  onPress={() => { setPickerRoot(cat.slug); setPickerSub(""); }}
+                  onPress={() => {
+                    setPickerRoot(cat.slug);
+                    setPickerSub("");
+                    const subs = getSubcategories(categoryTree, cat.slug);
+                    if (subs.length === 1) setPickerSub(subs[0].slug);
+                  }}
                 >
                   <Text style={{ fontSize: 14, fontWeight: "600", color: pickerRoot === cat.slug ? "#fff" : "#374151" }}>{cat.name}</Text>
                 </Pressable>
@@ -2968,7 +3075,7 @@ currentUserId={businessDetail?.business?.business_id}
             {pickerRoot && getSubcategories(categoryTree, pickerRoot).length > 0 && (
               <>
                 <Text style={{ fontSize: 14, color: "#6b7280", marginBottom: 12 }}>{t("business.selectSubHint", "Select a subcategory")}</Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 20 }}>
                   {getSubcategories(categoryTree, pickerRoot).map((sub) => (
                     <Pressable
                       key={sub.slug}
@@ -2982,7 +3089,7 @@ currentUserId={businessDetail?.business?.business_id}
               </>
             )}
           </ScrollView>
-          <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 16 + insets.bottom, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e5e7eb" }}>
+          <View style={{ padding: 16, paddingBottom: 16 + insets.bottom, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e5e7eb" }}>
             <Pressable
               style={{ backgroundColor: pickerRoot && pickerSub ? COLORS.textPrimary : "#d1d5db", borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
               disabled={!pickerRoot || !pickerSub}

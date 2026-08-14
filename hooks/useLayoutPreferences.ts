@@ -26,6 +26,7 @@ export type HomeLayoutConfig = {
     jobs: "chronological" | "distance" | "random" | "custom";
     rentals: "chronological" | "distance" | "random" | "custom";
     services: "chronological" | "distance" | "engagement" | "random" | "custom";
+  hotels: "chronological" | "distance" | "engagement" | "random" | "custom";
   };
 };
 
@@ -35,8 +36,8 @@ const DEFAULT_LAYOUT: HomeLayoutConfig = {
     { id: "events", title: "Events", enabled: true, order: 2, layout: "carousel", customStyle: {} },
     { id: "activities", title: "Activities", enabled: true, order: 3, layout: "carousel", customStyle: {} },
     { id: "businesses", title: "Businesses", enabled: true, order: 4, layout: "carousel", customStyle: {} },
-    { id: "services", title: "Services", enabled: true, order: 5, layout: "carousel", customStyle: {} },
-    { id: "rentals", title: "Rental & Real Estate", enabled: true, order: 6, layout: "carousel", customStyle: {} },
+    { id: "hotels", title: "Local Hotels", enabled: true, order: 5, layout: "carousel", customStyle: {} },
+    { id: "services", title: "Services", enabled: true, order: 6, layout: "carousel", customStyle: {} },
     { id: "jobs", title: "Jobs", enabled: true, order: 7, layout: "carousel", customStyle: {} },
     { id: "posts", title: "Latest Posts", enabled: true, order: 8, layout: "list", customStyle: {} },
   ],
@@ -47,6 +48,7 @@ const DEFAULT_LAYOUT: HomeLayoutConfig = {
     events: "chronological",
     activities: "chronological",
     businesses: "chronological",
+    hotels: "chronological",
     jobs: "distance",
     rentals: "distance",
     services: "distance",

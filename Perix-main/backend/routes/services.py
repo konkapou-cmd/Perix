@@ -1,5 +1,5 @@
 """Services, Time Slots, and Bookings routes."""
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from typing import List, Optional
 import asyncio
 import json
@@ -13,6 +13,7 @@ from models.service import (
     TimeSlotCreate, TimeSlotResponse, BlockDateRange,
     BookingCreate, BookingResponse,
     AvailabilitySlotInput, BulkAvailabilityRequest,
+    StayAvailabilityResponse, DateBlockCreate, DateBlockResponse,
 )
 from utils.helpers import generate_id, now_utc
 from routes.dependencies import get_current_user
@@ -54,9 +55,13 @@ def normalize_slots(slots: list) -> str:
 def validate_availability_slots(
     slots: list,
     duration_minutes: Optional[int] = None,
+    service_type: Optional[str] = None,
 ) -> None:
     from datetime import datetime, timezone as dt_timezone
     today = datetime.now(dt_timezone.utc)
+
+    if service_type == "hotel_room":
+        raise HTTPException(status_code=400, detail="Hotel rooms use date-range availability, not time slots")
 
     for slot in slots:
         start = slot.get("start_time", "")
@@ -105,6 +110,55 @@ def validate_availability_slots(
             following_start = parse_time(following["start_time"])
             if following_start < current_end:
                 raise HTTPException(status_code=400, detail="Time slots cannot overlap.")
+
+
+def get_service_booking_config(root_category: str = "", service_type: str = "") -> dict:
+    resolved = "rentals" if root_category == "rental-real-estate" else root_category
+    return ROOT_SERVICE_BOOKING_CONFIG.get(resolved, {}).get(service_type, {"booking": False, "slots": False, "mode": "none"})
+
+
+def require_time_slot_service(service: dict) -> None:
+    from services.date_range_booking import booking_mode_from_config
+    config = get_service_booking_config(service.get("root_category", ""), service.get("type", ""))
+    if booking_mode_from_config(config) != "time_slot":
+        raise HTTPException(status_code=400, detail="This service does not use time-slot availability")
+
+
+def validate_date_range_service_for_publish(service_data: dict) -> None:
+    from services.date_range_utils import parse_iso_date, parse_price_to_cents
+    inventory = int(service_data.get("inventory_count") if service_data.get("inventory_count") is not None else 0)
+    max_guests = int(service_data.get("max_guests") if service_data.get("max_guests") is not None else 0)
+    max_adults = int(service_data.get("max_adults") if service_data.get("max_adults") is not None else max_guests)
+    max_children = int(service_data.get("max_children") if service_data.get("max_children") is not None else 0)
+    min_nights = int(service_data.get("min_nights") if service_data.get("min_nights") is not None else 1)
+    max_nights = int(service_data.get("max_nights") if service_data.get("max_nights") is not None else 30)
+    if inventory < 1:
+        raise HTTPException(status_code=400, detail="Room inventory must be at least 1")
+    if max_guests < 1:
+        raise HTTPException(status_code=400, detail="Maximum guests must be at least 1")
+    if max_adults < 1:
+        raise HTTPException(status_code=400, detail="Maximum adults must be at least 1")
+    if max_children < 0:
+        raise HTTPException(status_code=400, detail="Maximum children cannot be negative")
+    if min_nights < 1:
+        raise HTTPException(status_code=400, detail="Minimum nights must be at least 1")
+    if max_nights < min_nights:
+        raise HTTPException(status_code=400, detail="Maximum nights cannot be below minimum nights")
+    parse_price_to_cents(service_data.get("price"))
+    available_from = service_data.get("available_from")
+    available_until = service_data.get("available_until")
+    if not available_from or not available_until:
+        raise HTTPException(status_code=400, detail="Bookable from and bookable until dates are required")
+    start = parse_iso_date(available_from, "Bookable from")
+    end = parse_iso_date(available_until, "Bookable until")
+    if end <= start:
+        raise HTTPException(status_code=400, detail="Bookable until must be after bookable from")
+    check_in = service_data.get("check_in_time")
+    check_out = service_data.get("check_out_time")
+    if not check_in or not check_out:
+        raise HTTPException(status_code=400, detail="Check-in and checkout times are required")
+    parse_time(check_in)
+    parse_time(check_out)
 
 
 # ─── Services CRUD ───
@@ -170,20 +224,21 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
     booking_config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved_category, {}).get(
         payload.type, {"booking": False, "slots": False}
     )
+    from services.date_range_booking import booking_mode_from_config
+    booking_mode = booking_mode_from_config(booking_config)
+
+    if booking_mode == "date_range":
+        slots = []
 
     if publish_status == "published" and booking_config.get("booking"):
-        if booking_config.get("slots"):
+        if booking_mode == "time_slot":
             if not slots:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Add at least one available date and time before publishing this service.",
-                )
-            validate_availability_slots(slots, payload.duration_minutes)
+                raise HTTPException(status_code=400, detail="Add at least one available date and time before publishing this service.")
+            validate_availability_slots(slots, payload.duration_minutes, payload.type)
+        elif booking_mode == "date_range":
+            validate_date_range_service_for_publish(payload_data)
         elif not getattr(payload, "available_from", None):
-            raise HTTPException(
-                status_code=400,
-                detail="Add an availability date before publishing this service.",
-            )
+            raise HTTPException(status_code=400, detail="Add an availability date before publishing this service.")
 
     doc = {
         **payload_data,
@@ -191,6 +246,9 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
         "is_active": True,
         "created_at": now_utc(),
     }
+
+    if booking_mode == "date_range":
+        slots = []  # Never create legacy slots for date-range services
 
     slot_docs = [
         {
@@ -294,9 +352,8 @@ async def create_booking(payload: BookingCreate, current_user: UserPublic = Depe
     service = await db.services.find_one({"service_id": payload.service_id, "is_active": True, "status": "published"})
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
-    business_id = service["business_id"]
 
-    # Determine booking mode from service type config
+    business_id = service["business_id"]
     root_cat = service.get("root_category", "")
     svc_type = service.get("type", "")
     resolved_cat = "rentals" if root_cat == "rental-real-estate" else root_cat
@@ -305,47 +362,63 @@ async def create_booking(payload: BookingCreate, current_user: UserPublic = Depe
     if type_config is not None and not type_config["booking"]:
         raise HTTPException(status_code=400, detail="This service does not accept bookings.")
 
-    requires_slots = type_config["slots"] if type_config else True
+    from services.date_range_booking import booking_mode_from_config, create_date_range_booking, enrich_booking
+    booking_mode = booking_mode_from_config(type_config)
 
-    # Check available_from for rentals
+    if booking_mode == "date_range":
+        booking = await create_date_range_booking(
+            payload,
+            service=service,
+            business_id=business_id,
+            client_id=current_user.user_id,
+        )
+        return BookingResponse(**booking)
+
     available_from = service.get("available_from")
     if available_from and payload.date < available_from:
         raise HTTPException(status_code=400, detail=f"Service is not available until {available_from}")
 
-    # Check slot availability if required
     slot = None
-    if requires_slots:
+    if booking_mode == "time_slot":
         if not payload.slot_id:
             raise HTTPException(status_code=400, detail="A time slot must be selected for this service.")
-        slot = await db.service_slots.find_one({"slot_id": payload.slot_id})
-        if not slot or slot["is_booked"] or slot["is_blocked"]:
-            raise HTTPException(status_code=400, detail="Slot not available")
+        slot = await db.service_slots.find_one_and_update(
+            {"slot_id": payload.slot_id, "service_id": payload.service_id, "is_booked": False, "is_blocked": False},
+            {"$set": {"is_booked": True}},
+        )
+        if not slot:
+            raise HTTPException(status_code=409, detail="Slot not available")
+
+    payload_data = payload.model_dump()
+    payload_data.pop("total_price", None)
 
     doc = {
-        **payload.model_dump(),
+        **payload_data,
         "booking_id": generate_id("bkg"),
         "business_id": business_id,
         "client_id": current_user.user_id,
+        "booking_mode": booking_mode,
         "status": "pending",
         "created_at": now_utc(),
         "start_time": slot.get("start_time") if slot else payload.start_time,
         "end_time": slot.get("end_time") if slot else payload.end_time,
     }
-    await db.bookings.insert_one(doc)
 
-    # Mark slot as booked
-    if slot:
-        await db.service_slots.update_one({"slot_id": slot["slot_id"]}, {"$set": {"is_booked": True}})
+    try:
+        await db.bookings.insert_one(doc)
+    except Exception:
+        if slot:
+            await db.service_slots.update_one({"slot_id": slot["slot_id"]}, {"$set": {"is_booked": False}})
+        raise
 
-    booking = doc.copy()
-    booking["service_name"] = service.get("name")
-    biz = await db.businesses.find_one({"business_id": business_id})
-    booking["business_name"] = biz["name"] if biz else None
+    booking = await enrich_booking(doc, service=service)
     return BookingResponse(**booking)
 
 
 @router.get("/bookings", response_model=List[BookingResponse])
 async def list_bookings(business_id: Optional[str] = None, status: Optional[str] = None, current_user: UserPublic = Depends(get_current_user)):
+    from services.date_range_booking import enrich_booking, expire_stale_pending_bookings
+    await expire_stale_pending_bookings()
     query = {}
     if business_id:
         business = await db.businesses.find_one({"business_id": business_id})
@@ -357,14 +430,17 @@ async def list_bookings(business_id: Optional[str] = None, status: Optional[str]
     if status:
         query["status"] = status
 
-    bookings = await db.bookings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    bookings = await db.bookings.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    service_ids = list({b["service_id"] for b in bookings if b.get("service_id")})
+    business_ids = list({b["business_id"] for b in bookings if b.get("business_id")})
+    services = await db.services.find({"service_id": {"$in": service_ids}}, {"_id": 0}).to_list(len(service_ids) or 1)
+    businesses = await db.businesses.find({"business_id": {"$in": business_ids}}, {"_id": 0}).to_list(len(business_ids) or 1)
+    service_map = {s["service_id"]: s for s in services}
+    business_map = {b["business_id"]: b for b in businesses}
     result = []
-    for b in bookings:
-        service = await db.services.find_one({"service_id": b["service_id"]}, {"_id": 0, "name": 1})
-        business = await db.businesses.find_one({"business_id": b["business_id"]}, {"_id": 0, "name": 1})
-        b["service_name"] = service["name"] if service else None
-        b["business_name"] = business["name"] if business else None
-        result.append(BookingResponse(**b))
+    for booking in bookings:
+        enriched = await enrich_booking(booking, service=service_map.get(booking["service_id"]), business=business_map.get(booking["business_id"]))
+        result.append(BookingResponse(**enriched))
     return result
 
 
@@ -376,15 +452,54 @@ async def confirm_booking(booking_id: str, current_user: UserPublic = Depends(ge
     business = await db.businesses.find_one({"business_id": booking["business_id"]})
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    if booking.get("booking_mode") == "date_range":
+        from services.date_range_booking import confirm_date_range_booking
+        try:
+            confirmed = await confirm_date_range_booking(booking, service=service, business=business)
+            return BookingResponse(**confirmed)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            logger.error(f"confirm_booking failed for {booking_id}: {e}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=f"Confirmation failed: {str(e)}")
+
     if booking["status"] != "pending":
         raise HTTPException(status_code=400, detail=f"Booking is already {booking['status']}")
 
-    await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"status": "confirmed"}})
+    confirmed_at = now_utc()
+    result = await db.bookings.update_one(
+        {"booking_id": booking_id, "status": "pending"},
+        {"$set": {"status": "confirmed", "confirmed_at": confirmed_at}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(status_code=409, detail="Booking status changed. Refresh and try again.")
     booking["status"] = "confirmed"
-    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
-    booking["service_name"] = service["name"] if service else None
-    booking["business_name"] = business.get("name")
+    booking["confirmed_at"] = confirmed_at
+    from services.date_range_booking import enrich_booking
+    booking = await enrich_booking(booking, service=service, business=business)
     return BookingResponse(**booking)
+
+
+@router.put("/bookings/{booking_id}/decline", response_model=BookingResponse)
+async def decline_booking(booking_id: str, current_user: UserPublic = Depends(get_current_user)):
+    booking = await db.bookings.find_one({"booking_id": booking_id})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    business = await db.businesses.find_one({"business_id": booking["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if booking["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Only pending bookings can be declined")
+
+    from services.date_range_booking import decline_service_booking
+    declined = await decline_service_booking(booking_id)
+    return BookingResponse(**declined)
 
 
 @router.put("/bookings/{booking_id}/cancel", response_model=BookingResponse)
@@ -393,27 +508,19 @@ async def cancel_booking(booking_id: str, current_user: UserPublic = Depends(get
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    is_owner = False
-    if booking["client_id"] == current_user.user_id:
-        is_owner = False
-    else:
-        business = await db.businesses.find_one({"business_id": booking["business_id"]})
-        is_owner = business and business["owner_id"] == current_user.user_id
-
-    if not is_owner and booking["client_id"] != current_user.user_id:
+    business = await db.businesses.find_one({"business_id": booking["business_id"]})
+    is_business_owner = bool(business and business.get("owner_id") == current_user.user_id)
+    is_client = booking["client_id"] == current_user.user_id
+    if not is_business_owner and not is_client:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"status": "cancelled"}})
-    # Free the slot
-    if booking.get("slot_id"):
-        await db.service_slots.update_one({"slot_id": booking["slot_id"]}, {"$set": {"is_booked": False}})
+    if booking["status"] not in {"pending", "confirmed"}:
+        raise HTTPException(status_code=400, detail=f"Cannot cancel a {booking['status']} booking")
 
-    booking["status"] = "cancelled"
-    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
-    booking["service_name"] = service["name"] if service else None
-    biz = await db.businesses.find_one({"business_id": booking["business_id"]})
-    booking["business_name"] = biz["name"] if biz else None
-    return BookingResponse(**booking)
+    cancelled_by = "business" if is_business_owner else "client"
+    from services.date_range_booking import cancel_service_booking
+    cancelled = await cancel_service_booking(booking_id, cancelled_by)
+    return BookingResponse(**cancelled)
 
 
 @router.put("/bookings/{booking_id}/complete", response_model=BookingResponse)
@@ -427,12 +534,10 @@ async def complete_booking(booking_id: str, current_user: UserPublic = Depends(g
     if booking["status"] != "confirmed":
         raise HTTPException(status_code=400, detail="Only confirmed bookings can be completed")
 
-    await db.bookings.update_one({"booking_id": booking_id}, {"$set": {"status": "completed"}})
-    booking["status"] = "completed"
-    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
-    booking["service_name"] = service["name"] if service else None
+    from services.date_range_booking import complete_service_booking
+    completed = await complete_service_booking(booking_id)
     booking["business_name"] = business.get("name")
-    return BookingResponse(**booking)
+    return BookingResponse(**completed)
 
 
 # ─── Inquiries ───
@@ -497,11 +602,114 @@ async def send_service_inquiry(
     return {"success": True, "message_id": message_doc["message_id"]}
 
 
-@router.get("/{service_id}", response_model=ServiceResponse)
-async def get_service(service_id: str):
-    service = await db.services.find_one({"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0})
+@router.get("/{service_id}/stay-availability", response_model=StayAvailabilityResponse)
+async def get_stay_availability(
+    service_id: str,
+    check_in: str,
+    check_out: str,
+    rooms: int = Query(default=1, ge=1, le=20),
+    adults: int = Query(default=1, ge=1, le=100),
+    children: int = Query(default=0, ge=0, le=100),
+):
+    service = await db.services.find_one(
+        {"service_id": service_id, "is_active": True, "status": "published"}, {"_id": 0},
+    )
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
+
+    from services.date_range_booking import booking_mode_from_config, build_stay_quote
+    root_cat = service.get("root_category", "")
+    resolved_cat = "rentals" if root_cat == "rental-real-estate" else root_cat
+    config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved_cat, {}).get(service.get("type", ""), {})
+    if booking_mode_from_config(config) != "date_range":
+        raise HTTPException(status_code=400, detail="This service does not use stay availability")
+
+    quote = await build_stay_quote(
+        service,
+        check_in_text=check_in,
+        check_out_text=check_out,
+        room_count=rooms,
+        adults=adults,
+        children=children,
+    )
+    return StayAvailabilityResponse(**quote)
+
+
+@router.get("/{service_id}/date-blocks", response_model=List[DateBlockResponse])
+async def list_date_blocks(service_id: str, current_user: UserPublic = Depends(get_current_user)):
+    service = await db.services.find_one({"service_id": service_id})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    business = await db.businesses.find_one({"business_id": service["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    blocks = await db.service_date_blocks.find(
+        {"service_id": service_id, "is_active": {"$ne": False}}, {"_id": 0},
+    ).sort("start_date", 1).to_list(1000)
+    return [DateBlockResponse(**block) for block in blocks]
+
+
+@router.post("/{service_id}/date-blocks", response_model=DateBlockResponse)
+async def create_date_block(
+    service_id: str, payload: DateBlockCreate,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    from services.date_range_booking import create_service_date_block
+
+    service = await db.services.find_one({"service_id": service_id})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    business = await db.businesses.find_one({"business_id": service["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    block = await create_service_date_block(
+        service_id=service_id,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        blocked_units=payload.blocked_units,
+        reason=payload.reason,
+    )
+    return DateBlockResponse(**block)
+
+
+@router.delete("/{service_id}/date-blocks/{block_id}")
+async def delete_date_block(service_id: str, block_id: str, current_user: UserPublic = Depends(get_current_user)):
+    service = await db.services.find_one({"service_id": service_id})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+    business = await db.businesses.find_one({"business_id": service["business_id"]})
+    if not business or business["owner_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    result = await db.service_date_blocks.update_one(
+        {"service_id": service_id, "block_id": block_id},
+        {"$set": {"is_active": False, "deleted_at": now_utc()}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Date block not found")
+    return {"success": True}
+
+
+@router.get("/{service_id}", response_model=ServiceResponse)
+async def get_service(service_id: str, request = None):
+    service = await db.services.find_one({"service_id": service_id, "is_active": True}, {"_id": 0})
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    current_user = None
+    if request:
+        try:
+            from routes.dependencies import get_current_user
+            current_user = await get_current_user(request)
+        except HTTPException:
+            pass
+
+    business = await db.businesses.find_one({"business_id": service.get("business_id")}, {"_id": 0, "owner_id": 1})
+    is_owner = business and current_user and current_user.user_id == business.get("owner_id")
+
+    if not is_owner and (service.get("is_hidden") or service.get("status") != "published"):
+        raise HTTPException(status_code=404, detail="Service not found")
+
     bid = service.get("business_id")
     if bid:
         biz = await db.businesses.find_one({"business_id": bid}, {"_id": 0, "name": 1, "logo_image": 1})
@@ -557,23 +765,26 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
 
     # Availability validation — placed outside if update_data to catch slots-only requests
     resolved = "rentals" if (business.get("root_category") or "") == "rental-real-estate" else (business.get("root_category") or "")
-    booking_config = ROOT_SERVICE_BOOKING_CONFIG.get(resolved, {}).get(
-        service.get("type", ""), {"booking": False, "slots": False}
-    )
+    effective_root_category = update_data.get("root_category") or service.get("root_category") or business.get("root_category") or ""
+    effective_type = update_data.get("type") or service.get("type") or ""
+    booking_config = get_service_booking_config(effective_root_category, effective_type)
+    from services.date_range_booking import booking_mode_from_config
+    booking_mode = booking_mode_from_config(booking_config)
+
+    if booking_mode == "date_range":
+        incoming_slots = None
+        effective_slots = []
 
     if publish_status == "published" and booking_config.get("booking"):
-        if booking_config.get("slots"):
+        if booking_mode == "time_slot":
             if not effective_slots:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Add at least one available date and time before publishing this service.",
-                )
-            validate_availability_slots(effective_slots, effective_duration)
+                raise HTTPException(status_code=400, detail="Add at least one available date and time before publishing this service.")
+            validate_availability_slots(effective_slots, effective_duration, service.get("type", ""))
+        elif booking_mode == "date_range":
+            effective_service_data = {**service, **update_data}
+            validate_date_range_service_for_publish(effective_service_data)
         elif not effective_available_from:
-            raise HTTPException(
-                status_code=400,
-                detail="Add an availability date before publishing this service.",
-            )
+            raise HTTPException(status_code=400, detail="Add an availability date before publishing this service.")
 
     # Check booked slots before replacing
     slots_changed = (
@@ -784,6 +995,8 @@ async def set_availability(
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
+    require_time_slot_service(service)
+
     new_slots = [s.model_dump() for s in payload.slots]
     _validate_slots(new_slots)
 
@@ -876,7 +1089,7 @@ async def get_available_dates(
 @router.get("/{service_id}/slots")
 async def list_slots(service_id: str):
     service = await db.services.find_one(
-        {"service_id": service_id, "is_active": True, "status": "published"},
+        {"service_id": service_id, "is_active": True, "status": {"$in": ["published", "draft"]}},
     )
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -896,6 +1109,7 @@ async def create_slot(service_id: str, payload: TimeSlotCreate, current_user: Us
     business = await db.businesses.find_one({"business_id": service["business_id"]})
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    require_time_slot_service(service)
 
     doc = {
         **payload.model_dump(),
@@ -915,6 +1129,7 @@ async def delete_slot(service_id: str, slot_id: str, current_user: UserPublic = 
     business = await db.businesses.find_one({"business_id": service["business_id"]})
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    require_time_slot_service(service)
 
     await db.service_slots.delete_one({"slot_id": slot_id})
     # Cancel unconfirmed bookings on this slot
@@ -933,18 +1148,46 @@ async def block_slots(service_id: str, payload: BlockDateRange, current_user: Us
     business = await db.businesses.find_one({"business_id": service["business_id"]})
     if not business or business["owner_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    require_time_slot_service(service)
 
-    count = await db.service_slots.count_documents({
-        "service_id": service_id,
-        "date": {"$gte": payload.from_date, "$lte": payload.to_date},
-    })
-    await db.service_slots.update_many(
-        {"service_id": service_id, "date": {"$gte": payload.from_date, "$lte": payload.to_date}},
-        {"$set": {"is_blocked": True}},
-    )
-    return {"success": True, "blocked_count": count}
-    booking["status"] = "completed"
-    service = await db.services.find_one({"service_id": booking["service_id"]}, {"_id": 0, "name": 1})
-    booking["service_name"] = service["name"] if service else None
-    booking["business_name"] = business.get("name")
-    return BookingResponse(**booking)
+    from datetime import datetime, timedelta
+    start = datetime.strptime(payload.from_date, "%Y-%m-%d")
+    end = datetime.strptime(payload.to_date, "%Y-%m-%d")
+
+    # 1. Mark overlapping date-range slots (hotel rooms etc.) as blocked
+    date_slots = await db.service_slots.find(
+        {"service_id": service_id, "$or": [
+            {"date": {"$gte": payload.from_date, "$lte": payload.to_date}},
+            {"start_time": {"$lte": payload.to_date}, "end_time": {"$gte": payload.from_date}, "date": None},
+        ]}
+    ).to_list(500)
+    blocked_slot_ids = [s["slot_id"] for s in date_slots]
+    if blocked_slot_ids:
+        await db.service_slots.update_many(
+            {"slot_id": {"$in": blocked_slot_ids}},
+            {"$set": {"is_blocked": True}},
+        )
+
+    # 2. For individual days in the range not yet blocked, create blocked entries
+    blocked_dates = set(s.get("date") for s in date_slots if s.get("date"))
+    current = start
+    new_docs = []
+    while current <= end:
+        ds = current.strftime("%Y-%m-%d")
+        if ds not in blocked_dates:
+            new_docs.append({
+                "slot_id": generate_id("slt"),
+                "service_id": service_id,
+                "date": ds,
+                "start_time": "00:00",
+                "end_time": "23:59",
+                "is_recurring": False,
+                "is_blocked": True,
+                "is_booked": False,
+                "created_at": now_utc(),
+            })
+        current += timedelta(days=1)
+    if new_docs:
+        await db.service_slots.insert_many(new_docs)
+
+    return {"success": True, "blocked_count": len(blocked_slot_ids) + len(new_docs)}

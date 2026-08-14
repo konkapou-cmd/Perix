@@ -1,4 +1,4 @@
-import { apiRequest, Service, TimeSlot, Booking, SlotAvailability } from "./core";
+import { apiRequest, Service, TimeSlot, Booking, StayAvailability, DateBlock } from "./core";
 
 export const getServices = async (token: string, businessId?: string, type?: string): Promise<Service[]> => {
   const params = new URLSearchParams();
@@ -67,11 +67,33 @@ export const setAvailability = async (
   return apiRequest<TimeSlot[]>(`/services/${serviceId}/availability`, "PUT", token, payload);
 };
 
-export const getAvailability = async (serviceId: string, date: string): Promise<SlotAvailability[]> => {
-  return apiRequest<SlotAvailability[]>(`/services/${serviceId}/availability?date=${date}`, "GET");
+export const getAvailability = async (serviceId: string, date: string): Promise<any[]> => {
+  return apiRequest<any[]>(`/services/${serviceId}/availability?date=${date}`, "GET");
 };
 
-export const createBooking = async (token: string, payload: { service_id: string; slot_id?: string; date: string; end_date?: string; client_name: string; client_email?: string; guests?: number; notes?: string }): Promise<Booking> => {
+export type CreateBookingPayload = {
+  service_id: string;
+  slot_id?: string;
+  date: string;
+  end_date?: string;
+  client_name: string;
+  client_email?: string;
+  guests?: number;
+  room_count?: number;
+  adults?: number;
+  children?: number;
+  request_id?: string;
+  notes?: string;
+  pet_name?: string;
+  pet_type?: string;
+  pickup_location?: string;
+  dropoff_location?: string;
+  insurance_info?: string;
+  reason_for_visit?: string;
+  special_requests?: string;
+};
+
+export const createBooking = async (token: string, payload: CreateBookingPayload): Promise<Booking> => {
   return apiRequest<Booking>("/services/bookings", "POST", token, payload);
 };
 
@@ -86,6 +108,10 @@ export const confirmBooking = async (token: string, bookingId: string): Promise<
   return apiRequest<Booking>(`/services/bookings/${bookingId}/confirm`, "PUT", token);
 };
 
+export const declineBooking = async (token: string, bookingId: string): Promise<Booking> => {
+  return apiRequest<Booking>(`/services/bookings/${bookingId}/decline`, "PUT", token);
+};
+
 export const cancelBooking = async (token: string, bookingId: string): Promise<Booking> => {
   return apiRequest<Booking>(`/services/bookings/${bookingId}/cancel`, "PUT", token);
 };
@@ -96,6 +122,36 @@ export const completeBooking = async (token: string, bookingId: string): Promise
 
 export const blockSlots = async (token: string, serviceId: string, payload: { from_date: string; to_date: string }): Promise<{ success: boolean; blocked_count: number }> => {
   return apiRequest(`/services/${serviceId}/slots/block`, "POST", token, payload);
+};
+
+export const getStayAvailability = async (
+  serviceId: string,
+  params: { checkIn: string; checkOut: string; rooms: number; adults: number; children: number },
+): Promise<StayAvailability> => {
+  const query = new URLSearchParams({
+    check_in: params.checkIn,
+    check_out: params.checkOut,
+    rooms: String(params.rooms),
+    adults: String(params.adults),
+    children: String(params.children),
+  });
+  return apiRequest<StayAvailability>(`/services/${serviceId}/stay-availability?${query}`, "GET");
+};
+
+export const getDateBlocks = async (token: string, serviceId: string): Promise<DateBlock[]> => {
+  return apiRequest<DateBlock[]>(`/services/${serviceId}/date-blocks`, "GET", token);
+};
+
+export const createDateBlock = async (
+  token: string,
+  serviceId: string,
+  payload: { start_date: string; end_date: string; blocked_units: number; reason?: string },
+): Promise<DateBlock> => {
+  return apiRequest<DateBlock>(`/services/${serviceId}/date-blocks`, "POST", token, payload);
+};
+
+export const deleteDateBlock = async (token: string, serviceId: string, blockId: string): Promise<void> => {
+  await apiRequest(`/services/${serviceId}/date-blocks/${blockId}`, "DELETE", token);
 };
 
 export const sendServiceInquiry = async (token: string, serviceId: string, payload: { name: string; email: string; message: string }): Promise<{ success: boolean; message_id: string }> => {

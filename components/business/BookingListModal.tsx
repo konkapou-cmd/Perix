@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { Booking } from "../../lib/api/core";
-import { getBookings, confirmBooking, cancelBooking, completeBooking } from "../../lib/api/services";
+import { getBookings, confirmBooking, declineBooking, cancelBooking, completeBooking } from "../../lib/api/services";
 import { formatPrice } from "../../lib/serviceFormat";
 
 type Props = {
@@ -15,13 +15,15 @@ type Props = {
   onClose: () => void;
 };
 
-const TABS = ["pending", "confirmed", "completed"] as const;
+const TABS = ["pending", "confirmed", "completed", "declined", "cancelled", "expired"] as const;
 type Tab = typeof TABS[number];
 
 const STATUS_COLORS: Record<string, string> = {
   pending: COLORS.warning,
   confirmed: COLORS.success,
+  declined: COLORS.danger,
   cancelled: COLORS.danger,
+  expired: COLORS.textMuted,
   completed: COLORS.info,
 };
 
@@ -94,6 +96,15 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
     }
   };
 
+  const handleDecline = async (bookingId: string) => {
+    try {
+      await declineBooking(sessionToken, bookingId);
+      loadBookings();
+    } catch (err: any) {
+      Alert.alert(t("common.error", "Error"), err.message);
+    }
+  };
+
   const renderBooking = (booking: Booking) => {
     const statusColor = STATUS_COLORS[booking.status] || COLORS.textMuted;
     return (
@@ -105,8 +116,32 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
           </View>
         </View>
         <Text style={s.bookingDetail}>{booking.date} {booking.start_time ? `| ${booking.start_time}` : ""}{booking.end_time ? ` - ${booking.end_time}` : ""}</Text>
-        {booking.guests && <Text style={s.bookingDetail}>{t("bookingList.guests", "Guests")}: {booking.guests}</Text>}
-        {booking.total_price && <Text style={s.bookingPrice}>{formatPrice(booking.total_price)}</Text>}
+        {booking.booking_mode === "date_range" && booking.end_date && (
+          <>
+            <Text style={s.bookingDetail}>{booking.date.split("-").reverse().join(" ")} → {booking.end_date.split("-").reverse().join(" ")}</Text>
+            <Text style={s.bookingDetail}>{booking.nights} {t("bookingList.nights", "nights")} · {booking.room_count || 1} {t("bookingList.rooms", "room(s)")}</Text>
+            <Text style={s.bookingDetail}>{booking.adults || 1} {t("bookingList.adults", "adults")} · {booking.children || 0} {t("bookingList.children", "children")}</Text>
+            {booking.confirmation_code && <Text style={s.bookingCode}>{booking.confirmation_code}</Text>}
+            {booking.service_name && <Text style={s.bookingDetail}>{booking.service_name}</Text>}
+            {booking.service_address && <Text style={s.bookingDetail}><Ionicons name="location" size={12} /> {booking.service_address}</Text>}
+            {booking.business_name && <Text style={s.bookingDetail}><Ionicons name="business" size={12} /> {booking.business_name}</Text>}
+            {booking.check_in_time && booking.check_out_time && (
+              <Text style={s.bookingDetail}>Check-in: {booking.check_in_time} · Check-out: {booking.check_out_time}</Text>
+            )}
+            {booking.cancellation_policy && <Text style={s.bookingNotes}>{booking.cancellation_policy}</Text>}
+          </>
+        )}
+        {booking.guests && !booking.booking_mode && <Text style={s.bookingDetail}>{t("bookingList.guests", "Guests")}: {booking.guests}</Text>}
+        {booking.total_amount != null && booking.currency ? (
+          <View>
+            {booking.nightly_rate_amount != null && (
+              <Text style={s.bookingDetail}>{(booking.nightly_rate_amount / 100).toFixed(2)} {booking.currency} / night</Text>
+            )}
+            <Text style={s.bookingPrice}>{(booking.total_amount / 100).toFixed(2)} {booking.currency}</Text>
+          </View>
+        ) : booking.total_price ? (
+          <Text style={s.bookingPrice}>{formatPrice(booking.total_price)}</Text>
+        ) : null}
         {booking.notes && <Text style={s.bookingNotes}>{"\u201C"}{booking.notes}{"\u201D"}</Text>}
         {booking.pet_name && <Text style={s.bookingDetail}>{t("bookingList.pet", "Pet")}: {booking.pet_name} ({booking.pet_type || "?"})</Text>}
         {booking.reason_for_visit && <Text style={s.bookingDetail}>{t("bookingList.reason", "Reason")}: {booking.reason_for_visit}</Text>}
@@ -119,9 +154,9 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
                 <Ionicons name="checkmark" size={16} color="#fff" />
                 <Text style={s.actionText}>{t("services.confirmBooking", "Confirm")}</Text>
               </Pressable>
-              <Pressable style={[s.actionBtn, { backgroundColor: COLORS.danger }]} onPress={() => handleCancel(booking.booking_id)}>
+              <Pressable style={[s.actionBtn, { backgroundColor: COLORS.danger }]} onPress={() => handleDecline(booking.booking_id)}>
                 <Ionicons name="close" size={16} color="#fff" />
-                <Text style={s.actionText}>{t("services.cancelBooking", "Cancel")}</Text>
+                <Text style={s.actionText}>{t("services.declineBooking", "Decline")}</Text>
               </Pressable>
             </>
           )}
@@ -217,6 +252,7 @@ const s = StyleSheet.create({
   statusBadge: { paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: BORDER_RADIUS.full },
   statusText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any },
   bookingDetail: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, marginTop: SPACING.tiny },
+  bookingCode: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.primary, marginTop: SPACING.tiny },
   bookingPrice: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success, marginTop: SPACING.tiny },
   bookingNotes: { fontSize: FONT_SIZES.small, color: COLORS.textSecondary, fontStyle: "italic", marginTop: SPACING.tiny },
   actionRow: { flexDirection: "row", gap: SPACING.small, marginTop: SPACING.compact },

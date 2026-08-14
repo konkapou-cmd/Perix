@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Platform, ActivityIndicator, Alert, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { Calendar } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
-import { getServiceCtaType, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
-import { Service, TimeSlot } from "../../lib/api/core";
-import { getSlots, createBooking, getAvailability } from "../../lib/api/services";
+import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
+import { Service, TimeSlot, StayAvailability } from "../../lib/api/core";
+import { getSlots, getAvailability, createBooking, getStayAvailability } from "../../lib/api/services";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
+import { addDays, createRequestId, isValidStayRange, toLocalISODate } from "../../lib/booking/dateRange";
 import AdaptiveImage from "../AdaptiveImage";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 
@@ -48,8 +50,24 @@ export default function ServiceBookingModal({
   const [allSlots, setAllSlots] = useState<TimeSlot[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Date-range booking state
+  const todayText = toLocalISODate(new Date());
+  const [checkIn, setCheckIn] = useState(todayText);
+  const [checkOut, setCheckOut] = useState(addDays(todayText, 1));
+  const [rooms, setRooms] = useState(1);
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [stayQuote, setStayQuote] = useState<StayAvailability | null>(null);
+  const [loadingStayQuote, setLoadingStayQuote] = useState(false);
+  const [stayQuoteError, setStayQuoteError] = useState("");
+  const [requestId, setRequestId] = useState(createRequestId());
+  const [datePickerTarget, setDatePickerTarget] = useState<"checkIn" | "checkOut" | null>(null);
+
   const ctaType: ServiceCtaType = service ? getServiceCtaType(service.type) : "get_in_touch";
-  const hasSlots = service ? requiresServiceSlots(service.type) : false;
+  const bookingMode = service ? getBookingMode(service.type) : "none";
+  const isDateRange = bookingMode === "date_range";
+  const requiresSlot = bookingMode === "time_slot";
+
   useEffect(() => {
     if (visible && service) {
       setSelectedSlot(null);
@@ -61,39 +79,70 @@ export default function ServiceBookingModal({
       setPetType("");
       setReasonForVisit("");
       setPickupLocation("");
-      getSlots(service.service_id).then(setAllSlots).catch(() => setAllSlots([]));
+
+      if (getBookingMode(service.type) === "time_slot") {
+        getSlots(service.service_id).then(setAllSlots).catch(() => setAllSlots([]));
+      } else {
+        setAllSlots([]);
+      }
+
+      if (isDateRange) {
+        const initialCheckIn = service.available_from && service.available_from > todayText
+          ? service.available_from : todayText;
+        setCheckIn(initialCheckIn);
+        setCheckOut(addDays(initialCheckIn, Math.max(1, service.min_nights || 1)));
+        setRooms(1);
+        setAdults(1);
+        setChildren(0);
+        setStayQuote(null);
+        setRequestId(createRequestId());
+      }
     }
   }, [visible, service]);
 
   useEffect(() => {
-    if (!service || !selectedDate) return;
-    if (ctaType !== "booking") return;
+    if (!service || !selectedDate || bookingMode !== "time_slot") return;
+    let active = true;
     setLoadingSlots(true);
     Promise.all([
       getSlots(service.service_id),
       getAvailability(service.service_id, selectedDate).catch(() => []),
-    ])
-      .then(([slotData, availData]) => {
-        const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-        const dateObj = new Date(selectedDate + "T00:00:00");
-        const dayOfWeek = dateObj.getDay();
-        const matching = slotData.filter((s) => {
-          if (s.is_blocked || s.is_booked) return false;
-          if (s.date === selectedDate) return true;
-          if (s.is_recurring && s.day_of_week === dayOfWeek) return true;
-          return false;
-        });
-        matching.sort((a, b) => a.start_time.localeCompare(b.start_time));
-        setSlots(matching);
-        const availMap: Record<string, { available_spots: number; capacity: number; is_full: boolean }> = {};
-        availData.forEach((a) => {
-          availMap[a.slot_id] = { available_spots: a.available_spots, capacity: a.capacity, is_full: a.is_full };
-        });
-        setAvailabilities(availMap);
-      })
-      .catch(() => { setSlots([]); setAvailabilities({}); })
-      .finally(() => setLoadingSlots(false));
-  }, [service, selectedDate, ctaType]);
+    ]).then(([slotData, availabilityData]) => {
+      if (!active) return;
+      const dateObj = new Date(selectedDate + "T00:00:00");
+      const dayOfWeek = dateObj.getDay();
+      const matching = (slotData || []).filter((s) => {
+        if (s.is_blocked || s.is_booked) return false;
+        if (s.date === selectedDate) return true;
+        if (s.is_recurring && s.day_of_week === dayOfWeek) return true;
+        return false;
+      }).sort((a, b) => a.start_time.localeCompare(b.start_time));
+      setSlots(matching);
+      const availMap: Record<string, any> = {};
+      (availabilityData || []).forEach((a: any) => { availMap[a.slot_id] = a; });
+      setAvailabilities(availMap);
+    }).catch(() => { if (active) { setSlots([]); setAvailabilities({}); } })
+    .finally(() => { if (active) setLoadingSlots(false); });
+    return () => { active = false; };
+  }, [service, selectedDate, bookingMode]);
+
+  useEffect(() => {
+    if (!visible || !service || !isDateRange || !isValidStayRange(checkIn, checkOut)) {
+      setStayQuote(null);
+      setStayQuoteError("");
+      return;
+    }
+    let active = true;
+    setStayQuoteError("");
+    const timer = setTimeout(() => {
+      setLoadingStayQuote(true);
+      getStayAvailability(service.service_id, { checkIn, checkOut, rooms, adults, children })
+        .then((quote) => { if (active) setStayQuote(quote); })
+        .catch((e: any) => { if (active) { setStayQuote(null); setStayQuoteError(e?.message || "Could not check availability"); } })
+        .finally(() => { if (active) setLoadingStayQuote(false); });
+    }, 300);
+    return () => { active = false; clearTimeout(timer); };
+  }, [visible, service, isDateRange, checkIn, checkOut, rooms, adults, children]);
 
   const today = new Date();
   const dates: string[] = [];
@@ -125,7 +174,11 @@ export default function ServiceBookingModal({
       Alert.alert(t("common.error", "Error"), t("services.nameRequired", "Please enter your name"));
       return;
     }
-    if (ctaType === "booking" && !selectedSlot) {
+    if (isDateRange && (!isValidStayRange(checkIn, checkOut) || !stayQuote?.available)) {
+      Alert.alert(t("common.error", "Error"), t("services.selectAvailableStay", "Select an available check-in and checkout."));
+      return;
+    }
+    if (!isDateRange && ctaType === "booking" && !selectedSlot) {
       Alert.alert(t("common.error", "Error"), t("services.selectTime", "Please select a time slot"));
       return;
     }
@@ -133,20 +186,27 @@ export default function ServiceBookingModal({
     try {
       const payload: any = {
         service_id: service.service_id,
-        date: selectedDate,
+        date: isDateRange ? checkIn : selectedDate,
         client_name: name.trim(),
         client_email: email.trim() || undefined,
-        guests,
+        guests: isDateRange ? adults + children : guests,
         notes: notes.trim() || undefined,
+        request_id: isDateRange ? requestId : undefined,
       };
+      if (isDateRange) {
+        payload.end_date = checkOut;
+        payload.room_count = rooms;
+        payload.adults = adults;
+        payload.children = children;
+      }
       if (selectedSlot) payload.slot_id = selectedSlot.slot_id;
       if (petName) payload.pet_name = petName;
       if (petType) payload.pet_type = petType;
       if (reasonForVisit) payload.reason_for_visit = reasonForVisit;
       if (pickupLocation) payload.pickup_location = pickupLocation;
-      if (preferredTime) payload.notes = (payload.notes ? payload.notes + "\n" : "") + "Preferred time: " + preferredTime;
       await createBooking(sessionToken, payload);
-      Alert.alert(t("services.bookingConfirmed", "Booking confirmed!"), t("services.bookingPending", "Booking request sent! The business will confirm shortly."));
+      setRequestId(createRequestId());
+      Alert.alert(t("services.requestSent"), t("services.bookingPending", "Booking request sent! The business will confirm shortly."));
       onSuccess?.();
       onClose();
     } catch (err: any) {
@@ -156,7 +216,6 @@ export default function ServiceBookingModal({
     }
   };
 
-  const requiresSlot = service ? requiresServiceSlots(service.type) : false;
   const showPets = rootCategory === "pets";
   const showHealthcare = rootCategory === "healthcare";
   const showAutoRental = rootCategory === "automotive" && service?.type === "auto_rental";
@@ -183,6 +242,18 @@ export default function ServiceBookingModal({
     });
     return items;
   }, [service]);
+
+  const bookingDisabled =
+    submitting ||
+    !name.trim() ||
+    (requiresSlot && (!selectedDate || !selectedSlot)) ||
+    (isDateRange && (!isValidStayRange(checkIn, checkOut) || !stayQuote?.available));
+
+  const minimumCheckout = addDays(checkIn, Math.max(1, service?.min_nights || 1));
+  const maxCheckoutByStay = addDays(checkIn, Math.max(service?.min_nights || 1, service?.max_nights || 30));
+  const effectiveMaxCheckout = service?.available_until
+    ? (maxCheckoutByStay > service.available_until ? service.available_until : maxCheckoutByStay)
+    : undefined;
 
   return (
     <Modal visible={visible} animationType="slide">
@@ -223,6 +294,66 @@ export default function ServiceBookingModal({
             />
           )}
 
+          {isDateRange && service && (
+            <View>
+              <Text style={s.sectionTitle}>{t("services.stayDates", "Stay dates")}</Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldLabel}>{t("services.checkIn", "Check-in")}</Text>
+                  <Pressable style={s.input} onPress={() => setDatePickerTarget("checkIn")}>
+                    <Text style={s.inputText}>{checkIn.split("-").reverse().join(" ")}</Text>
+                  </Pressable>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldLabel}>{t("services.checkOut", "Check-out")}</Text>
+                  <Pressable style={s.input} onPress={() => setDatePickerTarget("checkOut")}>
+                    <Text style={s.inputText}>{checkOut.split("-").reverse().join(" ")}</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={s.stepperRow}>
+                <Text style={s.stepperLabel}>{t("services.rooms", "Rooms")}</Text>
+                <View style={s.stepperControls}>
+                  <Pressable style={s.stepperBtn} disabled={rooms <= 1} onPress={() => setRooms(Math.max(1, rooms - 1))}><Ionicons name="remove" size={18} color={COLORS.textPrimary} /></Pressable>
+                  <Text style={s.stepperValue}>{rooms}</Text>
+                  <Pressable style={s.stepperBtn} disabled={rooms >= (service.inventory_count || 1)} onPress={() => setRooms(Math.min(service.inventory_count || 1, rooms + 1))}><Ionicons name="add" size={18} color={COLORS.textPrimary} /></Pressable>
+                </View>
+              </View>
+
+              <View style={s.stepperRow}>
+                <Text style={s.stepperLabel}>{t("services.adults", "Adults")}</Text>
+                <View style={s.stepperControls}>
+                  <Pressable style={s.stepperBtn} disabled={adults <= 1} onPress={() => setAdults(Math.max(1, adults - 1))}><Ionicons name="remove" size={18} color={COLORS.textPrimary} /></Pressable>
+                  <Text style={s.stepperValue}>{adults}</Text>
+                  <Pressable style={s.stepperBtn} disabled={adults >= Math.max(1, (service.max_adults || service.max_guests || 1) * rooms)} onPress={() => setAdults(Math.min(Math.max(1, (service.max_adults || service.max_guests || 1) * rooms), adults + 1))}><Ionicons name="add" size={18} color={COLORS.textPrimary} /></Pressable>
+                </View>
+              </View>
+
+              <View style={s.stepperRow}>
+                <Text style={s.stepperLabel}>{t("services.children", "Children")}</Text>
+                <View style={s.stepperControls}>
+                  <Pressable style={s.stepperBtn} disabled={children <= 0} onPress={() => setChildren(Math.max(0, children - 1))}><Ionicons name="remove" size={18} color={COLORS.textPrimary} /></Pressable>
+                  <Text style={s.stepperValue}>{children}</Text>
+                  <Pressable style={s.stepperBtn} disabled={children >= Math.max(0, (service.max_children || 0) * rooms)} onPress={() => setChildren(Math.min(Math.max(0, (service.max_children || 0) * rooms), children + 1))}><Ionicons name="add" size={18} color={COLORS.textPrimary} /></Pressable>
+                </View>
+              </View>
+
+              {loadingStayQuote && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 12 }} />}
+              {!loadingStayQuote && stayQuote && (
+                <View style={{ marginTop: 12, padding: 12, backgroundColor: COLORS.success + "15", borderRadius: BORDER_RADIUS.md }}>
+                  <Text style={s.quoteTitle}>{stayQuote.nights} {t("services.nights", "nights")}</Text>
+                  <Text style={s.quoteLine}>{(stayQuote.nightly_rate_amount / 100).toFixed(2)} {stayQuote.currency} / night</Text>
+                  <Text style={s.quoteTotal}>Total: {(stayQuote.total_amount / 100).toFixed(2)} {stayQuote.currency}</Text>
+                  {!stayQuote.available && <Text style={{ color: COLORS.danger, marginTop: 4 }}>{t("services.stayUnavailable")}</Text>}
+                </View>
+              )}
+              {stayQuoteError ? <Text style={s.errorText}>{stayQuoteError}</Text> : null}
+            </View>
+          )}
+
+          {!isDateRange && (
+          <>
           <Text style={s.sectionTitle}>{t("services.selectDate", "Select a date")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.dateRow}>
             {displayDates.map((d) => {
@@ -305,7 +436,10 @@ export default function ServiceBookingModal({
               </Pressable>
             </View>
           )}
+          </>)}
 
+          {!isDateRange && (
+          <>
           <Text style={s.sectionTitle}>{t("services.guests", "Guests")}</Text>
           <View style={s.stepperRow}>
             <Pressable style={s.stepperBtn} onPress={() => setGuests(Math.max(1, guests - 1))}>
@@ -316,6 +450,7 @@ export default function ServiceBookingModal({
               <Ionicons name="add" size={20} color={COLORS.textPrimary} />
             </Pressable>
           </View>
+          </>)}
 
           <Text style={s.sectionTitle}>{t("services.yourName", "Your name")} *</Text>
           <TextInput style={s.input} value={name} onChangeText={setName} placeholder="John Doe" placeholderTextColor={COLORS.textDisabled} />
@@ -362,9 +497,9 @@ export default function ServiceBookingModal({
               <Text style={s.cancelBtnText}>{t("common.cancel", "Cancel")}</Text>
             </Pressable>
             <Pressable
-              style={[s.saveBtn, (!selectedDate || submitting || (ctaType === "booking" && !selectedSlot)) && { opacity: 0.5 }]}
+              style={[s.saveBtn, bookingDisabled && { opacity: 0.5 }]}
               onPress={handleBook}
-              disabled={!selectedDate || submitting || (ctaType === "booking" && !selectedSlot)}
+              disabled={bookingDisabled}
             >
               {submitting ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -378,6 +513,38 @@ export default function ServiceBookingModal({
         )}
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <Modal visible={datePickerTarget !== null} animationType="slide" transparent onRequestClose={() => setDatePickerTarget(null)}>
+        <View style={s.datePickerOverlay}>
+          <View style={s.datePickerContainer}>
+            <View style={s.datePickerHeader}>
+              <Text style={s.datePickerTitle}>{datePickerTarget === "checkIn" ? t("services.checkIn") : t("services.checkOut")}</Text>
+              <Pressable onPress={() => setDatePickerTarget(null)}><Ionicons name="close" size={22} color={COLORS.textPrimary} /></Pressable>
+            </View>
+            <Calendar
+              minDate={datePickerTarget === "checkOut" ? minimumCheckout : (service?.available_from && service.available_from > todayText ? service.available_from : todayText)}
+              maxDate={effectiveMaxCheckout}
+              markedDates={{ [checkIn]: { startingDay: true, color: COLORS.primary, textColor: "#fff" }, [checkOut]: { endingDay: true, color: COLORS.primary, textColor: "#fff" } }}
+              markingType="period"
+              firstDay={1}
+              onDayPress={(day) => {
+                if (!service) return;
+                if (datePickerTarget === "checkIn") {
+                  const newCheckIn = day.dateString;
+                  setCheckIn(newCheckIn);
+                  const minCo = addDays(newCheckIn, Math.max(1, service.min_nights || 1));
+                  if (checkOut < minCo) setCheckOut(minCo);
+                  const localMax = addDays(newCheckIn, Math.max(service.min_nights || 1, service.max_nights || 30));
+                  const localMaxCheckout = service?.available_until ? (localMax > service.available_until ? service.available_until : localMax) : undefined;
+                  if (localMaxCheckout && checkOut > localMaxCheckout) setCheckOut(localMaxCheckout);
+                } else { setCheckOut(day.dateString); }
+                setDatePickerTarget(null);
+              }}
+              theme={{ todayTextColor: COLORS.primary, arrowColor: COLORS.primary, monthTextColor: COLORS.textPrimary }}
+            />
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -448,9 +615,21 @@ const s = StyleSheet.create({
   slotTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
   slotTextFull: { textDecorationLine: "line-through" },
   emptyText: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, textAlign: "center", marginVertical: SPACING.section },
-  stepperRow: { flexDirection: "row", alignItems: "center", gap: SPACING.std },
+  stepperRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: SPACING.small },
   stepperBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" },
   stepperValue: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary, minWidth: 30, textAlign: "center" },
+  stepperLabel: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  stepperControls: { flexDirection: "row", alignItems: "center", gap: SPACING.small },
+  fieldLabel: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textSecondary, marginBottom: SPACING.tiny },
+  inputText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  quoteTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  quoteLine: { marginTop: SPACING.tiny, fontSize: FONT_SIZES.caption, color: COLORS.textSecondary },
+  quoteTotal: { marginTop: SPACING.small, fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success },
+  datePickerOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
+  datePickerContainer: { backgroundColor: COLORS.background, borderTopLeftRadius: BORDER_RADIUS.lg, borderTopRightRadius: BORDER_RADIUS.lg, padding: SPACING.std },
+  datePickerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.small },
+  datePickerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  errorText: { marginTop: SPACING.small, fontSize: FONT_SIZES.caption, color: COLORS.danger },
   input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, marginBottom: SPACING.small },
   bookBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.section },
   bookBtnText: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },

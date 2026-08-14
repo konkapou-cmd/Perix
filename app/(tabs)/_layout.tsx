@@ -61,8 +61,17 @@ function JobsTabIcon({ color, size, filled }: { color: string; size: number; fil
   return <Ionicons name={filled ? "briefcase" : "briefcase-outline"} size={size} color={color} />;
 }
 
-function CameraTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
-  return <Ionicons name={filled ? "camera" : "camera-outline"} size={size} color={color} />;
+function CreateTabIcon({ color, size, filled }: { color: string; size: number; filled?: boolean }) {
+  const s = size * 0.44;
+  const pad = size * 0.22;
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Ionicons name="add" size={size * 0.9} color={color} />
+      <Ionicons name="star" size={s} color={color} style={{ position: "absolute", top: 0, right: pad, opacity: 0.65 }} />
+      <Ionicons name="star" size={s} color={color} style={{ position: "absolute", top: pad, left: 0, opacity: 0.55 }} />
+      <Ionicons name="star" size={s} color={color} style={{ position: "absolute", bottom: pad, right: 0, opacity: 0.7 }} />
+    </View>
+  );
 }
 
 export default function TabsLayout() {
@@ -148,13 +157,6 @@ export default function TabsLayout() {
 
   const handleCreateAction = (action: CreationAction) => {
     switch (action) {
-      case "business":
-        if (isBusiness) {
-          router.replace("/(tabs)/profile");
-        } else {
-          router.push("/business/create" as any);
-        }
-        break;
       case "camera":
         router.push("/camera");
         break;
@@ -267,7 +269,7 @@ export default function TabsLayout() {
                   )
                 : undefined,
               tabBarIcon: ({ color, size, focused }) => (
-                <CameraTabIcon color={color} size={size} filled={focused} />
+                <CreateTabIcon color={color} size={size} filled={focused} />
               ),
               lazy: true,
             }}
@@ -287,7 +289,6 @@ export default function TabsLayout() {
         visible={showCreateSheet}
         onClose={() => setShowCreateSheet(false)}
         onAction={handleCreateAction}
-        hasBusiness={isBusiness}
       />
       <ListingModal
         visible={listingType !== null}

@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
-import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, isServiceBookable, requiresServiceSlots, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
+import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, isServiceBookable, requiresServiceSlots, getBookingMode, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
 import { getDefaultModule, getAllowedModules, getCategoryQuestions } from "../../lib/config/serviceCategoryMatrix";
 import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect, useRef } from "react";
@@ -88,6 +88,20 @@ export type ServiceForm = {
   insurance_info: string;
   pet_name: string;
   pet_type: string;
+  bed_config: string;
+  room_size_sqm: string;
+  room_view: string;
+  available_until: string;
+  amenities: string[];
+  inventory_count: string;
+  max_adults: string;
+  max_children: string;
+  check_in_time: string;
+  check_out_time: string;
+  min_nights: string;
+  max_nights: string;
+  cancellation_policy: string;
+  currency: string;
   status: "draft" | "published" | "hidden";
   sort_order: string;
   availability_slots: { day_of_week?: number; date?: string; start_time: string; end_time: string; is_recurring: boolean }[];
@@ -174,6 +188,20 @@ const DEFAULT_FORM: ServiceForm = {
   insurance_info: "",
   pet_name: "",
   pet_type: "",
+  bed_config: "",
+  room_size_sqm: "",
+  room_view: "",
+  available_until: "",
+  amenities: [],
+  inventory_count: "1",
+  max_adults: "2",
+  max_children: "1",
+  check_in_time: "15:00",
+  check_out_time: "11:00",
+  min_nights: "1",
+  max_nights: "30",
+  cancellation_policy: "",
+  currency: "EUR",
   status: "draft",
   sort_order: "0",
   availability_slots: [],
@@ -235,10 +263,16 @@ function getCategoryPlaceholders(rootCategory?: string) {
       name: "e.g. General Checkup, Dental Cleaning, Blood Test",
       desc: "Describe the procedure, preparation needed and duration...",
     },
-    pets: {
+        pets: {
       name: "e.g. Dog Grooming, Vet Checkup, Pet Boarding",
       desc: "Describe the service, duration and any requirements for your pet...",
     },
+    "local-hotels": {
+      name: "e.g. Standard Room, Deluxe Suite, Family Room",
+      desc: "Describe the room, bed configuration, view and amenities included...",
+    },
+
+
   };
   if (rootCategory && labels[rootCategory]) {
     return labels[rootCategory];
@@ -298,6 +332,7 @@ export default function ServiceModal({
 }: Props) {
   const { t } = useTranslation();
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState<"available_from" | "available_until">("available_from");
   const [showSlotDatePicker, setShowSlotDatePicker] = useState(false);
   const [slotDraft, setSlotDraft] = useState({ is_recurring: true, day_of_week: 1, start_time: "09:00", end_time: "10:00", date: "" as string | undefined });
   const [showSlotEditor, setShowSlotEditor] = useState(false);
@@ -342,8 +377,35 @@ export default function ServiceModal({
       setCoverPhotoError(t("services.coverRequired", "Bitte füge ein Titelbild hinzu, bevor du den Dienst veröffentlichst."));
       return;
     }
+    // Hotel publish validation
+    if (form.status === "published" && getBookingMode(form.type) === "date_range") {
+      const inventory = Number(form.inventory_count);
+      const maxGuests = Number(form.max_guests);
+      const price = Number(String(form.price).replace(",", "."));
+      if (!form.available_from || !form.available_until) {
+        Alert.alert(t("common.error"), t("services.hotelWindowRequired", "Select bookable-from and bookable-until dates."));
+        return;
+      }
+      if (form.available_until <= form.available_from) {
+        Alert.alert(t("common.error"), t("services.hotelWindowInvalid", "Bookable-until must be after bookable-from."));
+        return;
+      }
+      if (!Number.isInteger(inventory) || inventory < 1) {
+        Alert.alert(t("common.error"), t("services.inventoryInvalid", "Room inventory must be at least 1."));
+        return;
+      }
+      if (!Number.isInteger(maxGuests) || maxGuests < 1) {
+        Alert.alert(t("common.error"), t("services.maxGuestsInvalid", "Maximum guests must be at least 1."));
+        return;
+      }
+      if (!Number.isFinite(price) || price <= 0) {
+        Alert.alert(t("common.error"), t("services.priceInvalid", "Enter a valid nightly price."));
+        return;
+      }
+    }
+
     // Availability validation for publishing bookable services
-    if (form.status === "published" && isServiceBookable(form.type)) {
+    if (form.status === "published" && isServiceBookable(form.type) && getBookingMode(form.type) !== "date_range") {
       if (requiresServiceSlots(form.type)) {
         if (!form.availability_slots || form.availability_slots.length === 0) {
           Alert.alert(t("common.error", "Fehler"), t("services.availabilityTimesRequired", "Bitte füge mindestens eine verfügbare Zeit hinzu, bevor du den Dienst veröffentlichst."));
@@ -398,6 +460,7 @@ export default function ServiceModal({
 
   const getPriceLabel = () => {
     if (isRental) return t("rentals.rentPrice", "Rent Price");
+    if (form.type === "hotel_room") return t("services.pricePerNight", "Price / night");
     return t("services.price", "Price");
   };
 
@@ -546,9 +609,9 @@ export default function ServiceModal({
         return (
           <View key={fieldName}>
             <Text style={styles.label}>{labelWithAsterisk}</Text>
-            <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+            <Pressable style={styles.input} onPress={() => { setDatePickerTarget(fieldName as any); setShowDatePicker(true); }}>
               <Text style={[styles.dateText, !(value as string) && styles.dateTextPlaceholder]}>
-                {(value as string) ? (value as string).split("-").reverse().join(".") : t("services.selectDate", "DD.MM.YYYY")}
+                {(value as string) ? (value as string).split("-").reverse().join(" ") : t("services.selectDate", "DD MM YYYY")}
               </Text>
             </Pressable>
           </View>
@@ -665,7 +728,7 @@ export default function ServiceModal({
                     pagingEnabled
                     showsVerticalScrollIndicator={false}
                     onDayPress={(day) => {
-                      updateField("available_from", day.dateString);
+                      updateField(datePickerTarget, day.dateString);
                       setShowDatePicker(false);
                     }}
                     markedDates={form.available_from ? { [form.available_from]: { selected: true, selectedColor: COLORS.primary } } : {}}
@@ -726,11 +789,19 @@ export default function ServiceModal({
       {isServiceBookable(form.type) && (
         <View style={styles.availabilitySection}>
           <Text style={styles.sectionTitle}>
-            {t("services.availability", "Verfügbarkeit")}
+            {form.type === "hotel_room"
+              ? t("services.availabilityDates", "Available dates (check-in → check-out)")
+              : t("services.availability", "Verfügbarkeit")}
             {form.status === "published" && <Text style={styles.required}> *</Text>}
           </Text>
 
-          {requiresServiceSlots(form.type) ? (
+          {getBookingMode(form.type) === "date_range" ? (
+            <View>
+              {renderFieldInput("available_from")}
+              {renderFieldInput("available_until")}
+              {renderFieldInput("inventory_count")}
+            </View>
+          ) : requiresServiceSlots(form.type) ? (
             <View>
               {(form.availability_slots || []).map((slot, idx) => (
                 <View key={idx} style={styles.slotRow}>
@@ -820,12 +891,33 @@ export default function ServiceModal({
           ) : (
             <View>
               <Text style={styles.label}>{t("services.availableFrom", "Verfügbar ab")}</Text>
-              <Pressable style={styles.selector} onPress={() => setShowDatePicker(true)}>
+              <Pressable style={styles.selector} onPress={() => { setDatePickerTarget("available_from"); setShowDatePicker(true); }}>
                 <Text style={form.available_from ? styles.selectorTextSelected : styles.selectorText}>
                   {form.available_from || t("services.selectDate", "Datum wählen")}
                 </Text>
                 <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
               </Pressable>
+
+              {form.type === "hotel_room" && (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={styles.label}>{t("services.availableUntil", "Verfügbar bis")}</Text>
+                  <Pressable style={styles.selector} onPress={() => {
+                    setDatePickerTarget("available_until");
+                    setShowDatePicker(true);
+                  }}>
+                    <Text style={form.available_until ? styles.selectorTextSelected : styles.selectorText}>
+                      {form.available_until || t("services.selectDate", "Datum wählen")}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+                  </Pressable>
+                </View>
+              )}
+
+              {form.available_from && form.type === "hotel_room" && (
+                <Text style={styles.pricePerLabel}>
+                  {t("services.perNight", "per night")}
+                </Text>
+              )}
             </View>
           )}
 
@@ -942,6 +1034,7 @@ const styles = StyleSheet.create({
   selectorText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textDisabled },
   selectorTextSelected: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
   availabilityHint: { fontSize: FONT_SIZES.caption, color: COLORS.danger, marginTop: SPACING.small },
+  pricePerLabel: { fontSize: 12, color: COLORS.success, marginTop: 4, fontStyle: "italic", fontWeight: "600" },
   slotEditor: { paddingVertical: SPACING.small },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: 4 },
   chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },

@@ -78,7 +78,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
     }
 
     if (fieldName === "available_from") {
-      return <Text key={fieldName} style={s.meta}>Ab {String(value).split("-").reverse().join(".")}</Text>;
+      return <Text key={fieldName} style={s.meta}>Ab {String(value).split("-").reverse().join(" ")}</Text>;
     }
 
     switch (config.component) {
@@ -108,7 +108,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
           </Text>
         ) : null;
       case "number":
-        if (fieldName === "size_sqm") {
+        if (fieldName === "size_sqm" || fieldName === "room_size_sqm") {
           return <Text key={fieldName} style={s.meta}>{value} m²</Text>;
         }
         if (fieldName === "mileage_km") {
@@ -125,6 +125,9 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
         }
         if (fieldName === "max_guests") {
           return <Text key={fieldName} style={s.meta}>Up to {value} guests</Text>;
+        }
+        if (fieldName === "floor") {
+          return <Text key={fieldName} style={s.meta}>Floor: {value}</Text>;
         }
         if (fieldName === "deposit") {
           return <Text key={fieldName} style={s.meta}>Kaution: {value}</Text>;
@@ -188,7 +191,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
         {service.description ? <Text style={s.desc} numberOfLines={2}>{service.description}</Text> : null}
         {cardFields.map(renderCardField)}
         {service.price ? (
-          <Text style={s.price}>{formatPrice(service.price)}</Text>
+          <Text style={s.price}>{formatPrice(service.price)}{service.type === "hotel_room" ? " / night" : ""}</Text>
         ) : null}
       </View>
     </Pressable>

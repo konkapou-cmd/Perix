@@ -399,6 +399,35 @@ export const SERVICE_CATEGORY_MATRIX: Record<string, ServiceCategoryAttachment> 
     detailSections: ["overview", "pricing", "details", "schedule", "location"],
     cardSummaryFields: ["type", "price", "pet_name", "pet_type", "duration_minutes"],
   },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 15. local-hotels
+  // ═══════════════════════════════════════════════════════════════════
+
+  "local-hotels": {
+    rootCategory: "local-hotels",
+    allowedModules: ["hotel_room"],
+    defaultModule: "hotel_room",
+    recommendedCtaType: "booking",
+    icon: "bed",
+    questions: [
+      { field: "name", importance: "required", labelKey: "services.name", fallbackLabel: "Room Name", icon: "text", showOnCard: true, showOnDetail: true },
+      { field: "type", importance: "required", labelKey: "services.serviceType", fallbackLabel: "Room Type", icon: "options", showOnCard: true, showOnDetail: true },
+      { field: "price", importance: "required", labelKey: "services.price", fallbackLabel: "Price per night", icon: "pricetag", showOnCard: true, showOnDetail: true },
+      { field: "description", importance: "recommended", labelKey: "services.description", fallbackLabel: "Description", icon: "document-text", showOnDetail: true },
+      { field: "max_guests", importance: "required", labelKey: "services.maxGuests", fallbackLabel: "Max Guests", icon: "people", showOnCard: true, showOnDetail: true },
+      { field: "bed_config", importance: "recommended", labelKey: "services.bedConfig", fallbackLabel: "Bed Configuration", icon: "bed", showOnCard: true, showOnDetail: true },
+      { field: "room_size_sqm", importance: "optional", labelKey: "services.roomSizeSqm", fallbackLabel: "Room Size (m²)", icon: "resize", showOnCard: true, showOnDetail: true },
+      { field: "floor", importance: "optional", labelKey: "services.floor", fallbackLabel: "Floor", icon: "layers", showOnCard: true },
+      { field: "amenities", importance: "optional", labelKey: "services.amenities", fallbackLabel: "Amenities", icon: "list", showOnDetail: true },
+      { field: "available_from", importance: "required", labelKey: "services.availableFrom", fallbackLabel: "Check-in available from", icon: "calendar", showOnCard: true, showOnDetail: true },
+      { field: "available_until", importance: "optional", labelKey: "services.availableUntil", fallbackLabel: "Available Until", icon: "calendar", showOnCard: true },
+      { field: "room_view", importance: "optional", labelKey: "services.roomView", fallbackLabel: "View", icon: "eye", showOnCard: true },
+      { field: "address", importance: "optional", labelKey: "services.address", fallbackLabel: "Address", icon: "location", showOnCard: true, showOnDetail: true },
+    ],
+    detailSections: ["overview", "details", "pricing", "availability", "location"],
+    cardSummaryFields: ["type", "price", "max_guests", "bed_config", "room_view"],
+  },
 };
 
 // ─── Helpers ───

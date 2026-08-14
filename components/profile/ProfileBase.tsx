@@ -21,7 +21,6 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
-import ProgressivePicker from "../navigation/ProgressivePicker";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -35,7 +34,6 @@ export type TabDefinition = {
 };
 
 interface ProfileBaseProps {
-  identityPicker?: React.ReactNode;
   children: React.ReactNode;
   activeTab: ProfileTab;
   onTabChange: (tab: ProfileTab) => void;
@@ -48,7 +46,6 @@ interface ProfileBaseProps {
 }
 
 export const ProfileBase: React.FC<ProfileBaseProps> = ({
-  identityPicker,
   children,
   activeTab,
   onTabChange,
@@ -60,7 +57,6 @@ export const ProfileBase: React.FC<ProfileBaseProps> = ({
 };
 
 interface ProfileHeaderProps {
-  identityPicker?: React.ReactNode;
   coverUri?: string | null;
   coverVideoUri?: string | null;
   coverFocalPoint?: { x: number; y: number } | null;
@@ -186,7 +182,6 @@ const abStyles = StyleSheet.create({
 });
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
-  identityPicker,
   coverUri,
   coverVideoUri,
   coverFocalPoint,
@@ -271,11 +266,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           >
             <Ionicons name="camera" size={14} color="#fff" />
           </Pressable>
-        )}
-        {identityPicker && (
-          <View style={styles.identityOverlay}>
-            {identityPicker}
-          </View>
         )}
       </Pressable>
 
@@ -404,18 +394,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 />
               )}
               <ProfileActionButton
-                icon="storefront-outline"
-                label={t("marketplace.title", "Marktplatz")}
-                variant="secondaryIcon"
-                onPress={() => router.push("/marketplace/items" as any)}
-              />
-              <ProfileActionButton
-                icon="list-outline"
-                label={t("marketplace.myListings", "Meine Anzeigen")}
-                variant="secondaryIcon"
-                onPress={() => router.push("/my-listings" as any)}
-              />
-              <ProfileActionButton
                 icon="bookmark-outline"
                 label={t("common.saved", "Gespeicherte Inhalte")}
                 variant="secondaryIcon"
@@ -517,25 +495,93 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   borderColor = PROFILE_COLORS.BORDER,
   themeStyles,
 }) => {
-  const { t } = useTranslation();
+  const useScroll = tabs.length > 6;
+
+  const tabButtons = tabs.map((tab) => {
+    const active = tab.key === activeTab;
+    return (
+      <Pressable
+        key={tab.key}
+        onPress={() => onTabChange(tab.key)}
+        style={[
+          iconStyles.tab,
+          !useScroll && iconStyles.tabFlex,
+          active && { backgroundColor: primaryColor + "18" },
+        ]}
+      >
+        <Ionicons
+          name={tab.icon as any}
+          size={22}
+          color={active ? primaryColor : PROFILE_COLORS.TEXT_SECONDARY || "#999"}
+        />
+        {tab.count !== undefined && tab.count > 0 && (
+          <View style={[iconStyles.badge, { backgroundColor: active ? primaryColor : (PROFILE_COLORS.TEXT_SECONDARY || "#999") }]}>
+            <Text style={iconStyles.badgeText}>{tab.count > 99 ? "99+" : tab.count}</Text>
+          </View>
+        )}
+      </Pressable>
+    );
+  });
+
+  if (useScroll) {
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={iconStyles.tabBar}>
+        {tabButtons}
+      </ScrollView>
+    );
+  }
 
   return (
-    <ProgressivePicker
-      label={t("navigation.section", "Bereich")}
-      value={activeTab}
-      options={tabs.map((tab) => ({
-        key: tab.key,
-        label: tab.label,
-        icon: tab.icon as any,
-        count: tab.count,
-      }))}
-      onChange={onTabChange}
-      primaryColor={primaryColor}
-      backgroundColor={bgColor}
-      borderColor={borderColor}
-    />
+    <View style={iconStyles.tabBarEven}>
+      {tabButtons}
+    </View>
   );
 };
+
+const iconStyles = StyleSheet.create({
+  tabBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  tabBarEven: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-evenly",
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  tab: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  tabFlex: {
+    flex: 1,
+    maxWidth: 56,
+  },
+  badge: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#fff",
+  },
+});
 
 const styles = StyleSheet.create({
   headerContainer: {
@@ -566,13 +612,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-  },
-  identityOverlay: {
-    position: "absolute",
-    bottom: 56,
-    left: 12,
-    right: 12,
-    zIndex: 20,
   },
   avatarRow: {
     alignItems: "flex-start",

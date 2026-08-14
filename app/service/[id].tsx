@@ -27,6 +27,7 @@ import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { Service, TimeSlot } from "../../lib/api/core";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
+import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
@@ -168,7 +169,7 @@ export default function ServiceDetailPage() {
 
   const handleCta = () => {
     if (ctaType === "booking") {
-      setShowBooking(true); setBookingName(user?.name || ""); setBookingEmail(user?.email || "");
+      setShowBooking(true);
     } else {
       setShowInquiry(true);
       setInquiryName(user?.name || "");
@@ -276,19 +277,19 @@ export default function ServiceDetailPage() {
   const excludedFromDetailCards = ["duration_minutes", "capacity", "bedrooms", "bathrooms", "size_sqm", "property_type", "floor", "deposit", "available_from", "lease_duration", "furnished", "max_guests", "address", "facilities"];
 
   const getFieldIcon = (name: string) => {
-    const map: Record<string, string> = { instructor: "person-outline", specialist_name: "person", difficulty_level: "options", session_type: "calendar", treatment_type: "medkit", service_category: "cut", consultation_type: "briefcase", meeting_type: "videocam", menu_category: "list", calories: "flame", spice_level: "thermometer", make: "car-sport", model: "car-sport", year: "calendar", mileage_km: "speedometer", fuel_type: "water", transmission: "settings", brand: "pricetag", stock_status: "checkmark-circle", condition: "reload", max_guests: "people", capacity: "people-outline", duration_minutes: "time-outline", bedrooms: "bed-outline", bathrooms: "water-outline", size_sqm: "resize-outline", property_type: "home-outline", floor: "layers-outline", deposit: "wallet-outline", available_from: "calendar-outline", lease_duration: "time-outline", furnished: "home-outline", dietary_tags: "leaf", allergens: "warning", facilities: "star-outline", pet_name: "paw", pet_type: "paw", pickup_location: "location", dropoff_location: "location", reason_for_visit: "document-text", insurance_info: "shield", includes: "list", sessions_count: "layers", duration_days: "calendar", duration_months: "calendar", duration_per_session: "timer", visits_included: "footsteps", valid_days: "calendar", included_services: "grid", special_requests: "star" };
+    const map: Record<string, string> = { instructor: "person-outline", specialist_name: "person", difficulty_level: "options", session_type: "calendar", treatment_type: "medkit", service_category: "cut", consultation_type: "briefcase", meeting_type: "videocam", menu_category: "list", calories: "flame", spice_level: "thermometer", make: "car-sport", model: "car-sport", year: "calendar", mileage_km: "speedometer", fuel_type: "water", transmission: "settings", brand: "pricetag", stock_status: "checkmark-circle", condition: "reload", max_guests: "people", bed_config: "bed", room_size_sqm: "resize", room_view: "eye", amenities: "star", capacity: "people-outline", duration_minutes: "time-outline", bedrooms: "bed-outline", bathrooms: "water-outline", size_sqm: "resize-outline", property_type: "home-outline", floor: "layers-outline", deposit: "wallet-outline", available_from: "calendar-outline", lease_duration: "time-outline", furnished: "home-outline", dietary_tags: "leaf", allergens: "warning", facilities: "star-outline", pet_name: "paw", pet_type: "paw", pickup_location: "location", dropoff_location: "location", reason_for_visit: "document-text", insurance_info: "shield", includes: "list", sessions_count: "layers", duration_days: "calendar", duration_months: "calendar", duration_per_session: "timer", visits_included: "footsteps", valid_days: "calendar", included_services: "grid", special_requests: "star" };
     return map[name] || "information-circle";
   };
 
   const handleShareService = async () => {
     if (!service) return;
-    const message = `${service.name} — ${formatPrice(service.price)} on Perix`;
+    const message = `${service.name} — ${formatPrice(service.price)}${service.type === "hotel_room" ? " / night" : ""} on Perix`;
     await Share.share({ message });
   };
 
   const handleWhatsAppShare = async () => {
     if (!service) return;
-    const message = `${service.name} — ${formatPrice(service.price)} on Perix`;
+    const message = `${service.name} — ${formatPrice(service.price)}${service.type === "hotel_room" ? " / night" : ""} on Perix`;
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
     try {
       const supported = await Linking.canOpenURL(whatsappUrl);
@@ -319,7 +320,8 @@ export default function ServiceDetailPage() {
       else if (f === "reason_for_visit" || f === "insurance_info" || f === "pet_name" || f === "pet_type") health.push(f);
       else if (f === "includes" || f === "included_services" || f === "special_requests") included.push(f);
       else if (f === "instructor" || f === "specialist_name" || f === "difficulty_level" || f === "session_type" || f === "treatment_type" || f === "service_category" || f === "consultation_type" || f === "meeting_type" || f === "capacity" || f === "max_guests") specs.push(f);
-      else if (f === "pickup_location" || f === "dropoff_location" || f === "available_from" || f === "lease_duration" || f === "furnished" || f === "floor" || f === "bedrooms" || f === "bathrooms" || f === "size_sqm") specs.push(f);
+      else if (f === "pickup_location" || f === "dropoff_location" || f === "available_from" || f === "lease_duration" || f === "furnished" || f === "floor" || f === "bedrooms" || f === "bathrooms" || f === "size_sqm" || f === "room_size_sqm" || f === "room_view" || f === "bed_config") specs.push(f);
+      else if (f === "amenities") specs.push(f);
       else if (f === "brand" || f === "stock_status" || f === "condition") specs.push(f);
     }
 
@@ -424,7 +426,7 @@ export default function ServiceDetailPage() {
             {service.price && (
               <InfoCard
                 icon="cash-outline"
-                label="Preis ab"
+                label={service.type === "hotel_room" ? "Preis / Nacht" : "Preis ab"}
                 value={formatPrice(service.price)}
                 accentColor={COLORS.warning}
               />
@@ -438,7 +440,7 @@ export default function ServiceDetailPage() {
                 const config = FIELD_REGISTRY[fieldName];
                 if (!config) return null;
                 let displayValue = config.displayFormat === "duration" ? formatDuration(Number(value)) : String(value);
-                if (fieldName === "size_sqm") displayValue = String(value) + " m²";
+                if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
                 if (fieldName === "capacity" || fieldName === "max_guests") displayValue = "Bis " + value;
                 return (
                   <InfoCard
@@ -476,7 +478,7 @@ export default function ServiceDetailPage() {
                   if (!config || value === undefined || value === null) return null;
                   let displayValue = String(value);
                   if (config.component === "number" && config.displayFormat === "duration") displayValue = formatDuration(Number(value));
-                  if (fieldName === "size_sqm") displayValue = String(value) + " m²";
+                  if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
                   if (fieldName === "calories") displayValue = String(value) + " kcal";
                   if (fieldName === "mileage_km") displayValue = String(value) + " km";
                   if (fieldName === "duration_days") displayValue = String(value) + " Tage";
@@ -484,7 +486,7 @@ export default function ServiceDetailPage() {
                   if (fieldName === "sessions_count") displayValue = String(value) + " Sitzungen";
                   if (config.component === "chips" || config.component === "chips-multi") displayValue = String(value);
                   if (fieldName === "available_from") {
-                    try { displayValue = new Date(String(value)).toLocaleDateString("de-DE"); } catch {}
+                    try { displayValue = String(value).split("-").reverse().join(" "); } catch {}
                   }
                   return (
                     <View key={fieldName} style={styles.moduleItem}>
@@ -553,95 +555,16 @@ export default function ServiceDetailPage() {
       <LazyMediaViewer visible={mediaViewerVisible} media={mediaViewerItems} initialIndex={mediaViewerIndex} onClose={() => setMediaViewerVisible(false)} />
 
       {/* Booking Modal */}
-      <Modal visible={showBooking} animationType="slide" onRequestClose={() => { setShowBooking(false); setSelectedSlot(null); setBookingNotes(""); setShowCalendarView(false); }}>
-        <SafeAreaView style={styles.bookingContainer} edges={["top", "bottom"]}>
-          <View style={styles.bookingHeader}>
-            <Pressable onPress={() => { setShowBooking(false); setSelectedSlot(null); setBookingNotes(""); setShowCalendarView(false); }}><Ionicons name="close" size={24} color={COLORS.servicesAccent} /></Pressable>
-            <Text style={styles.bookingTitle}>{t("services.requestBooking")}</Text>
-            <View style={{ width: 24 }} />
-          </View>
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <ScrollView style={styles.bookingForm} keyboardShouldPersistTaps="handled">
-            <Text style={styles.bookingServiceName}>{service.name}</Text>
-            {service.price && <Text style={styles.bookingServicePrice}>{formatPrice(service.price)}</Text>}
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.modalSectionTitle}>{t("services.selectDate")}</Text>
-              <Pressable onPress={() => setShowCalendarView(!showCalendarView)} style={styles.calendarToggleBtn}>
-                <Ionicons name={showCalendarView ? "list" : "calendar"} size={18} color={COLORS.servicesAccent} />
-              </Pressable>
-            </View>
-            {showCalendarView ? (
-              <View style={styles.calendarWrapper}>
-                <Calendar
-                  current={selectedDate || dates[0]}
-                  onDayPress={(day: { dateString: string }) => { setSelectedDate(day.dateString); setSelectedSlot(null); setShowCalendarView(false); }}
-                  markedDates={calendarMarkedDates}
-                  markingType="simple"
-                  firstDay={1}
-                  theme={{ backgroundColor: "#fff", calendarBackground: "#fff", textSectionTitleColor: COLORS.textSecondary, selectedDayBackgroundColor: COLORS.servicesAccent, selectedDayTextColor: "#fff", todayTextColor: COLORS.servicesAccent, dayTextColor: COLORS.textDark, textDisabledColor: "#d1d5db", arrowColor: COLORS.servicesAccent, monthTextColor: COLORS.textPrimary, textDayFontWeight: "500", textMonthFontWeight: "700", textDayFontSize: 14 }}
-                />
-              </View>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateRow}>
-                {dates.map((d) => {
-                  const isSelected = selectedDate === d;
-                  const dateObj = new Date(d + "T00:00:00");
-                  const dayNum = dateObj.getDate();
-                  const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dateObj.getDay()];
-                  return (
-                    <Pressable key={d} style={[styles.dateChip, isSelected && styles.dateChipSelected]} onPress={() => { setSelectedDate(d); setSelectedSlot(null); }}>
-                      <Text style={[styles.dateChipDay, isSelected && styles.dateChipDaySelected]}>{dayName}</Text>
-                      <Text style={[styles.dateChipNum, isSelected && styles.dateChipNumSelected]}>{dayNum}</Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            )}
-            {selectedDate && requiresSlots && slots.length > 0 && (
-              <>
-                <Text style={styles.modalSectionTitle}>{t("services.selectTime")}</Text>
-                <View style={styles.slotsGrid}>
-                  {slots.map((slot) => {
-                    const avail = availabilities[slot.slot_id];
-                    const isFull = avail?.is_full ?? false;
-                    const spotsText = avail != null ? ` • ${avail.available_spots}/${avail.capacity}` : "";
-                    return (
-                      <Pressable key={slot.slot_id} style={[styles.slotChip, selectedSlot?.slot_id === slot.slot_id && styles.slotChipSelected, isFull && styles.slotChipFull]} onPress={() => !isFull && setSelectedSlot(slot)}>
-                        <Text style={[styles.slotChipText, selectedSlot?.slot_id === slot.slot_id && styles.slotChipTextSelected, isFull && styles.slotChipTextFull]}>{formatTime(slot.start_time)} - {formatTime(slot.end_time)}{spotsText}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </>
-            )}
-            {selectedDate && !requiresSlots && (
-              <>
-                <Text style={styles.modalSectionTitle}>Preferred time (optional)</Text>
-                <TextInput style={styles.input} placeholder="e.g. Morning, 10:00–12:00" value={bookingNotes} onChangeText={setBookingNotes} />
-              </>
-            )}
-            <Text style={styles.modalSectionTitle}>{t("services.yourName")}</Text>
-            <TextInput style={styles.input} value={bookingName} onChangeText={setBookingName} placeholder={user?.name || "Name"} />
-            <Text style={styles.modalSectionTitle}>{t("services.yourEmail")}</Text>
-            <TextInput style={styles.input} value={bookingEmail} onChangeText={setBookingEmail} placeholder={user?.email || "email@example.com"} keyboardType="email-address" />
-            <View style={styles.guestRow}>
-              <Text style={styles.modalSectionTitle}>{t("services.guests")}</Text>
-              <View style={styles.stepper}>
-                <Pressable style={styles.stepperBtn} onPress={() => setBookingGuests(String(Math.max(1, parseInt(bookingGuests, 10) - 1)))}><Ionicons name="remove" size={18} color={COLORS.servicesAccent} /></Pressable>
-                <Text style={styles.stepperValue}>{bookingGuests}</Text>
-                <Pressable style={styles.stepperBtn} onPress={() => setBookingGuests(String(parseInt(bookingGuests, 10) + 1))}><Ionicons name="add" size={18} color={COLORS.servicesAccent} /></Pressable>
-              </View>
-            </View>
-            <Text style={styles.modalSectionTitle}>{t("services.notes")}</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={bookingNotes} onChangeText={setBookingNotes} placeholder={t("services.notesPlaceholder")} multiline numberOfLines={3} />
-            <Pressable style={[styles.submitButton, submitting && styles.submitButtonDisabled]} onPress={handleRequestBooking} disabled={submitting}>
-              {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>{t("services.sendRequest")}</Text>}
-            </Pressable>
-            <View style={{ height: 20 }} />
-          </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </Modal>
+      <ServiceBookingModal
+        visible={showBooking}
+        service={service}
+        rootCategory={service?.root_category || ""}
+        sessionToken={sessionToken || ""}
+        userName={user?.name}
+        userEmail={user?.email}
+        onClose={() => setShowBooking(false)}
+        onSuccess={() => setShowBooking(false)}
+      />
 
       {/* Inquiry Modal */}
       <Modal visible={showInquiry} animationType="slide" onRequestClose={() => { setShowInquiry(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage(""); }}>

@@ -55,3 +55,25 @@ fix
 *.tsbuildinfo
 
 app-example
+
+# Build artifacts
+*.apk
+*.zip
+*.docx
+*.bak
+
+# Temp / generated scripts
+apply_translations.py
+apply_all_translations.py
+check_counts.py
+migrate.js
+run_migration.py
+translate_el.ps1
+translate_lang.ps1
+nul
+
+# Duplicate / backup
+Perix-main/frontend/
+
+# IDE plans
+.opencode/plans/

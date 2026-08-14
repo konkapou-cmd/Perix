@@ -76,6 +76,8 @@ import { CityAdCircles } from "../../components/home/CityAdCircles";
 import { CarouselSection } from "../../components/home/CarouselSection";
 import { MapSection } from "../../components/home/MapSection";
 import { getListings, Listing } from "../../lib/api/listings";
+import { IdentityDropdown } from "../../components/profile/IdentityDropdown";
+import { getMyBusinesses, Business } from "../../lib/api";
 import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
 import { PostCard } from "../../components/home/PostCard";
@@ -101,7 +103,7 @@ function HomeSkeleton() {
 
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const { user, sessionToken, activeIdentity, logout } = useAuth();
+  const { user, sessionToken, activeIdentity, setActiveIdentity } = useAuth();
   const { location: globalLocation } = useLocation();
   const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
   const router = useRouter();
@@ -134,14 +136,21 @@ export default function HomeScreen() {
 
   const posts = localPosts;
   const savedPostIds = localSavedPostIds ?? feedData.savedPostIds;
-  const { events, businesses, jobs, rentals, activities, storyGroups, services,
-    savedEventIds, savedActivityIds, savedBusinessIds, savedJobIds, savedRentalIds, savedServiceIds,
+  const { events, businesses, hotels, jobs, rentals, activities, storyGroups, services,
+    savedEventIds, savedActivityIds, savedBusinessIds, savedHotelIds, savedJobIds, savedRentalIds, savedServiceIds,
     feedError, loading: feedLoading, backgroundLoading, refresh: refreshFeed,
   } = feedData;
 
   const [viewportProducts, setViewportProducts] = useState<Listing[]>([]);
   const [viewportHomes, setViewportHomes] = useState<Listing[]>([]);
+  const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
   const viewportRequestRef = useRef(0);
+
+  useFocusEffect(useCallback(() => {
+    if (sessionToken) {
+      getMyBusinesses(sessionToken).then(setMyBusinesses).catch(() => {});
+    }
+  }, [sessionToken]));
 
   useEffect(() => {
     if (!mapBounds) return;
@@ -200,6 +209,34 @@ export default function HomeScreen() {
     activitiesFilter,
     mapRefreshKey,
   });
+
+  const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
+  const shuffledEvents = useMemo(() => shuffle(sortedEvents), [sortedEvents]);
+  const shuffledActivities = useMemo(() => shuffle(sortedActivities), [sortedActivities]);
+  const shuffledBusinesses = useMemo(() => shuffle(sortedBusinesses), [sortedBusinesses]);
+  const hotelIds = useMemo(() => new Set(hotels.map(h => h.business_id)), [hotels]);
+  const hasValidAddress = (b: Business) =>
+    b.address && b.address !== "Not set" && b.latitude && b.latitude !== 0 && b.longitude && b.longitude !== 0;
+  const nonHotelBusinesses = useMemo(
+    () => shuffledBusinesses.filter(b => !hotelIds.has(b.business_id) && hasValidAddress(b)),
+    [shuffledBusinesses, hotelIds],
+  );
+  const sortedHotels = useMemo(() => {
+    const validHotels = hotels.filter(hasValidAddress);
+    const userLat = userLocation?.latitude ?? mapBounds?.centerLat ?? null;
+    const userLng = userLocation?.longitude ?? mapBounds?.centerLng ?? null;
+    if (userLat != null && userLng != null) {
+      return [...validHotels].sort((a, b) => {
+        const dA = Math.hypot(a.latitude! - userLat, a.longitude! - userLng);
+        const dB = Math.hypot(b.latitude! - userLat, b.longitude! - userLng);
+        return dA - dB;
+      });
+    }
+    return validHotels;
+  }, [hotels, userLocation, mapBounds]);
+  const shuffledHotels = useMemo(() => shuffle(sortedHotels), [sortedHotels]);
+  const shuffledServices = useMemo(() => shuffle(sortedServices), [sortedServices]);
+  const shuffledJobs = useMemo(() => shuffle(sortedJobs), [sortedJobs]);
 
   useEffect(() => {
     if (globalLocation) setUserLocation({ latitude: globalLocation.latitude, longitude: globalLocation.longitude });
@@ -269,16 +306,6 @@ export default function HomeScreen() {
   };
 
   const hasInitialFocusRef = useRef(false);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!hasInitialFocusRef.current) {
-        hasInitialFocusRef.current = true;
-        return;
-      }
-      refreshFeed();
-    }, [refreshFeed])
-  );
 
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
   const [storyViewerIndex, setStoryViewerIndex] = useState(0);
@@ -369,6 +396,20 @@ export default function HomeScreen() {
   const [shareContentTitle, setShareContentTitle] = useState<string>("");
   const isAnyModalOpen = commentModal || editModal || calendarOpen || activitiesCalendarOpen || showThemeFilter || showBusinessTagModal || showLayoutSettings || showLocationSearch || shareModalVisible;
   const isFocused = useIsFocused();
+  const wasFocusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasInitialFocusRef.current) {
+      hasInitialFocusRef.current = true;
+      return;
+    }
+    if (isFocused && !wasFocusedRef.current) {
+      wasFocusedRef.current = true;
+      refreshFeed();
+    }
+    if (!isFocused) wasFocusedRef.current = false;
+  }, [isFocused, refreshFeed]);
+
   const [userWantsSound, setUserWantsSound] = useState(true);
   const [friends, setFriends] = useState<any[]>([]);
 
@@ -663,9 +704,15 @@ export default function HomeScreen() {
           <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.filterIconBg }]} onPress={() => setShowLayoutSettings(true)}>
             <Ionicons name="options-outline" size={22} color={COLORS.filterIcon} />
           </Pressable>
-          <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.errorBorder }]} onPress={async () => { await logout(); }}>
-            <Text style={{ color: COLORS.errorText, fontWeight: "700", fontSize: 11 }}>CLR</Text>
-          </Pressable>
+          <View style={styles.identityDropWrap}>
+            <IdentityDropdown
+              businesses={myBusinesses}
+              onSelectIdentity={(type, id, name, avatar) => {
+                setActiveIdentity?.({ type, id, name, avatar });
+              }}
+              onCreateBusiness={() => router.push("/(tabs)/profile?createBusiness=1")}
+            />
+          </View>
         </View>
       </View>
 
@@ -754,12 +801,12 @@ export default function HomeScreen() {
         {mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
           <MapSection
             mapBounds={mapBounds}
-            businesses={businesses}
-            events={events}
-            activities={activities}
-            rentals={rentals}
-            jobs={jobs}
-            services={sortedServices}
+            businesses={shuffledBusinesses}
+            events={shuffledEvents}
+            activities={shuffledActivities}
+            rentals={sortedRentals}
+            jobs={shuffledJobs}
+            services={shuffledServices}
             products={viewportProducts}
             ownerHomes={viewportHomes}
             onRegionChange={(bounds) => {
@@ -772,7 +819,7 @@ export default function HomeScreen() {
           />
         )}
 
-        {sortedEvents.length > 0 && homeLayout.sections.find(s => s.id === "events")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "events")?.enabled !== false && (
           <CarouselSection
             title={t("home.events")}
             icon="calendar"
@@ -791,7 +838,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("events")}
             onToggleCollapse={() => setSectionCollapsed("events", !collapsedSections.has("events"))}
           >
-            {sortedEvents.map((event) => {
+            {shuffledEvents.map((event) => {
               const eventTheme = (event as any).profile_theme;
               const themeColors = getThemeColors(eventTheme);
               const textColor = themeColors.textColor;
@@ -832,7 +879,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {sortedActivities.length > 0 && homeLayout.sections.find(s => s.id === "activities")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "activities")?.enabled !== false && (
           <CarouselSection
             title={t("tabs.activities")}
             icon="people"
@@ -851,7 +898,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("activities")}
             onToggleCollapse={() => setSectionCollapsed("activities", !collapsedSections.has("activities"))}
           >
-            {sortedActivities.map((activity) => {
+            {shuffledActivities.map((activity) => {
               const activityTheme = (activity as any).profile_theme;
               const themeColors = getThemeColors(activityTheme);
               const textColor = themeColors.textColor;
@@ -892,7 +939,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {sortedBusinesses.length > 0 && homeLayout.sections.find(s => s.id === "businesses")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "businesses")?.enabled !== false && (
           <CarouselSection
             title={t("home.businesses")}
             icon="business"
@@ -901,7 +948,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("businesses")}
             onToggleCollapse={() => setSectionCollapsed("businesses", !collapsedSections.has("businesses"))}
           >
-            {sortedBusinesses.map((business) => {
+            {nonHotelBusinesses.map((business) => {
               const businessTheme = business.theme;
               const themeColors = getThemeColors(businessTheme);
               const primaryColor = themeColors.primaryColor;
@@ -922,7 +969,38 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {sortedServices.length > 0 && homeLayout.sections.find(s => s.id === "services")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "hotels")?.enabled !== false && (
+          <CarouselSection
+            title={t("home.hotels", "Local Hotels")}
+            icon="bed"
+            color={COLORS.businessesAccent}
+            seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
+            emptyMessage={t("home.noHotels", "No hotels nearby")}
+            isCollapsed={collapsedSections.has("hotels")}
+            onToggleCollapse={() => setSectionCollapsed("hotels", !collapsedSections.has("hotels"))}
+          >
+            {shuffledHotels.map((hotel) => {
+              const hotelTheme = hotel.theme;
+              const themeColors = getThemeColors(hotelTheme);
+              const primaryColor = themeColors.primaryColor;
+              const hotelImg = hotel.logo_image || hotel.profile_photo || hotel.cover_image;
+              return (
+                <CarouselCard
+                  key={`${hotel.business_id}-${mapRefreshKey}`}
+                  imageUrl={hotelImg}
+                  title={hotel.name}
+                  subtitle={translateCategory(hotel.subcategory, t)}
+                  onPress={() => router.push(`/business/${hotel.business_id}`)}
+                  isSaved={savedHotelIds.has(hotel.business_id)}
+                  textColor={primaryColor}
+                  fallbackIcon="bed"
+                />
+              );
+            })}
+          </CarouselSection>
+        )}
+
+        {homeLayout.sections.find(s => s.id === "services")?.enabled !== false && (
           <CarouselSection
             title={t("modules.services") || "Services"}
             icon="briefcase"
@@ -932,7 +1010,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("services")}
             onToggleCollapse={() => setSectionCollapsed("services", !collapsedSections.has("services"))}
           >
-            {sortedServices.filter(s => s.type !== "rental_property").map((service) => {
+            {shuffledServices.filter(s => s.type !== "rental_property").map((service) => {
               const serviceImg = service.cover_image_url || (!service.video_url ? (service.image_urls?.[0] || service.gallery_images?.[0]) : undefined);
               return (
                 <CarouselCard
@@ -981,7 +1059,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {sortedJobs.length > 0 && homeLayout.sections.find(s => s.id === "jobs")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "jobs")?.enabled !== false && (
           <CarouselSection
             title={t("home.jobs") || "Jobs"}
             icon="briefcase"
@@ -991,7 +1069,7 @@ export default function HomeScreen() {
             isCollapsed={collapsedSections.has("jobs")}
             onToggleCollapse={() => setSectionCollapsed("jobs", !collapsedSections.has("jobs"))}
           >
-            {sortedJobs.map((job) => {
+            {shuffledJobs.map((job) => {
               const jobImg = job.cover_image || (!job.video_url ? (job.image_urls?.[0] || job.gallery_images?.[0] || job.business_logo) : undefined);
               return (
                 <CarouselCard
@@ -1009,7 +1087,7 @@ export default function HomeScreen() {
           </CarouselSection>
         )}
 
-        {viewportProducts.length > 0 && homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "marketplace")?.enabled !== false && (
           <CarouselSection
             title={t("marketplace.productsInArea", "Produkte in der Nähe")}
             icon="pricetag"
@@ -1020,8 +1098,8 @@ export default function HomeScreen() {
             onToggleCollapse={() => setSectionCollapsed("marketplace", !collapsedSections.has("marketplace"))}
           >
             {viewportProducts.map((item) => {
-              const sellerId = (item as any).seller_id || item.owner_id;
-              const sellerName = item.business_name || (item as any).seller_name;
+              const sellerId = item.seller_id || item.owner_id;
+              const sellerName = item.business_name || item.seller_name;
               const isCV = !item.cover_image_url && !!item.video_url;
               return (
               <CarouselCard
@@ -1029,13 +1107,13 @@ export default function HomeScreen() {
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
                 videoUrl={item.video_url}
                 isCoverVideo={isCV}
-                muxThumbnailUrl={(item as any).mux_thumbnail_url || undefined}
-                videoStatus={(item as any).video_status || undefined}
+                muxThumbnailUrl={item.mux_thumbnail_url || undefined}
+                videoStatus={item.video_status || undefined}
                 title={item.title}
                 subtitle={`${item.price || ""}${sellerName ? `\u00b7 ${sellerName}` : ""}`}
                 subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
-                subtitleAvatarUrl={(item as any).seller_avatar || undefined}
-                thirdLine={(item as any).public_location_label || item.address || ""}
+                subtitleAvatarUrl={item.seller_avatar || undefined}
+                thirdLine={item.public_location_label || item.address || ""}
                 onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="pricetag"
@@ -1044,7 +1122,7 @@ export default function HomeScreen() {
             })}
           </CarouselSection>
         )}
-        {viewportHomes.length > 0 && homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
+        {homeLayout.sections.find(s => s.id === "homes-nearby")?.enabled !== false && (
           <CarouselSection
             title={t("marketplace.homesInArea", "Unterkünfte in der Nähe")}
             icon="home"
@@ -1055,8 +1133,8 @@ export default function HomeScreen() {
             onToggleCollapse={() => setSectionCollapsed("homes-nearby", !collapsedSections.has("homes-nearby"))}
           >
             {viewportHomes.map((item) => {
-              const sellerId = (item as any).seller_id || item.owner_id;
-              const sellerName = item.business_name || (item as any).seller_name;
+              const sellerId = item.seller_id || item.owner_id;
+              const sellerName = item.business_name || item.seller_name;
               const isCV = !item.cover_image_url && !!item.video_url;
               return (
               <CarouselCard
@@ -1064,14 +1142,14 @@ export default function HomeScreen() {
                 imageUrl={item.cover_image_url || item.image_urls?.[0]}
                 videoUrl={item.video_url}
                 isCoverVideo={isCV}
-                muxThumbnailUrl={(item as any).mux_thumbnail_url || undefined}
-                videoStatus={(item as any).video_status || undefined}
+                muxThumbnailUrl={item.mux_thumbnail_url || undefined}
+                videoStatus={item.video_status || undefined}
                 title={item.title}
                 subtitle={`${item.price || ""}${sellerName ? `\u00b7 ${sellerName}` : ""}`}
                 subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
-                subtitleAvatarUrl={(item as any).seller_avatar || undefined}
-                thirdLine={(item as any).public_location_label || item.address || ""}
-                onPress={() => pushEntityRoute(router, entityRoutes.rental(item.listing_id), () => showInvalidEntityAlert(t))}
+                subtitleAvatarUrl={item.seller_avatar || undefined}
+                thirdLine={item.public_location_label || item.address || ""}
+                onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={false}
                 fallbackIcon="home"
               />
@@ -1450,6 +1528,7 @@ const styles = StyleSheet.create({
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
   stickyHeaderRight: { flexDirection: "row", gap: 4 },
   stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.backgroundPage, alignItems: "center", justifyContent: "center" },
+  identityDropWrap: { marginLeft: 4 },
   modalContainer: { flex: 1, backgroundColor: COLORS.background },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   modalTitle: { fontSize: 18, fontWeight: "600", color: COLORS.textPrimary },

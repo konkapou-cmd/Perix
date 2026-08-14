@@ -66,6 +66,13 @@ export const getNearbyBusinesses = async (
   return apiRequest<Business[]>(`/businesses/nearby?${params.toString()}`, "GET", token);
 };
 
+export const getNearbyHotels = async (
+  token: string,
+  bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number; centerLat: number; centerLng: number }
+): Promise<Business[]> => {
+  return getNearbyBusinesses(token, bounds.centerLat, bounds.centerLng, "local-hotels", undefined, bounds);
+};
+
 export const createBusiness = async (
   token: string,
   payload: {

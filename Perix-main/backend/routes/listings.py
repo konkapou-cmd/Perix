@@ -198,7 +198,17 @@ async def create_listing(
         "created_at": now_utc(),
     }
     await db.listings.insert_one(doc)
-    return ListingResponse(**doc)
+    try:
+        return ListingResponse(**doc)
+    except Exception:
+        return ListingResponse(
+            listing_id=doc.get("listing_id", ""),
+            owner_id=doc.get("owner_id", ""),
+            listing_type=doc.get("listing_type", "product"),
+            title=doc.get("title", ""),
+            status=doc.get("status", "draft"),
+            created_at=doc.get("created_at", now_utc()),
+        )
 
 
 def _in_bounds(lat: float, lng: float, min_lat: float, max_lat: float, min_lng: float, max_lng: float) -> bool:
@@ -209,8 +219,8 @@ async def _enrich_listing_sellers(docs: list[dict]) -> list[dict]:
     """Batch-enrich listing docs with seller_name, business_name and seller_avatar."""
     if not docs:
         return docs
-    user_ids = list({d["seller_id"] for d in docs if d.get("seller_id") and d.get("seller_type") != "business"})
-    biz_ids = list({d["business_id"] for d in docs if d.get("business_id") and d.get("seller_type") == "business"})
+    user_ids = list({d.get("seller_id") or d.get("owner_id") for d in docs if (d.get("seller_id") or d.get("owner_id")) and d.get("seller_type") != "business"})
+    biz_ids = list({d.get("business_id") for d in docs if d.get("business_id") and d.get("seller_type") == "business"})
     user_map: dict = {}
     biz_map: dict = {}
     if user_ids:
@@ -221,15 +231,17 @@ async def _enrich_listing_sellers(docs: list[dict]) -> list[dict]:
         biz_map = {b["business_id"]: b for b in bizs}
     for doc in docs:
         if doc.get("seller_type") == "business" and doc.get("business_id"):
-            biz = biz_map.get(doc["business_id"])
+            biz = biz_map.get(doc.get("business_id"))
             if biz:
                 doc["business_name"] = biz.get("name")
                 doc["seller_avatar"] = biz.get("profile_photo") or biz.get("logo_image")
-        elif doc.get("seller_id"):
-            user = user_map.get(doc["seller_id"])
-            if user:
-                doc["seller_name"] = user.get("name")
-                doc["seller_avatar"] = user.get("profile_photo")
+        else:
+            uid = doc.get("seller_id") or doc.get("owner_id")
+            if uid:
+                user = user_map.get(uid)
+                if user:
+                    doc["seller_name"] = user.get("name")
+                    doc["seller_avatar"] = user.get("profile_photo")
     return docs
 
 
@@ -386,7 +398,7 @@ async def list_my_listings(
     status: Optional[str] = None,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    query = {"owner_id": current_user.user_id}
+    query = {"owner_id": current_user.user_id, "is_hidden": {"$ne": True}}
     if listing_type:
         query["listing_type"] = listing_type
     if status:
@@ -394,7 +406,13 @@ async def list_my_listings(
 
     docs = await db.listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     docs = await _enrich_listing_sellers(docs)
-    return [ListingResponse(**doc) for doc in docs]
+    results = []
+    for doc in docs:
+        try:
+            results.append(ListingResponse(**doc))
+        except Exception:
+            continue
+    return results
 
 
 @router.get("/seller/user/{user_id}", response_model=list[ListingResponse])
@@ -403,9 +421,8 @@ async def get_user_seller_listings(user_id: str):
         {
             "$or": [
                 {"seller_type": "user", "seller_id": user_id},
-                {"owner_id": user_id, "seller_type": {"$exists": False}, "seller_id": {"$exists": False}},
+                {"seller_id": {"$exists": False}, "owner_id": user_id},
             ],
-            "listing_type": "product",
             "status": "published",
             "is_active": True,
         },
@@ -433,14 +450,20 @@ async def manage_listings(
     seller_id: Optional[str] = Query(None),
     current_user: UserPublic = Depends(get_current_user),
 ):
-    query: dict = {"owner_id": current_user.user_id}
+    query: dict = {"owner_id": current_user.user_id, "is_hidden": {"$ne": True}}
     if seller_type:
         query["seller_type"] = seller_type
     if seller_id:
         query["seller_id"] = seller_id
     docs = await db.listings.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     docs = await _enrich_listing_sellers(docs)
-    return [ListingResponse(**doc) for doc in docs]
+    results = []
+    for doc in docs:
+        try:
+            results.append(ListingResponse(**doc))
+        except Exception:
+            continue
+    return results
 
 
 @router.get("/{listing_id}", response_model=ListingResponse)
@@ -540,7 +563,17 @@ async def update_listing(
         )
 
     doc = await db.listings.find_one({"listing_id": listing_id})
-    return ListingResponse(**doc)
+    try:
+        return ListingResponse(**doc)
+    except Exception:
+        return ListingResponse(
+            listing_id=doc.get("listing_id", listing_id),
+            owner_id=doc.get("owner_id", ""),
+            listing_type=doc.get("listing_type", "product"),
+            title=doc.get("title", ""),
+            status=doc.get("status", "draft"),
+            created_at=doc.get("created_at", now_utc()),
+        )
 
 
 @router.delete("/{listing_id}")

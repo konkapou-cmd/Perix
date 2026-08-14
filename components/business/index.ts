@@ -10,5 +10,6 @@ export { default as ServiceModal, DEFAULT_FORM as DEFAULT_SERVICE_FORM } from ".
 export { default as SubscriptionTab } from "./SubscriptionTab";
 export { default as ServiceBookingModal } from "./ServiceBookingModal";
 export { default as SlotManagerModal } from "./SlotManagerModal";
+export { default as HotelAvailabilityModal } from "./HotelAvailabilityModal";
 export { default as BookingListModal } from "./BookingListModal";
 export { default as UserBookingListModal } from "./UserBookingListModal";

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -97,7 +97,6 @@ interface UserProfilePremiumProps {
   isOwnProfile?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
-  identityPicker?: React.ReactNode;
   friendStatus?: FriendshipStatus;
   onFriendPress?: () => void;
   showMessageButton?: boolean;
@@ -176,7 +175,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   isPosting = false,
   uploadPercent = 0,
   isOwnProfile = false,
-  identityPicker,
   avatarUri,
   friendStatus,
   onFriendPress,
@@ -209,13 +207,15 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab as ProfileTab || "posts");
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const tabsYRef = useRef(0);
 
-  useEffect(() => {
-    if (activeTab === "items" && isOwnProfile) {
-      router.push(`/marketplace/user/${userId}` as any);
-      setActiveTab("posts");
-    }
-  }, [activeTab]);
+  const handleTabChange = useCallback((tab: ProfileTab) => {
+    setActiveTab(tab);
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: tabsYRef.current, animated: true });
+    }, 50);
+  }, []);
 
   const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
 
@@ -234,8 +234,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     if (onOpenBookings) {
       base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
     }
-    if (userListings.length > 0 || userHomeListings.length > 0 || onAddItem) {
-      base.push({ key: "items", label: t("marketplace.listings", "Anzeigen"), icon: "list-outline", count: userListings.length + userHomeListings.length });
+    if (userListings.length > 0 || onAddItem) {
+      base.push({ key: "items", label: t("marketplace.listings", "Anzeigen"), icon: "list-outline", count: userListings.length });
     }
     if (userHomeListings.length > 0) {
       base.push({ key: "homes", label: t("marketplace.homes", "Homes"), icon: "home-outline", count: userHomeListings.length });
@@ -287,7 +287,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const profileHeaderContent = (
     <>
       <ProfileHeader
-        identityPicker={identityPicker}
         coverUri={user.cover_photo}
         coverVideoUri={(!user.cover_photo && (user as any).video_url) ? (user as any).video_url : undefined}
         coverFocalPoint={user.cover_focal_point}
@@ -369,15 +368,17 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         />
       )}
 
-      <ProfileTabs
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        tabs={tabs}
-        primaryColor={primaryColor}
-        bgColor={cardColor}
+      <View onLayout={(e) => { tabsYRef.current = e.nativeEvent.layout.y; }}>
+        <ProfileTabs
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          tabs={tabs}
+          primaryColor={primaryColor}
+          bgColor={cardColor}
         borderColor={borderColor}
         themeStyles={themeStyles}
       />
+      </View>
     </>
   );
 
@@ -436,8 +437,9 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
       )}
       {activeTab === "items" && (
         <ProfileItemsSection
-          listings={[...userListings, ...userHomeListings]}
+          listings={userListings}
           isOwner={isOwnProfile ?? false}
+          listingType="product"
           onAdd={isOwnProfile ? onAddItem! : () => {}}
           onEdit={isOwnProfile ? onEditItem! : (() => {}) as any}
           onToggleMarketplace={isOwnProfile ? onToggleMarketplace! : (() => {}) as any}
@@ -448,7 +450,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         <ProfileItemsSection
           listings={userHomeListings}
           isOwner={isOwnProfile ?? false}
-          onAdd={undefined}
+          listingType="home_rental"
+          onAdd={isOwnProfile ? onAddItem! : undefined}
           onEdit={(l) => onEditItem?.(l)}
           onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
           onDelete={(l) => onDeleteItem?.(l)}
@@ -524,9 +527,11 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 10 }}
         refreshControl={
           refreshing !== undefined && onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
@@ -535,49 +540,49 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
       >
         {profileHeaderContent}
         {activeTab === "posts" ? (
-          <ProfilePosts
-            posts={userPosts}
-            primaryColor={primaryColor}
-            cardColor={cardColor}
-            textColor={textColor}
-            textSecondaryColor={secondaryColor}
-            bgColor={bgColor}
-            readOnly={readOnly}
-            postText={postText}
-            setPostText={setPostText}
-            postImage={postImage}
-            postVideo={postVideo}
-            postVideoPreview={postVideoPreview}
-            pickPostImage={pickPostImage}
-            pickPostVideo={pickPostVideo}
-            onDiscardMedia={onDiscardMedia}
-            handleCreatePost={handleCreatePost}
-            isPosting={isPosting}
-            uploadPercent={uploadPercent}
-            onDeletePost={onDeletePost}
-            onEditPost={onEditPost}
-            currentUserId={currentUserId}
-            avatarUri={avatarUri}
-            themeStyles={themeStyles}
-            onOpenTagModal={onOpenTagModal}
-            onEditTags={onEditTags}
-            friends={friends}
-            businesses={businesses}
-            showMentionSuggestions={showMentionSuggestions}
-            mentionSuggestions={mentionSuggestions}
-            onSelectMention={onSelectMention}
-            pendingMentionIds={pendingMentionIds}
-            onRefreshPosts={onRefreshPosts}
-            isOwnProfile={isOwnProfile}
-            onCreateStory={onCreateStory}
-            isScreenFocused={isScreenFocused}
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            initialSavedPostIds={initialSavedPostIds}
-          />
-        ) : (
-          tabContentNonPosts
-        )}
+            <ProfilePosts
+              posts={userPosts}
+              primaryColor={primaryColor}
+              cardColor={cardColor}
+              textColor={textColor}
+              textSecondaryColor={secondaryColor}
+              bgColor={bgColor}
+              readOnly={readOnly}
+              postText={postText}
+              setPostText={setPostText}
+              postImage={postImage}
+              postVideo={postVideo}
+              postVideoPreview={postVideoPreview}
+              pickPostImage={pickPostImage}
+              pickPostVideo={pickPostVideo}
+              onDiscardMedia={onDiscardMedia}
+              handleCreatePost={handleCreatePost}
+              isPosting={isPosting}
+              uploadPercent={uploadPercent}
+              onDeletePost={onDeletePost}
+              onEditPost={onEditPost}
+              currentUserId={currentUserId}
+              avatarUri={avatarUri}
+              themeStyles={themeStyles}
+              onOpenTagModal={onOpenTagModal}
+              onEditTags={onEditTags}
+              friends={friends}
+              businesses={businesses}
+              showMentionSuggestions={showMentionSuggestions}
+              mentionSuggestions={mentionSuggestions}
+              onSelectMention={onSelectMention}
+              pendingMentionIds={pendingMentionIds}
+              onRefreshPosts={onRefreshPosts}
+              isOwnProfile={isOwnProfile}
+              onCreateStory={onCreateStory}
+              isScreenFocused={isScreenFocused}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              initialSavedPostIds={initialSavedPostIds}
+            />
+          ) : (
+            tabContentNonPosts
+          )}
       </ScrollView>
 
       {user.cover_photo && (
@@ -648,5 +653,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
   },
-  
 });
