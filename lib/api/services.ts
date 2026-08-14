@@ -1,4 +1,4 @@
-import { apiRequest, Service, TimeSlot, Booking, StayAvailability, DateBlock } from "./core";
+import { apiRequest, Service, TimeSlot, SlotAvailability, Booking, StayAvailability, DateBlock } from "./core";
 
 export const getServices = async (token: string, businessId?: string, type?: string): Promise<Service[]> => {
   const params = new URLSearchParams();
@@ -67,8 +67,8 @@ export const setAvailability = async (
   return apiRequest<TimeSlot[]>(`/services/${serviceId}/availability`, "PUT", token, payload);
 };
 
-export const getAvailability = async (serviceId: string, date: string): Promise<any[]> => {
-  return apiRequest<any[]>(`/services/${serviceId}/availability?date=${date}`, "GET");
+export const getAvailability = async (serviceId: string, date: string): Promise<SlotAvailability[]> => {
+  return apiRequest<SlotAvailability[]>(`/services/${serviceId}/availability?date=${date}`, "GET");
 };
 
 export type CreateBookingPayload = {

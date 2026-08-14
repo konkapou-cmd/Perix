@@ -77,3 +77,20 @@ Perix-main/frontend/
 
 # IDE plans
 .opencode/plans/
+
+# Local env files with any prefix
+*.env
+*.env.*
+
+# Perix-main cruft
+Perix-main/.opencode/
+Perix-main/curl
+
+# Generated temp files
+*.txt
+COMPLETION_SUMMARY.txt
+DEVELOPMENT_SETUP.md
+QUICK_START.md
+README_TESTING.md
+TESTING_GUIDE.md
+perix-design-system/
