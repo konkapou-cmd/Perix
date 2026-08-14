@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -333,6 +334,8 @@ export default function ServiceModal({
   visible, onClose, form, setForm, onSave, isSaving, rootCategory, subcategory, sessionToken, nearLat, nearLng, businessAddress,
 }: Props) {
   const { t } = useTranslation();
+  const { height: screenHeight } = useWindowDimensions();
+  const slotCalendarHeight = Math.max(320, Math.min(440, screenHeight * 0.7 - 70));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState<"available_from" | "available_until">("available_from");
   const [showSlotDatePicker, setShowSlotDatePicker] = useState(false);
@@ -765,7 +768,8 @@ export default function ServiceModal({
                     horizontal
                     pagingEnabled
                     minDate={new Date().toISOString().slice(0, 10)}
-                    style={{ height: 380 }}
+                    style={{ height: slotCalendarHeight }}
+                    calendarHeight={slotCalendarHeight}
                     onDayPress={(day: any) => {
                       setSlotDraft((previous) => ({
                         ...previous,

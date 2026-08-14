@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CalendarList } from "react-native-calendars";
@@ -73,6 +73,11 @@ export default function DatePickerModal({
   hideFooter = false,
   children,
 }: DatePickerModalProps) {
+  const { height: screenHeight } = useWindowDimensions();
+  const calendarHeight = variant === "sheet"
+    ? Math.max(320, Math.min(440, screenHeight * 0.7 - 70))
+    : Math.max(320, Math.min(480, screenHeight - 200));
+
   const { t } = useTranslation();
   const [pending, setPending] = useState<DatePickerValue>({ startDate: null, endDate: null });
 
@@ -186,7 +191,8 @@ export default function DatePickerModal({
               maxDate={maxDate}
               pastScrollRange={pastScrollRange}
               futureScrollRange={futureScrollRange}
-              style={sheetStyles.calendar}
+              style={[sheetStyles.calendar, { height: calendarHeight }]}
+              calendarHeight={calendarHeight}
               theme={calendarTheme}
             />
           </View>
@@ -230,7 +236,8 @@ export default function DatePickerModal({
 
         <View style={fullStyles.body}>
           <CalendarList
-            style={fullStyles.calendar}
+            style={[fullStyles.calendar, { height: calendarHeight }]}
+            calendarHeight={calendarHeight}
             horizontal={horizontal}
             pagingEnabled={horizontal}
             showsVerticalScrollIndicator={!horizontal}
@@ -284,7 +291,7 @@ const fullStyles = StyleSheet.create({
   subtitle: { fontSize: Platform.OS === "web" ? 14 : 13, color: "rgba(255,255,255,0.85)", marginTop: 2 },
   closeBtn: { padding: 4 },
   body: { flex: 1, backgroundColor: COLORS.background, marginTop: 8 },
-  calendar: { height: 400 },
+  calendar: {},
   footer: {
     flexDirection: "row", padding: 16, gap: 12,
     backgroundColor: COLORS.background,
@@ -312,6 +319,6 @@ const sheetStyles = StyleSheet.create({
     flexDirection: "row", justifyContent: "flex-end",
     paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4,
   },
-  calendar: { height: 400 },
+  calendar: {},
   doneText: { fontSize: 16, fontWeight: "600" },
 });
