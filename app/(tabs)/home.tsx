@@ -1102,6 +1102,7 @@ export default function HomeScreen() {
             emptyMessage={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
             isCollapsed={collapsedSections.has("marketplace")}
             onToggleCollapse={() => setSectionCollapsed("marketplace", !collapsedSections.has("marketplace"))}
+            layout="grid"
           >
             {viewportProducts.map((item) => {
               const sellerId = item.seller_id || item.owner_id;
@@ -1137,6 +1138,7 @@ export default function HomeScreen() {
             emptyMessage={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
             isCollapsed={collapsedSections.has("homes-nearby")}
             onToggleCollapse={() => setSectionCollapsed("homes-nearby", !collapsedSections.has("homes-nearby"))}
+            layout="grid"
           >
             {viewportHomes.map((item) => {
               const sellerId = item.seller_id || item.owner_id;

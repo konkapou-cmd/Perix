@@ -29,10 +29,11 @@ interface CarouselSectionProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   hideWhenEmpty?: boolean;
+  layout?: "carousel" | "grid";
   children: React.ReactNode;
 }
 
-export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage, isCollapsed, onToggleCollapse, hideWhenEmpty, children }: CarouselSectionProps) {
+export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage, isCollapsed, onToggleCollapse, hideWhenEmpty, layout = "carousel", children }: CarouselSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const collapsed = isCollapsed ?? false;
@@ -96,9 +97,15 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
             </View>
           )}
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
-            {children}
-          </ScrollView>
+          {layout === "carousel" ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={styles.grid}>
+              {children}
+            </View>
+          )}
         </>
       )}
     </View>
@@ -162,5 +169,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     color: COLORS.textMuted,
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    gap: SPACING.small,
   },
 });
