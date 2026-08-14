@@ -75,7 +75,7 @@ export default function DatePickerModal({
 }: DatePickerModalProps) {
   const { height: screenHeight } = useWindowDimensions();
   const calendarHeight = variant === "sheet"
-    ? Math.max(320, Math.min(440, screenHeight * 0.7 - 70))
+    ? Math.max(320, Math.min(440, screenHeight * 0.7 - 60))
     : Math.max(320, Math.min(480, screenHeight - 200));
 
   const { t } = useTranslation();

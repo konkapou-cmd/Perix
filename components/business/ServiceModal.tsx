@@ -335,7 +335,7 @@ export default function ServiceModal({
 }: Props) {
   const { t } = useTranslation();
   const { height: screenHeight } = useWindowDimensions();
-  const slotCalendarHeight = Math.max(320, Math.min(440, screenHeight * 0.7 - 70));
+  const slotCalendarHeight = Math.max(320, Math.min(440, screenHeight * 0.7 - 60));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState<"available_from" | "available_until">("available_from");
   const [showSlotDatePicker, setShowSlotDatePicker] = useState(false);
