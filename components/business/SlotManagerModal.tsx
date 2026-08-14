@@ -8,6 +8,7 @@ import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../
 import { TimeSlot } from "../../lib/api/core";
 import { getSlots, deleteSlot, setAvailability } from "../../lib/api/services";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { toLocalISODate } from "../../lib/booking/dateRange";
 
 type Props = {
   visible: boolean;
@@ -89,7 +90,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
           const d = new Date(today);
           d.setDate(d.getDate() + i);
           if (d.getDay() === slot.day_of_week) {
-            const ds = d.toISOString().split("T")[0];
+            const ds = toLocalISODate(d);
             if (!marks[ds]) marks[ds] = { dots: [] };
             const dotColor = slot.is_booked ? COLORS.textMuted : COLORS.success;
             marks[ds].dots.push({ key: `r-${slot.slot_id}`, color: dotColor });
@@ -437,7 +438,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
 }
 
 function todayISO(): string {
-  return new Date().toISOString().split("T")[0];
+  return toLocalISODate(new Date());
 }
 
 function toDate(time: string): Date {

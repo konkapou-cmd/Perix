@@ -19,6 +19,7 @@ import { getDefaultModule, getAllowedModules, getCategoryQuestions } from "../..
 import type { Dispatch, SetStateAction } from "react";
 import { useState, useEffect, useRef } from "react";
 import { CalendarList } from "react-native-calendars";
+import { toLocalISODate } from "../../lib/booking/dateRange";
 import DatePickerModal from "../shared/DatePickerModal";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
@@ -767,7 +768,7 @@ export default function ServiceModal({
                   <CalendarList
                     horizontal
                     pagingEnabled
-                    minDate={new Date().toISOString().slice(0, 10)}
+                    minDate={toLocalISODate(new Date())}
                     style={{ height: slotCalendarHeight }}
                     calendarHeight={slotCalendarHeight}
                     onDayPress={(day: any) => {
