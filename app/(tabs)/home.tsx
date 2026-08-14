@@ -603,8 +603,12 @@ export default function HomeScreen() {
     }
   };
 
+  const [updatingPost, setUpdatingPost] = useState(false);
+
   const handleUpdatePost = async () => {
-    if (!sessionToken || !editPost) return;
+    if (!sessionToken || !editPost || updatingPost) return;
+    setUpdatingPost(true);
+    try {
     const YOUTUBE_REGEX_EDIT = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)?/gi;
     const SOUNDCLOUD_REGEX_EDIT = /(?:https?:\/\/)?(?:www\.)?soundcloud\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+(?:[^\s]*)?/gi;
     let finalEditText = editText.trim();
@@ -618,6 +622,9 @@ export default function HomeScreen() {
     setLocalPosts((prev: Post[]) => prev.map((item) => (item.post_id === updated.post_id ? updated : item)));
     setEditModal(false);
     setEditMediaRatio(null);
+    } finally {
+      setUpdatingPost(false);
+    }
   };
 
   const handleDeletePost = async (post: Post) => {

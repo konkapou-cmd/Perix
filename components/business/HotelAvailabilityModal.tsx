@@ -65,7 +65,7 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
   };
 
   const handleSaveWindow = async () => {
-    if (!service || !sessionToken) return;
+    if (!service || !sessionToken || saving) return;
     const inventory = Number(inventoryCount);
     if (!Number.isInteger(inventory) || inventory < 1) {
       Alert.alert(t("common.error"), t("services.inventoryInvalid", "Room inventory must be at least 1."));
@@ -90,7 +90,7 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
   };
 
   const handleCreateBlock = async () => {
-    if (!service || !sessionToken || !blockStart || !blockEnd) return;
+    if (loading || !service || !sessionToken || !blockStart || !blockEnd) return;
     if (blockEnd <= blockStart) { Alert.alert(t("common.error"), "End date must be after start"); return; }
     const units = Number(blockedUnits);
     const inventory = Number(inventoryCount);
@@ -111,9 +111,11 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
   };
 
   const handleDeleteBlock = async (blockId: string) => {
-    if (!service || !sessionToken) return;
+    if (!service || !sessionToken || loading) return;
+    setLoading(true);
     try { await deleteDateBlock(sessionToken, service.service_id, blockId); loadBlocks(); }
     catch (e: any) { Alert.alert(t("common.error"), e.message); }
+    finally { setLoading(false); }
   };
 
   const handleBlockDayPress = (day: { dateString: string }) => {
@@ -218,7 +220,7 @@ export default function HotelAvailabilityModal({ visible, service, sessionToken,
               <View key={block.block_id} style={styles.blockRow}>
                 <Ionicons name="lock-closed" size={14} color={COLORS.danger} />
                 <Text style={styles.blockLabel}>{block.start_date.split("-").reverse().join(" ")} – {block.end_date.split("-").reverse().join(" ")} ({block.blocked_units}u{block.reason ? `, ${block.reason}` : ""})</Text>
-                <Pressable onPress={() => handleDeleteBlock(block.block_id)}><Ionicons name="trash-outline" size={16} color={COLORS.danger} /></Pressable>
+                <Pressable onPress={() => handleDeleteBlock(block.block_id)} disabled={loading}><Ionicons name="trash-outline" size={16} color={loading ? COLORS.textMuted : COLORS.danger} /></Pressable>
               </View>
             ))}
           </ScrollView>

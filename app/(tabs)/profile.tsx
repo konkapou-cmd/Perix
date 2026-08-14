@@ -730,8 +730,10 @@ export default function ProfileScreen() {
 
 
 
+  const [eventSaving, setEventSaving] = useState(false);
+
   const handleSaveEvent = async () => {
-    if (!sessionToken) return;
+    if (!sessionToken || eventSaving) return;
     if (!eventForm.title.trim()) {
       Alert.alert(t("common.error") || "Error", t("events.titleRequired") || "Title is required");
       return;
@@ -740,6 +742,7 @@ export default function ProfileScreen() {
     const localDateStr = `${eventDate.getFullYear()}-${pad(eventDate.getMonth() + 1)}-${pad(eventDate.getDate())}`;
     const localTimeStr = `${pad(eventTime.getHours())}:${pad(eventTime.getMinutes())}:${pad(eventTime.getSeconds())}`;
     const startISO = new Date(`${localDateStr}T${localTimeStr}`).toISOString();
+    setEventSaving(true);
     try {
       if (eventEditing?.event_id) {
         console.log("[handleSaveEvent] Updating event:", eventEditing.event_id);
@@ -801,6 +804,8 @@ export default function ProfileScreen() {
     } catch (e) {
       console.error("[handleSaveEvent] Error:", (e as Error)?.message, "Status:", (e as any)?.status, "eventEditing:", eventEditing?.event_id);
       Alert.alert(t("common.error") || "Error", (e as Error)?.message || t("events.saveFailed") || "Failed to save event");
+    } finally {
+      setEventSaving(false);
     }
   };
 
@@ -1383,8 +1388,12 @@ const handleUpdateSlug = async (newSlug: string) => {
     }
   };
 
+  const [hoursSaving, setHoursSaving] = useState(false);
+  const [socialLinksSaving, setSocialLinksSaving] = useState(false);
+
   const handleSaveBusinessHours = async () => {
-    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
+    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business" || hoursSaving) return;
+    setHoursSaving(true);
     try {
       await updateBusiness(sessionToken, activeIdentity.id, { opening_hours: businessOpeningHours as any });
       await loadBusinessFullData(activeIdentity.id);
@@ -1392,18 +1401,23 @@ const handleUpdateSlug = async (newSlug: string) => {
       Alert.alert(t("common.success", "Success"), t("common.savedSuccessfully") || "Saved successfully");
     } catch (e) {
       Alert.alert(t("common.error", "Error"), t("business.failedSaveHours", "Failed to save hours"));
+    } finally {
+      setHoursSaving(false);
     }
   };
 
   // Business social links handlers
   const handleSaveBusinessSocialLinks = async () => {
-    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
+    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business" || socialLinksSaving) return;
+    setSocialLinksSaving(true);
     try {
       await updateBusiness(sessionToken, activeIdentity.id, { social_links: businessSocialLinks });
       setSocialLinksModalVisible(false);
       Alert.alert(t("common.success", "Success"), t("common.savedSuccessfully") || "Saved successfully");
     } catch (e) {
       Alert.alert(t("common.error", "Error"), t("business.failedSaveSocialLinks", "Failed to save social links"));
+    } finally {
+      setSocialLinksSaving(false);
     }
   };
 
@@ -2622,6 +2636,7 @@ currentUserId={businessDetail?.business?.business_id}
           onHoursChange={setBusinessOpeningHours}
           onSave={handleSaveBusinessHours}
           timezone={businessOpeningHours.timezone}
+          isSaving={hoursSaving}
         />
         <SocialLinksModal
           visible={socialLinksModalVisible}
@@ -2631,6 +2646,7 @@ currentUserId={businessDetail?.business?.business_id}
           youtubeUrl=""
           onYoutubeUrlChange={() => {}}
           onSave={handleSaveBusinessSocialLinks}
+          isSaving={socialLinksSaving}
         />
         <EventModal
           visible={eventModalVisible}
@@ -2650,6 +2666,7 @@ currentUserId={businessDetail?.business?.business_id}
           onDateChange={(_, date) => { if (date) { setEventDate(date); setShowEventDatePicker(false); } }}
           onTimeChange={(_, time) => { if (time) { setEventTime(time); setShowEventTimePicker(false); } }}
           onSave={handleSaveEvent}
+          isSaving={eventSaving}
           sessionToken={sessionToken || undefined}
           nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
           nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}

@@ -34,6 +34,7 @@ type Props = {
   openingHours: Record<string, DayHours>;
   onHoursChange: (hours: Record<string, DayHours>) => void;
   onSave: () => void;
+  isSaving?: boolean;
 };
 
 export default function OpeningHoursModal({
@@ -42,6 +43,7 @@ export default function OpeningHoursModal({
   openingHours,
   onHoursChange,
   onSave,
+  isSaving = false,
 }: Props) {
   const { t } = useTranslation();
 
@@ -157,8 +159,8 @@ export default function OpeningHoursModal({
           <Pressable style={styles.secondaryButton} onPress={onClose}>
             <Text style={styles.secondaryButtonText}>{t("common.cancel")}</Text>
           </Pressable>
-          <Pressable style={styles.primaryButton} onPress={onSave}>
-            <Text style={styles.primaryButtonText}>{t("common.save")}</Text>
+          <Pressable style={[styles.primaryButton, isSaving && { opacity: 0.5 }]} onPress={onSave} disabled={isSaving}>
+            <Text style={styles.primaryButtonText}>{isSaving ? t("common.saving", "Saving...") : t("common.save")}</Text>
           </Pressable>
         </View>
         </KeyboardAvoidingView>
