@@ -1,4 +1,16 @@
-import type { MediaAsset } from "../api/core";
+export type MediaAsset = {
+  media_id: string;
+  type: "image" | "video";
+  status: "processing" | "ready" | "failed";
+  url?: string;
+  thumbnail_url?: string;
+  mux_asset_id?: string;
+  mux_upload_id?: string;
+  focal_point?: { x: number; y: number } | null;
+  is_cover?: boolean;
+  sort_order?: number;
+  created_at?: string;
+};
 
 export type MinimalMedia = {
   uri?: string;

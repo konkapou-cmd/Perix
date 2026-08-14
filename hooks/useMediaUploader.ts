@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { uploadMedia, uploadVideoMux, UploadProgress, VideoUploadResult } from "../api/media";
-import { getMuxAssetStatus, confirmMuxUpload } from "../api/mux";
-import { validateMedia, validateGalleryCount, validateVideoCount } from "./mediaValidation";
-import { generateTemporaryId } from "./mediaResolver";
-import { MEDIA_LIMITS } from "../constants/mediaLimits";
+import { uploadMedia, uploadVideoMux, VideoUploadResult } from "../lib/api/media";
+import { getMuxAssetStatus } from "../lib/api/mux";
+import { validateMedia, validateGalleryCount, validateVideoCount } from "../lib/media/mediaValidation";
+import { generateTemporaryId } from "../lib/media/mediaResolver";
+import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
 
 export type UploadableItem = {
   temporaryId: string;
@@ -101,7 +101,7 @@ export function useMediaUploader(options: UseMediaUploaderOptions = {}) {
             uri: asset.uri,
             type: itemType,
             fileSize: asset.fileSize,
-            duration: asset.duration,
+            duration: asset.duration ?? undefined,
           });
         }
         return items;
@@ -206,10 +206,6 @@ export function useMediaUploader(options: UseMediaUploaderOptions = {}) {
       try {
         const status = await getMuxAssetStatus(token, assetId);
         if (status.status === "ready") {
-          const playbackId = status.playback_id || status.mux_playback_id;
-          if (playbackId) {
-            await confirmMuxUpload(token, tempId, assetId, playbackId).catch(() => {});
-          }
           pendingRef.current = pendingRef.current.map((p) =>
             p.temporaryId === tempId
               ? {
