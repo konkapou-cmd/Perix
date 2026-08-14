@@ -59,6 +59,7 @@ import { translateCategory } from "../../lib/categoryTranslation";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
 import { formatDate } from "../../lib/formatDate";
 import { ACTIVITY_CATEGORIES, ACTIVITY_TYPES } from "../../lib/api";
+   import { toLocalISODate, addDays } from "../../lib/booking/dateRange";
 
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -252,12 +253,10 @@ export default function LocatorScreen() {
 
    // Helper: get "This Week" range
    const getThisWeekRange = (): DateFilter => {
-     const now = new Date();
-     const weekFromNow = new Date(now);
-     weekFromNow.setDate(weekFromNow.getDate() + 7);
+     const nowLocal = toLocalISODate(new Date());
      return {
-       startDate: now.toISOString().split("T")[0],
-       endDate: weekFromNow.toISOString().split("T")[0],
+       startDate: nowLocal,
+       endDate: addDays(nowLocal, 7),
      };
    };
 
