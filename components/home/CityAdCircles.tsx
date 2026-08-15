@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from "react";
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GroupedStory, User } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { useTranslation } from "react-i18next";
+import { deleteStory } from "../../lib/api/stories";
 
 const CARD_WIDTH = Platform.OS === "web" ? 180 : 145;
 const CARD_IMAGE_HEIGHT = Platform.OS === "web" ? 135 : 110;
@@ -14,6 +15,8 @@ interface CityAdCirclesProps {
   storyGroups: GroupedStory[];
   onYourStoryPress: () => void;
   onStoryPress: (index: number) => void;
+  onAdDeleted?: () => void;
+  sessionToken?: string | null;
   activeIdentity?: {
     type: "user" | "business" | "artist";
     id: string;
@@ -32,7 +35,7 @@ function AdVideoPreview({ mediaUrl }: { mediaUrl: string }) {
   );
 }
 
-export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPress, activeIdentity }: CityAdCirclesProps) {
+export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPress, onAdDeleted, sessionToken, activeIdentity }: CityAdCirclesProps) {
   const { t } = useTranslation();
   const isBusiness = activeIdentity?.type === "business";
 
@@ -74,24 +77,27 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
         )}
 
         {/* City Ad cards */}
-        {storyGroups.map((group, idx) => (
+        {storyGroups.map((group, idx) => {
+          const isOwn = activeIdentity && group.actor_id === activeIdentity.id;
+          const firstStory = group.stories[0];
+          return (
           <Pressable
             key={group.actor_id}
             style={styles.adCard}
             onPress={() => onStoryPress(idx)}
           >
             <View style={styles.previewContainer}>
-              {group.stories[0]?.media_url && (
-                group.stories[0]?.media_type === "video" ? (
-                  <AdVideoPreview mediaUrl={group.stories[0].media_url} />
+              {firstStory?.media_url && (
+                firstStory?.media_type === "video" ? (
+                  <AdVideoPreview mediaUrl={firstStory.media_url} />
                 ) : (
                   <Image
-                    source={{ uri: group.stories[0].media_url }}
+                    source={{ uri: firstStory.media_url }}
                     style={styles.imagePreview}
                   />
                 )
               )}
-              {!group.stories[0]?.media_url && (
+              {!firstStory?.media_url && (
                 <View style={styles.fallbackPreview}>
                   <Ionicons name="business" size={32} color={COLORS.textMuted} />
                 </View>
@@ -101,12 +107,39 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
                   <Ionicons name="checkmark" size={16} color={COLORS.textLight} />
                 </View>
               )}
+              {isOwn && sessionToken && (
+                <Pressable
+                  style={styles.deleteBtn}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    Alert.alert(
+                      t("cityAd.deleteTitle", "Delete Ad"),
+                      t("cityAd.deleteConfirm", "Remove this city ad?"),
+                      [
+                        { text: t("common.cancel", "Cancel"), style: "cancel" },
+                        { text: t("common.delete", "Delete"), style: "destructive",
+                          onPress: async () => {
+                            if (firstStory) {
+                              try { await deleteStory(sessionToken, firstStory.story_id); onAdDeleted?.(); }
+                              catch { Alert.alert(t("common.error"), t("cityAd.deleteFailed", "Failed to delete")); }
+                            }
+                          }
+                        },
+                      ]
+                    );
+                  }}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close-circle" size={22} color={COLORS.danger} />
+                </Pressable>
+              )}
             </View>
             <Text style={styles.businessName} numberOfLines={1}>
               {group.author_name || "Business"}
             </Text>
           </Pressable>
-        ))}
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -187,6 +220,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
+  },
+  deleteBtn: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    zIndex: 20,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: BORDER_RADIUS.full,
   },
   uploadCardContent: {
     width: CARD_WIDTH,

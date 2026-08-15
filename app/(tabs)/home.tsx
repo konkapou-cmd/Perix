@@ -801,6 +801,8 @@ export default function HomeScreen() {
           storyGroups={storyGroups}
           onYourStoryPress={handleCreateCityAd}
           onStoryPress={(idx) => { console.log("[CityAd] press idx:", idx, "groups:", storyGroups.length); setStoryViewerIndex(idx); setStoryViewerOpen(true); }}
+          onAdDeleted={refreshFeed}
+          sessionToken={sessionToken}
           activeIdentity={activeIdentity}
         />
 
