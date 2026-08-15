@@ -101,14 +101,12 @@ export function CityAdViewer({
   });
   const { status } = useEvent(player, "statusChange", { status: player.status });
 
-  // Prevent auto-advance on initial mount
-  const isMountedRef = useRef(false);
-  useEffect(() => { isMountedRef.current = true; }, []);
-
-  // Auto-advance on video end (skip initial mount idle state)
+  // Auto-advance on video end — only fire when status transitions TO idle (not on init)
+  const prevStatusRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!isMountedRef.current) return;
-    if (status === "idle" && currentStory?.media_url) {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (prev !== undefined && prev !== "idle" && status === "idle" && currentStory?.media_url) {
       goNext();
     }
   }, [currentStory?.media_url, status, goNext]);

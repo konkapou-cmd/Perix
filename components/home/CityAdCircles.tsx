@@ -78,7 +78,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
 
         {/* City Ad cards */}
         {storyGroups.map((group, idx) => {
-          const isOwn = activeIdentity && group.actor_id === activeIdentity.id;
+          const isOwn = activeIdentity?.type === "business" && group.actor_id === activeIdentity.id;
           const firstStory = group.stories[0];
           return (
           <Pressable
