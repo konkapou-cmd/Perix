@@ -800,7 +800,7 @@ export default function HomeScreen() {
           user={user}
           storyGroups={storyGroups}
           onYourStoryPress={handleCreateCityAd}
-          onStoryPress={(idx) => { setStoryViewerIndex(idx); setStoryViewerOpen(true); }}
+          onStoryPress={(idx) => { console.log("[CityAd] press idx:", idx, "groups:", storyGroups.length); setStoryViewerIndex(idx); setStoryViewerOpen(true); }}
           activeIdentity={activeIdentity}
         />
 
@@ -1432,9 +1432,15 @@ export default function HomeScreen() {
       <ShareContent visible={shareModalVisible} onClose={() => setShareModalVisible(false)} contentType="post" contentId={shareContentId} title={shareContentTitle} description="" />
 
       <Modal visible={storyViewerOpen} animationType="fade" transparent statusBarTranslucent onRequestClose={() => setStoryViewerOpen(false)}>
-        {storyViewerOpen && storyGroups.length > 0 && (
-          <CityAdViewer groups={storyGroups} initialGroupIndex={storyViewerIndex} onClose={() => setStoryViewerOpen(false)} />
-        )}
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          {storyGroups.length > 0 ? (
+            <CityAdViewer groups={storyGroups} initialGroupIndex={storyViewerIndex} onClose={() => setStoryViewerOpen(false)} />
+          ) : (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator size="large" color="#fff" />
+            </View>
+          )}
+        </View>
       </Modal>
 
       {/* Uploading Ad Overlay */}
