@@ -60,7 +60,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
           {onToggleCollapse && (
             <Pressable
               onPress={handleToggle}
-              style={[styles.chevronBtn, { borderColor: accent + "4D", borderWidth: 1.5 }]}
+              style={styles.chevronBtn}
               accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
               hitSlop={8}
             >
