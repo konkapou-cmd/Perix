@@ -1,5 +1,5 @@
 """Stories routes."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 import logging
 import random
@@ -146,7 +146,7 @@ async def build_story_response(story_doc: dict, current_user_id: str) -> StoryRe
 
 @router.post("", response_model=StoryResponse)
 async def create_story(body: StoryCreate, current_user: UserPublic = Depends(get_current_user)):
-    actor = await resolve_actor(body.actor_type, None, current_user)
+    actor = await resolve_actor(body.actor_type, body.actor_id, current_user)
     actor_type = actor["actor_type"]
     actor_id = actor["actor_id"]
     now = now_utc()
@@ -160,6 +160,8 @@ async def create_story(body: StoryCreate, current_user: UserPublic = Depends(get
         "media_url": body.media_url,
         "media_type": body.media_type,
         "text": body.text,
+        "latitude": body.latitude,
+        "longitude": body.longitude,
         "created_at": now.isoformat(),
         "expires_at": expires_at.isoformat(),
         "is_hidden": False,
@@ -175,7 +177,13 @@ async def create_story(body: StoryCreate, current_user: UserPublic = Depends(get
 
 
 @router.get("", response_model=List[GroupedStoryResponse])
-async def get_stories(current_user: UserPublic = Depends(get_current_user)):
+async def get_stories(
+    min_lat: Optional[float] = Query(None),
+    max_lat: Optional[float] = Query(None),
+    min_lng: Optional[float] = Query(None),
+    max_lng: Optional[float] = Query(None),
+    current_user: UserPublic = Depends(get_current_user),
+):
     now = now_utc()
     cutoff = (now - timedelta(hours=STORY_EXPIRY_HOURS)).isoformat()
 
@@ -184,8 +192,13 @@ async def get_stories(current_user: UserPublic = Depends(get_current_user)):
     except Exception:
         pass
 
+    query: dict = {"is_hidden": False, "expires_at": {"$gte": cutoff}}
+    if min_lat is not None and max_lat is not None and min_lng is not None and max_lng is not None:
+        query["latitude"] = {"$gte": min_lat, "$lte": max_lat}
+        query["longitude"] = {"$gte": min_lng, "$lte": max_lng}
+
     stories = await db.stories.find(
-        {"is_hidden": False, "expires_at": {"$gte": cutoff}},
+        query,
         sort=[("created_at", -1)],
     ).to_list(length=200)
 

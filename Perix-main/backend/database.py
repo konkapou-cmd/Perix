@@ -269,6 +269,7 @@ async def create_indexes():
     await db.stories.create_index("actor_id")
     await db.stories.create_index([("actor_id", 1), ("actor_type", 1)])
     await db.stories.create_index([("expires_at", 1)])
+    await _safe_create_index(db.stories, [("latitude", 1), ("longitude", 1)])
 
     # Seen notifications index
     await db.seen_notifications.create_index("user_id")
