@@ -16,7 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 import { GroupedStory, viewStory, markStorySeen } from "../../lib/api";
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from "../../lib/designTokens";
 import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
-import { muxThumbnailUrl } from "../../lib/media/mediaResolver";
+import { muxThumbnailUrl, lowLatencyPlaybackUrl } from "../../lib/media/mediaResolver";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_DURATION_MS = MEDIA_LIMITS.cityAd.imageDisplayMs;
@@ -95,7 +95,7 @@ export function CityAdViewer({
   }, [currentStory?.story_id, goNext]);
 
   // Video player
-  const player = useVideoPlayer(currentStory?.media_url || "", (p) => {
+  const player = useVideoPlayer(lowLatencyPlaybackUrl(currentStory?.media_url || ""), (p) => {
     p.loop = false;
     p.muted = false;
     p.play();

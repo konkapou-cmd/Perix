@@ -58,6 +58,14 @@ export function optimizeImageUrl(url: string, width?: number): string {
   return url;
 }
 
+/** Enable Mux low-latency HLS for faster playback startup. */
+export function lowLatencyPlaybackUrl(url: string): string {
+  if (url && url.includes("stream.mux.com") && url.includes(".m3u8") && !url.includes("reduced_latency")) {
+    return `${url}${url.includes("?") ? "&" : "?"}reduced_latency=true`;
+  }
+  return url;
+}
+
 export function isMediaResolved(item: MinimalMedia): boolean {
   return !item.processingStatus || item.processingStatus === "ready";
 }
