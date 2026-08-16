@@ -59,9 +59,12 @@ def _ensure_list(value: Any) -> list:
 
 def can_receive_email(user: dict) -> bool:
     """Check if a user should receive transactional or marketing email.
-    Deleted, pending-deletion, and tombstone users must not receive email.
+    Deleted, pending-deletion, tombstone, and missing/no-email users must not
+    receive email.
     """
     email = user.get("email", "")
+    if not email:
+        return False
     return not (
         user.get("is_deleted")
         or user.get("deletion_pending")

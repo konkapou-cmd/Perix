@@ -20,7 +20,15 @@ def _now():
 
 def _patch():
     import database
+    import services
     database.db = _db()
+    # Backend service modules do `from database import db` at import time and
+    # hold direct references — rebind them all, else they stay tied to the
+    # first test's (closed) event loop under pytest-asyncio function-scoped loops.
+    for mod_name in list(vars(services)):
+        mod = getattr(services, mod_name)
+        if hasattr(mod, "db"):
+            mod.db = database.db
     return database.db
 
 

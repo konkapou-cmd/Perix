@@ -7,10 +7,17 @@ from config import MONGO_URL, DB_NAME
 @pytest.fixture(scope="function")
 async def test_db():
     """Create fresh Motor client in pytest's event loop, patch production modules,
-    and create the production indexes that hotel tests require."""
+    and create the production indexes that hotel tests require.
+
+    Drops the test database first so every test starts clean — the suite uses
+    fixed IDs (e.g. client_id 'test-client') across files, and the unique
+    client_id+request_id index would otherwise collide between tests when the
+    database is reused (local dev) or shared within one CI run.
+    """
     import database
 
     client = AsyncIOMotorClient(MONGO_URL)
+    await client.drop_database(DB_NAME)
     d = client[DB_NAME]
     database.db = d
 
