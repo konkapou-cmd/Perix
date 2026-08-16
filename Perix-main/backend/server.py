@@ -1,6 +1,7 @@
 """
 Perix - City Social Media API
 Refactored modular architecture - February 2026
+Deploy marker 2026-08-16: clean state after 38a243b revert (conflict-marker crash)
 """
 import asyncio
 import time
