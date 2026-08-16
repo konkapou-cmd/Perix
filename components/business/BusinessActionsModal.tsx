@@ -27,7 +27,6 @@ export type BusinessAction =
   | "create-service"
   | "create-event"
   | "create-job"
-  | "create-city-ad"
   | "manage-products"
   | "manage-services"
   | "manage-events"
@@ -55,7 +54,6 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
     { key: "create-service", label: t("services.addService", "Dienst hinzufügen"), icon: "add-circle" as const },
     { key: "create-event", label: t("business.createEvent", "Veranstaltung erstellen"), icon: "calendar" as const },
     { key: "create-job", label: t("business.createJob", "Job erstellen"), icon: "briefcase" as const },
-    { key: "create-city-ad", label: t("cityAd.createAd", "City Ad erstellen"), icon: "megaphone" as const },
   ];
 
   const manageActions: ActionItem[] = [

@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { createPost, createStory, uploadMedia, uploadImageToCloudinary, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL, apiRequest, StoryCreatePayload } from "../lib/api";
+import { createPost, uploadMedia, uploadImageToCloudinary, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL } from "../lib/api";
 import UploadProgressSheet from "../components/UploadProgressSheet";
 import * as FileSystem from "expo-file-system/legacy";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
@@ -48,20 +48,18 @@ export default function MediaEditor() {
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
-  const [bizLocation, setBizLocation] = useState<{ latitude?: number | null; longitude?: number | null } | null>(null);
 
-  // Idempotency keys: stable across retries of the same content, new for fresh content.
-  const publishReqIdsRef = useRef<{ post?: { key: string; id: string }; cityad?: { key: string; id: string } }>({});
-  const getRequestId = (scope: "post" | "cityad") => {
+  // Idempotency key: stable across retries of the same content, new for fresh content.
+  const publishReqIdRef = useRef<{ key: string; id: string } | undefined>(undefined);
+  const getRequestId = () => {
     const key = `${decodedUri}|${caption}`;
-    const entry = publishReqIdsRef.current[scope];
-    if (entry && entry.key === key) return entry.id;
+    if (publishReqIdRef.current && publishReqIdRef.current.key === key) return publishReqIdRef.current.id;
     const id = `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    publishReqIdsRef.current[scope] = { key, id };
+    publishReqIdRef.current = { key, id };
     return id;
   };
-  const clearRequestId = (scope: "post" | "cityad") => {
-    publishReqIdsRef.current[scope] = undefined;
+  const clearRequestId = () => {
+    publishReqIdRef.current = undefined;
   };
   const withIdempotentRetry = async <T,>(fn: () => Promise<T>, idempotencyKey?: string): Promise<T> => {
     try {
@@ -99,7 +97,7 @@ export default function MediaEditor() {
     return () => sub.remove();
   }, [player, isVideo]);
 
-  // Load businesses and friends for @-mention tagging (+ business location for City Ads)
+  // Load businesses and friends for @-mention tagging
   useEffect(() => {
     if (!sessionToken) return;
     Promise.all([
@@ -109,12 +107,8 @@ export default function MediaEditor() {
       const bizItems = (businesses || []).map((b: any) => ({ id: b.business_id, name: b.name, type: "business" as const, avatar: b.logo_image }));
       const friendItems = (friends || []).map((f: any) => ({ id: f.user_id, name: f.name || f.user_id, type: "user" as const, avatar: f.profile_photo || f.picture }));
       setAllMentionables([...friendItems, ...bizItems]);
-      if (activeIdentity?.type === "business") {
-        const biz = (businesses || []).find((b: any) => b.business_id === activeIdentity.id);
-        if (biz) setBizLocation({ latitude: biz.latitude ?? null, longitude: biz.longitude ?? null });
-      }
     }).catch(() => {});
-  }, [sessionToken, activeIdentity?.type, activeIdentity?.id]);
+  }, [sessionToken]);
 
   const filteredSuggestions = useMemo(() => {
     if (!mentionQuery) return allMentionables.slice(0, 10);
@@ -216,7 +210,7 @@ export default function MediaEditor() {
         }
         setShowUploadProgress(false);
         console.log("[media-editor] creating post with video:", { videoUrl, muxPlaybackId });
-        const requestId = getRequestId("post");
+        const requestId = getRequestId();
         await withIdempotentRetry(
           () => createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, videoStatus, requestId),
           requestId,
@@ -241,115 +235,16 @@ export default function MediaEditor() {
           : await uploadMedia(sessionToken, decodedUri, "image", (p) => setUploadProgress(p));
         setShowUploadProgress(false);
         console.log("[media-editor] creating post with image:", { imageUrl });
-        const requestId = getRequestId("post");
+        const requestId = getRequestId();
         await withIdempotentRetry(
           () => createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, imageUrl, null, null, null, undefined, undefined, undefined, requestId),
           requestId,
         );
       }
-      clearRequestId("post");
+      clearRequestId();
       Alert.alert(t("editor.success", "Success!"), t("editor.postPublished", "Your post has been published!"), [{ text: t("common.ok"), onPress: () => router.back() }]);
     } catch (error: any) {
       console.error("[media-editor] publishAsPost failed:", error?.message, error);
-      Alert.alert(t("common.error"), error?.message || t("editor.publishFailed", "Failed to publish"));
-    } finally {
-      setPublishing(false);
-      setShowUploadProgress(false);
-    }
-  };
-
-  const publishAsCityAd = async () => {
-    if (!sessionToken || activeIdentity?.type !== "business" || publishing) return;
-    setPublishing(true);
-    setUploadContext(isVideo ? "video" : "photo");
-    try {
-      if (isVideo) {
-        const info = await FileSystem.getInfoAsync(decodedUri);
-        if (info.exists && info.size) {
-          if (info.size > MEDIA_LIMITS.cityAd.maxFileSizeBytes) {
-            Alert.alert(t("common.error"), `City Ads dürfen maximal ${MEDIA_LIMITS.cityAd.maxFileSizeMb} MB groß sein.`);
-            setPublishing(false);
-            return;
-          }
-          if (originalDuration > MEDIA_LIMITS.cityAd.maxDurationSeconds) {
-            Alert.alert(t("common.error"), `City Ads dürfen maximal ${MEDIA_LIMITS.cityAd.maxDurationSeconds} Sekunden lang sein.`);
-            setPublishing(false);
-            return;
-          }
-        }
-      } else {
-        const isRemoteImg = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
-        if (!isRemoteImg) {
-          const info = await FileSystem.getInfoAsync(decodedUri);
-          if (info.exists && info.size && info.size > MEDIA_LIMITS.image.maxFileSizeBytes) {
-            Alert.alert(t("common.error"), `Das Bild ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.image.maxFileSizeMb} MB.`);
-            setPublishing(false);
-            return;
-          }
-        }
-      }
-      const cityAdCaption = caption.length > MEDIA_LIMITS.cityAd.captionMaxLength ? caption.slice(0, MEDIA_LIMITS.cityAd.captionMaxLength) : caption;
-      const requestId = getRequestId("cityad");
-
-      if (isVideo) {
-        // Step 1: create the story shell first (upload gets wired to it via content_ref)
-        setShowUploadProgress(true);
-        setUploadProgress({ phase: "preparing", progress: 0 });
-        const storyPayload: StoryCreatePayload = {
-          media_url: undefined,
-          media_type: "video",
-          text: cityAdCaption,
-          actor_id: activeIdentity.id,
-          actor_type: "business",
-          latitude: bizLocation?.latitude ?? undefined,
-          longitude: bizLocation?.longitude ?? undefined,
-          video_status: "uploading",
-          client_request_id: requestId,
-        };
-        const story = await withIdempotentRetry(() => createStory(sessionToken, storyPayload), requestId);
-        // Step 2: upload to Mux — content_ref lets the backend webhook patch this story when ready
-        const muxResult = await uploadVideoMux(sessionToken, decodedUri, `story:${story.story_id}`, (p) => setUploadProgress(p));
-        const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
-        // Step 3: patch the story with the playback info
-        if (videoUrl || muxResult.mux_upload_id) {
-          await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
-            media_url: videoUrl || undefined,
-            mux_upload_id: muxResult.mux_upload_id,
-            mux_asset_id: muxResult.mux_asset_id,
-            mux_playback_id: muxResult.mux_playback_id,
-            mux_thumbnail_url: muxResult.mux_thumbnail_url,
-            video_status: muxResult.mux_playback_id ? "ready" : "processing",
-          });
-        }
-        setShowUploadProgress(false);
-      } else {
-        const isRemoteImg = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
-        setShowUploadProgress(true);
-        setUploadProgress({ phase: "preparing", progress: 0 });
-        const imageUrl = decodedUri.startsWith("http")
-          ? decodedUri
-          : decodedUri.startsWith("data:")
-          ? await uploadImageToCloudinary(sessionToken, decodedUri)
-          : await uploadMedia(sessionToken, decodedUri, "image", (p) => setUploadProgress(p));
-        setShowUploadProgress(false);
-        await withIdempotentRetry(
-          () => createStory(sessionToken, {
-            media_url: imageUrl,
-            media_type: "image",
-            text: cityAdCaption,
-            actor_id: activeIdentity.id,
-            actor_type: "business",
-            latitude: bizLocation?.latitude ?? undefined,
-            longitude: bizLocation?.longitude ?? undefined,
-            client_request_id: requestId,
-          }),
-          requestId,
-        );
-      }
-      clearRequestId("cityad");
-      Alert.alert(t("editor.success", "Success!"), t("editor.cityAdPublished", "Your city ad has been published!"), [{ text: t("common.ok"), onPress: () => router.back() }]);
-    } catch (error: any) {
-      console.error("[media-editor] publishAsCityAd failed:", error?.message, error);
       Alert.alert(t("common.error"), error?.message || t("editor.publishFailed", "Failed to publish"));
     } finally {
       setPublishing(false);
@@ -477,12 +372,6 @@ export default function MediaEditor() {
           <Pressable style={[styles.publishBtn, publishing && { opacity: 0.5 }]} onPress={publishAsPost} disabled={publishing}>
             {publishing ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.publishText}>{t("editor.publishPost", "Publish")}</Text>}
           </Pressable>
-          {activeIdentity?.type === "business" && (
-            <Pressable style={[styles.cityAdBtn, publishing && { opacity: 0.5 }]} onPress={publishAsCityAd} disabled={publishing}>
-              <Ionicons name="megaphone" size={16} color="#fff" />
-              <Text style={styles.cityAdText}>{t("editor.publishCityAd", "City Ad")}</Text>
-            </Pressable>
-          )}
         </View>
       </KeyboardAvoidingView>
 
@@ -524,6 +413,4 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e5e7eb" },
   publishBtn: { flex: 1, backgroundColor: "#000", borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   publishText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  cityAdBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: COLORS.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  cityAdText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 });

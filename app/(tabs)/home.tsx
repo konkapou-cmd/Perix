@@ -320,13 +320,19 @@ export default function HomeScreen() {
     if (result.canceled || !result.assets?.[0]?.uri) return;
     try {
       setUploadingAd(true);
+      // Anchor the ad at the business's own location so it projects in the city feed near the business
+      const activeBiz = activeIdentity?.type === "business"
+        ? myBusinesses.find((b) => b.business_id === activeIdentity.id)
+        : undefined;
+      const adLat = activeBiz?.latitude ? activeBiz.latitude : userLocation?.latitude;
+      const adLng = activeBiz?.longitude ? activeBiz.longitude : userLocation?.longitude;
       const story = await createStory(sessionToken, {
         media_url: undefined,
         media_type: "video",
         actor_type: "business",
         actor_id: activeIdentity?.id,
-        latitude: userLocation?.latitude,
-        longitude: userLocation?.longitude,
+        latitude: adLat,
+        longitude: adLng,
         video_status: "uploading",
         client_request_id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
       });
@@ -342,8 +348,9 @@ export default function HomeScreen() {
           video_status: muxResult.mux_playback_id ? "ready" : "processing",
         });
       }
-      Alert.alert(t("cityAd.adPublished") || "Your city ad has been published!");
       setUploadingAd(false);
+      refreshFeed().catch(() => {});
+      Alert.alert(t("cityAd.adPublished") || "Your city ad has been published!");
     } catch (e) {
       console.error("City ad creation failed:", e);
       setUploadingAd(false);
