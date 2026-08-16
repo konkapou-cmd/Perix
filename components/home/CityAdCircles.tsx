@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from "react";
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
-import { GroupedStory, User } from "../../lib/api";
+import { GroupedStory, User, Story } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { useTranslation } from "react-i18next";
 import { deleteStory } from "../../lib/api/stories";
@@ -25,14 +26,34 @@ interface CityAdCirclesProps {
   } | null;
 }
 
-function AdVideoPreview({ thumbnail }: { thumbnail: string }) {
+function VideoPreview({ mediaUrl }: { mediaUrl: string }) {
+  const player = useVideoPlayer(mediaUrl, (p) => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
+  });
   return (
-    <Image
-      source={{ uri: thumbnail }}
+    <VideoView
+      player={player}
       style={styles.videoPreview}
-      resizeMode="cover"
+      contentFit="cover"
+      nativeControls={false}
+      surfaceType="textureView"
     />
   );
+}
+
+function AdVideoPreview({ story }: { story: Story }) {
+  const isProcessing = story?.video_status === "processing" || story?.video_status === "uploading";
+  if (isProcessing) {
+    const thumb = story?.mux_thumbnail_url
+      || (story?.mux_playback_id ? `https://image.mux.com/${story.mux_playback_id}/thumbnail.jpg` : null);
+    if (thumb) {
+      return <Image source={{ uri: thumb }} style={styles.videoPreview} resizeMode="cover" />;
+    }
+    return <View style={[styles.videoPreview, { backgroundColor: "#000" }]} />;
+  }
+  return <VideoPreview mediaUrl={story?.media_url || ""} />;
 }
 
 export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPress, onAdDeleted, sessionToken, activeIdentity }: CityAdCirclesProps) {
@@ -80,10 +101,6 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
         {storyGroups.map((group, idx) => {
           const isOwn = activeIdentity?.type === "business" && group.actor_id === activeIdentity.id;
           const firstStory = group.stories[0];
-          const videoThumb = firstStory?.media_type === "video"
-            ? (firstStory.mux_thumbnail_url
-              || (firstStory.mux_playback_id ? `https://image.mux.com/${firstStory.mux_playback_id}/thumbnail.jpg` : null))
-            : null;
           return (
           <Pressable
             key={group.actor_id}
@@ -93,7 +110,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
             <View style={styles.previewContainer}>
               {firstStory?.media_url && (
                 firstStory?.media_type === "video" ? (
-                  <AdVideoPreview thumbnail={videoThumb || firstStory.media_url} />
+                  <AdVideoPreview story={firstStory} />
                 ) : (
                   <Image
                     source={{ uri: firstStory.media_url }}
