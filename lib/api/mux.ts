@@ -4,6 +4,11 @@ import * as FileSystem from "expo-file-system/legacy";
 
 const FileSystemUploadType = (FileSystem as any).FileSystemUploadType ?? { BINARY_CONTENT: 0, MULTIPART: 1 };
 
+// Client-side timeout for Mux API calls (backend has its own 20s timeout on the SDK).
+// Kept comfortably below the OS ~60s default so the user sees a clear error instead
+// of a generic "Network request failed" hang.
+const MUX_REQUEST_TIMEOUT_MS = 40 * 1000;
+
 export type MuxUploadCreateResponse = {
   upload_id: string;
   upload_url: string;
@@ -43,7 +48,7 @@ export const createMuxUpload = async (
 ): Promise<MuxUploadCreateResponse> => {
   return apiRequest<MuxUploadCreateResponse>("/mux/upload/create", "POST", token, {
     content_ref: contentRef || "",
-  });
+  }, MUX_REQUEST_TIMEOUT_MS);
 };
 
 export const confirmMuxUpload = async (
@@ -52,14 +57,14 @@ export const confirmMuxUpload = async (
 ): Promise<MuxUploadConfirmResponse> => {
   return apiRequest<MuxUploadConfirmResponse>("/mux/upload/confirm", "POST", token, {
     upload_id: uploadId,
-  });
+  }, MUX_REQUEST_TIMEOUT_MS);
 };
 
 export const getMuxAssetStatus = async (
   token: string,
   assetId: string
 ): Promise<MuxAssetStatus> => {
-  return apiRequest<MuxAssetStatus>(`/mux/asset/${assetId}`, "GET", token);
+  return apiRequest<MuxAssetStatus>(`/mux/asset/${assetId}`, "GET", token, undefined, MUX_REQUEST_TIMEOUT_MS);
 };
 
 const uploadToMuxDirect = async (
@@ -165,7 +170,16 @@ export const uploadVideoToMux = async (
 
   onProgress?.({ phase: "preparing", progress: 5 });
 
-  const { upload_id, upload_url } = await createMuxUpload(token, contentRef);
+  let createResult: MuxUploadCreateResponse;
+  try {
+    createResult = await createMuxUpload(token, contentRef);
+  } catch (createErr: any) {
+    // Retry create once — transient network/timeouts are common here
+    console.warn("[Mux] Create upload failed, retrying...", createErr?.message);
+    await new Promise((r) => setTimeout(r, 2000));
+    createResult = await createMuxUpload(token, contentRef);
+  }
+  const { upload_id, upload_url } = createResult;
 
   if (!upload_url) {
     throw new Error("Failed to create Mux upload: no upload URL received");

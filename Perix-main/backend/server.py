@@ -1,9 +1,9 @@
 """
 Perix - City Social Media API
 Refactored modular architecture - February 2026
-Deploy marker 2026-08-16c: City Ad publish fixes — idempotent story/post creation (client_request_id),
-Mux SDK calls moved off the event loop (asyncio.to_thread), /stories/my-stories route order fix,
-feed excludes stories without media_url — trigger Railway deploy
+Deploy marker 2026-08-16d: cap Mux SDK HTTP calls with a 20s timeout — the mux_python SDK
+defaults to no timeout and would hang /mux/* requests, surfacing as "Network request failed"
+on the client after the OS ~60s timeout — trigger Railway deploy
 """
 import asyncio
 import time

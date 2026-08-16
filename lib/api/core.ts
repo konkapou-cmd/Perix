@@ -448,31 +448,44 @@ export const apiRequest = async <T>(
   path: string,
   method: string,
   token?: string | null,
-  body?: unknown
+  body?: unknown,
+  timeoutMs?: number
 ): Promise<T> => {
   if (!BACKEND_URL || !API_BASE) {
     throw new Error("Backend URL not configured");
   }
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await parseResponse(response);
-  if (!response.ok) {
-    let message = `Request failed: ${method} ${path} → ${response.status}`;
-    if (data?.detail) {
-      if (typeof data.detail === "string") message = data.detail;
-      else if (Array.isArray(data.detail)) message = data.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(", ");
-      else message = JSON.stringify(data.detail);
+  const controller = timeoutMs ? new AbortController() : undefined;
+  const timeoutId = timeoutMs ? setTimeout(() => controller!.abort(), timeoutMs) : undefined;
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller?.signal,
+    });
+    const data = await parseResponse(response);
+    if (!response.ok) {
+      let message = `Request failed: ${method} ${path} → ${response.status}`;
+      if (data?.detail) {
+        if (typeof data.detail === "string") message = data.detail;
+        else if (Array.isArray(data.detail)) message = data.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(", ");
+        else message = JSON.stringify(data.detail);
+      }
+      const err = new Error(message) as Error & { status?: number };
+      err.status = response.status;
+      throw err;
     }
-    const err = new Error(message) as Error & { status?: number };
-    err.status = response.status;
-    throw err;
+    return data as T;
+  } catch (e: any) {
+    if (controller?.signal.aborted) {
+      throw new Error(`Request timed out after ${timeoutMs}ms: ${method} ${path}`);
+    }
+    throw e;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
-  return data as T;
 };
 
 export const CHUNK_SIZE = 5 * 1024 * 1024;

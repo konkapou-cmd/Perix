@@ -15,6 +15,11 @@ from utils.helpers import generate_id, now_utc
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/mux", tags=["Mux Video"])
 
+# mux_python defaults to no HTTP timeout, which can hang a request indefinitely.
+# Cap every Mux API call so the backend responds (with an error) instead of leaving
+# the client to time out into "Network request failed".
+MUX_API_TIMEOUT = 20  # seconds (total request timeout)
+
 
 def _unwrap(response):
     """Unwrap mux_python v5+ response objects.
@@ -92,8 +97,12 @@ async def create_mux_upload(
             new_asset_settings=create_asset_request,
             cors_origin="*",
         )
-        # mux_python is a synchronous SDK — run it in a thread so it never blocks the event loop
-        response = await asyncio.to_thread(uploads_api.create_direct_upload, create_upload_request)
+        # mux_python is a synchronous SDK — run it in a thread so it never blocks the event loop.
+        # The SDK defaults to no HTTP timeout, which hangs the request (and, after the client's
+        # own ~60s timeout, surfaces as "Network request failed"). Cap it explicitly.
+        response = await asyncio.to_thread(
+            uploads_api.create_direct_upload, create_upload_request, _request_timeout=MUX_API_TIMEOUT
+        )
         upload = _unwrap(response)
 
         await db.mux_uploads.insert_one({
@@ -123,12 +132,12 @@ async def confirm_mux_upload(
         import mux_python
 
         uploads_api = _get_mux_uploads_api()
-        # mux_python is a synchronous SDK — run it in a thread so it never blocks the event loop
-        upload_info = _unwrap(await asyncio.to_thread(uploads_api.get_direct_upload, payload.upload_id))
+        # mux_python is a synchronous SDK — run it in a thread so it never blocks the event loop.
+        upload_info = _unwrap(await asyncio.to_thread(uploads_api.get_direct_upload, payload.upload_id, _request_timeout=MUX_API_TIMEOUT))
 
         if upload_info.asset_id:
             assets_api = _get_mux_assets_api()
-            asset = _unwrap(await asyncio.to_thread(assets_api.get_asset, upload_info.asset_id))
+            asset = _unwrap(await asyncio.to_thread(assets_api.get_asset, upload_info.asset_id, _request_timeout=MUX_API_TIMEOUT))
 
             playback_id = None
             if asset.playback_ids:
@@ -179,8 +188,8 @@ async def get_mux_asset_status(
         import mux_python
 
         assets_api = _get_mux_assets_api()
-        # mux_python is a synchronous SDK — run it in a thread so it never blocks the event loop
-        asset = _unwrap(await asyncio.to_thread(assets_api.get_asset, asset_id))
+        # mux_python is a synchronous SDK — run it in a thread so it never blocks the event loop.
+        asset = _unwrap(await asyncio.to_thread(assets_api.get_asset, asset_id, _request_timeout=MUX_API_TIMEOUT))
 
         playback_id = None
         if asset.playback_ids:
