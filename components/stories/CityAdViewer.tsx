@@ -101,6 +101,19 @@ export function CityAdViewer({
   });
   const { status } = useEvent(player, "statusChange", { status: player.status });
 
+  // Show the Mux thumbnail as a poster while the HLS stream buffers
+  // (status goes idle -> loading -> readyToPlay), so opening an ad feels instant.
+  const [videoReady, setVideoReady] = useState(false);
+  useEffect(() => {
+    setVideoReady(false);
+  }, [currentStory?.story_id]);
+  useEffect(() => {
+    if (status === "readyToPlay") setVideoReady(true);
+  }, [status]);
+
+  const thumb = currentStory?.mux_thumbnail_url
+    || (currentStory?.mux_playback_id ? `https://image.mux.com/${currentStory.mux_playback_id}/thumbnail.jpg` : null);
+
   // Auto-advance on video end — only fire when status transitions TO idle (not on init)
   const prevStatusRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -139,18 +152,25 @@ export function CityAdViewer({
       {/* Video player */}
       <View style={styles.videoContainer}>
         {currentStory?.media_type === "video" && currentStory?.media_url && currentStory?.video_status !== "processing" && currentStory?.video_status !== "uploading" ? (
-          <VideoView
-            player={player}
-            style={styles.video}
-            contentFit="contain"
-            nativeControls={false}
-            surfaceType="textureView"
-          />
+          videoReady ? (
+            <VideoView
+              player={player}
+              style={styles.video}
+              contentFit="contain"
+              nativeControls={false}
+              surfaceType="textureView"
+            />
+          ) : (
+            <View style={styles.loadingContainer}>
+              {thumb ? <Image source={{ uri: thumb }} style={styles.media} resizeMode="contain" /> : null}
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#fff" />
+              </View>
+            </View>
+          )
         ) : currentStory?.media_type === "video" && currentStory?.media_url ? (
           <View style={styles.loadingContainer}>
-            {currentStory?.mux_thumbnail_url ? (
-              <Image source={{ uri: currentStory.mux_thumbnail_url }} style={styles.media} resizeMode="contain" />
-            ) : null}
+            {thumb ? <Image source={{ uri: thumb }} style={styles.media} resizeMode="contain" /> : null}
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color="#fff" />
               <Text style={styles.loadingText}>Processing…</Text>
