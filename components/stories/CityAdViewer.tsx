@@ -16,6 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 import { GroupedStory, viewStory, markStorySeen } from "../../lib/api";
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from "../../lib/designTokens";
 import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
+import { muxThumbnailUrl } from "../../lib/media/mediaResolver";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_DURATION_MS = MEDIA_LIMITS.cityAd.imageDisplayMs;
@@ -112,7 +113,7 @@ export function CityAdViewer({
   }, [status]);
 
   const thumb = currentStory?.mux_thumbnail_url
-    || (currentStory?.mux_playback_id ? `https://image.mux.com/${currentStory.mux_playback_id}/thumbnail.jpg` : null);
+    || (currentStory?.mux_playback_id ? muxThumbnailUrl(currentStory.mux_playback_id, 640) : null);
 
   // Auto-advance on video end — only fire when status transitions TO idle (not on init)
   const prevStatusRef = useRef<string | undefined>(undefined);

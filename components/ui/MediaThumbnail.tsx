@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Image, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { optimizeImageUrl } from "../../lib/media/mediaResolver";
 
 type MediaThumbnailProps = {
   uri: string;
@@ -29,11 +30,12 @@ export default function MediaThumbnail({
   const containerStyle = width && height
     ? { width, height }
     : { aspectRatio, width: width ?? "100%" as any };
+  const src = optimizeImageUrl(uri, width || undefined);
 
   return (
     <Pressable style={[styles.container, containerStyle, { borderRadius }]} onPress={onPress}>
       {!hasError ? (
-        <Image source={{ uri }} style={styles.image} resizeMode="cover" onError={() => setHasError(true)} />
+        <Image source={{ uri: src }} style={styles.image} resizeMode="cover" onError={() => setHasError(true)} />
       ) : (
         <View style={styles.errorFallback}>
           <Ionicons name="image-outline" size={22} color="#9ca3af" />

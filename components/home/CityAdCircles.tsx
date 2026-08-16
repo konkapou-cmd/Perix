@@ -1,15 +1,16 @@
 import React, { useRef, useEffect } from "react";
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { GroupedStory, User, Story } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { useTranslation } from "react-i18next";
 import { deleteStory } from "../../lib/api/stories";
+import { muxThumbnailUrl, muxAnimatedGifUrl } from "../../lib/media/mediaResolver";
 
 const CARD_WIDTH = Platform.OS === "web" ? 180 : 145;
 const CARD_IMAGE_HEIGHT = Platform.OS === "web" ? 135 : 110;
 const SNAP_INTERVAL = Platform.OS === "web" ? 192 : 157;
+const CARD_PREVIEW_WIDTH = 300;
 
 interface CityAdCirclesProps {
   user: User | null;
@@ -26,34 +27,28 @@ interface CityAdCirclesProps {
   } | null;
 }
 
-function VideoPreview({ mediaUrl }: { mediaUrl: string }) {
-  const player = useVideoPlayer(mediaUrl, (p) => {
-    p.loop = true;
-    p.muted = true;
-    p.play();
-  });
-  return (
-    <VideoView
-      player={player}
-      style={styles.videoPreview}
-      contentFit="cover"
-      nativeControls={false}
-      surfaceType="textureView"
-    />
-  );
-}
-
 function AdVideoPreview({ story }: { story: Story }) {
   const isProcessing = story?.video_status === "processing" || story?.video_status === "uploading";
-  if (isProcessing) {
-    const thumb = story?.mux_thumbnail_url
-      || (story?.mux_playback_id ? `https://image.mux.com/${story.mux_playback_id}/thumbnail.jpg` : null);
-    if (thumb) {
-      return <Image source={{ uri: thumb }} style={styles.videoPreview} resizeMode="cover" />;
-    }
-    return <View style={[styles.videoPreview, { backgroundColor: "#000" }]} />;
+  const playbackId = story?.mux_playback_id;
+  const thumb = story?.mux_thumbnail_url || (playbackId ? muxThumbnailUrl(playbackId, CARD_PREVIEW_WIDTH) : null);
+
+  // While processing, show the static thumbnail. Once ready, show the short
+  // animated GIF preview — a "moving" cover that is far lighter than spinning
+  // up a full HLS video player per card.
+  if (isProcessing || !playbackId) {
+    return thumb ? (
+      <Image source={{ uri: thumb }} style={styles.videoPreview} resizeMode="cover" />
+    ) : (
+      <View style={[styles.videoPreview, { backgroundColor: "#000" }]} />
+    );
   }
-  return <VideoPreview mediaUrl={story?.media_url || ""} />;
+  return (
+    <Image
+      source={{ uri: muxAnimatedGifUrl(playbackId, CARD_PREVIEW_WIDTH) }}
+      style={styles.videoPreview}
+      resizeMode="cover"
+    />
+  );
 }
 
 export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPress, onAdDeleted, sessionToken, activeIdentity }: CityAdCirclesProps) {

@@ -35,6 +35,29 @@ export function getMuxThumbnail(playbackUri: string): string | null {
   return match ? `https://image.mux.com/${match[1]}/thumbnail.jpg` : null;
 }
 
+/** Static Mux thumbnail, sized for the display context (defaults to full size). */
+export function muxThumbnailUrl(playbackId: string, width?: number): string {
+  return `https://image.mux.com/${playbackId}/thumbnail.jpg${width ? `?width=${width}` : ""}`;
+}
+
+/** Short animated GIF preview from Mux — a "moving" cover without a full video player. */
+export function muxAnimatedGifUrl(playbackId: string, width?: number): string {
+  return `https://image.mux.com/${playbackId}/animated.gif${width ? `?width=${width}` : ""}`;
+}
+
+/** Downsize Cloudinary/Mux image URLs for the requested display width. */
+export function optimizeImageUrl(url: string, width?: number): string {
+  if (!url || !width) return url;
+  if (url.includes("image.mux.com")) {
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}width=${width}`;
+  }
+  if (url.includes("cloudinary.com")) {
+    return url.replace(/w_\d+/, `w_${width}`);
+  }
+  return url;
+}
+
 export function isMediaResolved(item: MinimalMedia): boolean {
   return !item.processingStatus || item.processingStatus === "ready";
 }
