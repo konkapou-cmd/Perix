@@ -1,14 +1,10 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, LayoutAnimation, Platform, UIManager } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SectionHeader } from "../shared/SectionHeader";
 import { COLORS, SPACING } from "../../lib/designTokens";
-
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 interface FilterOption {
   key: string;
@@ -33,17 +29,11 @@ interface CarouselSectionProps {
   children: React.ReactNode;
 }
 
-export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage, isCollapsed, onToggleCollapse, hideWhenEmpty, layout = "carousel", children }: CarouselSectionProps) {
+export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage, hideWhenEmpty, layout = "carousel", children }: CarouselSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
-  const collapsed = isCollapsed ?? false;
   const hasContent = React.Children.count(children) > 0;
   const accent = color || COLORS.primaryDark;
-
-  const handleToggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    onToggleCollapse?.();
-  };
 
   if (hideWhenEmpty && !hasContent) return null;
 
@@ -57,34 +47,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
             accent={accent}
             onSeeAll={undefined}
           />
-          {onToggleCollapse && (
-            <Pressable
-              onPress={handleToggle}
-              style={styles.chevronBtn}
-              accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
-              hitSlop={8}
-            >
-              <Ionicons
-                name={collapsed ? "chevron-forward" : "chevron-down"}
-                size={22}
-                color={accent}
-              />
-            </Pressable>
-          )}
         </View>
-        {onToggleCollapse && (
-          <Pressable
-            onPress={handleToggle}
-            style={[styles.chevronBtn, { marginRight: 4 }]}
-            hitSlop={8}
-          >
-            <Ionicons
-              name={collapsed ? "chevron-forward" : "chevron-down"}
-              size={20}
-              color={accent}
-            />
-          </Pressable>
-        )}
         {seeAllRoute && (
           <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={(e: any) => { e?.stopPropagation?.(); router.navigate(seeAllRoute as any); }}>
             <Text style={styles.seeAllText} numberOfLines={1}>{t("common.seeAll", "Όλα")}</Text>
@@ -92,35 +55,33 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
         )}
       </View>
 
-      {!collapsed && (
-        <>
-          {filters && (
-            <View style={styles.filterChipRow}>
-              {filters.options.map(opt => (
-                <Pressable
-                  key={opt.key}
-                  style={[styles.filterChip, filters.activeKey === opt.key && { backgroundColor: accent, borderColor: accent }]}
-                  onPress={() => filters.onChange(opt.key)}
-                >
-                  <Text style={[styles.filterChipText, filters.activeKey === opt.key && { color: COLORS.textLight, fontWeight: "600" }]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
+      <>
+        {filters && (
+          <View style={styles.filterChipRow}>
+            {filters.options.map(opt => (
+              <Pressable
+                key={opt.key}
+                style={[styles.filterChip, filters.activeKey === opt.key && { backgroundColor: accent, borderColor: accent }]}
+                onPress={() => filters.onChange(opt.key)}
+              >
+                <Text style={[styles.filterChipText, filters.activeKey === opt.key && { color: COLORS.textLight, fontWeight: "600" }]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
-          {layout === "carousel" ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
-              {children}
-            </ScrollView>
-          ) : (
-            <View style={styles.grid}>
-              {children}
-            </View>
-          )}
-        </>
-      )}
+        {layout === "carousel" ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={styles.grid}>
+            {children}
+          </View>
+        )}
+      </>
     </View>
   );
 }
@@ -141,14 +102,6 @@ const styles = StyleSheet.create({
   headerLeft: {
     flex: 1,
     minWidth: 0,
-  },
-  chevronBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
   },
   seeAllBtn: {
     flexDirection: "row",
