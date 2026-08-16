@@ -328,6 +328,7 @@ export default function HomeScreen() {
         latitude: userLocation?.latitude,
         longitude: userLocation?.longitude,
         video_status: "uploading",
+        client_request_id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
       });
       const muxResult = await uploadVideoMux(sessionToken, result.assets[0].uri, `story:${story.story_id}`);
       const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);

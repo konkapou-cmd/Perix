@@ -18,6 +18,7 @@ class StoryCreate(BaseModel):
     mux_playback_id: Optional[str] = None
     mux_thumbnail_url: Optional[str] = None
     video_status: Optional[str] = None
+    client_request_id: Optional[str] = None
 
 
 class StoryResponse(BaseModel):

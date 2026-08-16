@@ -2,6 +2,7 @@
 import logging
 import hashlib
 import hmac
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from pydantic import BaseModel
 from typing import Optional
@@ -91,7 +92,8 @@ async def create_mux_upload(
             new_asset_settings=create_asset_request,
             cors_origin="*",
         )
-        response = uploads_api.create_direct_upload(create_upload_request)
+        # mux_python is a synchronous SDK — run it in a thread so it never blocks the event loop
+        response = await asyncio.to_thread(uploads_api.create_direct_upload, create_upload_request)
         upload = _unwrap(response)
 
         await db.mux_uploads.insert_one({
@@ -121,11 +123,12 @@ async def confirm_mux_upload(
         import mux_python
 
         uploads_api = _get_mux_uploads_api()
-        upload_info = _unwrap(uploads_api.get_direct_upload(payload.upload_id))
+        # mux_python is a synchronous SDK — run it in a thread so it never blocks the event loop
+        upload_info = _unwrap(await asyncio.to_thread(uploads_api.get_direct_upload, payload.upload_id))
 
         if upload_info.asset_id:
             assets_api = _get_mux_assets_api()
-            asset = _unwrap(assets_api.get_asset(upload_info.asset_id))
+            asset = _unwrap(await asyncio.to_thread(assets_api.get_asset, upload_info.asset_id))
 
             playback_id = None
             if asset.playback_ids:
@@ -176,7 +179,8 @@ async def get_mux_asset_status(
         import mux_python
 
         assets_api = _get_mux_assets_api()
-        asset = _unwrap(assets_api.get_asset(asset_id))
+        # mux_python is a synchronous SDK — run it in a thread so it never blocks the event loop
+        asset = _unwrap(await asyncio.to_thread(assets_api.get_asset, asset_id))
 
         playback_id = None
         if asset.playback_ids:

@@ -146,6 +146,14 @@ async def build_story_response(story_doc: dict, current_user_id: str) -> StoryRe
 
 @router.post("", response_model=StoryResponse)
 async def create_story(body: StoryCreate, current_user: UserPublic = Depends(get_current_user)):
+    # Idempotency: a retried request (e.g. after a network timeout) must not create a duplicate story
+    if body.client_request_id:
+        existing = await db.stories.find_one(
+            {"client_request_id": body.client_request_id, "user_id": current_user.user_id}
+        )
+        if existing:
+            return await build_story_response(existing, current_user.user_id)
+
     actor = await resolve_actor(body.actor_type, body.actor_id, current_user)
     actor_type = actor["actor_type"]
     actor_id = actor["actor_id"]
@@ -170,10 +178,30 @@ async def create_story(body: StoryCreate, current_user: UserPublic = Depends(get
         "mux_playback_id": body.mux_playback_id,
         "mux_thumbnail_url": body.mux_thumbnail_url,
         "video_status": body.video_status,
+        "client_request_id": body.client_request_id,
     }
 
     await db.stories.insert_one(story_doc)
     return await build_story_response(story_doc, current_user.user_id)
+
+
+@router.get("/my-stories", response_model=List[StoryResponse])
+async def get_my_stories(actor_type: str = "user", current_user: UserPublic = Depends(get_current_user)):
+    actor = await resolve_actor(actor_type, None, current_user)
+    at = actor["actor_type"]
+    aid = actor["actor_id"]
+    now = now_utc()
+    cutoff = (now - timedelta(hours=STORY_EXPIRY_HOURS)).isoformat()
+
+    stories = await db.stories.find(
+        {"actor_id": aid, "actor_type": at, "is_hidden": False, "expires_at": {"$gte": cutoff}},
+        sort=[("created_at", -1)],
+    ).to_list(length=100)
+
+    actor_map = await _batch_fetch_actor_info(stories)
+    story_ids = [s["story_id"] for s in stories]
+    stats = await _batch_fetch_story_stats(story_ids, current_user.user_id)
+    return [_build_story_response_from_batch(s, actor_map, stats) for s in stories]
 
 
 @router.get("", response_model=List[GroupedStoryResponse])
@@ -192,7 +220,12 @@ async def get_stories(
     except Exception:
         pass
 
-    query: dict = {"is_hidden": False, "expires_at": {"$gte": cutoff}}
+    # Exclude stories without playable media (e.g. orphaned "uploading" shells after a failed upload)
+    query: dict = {
+        "is_hidden": False,
+        "expires_at": {"$gte": cutoff},
+        "media_url": {"$ne": None},
+    }
     if min_lat is not None and max_lat is not None and min_lng is not None and max_lng is not None:
         query["latitude"] = {"$gte": min_lat, "$lte": max_lat}
         query["longitude"] = {"$gte": min_lng, "$lte": max_lng}
@@ -327,25 +360,6 @@ async def update_story(story_id: str, body: StoryUpdate, current_user: UserPubli
         story_doc.update(update_fields)
 
     return await build_story_response(story_doc, current_user.user_id)
-
-
-@router.get("/my-stories", response_model=List[StoryResponse])
-async def get_my_stories(actor_type: str = "user", current_user: UserPublic = Depends(get_current_user)):
-    actor = await resolve_actor(actor_type, None, current_user)
-    at = actor["actor_type"]
-    aid = actor["actor_id"]
-    now = now_utc()
-    cutoff = (now - timedelta(hours=STORY_EXPIRY_HOURS)).isoformat()
-
-    stories = await db.stories.find(
-        {"actor_id": aid, "actor_type": at, "is_hidden": False, "expires_at": {"$gte": cutoff}},
-        sort=[("created_at", -1)],
-    ).to_list(length=100)
-
-    actor_map = await _batch_fetch_actor_info(stories)
-    story_ids = [s["story_id"] for s in stories]
-    stats = await _batch_fetch_story_stats(story_ids, current_user.user_id)
-    return [_build_story_response_from_batch(s, actor_map, stats) for s in stories]
 
 
 @router.get("/{story_id}/reactions")

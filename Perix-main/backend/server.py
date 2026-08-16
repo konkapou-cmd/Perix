@@ -1,7 +1,9 @@
 """
 Perix - City Social Media API
 Refactored modular architecture - February 2026
-Deploy marker 2026-08-16b: CI green (PYTHONPATH fix) — trigger Railway deploy of clean backend
+Deploy marker 2026-08-16c: City Ad publish fixes — idempotent story/post creation (client_request_id),
+Mux SDK calls moved off the event loop (asyncio.to_thread), /stories/my-stories route order fix,
+feed excludes stories without media_url — trigger Railway deploy
 """
 import asyncio
 import time

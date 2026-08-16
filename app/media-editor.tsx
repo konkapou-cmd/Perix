@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { createPost, createStory, uploadMedia, uploadImageToCloudinary, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL } from "../lib/api";
+import { createPost, createStory, uploadMedia, uploadImageToCloudinary, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL, apiRequest, StoryCreatePayload } from "../lib/api";
 import UploadProgressSheet from "../components/UploadProgressSheet";
 import * as FileSystem from "expo-file-system/legacy";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
@@ -48,6 +48,33 @@ export default function MediaEditor() {
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
+  const [bizLocation, setBizLocation] = useState<{ latitude?: number | null; longitude?: number | null } | null>(null);
+
+  // Idempotency keys: stable across retries of the same content, new for fresh content.
+  const publishReqIdsRef = useRef<{ post?: { key: string; id: string }; cityad?: { key: string; id: string } }>({});
+  const getRequestId = (scope: "post" | "cityad") => {
+    const key = `${decodedUri}|${caption}`;
+    const entry = publishReqIdsRef.current[scope];
+    if (entry && entry.key === key) return entry.id;
+    const id = `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    publishReqIdsRef.current[scope] = { key, id };
+    return id;
+  };
+  const clearRequestId = (scope: "post" | "cityad") => {
+    publishReqIdsRef.current[scope] = undefined;
+  };
+  const withIdempotentRetry = async <T,>(fn: () => Promise<T>, idempotencyKey?: string): Promise<T> => {
+    try {
+      return await fn();
+    } catch (e: any) {
+      const msg = String(e?.message || "").toLowerCase();
+      if (idempotencyKey && (msg.includes("network") || msg.includes("failed to fetch"))) {
+        await new Promise((r) => setTimeout(r, 1500));
+        return await fn();
+      }
+      throw e;
+    }
+  };
 
   const player = useVideoPlayer(isVideo ? decodedUri : "", (p) => {
     p.loop = true;
@@ -72,7 +99,7 @@ export default function MediaEditor() {
     return () => sub.remove();
   }, [player, isVideo]);
 
-  // Load businesses and friends for @-mention tagging
+  // Load businesses and friends for @-mention tagging (+ business location for City Ads)
   useEffect(() => {
     if (!sessionToken) return;
     Promise.all([
@@ -82,8 +109,12 @@ export default function MediaEditor() {
       const bizItems = (businesses || []).map((b: any) => ({ id: b.business_id, name: b.name, type: "business" as const, avatar: b.logo_image }));
       const friendItems = (friends || []).map((f: any) => ({ id: f.user_id, name: f.name || f.user_id, type: "user" as const, avatar: f.profile_photo || f.picture }));
       setAllMentionables([...friendItems, ...bizItems]);
+      if (activeIdentity?.type === "business") {
+        const biz = (businesses || []).find((b: any) => b.business_id === activeIdentity.id);
+        if (biz) setBizLocation({ latitude: biz.latitude ?? null, longitude: biz.longitude ?? null });
+      }
     }).catch(() => {});
-  }, [sessionToken]);
+  }, [sessionToken, activeIdentity?.type, activeIdentity?.id]);
 
   const filteredSuggestions = useMemo(() => {
     if (!mentionQuery) return allMentionables.slice(0, 10);
@@ -185,7 +216,11 @@ export default function MediaEditor() {
         }
         setShowUploadProgress(false);
         console.log("[media-editor] creating post with video:", { videoUrl, muxPlaybackId });
-        await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, videoStatus);
+        const requestId = getRequestId("post");
+        await withIdempotentRetry(
+          () => createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, videoStatus, requestId),
+          requestId,
+        );
       } else {
         const isRemote = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
         if (!isRemote) {
@@ -199,13 +234,20 @@ export default function MediaEditor() {
         setShowUploadProgress(true);
         setUploadContext("image");
         setUploadProgress({ phase: "preparing", progress: 0 });
-        const imageUrl = isRemote
+        const imageUrl = decodedUri.startsWith("http")
+          ? decodedUri
+          : decodedUri.startsWith("data:")
           ? await uploadImageToCloudinary(sessionToken, decodedUri)
           : await uploadMedia(sessionToken, decodedUri, "image", (p) => setUploadProgress(p));
         setShowUploadProgress(false);
         console.log("[media-editor] creating post with image:", { imageUrl });
-        await createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, imageUrl, null, null, null);
+        const requestId = getRequestId("post");
+        await withIdempotentRetry(
+          () => createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, imageUrl, null, null, null, undefined, undefined, undefined, requestId),
+          requestId,
+        );
       }
+      clearRequestId("post");
       Alert.alert(t("editor.success", "Success!"), t("editor.postPublished", "Your post has been published!"), [{ text: t("common.ok"), onPress: () => router.back() }]);
     } catch (error: any) {
       console.error("[media-editor] publishAsPost failed:", error?.message, error);
@@ -236,8 +278,8 @@ export default function MediaEditor() {
           }
         }
       } else {
-        const isRemote = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
-        if (!isRemote) {
+        const isRemoteImg = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
+        if (!isRemoteImg) {
           const info = await FileSystem.getInfoAsync(decodedUri);
           if (info.exists && info.size && info.size > MEDIA_LIMITS.image.maxFileSizeBytes) {
             Alert.alert(t("common.error"), `Das Bild ist zu groß. Maximal erlaubt sind ${MEDIA_LIMITS.image.maxFileSizeMb} MB.`);
@@ -246,16 +288,72 @@ export default function MediaEditor() {
           }
         }
       }
-      const isRemote = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
-      const mediaUrl = isVideo ? decodedUri : (isRemote ? await uploadImageToCloudinary(sessionToken, decodedUri) : await uploadMedia(sessionToken, decodedUri, "image"));
       const cityAdCaption = caption.length > MEDIA_LIMITS.cityAd.captionMaxLength ? caption.slice(0, MEDIA_LIMITS.cityAd.captionMaxLength) : caption;
-      await createStory(sessionToken, { media_url: mediaUrl, media_type: isVideo ? "video" : "image", text: cityAdCaption, actor_id: activeIdentity.id, actor_type: activeIdentity.type as "business" });
+      const requestId = getRequestId("cityad");
+
+      if (isVideo) {
+        // Step 1: create the story shell first (upload gets wired to it via content_ref)
+        setShowUploadProgress(true);
+        setUploadProgress({ phase: "preparing", progress: 0 });
+        const storyPayload: StoryCreatePayload = {
+          media_url: undefined,
+          media_type: "video",
+          text: cityAdCaption,
+          actor_id: activeIdentity.id,
+          actor_type: "business",
+          latitude: bizLocation?.latitude ?? undefined,
+          longitude: bizLocation?.longitude ?? undefined,
+          video_status: "uploading",
+          client_request_id: requestId,
+        };
+        const story = await withIdempotentRetry(() => createStory(sessionToken, storyPayload), requestId);
+        // Step 2: upload to Mux — content_ref lets the backend webhook patch this story when ready
+        const muxResult = await uploadVideoMux(sessionToken, decodedUri, `story:${story.story_id}`, (p) => setUploadProgress(p));
+        const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+        // Step 3: patch the story with the playback info
+        if (videoUrl || muxResult.mux_upload_id) {
+          await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
+            media_url: videoUrl || undefined,
+            mux_upload_id: muxResult.mux_upload_id,
+            mux_asset_id: muxResult.mux_asset_id,
+            mux_playback_id: muxResult.mux_playback_id,
+            mux_thumbnail_url: muxResult.mux_thumbnail_url,
+            video_status: muxResult.mux_playback_id ? "ready" : "processing",
+          });
+        }
+        setShowUploadProgress(false);
+      } else {
+        const isRemoteImg = decodedUri.startsWith("http") || decodedUri.startsWith("data:");
+        setShowUploadProgress(true);
+        setUploadProgress({ phase: "preparing", progress: 0 });
+        const imageUrl = decodedUri.startsWith("http")
+          ? decodedUri
+          : decodedUri.startsWith("data:")
+          ? await uploadImageToCloudinary(sessionToken, decodedUri)
+          : await uploadMedia(sessionToken, decodedUri, "image", (p) => setUploadProgress(p));
+        setShowUploadProgress(false);
+        await withIdempotentRetry(
+          () => createStory(sessionToken, {
+            media_url: imageUrl,
+            media_type: "image",
+            text: cityAdCaption,
+            actor_id: activeIdentity.id,
+            actor_type: "business",
+            latitude: bizLocation?.latitude ?? undefined,
+            longitude: bizLocation?.longitude ?? undefined,
+            client_request_id: requestId,
+          }),
+          requestId,
+        );
+      }
+      clearRequestId("cityad");
       Alert.alert(t("editor.success", "Success!"), t("editor.cityAdPublished", "Your city ad has been published!"), [{ text: t("common.ok"), onPress: () => router.back() }]);
     } catch (error: any) {
       console.error("[media-editor] publishAsCityAd failed:", error?.message, error);
       Alert.alert(t("common.error"), error?.message || t("editor.publishFailed", "Failed to publish"));
     } finally {
       setPublishing(false);
+      setShowUploadProgress(false);
     }
   };
 

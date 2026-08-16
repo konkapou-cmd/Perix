@@ -40,7 +40,8 @@ export const createPost = async (
   soundcloud_url?: string | null,
   mux_upload_id?: string | null,
   mux_playback_id?: string | null,
-  video_status?: string | null
+  video_status?: string | null,
+  client_request_id?: string
 ): Promise<Post> => {
   return apiRequest<Post>("/posts", "POST", token, {
     text,
@@ -59,6 +60,7 @@ export const createPost = async (
     tagged_user_ids,
     tagged_business_ids: tagged_business_id ? [tagged_business_id] : [],
     tagged_artist_ids: tagged_artist_id ? [tagged_artist_id] : [],
+    client_request_id,
   });
 };
 
