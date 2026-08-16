@@ -731,13 +731,15 @@ export default function ProfileScreen() {
 
 
   const [eventSaving, setEventSaving] = useState(false);
+  const eventSavingRef = useRef(false);
 
   const handleSaveEvent = async () => {
-    if (!sessionToken || eventSaving) return;
+    if (!sessionToken || eventSavingRef.current) return;
     if (!(eventForm.title || "").trim()) {
       Alert.alert(t("common.error") || "Error", t("events.titleRequired") || "Title is required");
       return;
     }
+    eventSavingRef.current = true;
     const pad = (n: number) => n.toString().padStart(2, "0");
     const localDateStr = `${eventDate.getFullYear()}-${pad(eventDate.getMonth() + 1)}-${pad(eventDate.getDate())}`;
     const localTimeStr = `${pad(eventTime.getHours())}:${pad(eventTime.getMinutes())}:${pad(eventTime.getSeconds())}`;
@@ -805,6 +807,7 @@ export default function ProfileScreen() {
       console.error("[handleSaveEvent] Error:", (e as Error)?.message, "Status:", (e as any)?.status, "eventEditing:", eventEditing?.event_id);
       Alert.alert(t("common.error") || "Error", (e as Error)?.message || t("events.saveFailed") || "Failed to save event");
     } finally {
+      eventSavingRef.current = false;
       setEventSaving(false);
     }
   };
