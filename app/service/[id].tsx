@@ -28,7 +28,6 @@ import { ChecklistCard } from "../../components/shared/ChecklistCard";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
 import { EntityHeader } from "../../components/shared/EntityHeader";
-import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
