@@ -104,8 +104,12 @@ export default function SettingsScreen() {
     }
   };
 
+  const [savingPrefs, setSavingPrefs] = useState(false);
+
   const savePrefs = async (newPrefs: NotificationPrefs) => {
+    if (savingPrefs) return;
     setNotifPrefs(newPrefs);
+    setSavingPrefs(true);
     try {
       await AsyncStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(newPrefs));
     } catch (e) {
@@ -118,6 +122,7 @@ export default function SettingsScreen() {
         console.log("Failed to save notification prefs to server:", e);
       }
     }
+    setSavingPrefs(false);
   };
 
   const togglePref = (key: keyof NotificationPrefs) => {

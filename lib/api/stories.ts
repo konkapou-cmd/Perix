@@ -14,6 +14,7 @@ export type StoryCreatePayload = {
   longitude?: number;
   duration_seconds?: number;
   video_status?: string;
+  client_request_id?: string;
 };
 
 export const getStories = async (

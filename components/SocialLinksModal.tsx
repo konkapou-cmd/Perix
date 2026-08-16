@@ -20,6 +20,7 @@ interface SocialLinksModalProps {
   youtubeUrl?: string;
   onYoutubeUrlChange?: (url: string) => void;
   onSave: () => void;
+  isSaving?: boolean;
 }
 
 const SOCIAL_PLATFORMS = [
@@ -39,6 +40,7 @@ export default function SocialLinksModal({
   socials,
   onSocialsChange,
   onSave,
+  isSaving = false,
 }: SocialLinksModalProps) {
   const { t } = useTranslation();
   const [localSocials, setLocalSocials] = useState<Record<string, string>>(socials);
@@ -97,8 +99,8 @@ export default function SocialLinksModal({
             <Pressable style={styles.cancelButton} onPress={onClose}>
               <Text style={styles.cancelText}>{t("common.cancel", "Cancel")}</Text>
             </Pressable>
-            <Pressable style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveText}>{t("common.save", "Save")}</Text>
+            <Pressable style={[styles.saveButton, isSaving && { opacity: 0.5 }]} onPress={handleSave} disabled={isSaving}>
+              <Text style={styles.saveText}>{isSaving ? t("common.saving", "Saving...") : t("common.save", "Save")}</Text>
             </Pressable>
           </View>
         </View>

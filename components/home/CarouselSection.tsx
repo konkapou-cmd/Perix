@@ -29,10 +29,11 @@ interface CarouselSectionProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   hideWhenEmpty?: boolean;
+  layout?: "carousel" | "grid";
   children: React.ReactNode;
 }
 
-export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage, isCollapsed, onToggleCollapse, hideWhenEmpty, children }: CarouselSectionProps) {
+export function CarouselSection({ title, icon, color, seeAllRoute, filters, emptyMessage, isCollapsed, onToggleCollapse, hideWhenEmpty, layout = "carousel", children }: CarouselSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const collapsed = isCollapsed ?? false;
@@ -56,6 +57,20 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
             accent={accent}
             onSeeAll={undefined}
           />
+          {onToggleCollapse && (
+            <Pressable
+              onPress={handleToggle}
+              style={styles.chevronBtn}
+              accessibilityLabel={collapsed ? t("common.expandSection", "Άνοιγμα ενότητας") : t("common.collapseSection", "Κλείσιμο ενότητας")}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={collapsed ? "chevron-forward" : "chevron-down"}
+                size={22}
+                color={accent}
+              />
+            </Pressable>
+          )}
         </View>
         {onToggleCollapse && (
           <Pressable
@@ -95,9 +110,15 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
             </View>
           )}
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={Platform.OS === "web" ? 232 : 212} decelerationRate="fast">
-            {children}
-          </ScrollView>
+          {layout === "carousel" ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={styles.grid}>
+              {children}
+            </View>
+          )}
         </>
       )}
     </View>
@@ -160,5 +181,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     color: COLORS.textMuted,
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    gap: SPACING.small,
   },
 });

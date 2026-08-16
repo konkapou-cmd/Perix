@@ -27,6 +27,9 @@ export default function SlotManagerModal(props: Props) {
 
 function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType, onClose }: Props) {
   const { t } = useTranslation();
+
+  if (serviceType === "hotel_room") return null;
+
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todayISO());
@@ -168,6 +171,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
   };
 
   const handleCreateQuickSlot = async () => {
+    if (loading) return;
     if (!quickStart || !quickEnd) {
       Alert.alert(t("common.error", "Error"), t("slotManager.selectTime", "Set start and end times"));
       return;
@@ -193,6 +197,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
   };
 
   const handleCreateWeekly = async () => {
+    if (loading) return;
     if (selectedDays.length === 0) {
       Alert.alert(t("common.error", "Error"), t("slotManager.selectDays", "Select at least one day"));
       return;
@@ -224,6 +229,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
   };
 
   const handleDeleteSlot = async (slot: TimeSlot) => {
+    if (loading) return;
     setLoading(true);
     try {
       await deleteSlot(sessionToken, serviceId, slot.slot_id);
@@ -235,6 +241,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
   };
 
   const handleBlockRange = async () => {
+    if (loading) return;
     if (!blockStart || !blockEnd) {
       Alert.alert(t("common.error", "Error"), t("slotManager.selectDates", "Select date range"));
       return;
@@ -363,8 +370,8 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
                   {slot.is_booked ? ` (${t("slotManager.booked", "booked")})` : ""}
                 </Text>
               </View>
-              <Pressable onPress={() => handleDeleteSlot(slot)} hitSlop={8}>
-                <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+              <Pressable onPress={() => handleDeleteSlot(slot)} hitSlop={8} disabled={loading}>
+                <Ionicons name="trash-outline" size={18} color={loading ? COLORS.textMuted : COLORS.danger} />
               </Pressable>
             </View>
           ))}

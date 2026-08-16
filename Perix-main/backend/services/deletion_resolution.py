@@ -48,6 +48,11 @@ def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _as_aware(dt: datetime) -> datetime:
+    """MongoDB round-trips datetimes as naive — normalize before comparing."""
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
 def _build_request_hash(
     lock_key: str,
     admin_user_id: str,
@@ -95,7 +100,7 @@ async def _claim_operation(
             return existing
         if status == "running":
             lease = existing.get("lease_expires_at")
-            if lease and isinstance(lease, datetime) and lease > now:
+            if lease and isinstance(lease, datetime) and _as_aware(lease) > now:
                 raise ResolutionOperationInProgress("Resolution already running")
             # Lease expired — reclaim
             result = await db.resolution_operations.update_one(

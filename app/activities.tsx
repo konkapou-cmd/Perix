@@ -97,7 +97,8 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
    const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
    const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
    const [showBusinessPicker, setShowBusinessPicker] = useState(false);
-     const [form, setForm] = useState({
+    const [activitySaving, setActivitySaving] = useState(false);
+      const [form, setForm] = useState({
       title: "",
       description: "",
       date: "",
@@ -226,11 +227,13 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
   }, [createModal, sessionToken]);
 
      const handleCreate = async () => {
+     if (activitySaving) return;
      if (!sessionToken) { Alert.alert(t('common.error'), t('auth.signInRequired') || 'Please sign in first'); return; }
      if (!form.title) { Alert.alert(t('common.error'), t('activities.titleRequired') || 'Please enter a title'); return; }
      if (!form.date) { Alert.alert(t('common.error'), t('activities.dateRequired') || 'Please select a date'); return; }
      if (!form.time) { Alert.alert(t('common.error'), t('activities.timeRequired') || 'Please select a time'); return; }
-
+     setActivitySaving(true);
+     try {
        const newActivity = await createActivity(sessionToken, {
           title: form.title,
           description: form.description || undefined,
@@ -264,7 +267,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
        longitude: null,
        maxAttendees: "",
        inviteEmails: "",
-       isPrivate: false,
+        isPrivate: false,
         accessCode: "",
         password: "",
           theme: "",
@@ -274,6 +277,11 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
        setActivityImages([]);
        setSelectedBusinessId(null);
        setCreateModal(false);
+     } catch (e: any) {
+       Alert.alert(t("common.error"), e.message || t("activities.saveFailed", "Failed to save activity"));
+     } finally {
+       setActivitySaving(false);
+     }
    };
 
    const openEditActivity = (activity: ActivityItem) => {
@@ -301,7 +309,9 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
    };
 
    const handleUpdateActivity = async () => {
-     if (!sessionToken || !editActivity) return;
+     if (!sessionToken || !editActivity || activitySaving) return;
+     setActivitySaving(true);
+     try {
   const updated = await updateActivity(sessionToken, editActivity.activity_id, {
           title: form.title || undefined,
           description: form.description || undefined,
@@ -324,6 +334,11 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
        prev.map((item) => (item.activity_id === updated.activity_id ? updated : item))
      );
      setEditModal(false);
+     } catch (e: any) {
+       Alert.alert(t("common.error"), e.message || t("common.saveFailed"));
+     } finally {
+       setActivitySaving(false);
+     }
    };
 
   const handleDeleteActivity = async (activityId: string) => {

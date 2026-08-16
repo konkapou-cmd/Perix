@@ -310,24 +310,33 @@ export default function HomeScreen() {
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
   const [storyViewerIndex, setStoryViewerIndex] = useState(0);
   const [uploadingAd, setUploadingAd] = useState(false);
+  const creatingAdRef = useRef(false);
 
   const handleCreateCityAd = async () => {
-    if (!sessionToken) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: MEDIA_LIMITS.video.pickerQuality,
-    });
-    if (result.canceled || !result.assets?.[0]?.uri) return;
+    if (!sessionToken || creatingAdRef.current) return;
+    creatingAdRef.current = true;
     try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        quality: MEDIA_LIMITS.video.pickerQuality,
+      });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
       setUploadingAd(true);
+      // Anchor the ad at the business's own location so it projects in the city feed near the business
+      const activeBiz = activeIdentity?.type === "business"
+        ? myBusinesses.find((b) => b.business_id === activeIdentity.id)
+        : undefined;
+      const adLat = activeBiz?.latitude ? activeBiz.latitude : userLocation?.latitude;
+      const adLng = activeBiz?.longitude ? activeBiz.longitude : userLocation?.longitude;
       const story = await createStory(sessionToken, {
         media_url: undefined,
         media_type: "video",
         actor_type: "business",
         actor_id: activeIdentity?.id,
-        latitude: userLocation?.latitude,
-        longitude: userLocation?.longitude,
+        latitude: adLat,
+        longitude: adLng,
         video_status: "uploading",
+        client_request_id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
       });
       const muxResult = await uploadVideoMux(sessionToken, result.assets[0].uri, `story:${story.story_id}`);
       const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
@@ -341,12 +350,15 @@ export default function HomeScreen() {
           video_status: muxResult.mux_playback_id ? "ready" : "processing",
         });
       }
-      Alert.alert(t("cityAd.adPublished") || "Your city ad has been published!");
       setUploadingAd(false);
+      refreshFeed().catch(() => {});
+      Alert.alert(t("cityAd.adPublished") || "Your city ad has been published!");
     } catch (e) {
       console.error("City ad creation failed:", e);
       setUploadingAd(false);
       Alert.alert(t("common.error"), "Failed to create city ad");
+    } finally {
+      creatingAdRef.current = false;
     }
   };
 
@@ -603,8 +615,12 @@ export default function HomeScreen() {
     }
   };
 
+  const [updatingPost, setUpdatingPost] = useState(false);
+
   const handleUpdatePost = async () => {
-    if (!sessionToken || !editPost) return;
+    if (!sessionToken || !editPost || updatingPost) return;
+    setUpdatingPost(true);
+    try {
     const YOUTUBE_REGEX_EDIT = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)?/gi;
     const SOUNDCLOUD_REGEX_EDIT = /(?:https?:\/\/)?(?:www\.)?soundcloud\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+(?:[^\s]*)?/gi;
     let finalEditText = editText.trim();
@@ -618,6 +634,9 @@ export default function HomeScreen() {
     setLocalPosts((prev: Post[]) => prev.map((item) => (item.post_id === updated.post_id ? updated : item)));
     setEditModal(false);
     setEditMediaRatio(null);
+    } finally {
+      setUpdatingPost(false);
+    }
   };
 
   const handleDeletePost = async (post: Post) => {
@@ -728,7 +747,6 @@ export default function HomeScreen() {
       />
 
       <FlatList
-        key={`feed-${viewportProducts.length}-${viewportHomes.length}`}
         ref={scrollRef}
         data={homeLayout.sections.find(s => s.id === "posts")?.enabled !== false ? sortedPosts : []}
         keyExtractor={(item) => item.post_id}
@@ -795,7 +813,9 @@ export default function HomeScreen() {
           user={user}
           storyGroups={storyGroups}
           onYourStoryPress={handleCreateCityAd}
-          onStoryPress={(idx) => { setStoryViewerIndex(idx); setStoryViewerOpen(true); }}
+          onStoryPress={(idx) => { console.log("[CityAd] press idx:", idx, "groups:", storyGroups.length); setStoryViewerIndex(idx); setStoryViewerOpen(true); }}
+          onAdDeleted={refreshFeed}
+          sessionToken={sessionToken}
           activeIdentity={activeIdentity}
         />
 
@@ -1422,9 +1442,15 @@ export default function HomeScreen() {
       <ShareContent visible={shareModalVisible} onClose={() => setShareModalVisible(false)} contentType="post" contentId={shareContentId} title={shareContentTitle} description="" />
 
       <Modal visible={storyViewerOpen} animationType="fade" transparent statusBarTranslucent onRequestClose={() => setStoryViewerOpen(false)}>
-        {storyViewerOpen && storyGroups.length > 0 && (
-          <CityAdViewer groups={storyGroups} initialGroupIndex={storyViewerIndex} onClose={() => setStoryViewerOpen(false)} />
-        )}
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          {storyGroups.length > 0 ? (
+            <CityAdViewer groups={storyGroups} initialGroupIndex={storyViewerIndex} onClose={() => setStoryViewerOpen(false)} />
+          ) : (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator size="large" color="#fff" />
+            </View>
+          )}
+        </View>
       </Modal>
 
       {/* Uploading Ad Overlay */}

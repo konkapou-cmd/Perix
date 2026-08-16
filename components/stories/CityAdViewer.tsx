@@ -101,9 +101,12 @@ export function CityAdViewer({
   });
   const { status } = useEvent(player, "statusChange", { status: player.status });
 
-  // Auto-advance on video end
+  // Auto-advance on video end — only fire when status transitions TO idle (not on init)
+  const prevStatusRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (status === "idle" && currentStory?.media_url) {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (prev !== undefined && prev !== "idle" && status === "idle" && currentStory?.media_url) {
       goNext();
     }
   }, [currentStory?.media_url, status, goNext]);
@@ -135,7 +138,7 @@ export function CityAdViewer({
 
       {/* Video player */}
       <View style={styles.videoContainer}>
-        {currentStory?.media_type === "video" && currentStory?.media_url ? (
+        {currentStory?.media_type === "video" && currentStory?.media_url && currentStory?.video_status !== "processing" && currentStory?.video_status !== "uploading" ? (
           <VideoView
             player={player}
             style={styles.video}
@@ -143,6 +146,16 @@ export function CityAdViewer({
             nativeControls={false}
             surfaceType="textureView"
           />
+        ) : currentStory?.media_type === "video" && currentStory?.media_url ? (
+          <View style={styles.loadingContainer}>
+            {currentStory?.mux_thumbnail_url ? (
+              <Image source={{ uri: currentStory.mux_thumbnail_url }} style={styles.media} resizeMode="contain" />
+            ) : null}
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#fff" />
+              <Text style={styles.loadingText}>Processing…</Text>
+            </View>
+          </View>
         ) : currentStory?.media_url ? (
           <Image source={{ uri: currentStory.media_url }} style={styles.media} resizeMode="contain" />
         ) : (
@@ -211,6 +224,18 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  loadingText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 10,
   },
   tapLeft: {
     position: "absolute",

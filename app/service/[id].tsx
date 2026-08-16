@@ -11,6 +11,7 @@ import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { Service } from "../../lib/api/core";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
+import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";

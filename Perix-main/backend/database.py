@@ -22,6 +22,8 @@ ROOT_SERVICE_TYPES: Dict[str, List[str]] = {
     "automotive": ["auto_vehicle", "auto_rental", "auto_repair", "auto_wash"],
     "healthcare": ["health_appointment", "health_procedure", "health_test"],
     "pets": ["pet_appointment", "pet_product"],
+    "rentals": ["rental_property"],
+    "rental-real-estate": ["rental_property"],
     "local-hotels": ["hotel_room"],
 }
 
@@ -84,6 +86,12 @@ ROOT_SERVICE_BOOKING_CONFIG: Dict[str, Dict[str, Dict[str, Any]]] = {
     "pets": {
         "pet_appointment": {"booking": True,  "slots": True},
         "pet_product":     {"booking": False, "slots": False},
+    },
+    "rentals": {
+        "rental_property": {"booking": True, "slots": False},
+    },
+    "rental-real-estate": {
+        "rental_property": {"booking": True, "slots": False},
     },
     "local-hotels": {
         "hotel_room": {"booking": True, "slots": False, "mode": "date_range"},
@@ -261,6 +269,7 @@ async def create_indexes():
     await db.stories.create_index("actor_id")
     await db.stories.create_index([("actor_id", 1), ("actor_type", 1)])
     await db.stories.create_index([("expires_at", 1)])
+    await _safe_create_index(db.stories, [("latitude", 1), ("longitude", 1)])
 
     # Seen notifications index
     await db.seen_notifications.create_index("user_id")
@@ -473,6 +482,17 @@ def build_category_tree() -> None:
                     "name": "Drinks & Cafés",
                     "slug": "drinks-cafes",
                     "subcategories": ["cafes", "coffee-shops", "bakeries"],
+                },
+            ],
+        },
+        {
+            "name": "🏨 Local Hotels",
+            "slug": "local-hotels",
+            "groups": [
+                {
+                    "name": "Hotels",
+                    "slug": "hotels",
+                    "subcategories": ["hotels"],
                 },
             ],
         },

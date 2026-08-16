@@ -119,9 +119,6 @@ export default function TabsLayout() {
 
   const handleBizAction = (action: BusinessAction) => {
     switch (action) {
-      case "create-city-ad":
-        router.push("/camera");
-        break;
       case "create-product":
         router.replace({ pathname: "/(tabs)/profile", params: { openProduct: "1" } });
         break;

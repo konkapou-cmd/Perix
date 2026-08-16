@@ -37,6 +37,7 @@ async def places_autocomplete(
             "format": "json",
             "limit": 8,
             "addressdetails": 1,
+            "accept-language": "en",
         }
         if near_lat is not None and near_lng is not None:
             vb_lat_delta = 0.5

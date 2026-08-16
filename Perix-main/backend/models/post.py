@@ -23,6 +23,7 @@ class PostCreate(BaseModel):
     tagged_user_ids: List[str] = []
     tagged_business_ids: List[str] = []
     tagged_artist_ids: List[str] = []
+    client_request_id: Optional[str] = None
 
 
 class PostUpdate(BaseModel):

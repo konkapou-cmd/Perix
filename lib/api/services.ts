@@ -1,4 +1,4 @@
-import { apiRequest, Service, TimeSlot, Booking, StayAvailability, DateBlock } from "./core";
+import { apiRequest, Service, TimeSlot, SlotAvailability, Booking, StayAvailability, DateBlock } from "./core";
 
 export const getServices = async (token: string, businessId?: string, type?: string): Promise<Service[]> => {
   const params = new URLSearchParams();

@@ -9,11 +9,16 @@ class StoryCreate(BaseModel):
     media_type: str = "image"
     text: Optional[str] = None
     actor_type: str = "user"
+    actor_id: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    duration_seconds: Optional[int] = None
     mux_upload_id: Optional[str] = None
     mux_asset_id: Optional[str] = None
     mux_playback_id: Optional[str] = None
     mux_thumbnail_url: Optional[str] = None
     video_status: Optional[str] = None
+    client_request_id: Optional[str] = None
 
 
 class StoryResponse(BaseModel):

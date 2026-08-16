@@ -97,11 +97,20 @@ async def create_post(
     actor = await resolve_actor(payload.actor_type, payload.actor_id, current_user)
     created_at = now_utc()
     expires_at = created_at + timedelta(days=POST_EXPIRY_DAYS)
-    
+
+    # Idempotency: a retried request (e.g. after a network timeout) must not create a duplicate post
+    if payload.client_request_id:
+        existing = await db.posts.find_one(
+            {"client_request_id": payload.client_request_id, "user_id": current_user.user_id}
+        )
+        if existing:
+            business_info = await get_business_info_for_post(existing)
+            return build_post_response(existing, current_user, current_user, business_info=business_info)
+
     # DEBUG: Log what's being posted
     logger.debug(f"[DEBUG] create_post: actor_type={actor['actor_type']}, actor_id={actor['actor_id']}")
     logger.debug(f"[DEBUG] create_post: payload.actor_type={payload.actor_type}, payload.actor_id={payload.actor_id}")
-    
+
     post_doc = {
         "post_id": generate_id("post"),
         "user_id": current_user.user_id,
@@ -123,6 +132,7 @@ async def create_post(
         "expires_at": expires_at,
         "likes": [],
         "comments": [],
+        "client_request_id": payload.client_request_id,
     }
     business_id = payload.business_id
     if actor["actor_type"] == "business":

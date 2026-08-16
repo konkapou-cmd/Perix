@@ -24,8 +24,30 @@ def _now():
 
 def _patch():
     import database
+    import services
     database.db = _db()
+    # Backend service modules do `from database import db` at import time and
+    # hold direct references — rebind them all, else they stay tied to the
+    # first test's (closed) event loop under pytest-asyncio function-scoped loops.
+    for mod_name in list(vars(services)):
+        mod = getattr(services, mod_name)
+        if hasattr(mod, "db"):
+            mod.db = database.db
     return database.db
+
+
+def _hash(uid, reference_ids):
+    """Compute the real request hash so seeded in-flight operations resume
+    (the service strictly rejects same idempotency key + different payload)."""
+    from services.deletion_resolution import _build_request_hash
+    return _build_request_hash(
+        lock_key=f"account_deletion:{uid}",
+        admin_user_id="adm",
+        resolution_type="subscription_cancelled",
+        reference_ids=sorted(reference_ids),
+        reason="test reason long enough",
+        evidence_reference="evidence-ref",
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -154,7 +176,7 @@ class TestIdempotency:
         old = _now() - td(minutes=10)
         await db.resolution_operations.insert_one({
             "resolution_id": "delres_lease", "lock_key": lk, "user_id": uid,
-            "idempotency_key": "ik_lease", "request_hash": "x", "status": "running",
+            "idempotency_key": "ik_lease", "request_hash": _hash(uid, []), "status": "running",
             "completed_steps": [], "resolution_type": "subscription_cancelled",
             "reference_ids": [], "verified_ids": [], "reason": "x"*10,
             "evidence_reference": "x", "resolved_by": "adm",
@@ -181,7 +203,7 @@ class TestIdempotency:
         })
         await db.resolution_operations.insert_one({
             "resolution_id": "delres_v", "lock_key": lk, "user_id": uid,
-            "idempotency_key": "ik_v", "request_hash": "h", "status": "running",
+            "idempotency_key": "ik_v", "request_hash": _hash(uid, ["sub_v"]), "status": "running",
             "completed_steps": ["validated"], "verified_ids": ["sub_v"],
             "resolution_type": "subscription_cancelled", "reference_ids": ["sub_v"],
             "reason": "x"*10, "evidence_reference": "x", "resolved_by": "adm",
@@ -202,7 +224,7 @@ class TestIdempotency:
         })
         await db.resolution_operations.insert_one({
             "resolution_id": "delres_t", "lock_key": lk, "user_id": uid,
-            "idempotency_key": "ik_t", "request_hash": "h", "status": "running",
+            "idempotency_key": "ik_t", "request_hash": _hash(uid, ["sub_t"]), "status": "running",
             "completed_steps": ["validated", "targets_updated"],
             "verified_ids": ["sub_t"], "resolution_type": "subscription_cancelled",
             "reference_ids": ["sub_t"], "reason": "x"*10, "evidence_reference": "x",
@@ -225,7 +247,7 @@ class TestIdempotency:
         })
         await db.resolution_operations.insert_one({
             "resolution_id": "delres_a", "lock_key": lk, "user_id": uid,
-            "idempotency_key": "ik_a", "request_hash": "h", "status": "running",
+            "idempotency_key": "ik_a", "request_hash": _hash(uid, ["sub_a2"]), "status": "running",
             "completed_steps": ["validated", "targets_updated", "audit_recorded"],
             "verified_ids": ["sub_a2"], "resolution_type": "subscription_cancelled",
             "reference_ids": ["sub_a2"], "reason": "x"*10, "evidence_reference": "x",
@@ -248,7 +270,7 @@ class TestIdempotency:
         })
         await db.resolution_operations.insert_one({
             "resolution_id": "delres_r", "lock_key": lk, "user_id": uid,
-            "idempotency_key": "ik_r", "request_hash": "h", "status": "running",
+            "idempotency_key": "ik_r", "request_hash": _hash(uid, ["sub_r2"]), "status": "running",
             "completed_steps": ["validated", "targets_updated", "audit_recorded", "reviews_rechecked"],
             "verified_ids": ["sub_r2"], "remaining_counts": {"unresolved_subscriptions": 0, "unresolved_bookings": 0},
             "resolution_type": "subscription_cancelled", "reference_ids": ["sub_r2"],
