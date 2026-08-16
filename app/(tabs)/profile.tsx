@@ -734,7 +734,7 @@ export default function ProfileScreen() {
 
   const handleSaveEvent = async () => {
     if (!sessionToken || eventSaving) return;
-    if (!eventForm.title.trim()) {
+    if (!(eventForm.title || "").trim()) {
       Alert.alert(t("common.error") || "Error", t("events.titleRequired") || "Title is required");
       return;
     }

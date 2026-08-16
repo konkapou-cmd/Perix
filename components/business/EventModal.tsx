@@ -416,7 +416,7 @@ export default function EventModal({
         onCancel={onClose}
         onSave={onSave}
         isSaving={isSaving}
-        disabled={!eventForm.title.trim() || (!!businessAddress && !hasBusinessCoordinates)}
+        disabled={!(eventForm.title || "").trim() || (!!businessAddress && !hasBusinessCoordinates)}
         saveLabel={eventEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
       />
     </FormScreen>
