@@ -231,7 +231,18 @@ export default function EventModal({
     onFormChange(mediaToForm(newMedia, formRef.current));
   };
 
-  const themeList = eventThemes.length > 0 ? eventThemes : Object.entries(themesMap).map(([slug, t]) => ({ slug, label: t.label, color: t.color, emoji: t.emoji, gradient: t.gradient }));
+  const themeList = eventThemes.length > 0
+    ? eventThemes.map(t => {
+        const local = themesMap[t.slug];
+        return {
+          slug: t.slug,
+          label: t.label,
+          color: t.color || local?.color,
+          emoji: t.emoji || local?.emoji,
+          gradient: t.gradient || local?.gradient,
+        };
+      })
+    : Object.entries(themesMap).map(([slug, t]) => ({ slug, label: t.label, color: t.color, emoji: t.emoji, gradient: t.gradient }));
 
   return (
     <FormScreen title={eventEditing ? t("events.editEvent") : t("events.createEvent")} onClose={onClose} visible={visible}>
