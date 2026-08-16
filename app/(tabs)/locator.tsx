@@ -58,6 +58,7 @@ import { useLocation } from "../../context/LocationContext";
 import { translateCategory } from "../../lib/categoryTranslation";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
 import { formatDate } from "../../lib/formatDate";
+import { isBusinessOpen } from "../../lib/openingHours";
 import { ACTIVITY_CATEGORIES, ACTIVITY_TYPES } from "../../lib/api";
    import { toLocalISODate, addDays } from "../../lib/booking/dateRange";
 
@@ -413,9 +414,9 @@ export default function LocatorScreen() {
       selectedRoot !== "All" ? selectedRoot : undefined,
       selectedSubcategory !== "All" ? selectedSubcategory : undefined,
       bounds,
-      openNow ?? businessAvailabilityFilter === "open_now",
     );
-    setBusinesses(data);
+    const filterOpen = openNow ?? businessAvailabilityFilter === "open_now";
+    setBusinesses(filterOpen ? data.filter(isBusinessOpen) : data);
   }, [sessionToken, selectedRoot, selectedSubcategory, businessAvailabilityFilter]);
 
   const loadEvents = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
@@ -518,7 +519,11 @@ export default function LocatorScreen() {
   }, [contextLocation]);
 
   useEffect(() => {
-    if (businessAvailabilityFilter !== "open_now" || !sessionToken || !mapBounds) return;
+    if (!sessionToken || !mapBounds) return;
+    // Immediately reload when the availability filter changes (both directions)
+    loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
+    // While "Open now" is active, keep refreshing periodically since open state changes over time
+    if (businessAvailabilityFilter !== "open_now") return;
     const interval = setInterval(() => {
       loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
     }, 60000);
@@ -1025,7 +1030,7 @@ export default function LocatorScreen() {
               <EmptyState icon="storefront" message={t('business.noBusinesses')} size="default" muted />
             )}
             {visibleBusinesses.map((business) => {
-              const isOpen = business.open_state?.open_now ?? null;
+              const isOpen = isBusinessOpen(business);
               const dist = getDistance(business.latitude, business.longitude);
               return (
                 <LocatorCard
@@ -1048,7 +1053,7 @@ export default function LocatorScreen() {
             {visibleHotels.length === 0 ? (
               <EmptyState icon="bed" message={t("home.noHotels", "No hotels nearby")} size="default" muted />
             ) : visibleHotels.map((business) => {
-              const isOpen = business.open_state?.open_now ?? null;
+              const isOpen = isBusinessOpen(business);
               const dist = getDistance(business.latitude, business.longitude);
               return (
                 <LocatorCard

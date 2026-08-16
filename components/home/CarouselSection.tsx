@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SectionHeader } from "../shared/SectionHeader";
+import { CARD_WIDTH } from "../shared/CarouselCard";
 import { COLORS, SPACING } from "../../lib/designTokens";
 
 interface FilterOption {
@@ -73,7 +74,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
         )}
 
         {layout === "carousel" ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={152} decelerationRate="fast">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={CARD_WIDTH + 12} decelerationRate="fast" nestedScrollEnabled>
             {children}
           </ScrollView>
         ) : (
