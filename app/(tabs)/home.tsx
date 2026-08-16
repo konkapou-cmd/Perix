@@ -310,15 +310,17 @@ export default function HomeScreen() {
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
   const [storyViewerIndex, setStoryViewerIndex] = useState(0);
   const [uploadingAd, setUploadingAd] = useState(false);
+  const creatingAdRef = useRef(false);
 
   const handleCreateCityAd = async () => {
-    if (!sessionToken) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: MEDIA_LIMITS.video.pickerQuality,
-    });
-    if (result.canceled || !result.assets?.[0]?.uri) return;
+    if (!sessionToken || creatingAdRef.current) return;
+    creatingAdRef.current = true;
     try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        quality: MEDIA_LIMITS.video.pickerQuality,
+      });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
       setUploadingAd(true);
       // Anchor the ad at the business's own location so it projects in the city feed near the business
       const activeBiz = activeIdentity?.type === "business"
@@ -355,6 +357,8 @@ export default function HomeScreen() {
       console.error("City ad creation failed:", e);
       setUploadingAd(false);
       Alert.alert(t("common.error"), "Failed to create city ad");
+    } finally {
+      creatingAdRef.current = false;
     }
   };
 

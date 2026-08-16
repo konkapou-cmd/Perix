@@ -25,10 +25,10 @@ interface CityAdCirclesProps {
   } | null;
 }
 
-function AdVideoPreview({ mediaUrl }: { mediaUrl: string }) {
+function AdVideoPreview({ thumbnail }: { thumbnail: string }) {
   return (
     <Image
-      source={{ uri: mediaUrl }}
+      source={{ uri: thumbnail }}
       style={styles.videoPreview}
       resizeMode="cover"
     />
@@ -80,6 +80,10 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
         {storyGroups.map((group, idx) => {
           const isOwn = activeIdentity?.type === "business" && group.actor_id === activeIdentity.id;
           const firstStory = group.stories[0];
+          const videoThumb = firstStory?.media_type === "video"
+            ? (firstStory.mux_thumbnail_url
+              || (firstStory.mux_playback_id ? `https://image.mux.com/${firstStory.mux_playback_id}/thumbnail.jpg` : null))
+            : null;
           return (
           <Pressable
             key={group.actor_id}
@@ -89,7 +93,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
             <View style={styles.previewContainer}>
               {firstStory?.media_url && (
                 firstStory?.media_type === "video" ? (
-                  <AdVideoPreview mediaUrl={firstStory.media_url} />
+                  <AdVideoPreview thumbnail={videoThumb || firstStory.media_url} />
                 ) : (
                   <Image
                     source={{ uri: firstStory.media_url }}
