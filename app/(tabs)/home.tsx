@@ -321,6 +321,16 @@ export default function HomeScreen() {
         quality: MEDIA_LIMITS.video.pickerQuality,
       });
       if (result.canceled || !result.assets?.[0]?.uri) return;
+      const asset = result.assets[0];
+      // Validate size + duration up front so longer/oversized videos fail fast with a clear message
+      if (asset.fileSize && asset.fileSize > MEDIA_LIMITS.cityAd.maxFileSizeBytes) {
+        Alert.alert(t("common.error"), `Das Video ist zu groß. City Ads dürfen maximal ${MEDIA_LIMITS.cityAd.maxFileSizeMb} MB groß sein.`);
+        return;
+      }
+      if (normalizeDurationSeconds(asset.duration) > MEDIA_LIMITS.cityAd.maxDurationSeconds) {
+        Alert.alert("Video zu lang", `City Ads dürfen maximal ${MEDIA_LIMITS.cityAd.maxDurationSeconds} Sekunden lang sein.`);
+        return;
+      }
       setUploadingAd(true);
       // Anchor the ad at the business's own location so it projects in the city feed near the business
       const activeBiz = activeIdentity?.type === "business"
@@ -338,7 +348,9 @@ export default function HomeScreen() {
         video_status: "uploading",
         client_request_id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
       });
-      const muxResult = await uploadVideoMux(sessionToken, result.assets[0].uri, `story:${story.story_id}`);
+      setShowUploadProgress(true);
+      setUploadProgress({ phase: "preparing", progress: 0 });
+      const muxResult = await uploadVideoMux(sessionToken, asset.uri, `story:${story.story_id}`, (p) => setUploadProgress(p));
       const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
       if (videoUrl || muxResult.mux_upload_id) {
         await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
@@ -350,11 +362,15 @@ export default function HomeScreen() {
           video_status: muxResult.mux_playback_id ? "ready" : "processing",
         });
       }
+      setShowUploadProgress(false);
+      setUploadProgress(null);
       setUploadingAd(false);
       refreshFeed().catch(() => {});
       Alert.alert(t("cityAd.adPublished") || "Your city ad has been published!");
     } catch (e) {
       console.error("City ad creation failed:", e);
+      setShowUploadProgress(false);
+      setUploadProgress(null);
       setUploadingAd(false);
       Alert.alert(t("common.error"), "Failed to create city ad");
     } finally {
@@ -1437,7 +1453,7 @@ export default function HomeScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context="post" mode="blocking" />
+      <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context="video" mode="blocking" />
 
       <ShareContent visible={shareModalVisible} onClose={() => setShareModalVisible(false)} contentType="post" contentId={shareContentId} title={shareContentTitle} description="" />
 
