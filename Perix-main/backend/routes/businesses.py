@@ -247,7 +247,10 @@ async def list_businesses(
     subcategory: Optional[str] = None,
     current_user: UserPublic = Depends(get_current_user),
 ):
-    query: Dict[str, str] = {}
+    query: Dict[str, Any] = {
+        "is_hidden": {"$ne": True},
+        "is_active": {"$ne": False},
+    }
     if root_category and root_category != "all":
         query["root_category"] = root_category
     if subcategory:
@@ -275,6 +278,8 @@ async def get_nearby_businesses(
         query: Dict[str, Any] = {
             "latitude": {"$gte": min_lat, "$lte": max_lat},
             "longitude": {"$gte": min_lng, "$lte": max_lng},
+            "is_hidden": {"$ne": True},
+            "is_active": {"$ne": False},
         }
         if root_category and root_category != "all":
             query["root_category"] = root_category
@@ -284,6 +289,8 @@ async def get_nearby_businesses(
     
     # Use proximity-based query
     query: Dict[str, Any] = {
+        "is_hidden": {"$ne": True},
+        "is_active": {"$ne": False},
         "location": {
             "$near": {
                 "$geometry": {
