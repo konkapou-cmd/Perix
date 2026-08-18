@@ -103,27 +103,26 @@ const uploadToMuxDirect = async (
 
   onProgress?.({ phase: "uploading", progress: 15 });
 
-  // Use FileSystem.uploadAsync for React Native compatibility
-  const result = await FileSystem.uploadAsync(uploadUrl, localUri, {
+  // Use createUploadTask to get byte-level upload progress (uploadAsync has no progress callback)
+  const task = FileSystem.createUploadTask(uploadUrl, localUri, {
     httpMethod: "PUT",
     headers: {
       "Content-Type": mimeType,
     },
     uploadType: FileSystemUploadType.BINARY_CONTENT as any,
-    fieldName: "file",
-    // @ts-ignore — uploadCallback not in Expo type defs
-    uploadCallback: (progressEvent: any) => {
-      const total = progressEvent?.totalBytesExpectedToSend;
-      const sent = progressEvent?.totalBytesSent;
-      if (total && sent && total > 0) {
-        const pct = 15 + Math.round((sent / total) * 70);
-        onProgress?.({ phase: "uploading", progress: Math.min(pct, 85) });
-      }
-    },
+  }, (progressEvent: { totalBytesSent: number; totalBytesExpectedToSend: number }) => {
+    const total = progressEvent?.totalBytesExpectedToSend;
+    const sent = progressEvent?.totalBytesSent;
+    if (total && sent && total > 0) {
+      const pct = 15 + Math.round((sent / total) * 70);
+      onProgress?.({ phase: "uploading", progress: Math.min(pct, 85) });
+    }
   });
 
-  if (result.status < 200 || result.status >= 300) {
-    throw new Error(`Mux upload failed with status ${result.status}: ${result.body?.substring(0, 200)}`);
+  const result = await task.uploadAsync();
+
+  if (!result || result.status < 200 || result.status >= 300) {
+    throw new Error(`Mux upload failed with status ${result?.status ?? "unknown"}: ${result?.body?.substring(0, 200)}`);
   }
 
   onProgress?.({ phase: "processing", progress: 85 });
