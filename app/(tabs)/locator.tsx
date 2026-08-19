@@ -574,12 +574,14 @@ export default function LocatorScreen() {
     place_id: string;
     lat: number | null;
     lng: number | null;
+    lon?: number | null;
   }) => {
     setLocationSearchQuery("");
     setLocationSearchSuggestions([]);
     setShowLocationSearch(false);
-    if (suggestion.lat != null && suggestion.lng != null) {
-      setManualLocation(suggestion.lat, suggestion.lng, suggestion.description.split(",")[0]);
+    const lng = suggestion.lng ?? suggestion.lon ?? null;
+    if (suggestion.lat != null && lng != null) {
+      setManualLocation(suggestion.lat, lng, suggestion.description.split(",")[0]);
     }
   };
 

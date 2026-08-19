@@ -9,6 +9,7 @@ interface PlaceSuggestion {
   description: string;
   lat: number | null;
   lng: number | null;
+  lon?: number | null;
 }
 
 interface LocationSearchOverlayProps {
@@ -44,8 +45,9 @@ export function LocationSearchOverlay({ visible, sessionToken, onClose, onSelect
   };
 
   const handleSelect = (place: PlaceSuggestion) => {
-    if (place.lat != null && place.lng != null) {
-      onSelectPlace(place.lat, place.lng, place.description.split(",")[0]);
+    const lng = place.lng ?? place.lon ?? null;
+    if (place.lat != null && lng != null) {
+      onSelectPlace(place.lat, lng, place.description.split(",")[0]);
     }
     setQuery("");
     setSuggestions([]);
