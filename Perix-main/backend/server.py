@@ -1,9 +1,9 @@
 """
 Perix - City Social Media API
 Refactored modular architecture - February 2026
-Deploy marker 2026-08-16d: cap Mux SDK HTTP calls with a 20s timeout — the mux_python SDK
-defaults to no timeout and would hang /mux/* requests, surfacing as "Network request failed"
-on the client after the OS ~60s timeout — trigger Railway deploy
+Deploy marker 2026-08-16e: deletion tombstone always runs (best-effort content steps) + hide
+deleted/inactive businesses in /businesses and /businesses/nearby — trigger Railway redeploy
+of both services (backend + Perix)
 """
 import asyncio
 import time
