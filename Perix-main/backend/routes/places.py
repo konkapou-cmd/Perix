@@ -61,6 +61,7 @@ async def places_autocomplete(
                     "description": r.get("display_name", ""),
                     "lat": float(r["lat"]) if r.get("lat") else None,
                     "lon": float(r["lon"]) if r.get("lon") else None,
+                    "lng": float(r["lon"]) if r.get("lon") else None,
                     "public_location_label": _extract_public_label(address),
                 })
             return {"predictions": predictions}
