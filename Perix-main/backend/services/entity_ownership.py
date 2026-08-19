@@ -230,8 +230,13 @@ async def run_account_deletion(user_id: str, lock_key: str) -> dict:
             await fn()
             await mark_step_completed(lock_key, name)
             result["steps_run"].append(f"{name}:done")
-        except Exception:
-            raise  # re-raise to outer handler
+        except DeletionNeedsReview:
+            raise  # manual review — stop the whole flow (email stays held)
+        except Exception as e:
+            # Non-review failure — log it but keep going so the tombstone
+            # (which frees the email) still runs and re-registration works.
+            logger.error("Deletion step %s failed (continuing): %s", name, e)
+            result["steps_run"].append(f"{name}:failed")
 
     try:
         # Step 1: Personal content
@@ -268,7 +273,8 @@ async def run_account_deletion(user_id: str, lock_key: str) -> dict:
         await _step("relationship_cleanup",
                     lambda: cleanup_relationships(user_id))
 
-        # Step 7: Tombstone
+        # Step 7: Tombstone — always run (unless a review was raised above),
+        # so the user's email is freed and they can re-register.
         await _step("user_tombstone",
                     lambda: create_user_tombstone(user_id))
 
