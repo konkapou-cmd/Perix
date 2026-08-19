@@ -217,13 +217,20 @@ export default function ListingModal({ visible, listingType, editingListing, ses
 
     let effectiveStatus: ListingStatus = status;
     if (status === "published") {
-      if (!hasCoordinates) {
+      const isBusinessSeller = sellerType === "business";
+      // Business listings always use the business address/location, so only
+      // user sellers need a verified address to publish.
+      if (!isBusinessSeller) {
+        if (!hasCoordinates) {
+          effectiveStatus = "draft";
+        } else if (locationVisibility === "approximate" && !publicLocationLabel.trim()) {
+          effectiveStatus = "draft";
+        }
+      }
+      if (effectiveStatus === "published" && isProduct && !listingCategory) {
         effectiveStatus = "draft";
-      } else if (locationVisibility === "approximate" && !publicLocationLabel.trim()) {
-        effectiveStatus = "draft";
-      } else if (isProduct && !listingCategory) {
-        effectiveStatus = "draft";
-      } else if (isProduct && !listingSubcategory) {
+      }
+      if (effectiveStatus === "published" && isProduct && !listingSubcategory) {
         effectiveStatus = "draft";
       }
     }
@@ -331,13 +338,13 @@ export default function ListingModal({ visible, listingType, editingListing, ses
             <Text style={styles.label}>
               {t("common.title", "Title")} <Text style={styles.required}>*</Text>
             </Text>
-            <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder={isProduct ? "e.g. Vintage Watch" : "e.g. Cozy Studio in Mitte"} placeholderTextColor={COLORS.textDisabled} />
+            <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder={t("marketplace.titlePlaceholder", "Titel")} placeholderTextColor={COLORS.textDisabled} />
 
             <Text style={styles.label}>{t("services.price", "Price")}</Text>
-            <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder={isProduct ? "€20" : "€800/μήνα"} placeholderTextColor={COLORS.textDisabled} keyboardType="numeric" />
+            <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder="0" placeholderTextColor={COLORS.textDisabled} keyboardType="numeric" />
 
             <Text style={styles.label}>{t("services.description", "Description")}</Text>
-            <TextInput style={[styles.input, { height: 80 }]} value={description} onChangeText={setDescription} placeholder={t("services.descriptionPlaceholder", "Describe your listing...")} placeholderTextColor={COLORS.textDisabled} multiline textAlignVertical="top" />
+            <TextInput style={[styles.input, { height: 80 }]} value={description} onChangeText={setDescription} placeholder={t("services.descriptionPlaceholder", "Beschreibung...")} placeholderTextColor={COLORS.textDisabled} multiline textAlignVertical="top" />
 
             <UnifiedMediaGallery
               media={media}
@@ -392,7 +399,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                   <Text style={styles.toggleText}>{t("marketplace.showInMarketplace", "Im Marktplatz anzeigen")}</Text>
                 </Pressable>
 
-                {businessId && (
+                {businessId && sellerType !== "business" && (
                   <Pressable
                     style={styles.toggle}
                     onPress={() => {
@@ -485,6 +492,14 @@ export default function ListingModal({ visible, listingType, editingListing, ses
               {t("services.address", "Address")}
               {status === "published" && <Text style={styles.required}> *</Text>}
             </Text>
+            {sellerType === "business" ? (
+              <View style={[styles.input, { flexDirection: "row", alignItems: "center", gap: 8 }]}>
+                <Ionicons name="lock-closed" size={16} color={COLORS.textMuted} />
+                <Text style={{ flex: 1, color: address ? COLORS.textPrimary : COLORS.textDisabled }} numberOfLines={2}>
+                  {address || t("services.noAddress", "Keine Adresse hinterlegt")}
+                </Text>
+              </View>
+            ) : (
             <PlacesAutocompleteInput
               value={address}
               onChangeText={(text) => { setAddress(text); }}
@@ -500,6 +515,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
               confirmed={hasCoordinates}
               sessionToken={sessionToken}
             />
+            )}
 
                 {hasCoordinates && (
                   <>
