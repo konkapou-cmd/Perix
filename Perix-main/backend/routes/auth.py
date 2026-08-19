@@ -106,6 +106,8 @@ async def register_user(payload: RegisterInput, response: Response):
             "enabled_modules": cat_info.get("modules", {}) if cat_info else {},
         }
         await db.businesses.insert_one(business_doc)
+        # PyMongo adds an ObjectId _id to the dict; Pydantic cannot serialize it
+        business_doc.pop("_id", None)
         business = business_doc
 
     session_token = await create_session(user_doc["user_id"])
@@ -248,6 +250,8 @@ async def upgrade_to_business(
         "enabled_modules": cat_info.get("modules", {}),
     }
     await db.businesses.insert_one(business_doc)
+    # PyMongo adds an ObjectId _id to the dict; Pydantic cannot serialize it
+    business_doc.pop("_id", None)
     await db.users.update_one(
         {"user_id": current_user.user_id},
         {"$set": {"role": "business"}}
