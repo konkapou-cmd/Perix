@@ -21,13 +21,20 @@ type MapBounds = {
 };
 
 type Props = {
-  location: { latitude: number; longitude: number };
+  location?: { latitude: number; longitude: number };
   initialRegion?: {
     latitude: number;
     longitude: number;
     latitudeDelta: number;
     longitudeDelta: number;
   };
+  focusRegion?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  } | null;
+  focusToken?: number;
   businesses?: Business[];
   events?: EventItem[];
   activities?: ActivityItem[];

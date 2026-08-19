@@ -33,6 +33,13 @@ type Props = {
     latitudeDelta: number;
     longitudeDelta: number;
   };
+  focusRegion?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  } | null;
+  focusToken?: number;
   businesses?: Business[];
   events?: EventItem[];
   activities?: ActivityItem[];
@@ -84,6 +91,8 @@ const isBusinessOpen = (business: Business): boolean => {
 export default function BusinessMap({
   location,
   initialRegion,
+  focusRegion,
+  focusToken,
   businesses = [],
   events = [],
   activities = [],
@@ -237,6 +246,11 @@ export default function BusinessMap({
       longitudeDelta: 0.09,
     }, 600);
   }, [location]);
+
+  useEffect(() => {
+    if (!focusToken || !focusRegion || !mapRef.current) return;
+    mapRef.current.animateToRegion(focusRegion, 500);
+  }, [focusToken]);
 
   const handleRegionChangeComplete = (region: Region) => {
     if (disabled || !readyRef.current) return;

@@ -27,6 +27,19 @@ type MapBounds = {
 
 type Props = {
   location: { latitude: number; longitude: number };
+  initialRegion?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  };
+  focusRegion?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  } | null;
+  focusToken?: number;
   businesses?: Business[];
   events?: EventItem[];
   activities?: ActivityItem[];
@@ -75,6 +88,9 @@ function loadGoogleScript() {
 
 export default function BusinessMap({
   location,
+  initialRegion,
+  focusRegion,
+  focusToken,
   businesses = [],
   events = [],
   activities = [],
@@ -248,6 +264,13 @@ export default function BusinessMap({
     prevLocationRef.current = key;
     mapRef.current.panTo({ lat: location.latitude, lng: location.longitude });
   }, [location, mapReady]);
+
+  // Fly to explicitly focused region (e.g. search selection / recenter)
+  useEffect(() => {
+    if (!mapRef.current || !mapReady || !focusToken || !focusRegion) return;
+    mapRef.current.panTo({ lat: focusRegion.latitude, lng: focusRegion.longitude });
+    mapRef.current.setZoom(14);
+  }, [focusToken, mapReady]);
 
   if (disabled) {
     return (

@@ -23,9 +23,10 @@ interface MapSectionProps {
   ownerHomes?: Listing[];
   onRegionChange: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
   onRecenter?: (lat: number, lng: number) => void;
+  focusToken?: number;
 }
 
-export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, onRegionChange, onRecenter }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
   const router = useRouter();
 
   const allBusinesses = useMemo(() => {
@@ -101,6 +102,13 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
             latitudeDelta: mapBounds.maxLat - mapBounds.minLat,
             longitudeDelta: mapBounds.maxLng - mapBounds.minLng,
           }}
+          focusRegion={{
+            latitude: mapBounds.centerLat,
+            longitude: mapBounds.centerLng,
+            latitudeDelta: mapBounds.maxLat - mapBounds.minLat,
+            longitudeDelta: mapBounds.maxLng - mapBounds.minLng,
+          }}
+          focusToken={focusToken}
           businesses={allBusinesses}
           events={events}
           activities={activities}

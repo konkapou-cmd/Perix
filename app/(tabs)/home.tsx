@@ -182,6 +182,7 @@ export default function HomeScreen() {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
+  const [mapFocusToken, setMapFocusToken] = useState(0);
   const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
   const scrollRef = useRef<FlatList<Post>>(null);
   const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 50, minimumViewTime: 300 }).current;
@@ -262,6 +263,7 @@ export default function HomeScreen() {
         const loc = await Location.getCurrentPositionAsync({});
         const d = 0.09;
         setMapBounds({ minLat: loc.coords.latitude - d / 2, maxLat: loc.coords.latitude + d / 2, minLng: loc.coords.longitude - d / 2, maxLng: loc.coords.longitude + d / 2, centerLat: loc.coords.latitude, centerLng: loc.coords.longitude });
+        setMapFocusToken((t) => t + 1);
       }
     } catch (error) {
       console.error("Failed to get location:", error);
@@ -759,6 +761,7 @@ export default function HomeScreen() {
           const d = 0.09;
           setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
           setManualLocation(lat, lng, name);
+          setMapFocusToken((t) => t + 1);
         }}
       />
 
@@ -853,7 +856,9 @@ export default function HomeScreen() {
             onRecenter={(lat, lng) => {
               const d = 0.09;
               setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
+              setMapFocusToken((t) => t + 1);
             }}
+            focusToken={mapFocusToken}
           />
         )}
 
