@@ -1267,6 +1267,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [serviceForm, setServiceForm] = useState(DEFAULT_SERVICE_FORM);
   const [serviceSaving, setServiceSaving] = useState(false);
+  const serviceSavingRef = useRef(false);
   const [originalAvailabilitySlots, setOriginalAvailabilitySlots] = useState<any[]>([]);
 
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
@@ -1432,7 +1433,7 @@ const handleUpdateSlug = async (newSlug: string) => {
     setServiceForm({
       ...DEFAULT_SERVICE_FORM,
       type: type || getDefaultModule(rootCategory || "") || DEFAULT_SERVICE_FORM.type,
-      status: type === "hotel_room" || getDefaultModule(rootCategory || "") === "hotel_room" ? "published" : DEFAULT_SERVICE_FORM.status,
+      status: "published",
       address: businessDetail?.business.address || "",
       latitude: businessDetail?.business.latitude?.toString() || "",
       longitude: businessDetail?.business.longitude?.toString() || "",
@@ -1570,11 +1571,12 @@ const handleUpdateSlug = async (newSlug: string) => {
   };
 
   const handleSaveService = async () => {
-    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
+    if (!sessionToken || !activeIdentity || activeIdentity.type !== "business" || serviceSavingRef.current) return;
     if (!serviceForm.name.trim()) {
       Alert.alert(t("common.error", "Error"), t("services.nameRequired", "Service name is required"));
       return;
     }
+    serviceSavingRef.current = true;
     setServiceSaving(true);
     try {
       const businessId = activeIdentity.id;
@@ -1709,6 +1711,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       }
       if (payload.status === "published" && !payload.cover_image_url) {
         Alert.alert(t("common.error", "Fehler"), t("services.coverRequired", "Bitte füge ein Titelbild hinzu, bevor du den Dienst veröffentlichst."));
+        serviceSavingRef.current = false;
         setServiceSaving(false);
         return;
       }
@@ -1728,10 +1731,12 @@ const handleUpdateSlug = async (newSlug: string) => {
       } else {
         Alert.alert(t("common.info", "Info"), t("services.saveMayHaveSucceeded", "The service may have been saved despite the network error. Your edits are still open."));
         // Keep modal open — never discard edits after a failed save
+        serviceSavingRef.current = false;
         setServiceSaving(false);
         return;
       }
     }
+    serviceSavingRef.current = false;
     setServiceSaving(false);
     if (activeIdentity?.type === "business") {
       loadBusinessFullData(activeIdentity.id).catch(() => {});
