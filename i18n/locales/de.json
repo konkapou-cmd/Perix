@@ -2663,5 +2663,24 @@
       "service": "Dienstleistung",
       "product": "Produkt"
     }
+  },
+  "slotManager": {
+    "selectTime": "Start- und Endzeit festlegen",
+    "selectDays": "Mindestens einen Tag auswählen",
+    "selectStartEnd": "Start- und Endzeit festlegen",
+    "weeklySlotsCreated": "Wöchentliche Termine erstellt",
+    "selectDates": "Zeitraum auswählen",
+    "datesBlocked": "Tage gesperrt",
+    "blocking": "Sperren",
+    "tapEndDate": "Enddatum im Kalender antippen",
+    "tapStartDate": "Startdatum für die Sperrung antippen",
+    "available": "Verfügbar",
+    "booked": "Gebucht",
+    "blocked": "Gesperrt",
+    "noSlotsDate": "Keine Termine an diesem Tag",
+    "addSlotDate": "Termin für diesen Tag hinzufügen",
+    "createSlots": "Wöchentliche Termine erstellen",
+    "recurring": "Wiederkehrend",
+    "specific": "Einmalig"
   }
 }

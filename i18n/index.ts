@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
+import { applyCalendarLocale } from '../lib/calendarLocale';
 
 import en from './locales/en.json';
 import de from './locales/de.json';
@@ -79,6 +80,11 @@ export const initI18n = async () => {
       escapeValue: false,
     },
   } as any);
+
+  applyCalendarLocale(savedLanguage);
+  i18n.on('languageChanged', (lng: string) => {
+    applyCalendarLocale(lng);
+  });
 };
 
 // Initialize immediately

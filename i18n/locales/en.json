@@ -2577,5 +2577,24 @@
       "service": "Service",
       "product": "Product"
     }
+  },
+  "slotManager": {
+    "selectTime": "Set start and end times",
+    "selectDays": "Select at least one day",
+    "selectStartEnd": "Set start and end times",
+    "weeklySlotsCreated": "Weekly slots created",
+    "selectDates": "Select date range",
+    "datesBlocked": "Dates blocked",
+    "blocking": "Blocking",
+    "tapEndDate": "Tap the end date on the calendar",
+    "tapStartDate": "Tap a date to start the block range",
+    "available": "Available",
+    "booked": "Booked",
+    "blocked": "Blocked",
+    "noSlotsDate": "No slots for this date",
+    "addSlotDate": "Add slot for this date",
+    "createSlots": "Create weekly slots",
+    "recurring": "Recurring",
+    "specific": "Specific"
   }
 }

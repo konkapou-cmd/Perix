@@ -9,6 +9,7 @@ import { TimeSlot } from "../../lib/api/core";
 import { getSlots, deleteSlot, setAvailability } from "../../lib/api/services";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { toLocalISODate } from "../../lib/booking/dateRange";
+import { formatDate } from "../../lib/formatDate";
 
 type Props = {
   visible: boolean;
@@ -19,6 +20,7 @@ type Props = {
 };
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 export default function SlotManagerModal(props: Props) {
   if (props.serviceType === "hotel_room") return null;
@@ -261,7 +263,8 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
     setLoading(false);
   };
 
-  const selDayName = DAYS[new Date(selectedDate + "T00:00:00").getDay()];
+  const selDayIndex = new Date(selectedDate + "T00:00:00").getDay();
+  const selDayName = t(`days.${DAY_KEYS[selDayIndex]}`);
 
   const handleTimeChange = (_: any, selectedDate?: Date) => {
     if (!selectedDate || !timePickerTarget) return;
@@ -297,7 +300,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
             <Ionicons name="lock-closed" size={16} color="#fff" />
             <Text style={s.blockBannerText}>
               {blockStart && blockEnd
-                ? `${t("slotManager.blocking", "Blocking")}: ${blockStart} - ${blockEnd}`
+                ? `${t("slotManager.blocking", "Blocking")}: ${formatDate(blockStart)} - ${formatDate(blockEnd)}`
                 : blockStart
                   ? t("slotManager.tapEndDate", "Tap the end date on calendar")
                   : t("slotManager.tapStartDate", "Tap a date to start block range")}
@@ -353,7 +356,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
         </View>
 
         <View style={s.panel}>
-          <Text style={s.panelTitle}>{selectedDate} ({selDayName})</Text>
+          <Text style={s.panelTitle}>{formatDate(selectedDate)} ({selDayName})</Text>
 
           {dateSlots.length === 0 && !loading && (
             <Text style={s.emptySlots}>{t("slotManager.noSlotsDate", "No slots for this date")}</Text>
@@ -365,7 +368,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
                 <Text style={s.slotInfo}>
                   {(slot.start_time || "").match(/^\d{4}-\d{2}-\d{2}$/)
                     ? `${slot.start_time!.split("-").reverse().join(" ")} \u2013 ${slot.end_time!.split("-").reverse().join(" ")}`
-                    : `${slot.is_recurring ? "Recurring" : "Specific"} ${slot.start_time} - ${slot.end_time}`}
+                    : `${slot.is_recurring ? t("slotManager.recurring", "Recurring") : t("slotManager.specific", "Specific")} ${slot.start_time} - ${slot.end_time}`}
                   {slot.is_blocked ? ` (${t("slotManager.blocked", "blocked")})` : ""}
                   {slot.is_booked ? ` (${t("slotManager.booked", "booked")})` : ""}
                 </Text>
@@ -401,7 +404,7 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
                 style={[s.dayChip, selectedDays.includes(idx) && s.dayChipSelected]}
                 onPress={() => setSelectedDays((prev) => prev.includes(idx) ? prev.filter((d) => d !== idx) : [...prev, idx])}
               >
-                <Text style={[s.dayText, selectedDays.includes(idx) && s.dayTextSelected]}>{day.slice(0, 3)}</Text>
+                <Text style={[s.dayText, selectedDays.includes(idx) && s.dayTextSelected]}>{t(`days.${day.toLowerCase()}`).slice(0, 3)}</Text>
               </Pressable>
             ))}
           </View>
