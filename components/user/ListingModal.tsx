@@ -431,7 +431,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 </View>
 
                 <Text style={styles.label}>{t("services.brand", "Brand")}</Text>
-                <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder={t("marketplace.brandPlaceholder", "π.χ. Αναφέρετε τη μάρκα")} placeholderTextColor={COLORS.textDisabled} />
+                <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder={t("marketplace.brandPlaceholder", "z. B. Marke angeben")} placeholderTextColor={COLORS.textDisabled} />
 
                 <Text style={styles.label}>{t("services.delivery", "Delivery")}</Text>
                 <View style={styles.chipRow}>

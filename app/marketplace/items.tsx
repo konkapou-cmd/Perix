@@ -156,7 +156,7 @@ export default function MarketplaceItemsPage() {
     const sellerId = item.seller_id || item.owner_id;
     const sellerName = item.business_name || item.seller_name;
     const addressLabel = item.location_visibility === "approximate"
-      ? item.public_location_label || t("marketplace.approximateLocation", "Ungefahrer Standort")
+      ? item.public_location_label || t("marketplace.approximateLocation", "Ungefährer Standort")
       : item.address;
     return (
       <CarouselCard
