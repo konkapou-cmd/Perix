@@ -564,10 +564,215 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     </>
   );
 
-  const isPrivatePostsMobile = !readOnly && privateActiveTab === "posts" && Platform.OS !== "web";
-  const isPublicPostsMobile = readOnly && activeTab === "posts" && Platform.OS !== "web";
+  const isWeb = Platform.OS === "web";
 
-  if (isPrivatePostsMobile) {
+  const publicNonPostsContent = (
+    <View style={styles.tabContent}>
+      {activeTab === "media" && (
+        <ProfileMedia
+          images={galleryImages}
+          videos={galleryVideos}
+          posts={businessPosts}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          readOnly={true}
+        />
+      )}
+      {activeTab === "events" && (
+        <EventsSection
+          events={events}
+          readOnly={true}
+          onAddEvent={() => {}}
+          onEditEvent={() => {}}
+          onDeleteEvent={() => {}}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          secondaryColor={secondaryColor}
+        />
+      )}
+      {activeTab.startsWith("svc:") && (
+        (() => {
+          const [, cat, type] = activeTab.split(":");
+          const filteredServices = (services || []).filter(s =>
+            resolveCategory(s.root_category || "") === cat &&
+            s.type === type &&
+            s.is_active &&
+            s.status === "published"
+          );
+          return (
+            <ServiceSection
+              key={activeTab}
+              services={filteredServices}
+              rootCategory={cat}
+              readOnly={true}
+              onServicePress={(s) => pushEntityRoute(router, entityRoutes.service(s.service_id), () => showInvalidEntityAlert(t))}
+              cardColor={cardColor}
+              textColor={textColor}
+            />
+          );
+        })()
+      )}
+      {activeTab === "jobs" && (
+        <JobsSection jobs={jobs} readOnly={true} primaryColor={primaryColor} cardColor={cardColor} textColor={textColor} secondaryColor={secondaryColor} />
+      )}
+      {activeTab === "items" && (
+        <ProfileItemsSection
+          listings={businessListings.filter(l => l.status === "published" && l.is_active)}
+          isOwner={false}
+          onAdd={() => {}}
+          onEdit={() => {}}
+          onToggleMarketplace={() => {}}
+          onDelete={() => {}}
+        />
+      )}
+    </View>
+  );
+
+  const privateNonPostsContent = (
+    <View style={styles.tabContent}>
+      {privateActiveTab === "media" && (
+        <ProfileMedia
+          images={galleryImages}
+          videos={galleryVideos}
+          posts={businessPosts}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          onDeleteItem={(source, type, uri) => {
+            if (source === "post") {
+              const post = businessPosts.find(p => p.image_url === uri || p.video_url === uri);
+              if (post) onDeletePost?.(post);
+            } else {
+              if (type === "image") {
+                const idx = galleryImages.indexOf(uri);
+                if (idx !== -1) handleDeleteGalleryImage?.(idx);
+              } else {
+                const idx = galleryVideos.indexOf(uri);
+                if (idx !== -1) handleDeleteGalleryVideo?.(idx);
+              }
+            }
+          }}
+        />
+      )}
+      {privateActiveTab === "events" && (
+        <EventsSection
+          events={events}
+          onAddEvent={openEventModal ?? (() => {})}
+          onEditEvent={handleEditEvent ?? ((e) => openEventModal?.(e))}
+          onDeleteEvent={handleDeleteEvent ?? (() => {})}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          secondaryColor={secondaryColor}
+        />
+      )}
+      {privateActiveTab === "jobs" && (
+        <JobsSection
+          jobs={jobs}
+          onAddJob={openJobModal ?? (() => {})}
+          onEditJob={handleEditJob}
+          onDeleteJob={handleDeleteJob ?? (() => {})}
+          primaryColor={primaryColor}
+          cardColor={cardColor}
+          textColor={textColor}
+          secondaryColor={secondaryColor}
+        />
+      )}
+      {privateActiveTab.startsWith("svc:") && (
+        (() => {
+          const [, cat, type] = privateActiveTab.split(":");
+          const filteredServices = (services || []).filter(s =>
+            resolveCategory(s.root_category || "") === cat &&
+            s.type === type &&
+            s.is_active
+          );
+          return (
+            <ServiceSection
+              key={privateActiveTab}
+              services={filteredServices}
+              rootCategory={cat}
+              readOnly={false}
+              onAddService={onAddService}
+              onEditService={handleEditService}
+              onDeleteService={handleDeleteService}
+              onOpenSlotManager={onOpenSlotManager}
+              onServicePress={(service) => pushEntityRoute(router, entityRoutes.service(service.service_id), () => showInvalidEntityAlert(t))}
+              cardColor={cardColor}
+              textColor={textColor}
+            />
+          );
+        })()
+      )}
+      {privateActiveTab === "items" && (
+        <ProfileItemsSection
+          listings={businessListings}
+          isOwner={isOwnProfile ?? false}
+          canAdd={canAddItems && !addItemsLoading}
+          addLoading={addItemsLoading}
+          addDisabledReason={addItemsDisabledReason}
+          onAdd={() => onAddItem?.()}
+          onEdit={(l) => onEditItem?.(l)}
+          onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
+          onDelete={(l) => onDeleteItem?.(l)}
+        />
+      )}
+    </View>
+  );
+
+  if (!isWeb) {
+    if (readOnly) {
+      return (
+        <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+          <ProfilePosts
+            posts={businessPosts}
+            readOnly={true}
+            isOwnProfile={false}
+            primaryColor={primaryColor}
+            cardColor={cardColor}
+            textColor={textColor}
+            currentUserId={currentUserId}
+            avatarUri={avatarUri}
+            friends={friends}
+            businesses={[detail.business]}
+            isScreenFocused={isScreenFocused}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            initialSavedPostIds={initialSavedPostIds}
+            listHeaderComponent={
+              <>
+                {profileHeaderContent}
+                <ProfileTabs
+                  activeTab={activeTab}
+                  onTabChange={handleTabChange}
+                  tabs={publicTabs}
+                  primaryColor={primaryColor}
+                  bgColor={cardColor}
+                  borderColor={COLORS.border}
+                />
+              </>
+            }
+            listEmptyComponent={activeTab === "posts" ? undefined : publicNonPostsContent}
+            showComposer={false}
+          />
+          {detail.business?.cover_image && (
+            <CoverPositionEditor
+              visible={showCoverReposition}
+              uri={detail.business.cover_image}
+              initialFocalPoint={detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 }}
+              aspectRatio={3}
+              onCancel={() => setShowCoverReposition(false)}
+              onSave={async (fp) => {
+                await updateBusiness(sessionToken, detail.business.business_id, { cover_focal_point: fp });
+                setShowCoverReposition(false);
+                onRefresh?.();
+              }}
+            />
+          )}
+        </KeyboardAvoidingView>
+      );
+    }
     return (
       <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
         <ProfilePosts
@@ -619,56 +824,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
               />
             </>
           }
-        />
-        {detail.business?.cover_image && (
-          <CoverPositionEditor
-            visible={showCoverReposition}
-            uri={detail.business.cover_image}
-            initialFocalPoint={detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 }}
-            aspectRatio={3}
-            onCancel={() => setShowCoverReposition(false)}
-            onSave={async (fp) => {
-              await updateBusiness(sessionToken, detail.business.business_id, { cover_focal_point: fp });
-              setShowCoverReposition(false);
-              onRefresh?.();
-            }}
-          />
-        )}
-      </KeyboardAvoidingView>
-    );
-  }
-
-  if (isPublicPostsMobile) {
-    return (
-      <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
-        <ProfilePosts
-          posts={businessPosts}
-          readOnly={true}
-          isOwnProfile={false}
-          primaryColor={primaryColor}
-          cardColor={cardColor}
-          textColor={textColor}
-          currentUserId={currentUserId}
-          avatarUri={avatarUri}
-          friends={friends}
-          businesses={[detail.business]}
-          isScreenFocused={isScreenFocused}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          initialSavedPostIds={initialSavedPostIds}
-          listHeaderComponent={
-            <>
-              {profileHeaderContent}
-              <ProfileTabs
-                activeTab={activeTab}
-                onTabChange={handleTabChange}
-                tabs={publicTabs}
-                primaryColor={primaryColor}
-                bgColor={cardColor}
-                borderColor={COLORS.border}
-              />
-            </>
-          }
+          listEmptyComponent={privateActiveTab === "posts" ? undefined : privateNonPostsContent}
+          showComposer={privateActiveTab === "posts"}
         />
         {detail.business?.cover_image && (
           <CoverPositionEditor
@@ -732,65 +889,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   initialSavedPostIds={initialSavedPostIds}
                 />
               )}
-              {activeTab === "media" && (
-                <ProfileMedia
-                  images={galleryImages}
-                  videos={galleryVideos}
-                  posts={businessPosts}
-                  primaryColor={primaryColor}
-                  cardColor={cardColor}
-                  textColor={textColor}
-                  readOnly={true}
-                />
-              )}
-              {activeTab === "events" && (
-                <EventsSection
-                  events={events}
-                  readOnly={true}
-                  onAddEvent={() => {}}
-                  onEditEvent={() => {}}
-                  onDeleteEvent={() => {}}
-                  primaryColor={primaryColor}
-                  cardColor={cardColor}
-                  textColor={textColor}
-                  secondaryColor={secondaryColor}
-                />
-              )}
-              {activeTab.startsWith("svc:") && (
-                (() => {
-                  const [, cat, type] = activeTab.split(":");
-                  const filteredServices = (services || []).filter(s =>
-                    resolveCategory(s.root_category || "") === cat &&
-                    s.type === type &&
-                    s.is_active &&
-                    s.status === "published"
-                  );
-                  return (
-                    <ServiceSection
-                      key={activeTab}
-                      services={filteredServices}
-                      rootCategory={cat}
-                      readOnly={true}
-                      onServicePress={(s) => pushEntityRoute(router, entityRoutes.service(s.service_id), () => showInvalidEntityAlert(t))}
-                      cardColor={cardColor}
-                      textColor={textColor}
-                    />
-                  );
-                })()
-              )}
-              {activeTab === "jobs" && (
-                <JobsSection jobs={jobs} readOnly={true} primaryColor={primaryColor} cardColor={cardColor} textColor={textColor} secondaryColor={secondaryColor} />
-              )}
-              {activeTab === "items" && (
-                <ProfileItemsSection
-                  listings={businessListings.filter(l => l.status === "published" && l.is_active)}
-                  isOwner={false}
-                  onAdd={() => {}}
-                  onEdit={() => {}}
-                  onToggleMarketplace={() => {}}
-                  onDelete={() => {}}
-                />
-              )}
+              {activeTab !== "posts" && publicNonPostsContent}
             </View>
           </>
         ) : (
@@ -843,92 +942,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   initialSavedPostIds={initialSavedPostIds}
                 />
               )}
-              {privateActiveTab === "media" && (
-                <ProfileMedia
-                  images={galleryImages}
-                  videos={galleryVideos}
-                  posts={businessPosts}
-                  primaryColor={primaryColor}
-                  cardColor={cardColor}
-                  textColor={textColor}
-                  onDeleteItem={(source, type, uri) => {
-                    if (source === "post") {
-                      const post = businessPosts.find(p => p.image_url === uri || p.video_url === uri);
-                      if (post) onDeletePost?.(post);
-                    } else {
-                      if (type === "image") {
-                        const idx = galleryImages.indexOf(uri);
-                        if (idx !== -1) handleDeleteGalleryImage?.(idx);
-                      } else {
-                        const idx = galleryVideos.indexOf(uri);
-                        if (idx !== -1) handleDeleteGalleryVideo?.(idx);
-                      }
-                    }
-                  }}
-                />
-              )}
-              {privateActiveTab === "events" && (
-                <EventsSection
-                  events={events}
-                  onAddEvent={openEventModal ?? (() => {})}
-                  onEditEvent={handleEditEvent ?? ((e) => openEventModal?.(e))}
-                  onDeleteEvent={handleDeleteEvent ?? (() => {})}
-                  primaryColor={primaryColor}
-                  cardColor={cardColor}
-                  textColor={textColor}
-                  secondaryColor={secondaryColor}
-                />
-              )}
-              {privateActiveTab === "jobs" && (
-                <JobsSection
-                  jobs={jobs}
-                  onAddJob={openJobModal ?? (() => {})}
-                  onEditJob={handleEditJob}
-                  onDeleteJob={handleDeleteJob ?? (() => {})}
-                  primaryColor={primaryColor}
-                  cardColor={cardColor}
-                  textColor={textColor}
-                  secondaryColor={secondaryColor}
-                />
-              )}
-              {privateActiveTab.startsWith("svc:") && (
-                (() => {
-                  const [, cat, type] = privateActiveTab.split(":");
-                  const filteredServices = (services || []).filter(s =>
-                    resolveCategory(s.root_category || "") === cat &&
-                    s.type === type &&
-                    s.is_active
-                  );
-                  return (
-                    <ServiceSection
-                      key={privateActiveTab}
-                      services={filteredServices}
-                      rootCategory={cat}
-                      readOnly={false}
-                      onAddService={onAddService}
-                      onEditService={handleEditService}
-                      onDeleteService={handleDeleteService}
-                      onOpenSlotManager={onOpenSlotManager}
-                      onServicePress={(service) => pushEntityRoute(router, entityRoutes.service(service.service_id), () => showInvalidEntityAlert(t))}
-                      cardColor={cardColor}
-                      textColor={textColor}
-                    />
-                  );
-                })()
-              )}
-              {privateActiveTab === "items" && (
-                <ProfileItemsSection
-                  listings={businessListings}
-                  isOwner={isOwnProfile ?? false}
-                  canAdd={canAddItems && !addItemsLoading}
-                  addLoading={addItemsLoading}
-                  addDisabledReason={addItemsDisabledReason}
-                  onAdd={() => onAddItem?.()}
-                  onEdit={(l) => onEditItem?.(l)}
-                  onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
-                  onDelete={(l) => onDeleteItem?.(l)}
-                />
-              )}
+              {privateActiveTab !== "posts" && privateNonPostsContent}
             </View>
           </>
         )}

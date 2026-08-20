@@ -282,7 +282,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     location: location || user.location,
   };
 
-  const useFlatListForPosts = activeTab === "posts" && Platform.OS !== "web";
+  const isWeb = Platform.OS === "web";
 
   const profileHeaderContent = (
     <>
@@ -460,7 +460,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     </View>
   );
 
-  if (useFlatListForPosts) {
+  if (!isWeb) {
     return (
       <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
         <ProfilePosts
@@ -503,6 +503,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           onRefresh={onRefresh}
           initialSavedPostIds={initialSavedPostIds}
           listHeaderComponent={profileHeaderContent}
+          listEmptyComponent={activeTab === "posts" ? undefined : tabContentNonPosts}
+          showComposer={activeTab === "posts"}
         />
         {user.cover_photo && (
           <CoverPositionEditor

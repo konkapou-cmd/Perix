@@ -68,6 +68,8 @@ interface ProfilePostsProps {
   onCreateStory?: () => void;
   initialSavedPostIds?: Set<string>;
   listHeaderComponent?: React.ReactNode;
+  listEmptyComponent?: React.ReactElement | null;
+  showComposer?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
   isScreenFocused?: boolean;
@@ -130,6 +132,8 @@ pendingMentionIds = [],
   onCreateStory,
   initialSavedPostIds,
   listHeaderComponent,
+  listEmptyComponent,
+  showComposer = true,
   refreshing,
   onRefresh,
   isScreenFocused = true,
@@ -419,7 +423,7 @@ pendingMentionIds = [],
 
   return (
     <View style={styles.container}>
-      {isWeb && createPostComposer}
+      {isWeb && showComposer && createPostComposer}
 
       {isWeb ? (
         posts.length === 0 ? (
@@ -508,12 +512,14 @@ pendingMentionIds = [],
           ListHeaderComponent={
             <>
               {listHeaderComponent}
-              {!readOnly && createPostComposer}
+              {showComposer && !readOnly && createPostComposer}
             </>
           }
           ListEmptyComponent={
             postsData.length === 0 ? (
-              <EmptyState icon="newspaper-outline" message={t("profile.noPosts", "No posts yet")} />
+              listEmptyComponent ?? (
+                <EmptyState icon="newspaper-outline" message={t("profile.noPosts", "No posts yet")} />
+              )
             ) : null
           }
           refreshControl={
