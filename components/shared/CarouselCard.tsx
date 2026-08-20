@@ -21,6 +21,9 @@ interface CarouselCardProps {
   subtitleOnPress?: () => void;
   subtitleAvatarUrl?: string | null;
   thirdLine?: string | null;
+  thirdLineIcon?: keyof typeof Ionicons.glyphMap;
+  fourthLine?: string | null;
+  fourthLineIcon?: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   isSaved?: boolean;
   overlay?: React.ReactNode;
@@ -41,6 +44,9 @@ export function CarouselCard({
   subtitleOnPress,
   subtitleAvatarUrl,
   thirdLine,
+  thirdLineIcon = "location-outline",
+  fourthLine,
+  fourthLineIcon = "location-outline",
   onPress,
   isSaved,
   overlay,
@@ -137,9 +143,17 @@ export function CarouselCard({
           ) : null}
           {thirdLine ? (
             <View style={styles.thirdRow}>
-              <Ionicons name="location-outline" size={11} color={hasMedia ? "rgba(255,255,255,0.7)" : COLORS.textMuted} />
+              <Ionicons name={thirdLineIcon} size={11} color={hasMedia ? "rgba(255,255,255,0.7)" : COLORS.textMuted} />
               <Text style={[styles.thirdLine, !hasMedia && styles.thirdLineDark]} numberOfLines={1}>
                 {thirdLine}
+              </Text>
+            </View>
+          ) : null}
+          {fourthLine ? (
+            <View style={styles.thirdRow}>
+              <Ionicons name={fourthLineIcon} size={11} color={hasMedia ? "rgba(255,255,255,0.7)" : COLORS.textMuted} />
+              <Text style={[styles.thirdLine, !hasMedia && styles.thirdLineDark]} numberOfLines={1}>
+                {fourthLine}
               </Text>
             </View>
           ) : null}

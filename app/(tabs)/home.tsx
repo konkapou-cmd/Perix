@@ -52,14 +52,16 @@ import {
   isUpcomingEvent,
   isUpcomingActivity,
   toggleSaved,
+  batchCheckSaved,
   EVENT_THEMES,
   ACTIVITY_TYPES,
   BACKEND_URL,
   MAX_VIDEO_SIZE_BYTES,
 } from "../../lib/api";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/mediaLimits";
-import { COLORS } from "../../lib/designTokens";
-import { formatEventDate } from "../../lib/formatDate";
+import { COLORS, getServiceTypeConfig } from "../../lib/designTokens";
+import { formatEventDate, formatEventTime } from "../../lib/formatDate";
+import { isBusinessOpen } from "../../lib/openingHours";
 import ShareContent from "../../components/ShareContent";
 import * as Location from "expo-location";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
@@ -82,6 +84,13 @@ import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntity
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
 import { PostCard } from "../../components/home/PostCard";
 import { LayoutSettingsModal } from "../../components/home/LayoutSettingsModal";
+
+const LISTING_CONDITION_LABELS: Record<string, string> = {
+  new: "Neu",
+  like_new: "Wie neu",
+  good: "Gut",
+  used: "Gebraucht",
+};
 
 function HomeSkeleton() {
   return (
@@ -143,8 +152,18 @@ export default function HomeScreen() {
 
   const [viewportProducts, setViewportProducts] = useState<Listing[]>([]);
   const [viewportHomes, setViewportHomes] = useState<Listing[]>([]);
+  const [savedListingIds, setSavedListingIds] = useState<Set<string>>(new Set());
   const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
   const viewportRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (!sessionToken) return;
+    const ids = [...viewportProducts, ...viewportHomes].map(l => l.listing_id).filter(Boolean);
+    if (ids.length === 0) return;
+    batchCheckSaved(sessionToken, "listing", ids)
+      .then(res => setSavedListingIds(new Set(res.saved_ids)))
+      .catch(() => {});
+  }, [viewportProducts, viewportHomes, sessionToken]);
 
   useFocusEffect(useCallback(() => {
     if (sessionToken) {
@@ -895,7 +914,13 @@ export default function HomeScreen() {
                   videoUrl={event.video_url}
                   title={event.title}
                   subtitle={`${event.theme && EVENT_THEMES[event.theme] ? EVENT_THEMES[event.theme].label + " · " : ""}${event.creator?.name || event.business?.name || event.artist?.name || ""}`}
-                  thirdLine={formatEventDate(event.start_time)}
+                  thirdLine={`${formatEventDate(event.start_time)}${event.start_time ? " · " + formatEventTime(event.start_time) : ""}`}
+                  thirdLineIcon="calendar"
+                  fourthLine={[
+                    event.location || "",
+                    event.attendees_count ? `${event.attendees_count} ${t("home.going", "Going")}` : "",
+                  ].filter(Boolean).join(" · ")}
+                  fourthLineIcon={event.location ? "location-outline" : "people-outline"}
                   onPress={() => router.push(`/event/${event.event_id}`)}
                   isSaved={savedEventIds.has(event.event_id)}
                   textColor={textColor}
@@ -948,6 +973,8 @@ export default function HomeScreen() {
               const activityImg = activity.cover_image_url || (!activity.video_url ? (activity.image_urls?.[0] || activity.gallery_images?.[0]) : undefined);
               const going = activity.my_status === "accepted" || activity.my_status === "going";
               const yours = activity.is_creator && !going;
+              const activityGoingCount = (activity.invites || []).filter((i: any) => i.status === "going" || i.status === "accepted").length;
+              const spotsText = activity.max_attendees ? `${activityGoingCount}/${activity.max_attendees}` : "";
               return (
                 <CarouselCard
                   key={`${activity.activity_id}-${mapRefreshKey}`}
@@ -955,7 +982,10 @@ export default function HomeScreen() {
                   videoUrl={activity.video_url}
                   title={activity.title}
                   subtitle={`${activity.theme && ACTIVITY_TYPES[activity.theme] ? ACTIVITY_TYPES[activity.theme].label + " · " : ""}${activity.creator?.name || ""}`}
-                  thirdLine={formatEventDate(activity.date)}
+                  thirdLine={`${formatEventDate(activity.date)}${activity.time ? " · " + activity.time : ""}`}
+                  thirdLineIcon="calendar"
+                  fourthLine={[activity.location || "", spotsText].filter(Boolean).join(" · ")}
+                  fourthLineIcon={activity.location ? "location-outline" : "people-outline"}
                   onPress={() => router.push(`/activity/${activity.activity_id}`)}
                   isSaved={savedActivityIds.has(activity.activity_id)}
                   textColor={textColor}
@@ -1002,10 +1032,17 @@ export default function HomeScreen() {
                   imageUrl={bizImg}
                   title={business.name}
                   subtitle={translateCategory(business.subcategory, t)}
+                  thirdLine={business.address || ""}
                   onPress={() => router.push(`/business/${business.business_id}`)}
                   isSaved={savedBusinessIds.has(business.business_id)}
                   textColor={primaryColor}
                   fallbackIcon="business"
+                  overlay={
+                    <View style={[styles.openBadge, isBusinessOpen(business) ? styles.openBadgeOn : styles.openBadgeOff]}>
+                      <Ionicons name={isBusinessOpen(business) ? "checkmark-circle" : "time"} size={10} color={COLORS.background} />
+                      <Text style={styles.openBadgeText}>{isBusinessOpen(business) ? t("home.openNow", "Open now") : t("home.closed", "Closed")}</Text>
+                    </View>
+                  }
                 />
               );
             })}
@@ -1033,10 +1070,17 @@ export default function HomeScreen() {
                   imageUrl={hotelImg}
                   title={hotel.name}
                   subtitle={translateCategory(hotel.subcategory, t)}
+                  thirdLine={hotel.address || ""}
                   onPress={() => router.push(`/business/${hotel.business_id}`)}
                   isSaved={savedHotelIds.has(hotel.business_id)}
                   textColor={primaryColor}
                   fallbackIcon="bed"
+                  overlay={
+                    <View style={[styles.openBadge, isBusinessOpen(hotel) ? styles.openBadgeOn : styles.openBadgeOff]}>
+                      <Ionicons name={isBusinessOpen(hotel) ? "checkmark-circle" : "time"} size={10} color={COLORS.background} />
+                      <Text style={styles.openBadgeText}>{isBusinessOpen(hotel) ? t("home.openNow", "Open now") : t("home.closed", "Closed")}</Text>
+                    </View>
+                  }
                 />
               );
             })}
@@ -1055,13 +1099,19 @@ export default function HomeScreen() {
           >
             {shuffledServices.filter(s => s.type !== "rental_property").map((service) => {
               const serviceImg = service.cover_image_url || (!service.video_url ? (service.image_urls?.[0] || service.gallery_images?.[0]) : undefined);
+              const serviceTypeLabel = getServiceTypeConfig(service.root_category || "", service.type)?.label || service.type;
+              const durationText = service.duration_minutes ? `${service.duration_minutes} min` : "";
               return (
                 <CarouselCard
                   key={service.service_id}
                   imageUrl={serviceImg}
                   videoUrl={service.video_url}
                   title={service.name}
-                  subtitle={service.type}
+                  subtitle={serviceTypeLabel}
+                  thirdLine={[service.price || "", durationText].filter(Boolean).join(" · ")}
+                  thirdLineIcon="pricetag"
+                  fourthLine={service.address || ""}
+                  fourthLineIcon="location-outline"
                   onPress={() => pushEntityRoute(router, entityRoutes.service(service.service_id), () => showInvalidEntityAlert(t))}
                   isSaved={savedServiceIds.has(service.service_id)}
                   fallbackIcon="briefcase"
@@ -1121,6 +1171,10 @@ export default function HomeScreen() {
                   videoUrl={job.video_url}
                   title={job.title}
                   subtitle={job.business_name || job.location || ""}
+                  thirdLine={[job.salary_range || "", job.job_type || ""].filter(Boolean).join(" · ")}
+                  thirdLineIcon="cash-outline"
+                  fourthLine={job.work_location || job.location || ""}
+                  fourthLineIcon="location-outline"
                   onPress={() => pushEntityRoute(router, entityRoutes.job(job.job_id), () => showInvalidEntityAlert(t))}
                   isSaved={savedJobIds.has(job.job_id)}
                   fallbackIcon="briefcase"
@@ -1157,8 +1211,10 @@ export default function HomeScreen() {
                 subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
                 subtitleAvatarUrl={item.seller_avatar || undefined}
                 thirdLine={item.public_location_label || item.address || ""}
+                fourthLine={LISTING_CONDITION_LABELS[item.condition || ""] || item.condition || ""}
+                fourthLineIcon="ribbon-outline"
                 onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
-                isSaved={false}
+                isSaved={savedListingIds.has(item.listing_id)}
                 fallbackIcon="pricetag"
               />
               );
@@ -1192,8 +1248,14 @@ export default function HomeScreen() {
                 subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
                 subtitleAvatarUrl={item.seller_avatar || undefined}
                 thirdLine={item.public_location_label || item.address || ""}
+                fourthLine={[
+                  item.property_type || "",
+                  item.bedrooms ? `${item.bedrooms} ${t("marketplace.bedrooms", "Zimmer")}` : "",
+                  item.size_sqm ? `${item.size_sqm} m²` : "",
+                ].filter(Boolean).join(" · ")}
+                fourthLineIcon="home-outline"
                 onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
-                isSaved={false}
+                isSaved={savedListingIds.has(item.listing_id)}
                 fallbackIcon="home"
               />
               );
@@ -1533,6 +1595,10 @@ const styles = StyleSheet.create({
   goingText: { fontSize: Platform.OS === "web" ? 10 : 8, fontWeight: "600", color: COLORS.background },
   ownerBadge: { position: "absolute", top: 6, left: 6, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 8, backgroundColor: COLORS.warning, zIndex: 5 },
   ownerText: { fontSize: Platform.OS === "web" ? 10 : 8, fontWeight: "600", color: COLORS.background },
+  openBadge: { position: "absolute", top: 6, left: 6, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, zIndex: 5 },
+  openBadgeOn: { backgroundColor: COLORS.success },
+  openBadgeOff: { backgroundColor: COLORS.textMuted },
+  openBadgeText: { fontSize: Platform.OS === "web" ? 10 : 8, fontWeight: "600", color: COLORS.background },
   artistAvatarImage: { width: "100%", height: "100%" },
   artistName: { fontSize: Platform.OS === "web" ? 14 : 13, fontWeight: "500", marginTop: 4 },
   artistMeta: { fontSize: Platform.OS === "web" ? 13 : 11, color: COLORS.textMuted, marginTop: 2 },
