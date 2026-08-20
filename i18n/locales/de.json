@@ -2382,5 +2382,16 @@
       "good": "Gut",
       "used": "Gebraucht"
     }
+  },
+  "creation": {
+    "title": "Erstellen",
+    "camera": "Foto oder Video",
+    "cameraSubtitle": "Teile einen Beitrag mit der Community",
+    "activity": "Aktivität erstellen",
+    "activitySubtitle": "Organisiere eine Aktivität mit anderen",
+    "homeRental": "Unterkunft einstellen",
+    "homeRentalSubtitle": "Biete eine Wohnung, ein Haus, Studio oder Zimmer zur Miete an",
+    "product": "Artikel verkaufen",
+    "productSubtitle": "Veröffentliche ein Produkt im Community-Marktplatz"
   }
 }

@@ -2282,5 +2282,16 @@
       "good": "Good",
       "used": "Used"
     }
+  },
+  "creation": {
+    "title": "Create",
+    "camera": "Photo or Video",
+    "cameraSubtitle": "Share a post with the community",
+    "activity": "Create Activity",
+    "activitySubtitle": "Organise an activity with other people",
+    "homeRental": "List a Home",
+    "homeRentalSubtitle": "Offer an apartment, house, studio or room for rent",
+    "product": "Sell an Item",
+    "productSubtitle": "Publish a product in the community marketplace"
   }
 }
