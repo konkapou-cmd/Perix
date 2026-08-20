@@ -1074,6 +1074,15 @@
   },
   "jobs": {
     "title": "Available Jobs",
+    "create": "Create Job",
+    "jobTitlePlaceholder": "e.g. Senior Software Engineer",
+    "descriptionPlaceholder": "Describe the role, responsibilities and ideal candidate...",
+    "locationPlaceholder": "e.g. Berlin, Mitte",
+    "requirementsPlaceholder": "e.g. 3+ years experience, fluent English",
+    "salaryPlaceholder": "e.g. 40,000 € – 55,000 € / year",
+    "salaryRange": "Salary",
+    "selectExpiry": "Select expiry date",
+    "workLocation": "Work location",
     "types": {
       "vollzeit": "Full-time",
       "teilzeit": "Part-time",

@@ -154,29 +154,29 @@ export default function JobModal({
               media={media}
               onChange={handleMediaChange}
               sessionToken={sessionToken}
-              label={t("jobs.coverImage") || "Cover Image"}
+              label={t("jobs.coverImage", "Cover Image")}
             />
 
-            <Text style={s.label}><Text style={s.required}>* </Text>{t("jobs.jobTitle") || "Job Title"}</Text>
+            <Text style={s.label}><Text style={s.required}>* </Text>{t("jobs.jobTitle", "Job Title")}</Text>
             <TextInput
               style={s.input}
               value={jobForm.title}
               onChangeText={(v) => handleFormChange("title", v)}
-              placeholder={t("jobs.jobTitlePlaceholder") || "e.g. Senior Software Engineer"}
+              placeholder={t("jobs.jobTitlePlaceholder", "e.g. Senior Software Engineer")}
               placeholderTextColor={COLORS.textDisabled}
             />
 
-            <Text style={s.label}><Text style={s.required}>* </Text>{t("jobs.jobDescription") || "Description"}</Text>
+            <Text style={s.label}><Text style={s.required}>* </Text>{t("jobs.jobDescription", "Description")}</Text>
             <TextInput
               style={[s.input, s.textArea]}
               value={jobForm.description}
               onChangeText={(v) => handleFormChange("description", v)}
-              placeholder={t("jobs.descriptionPlaceholder") || "Describe the role, responsibilities, and ideal candidate..."}
+              placeholder={t("jobs.descriptionPlaceholder", "Describe the role, responsibilities, and ideal candidate...")}
               placeholderTextColor={COLORS.textDisabled}
               multiline
             />
 
-            <Text style={s.label}>{t("jobs.jobType") || "Art"}</Text>
+            <Text style={s.label}>{t("jobs.jobType", "Art")}</Text>
             <View style={s.chipRow}>
               {JOB_TYPES.map(({ key }) => (
                 <Pressable
@@ -189,26 +189,26 @@ export default function JobModal({
               ))}
             </View>
 
-            <Text style={s.label}>{t("jobs.requirements") || "Anforderungen"}</Text>
+            <Text style={s.label}>{t("jobs.requirements", "Anforderungen")}</Text>
             <TextInput
               style={[s.input, s.textArea]}
               value={jobForm.requirements}
               onChangeText={(v) => handleFormChange("requirements", v)}
-              placeholder={t("jobs.requirementsPlaceholder") || "Welche Qualifikationen werden benötigt?"}
+              placeholder={t("jobs.requirementsPlaceholder", "Welche Qualifikationen werden benötigt?")}
               placeholderTextColor={COLORS.textDisabled}
               multiline
             />
 
-            <Text style={s.label}>{t("jobs.salaryRange") || "Gehalt"}</Text>
+            <Text style={s.label}>{t("jobs.salaryRange", "Gehalt")}</Text>
             <TextInput
               style={s.input}
               value={jobForm.salary_range}
               onChangeText={(v) => handleFormChange("salary_range", v)}
-              placeholder={t("jobs.salaryPlaceholder") || "z.B. 3.000 €"}
+              placeholder={t("jobs.salaryPlaceholder", "z.B. 3.000 €")}
               placeholderTextColor={COLORS.textDisabled}
             />
 
-            <Text style={s.label}>{t("jobs.workLocation") || "Arbeitsort"}</Text>
+            <Text style={s.label}>{t("jobs.workLocation", "Arbeitsort")}</Text>
             <PlacesAutocompleteInput
               value={jobForm.work_location}
               onChangeText={(text) => handleFormChange("work_location", text)}
@@ -217,17 +217,17 @@ export default function JobModal({
                 handleFormChange("latitude", lat as any);
                 handleFormChange("longitude", lng as any);
               }}
-              placeholder={businessAddress || t("jobs.locationPlaceholder") || "z.B. Berlin, Deutschland oder Remote"}
+              placeholder={businessAddress || t("jobs.locationPlaceholder", "z.B. Berlin, Deutschland oder Remote")}
               style={s.input}
               nearLat={nearLat}
               nearLng={nearLng}
               confirmed={!!jobForm.work_location}
             />
 
-            <Text style={s.label}>{t("jobs.expiresAt") || "Läuft ab am"}</Text>
+            <Text style={s.label}>{t("jobs.expiresAt", "Läuft ab am")}</Text>
             <Pressable style={s.selector} onPress={() => setShowDatePicker(true)}>
               <Text style={jobForm.expires_at ? s.selectorTextSelected : s.selectorText}>
-                {jobForm.expires_at ? formatDateShort(jobForm.expires_at) : t("jobs.selectExpiry") || "Ablaufdatum wählen"}
+                {jobForm.expires_at ? formatDateShort(jobForm.expires_at) : t("jobs.selectExpiry", "Ablaufdatum wählen")}
               </Text>
               <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
             </Pressable>

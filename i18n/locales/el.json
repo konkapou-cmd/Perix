@@ -1156,6 +1156,15 @@
   },
   "jobs": {
     "title": "Διαθέσιμες Θέσεις Εργασίας",
+    "create": "Δημιουργία θέσης εργασίας",
+    "jobTitlePlaceholder": "π.χ. Senior Software Engineer",
+    "descriptionPlaceholder": "Περιγράψτε τη θέση, τις αρμοδιότητες και τον ιδανικό υποψήφιο...",
+    "locationPlaceholder": "π.χ. Βερολίνο, Κέντρο",
+    "requirementsPlaceholder": "π.χ. 3+ χρόνια εμπειρία, άπταιστα αγγλικά",
+    "salaryPlaceholder": "π.χ. 40.000 € – 55.000 € / έτος",
+    "salaryRange": "Μισθός",
+    "selectExpiry": "Επιλέξτε ημερομηνία λήξης",
+    "workLocation": "Τόπος εργασίας",
     "types": {
       "vollzeit": "Πλήρης απασχόληση",
       "teilzeit": "Μερική απασχόληση",

@@ -1143,6 +1143,15 @@
   },
   "jobs": {
     "title": "Verfügbare Jobs",
+    "create": "Job erstellen",
+    "jobTitlePlaceholder": "z. B. Senior Software Engineer",
+    "descriptionPlaceholder": "Beschreibe die Rolle, Aufgaben und den idealen Kandidaten...",
+    "locationPlaceholder": "z. B. Berlin, Mitte",
+    "requirementsPlaceholder": "z. B. 3+ Jahre Erfahrung, fließend Englisch",
+    "salaryPlaceholder": "z. B. 40.000 € – 55.000 € / Jahr",
+    "salaryRange": "Gehalt",
+    "selectExpiry": "Ablaufdatum wählen",
+    "workLocation": "Arbeitsort",
     "types": {
       "vollzeit": "Vollzeit",
       "teilzeit": "Teilzeit",
