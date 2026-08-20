@@ -507,9 +507,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         completenessItems={
           !readOnly
             ? [
-                { label: t("profile.addPhoto", "Add a logo"), done: !!detail.business.logo_image },
-                { label: t("profile.addBio", "Add a description"), done: !!detail.business.description },
-                { label: t("profile.addLocation", "Add an address"), done: !!detail.business.address },
+                { label: t("businessProfile.addLogo", "Add a logo"), done: !!detail.business.logo_image },
+                { label: t("businessProfile.addDescription", "Add a description"), done: !!detail.business.description },
+                { label: t("businessProfile.addAddress", "Add an address"), done: !!detail.business.address },
               ]
             : undefined
         }
