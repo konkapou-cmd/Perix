@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
-import { GERMAN_DAYS, DAY_KEYS, getDayPeriods, getPeriodsSummary, type OpeningHours } from "./hoursUtils";
+import { DAY_KEYS, getDayPeriods, getPeriodsSummary, type OpeningHours } from "./hoursUtils";
 
 export interface ProfileAboutData {
   type: "user" | "business" | "artist";
@@ -245,9 +245,9 @@ export const ProfileAbout: React.FC<ProfileAboutProps> = ({
                 const periods = getDayPeriods(data.openingHours?.[day] as any);
                 return (
                 <View key={day} style={styles.hoursRow}>
-                  <Text style={[styles.hoursDay, themeStyles as any]}>{GERMAN_DAYS[day] || day}</Text>
+                  <Text style={[styles.hoursDay, themeStyles as any]}>{t(`days.${day}`)}</Text>
                   <Text style={[styles.hoursTime, { color: textColor }, themeStyles as any]}>
-                    {getPeriodsSummary(periods)}
+                    {getPeriodsSummary(periods, t)}
                   </Text>
                 </View>
               );

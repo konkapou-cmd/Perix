@@ -544,7 +544,10 @@
     "hours": "Öffnungszeiten",
     "openingHours": {
       "openNow": "Geöffnet",
-      "closed": "Geschlossen"
+      "closed": "Geschlossen",
+      "closedToday": "Heute geschlossen",
+      "opensAt": "Öffnet um {{time}}",
+      "closesAt": "Schließt um {{time}}"
     },
     "contact": "Kontakt",
     "email": "E-Mail",
@@ -711,6 +714,15 @@
     "noLocation": "Kein Standort festgelegt. Fügen Sie einen Standort hinzu, damit Kunden Sie auf der Karte finden können.",
     "locationHint": "Ihr Geschäft erscheint auf der Karte für Nutzer im Umkreis von 10km",
     "openingHours": "Öffnungszeiten",
+    "days": {
+      "monday": "Montag",
+      "tuesday": "Dienstag",
+      "wednesday": "Mittwoch",
+      "thursday": "Donnerstag",
+      "friday": "Freitag",
+      "saturday": "Samstag",
+      "sunday": "Sonntag"
+    },
     "editHours": "Zeiten bearbeiten",
     "closed": "Geschlossen",
     "category": "Geschäftskategorie",

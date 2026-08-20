@@ -373,7 +373,10 @@
     "hours": "Opening hours",
     "openingHours": {
       "openNow": "Open now",
-      "closed": "Closed"
+      "closed": "Closed",
+      "closedToday": "Closed today",
+      "opensAt": "Opens at {{time}}",
+      "closesAt": "Closes at {{time}}"
     },
     "contact": "Contact",
     "email": "Email",
@@ -694,6 +697,15 @@
     "noLocation": "No location set. Add a location so customers can find you on the map.",
     "locationHint": "Your business will appear on the map for users within 10km",
     "openingHours": "Opening Hours",
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
     "editHours": "Edit hours",
     "closed": "Closed",
     "category": "Business Category",

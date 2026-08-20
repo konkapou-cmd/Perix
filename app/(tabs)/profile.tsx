@@ -2960,12 +2960,11 @@ currentUserId={businessDetail?.business?.business_id}
             ) : null}
             
             <Text style={styles.inputLabel}>{t("business.openingHours", "Opening Hours")}</Text>
-            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => {
-              const dayKey = day.toLowerCase();
+            {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((dayKey) => {
               const schedule = bizEditForm.opening_hours?.schedule || {};
               const dayHours = schedule[dayKey] || { enabled: false, periods: [{ open: "09:00", close: "18:00" }] };
               return (
-                <View key={day} style={styles.dayRowEdit}>
+                <View key={dayKey} style={styles.dayRowEdit}>
                   <View style={styles.dayHeaderEdit}>
                     <Pressable onPress={() => {
                       const oh = bizEditForm.opening_hours || { timezone: "Europe/Berlin", schedule: {} };
@@ -2975,7 +2974,7 @@ currentUserId={businessDetail?.business?.business_id}
                     }}>
                       <Ionicons name={dayHours.enabled ? "checkbox" : "square-outline"} size={22} color={dayHours.enabled ? COLORS.primaryDark : "#9ca3af"} />
                     </Pressable>
-                    <Text style={styles.dayNameEdit}>{day}</Text>
+                    <Text style={styles.dayNameEdit}>{t(`business.days.${dayKey}`)}</Text>
                   </View>
                   {dayHours.enabled && (
                     <View style={styles.periodRowEdit}>

@@ -1,3 +1,5 @@
+import { TFunction } from "i18next";
+
 export type OpeningPeriod = {
   open?: string;
   close?: string;
@@ -53,20 +55,27 @@ export function formatOpeningTime(time?: string): string {
 
 export function getTodayStatus(
   isOpen: boolean,
-  todayPeriods: OpeningPeriod[]
+  todayPeriods: OpeningPeriod[],
+  t: TFunction
 ): { label: string; detail?: string } {
   if (todayPeriods.length === 0) {
-    return { label: "Heute geschlossen" };
+    return { label: t("profile.openingHours.closedToday", "Closed today") };
   }
   if (isOpen) {
     const lastClose = todayPeriods[todayPeriods.length - 1].close;
-    return { label: "Geöffnet", detail: `Schließt um ${formatOpeningTime(lastClose)}` };
+    return {
+      label: t("profile.openingHours.openNow", "Open now"),
+      detail: t("profile.openingHours.closesAt", "Closes at {{time}}", { time: formatOpeningTime(lastClose) }),
+    };
   }
-  return { label: "Geschlossen", detail: `Öffnet um ${formatOpeningTime(todayPeriods[0].open)}` };
+  return {
+    label: t("profile.openingHours.closed", "Closed"),
+    detail: t("profile.openingHours.opensAt", "Opens at {{time}}", { time: formatOpeningTime(todayPeriods[0].open) }),
+  };
 }
 
-export function getPeriodsSummary(periods: OpeningPeriod[]): string {
-  if (periods.length === 0) return "Geschlossen";
+export function getPeriodsSummary(periods: OpeningPeriod[], t: TFunction): string {
+  if (periods.length === 0) return t("profile.openingHours.closed", "Closed");
   return periods
     .map((p) => `${formatOpeningTime(p.open)} – ${formatOpeningTime(p.close)}`)
     .join(" / ");

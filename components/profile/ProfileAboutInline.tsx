@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
-import { getTodayHours, getDayPeriods, GERMAN_DAYS, DAY_KEYS, getTodayStatus, getPeriodsSummary, type OpeningHours } from "./hoursUtils";
+import { getTodayHours, getDayPeriods, DAY_KEYS, getTodayStatus, getPeriodsSummary, type OpeningHours } from "./hoursUtils";
 
 type AboutDataType = {
   type: "user" | "business" | "artist";
@@ -30,13 +30,6 @@ type Props = {
   onEditHours?: () => void;
   onEditProfile?: () => void;
   themeStyles?: ThemeStyles;
-};
-
-const dayNames: Record<string, string> = {
-  monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu",
-  friday: "Fri", saturday: "Sat", sunday: "Sun",
-  mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu",
-  fri: "Fri", sat: "Sat", sun: "Sun",
 };
 
 const socialIcons: Record<string, string> = {
@@ -92,7 +85,7 @@ export const ProfileAboutInline: React.FC<Props> = ({
 
       {hasHours && (() => {
         const todayPeriods = getTodayHours(data.openingHours as OpeningHours || {});
-        const { label, detail } = getTodayStatus(data.isOpen ?? false, todayPeriods);
+        const { label, detail } = getTodayStatus(data.isOpen ?? false, todayPeriods, t);
         return (
         <Pressable style={[s.hoursCard, { backgroundColor: cardColor, borderColor }]} onPress={() => setHoursExpanded(e => !e)}>
           <View style={s.hoursHeader}>
@@ -112,9 +105,9 @@ export const ProfileAboutInline: React.FC<Props> = ({
                 const periods = getDayPeriods(data.openingHours?.[day] as any);
                 return (
                 <View key={day} style={s.hoursRow}>
-                  <Text style={[s.hoursDay, { color: textColor }]}>{GERMAN_DAYS[day] || day}</Text>
+                  <Text style={[s.hoursDay, { color: textColor }]}>{t(`days.${day}`)}</Text>
                   <Text style={[s.hoursTime, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>
-                    {getPeriodsSummary(periods)}
+                    {getPeriodsSummary(periods, t)}
                   </Text>
                 </View>
               );
