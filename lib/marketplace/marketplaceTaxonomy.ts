@@ -78,16 +78,16 @@ const MATERIAL_ATTR: MarketplaceAttribute = {
 };
 
 const TARGET_GROUP_OPTIONS: MarketplaceAttributeOption[] = [
-  { key: "adults", labelKey: "listing.targetGroup.adults", fallback: "Erwachsene" },
-  { key: "kids", labelKey: "listing.targetGroup.kids", fallback: "Kinder" },
-  { key: "unisex", labelKey: "listing.targetGroup.unisex", fallback: "Unisex" },
+  { key: "adults", labelKey: "listing.targetGroupAdults", fallback: "Erwachsene" },
+  { key: "kids", labelKey: "listing.targetGroupKids", fallback: "Kinder" },
+  { key: "unisex", labelKey: "listing.targetGroupUnisex", fallback: "Unisex" },
 ];
 
 const CONDITION_GRADE_OPTIONS: MarketplaceAttributeOption[] = [
-  { key: "mint", labelKey: "listing.conditionGrade.mint", fallback: "Neuwertig" },
-  { key: "very_good", labelKey: "listing.conditionGrade.very_good", fallback: "Sehr gut" },
-  { key: "good", labelKey: "listing.conditionGrade.good", fallback: "Gut" },
-  { key: "acceptable", labelKey: "listing.conditionGrade.acceptable", fallback: "Akzeptabel" },
+  { key: "mint", labelKey: "listing.conditionGradeMint", fallback: "Neuwertig" },
+  { key: "very_good", labelKey: "listing.conditionGradeVeryGood", fallback: "Sehr gut" },
+  { key: "good", labelKey: "listing.conditionGradeGood", fallback: "Gut" },
+  { key: "acceptable", labelKey: "listing.conditionGradeAcceptable", fallback: "Akzeptabel" },
 ];
 
 export const MARKETPLACE_CATEGORIES: MarketplaceCategory[] = [

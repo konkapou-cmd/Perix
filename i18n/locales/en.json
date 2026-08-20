@@ -2483,23 +2483,7 @@
     "heightCm": "Height (cm)",
     "depthCm": "Depth (cm)",
     "assembled": "Assembled",
-    "targetGroup": {
-      "0": "T",
-      "1": "a",
-      "2": "r",
-      "3": "g",
-      "4": "e",
-      "5": "t",
-      "6": " ",
-      "7": "g",
-      "8": "r",
-      "9": "o",
-      "10": "u",
-      "11": "p",
-      "adults": "Adults",
-      "kids": "Kids",
-      "unisex": "Unisex"
-    },
+    "targetGroup": "Target group",
     "ageGroup": "Age group",
     "authenticityProof": "Proof of authenticity",
     "safetyStandard": "Safety standard",
@@ -2527,21 +2511,7 @@
     "artistManufacturer": "Artist/Manufacturer",
     "year": "Year",
     "series": "Series",
-    "conditionGrade": {
-      "0": "C",
-      "1": "o",
-      "2": "n",
-      "3": "d",
-      "4": "i",
-      "5": "t",
-      "6": "i",
-      "7": "o",
-      "8": "n",
-      "mint": "Like new",
-      "very_good": "Very good",
-      "good": "Good",
-      "acceptable": "Acceptable"
-    },
+    "conditionGrade": "Condition",
     "sealed": "Sealed",
     "unused": "Unused",
     "petType": "Pet type",
@@ -2555,7 +2525,14 @@
       "like_new": "Like new",
       "good": "Good",
       "used": "Used"
-    }
+    },
+    "targetGroupAdults": "Adults",
+    "targetGroupKids": "Kids",
+    "targetGroupUnisex": "Unisex",
+    "conditionGradeMint": "Like new",
+    "conditionGradeVeryGood": "Very good",
+    "conditionGradeGood": "Good",
+    "conditionGradeAcceptable": "Acceptable"
   },
   "creation": {
     "title": "Create",
@@ -2572,5 +2549,18 @@
     "section": "Section",
     "services": "Services",
     "service": "Service"
+  },
+  "map": {
+    "itemsAtLocation": "{{count}} items at this location",
+    "types": {
+      "business": "Business",
+      "event": "Event",
+      "activity": "Activity",
+      "artist": "Artist",
+      "job": "Job",
+      "rental": "Rental",
+      "service": "Service",
+      "product": "Product"
+    }
   }
 }

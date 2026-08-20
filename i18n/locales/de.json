@@ -2574,21 +2574,7 @@
     "heightCm": "Höhe (cm)",
     "depthCm": "Tiefe (cm)",
     "assembled": "Aufgebaut",
-    "targetGroup": {
-      "0": "Z",
-      "1": "i",
-      "2": "e",
-      "3": "l",
-      "4": "g",
-      "5": "r",
-      "6": "u",
-      "7": "p",
-      "8": "p",
-      "9": "e",
-      "adults": "Erwachsene",
-      "kids": "Kinder",
-      "unisex": "Unisex"
-    },
+    "targetGroup": "Zielgruppe",
     "ageGroup": "Altersgruppe",
     "authenticityProof": "Echtheitsnachweis",
     "safetyStandard": "Sicherheitsnorm",
@@ -2616,26 +2602,7 @@
     "artistManufacturer": "Künstler/Hersteller",
     "year": "Jahr",
     "series": "Serie",
-    "conditionGrade": {
-      "0": "E",
-      "1": "r",
-      "2": "h",
-      "3": "a",
-      "4": "l",
-      "5": "t",
-      "6": "u",
-      "7": "n",
-      "8": "g",
-      "9": "s",
-      "10": "g",
-      "11": "r",
-      "12": "a",
-      "13": "d",
-      "mint": "Neuwertig",
-      "very_good": "Sehr gut",
-      "good": "Gut",
-      "acceptable": "Akzeptabel"
-    },
+    "conditionGrade": "Erhaltungsgrad",
     "sealed": "Versiegelt",
     "unused": "Unbenutzt",
     "petType": "Tierart",
@@ -2649,7 +2616,14 @@
       "like_new": "Wie neu",
       "good": "Gut",
       "used": "Gebraucht"
-    }
+    },
+    "targetGroupAdults": "Erwachsene",
+    "targetGroupKids": "Kinder",
+    "targetGroupUnisex": "Unisex",
+    "conditionGradeMint": "Neuwertig",
+    "conditionGradeVeryGood": "Sehr gut",
+    "conditionGradeGood": "Gut",
+    "conditionGradeAcceptable": "Akzeptabel"
   },
   "creation": {
     "title": "Erstellen",
@@ -2661,5 +2635,18 @@
     "homeRentalSubtitle": "Biete eine Wohnung, ein Haus, Studio oder Zimmer zur Miete an",
     "product": "Artikel verkaufen",
     "productSubtitle": "Veröffentliche ein Produkt im Community-Marktplatz"
+  },
+  "map": {
+    "itemsAtLocation": "{{count}} Einträge an diesem Ort",
+    "types": {
+      "business": "Unternehmen",
+      "event": "Veranstaltung",
+      "activity": "Aktivität",
+      "artist": "Künstler",
+      "job": "Job",
+      "rental": "Vermietung",
+      "service": "Dienstleistung",
+      "product": "Produkt"
+    }
   }
 }

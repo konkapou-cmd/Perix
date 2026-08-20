@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import MapView, { Marker, Region } from "react-native-maps";
 import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
 import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Service } from "../lib/api";
 import { formatEventDate } from "../lib/formatDate";
@@ -206,6 +207,7 @@ export default function BusinessMap({
   } : undefined);
 
   const mapRef = useRef<MapView>(null);
+  const { t } = useTranslation();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLocationRef = useRef<string>("");
   const readyRef = useRef(false);
@@ -361,14 +363,14 @@ export default function BusinessMap({
         <Pressable style={styles.sheetOverlay} onPress={() => setSelectedGroup(null)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>{selectedGroup ? selectedGroup.length : 0} items at this location</Text>
+            <Text style={styles.sheetTitle}>{t("map.itemsAtLocation", "{{count}} items at this location", { count: selectedGroup ? selectedGroup.length : 0 })}</Text>
             <ScrollView style={styles.sheetList}>
               {(selectedGroup || []).map((item) => (
                 <TouchableOpacity key={item.id} style={styles.sheetItem} onPress={() => { setSelectedGroup(null); onMarkerPress?.(item.id); }}>
                   <View style={[styles.sheetDot, { backgroundColor: item.pinColor || COLORS.pinClosed }]} />
                   <View style={styles.sheetItemInfo}>
                     <Text style={styles.sheetItemName}>{item.title}</Text>
-                    <Text style={styles.sheetItemType}>{item.type}</Text>
+                    <Text style={styles.sheetItemType}>{t(`map.types.${item.type}`, item.type || "item")}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={COLORS.textPlaceholder} />
                 </TouchableOpacity>

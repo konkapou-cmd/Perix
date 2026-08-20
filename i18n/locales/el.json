@@ -2458,23 +2458,7 @@
     "heightCm": "Ύψος (cm)",
     "depthCm": "Βάθος (cm)",
     "assembled": "Συναρμολογημένο",
-    "targetGroup": {
-      "0": "Ο",
-      "1": "μ",
-      "2": "ά",
-      "3": "δ",
-      "4": "α",
-      "5": " ",
-      "6": "σ",
-      "7": "τ",
-      "8": "ό",
-      "9": "χ",
-      "10": "ο",
-      "11": "ς",
-      "adults": "Ενήλικες",
-      "kids": "Παιδιά",
-      "unisex": "Unisex"
-    },
+    "targetGroup": "Ομάδα στόχος",
     "ageGroup": "Ηλικιακή ομάδα",
     "authenticityProof": "Απόδειξη γνησιότητας",
     "safetyStandard": "Πρότυπο ασφάλειας",
@@ -2502,21 +2486,7 @@
     "artistManufacturer": "Καλλιτέχνης/Κατασκευαστής",
     "year": "Έτος",
     "series": "Σειρά",
-    "conditionGrade": {
-      "0": "Κ",
-      "1": "α",
-      "2": "τ",
-      "3": "ά",
-      "4": "σ",
-      "5": "τ",
-      "6": "α",
-      "7": "σ",
-      "8": "η",
-      "mint": "Άριστη",
-      "very_good": "Πολύ καλή",
-      "good": "Καλή",
-      "acceptable": "Αποδεκτή"
-    },
+    "conditionGrade": "Κατάσταση",
     "sealed": "Σφραγισμένο",
     "unused": "Αχρησιμοποίητο",
     "petType": "Τύπος ζώου",
@@ -2530,7 +2500,14 @@
       "like_new": "Σαν καινούργιο",
       "good": "Καλή κατάσταση",
       "used": "Μεταχειρισμένο"
-    }
+    },
+    "targetGroupAdults": "Ενήλικες",
+    "targetGroupKids": "Παιδιά",
+    "targetGroupUnisex": "Unisex",
+    "conditionGradeMint": "Άριστη",
+    "conditionGradeVeryGood": "Πολύ καλή",
+    "conditionGradeGood": "Καλή",
+    "conditionGradeAcceptable": "Αποδεκτή"
   },
   "creation": {
     "title": "Δημιουργία",
@@ -2547,5 +2524,18 @@
     "section": "Ενότητα",
     "services": "Υπηρεσίες",
     "service": "Υπηρεσία"
+  },
+  "map": {
+    "itemsAtLocation": "{{count}} αντικείμενα σε αυτή την τοποθεσία",
+    "types": {
+      "business": "Επιχείρηση",
+      "event": "Εκδήλωση",
+      "activity": "Δραστηριότητα",
+      "artist": "Καλλιτέχνης",
+      "job": "Εργασία",
+      "rental": "Ενοικίαση",
+      "service": "Υπηρεσία",
+      "product": "Προϊόν"
+    }
   }
 }
