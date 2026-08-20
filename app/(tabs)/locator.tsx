@@ -55,7 +55,7 @@ import {
 } from "../../lib/api";
 import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
-import { translateCategory } from "../../lib/categoryTranslation";
+import { translateCategory, translateJobType } from "../../lib/categoryTranslation";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
 import { formatDate } from "../../lib/formatDate";
 import { isBusinessOpen } from "../../lib/openingHours";
@@ -1171,7 +1171,7 @@ export default function LocatorScreen() {
                     business_id: job.job_id,
                     name: job.title,
                     root_category: "Jobs",
-                    subcategory: job.job_type || t("jobs.fullTime", "Vollzeit"),
+                    subcategory: translateJobType(job.job_type, t) || t("jobs.fullTime", "Vollzeit"),
                     address: job.location,
                     latitude: job.latitude,
                     longitude: job.longitude,

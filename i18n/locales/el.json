@@ -177,6 +177,9 @@
     "captionFailed": "Αποτυχία αποθήκευσης λεζάντας"
   },
   "categories": {
+    "hotels": "Ξενοδοχεία",
+    "guesthouses": "Ξενώνες",
+    "hostels": "Hostels",
     "sports-fitness-wellness": "Αθλητισμός & Ευεξία",
     "fashion-accessories": "Μόδα & Αξεσουάρ",
     "entertainment-events": "Ψυχαγωγία & Εκδηλώσεις",
@@ -1152,6 +1155,14 @@
   },
   "jobs": {
     "title": "Διαθέσιμες Θέσεις Εργασίας",
+    "types": {
+      "vollzeit": "Πλήρης απασχόληση",
+      "teilzeit": "Μερική απασχόληση",
+      "vertrag": "Σύμβαση",
+      "praktikum": "Πρακτική άσκηση",
+      "remote": "Απομακρυσμένη"
+    },
+    "fullTime": "Πλήρης απασχόληση",
     "subtitle": "Βρες θέσεις εργασίας ανά κατηγορία κοντά σου.",
     "noJobs": "Δεν βρέθηκαν θέσεις εργασίας.",
     "nearbyJobs": "Θέσεις Εργασίας Κοντά",

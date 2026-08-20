@@ -15,6 +15,7 @@ import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import FormScreen from "../ui/FormScreen";
 import FormBottomBar from "../ui/FormBottomBar";
+import { translateJobType } from "../../lib/categoryTranslation";
 
 type JobForm = {
   title: string;
@@ -96,14 +97,12 @@ function mediaToForm(media: MediaItem[], base: JobForm): JobForm {
 }
 
 const JOB_TYPES = [
-  { key: "Vollzeit", label: "Vollzeit" },
-  { key: "Teilzeit", label: "Teilzeit" },
-  { key: "Vertrag", label: "Vertrag" },
-  { key: "Praktikum", label: "Praktikum" },
-  { key: "Remote", label: "Remote" },
+  { key: "Vollzeit" },
+  { key: "Teilzeit" },
+  { key: "Vertrag" },
+  { key: "Praktikum" },
+  { key: "Remote" },
 ];
-
-const STATUS_LABELS: Record<string, string> = { draft: "Entwurf", published: "Veröffentlicht" };
 
 export default function JobModal({
   visible,
@@ -179,13 +178,13 @@ export default function JobModal({
 
             <Text style={s.label}>{t("jobs.jobType") || "Art"}</Text>
             <View style={s.chipRow}>
-              {JOB_TYPES.map(({ key, label }) => (
+              {JOB_TYPES.map(({ key }) => (
                 <Pressable
                   key={key}
                   style={[s.chip, jobForm.job_type === key && s.chipSelected]}
                   onPress={() => handleFormChange("job_type", jobForm.job_type === key ? "" : key)}
                 >
-                  <Text style={[s.chipText, jobForm.job_type === key && s.chipTextSelected]}>{label}</Text>
+                  <Text style={[s.chipText, jobForm.job_type === key && s.chipTextSelected]}>{translateJobType(key, t)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -235,7 +234,7 @@ export default function JobModal({
 
             <Text style={s.label}>{t("common.status") || "Status"}</Text>
             <View style={s.chipRow}>
-              {(Object.entries(STATUS_LABELS) as [string, string][]).map(([key, label]) => (
+              {(Object.entries({ draft: t("common.draft", "Draft"), published: t("common.published", "Published") }) as [string, string][]).map(([key, label]) => (
                 <Pressable
                   key={key}
                   style={[s.chip, jobForm.status === key && s.chipSelected]}

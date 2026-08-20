@@ -179,6 +179,9 @@
     "captionFailed": "Failed to save caption"
   },
   "categories": {
+    "hotels": "Hotels",
+    "guesthouses": "Guesthouses",
+    "hostels": "Hostels",
     "sports-fitness-wellness": "Sports, Fitness & Wellness",
     "fashion-accessories": "Fashion Accessories",
     "entertainment-events": "Entertainment & Events",
@@ -1069,6 +1072,14 @@
   },
   "jobs": {
     "title": "Available Jobs",
+    "types": {
+      "vollzeit": "Full-time",
+      "teilzeit": "Part-time",
+      "vertrag": "Contract",
+      "praktikum": "Internship",
+      "remote": "Remote"
+    },
+    "fullTime": "Full-time",
     "subtitle": "Find jobs by category nearby.",
     "noJobs": "No jobs found yet.",
     "nearbyJobs": "Nearby Jobs",

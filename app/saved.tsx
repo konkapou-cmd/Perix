@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 
 import { useAuth } from "../context/AuthContext";
 import { getSavedItems, toggleSaved, SavedItem } from "../lib/api";
+import { translateJobType } from "../lib/categoryTranslation";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../lib/designTokens";
 import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 
@@ -99,7 +100,7 @@ export default function SavedScreen() {
       data?.name ||
       data?.text ||
       t("saved.untitled", "Untitled");
-    const subtitle = data?.location || data?.address || data?.job_type || "";
+    const subtitle = data?.location || data?.address || translateJobType(data?.job_type, t) || "";
 
     return (
       <Pressable

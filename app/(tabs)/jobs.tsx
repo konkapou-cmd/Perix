@@ -30,7 +30,7 @@ import {
 } from "../../lib/api";
 import BusinessMap from "../../components/BusinessMap";
 import { useMapBounds } from "../../context/MapBoundsContext";
-import { translateCategory } from "../../lib/categoryTranslation";
+import { translateCategory, translateJobType } from "../../lib/categoryTranslation";
 import EmptyState from "../../components/shared/EmptyState";
 import { SkeletonBox } from "../../components/shared";
 import {
@@ -350,7 +350,7 @@ export default function JobsScreen() {
                 <View style={styles.jobBadges}>
                   {item.job_type && (
                     <View style={styles.jobTypeBadge}>
-                      <Text style={styles.jobTypeBadgeText}>{item.job_type}</Text>
+                      <Text style={styles.jobTypeBadgeText}>{translateJobType(item.job_type, t)}</Text>
                     </View>
                   )}
                   {item.salary_range && (

@@ -59,13 +59,13 @@ import {
   MAX_VIDEO_SIZE_BYTES,
 } from "../../lib/api";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/mediaLimits";
-import { COLORS, getServiceTypeConfig } from "../../lib/designTokens";
+import { COLORS } from "../../lib/designTokens";
 import { formatEventDate, formatEventTime } from "../../lib/formatDate";
 import { isBusinessOpen } from "../../lib/openingHours";
 import ShareContent from "../../components/ShareContent";
 import * as Location from "expo-location";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
-import { translateCategory } from "../../lib/categoryTranslation";
+import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
 import { getThemeColors } from "../../hooks/useThemeStyles";
 import { SkeletonBox, CarouselCard } from "../../components/shared";
 import { CityAdViewer } from "../../components/stories/CityAdViewer";
@@ -1099,7 +1099,7 @@ export default function HomeScreen() {
           >
             {shuffledServices.filter(s => s.type !== "rental_property").map((service) => {
               const serviceImg = service.cover_image_url || (!service.video_url ? (service.image_urls?.[0] || service.gallery_images?.[0]) : undefined);
-              const serviceTypeLabel = getServiceTypeConfig(service.root_category || "", service.type)?.label || service.type;
+              const serviceTypeLabel = translateServiceType(service.type, t);
               const durationText = service.duration_minutes ? `${service.duration_minutes} min` : "";
               return (
                 <CarouselCard
@@ -1171,7 +1171,7 @@ export default function HomeScreen() {
                   videoUrl={job.video_url}
                   title={job.title}
                   subtitle={job.business_name || job.location || ""}
-                  thirdLine={[job.salary_range || "", job.job_type || ""].filter(Boolean).join(" · ")}
+                  thirdLine={[job.salary_range || "", translateJobType(job.job_type, t)].filter(Boolean).join(" · ")}
                   thirdLineIcon="cash-outline"
                   fourthLine={job.work_location || job.location || ""}
                   fourthLineIcon="location-outline"

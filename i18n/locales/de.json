@@ -194,6 +194,9 @@
     "captionFailed": "Beschreibung konnte nicht gespeichert werden"
   },
   "categories": {
+    "hotels": "Hotels",
+    "guesthouses": "Pensionen",
+    "hostels": "Hostels",
     "sports-fitness-wellness": "Sport, Fitness & Wellness",
     "fashion-accessories": "Modeaccessoires",
     "entertainment-events": "Unterhaltung & Veranstaltungen",
@@ -1146,6 +1149,14 @@
   },
   "jobs": {
     "title": "Verfügbare Jobs",
+    "types": {
+      "vollzeit": "Vollzeit",
+      "teilzeit": "Teilzeit",
+      "vertrag": "Vertrag",
+      "praktikum": "Praktikum",
+      "remote": "Remote"
+    },
+    "fullTime": "Vollzeit",
     "subtitle": "Finde Jobs nach Kategorie in deiner Nähe.",
     "noJobs": "Noch keine Jobs gefunden.",
     "nearbyJobs": "Jobs in der Nähe",

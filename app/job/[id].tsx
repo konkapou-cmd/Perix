@@ -21,6 +21,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { useAuth } from "../../context/AuthContext";
 import ShareContent from "../../components/ShareContent";
 import { getJob, applyToJob, uploadMedia, Job, toggleSaved, checkSaved } from "../../lib/api";
+import { translateJobType } from "../../lib/categoryTranslation";
 import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
 import { InfoCard } from "../../components/shared/InfoCard";
 import { LocationCard } from "../../components/shared/LocationCard";
@@ -203,7 +204,7 @@ export default function JobDetailPage() {
             coverFocalPoint={job.cover_focal_point}
             imageUrls={job.image_urls || []}
             title={job.title}
-            badges={job.job_type ? [{ icon: "briefcase", text: job.job_type, color: COLORS.jobsAccent }] : []}
+            badges={job.job_type ? [{ icon: "briefcase", text: translateJobType(job.job_type, t), color: COLORS.jobsAccent }] : []}
             subtitle={job.business_name ? { text: job.business_name, icon: "business-outline" } : undefined}
             mediaItems={mediaItems}
           />
@@ -221,7 +222,7 @@ export default function JobDetailPage() {
             <InfoCard
               icon="briefcase-outline"
               label={t("jobs.jobType") || "Art"}
-              value={job.job_type || "—"}
+              value={translateJobType(job.job_type, t) || "—"}
               accentColor={COLORS.jobsAccent}
             />
             <InfoCard

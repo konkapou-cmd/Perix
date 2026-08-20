@@ -32,3 +32,34 @@ export const translateCategoryObject = (
   if (!category) return "";
   return translateCategory(category.slug, t);
 };
+
+const toCamelCase = (value: string): string =>
+  value
+    .split("_")
+    .map((part, index) =>
+      index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)
+    )
+    .join("");
+
+/**
+ * Translates a service type (e.g. "salon_appointment") via the services.type* keys.
+ * Falls back to the raw value when no translation exists.
+ */
+export const translateServiceType = (type: string | null | undefined, t: TFunction): string => {
+  if (!type) return "";
+  const camel = toCamelCase(type);
+  const suffix = camel === "tailoringAlteration" ? "Tailoring" : camel.charAt(0).toUpperCase() + camel.slice(1);
+  const key = `services.type${suffix}`;
+  const translated = t(key);
+  return translated && translated !== key ? translated : type;
+};
+
+/**
+ * Translates a job type value (stored as German words: "Vollzeit", "Teilzeit", ...).
+ */
+export const translateJobType = (jobType: string | null | undefined, t: TFunction): string => {
+  if (!jobType) return "";
+  const key = `jobs.types.${jobType.toLowerCase()}`;
+  const translated = t(key);
+  return translated && translated !== key ? translated : jobType;
+};
