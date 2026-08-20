@@ -518,7 +518,9 @@ pendingMentionIds = [],
           ListEmptyComponent={
             postsData.length === 0 ? (
               listEmptyComponent ?? (
-                <EmptyState icon="newspaper-outline" message={t("profile.noPosts", "No posts yet")} />
+                posts.length === 0 ? (
+                  <EmptyState icon="newspaper-outline" message={t("profile.noPosts", "No posts yet")} />
+                ) : null
               )
             ) : null
           }

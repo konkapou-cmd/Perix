@@ -725,10 +725,10 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     if (readOnly) {
       return (
         <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
-          <ProfilePosts
-            posts={businessPosts}
-            readOnly={true}
-            isOwnProfile={false}
+        <ProfilePosts
+          posts={activeTab === "posts" ? businessPosts : []}
+          readOnly={true}
+          isOwnProfile={false}
             primaryColor={primaryColor}
             cardColor={cardColor}
             textColor={textColor}
@@ -776,7 +776,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     return (
       <KeyboardAvoidingView style={[styles.container, { backgroundColor: bgColor }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
         <ProfilePosts
-          posts={businessPosts}
+          posts={privateActiveTab === "posts" ? businessPosts : []}
           primaryColor={primaryColor}
           cardColor={cardColor}
           textColor={textColor}
