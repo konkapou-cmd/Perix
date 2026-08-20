@@ -9,6 +9,7 @@ import {
   LayoutAnimation,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { CategoryGroup } from "../../lib/api";
 
@@ -33,6 +34,14 @@ export default function LocatorSidebar({
   onSelectSubcategory,
   onClose,
 }: Props) {
+  const { t } = useTranslation();
+
+  const label = (slug: string, name: string) => {
+    const key = `categories.${slug}`;
+    const translated = t(key);
+    return translated && translated !== key ? translated : name;
+  };
+
   const handleRootToggle = useCallback(
     (slug: string) => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -59,7 +68,7 @@ export default function LocatorSidebar({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Categories</Text>
+        <Text style={styles.headerTitle}>{t("locator.categories", "Categories")}</Text>
         {onClose && (
           <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={8}>
             <Ionicons name="close" size={20} color={COLORS.textMuted} />
@@ -90,10 +99,9 @@ export default function LocatorSidebar({
               selectedRoot === "All" && styles.itemTextActive,
             ]}
           >
-            All
+            {t("locator.allCategories", "All Categories")}
           </Text>
         </Pressable>
-
         {categories.map((cat) => {
           const isExpanded = selectedRoot === cat.slug;
           const hasGroups = cat.groups && cat.groups.length > 0;
@@ -129,7 +137,7 @@ export default function LocatorSidebar({
                   ]}
                   numberOfLines={1}
                 >
-                  {cat.name}
+                  {label(cat.slug, cat.name)}
                 </Text>
                 {hasSubs && (
                   <Ionicons
@@ -145,7 +153,7 @@ export default function LocatorSidebar({
                 <View style={styles.groupList}>
                   {cat.groups!.map((group) => (
                     <View key={group.slug}>
-                      <Text style={styles.groupHeader}>{group.name}</Text>
+                      <Text style={styles.groupHeader}>{label(group.slug, group.name)}</Text>
                       <View style={styles.subList}>
                         {group.subcategories.map((sub) => {
                           const isSubActive = selectedSubcategory === sub.slug;
@@ -157,7 +165,7 @@ export default function LocatorSidebar({
                             >
                               <View style={styles.subDot} />
                               <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
-                                {sub.name}
+                                {label(sub.slug, sub.name)}
                               </Text>
                             </Pressable>
                           );
@@ -178,7 +186,7 @@ export default function LocatorSidebar({
                       >
                         <View style={styles.subDot} />
                         <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
-                          {sub.name}
+                          {label(sub.slug, sub.name)}
                         </Text>
                       </Pressable>
                     );

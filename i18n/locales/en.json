@@ -707,6 +707,9 @@
       "sunday": "Sunday"
     },
     "editHours": "Edit hours",
+    "selectCategory": "Select Category",
+    "selectSubcategory": "Select Subcategory",
+    "chooseCategory": "Choose Category",
     "closed": "Closed",
     "category": "Business Category",
     "changeCategory": "Change category",
@@ -1183,6 +1186,7 @@
   },
   "locator": {
     "title": "Discover",
+    "categories": "Categories",
     "subtitle": "Find events, activities, artists & businesses",
     "mapView": "Map",
     "artistSearch": "Find Artists",

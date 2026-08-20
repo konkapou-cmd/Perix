@@ -724,6 +724,9 @@
       "sunday": "Sonntag"
     },
     "editHours": "Zeiten bearbeiten",
+    "selectCategory": "Kategorie wählen",
+    "selectSubcategory": "Unterkategorie wählen",
+    "chooseCategory": "Kategorie auswählen",
     "closed": "Geschlossen",
     "category": "Geschäftskategorie",
     "changeCategory": "Kategorie ändern",
@@ -1271,6 +1274,7 @@
     "reportMessage": "Vielen Dank für Ihre Meldung. Unser Team wird sie in Kürze prüfen."
   },
   "locator": {
+    "categories": "Kategorien",
     "mapView": "Karte",
     "artistSearch": "Künstler finden",
     "searchCityPlaceholder": "Stadtname eingeben...",
