@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useRouter } from "expo-router";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { Listing, ListingStatus } from "../../lib/api/listings";
@@ -33,11 +34,11 @@ type Props = {
   onDelete: (listing: Listing) => void;
 };
 
-function statusBadge(status: ListingStatus, isActive: boolean): { label: string; color: string } {
-  if (!isActive) return { label: "Inaktiv", color: COLORS.textMuted };
-  if (status === "draft") return { label: "Entwurf", color: COLORS.textMuted };
-  if (status === "published") return { label: "Aktiv", color: COLORS.success };
-  if (status === "sold" || status === "rented") return { label: "Verkauft", color: COLORS.warning };
+function statusBadge(status: ListingStatus, isActive: boolean, t: TFunction): { label: string; color: string } {
+  if (!isActive) return { label: t("marketplace.inactive", "Inactive"), color: COLORS.textMuted };
+  if (status === "draft") return { label: t("common.draft", "Draft"), color: COLORS.textMuted };
+  if (status === "published") return { label: t("common.published", "Published"), color: COLORS.success };
+  if (status === "sold" || status === "rented") return { label: t("common.sold", "Sold"), color: COLORS.warning };
   return { label: status, color: COLORS.textPrimary };
 }
 
@@ -49,12 +50,16 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
 
   const catCounts = useMemo(() => {
     const counts: Record<string, { count: number; label: string; icon: string }> = {};
-    const propertyLabels: Record<string, string> = { apartment: "Apartment", house: "Haus", studio: "Studio", room: "Zimmer" };
     const isHome = listingType === "home_rental";
     listings.forEach((l) => {
       const catKey = isHome ? (l.property_type || "other") : (l.category || "other");
       if (!counts[catKey]) {
-        const label = isHome ? (propertyLabels[catKey] || catKey) : (getCategoryConfig(catKey)?.fallback || catKey);
+        const label = isHome
+          ? (t(`rentals.types.${catKey}`, catKey) as string)
+          : (() => {
+              const cfg = getCategoryConfig(catKey);
+              return cfg ? (t(cfg.labelKey, cfg.fallback) as string) : catKey;
+            })();
         const icon = isHome ? "home-outline" : (getCategoryConfig(catKey)?.icon || "ellipsis-horizontal-outline");
         counts[catKey] = { count: 0, label, icon };
       }
@@ -69,7 +74,7 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
       if (!ordered.some((o) => o.key === key)) ordered.push({ key, ...info });
     }
     return ordered;
-  }, [listings]);
+  }, [listings, listingType, t]);
 
   const visibleListings = useMemo(() => {
     let filtered = listings;
@@ -183,7 +188,7 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
       )}
 
       {visibleListings.map((listing) => {
-        const badge = statusBadge(listing.status, listing.is_active);
+        const badge = statusBadge(listing.status, listing.is_active, t);
         const img = resolveCardImage(listing);
         return (
           <Pressable key={listing.listing_id} style={styles.card} onPress={() => handleCardPress(listing)}>

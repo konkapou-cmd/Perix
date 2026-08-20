@@ -2,6 +2,10 @@
   "common": {
     "openNow": "Jetzt geöffnet",
     "loading": "Laden...",
+    "draft": "Entwurf",
+    "published": "Veröffentlicht",
+    "sold": "Verkauft",
+    "rented": "Vermietet",
     "save": "Speichern",
     "cancel": "Abbrechen",
     "delete": "Löschen",
@@ -1714,6 +1718,16 @@
     "rentPrice": "Mietpreis",
     "roomsSize": "Zimmer / Größe",
     "propertyType": "Immobilientyp",
+    "bedrooms": "Schlafzimmer",
+    "bathrooms": "Badezimmer",
+    "rental": "Vermietung",
+    "invalidRental": "Diese Vermietung kann nicht geöffnet werden.",
+    "types": {
+      "apartment": "Wohnung",
+      "house": "Haus",
+      "studio": "Studio",
+      "room": "Zimmer"
+    },
     "address": "Adresse",
     "availableFrom": "Verfügbar ab",
     "deposit": "Kaution",
@@ -2360,6 +2374,7 @@
   },
   "marketplace": {
     "title": "Marktplatz",
+    "inactive": "Inaktiv",
     "items": "Artikel",
     "homes": "Unterkünfte",
     "home": "Unterkunft",

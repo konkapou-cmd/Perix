@@ -448,7 +448,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 <View style={styles.chipRow}>
                   {HOME_TYPES.map((ht) => (
                     <Pressable key={ht} style={[styles.chip, propertyType === ht && styles.chipActive]} onPress={() => setPropertyType(ht)}>
-                      <Text style={[styles.chipText, propertyType === ht && styles.chipTextActive]}>{ht}</Text>
+                      <Text style={[styles.chipText, propertyType === ht && styles.chipTextActive]}>{t(`rentals.types.${ht}`, ht)}</Text>
                     </Pressable>
                   ))}
                 </View>

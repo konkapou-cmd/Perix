@@ -247,7 +247,7 @@ export default function ListingDetailScreen() {
               {listing.property_type ? (
                 <View style={styles.homeDetailItem}>
                   <Ionicons name="home-outline" size={16} color={COLORS.primary} />
-                  <Text style={styles.homeDetailText}>{t(`rentals.${listing.property_type}`, listing.property_type)}</Text>
+                  <Text style={styles.homeDetailText}>{t(`rentals.types.${listing.property_type}`, listing.property_type)}</Text>
                 </View>
               ) : null}
               {listing.bedrooms ? (

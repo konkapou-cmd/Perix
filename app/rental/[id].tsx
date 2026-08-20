@@ -140,7 +140,7 @@ export default function RentalDetailPage() {
           imageUrls={rental.gallery_images || []}
           title={rental.title}
           badges={[
-            { icon: "home", text: t("rentals.propertyType." + ((rental as any).property_type || "apartment"), (rental as any).property_type || "Apartment") },
+            { icon: "home", text: t("rentals.types." + ((rental as any).property_type || "apartment"), (rental as any).property_type || "Apartment") },
             rental.rent_price ? { icon: "pricetag", text: rental.rent_price } : null,
             roomsText ? { icon: "bed-outline", text: roomsText } : null,
           ].filter(Boolean) as any}

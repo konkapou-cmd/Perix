@@ -66,7 +66,7 @@ export default function MarketplaceHomesPage() {
   const propertyChips: FilterChip[] = useMemo(
     () => [
       { key: "", label: t("marketplace.all", "Alle"), active: activePropType === "" },
-      ...PROPERTY_TYPES.map((pt) => ({ key: pt, label: t(`rentals.propertyType.${pt}`, pt), active: activePropType === pt })),
+      ...PROPERTY_TYPES.map((pt) => ({ key: pt, label: t(`rentals.types.${pt}`, pt), active: activePropType === pt })),
     ],
     [activePropType],
   );
