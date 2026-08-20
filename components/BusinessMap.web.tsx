@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, Platform, Pressable, Modal, Image as RNImage, L
 import { Ionicons } from "@expo/vector-icons";
 import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Service } from "../lib/api";
 import { formatEventDate } from "../lib/formatDate";
+import { translateCategory } from "../lib/categoryTranslation";
 import { COLORS } from "../lib/designTokens";
 import { useTranslation } from "react-i18next";
 import Constants from "expo-constants";
@@ -310,7 +311,7 @@ export default function BusinessMap({
               )}
               <View style={{ flex: 1 }}>
                 <Text style={s.cardName}>{selectedBusiness?.name}</Text>
-                <Text style={s.cardCat}>{selectedBusiness?.category || selectedBusiness?.root_category}</Text>
+                <Text style={s.cardCat}>{translateCategory(selectedBusiness?.subcategory || selectedBusiness?.category || selectedBusiness?.root_category, t)}</Text>
               </View>
             </View>
             {selectedBusiness?.address && (

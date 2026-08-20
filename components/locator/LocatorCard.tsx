@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View, Image, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { translateCategory } from "../../lib/categoryTranslation";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
 import type { Business, EventItem, ActivityItem } from "../../lib/api";
@@ -63,7 +64,7 @@ function BusinessCard({ data, distance, isOpen, onPress }: BusinessCardProps) {
             {data.name}
           </Text>
           <Text style={[styles.cardSubtitle, { color: textColor }]} numberOfLines={1}>
-            {data.subcategory} · {data.root_category || data.category}
+            {translateCategory(data.subcategory, t)} · {translateCategory(data.root_category || data.category, t)}
           </Text>
           {data.address ? (
             <View style={styles.cardMetaRow}>

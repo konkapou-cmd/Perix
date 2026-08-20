@@ -24,6 +24,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
 import { useAuth } from "../../context/AuthContext";
+import { translateCategory } from "../../lib/categoryTranslation";
 import { SkeletonBox } from "../../components/shared";
 import { COLORS } from "../../lib/designTokens";
 import {
@@ -2907,7 +2908,7 @@ currentUserId={businessDetail?.business?.business_id}
             <Text style={styles.inputLabel}>{t("business.category", "Category")}</Text>
             <Pressable style={styles.pickerButton} onPress={() => setBizCategoryModalVisible(true)}>
               <Text style={styles.pickerButtonText}>
-                {bizEditForm.root_category ? (() => { const rc = findRootCategory(categoryTree, bizEditForm.root_category); return rc ? rc.name : bizEditForm.root_category; })() : t("business.selectCategory", "Select Category")}
+                {bizEditForm.root_category ? (() => { const rc = findRootCategory(categoryTree, bizEditForm.root_category); return rc ? translateCategory(rc.slug, t) : bizEditForm.root_category; })() : t("business.selectCategory", "Select Category")}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </Pressable>
@@ -2921,7 +2922,7 @@ currentUserId={businessDetail?.business?.business_id}
               setBizSubcategoryModalVisible(true);
             }}>
               <Text style={styles.pickerButtonText}>
-                {bizEditForm.subcategory ? (getSubcategories(categoryTree, bizEditForm.root_category).find(s => s.slug === bizEditForm.subcategory)?.name || bizEditForm.subcategory) : t("business.selectSubcategory", "Select Subcategory")}
+                {bizEditForm.subcategory ? (() => { const sc = getSubcategories(categoryTree, bizEditForm.root_category).find(s => s.slug === bizEditForm.subcategory); return sc ? translateCategory(sc.slug, t) : bizEditForm.subcategory; })() : t("business.selectSubcategory", "Select Subcategory")}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </Pressable>
@@ -3037,7 +3038,7 @@ currentUserId={businessDetail?.business?.business_id}
                   setBizCategoryModalVisible(false);
                 }}
               >
-                <Text style={styles.modalItemText}>{category.name}</Text>
+                <Text style={styles.modalItemText}>{translateCategory(category.slug, t)}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -3063,7 +3064,7 @@ currentUserId={businessDetail?.business?.business_id}
                   setBizSubcategoryModalVisible(false);
                 }}
               >
-                <Text style={styles.modalItemText}>{sub.name}</Text>
+                <Text style={styles.modalItemText}>{translateCategory(sub.slug, t)}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -3093,7 +3094,7 @@ currentUserId={businessDetail?.business?.business_id}
                     if (subs.length === 1) setPickerSub(subs[0].slug);
                   }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: pickerRoot === cat.slug ? "#fff" : "#374151" }}>{cat.name}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: pickerRoot === cat.slug ? "#fff" : "#374151" }}>{translateCategory(cat.slug, t)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -3107,7 +3108,7 @@ currentUserId={businessDetail?.business?.business_id}
                       style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: pickerSub === sub.slug ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: pickerSub === sub.slug ? COLORS.textPrimary : "#e5e7eb" }}
                       onPress={() => setPickerSub(sub.slug)}
                     >
-                      <Text style={{ fontSize: 13, fontWeight: "500", color: pickerSub === sub.slug ? "#fff" : "#374151" }}>{sub.name}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: "500", color: pickerSub === sub.slug ? "#fff" : "#374151" }}>{translateCategory(sub.slug, t)}</Text>
                     </Pressable>
                   ))}
                 </View>
