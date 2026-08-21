@@ -51,9 +51,9 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
   const showManageProducts = !loading && (businessProductsEnabled || (listingsCount ?? 0) > 0);
 
   const createActions: ActionItem[] = [
-    ...(showCreateProduct ? [{ key: "create-product", label: t("marketplace.addProduct", "Produkt hinzufügen"), icon: "add-circle" as const }] : []),
+    ...(showCreateProduct ? [{ key: "create-product", label: t("marketplace.addProduct", "Produkt hinzufügen"), icon: "pricetag-outline" as const }] : []),
     { key: "create-service", label: t("services.addService", "Dienst hinzufügen"), icon: "construct-outline" as const },
-    { key: "create-event", label: t("business.createEvent", "Veranstaltung erstellen"), icon: "calendar-outline" as const },
+    { key: "create-event", label: t("business.createEvent", "Veranstaltung erstellen"), icon: "sparkles" as const },
     { key: "create-job", label: t("business.createJob", "Job erstellen"), icon: "briefcase" as const },
   ];
 
