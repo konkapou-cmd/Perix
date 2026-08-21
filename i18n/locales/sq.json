@@ -952,6 +952,23 @@
   },
   "jobs": {
     "title": "Punë të Disponueshme",
+    "create": "Krijo punë",
+    "jobTitlePlaceholder": "p.sh. Inxhinier softueri i lartë",
+    "descriptionPlaceholder": "Përshkruani rolin, përgjegjësitë dhe kandidatin ideal...",
+    "locationPlaceholder": "p.sh. Tiranë, Qendër",
+    "requirementsPlaceholder": "p.sh. 3+ vjet përvojë, anglisht rrjedhshëm",
+    "salaryPlaceholder": "p.sh. 40.000 € – 55.000 € / vit",
+    "salaryRange": "Paga",
+    "selectExpiry": "Zgjidh datën e skadimit",
+    "workLocation": "Vendi i punës",
+    "fullTime": "Me kohë të plotë",
+    "types": {
+      "vollzeit": "Me kohë të plotë",
+      "teilzeit": "Me kohë të pjesshme",
+      "vertrag": "Kontratë",
+      "praktikum": "Praktikë",
+      "remote": "Nga distanca"
+    },
     "subtitle": "Gjej punë sipas kategorisë afër teje.",
     "noJobs": "Nuk u gjetën punë akoma.",
     "nearbyJobs": "Punë Afër",

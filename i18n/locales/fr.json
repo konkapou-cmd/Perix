@@ -1006,6 +1006,23 @@
   },
   "jobs": {
     "title": "Emplois Disponibles",
+    "create": "Créer une offre",
+    "jobTitlePlaceholder": "p. ex. Ingénieur logiciel senior",
+    "descriptionPlaceholder": "Décrivez le poste, les responsabilités et le candidat idéal...",
+    "locationPlaceholder": "p. ex. Paris, Centre",
+    "requirementsPlaceholder": "p. ex. 3+ ans d'expérience, anglais courant",
+    "salaryPlaceholder": "p. ex. 40 000 € – 55 000 € / an",
+    "salaryRange": "Salaire",
+    "selectExpiry": "Choisir la date d'expiration",
+    "workLocation": "Lieu de travail",
+    "fullTime": "Temps plein",
+    "types": {
+      "vollzeit": "Temps plein",
+      "teilzeit": "Temps partiel",
+      "vertrag": "Contrat",
+      "praktikum": "Stage",
+      "remote": "À distance"
+    },
     "subtitle": "Trouvez des emplois par catégorie près de vous.",
     "noJobs": "Aucun emploi trouvé.",
     "nearbyJobs": "Emplois à Proximité",

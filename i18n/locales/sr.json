@@ -1002,6 +1002,23 @@
   },
   "jobs": {
     "title": "Dostupni poslovi",
+    "create": "Kreiraj posao",
+    "jobTitlePlaceholder": "npr. Viši softverski inženjer",
+    "descriptionPlaceholder": "Opišite ulogu, odgovornosti i idealnog kandidata...",
+    "locationPlaceholder": "npr. Beograd, Centar",
+    "requirementsPlaceholder": "npr. 3+ godine iskustva, tečan engleski",
+    "salaryPlaceholder": "npr. 40.000 € – 55.000 € godišnje",
+    "salaryRange": "Plata",
+    "selectExpiry": "Izaberite datum isteka",
+    "workLocation": "Mesto rada",
+    "fullTime": "Puno radno vreme",
+    "types": {
+      "vollzeit": "Puno radno vreme",
+      "teilzeit": "Nepuno radno vreme",
+      "vertrag": "Ugovor",
+      "praktikum": "Praksa",
+      "remote": "Rad od kuće"
+    },
     "subtitle": "Pronađite poslove po kategoriji u blizini.",
     "noJobs": "Još nema pronađenih poslova.",
     "nearbyJobs": "Obližnji poslovi",

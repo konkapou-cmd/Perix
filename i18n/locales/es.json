@@ -974,6 +974,23 @@
   },
   "jobs": {
     "title": "Empleos Disponibles",
+    "create": "Crear empleo",
+    "jobTitlePlaceholder": "p. ej. Ingeniero de software senior",
+    "descriptionPlaceholder": "Describe el puesto, las responsabilidades y el candidato ideal...",
+    "locationPlaceholder": "p. ej. Madrid, Centro",
+    "requirementsPlaceholder": "p. ej. 3+ años de experiencia, inglés fluido",
+    "salaryPlaceholder": "p. ej. 40.000 € – 55.000 € / año",
+    "salaryRange": "Salario",
+    "selectExpiry": "Seleccionar fecha de vencimiento",
+    "workLocation": "Lugar de trabajo",
+    "fullTime": "Tiempo completo",
+    "types": {
+      "vollzeit": "Tiempo completo",
+      "teilzeit": "Tiempo parcial",
+      "vertrag": "Contrato",
+      "praktikum": "Prácticas",
+      "remote": "Remoto"
+    },
     "subtitle": "Encuentra empleos por categoría cerca de ti.",
     "noJobs": "No se encontraron empleos todavía.",
     "nearbyJobs": "Empleos Cercanos",

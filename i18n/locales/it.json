@@ -974,6 +974,23 @@
   },
   "jobs": {
     "title": "Lavori Disponibili",
+    "create": "Crea lavoro",
+    "jobTitlePlaceholder": "es. Ingegnere software senior",
+    "descriptionPlaceholder": "Descrivi il ruolo, le responsabilità e il candidato ideale...",
+    "locationPlaceholder": "es. Roma, Centro",
+    "requirementsPlaceholder": "es. 3+ anni di esperienza, inglese fluente",
+    "salaryPlaceholder": "es. 40.000 € – 55.000 € / anno",
+    "salaryRange": "Stipendio",
+    "selectExpiry": "Seleziona data di scadenza",
+    "workLocation": "Luogo di lavoro",
+    "fullTime": "Tempo pieno",
+    "types": {
+      "vollzeit": "Tempo pieno",
+      "teilzeit": "Part-time",
+      "vertrag": "Contratto",
+      "praktikum": "Tirocinio",
+      "remote": "Da remoto"
+    },
     "subtitle": "Trova lavori per categoria vicino a te.",
     "noJobs": "Nessun lavoro trovato.",
     "nearbyJobs": "Lavori Vicini",

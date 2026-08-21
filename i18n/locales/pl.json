@@ -1007,6 +1007,23 @@
   },
   "jobs": {
     "title": "Dostupni poslovi",
+    "create": "Utwórz ofertę pracy",
+    "jobTitlePlaceholder": "np. Starszy inżynier oprogramowania",
+    "descriptionPlaceholder": "Opisz stanowisko, obowiązki i idealnego kandydata...",
+    "locationPlaceholder": "np. Warszawa, Centrum",
+    "requirementsPlaceholder": "np. 3+ lata doświadczenia, płynny angielski",
+    "salaryPlaceholder": "np. 40 000 € – 55 000 € / rok",
+    "salaryRange": "Wynagrodzenie",
+    "selectExpiry": "Wybierz datę wygaśnięcia",
+    "workLocation": "Miejsce pracy",
+    "fullTime": "Pełny etat",
+    "types": {
+      "vollzeit": "Pełny etat",
+      "teilzeit": "Część etatu",
+      "vertrag": "Umowa",
+      "praktikum": "Praktyki",
+      "remote": "Zdalnie"
+    },
     "subtitle": "Pronađite poslove po kategoriji u blizini.",
     "noJobs": "Još nema pronađenih poslova.",
     "nearbyJobs": "Obližnji poslovi",
