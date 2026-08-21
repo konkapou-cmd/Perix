@@ -737,7 +737,11 @@
     "noBusinesses": "Бизнесы не найдены",
     "noImages": "Пока нет изображений",
     "noVideos": "Пока нет видео",
-    "searchBusinesses": "Поиск бизнесов..."
+    "searchBusinesses": "Поиск бизнесов...",
+    "actions": "Бизнес-действия",
+    "create": "Создать",
+    "manage": "Управление",
+    "createJob": "Создать вакансию"
   },
   "businessProfile": {
     "basicInfo": "Основная информация",
@@ -864,7 +868,8 @@
     "setReminder": "Установить напоминание",
     "yourResponse": "Ваш ответ",
     "tagArtists": "Отметить артистов",
-    "searchArtists": "Искать артистов..."
+    "searchArtists": "Искать артистов...",
+    "title": "События"
   },
   "messages": {
     "title": "Сообщения",
@@ -1971,7 +1976,9 @@
     "menu": "Меню",
     "rooms": "Номера",
     "listings": "Объявления",
-    "title": "Услуги"
+    "title": "Услуги",
+    "services": "Услуги",
+    "addService": "Добавить услугу"
   },
   "menu": {
     "starter": "Закуски",
@@ -2042,5 +2049,9 @@
     "changesContent": "Мы можем обновлять эти условия. Продолжение использования означает принятие.",
     "contact": "Контакт",
     "contactContent": "Email support@perix.app"
+  },
+  "marketplace": {
+    "addProduct": "Добавить товар",
+    "products": "Товары"
   }
 }

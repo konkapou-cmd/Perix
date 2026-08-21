@@ -736,7 +736,11 @@
     "noBusinesses": "Nema pronađenih biznisa",
     "noImages": "Još nema slika",
     "noVideos": "Još nema videa",
-    "searchBusinesses": "Pretraži biznise..."
+    "searchBusinesses": "Pretraži biznise...",
+    "actions": "Poslovne akcije",
+    "create": "Kreiraj",
+    "manage": "Upravljaj",
+    "createJob": "Kreiraj posao"
   },
   "businessProfile": {
     "basicInfo": "Osnovne informacije",
@@ -876,7 +880,8 @@
     "noChatMessages": "Još nema poruka",
     "startConversation": "Započnite razgovor!",
     "tagArtists": "Означи уметнике",
-    "searchArtists": "Претражи уметнике..."
+    "searchArtists": "Претражи уметнике...",
+    "title": "Događaji"
   },
   "messages": {
     "title": "Poruke",
@@ -1998,7 +2003,9 @@
     "menu": "Мени",
     "rooms": "Собе",
     "listings": "Огласи",
-    "title": "Услуге"
+    "title": "Услуге",
+    "services": "Usluge",
+    "addService": "Dodaj uslugu"
   },
   "menu": {
     "starter": "Предјела",
@@ -2069,5 +2076,9 @@
     "changesContent": "Можемо ажурирати ове услове. Наставак коришћења значи прихватање.",
     "contact": "Контакт",
     "contactContent": "Email support@perix.app"
+  },
+  "marketplace": {
+    "addProduct": "Dodaj proizvod",
+    "products": "Proizvodi"
   }
 }

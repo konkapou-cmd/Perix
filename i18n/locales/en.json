@@ -835,7 +835,10 @@
     "noBusinesses": "No businesses found",
     "noImages": "No images yet",
     "noVideos": "No videos yet",
-    "searchBusinesses": "Search businesses..."
+    "searchBusinesses": "Search businesses...",
+    "actions": "Business Actions",
+    "create": "Create",
+    "manage": "Manage"
   },
   "businessProfile": {
     "editProfile": "Edit Profile",
@@ -946,7 +949,8 @@
     "setReminder": "Set Reminder",
     "yourResponse": "Your Response",
     "tagArtists": "Tag Artists",
-    "searchArtists": "Search artists..."
+    "searchArtists": "Search artists...",
+    "title": "Events"
   },
   "messages": {
     "title": "Messages",
@@ -2243,7 +2247,8 @@
     "addDateRange": "Add date range",
     "dateRangeAdded": "Date range added",
     "bookableWindow": "Bookable Window",
-    "saveMayHaveSucceeded": "The service may have been saved despite the network error. Your edits are still open."
+    "saveMayHaveSucceeded": "The service may have been saved despite the network error. Your edits are still open.",
+    "services": "Services"
   },
   "detail": {
     "stay": "Stay Information",

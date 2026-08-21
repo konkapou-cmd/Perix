@@ -867,7 +867,11 @@
     "noBusinesses": "Δεν βρέθηκαν επιχειρήσεις",
     "noImages": "Δεν υπάρχουν εικόνες ακόμα",
     "noVideos": "Δεν υπάρχουν βίντεο ακόμα",
-    "searchBusinesses": "Αναζήτηση επιχειρήσεων..."
+    "searchBusinesses": "Αναζήτηση επιχειρήσεων...",
+    "actions": "Ενέργειες επιχείρησης",
+    "create": "Δημιουργία",
+    "manage": "Διαχείριση",
+    "createJob": "Δημιουργία θέσης εργασίας"
   },
   "businessProfile": {
     "basicInfo": "Βασικές πληροφορίες",
@@ -1017,7 +1021,8 @@
     "rsvp": "RSVP",
     "searchEvents": "Αναζήτηση εκδηλώσεων...",
     "tagArtists": "Επισήμανση καλλιτεχνών",
-    "searchArtists": "Αναζήτηση καλλιτεχνών..."
+    "searchArtists": "Αναζήτηση καλλιτεχνών...",
+    "title": "Εκδηλώσεις"
   },
   "messages": {
     "title": "Μηνύματα",
@@ -2231,7 +2236,8 @@
     "typeHealthProcedure": "Επέμβαση",
     "typeHealthTest": "Εξέταση",
     "typePetAppointment": "Ραντεβού",
-    "typePetProduct": "Προϊόν"
+    "typePetProduct": "Προϊόν",
+    "services": "Υπηρεσίες"
   },
   "menu": {
     "starter": "Ορεκτικά",

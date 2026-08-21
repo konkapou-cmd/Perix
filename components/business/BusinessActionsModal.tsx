@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -101,7 +102,7 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
               <ActivityIndicator size="small" color={COLORS.primary} />
             </View>
           ) : (
-            <>
+            <ScrollView style={styles.scrollBody} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
               <Text style={styles.sectionTitle}>{t("business.create", "Erstellen")}</Text>
               <View style={styles.actionsList}>
                 {createActions.map(renderRow)}
@@ -111,7 +112,7 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
               <View style={styles.actionsList}>
                 {manageActions.map(renderRow)}
               </View>
-            </>
+            </ScrollView>
           )}
 
           <Pressable style={styles.cancelBtn} onPress={onClose}>
@@ -217,5 +218,11 @@ const styles = StyleSheet.create({
   loadingContainer: {
     paddingVertical: 40,
     alignItems: "center",
+  },
+  scrollBody: {
+    maxHeight: SCREEN_HEIGHT * 0.6,
+  },
+  scrollContent: {
+    paddingBottom: 16,
   },
 });

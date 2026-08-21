@@ -736,7 +736,11 @@
     "noBusinesses": "Nie znaleziono firm",
     "noImages": "Brak obrazów",
     "noVideos": "Brak filmów",
-    "searchBusinesses": "Szukaj firm..."
+    "searchBusinesses": "Szukaj firm...",
+    "actions": "Działania biznesowe",
+    "create": "Utwórz",
+    "manage": "Zarządzaj",
+    "createJob": "Utwórz ofertę pracy"
   },
   "businessProfile": {
     "editProfile": "Izmeni profil",
@@ -881,7 +885,8 @@
     "startConversation": "Započnite razgovor!",
     "typeMessage": "Unesite poruku...",
     "tagArtists": "Oznacz artystów",
-    "searchArtists": "Szukaj artystów..."
+    "searchArtists": "Szukaj artystów...",
+    "title": "Wydarzenia"
   },
   "messages": {
     "title": "Poruke",
@@ -2011,7 +2016,9 @@
     "menu": "Menu",
     "rooms": "Pokoje",
     "listings": "Ogłoszenia",
-    "title": "Usługi"
+    "title": "Usługi",
+    "services": "Usługi",
+    "addService": "Dodaj usługę"
   },
   "menu": {
     "starter": "Przystawki",
@@ -2082,5 +2089,9 @@
     "changesContent": "Możemy aktualizować te warunki. Kontynuacja korzystania oznacza akceptację.",
     "contact": "Kontakt",
     "contactContent": "Email support@perix.app"
+  },
+  "marketplace": {
+    "addProduct": "Dodaj produkt",
+    "products": "Produkty"
   }
 }

@@ -736,7 +736,11 @@
     "noBusinesses": "Nuk u gjetën biznese",
     "noImages": "Nuk ka imazhe akoma",
     "noVideos": "Nuk ka video akoma",
-    "searchBusinesses": "Kërko biznese..."
+    "searchBusinesses": "Kërko biznese...",
+    "actions": "Veprimet e biznesit",
+    "create": "Krijo",
+    "manage": "Menaxho",
+    "createJob": "Krijo punë"
   },
   "businessProfile": {
     "editProfile": "Ndrysho profilin",
@@ -842,7 +846,8 @@
     "setReminder": "Vendos Kujtesë",
     "yourResponse": "Përgjigja Juaj",
     "tagArtists": "Etiketo artistë",
-    "searchArtists": "Kërko artistë..."
+    "searchArtists": "Kërko artistë...",
+    "title": "Evente"
   },
   "messages": {
     "title": "Mesazhe",
@@ -1904,7 +1909,9 @@
     "menu": "Menu",
     "rooms": "Dhoma",
     "listings": "Shpalljet",
-    "title": "Shërbime"
+    "title": "Shërbime",
+    "services": "Shërbime",
+    "addService": "Shto shërbim"
   },
   "menu": {
     "starter": "Antipasta",
@@ -1975,5 +1982,9 @@
     "changesContent": "Mund të përditësojmë këto kushte. Përdorimi i vazhdueshëm do të thotë pranim.",
     "contact": "Kontakt",
     "contactContent": "Email support@perix.app"
+  },
+  "marketplace": {
+    "addProduct": "Shto produkt",
+    "products": "Produkte"
   }
 }

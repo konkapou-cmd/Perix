@@ -844,7 +844,11 @@
     "noBusinesses": "Keine Unternehmen gefunden",
     "noImages": "Noch keine Bilder",
     "noVideos": "Noch keine Videos",
-    "searchBusinesses": "Unternehmen suchen..."
+    "searchBusinesses": "Unternehmen suchen...",
+    "actions": "Business-Aktionen",
+    "create": "Erstellen",
+    "manage": "Verwalten",
+    "createJob": "Job erstellen"
   },
   "businessProfile": {
     "basicInfo": "Basisinformationen",
@@ -995,7 +999,8 @@
     "setReminder": "Erinnerung setzen",
     "yourResponse": "Deine Antwort",
     "tagArtists": "Künstler taggen",
-    "searchArtists": "Künstler suchen..."
+    "searchArtists": "Künstler suchen...",
+    "title": "Veranstaltungen"
   },
   "messages": {
     "title": "Nachrichten",
@@ -2318,7 +2323,8 @@
     "addDateRange": "Zeitraum hinzufügen",
     "dateRangeAdded": "Zeitraum hinzugefügt",
     "bookableWindow": "Buchbares Fenster",
-    "saveMayHaveSucceeded": "Der Dienst wurde möglicherweise trotz Netzwerkfehler gespeichert. Ihre Änderungen bleiben geöffnet."
+    "saveMayHaveSucceeded": "Der Dienst wurde möglicherweise trotz Netzwerkfehler gespeichert. Ihre Änderungen bleiben geöffnet.",
+    "services": "Dienste"
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",
