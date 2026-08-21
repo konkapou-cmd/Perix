@@ -75,7 +75,10 @@
     "ok": "OK",
     "permissionRequired": "Wymagane uprawnienie",
     "savedSuccessfully": "Zapisano pomyślnie",
-    "tag": "Oznacz"
+    "tag": "Oznacz",
+    "allCategories": "Wszystkie kategorie",
+    "allSubcategories": "Wszystkie podkategorie",
+    "subcategory": "Kategoria"
   },
   "dashboard": {
     "analyticsOverview": "Przegląd Statystyk",
@@ -361,7 +364,9 @@
     "jobs": "Praca",
     "businesses": "Businesses",
     "events": "Events",
-    "locator": "Locator"
+    "locator": "Locator",
+    "hotels": "Hotele",
+    "rentals": "Wynajmy"
   },
   "home": {
     "title": "Početna",

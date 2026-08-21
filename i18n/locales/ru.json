@@ -75,7 +75,10 @@
     "ok": "OK",
     "permissionRequired": "Требуется разрешение",
     "savedSuccessfully": "Успешно сохранено",
-    "tag": "Отметить"
+    "tag": "Отметить",
+    "allCategories": "Все категории",
+    "allSubcategories": "Все подкатегории",
+    "subcategory": "Категория"
   },
   "dashboard": {
     "analyticsOverview": "Обзор Статистики",
@@ -361,7 +364,9 @@
     "jobs": "Вакансии",
     "businesses": "Бизнесы",
     "events": "События",
-    "locator": "Локатор"
+    "locator": "Локатор",
+    "hotels": "Отели",
+    "rentals": "Аренда"
   },
   "home": {
     "title": "Главная",

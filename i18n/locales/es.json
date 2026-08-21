@@ -75,7 +75,10 @@
     "ok": "OK",
     "permissionRequired": "Permiso Requerido",
     "savedSuccessfully": "Guardado exitosamente",
-    "tag": "Etiqueta"
+    "tag": "Etiqueta",
+    "allCategories": "Todas las categorías",
+    "allSubcategories": "Todas las subcategorías",
+    "subcategory": "Categoría"
   },
   "dashboard": {
     "analyticsOverview": "Resumen de Estadísticas",
@@ -361,7 +364,9 @@
     "jobs": "Empleos",
     "businesses": "Businesses",
     "events": "Events",
-    "locator": "Locator"
+    "locator": "Locator",
+    "hotels": "Hoteles",
+    "rentals": "Alquileres"
   },
   "home": {
     "title": "Inicio",

@@ -75,7 +75,10 @@
     "ok": "OK",
     "permissionRequired": "Kërkohet Leja",
     "savedSuccessfully": "U ruajt me sukses",
-    "tag": "Etiketë"
+    "tag": "Etiketë",
+    "allCategories": "Të gjitha kategoritë",
+    "allSubcategories": "Të gjitha nënkategoritë",
+    "subcategory": "Kategoria"
   },
   "dashboard": {
     "analyticsOverview": "Përmbledhje e Statistikave",
@@ -360,7 +363,9 @@
     "jobs": "Punë",
     "businesses": "Biznese",
     "events": "Evente",
-    "locator": "Gjetësi"
+    "locator": "Gjetësi",
+    "hotels": "Hotelet",
+    "rentals": "Qiratë"
   },
   "home": {
     "title": "Kryefaqja",

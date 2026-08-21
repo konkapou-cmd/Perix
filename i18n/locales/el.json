@@ -81,7 +81,10 @@
     "ok": "ΟΚ",
     "permissionRequired": "Απαιτείται άδεια",
     "savedSuccessfully": "Αποθηκεύτηκε επιτυχώς",
-    "tag": "Ετικέτα"
+    "tag": "Ετικέτα",
+    "allCategories": "Όλες οι κατηγορίες",
+    "allSubcategories": "Όλες οι υποκατηγορίες",
+    "subcategory": "Κατηγορία"
   },
   "dashboard": {
     "analyticsOverview": "Επισκόπηση Στατιστικών",
@@ -449,7 +452,9 @@
     "businesses": "Επιχειρήσεις",
     "events": "Εκδηλώσεις",
     "locator": "Εύρεση",
-    "jobs": "Θέσεις εργασίας"
+    "jobs": "Θέσεις εργασίας",
+    "hotels": "Ξενοδοχεία",
+    "rentals": "Ενοικιάσεις"
   },
   "home": {
     "hotels": "Τοπικά ξενοδοχεία",

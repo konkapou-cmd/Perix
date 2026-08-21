@@ -75,7 +75,10 @@
     "ok": "U redu",
     "permissionRequired": "Potrebna dozvola",
     "savedSuccessfully": "Uspešno sačuvano",
-    "tag": "Oznaka"
+    "tag": "Oznaka",
+    "allCategories": "Sve kategorije",
+    "allSubcategories": "Sve potkategorije",
+    "subcategory": "Kategorija"
   },
   "dashboard": {
     "analyticsOverview": "Pregled Statistika",
@@ -361,7 +364,9 @@
     "jobs": "Poslovi",
     "businesses": "Biznisi",
     "events": "Događaji",
-    "locator": "Lokator"
+    "locator": "Lokator",
+    "hotels": "Hoteli",
+    "rentals": "Iznajmljivanja"
   },
   "home": {
     "title": "Početna",

@@ -83,7 +83,10 @@
     "permissionDenied": "Permission Denied",
     "galleryAccessRequired": "Gallery access required",
     "savedSuccessfully": "Saved successfully",
-    "tag": "Tag"
+    "tag": "Tag",
+    "allCategories": "All Categories",
+    "allSubcategories": "All Subcategories",
+    "subcategory": "Category"
   },
   "dashboard": {
     "analyticsOverview": "Analytics Overview",
