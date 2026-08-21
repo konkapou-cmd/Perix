@@ -57,14 +57,11 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
     { key: "create-job", label: t("business.createJob", "Job erstellen"), icon: "briefcase" as const },
   ];
 
-  const manageActions: ActionItem[] = [
-    ...(showManageProducts ? [{ key: "manage-products", label: t("marketplace.products", "Produkte"), icon: "pricetags-outline" as const, count: listingsCount }] : []),
-    { key: "manage-services", label: t("services.services", "Dienste"), icon: "construct" as const },
-    { key: "manage-events", label: t("events.title", "Veranstaltungen"), icon: "ticket-outline" as const },
-    { key: "manage-jobs", label: t("jobs.title", "Jobs"), icon: "briefcase" as const },
-    { key: "manage-bookings", label: t("business.seeMyBookings", "See my bookings"), icon: "receipt-outline" as const },
-    { key: "manage-media", label: t("profile.media", "Medien"), icon: "images-outline" as const },
-  ];
+  const bookingsAction: ActionItem = {
+    key: "manage-bookings",
+    label: t("business.seeMyBookings", "Meine Buchungen ansehen"),
+    icon: "receipt-outline",
+  };
 
   const renderRow = (action: ActionItem) => (
     <Pressable
@@ -103,14 +100,12 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
             </View>
           ) : (
             <ScrollView style={styles.scrollBody} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-              <Text style={styles.sectionTitle}>{t("business.create", "Erstellen")}</Text>
               <View style={styles.actionsList}>
                 {createActions.map(renderRow)}
               </View>
 
-              <Text style={styles.sectionTitle}>{t("business.manage", "Verwalten")}</Text>
               <View style={styles.actionsList}>
-                {manageActions.map(renderRow)}
+                {renderRow(bookingsAction)}
               </View>
             </ScrollView>
           )}
