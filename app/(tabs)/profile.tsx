@@ -2544,7 +2544,7 @@ currentUserId={businessDetail?.business?.business_id}
                           video_status: muxResult.mux_playback_id ? "ready" : "processing",
                         });
                       }
-                      Alert.alert(t("cityAd.adPublished") || "Your city ad has been published!");
+                      Alert.alert(t("cityAd.adPublished", "Your city ad has been published!"));
                     } catch (e) {
                       console.error("City ad creation failed:", e);
                       Alert.alert(t("common.error"), "Failed to create city ad");

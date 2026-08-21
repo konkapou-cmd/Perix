@@ -67,14 +67,14 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
           <View style={styles.iconContainer}>
             <Ionicons name="videocam" size={18} color={COLORS.textLight} />
           </View>
-          <Text style={styles.cardTitle}>{t("cityAd.sectionTitle") || "City Ads"}</Text>
+          <Text style={styles.cardTitle}>{t("cityAd.sectionTitle", "City Ads")}</Text>
         </View>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={SNAP_INTERVAL} decelerationRate="fast">
         {storyGroups.length === 0 && !isBusiness && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>{t("cityAd.noAds") || "No ads yet"}</Text>
+            <Text style={styles.emptyText}>{t("cityAd.noAds", "No ads yet")}</Text>
           </View>
         )}
 
@@ -86,7 +86,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
                 <Ionicons name="add" size={28} color={COLORS.primaryDark} />
               </View>
               <Text style={styles.businessName} numberOfLines={1}>
-                {t("cityAd.yourAd") || "Your Ad"}
+                {t("cityAd.yourAd", "Your Ad")}
               </Text>
             </View>
           </Pressable>

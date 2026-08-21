@@ -387,7 +387,7 @@ export default function HomeScreen() {
       setUploadProgress(null);
       setUploadingAd(false);
       refreshFeed().catch(() => {});
-      Alert.alert(t("cityAd.adPublished") || "Your city ad has been published!");
+      Alert.alert(t("cityAd.adPublished", "Your city ad has been published!"));
     } catch (e) {
       console.error("City ad creation failed:", e);
       setShowUploadProgress(false);
@@ -1546,7 +1546,7 @@ export default function HomeScreen() {
         }}>
           <ActivityIndicator size="large" color={COLORS.textLight} />
           <Text style={{ color: COLORS.textLight, fontSize: 16, marginTop: 12, fontWeight: "600" }}>
-            {t("cityAd.uploadingAd") || "Uploading your ad..."}
+            {t("cityAd.uploadingAd", "Uploading your ad...")}
           </Text>
         </View>
       )}

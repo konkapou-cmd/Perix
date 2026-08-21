@@ -1380,13 +1380,13 @@
     "deleteConfirm": "Supprimer cette annonce de ville ?",
     "deleteTitle": "Supprimer l'annonce",
     "deleteFailed": "Échec de la suppression",
-    "sectionTitle": "City Ads",
-    "yourAd": "Your Ad",
-    "noAds": "No ads yet",
-    "adPublished": "Your city ad has been published!",
-    "createAd": "Create City Ad",
-    "maxDuration": "City Ads must be under 3 minutes",
-    "uploadingAd": "Uploading your ad..."
+    "sectionTitle": "Annonces de ville",
+    "yourAd": "Votre annonce",
+    "noAds": "Pas encore d'annonces",
+    "adPublished": "Votre annonce de ville a été publiée !",
+    "createAd": "Créer une annonce de ville",
+    "maxDuration": "Les annonces de ville doivent durer moins de 3 minutes",
+    "uploadingAd": "Téléversement de votre annonce..."
   },
   "subscription": {
     "title": "Gérer l'Abonnement",

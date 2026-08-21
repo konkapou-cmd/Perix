@@ -1346,13 +1346,13 @@
     "deleteConfirm": "Удалить это городское объявление?",
     "deleteTitle": "Удалить объявление",
     "deleteFailed": "Не удалось удалить",
-    "sectionTitle": "City Ads",
-    "yourAd": "Your Ad",
-    "noAds": "No ads yet",
-    "adPublished": "Your city ad has been published!",
-    "createAd": "Create City Ad",
-    "maxDuration": "City Ads must be under 3 minutes",
-    "uploadingAd": "Uploading your ad..."
+    "sectionTitle": "Городские объявления",
+    "yourAd": "Ваше объявление",
+    "noAds": "Объявлений пока нет",
+    "adPublished": "Ваше городское объявление опубликовано!",
+    "createAd": "Создать городское объявление",
+    "maxDuration": "Городские объявления должны быть короче 3 минут",
+    "uploadingAd": "Загрузка вашего объявления..."
   },
   "subscription": {
     "title": "Управление подпиской",

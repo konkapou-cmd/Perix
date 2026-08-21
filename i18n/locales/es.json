@@ -1343,13 +1343,13 @@
     "deleteConfirm": "¿Eliminar este anuncio de ciudad?",
     "deleteTitle": "Eliminar anuncio",
     "deleteFailed": "Error al eliminar",
-    "sectionTitle": "City Ads",
-    "yourAd": "Your Ad",
-    "noAds": "No ads yet",
-    "adPublished": "Your city ad has been published!",
-    "createAd": "Create City Ad",
-    "maxDuration": "City Ads must be under 3 minutes",
-    "uploadingAd": "Uploading your ad..."
+    "sectionTitle": "Anuncios de ciudad",
+    "yourAd": "Tu anuncio",
+    "noAds": "Aún no hay anuncios",
+    "adPublished": "¡Tu anuncio de ciudad ha sido publicado!",
+    "createAd": "Crear anuncio de ciudad",
+    "maxDuration": "Los anuncios de ciudad deben durar menos de 3 minutos",
+    "uploadingAd": "Subiendo tu anuncio..."
   },
   "subscription": {
     "title": "Gestionar Suscripción",

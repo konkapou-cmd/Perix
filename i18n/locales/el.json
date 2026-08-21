@@ -1489,13 +1489,13 @@
     "deleteConfirm": "Αφαίρεση αυτής της διαφήμισης πόλης;",
     "deleteTitle": "Διαγραφή διαφήμισης",
     "deleteFailed": "Αποτυχία διαγραφής",
-    "sectionTitle": "City Ads",
-    "yourAd": "Your Ad",
-    "noAds": "No ads yet",
-    "adPublished": "Your city ad has been published!",
-    "createAd": "Create City Ad",
-    "maxDuration": "City Ads must be under 3 minutes",
-    "uploadingAd": "Uploading your ad..."
+    "sectionTitle": "Διαφημίσεις πόλης",
+    "yourAd": "Η διαφήμισή σου",
+    "noAds": "Δεν υπάρχουν διαφημίσεις ακόμα",
+    "adPublished": "Η διαφήμισή σου δημοσιεύτηκε!",
+    "createAd": "Δημιουργία διαφήμισης πόλης",
+    "maxDuration": "Οι διαφημίσεις πόλης πρέπει να είναι κάτω από 3 λεπτά",
+    "uploadingAd": "Ανεβαίνει η διαφήμισή σου..."
   },
   "subscription": {
     "title": "Διαχείριση συνδρομής",

@@ -1282,13 +1282,13 @@
     "deleteConfirm": "Ta hiqni këtë reklamë qyteti?",
     "deleteTitle": "Fshi reklamën",
     "deleteFailed": "Fshirja dështoi",
-    "sectionTitle": "City Ads",
-    "yourAd": "Your Ad",
-    "noAds": "No ads yet",
-    "adPublished": "Your city ad has been published!",
-    "createAd": "Create City Ad",
-    "maxDuration": "City Ads must be under 3 minutes",
-    "uploadingAd": "Uploading your ad..."
+    "sectionTitle": "Reklama qyteti",
+    "yourAd": "Reklama juaj",
+    "noAds": "Ende pa reklama",
+    "adPublished": "Reklama juaj e qytetit u publikua!",
+    "createAd": "Krijo reklamë qyteti",
+    "maxDuration": "Reklamat e qytetit duhet të jenë nën 3 minuta",
+    "uploadingAd": "Po ngarkohet reklama juaj..."
   },
   "subscription": {
     "title": "Menaxho Abonimin",

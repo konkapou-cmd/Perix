@@ -1373,13 +1373,13 @@
     "deleteConfirm": "Ukloniti ovaj gradski oglas?",
     "deleteTitle": "Obriši oglas",
     "deleteFailed": "Brisanje nije uspelo",
-    "sectionTitle": "City Ads",
-    "yourAd": "Your Ad",
-    "noAds": "No ads yet",
-    "adPublished": "Your city ad has been published!",
-    "createAd": "Create City Ad",
-    "maxDuration": "City Ads must be under 3 minutes",
-    "uploadingAd": "Uploading your ad..."
+    "sectionTitle": "Gradski oglasi",
+    "yourAd": "Vaš oglas",
+    "noAds": "Još nema oglasa",
+    "adPublished": "Vaš gradski oglas je objavljen!",
+    "createAd": "Kreiraj gradski oglas",
+    "maxDuration": "Gradski oglasi moraju biti kraći od 3 minuta",
+    "uploadingAd": "Otpremanje vašeg oglasa..."
   },
   "subscription": {
     "title": "Upravljaj pretplatom",

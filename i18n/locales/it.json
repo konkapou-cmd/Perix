@@ -1348,13 +1348,13 @@
     "deleteConfirm": "Rimuovere questo annuncio cittadino?",
     "deleteTitle": "Elimina annuncio",
     "deleteFailed": "Eliminazione non riuscita",
-    "sectionTitle": "City Ads",
-    "yourAd": "Your Ad",
-    "noAds": "No ads yet",
-    "adPublished": "Your city ad has been published!",
-    "createAd": "Create City Ad",
-    "maxDuration": "City Ads must be under 3 minutes",
-    "uploadingAd": "Uploading your ad..."
+    "sectionTitle": "Annunci di città",
+    "yourAd": "Il tuo annuncio",
+    "noAds": "Nessun annuncio ancora",
+    "adPublished": "Il tuo annuncio di città è stato pubblicato!",
+    "createAd": "Crea annuncio di città",
+    "maxDuration": "Gli annunci di città devono durare meno di 3 minuti",
+    "uploadingAd": "Caricamento del tuo annuncio..."
   },
   "subscription": {
     "title": "Gestisci Abbonamento",
