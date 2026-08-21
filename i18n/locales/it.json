@@ -1275,6 +1275,23 @@
     "reportMessage": "Perché stai segnalando questo profilo?"
   },
   "stories": {
+    "allTime": "Sempre",
+    "analytics": "Statistiche stories",
+    "avgWatchTime": "Visualizzazione media",
+    "completion": "Completamento",
+    "completionRate": "Tasso di completamento",
+    "myAnalytics": "Le mie statistiche",
+    "noData": "Nessun dato disponibile",
+    "noStories": "Nessuna story per questo periodo",
+    "perStory": "Per story",
+    "reactions": "Reazioni",
+    "stories": "Storie",
+    "totalViews": "Visualizzazioni totali",
+    "uniqueViewers": "Spettatori unici",
+    "unknownUser": "Sconosciuto",
+    "viewers": "Spettatori",
+    "views": "Visualizzazioni",
+    "viewsTimeline": "Visualizzazioni nel tempo",
     "yourStory": "La Tua Storia",
     "noStoriesYet": "Nessuna storia ancora",
     "addStory": "Aggiungi storia",
@@ -1317,6 +1334,9 @@
     "businessClosed": "L'attività è attualmente chiusa. Per favore chiama durante gli orari di apertura."
   },
   "cityAd": {
+    "deleteConfirm": "Rimuovere questo annuncio cittadino?",
+    "deleteTitle": "Elimina annuncio",
+    "deleteFailed": "Eliminazione non riuscita",
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",

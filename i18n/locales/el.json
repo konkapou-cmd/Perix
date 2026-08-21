@@ -1419,6 +1419,23 @@
     "reportMessage": "Γιατί αναφέρετε αυτό το προφίλ;"
   },
   "stories": {
+    "allTime": "Συνολικά",
+    "analytics": "Στατιστικά Stories",
+    "avgWatchTime": "Μέση προβολή",
+    "completion": "Ολοκλήρωση",
+    "completionRate": "Ποσοστό ολοκλήρωσης",
+    "myAnalytics": "Τα στατιστικά μου",
+    "noData": "Δεν υπάρχουν δεδομένα",
+    "noStories": "Δεν βρέθηκαν stories για αυτή την περίοδο",
+    "perStory": "Ανά story",
+    "reactions": "Αντιδράσεις",
+    "stories": "Stories",
+    "totalViews": "Συνολικές προβολές",
+    "uniqueViewers": "Μοναδικοί θεατές",
+    "unknownUser": "Άγνωστος",
+    "viewers": "Θεατές",
+    "views": "Προβολές",
+    "viewsTimeline": "Προβολές με την πάροδο του χρόνου",
     "yourStory": "Η Ιστορία σου",
     "noStoriesYet": "Δεν υπάρχουν ιστορίες ακόμα",
     "addStory": "Προσθήκη ιστορίας",
@@ -1461,6 +1478,9 @@
     "businessClosed": "Η επιχείρηση είναι κλειστή αυτή τη στιγμή. Παρακαλώ καλέστε κατά τις ώρες λειτουργίας."
   },
   "cityAd": {
+    "deleteConfirm": "Αφαίρεση αυτής της διαφήμισης πόλης;",
+    "deleteTitle": "Διαγραφή διαφήμισης",
+    "deleteFailed": "Αποτυχία διαγραφής",
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",

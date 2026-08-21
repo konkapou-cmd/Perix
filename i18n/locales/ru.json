@@ -1273,6 +1273,23 @@
     "reportMessage": "Почему вы жалуетесь на этот профиль?"
   },
   "stories": {
+    "allTime": "За всё время",
+    "analytics": "Статистика историй",
+    "avgWatchTime": "Средний просмотр",
+    "completion": "Завершение",
+    "completionRate": "Процент завершения",
+    "myAnalytics": "Моя статистика",
+    "noData": "Нет данных",
+    "noStories": "Нет историй за этот период",
+    "perStory": "По истории",
+    "reactions": "Реакции",
+    "stories": "Истории",
+    "totalViews": "Всего просмотров",
+    "uniqueViewers": "Уникальные зрители",
+    "unknownUser": "Неизвестно",
+    "viewers": "Зрители",
+    "views": "Просмотры",
+    "viewsTimeline": "Просмотры по времени",
     "yourStory": "Ваша история",
     "noStoriesYet": "Пока нет историй",
     "addStory": "Добавить историю",
@@ -1315,6 +1332,9 @@
     "businessClosed": "Бизнес сейчас закрыт. Пожалуйста, звоните в рабочее время."
   },
   "cityAd": {
+    "deleteConfirm": "Удалить это городское объявление?",
+    "deleteTitle": "Удалить объявление",
+    "deleteFailed": "Не удалось удалить",
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",

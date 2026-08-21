@@ -1209,6 +1209,23 @@
     "reportMessage": "Pse po raportoni këtë profil?"
   },
   "stories": {
+    "allTime": "Gjithë koha",
+    "analytics": "Statistikat e stories",
+    "avgWatchTime": "Shikim mesatar",
+    "completion": "Përfundim",
+    "completionRate": "Shkalla e përfundimit",
+    "myAnalytics": "Statistikat e mia",
+    "noData": "Nuk ka të dhëna",
+    "noStories": "Nuk ka stories për këtë periudhë",
+    "perStory": "Për story",
+    "reactions": "Reagime",
+    "stories": "Stories",
+    "totalViews": "Shikime gjithsej",
+    "uniqueViewers": "Shikues unikë",
+    "unknownUser": "I panjohur",
+    "viewers": "Shikues",
+    "views": "Shikime",
+    "viewsTimeline": "Shikimet me kalimin e kohës",
     "yourStory": "Historia Jote",
     "noStoriesYet": "Nuk ka histori akoma",
     "addStory": "Shto histori",
@@ -1251,6 +1268,9 @@
     "businessClosed": "Biznesi është i mbyllur aktualisht. Ju lutem telefononi gjatë orarit të punës."
   },
   "cityAd": {
+    "deleteConfirm": "Ta hiqni këtë reklamë qyteti?",
+    "deleteTitle": "Fshi reklamën",
+    "deleteFailed": "Fshirja dështoi",
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",

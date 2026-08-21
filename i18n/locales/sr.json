@@ -1301,6 +1301,23 @@
     "reportMessage": "Zašto prijavljujete ovaj profil?"
   },
   "stories": {
+    "allTime": "Sve vreme",
+    "analytics": "Statistike storija",
+    "avgWatchTime": "Prosečno gledanje",
+    "completion": "Završetak",
+    "completionRate": "Stopa završetka",
+    "myAnalytics": "Moje statistike",
+    "noData": "Nema dostupnih podataka",
+    "noStories": "Nema storija za ovaj period",
+    "perStory": "Po storiju",
+    "reactions": "Reakcije",
+    "stories": "Storiji",
+    "totalViews": "Ukupni pregledi",
+    "uniqueViewers": "Jedinstveni gledaoci",
+    "unknownUser": "Nepoznato",
+    "viewers": "Gledaoci",
+    "views": "Pregledi",
+    "viewsTimeline": "Pregledi tokom vremena",
     "yourStory": "Vaša priča",
     "noStoriesYet": "Još nema priča",
     "addStory": "Dodaj priču",
@@ -1343,6 +1360,9 @@
     "businessClosed": "Biznis je trenutno zatvoren. Molimo pozovite tokom radnog vremena."
   },
   "cityAd": {
+    "deleteConfirm": "Ukloniti ovaj gradski oglas?",
+    "deleteTitle": "Obriši oglas",
+    "deleteFailed": "Brisanje nije uspelo",
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",

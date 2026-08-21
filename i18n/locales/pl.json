@@ -1314,6 +1314,23 @@
     "reportMessage": "Dlaczego zgłaszasz ten profil?"
   },
   "stories": {
+    "allTime": "Cały czas",
+    "analytics": "Statystyki stories",
+    "avgWatchTime": "Średni czas oglądania",
+    "completion": "Ukończenie",
+    "completionRate": "Wskaźnik ukończenia",
+    "myAnalytics": "Moje statystyki",
+    "noData": "Brak danych",
+    "noStories": "Brak stories w tym okresie",
+    "perStory": "Na story",
+    "reactions": "Reakcje",
+    "stories": "Stories",
+    "totalViews": "Łączne wyświetlenia",
+    "uniqueViewers": "Unikalni widzowie",
+    "unknownUser": "Nieznany",
+    "viewers": "Widzowie",
+    "views": "Wyświetlenia",
+    "viewsTimeline": "Wyświetlenia w czasie",
     "yourStory": "Your Story",
     "noStoriesYet": "No stories yet",
     "addStory": "Add story",
@@ -1356,6 +1373,9 @@
     "businessClosed": "Biznis je trenutno zatvoren. Molimo pozovite tokom radnog vremena."
   },
   "cityAd": {
+    "deleteConfirm": "Usunąć to ogłoszenie miejskie?",
+    "deleteTitle": "Usuń ogłoszenie",
+    "deleteFailed": "Nie udało się usunąć",
     "sectionTitle": "City Ads",
     "yourAd": "Your Ad",
     "noAds": "No ads yet",
