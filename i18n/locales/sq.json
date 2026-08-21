@@ -1911,7 +1911,13 @@
     "listings": "Shpalljet",
     "title": "Shërbime",
     "services": "Shërbime",
-    "addService": "Shto shërbim"
+    "addService": "Shto shërbim",
+    "pending": "Në pritje",
+    "confirmed": "Konfirmuar",
+    "completed": "Përfunduar",
+    "declined": "Refuzuar",
+    "cancelled": "Anuluar",
+    "expired": "Skaduar"
   },
   "menu": {
     "starter": "Antipasta",
@@ -1985,6 +1991,17 @@
   },
   "marketplace": {
     "addProduct": "Shto produkt",
-    "products": "Produkte"
+    "products": "Produkte",
+    "listings": "Listimet",
+    "items": "Artikuj",
+    "homes": "Banesa"
+  },
+  "bookingList": {
+    "cancelTitle": "Anulo rezervimin?",
+    "cancelConfirm": "Jeni të sigurt?",
+    "nights": "netë",
+    "rooms": "dhoma",
+    "adults": "të rritur",
+    "children": "fëmijë"
   }
 }

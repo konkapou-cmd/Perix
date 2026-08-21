@@ -1977,7 +1977,13 @@
     "listings": "Annunci",
     "title": "Servizi",
     "services": "Servizi",
-    "addService": "Aggiungi servizio"
+    "addService": "Aggiungi servizio",
+    "pending": "In attesa",
+    "confirmed": "Confermata",
+    "completed": "Completata",
+    "declined": "Rifiutata",
+    "cancelled": "Annullata",
+    "expired": "Scaduta"
   },
   "menu": {
     "starter": "Antipasti",
@@ -2051,6 +2057,17 @@
   },
   "marketplace": {
     "addProduct": "Aggiungi prodotto",
-    "products": "Prodotti"
+    "products": "Prodotti",
+    "listings": "Annunci",
+    "items": "Articoli",
+    "homes": "Alloggi"
+  },
+  "bookingList": {
+    "cancelTitle": "Annullare la prenotazione?",
+    "cancelConfirm": "Sei sicuro?",
+    "nights": "notti",
+    "rooms": "camera/e",
+    "adults": "adulti",
+    "children": "bambini"
   }
 }

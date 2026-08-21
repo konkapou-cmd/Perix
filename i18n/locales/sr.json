@@ -2005,7 +2005,13 @@
     "listings": "Огласи",
     "title": "Услуге",
     "services": "Usluge",
-    "addService": "Dodaj uslugu"
+    "addService": "Dodaj uslugu",
+    "pending": "Na čekanju",
+    "confirmed": "Potvrđeno",
+    "completed": "Završeno",
+    "declined": "Odbijeno",
+    "cancelled": "Otkazano",
+    "expired": "Isteklo"
   },
   "menu": {
     "starter": "Предјела",
@@ -2079,6 +2085,17 @@
   },
   "marketplace": {
     "addProduct": "Dodaj proizvod",
-    "products": "Proizvodi"
+    "products": "Proizvodi",
+    "listings": "Oglasi",
+    "items": "Artikli",
+    "homes": "Smeštaj"
+  },
+  "bookingList": {
+    "cancelTitle": "Otkazati rezervaciju?",
+    "cancelConfirm": "Da li ste sigurni?",
+    "nights": "noći",
+    "rooms": "soba",
+    "adults": "odrasli",
+    "children": "deca"
   }
 }

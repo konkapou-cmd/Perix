@@ -1972,7 +1972,13 @@
     "listings": "Anuncios",
     "title": "Servicios",
     "services": "Servicios",
-    "addService": "Añadir servicio"
+    "addService": "Añadir servicio",
+    "pending": "Pendiente",
+    "confirmed": "Confirmado",
+    "completed": "Completado",
+    "declined": "Rechazado",
+    "cancelled": "Cancelado",
+    "expired": "Caducado"
   },
   "menu": {
     "starter": "Entrantes",
@@ -2046,6 +2052,17 @@
   },
   "marketplace": {
     "addProduct": "Añadir producto",
-    "products": "Productos"
+    "products": "Productos",
+    "listings": "Anuncios",
+    "items": "Artículos",
+    "homes": "Alojamientos"
+  },
+  "bookingList": {
+    "cancelTitle": "¿Cancelar reserva?",
+    "cancelConfirm": "¿Estás seguro?",
+    "nights": "noches",
+    "rooms": "habitación(es)",
+    "adults": "adultos",
+    "children": "niños"
   }
 }

@@ -18,7 +18,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { COLORS } from "../../lib/designTokens";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
-import { User, UserPublic, GalleryItem, Post, APP_URL, ActivityItem, isUpcomingActivity, updateProfileMedia } from "../../lib/api";
+import { User, UserPublic, GalleryItem, Post, APP_URL, ActivityItem, updateProfileMedia } from "../../lib/api";
 import { ActivitiesSection } from "../business";
 
 import {
@@ -217,31 +217,24 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     }, 50);
   }, []);
 
-  const hasActiveActivities = userActivities.some(a => isUpcomingActivity(a));
-
   const tabs: TabDefinition[] = useMemo(() => {
     const base: TabDefinition[] = [];
     base.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: userPosts.length });
-    if (userListings.length > 0 || onAddItem) {
-      base.push({ key: "items", label: t("marketplace.listings", "Anzeigen"), icon: "list-outline", count: userListings.length });
-    }
+    base.push({ key: "activities", label: t("userProfile.activities", "Activities"), icon: "people-outline", count: userActivities.length });
     if (userHomeListings.length > 0) {
-      base.push({ key: "homes", label: t("marketplace.homes", "Homes"), icon: "home-outline", count: userHomeListings.length });
+      base.push({ key: "homes", label: t("marketplace.listings", "Listings"), icon: "home-outline", count: userHomeListings.length });
     }
-    if (hasActiveActivities) {
-      base.push({ key: "activities", label: t("userProfile.activities", "Activities"), icon: "people-outline", count: userActivities.length });
+    if (userListings.length > 0 || onAddItem) {
+      base.push({ key: "items", label: t("marketplace.items", "Items"), icon: "list-outline", count: userListings.length });
     }
     if (galleryImages.length + galleryVideos.length > 0) {
       base.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
-    }
-    if (!hasActiveActivities) {
-      base.push({ key: "activities", label: t("userProfile.activities", "Activities"), icon: "people-outline", count: userActivities.length });
     }
     if (onOpenBookings) {
       base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
     }
     return base;
-  }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem]);
+  }, [userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem]);
 
   const theme = user.theme;
   const { themeStyles, themeColors } = useThemeStyles(theme);

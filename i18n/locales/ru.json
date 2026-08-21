@@ -1978,7 +1978,13 @@
     "listings": "Объявления",
     "title": "Услуги",
     "services": "Услуги",
-    "addService": "Добавить услугу"
+    "addService": "Добавить услугу",
+    "pending": "Ожидает",
+    "confirmed": "Подтверждено",
+    "completed": "Завершено",
+    "declined": "Отклонено",
+    "cancelled": "Отменено",
+    "expired": "Истекло"
   },
   "menu": {
     "starter": "Закуски",
@@ -2052,6 +2058,17 @@
   },
   "marketplace": {
     "addProduct": "Добавить товар",
-    "products": "Товары"
+    "products": "Товары",
+    "listings": "Объявления",
+    "items": "Товары",
+    "homes": "Жильё"
+  },
+  "bookingList": {
+    "cancelTitle": "Отменить бронирование?",
+    "cancelConfirm": "Вы уверены?",
+    "nights": "ночей",
+    "rooms": "комнат(ы)",
+    "adults": "взрослых",
+    "children": "детей"
   }
 }

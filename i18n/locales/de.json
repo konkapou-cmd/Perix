@@ -2101,7 +2101,11 @@
     "pickup": "Abholung",
     "pending": "Ausstehend",
     "confirmed": "Bestätigt",
-    "completed": "Abgeschlossen"
+    "completed": "Abgeschlossen",
+    "nights": "Nächte",
+    "rooms": "Zimmer",
+    "adults": "Erwachsene",
+    "children": "Kinder"
   },
   "services": {
     "noServices": "Noch keine Dienste verfügbar",
@@ -2324,7 +2328,9 @@
     "dateRangeAdded": "Zeitraum hinzugefügt",
     "bookableWindow": "Buchbares Fenster",
     "saveMayHaveSucceeded": "Der Dienst wurde möglicherweise trotz Netzwerkfehler gespeichert. Ihre Änderungen bleiben geöffnet.",
-    "services": "Dienste"
+    "services": "Dienste",
+    "declined": "Abgelehnt",
+    "expired": "Abgelaufen"
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",

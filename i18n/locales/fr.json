@@ -2009,7 +2009,13 @@
     "listings": "Annonces",
     "title": "Services",
     "services": "Services",
-    "addService": "Ajouter un service"
+    "addService": "Ajouter un service",
+    "pending": "En attente",
+    "confirmed": "Confirmée",
+    "completed": "Terminée",
+    "declined": "Refusée",
+    "cancelled": "Annulée",
+    "expired": "Expirée"
   },
   "menu": {
     "starter": "Entrées",
@@ -2083,6 +2089,17 @@
   },
   "marketplace": {
     "addProduct": "Ajouter un produit",
-    "products": "Produits"
+    "products": "Produits",
+    "listings": "Annonces",
+    "items": "Articles",
+    "homes": "Logements"
+  },
+  "bookingList": {
+    "cancelTitle": "Annuler la réservation ?",
+    "cancelConfirm": "Êtes-vous sûr ?",
+    "nights": "nuits",
+    "rooms": "chambre(s)",
+    "adults": "adultes",
+    "children": "enfants"
   }
 }

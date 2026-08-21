@@ -2018,7 +2018,13 @@
     "listings": "Ogłoszenia",
     "title": "Usługi",
     "services": "Usługi",
-    "addService": "Dodaj usługę"
+    "addService": "Dodaj usługę",
+    "pending": "Oczekujące",
+    "confirmed": "Potwierdzone",
+    "completed": "Zakończone",
+    "declined": "Odrzucone",
+    "cancelled": "Anulowane",
+    "expired": "Wygasłe"
   },
   "menu": {
     "starter": "Przystawki",
@@ -2092,6 +2098,17 @@
   },
   "marketplace": {
     "addProduct": "Dodaj produkt",
-    "products": "Produkty"
+    "products": "Produkty",
+    "listings": "Ogłoszenia",
+    "items": "Przedmioty",
+    "homes": "Noclegi"
+  },
+  "bookingList": {
+    "cancelTitle": "Anulować rezerwację?",
+    "cancelConfirm": "Czy na pewno?",
+    "nights": "noce",
+    "rooms": "pokoje",
+    "adults": "dorośli",
+    "children": "dzieci"
   }
 }

@@ -2031,7 +2031,11 @@
     "pickup": "Pickup",
     "pending": "Pending",
     "confirmed": "Confirmed",
-    "completed": "Completed"
+    "completed": "Completed",
+    "nights": "nights",
+    "rooms": "room(s)",
+    "adults": "adults",
+    "children": "children"
   },
   "services": {
     "noServices": "No services available yet",
@@ -2248,7 +2252,9 @@
     "dateRangeAdded": "Date range added",
     "bookableWindow": "Bookable Window",
     "saveMayHaveSucceeded": "The service may have been saved despite the network error. Your edits are still open.",
-    "services": "Services"
+    "services": "Services",
+    "declined": "Declined",
+    "expired": "Expired"
   },
   "detail": {
     "stay": "Stay Information",

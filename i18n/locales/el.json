@@ -2237,7 +2237,9 @@
     "typeHealthTest": "Εξέταση",
     "typePetAppointment": "Ραντεβού",
     "typePetProduct": "Προϊόν",
-    "services": "Υπηρεσίες"
+    "services": "Υπηρεσίες",
+    "declined": "Απορρίφθηκε",
+    "expired": "Έληξε"
   },
   "menu": {
     "starter": "Ορεκτικά",
@@ -2624,5 +2626,13 @@
     "createSlots": "Δημιουργία εβδομαδιαίων ραντεβού",
     "recurring": "Επαναλαμβανόμενο",
     "specific": "Συγκεκριμένο"
+  },
+  "bookingList": {
+    "cancelTitle": "Ακύρωση κράτησης;",
+    "cancelConfirm": "Είστε σίγουροι;",
+    "nights": "διανυκτερεύσεις",
+    "rooms": "δωμάτιο(α)",
+    "adults": "ενήλικες",
+    "children": "παιδιά"
   }
 }
