@@ -221,10 +221,16 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
 
   const tabs: TabDefinition[] = useMemo(() => {
     const base: TabDefinition[] = [];
+    base.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: userPosts.length });
+    if (userListings.length > 0 || onAddItem) {
+      base.push({ key: "items", label: t("marketplace.listings", "Anzeigen"), icon: "list-outline", count: userListings.length });
+    }
+    if (userHomeListings.length > 0) {
+      base.push({ key: "homes", label: t("marketplace.homes", "Homes"), icon: "home-outline", count: userHomeListings.length });
+    }
     if (hasActiveActivities) {
       base.push({ key: "activities", label: t("userProfile.activities", "Activities"), icon: "people-outline", count: userActivities.length });
     }
-    base.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: userPosts.length });
     if (galleryImages.length + galleryVideos.length > 0) {
       base.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
     }
@@ -233,12 +239,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     }
     if (onOpenBookings) {
       base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
-    }
-    if (userListings.length > 0 || onAddItem) {
-      base.push({ key: "items", label: t("marketplace.listings", "Anzeigen"), icon: "list-outline", count: userListings.length });
-    }
-    if (userHomeListings.length > 0) {
-      base.push({ key: "homes", label: t("marketplace.homes", "Homes"), icon: "home-outline", count: userHomeListings.length });
     }
     return base;
   }, [hasActiveActivities, userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem]);

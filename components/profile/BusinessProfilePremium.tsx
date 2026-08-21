@@ -280,15 +280,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     if (businessListings.filter(l => l.status === "published" && l.is_active).length > 0) {
       tabs.push({ key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetags-outline", count: businessListings.filter(l => l.status === "published" && l.is_active).length });
     }
-    if (galleryImages.length + galleryVideos.length > 0) {
-      tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
-    }
-    if (events.length > 0) {
-      tabs.push({ key: "events", label: t("events.title", "Events"), icon: "sparkles", count: events.length });
-    }
-    if (jobs.length > 0) {
-      tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
-    }
     // Service type tabs — one per categoryKey:serviceType
     const rootCat = detail.business.root_category || "";
     const hasModule = hasServiceModules(rootCat);
@@ -313,6 +304,15 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           });
         }
       });
+    }
+    if (events.length > 0) {
+      tabs.push({ key: "events", label: t("events.title", "Events"), icon: "sparkles", count: events.length });
+    }
+    if (jobs.length > 0) {
+      tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
+    }
+    if (galleryImages.length + galleryVideos.length > 0) {
+      tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
     }
     return tabs;
   }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings]);
