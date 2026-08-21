@@ -81,7 +81,7 @@ export const SERVICE_MODULES: Record<string, ServiceModuleConfig> = {
     key: "salon_appointment",
     labelKey: "services.typeSalonAppointment",
     fallbackLabel: "Termin",
-    icon: "calendar",
+    icon: "cut",
     ctaType: "booking",
     bookingEnabled: true,
     requiresSlots: true,
@@ -565,7 +565,7 @@ export function getServiceModuleTabLabel(type: string, t: (key: string, fallback
 }
 
 export function getServiceModuleIcon(type: string): keyof typeof Ionicons.glyphMap {
-  return SERVICE_MODULES[type]?.icon ?? "help-circle-outline";
+  return SERVICE_MODULES[type]?.icon ?? "construct";
 }
 
 export function getServiceCtaType(type: string): ServiceCtaType {

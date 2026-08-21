@@ -284,7 +284,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
       tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
     }
     if (events.length > 0) {
-      tabs.push({ key: "events", label: t("events.title", "Events"), icon: "calendar", count: events.length });
+      tabs.push({ key: "events", label: t("events.title", "Events"), icon: "sparkles", count: events.length });
     }
     if (jobs.length > 0) {
       tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
@@ -351,13 +351,13 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         tabs.push({
           key: `svc:${resolvedCat}:${defaultModule}`,
           label: tabServiceLabel(defaultModule, t("services.services", "Dienste")),
-          icon: serviceIcon(defaultModule) || getCategoryIcon(rootCat) || "grid",
+          icon: serviceIcon(defaultModule) || getCategoryIcon(rootCat) || "construct",
           count: 0,
         });
       }
     }
     // 3. Events — always visible for owner
-    tabs.push({ key: "events", label: t("events.title", "Events"), icon: "calendar", count: events.length });
+    tabs.push({ key: "events", label: t("events.title", "Events"), icon: "sparkles", count: events.length });
     // 4. Jobs — always visible for owner
     tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
     // 5. Media — always visible for owner
