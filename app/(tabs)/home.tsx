@@ -85,13 +85,6 @@ import { LocationSearchOverlay } from "../../components/home/LocationSearchOverl
 import { PostCard } from "../../components/home/PostCard";
 import { LayoutSettingsModal } from "../../components/home/LayoutSettingsModal";
 
-const LISTING_CONDITION_LABELS: Record<string, string> = {
-  new: "Neu",
-  like_new: "Wie neu",
-  good: "Gut",
-  used: "Gebraucht",
-};
-
 function HomeSkeleton() {
   return (
     <ScrollView contentContainerStyle={{ padding: SPACING.std, paddingBottom: 40 }} style={{ backgroundColor: COLORS.backgroundPage }}>
@@ -1211,7 +1204,7 @@ export default function HomeScreen() {
                 subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
                 subtitleAvatarUrl={item.seller_avatar || undefined}
                 thirdLine={item.public_location_label || item.address || ""}
-                fourthLine={LISTING_CONDITION_LABELS[item.condition || ""] || item.condition || ""}
+                fourthLine={item.condition ? t(`listing.condition.${item.condition}`, item.condition) : ""}
                 fourthLineIcon="ribbon-outline"
                 onPress={() => pushEntityRoute(router, entityRoutes.listing(item.listing_id), () => showInvalidEntityAlert(t))}
                 isSaved={savedListingIds.has(item.listing_id)}
@@ -1249,7 +1242,7 @@ export default function HomeScreen() {
                 subtitleAvatarUrl={item.seller_avatar || undefined}
                 thirdLine={item.public_location_label || item.address || ""}
                 fourthLine={[
-                  item.property_type || "",
+                  item.property_type ? t(`rentals.types.${item.property_type}`, item.property_type) : "",
                   item.bedrooms ? `${item.bedrooms} ${t("marketplace.bedrooms", "Zimmer")}` : "",
                   item.size_sqm ? `${item.size_sqm} m²` : "",
                 ].filter(Boolean).join(" · ")}

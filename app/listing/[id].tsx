@@ -157,7 +157,7 @@ export default function ListingDetailScreen() {
             badges={[
               listing.price ? { icon: "pricetag", text: formatPrice(listing.price) } : null,
               listing.listing_type === "home_rental" ? { icon: "home", text: t("marketplace.home", "Home") } : { icon: "pricetag", text: t("marketplace.product", "Product") },
-              listing.condition ? { icon: "star", text: listing.condition } : null,
+              listing.condition ? { icon: "star", text: t(`listing.condition.${listing.condition}`, listing.condition) } : null,
             ].filter(Boolean) as any}
             subtitle={{
               text: listing.business_name || listing.seller_name || "",
@@ -218,7 +218,7 @@ export default function ListingDetailScreen() {
           <View style={styles.tags}>
                 {listing.condition ? (
               <View style={styles.tag}>
-                <Text style={styles.tagText}>{t(`marketplace.${listing.condition}`, listing.condition)}</Text>
+                <Text style={styles.tagText}>{t(`listing.condition.${listing.condition}`, listing.condition)}</Text>
               </View>
             ) : null}
             {listing.brand ? (
@@ -230,7 +230,7 @@ export default function ListingDetailScreen() {
             {listing.delivery_method ? (
               <View style={styles.tag}>
                 <Ionicons name="cube-outline" size={12} color={COLORS.primary} />
-                <Text style={styles.tagText}>{listing.delivery_method}</Text>
+                <Text style={styles.tagText}>{t(`marketplace.${listing.delivery_method}`, listing.delivery_method)}</Text>
               </View>
             ) : null}
           </View>
