@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingVertical: SPACING.small,
-    paddingBottom: 40,
+    paddingBottom: 160,
   },
   item: {
     flexDirection: "row",
