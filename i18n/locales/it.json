@@ -604,6 +604,7 @@
     "type_rental": "Affitto"
   },
   "business": {
+    "seeMyBookings": "Vedi le mie prenotazioni",
     "dashboard": "Dashboard Attività",
     "profileManagement": "Gestione profilo",
     "editInfo": "Modifica info attività",

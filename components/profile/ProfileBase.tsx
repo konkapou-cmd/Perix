@@ -382,7 +382,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               {onCustomizeTheme && (
                 <ProfileActionButton
                   icon="color-palette-outline"
-                  label={t("common.design", "Design")}
                   variant="secondaryIcon"
                   onPress={onCustomizeTheme}
                 />
@@ -390,28 +389,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               {onPlan && (
                 <ProfileActionButton
                   icon="star-outline"
-                  label={t("subscription.plan", "Plan")}
                   variant="secondaryIcon"
                   onPress={onPlan}
                 />
               )}
-              {onBookings && (
-                <ProfileActionButton
-                  icon="calendar-outline"
-                  label={t("services.manageBookings", "Manage Bookings")}
-                  variant="secondaryIcon"
-                  onPress={onBookings}
-                />
-              )}
               <ProfileActionButton
                 icon="bookmark-outline"
-                label={t("common.saved", "Gespeicherte Inhalte")}
                 variant="secondaryIcon"
                 onPress={() => router.push("/saved" as any)}
               />
               <ProfileActionButton
                 icon="settings-outline"
-                label={t("common.settings", "Einstellungen")}
                 variant="secondaryIcon"
                 onPress={onSettings || (() => router.push("/settings"))}
               />

@@ -688,6 +688,7 @@
     "type_business": "Business"
   },
   "business": {
+    "seeMyBookings": "See my bookings",
     "dashboard": "Business Dashboard",
     "profileManagement": "Profile management",
     "editInfo": "Edit business info",

@@ -603,6 +603,7 @@
     "type_rental": "Izdavanje"
   },
   "business": {
+    "seeMyBookings": "Pogledaj moje rezervacije",
     "dashboard": "Kontrolna tabla biznisa",
     "profileManagement": "Upravljanje profilom",
     "editInfo": "Izmeni info biznisa",

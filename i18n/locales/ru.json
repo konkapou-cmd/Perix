@@ -604,6 +604,7 @@
     "type_rental": "Аренда"
   },
   "business": {
+    "seeMyBookings": "Мои бронирования",
     "dashboard": "Панель бизнеса",
     "profileManagement": "Управление профилем",
     "editInfo": "Редактировать информацию",

@@ -603,6 +603,7 @@
     "type_rental": "Qiria"
   },
   "business": {
+    "seeMyBookings": "Shiko rezervimet e mia",
     "dashboard": "Paneli i Biznesit",
     "profileManagement": "Menaxhimi i profilit",
     "editInfo": "Ndrysho informacionin e biznesit",

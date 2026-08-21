@@ -604,6 +604,7 @@
     "type_rental": "Alquiler"
   },
   "business": {
+    "seeMyBookings": "Ver mis reservas",
     "dashboard": "Panel de Negocio",
     "profileManagement": "Gestión del perfil",
     "editInfo": "Editar información del negocio",

@@ -722,6 +722,7 @@
     "type_business": "Επιχείρηση"
   },
   "business": {
+    "seeMyBookings": "Δείτε τις κρατήσεις μου",
     "dashboard": "Πίνακας ελέγχου επιχείρησης",
     "profileManagement": "Διαχείριση προφίλ",
     "editInfo": "Επεξεργασία πληροφοριών",

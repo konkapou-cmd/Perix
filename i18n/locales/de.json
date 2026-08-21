@@ -699,6 +699,7 @@
     "type_business": "Geschäft"
   },
   "business": {
+    "seeMyBookings": "Meine Buchungen ansehen",
     "dashboard": "Geschäfts-Dashboard",
     "profileManagement": "Profilverwaltung",
     "editInfo": "Geschäftsinfos bearbeiten",

@@ -604,6 +604,7 @@
     "type_rental": "Location"
   },
   "business": {
+    "seeMyBookings": "Voir mes réservations",
     "dashboard": "Tableau de Bord Commerce",
     "profileManagement": "Gestion du profil",
     "editInfo": "Modifier les infos du commerce",

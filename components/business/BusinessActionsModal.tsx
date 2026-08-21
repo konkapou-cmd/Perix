@@ -51,17 +51,17 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
 
   const createActions: ActionItem[] = [
     ...(showCreateProduct ? [{ key: "create-product", label: t("marketplace.addProduct", "Produkt hinzufügen"), icon: "add-circle" as const }] : []),
-    { key: "create-service", label: t("services.addService", "Dienst hinzufügen"), icon: "add-circle" as const },
-    { key: "create-event", label: t("business.createEvent", "Veranstaltung erstellen"), icon: "calendar" as const },
+    { key: "create-service", label: t("services.addService", "Dienst hinzufügen"), icon: "construct-outline" as const },
+    { key: "create-event", label: t("business.createEvent", "Veranstaltung erstellen"), icon: "calendar-outline" as const },
     { key: "create-job", label: t("business.createJob", "Job erstellen"), icon: "briefcase" as const },
   ];
 
   const manageActions: ActionItem[] = [
     ...(showManageProducts ? [{ key: "manage-products", label: t("marketplace.products", "Produkte"), icon: "pricetags-outline" as const, count: listingsCount }] : []),
-    { key: "manage-services", label: t("services.services", "Dienste"), icon: "grid-outline" as const },
-    { key: "manage-events", label: t("events.title", "Veranstaltungen"), icon: "calendar" as const },
+    { key: "manage-services", label: t("services.services", "Dienste"), icon: "construct" as const },
+    { key: "manage-events", label: t("events.title", "Veranstaltungen"), icon: "ticket-outline" as const },
     { key: "manage-jobs", label: t("jobs.title", "Jobs"), icon: "briefcase" as const },
-    { key: "manage-bookings", label: t("services.bookings", "Buchungen"), icon: "calendar-number" as const },
+    { key: "manage-bookings", label: t("business.seeMyBookings", "See my bookings"), icon: "receipt-outline" as const },
     { key: "manage-media", label: t("profile.media", "Medien"), icon: "images-outline" as const },
   ];
 
