@@ -2330,7 +2330,10 @@
     "saveMayHaveSucceeded": "Der Dienst wurde möglicherweise trotz Netzwerkfehler gespeichert. Ihre Änderungen bleiben geöffnet.",
     "services": "Dienste",
     "declined": "Abgelehnt",
-    "expired": "Abgelaufen"
+    "expired": "Abgelaufen",
+    "myBookings": "Meine Buchungen",
+    "myBookingsDesc": "Sehen und verwalten Sie Ihre gebuchten Dienste",
+    "viewBookings": "Meine Buchungen ansehen"
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",

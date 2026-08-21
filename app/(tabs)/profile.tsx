@@ -2398,6 +2398,7 @@ postText={postText}
               sessionToken={sessionToken || ""}
               refreshing={refreshing}
               onRefresh={onRefresh}
+              onOpenBookings={handleOpenBookingList}
               categoryTree={categoryTree}
               events={bizEvents}
               openCategoryModal={() => {}}

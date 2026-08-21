@@ -2254,7 +2254,10 @@
     "saveMayHaveSucceeded": "The service may have been saved despite the network error. Your edits are still open.",
     "services": "Services",
     "declined": "Declined",
-    "expired": "Expired"
+    "expired": "Expired",
+    "myBookings": "My Bookings",
+    "myBookingsDesc": "View and manage your booked services",
+    "viewBookings": "View My Bookings"
   },
   "detail": {
     "stay": "Stay Information",

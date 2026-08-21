@@ -57,6 +57,7 @@ import FriendsCarousel from "../FriendsCarousel";
 import { FriendsSection } from "../shared/FriendsSection";
 import CoverPositionEditor from "../CoverPositionEditor";
 import { Listing } from "../../lib/api/listings";
+import { getBookings } from "../../lib/api/services";
 import ProfileItemsSection from "../marketplace/ProfileItemsSection";
 
 
@@ -147,6 +148,7 @@ interface BusinessProfilePremiumProps {
   handleDeleteService?: (serviceId: string) => void;
   openBookingModal?: (service: Service) => void;
   onOpenSlotManager?: (serviceId: string) => void;
+  onOpenBookings?: () => void;
   onOpenBookingList?: () => void;
   onViewFriends?: () => void;
   initialSavedPostIds?: Set<string>;
@@ -239,6 +241,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   handleDeleteService,
   openBookingModal,
   onOpenSlotManager,
+  onOpenBookings,
   onOpenBookingList,
   onViewFriends,
   initialSavedPostIds,
@@ -264,6 +267,18 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState("posts");
   const [privateActiveTab, setPrivateActiveTab] = useState("posts");
   const [showCoverReposition, setShowCoverReposition] = useState(false);
+  const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
+
+  useEffect(() => {
+    if (readOnly || !sessionToken || !isScreenFocused) return;
+    let cancelled = false;
+    getBookings(sessionToken, detail.business.business_id, "pending")
+      .then((data) => {
+        if (!cancelled) setPendingBookingsCount(data.length);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [readOnly, sessionToken, isScreenFocused, detail.business.business_id]);
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -361,8 +376,10 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     tabs.push({ key: "events", label: t("events.title", "Events"), icon: "sparkles", count: events.length });
     // 4. Jobs — always visible for owner
     tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
+    // 5. Bookings — always visible for owner
+    tabs.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: pendingBookingsCount });
     return tabs;
-  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings, canAddItems]);
+  }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings, canAddItems, pendingBookingsCount]);
 
   useEffect(() => {
     if (!requestedSection || privateTabs.length === 0) return;
@@ -717,6 +734,21 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           onDelete={(l) => onDeleteItem?.(l)}
         />
       )}
+      {privateActiveTab === "bookings" && (
+        <View style={styles.tabContent}>
+          <View style={styles.bookingTab}>
+            <Text style={[styles.bookingTabTitle, { color: textColor }]}>{t("services.myBookings", "My Bookings")}</Text>
+            <Text style={[styles.bookingTabDesc, { color: secondaryColor }]}>{t("services.myBookingsDesc", "View and manage your booked services")}</Text>
+            <Pressable
+              style={[styles.bookingTabBtn, { backgroundColor: primaryColor }]}
+              onPress={() => { onOpenBookings?.(); setPrivateActiveTab("posts"); }}
+            >
+              <Ionicons name="calendar" size={18} color="#fff" />
+              <Text style={styles.bookingTabBtnText}>{t("services.viewBookings", "View My Bookings")}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 
@@ -977,6 +1009,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingBottom: 24,
     marginTop: 12,
+  },
+  bookingTab: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 12,
+  },
+  bookingTabTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  bookingTabDesc: {
+    fontSize: 14,
+    textAlign: "center",
+    paddingHorizontal: 32,
+  },
+  bookingTabBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  bookingTabBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#fff",
   },
   tabSection: {
     paddingTop: 12,

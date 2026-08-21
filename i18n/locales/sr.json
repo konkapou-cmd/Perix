@@ -2011,7 +2011,10 @@
     "completed": "Završeno",
     "declined": "Odbijeno",
     "cancelled": "Otkazano",
-    "expired": "Isteklo"
+    "expired": "Isteklo",
+    "myBookings": "Moje rezervacije",
+    "myBookingsDesc": "Pregledajte i upravljajte rezervisanim uslugama",
+    "viewBookings": "Pogledaj moje rezervacije"
   },
   "menu": {
     "starter": "Предјела",

@@ -2015,7 +2015,10 @@
     "completed": "Terminée",
     "declined": "Refusée",
     "cancelled": "Annulée",
-    "expired": "Expirée"
+    "expired": "Expirée",
+    "myBookings": "Mes réservations",
+    "myBookingsDesc": "Consultez et gérez vos services réservés",
+    "viewBookings": "Voir mes réservations"
   },
   "menu": {
     "starter": "Entrées",

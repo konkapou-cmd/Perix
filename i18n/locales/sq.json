@@ -1917,7 +1917,10 @@
     "completed": "Përfunduar",
     "declined": "Refuzuar",
     "cancelled": "Anuluar",
-    "expired": "Skaduar"
+    "expired": "Skaduar",
+    "myBookings": "Rezervimet e mia",
+    "myBookingsDesc": "Shikoni dhe menaxhoni shërbimet tuaja të rezervuara",
+    "viewBookings": "Shiko rezervimet e mia"
   },
   "menu": {
     "starter": "Antipasta",

@@ -2024,7 +2024,10 @@
     "completed": "Zakończone",
     "declined": "Odrzucone",
     "cancelled": "Anulowane",
-    "expired": "Wygasłe"
+    "expired": "Wygasłe",
+    "myBookings": "Moje rezerwacje",
+    "myBookingsDesc": "Przeglądaj i zarządzaj zarezerwowanymi usługami",
+    "viewBookings": "Zobacz moje rezerwacje"
   },
   "menu": {
     "starter": "Przystawki",

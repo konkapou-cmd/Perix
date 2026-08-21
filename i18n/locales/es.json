@@ -1978,7 +1978,10 @@
     "completed": "Completado",
     "declined": "Rechazado",
     "cancelled": "Cancelado",
-    "expired": "Caducado"
+    "expired": "Caducado",
+    "myBookings": "Mis reservas",
+    "myBookingsDesc": "Ve y gestiona tus servicios reservados",
+    "viewBookings": "Ver mis reservas"
   },
   "menu": {
     "starter": "Entrantes",

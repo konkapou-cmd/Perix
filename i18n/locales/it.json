@@ -1983,7 +1983,10 @@
     "completed": "Completata",
     "declined": "Rifiutata",
     "cancelled": "Annullata",
-    "expired": "Scaduta"
+    "expired": "Scaduta",
+    "myBookings": "Le mie prenotazioni",
+    "myBookingsDesc": "Consulta e gestisci i tuoi servizi prenotati",
+    "viewBookings": "Vedi le mie prenotazioni"
   },
   "menu": {
     "starter": "Antipasti",

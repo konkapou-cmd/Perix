@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useRef } from "react";
+import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -33,6 +33,7 @@ import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { Listing } from "../../lib/api/listings";
+import { getBookings } from "../../lib/api/services";
 import ProfileItemsSection from "../marketplace/ProfileItemsSection";
 import { useThemeStyles } from "../../hooks/useThemeStyles";
 import FriendsCarousel from "../FriendsCarousel";
@@ -207,8 +208,20 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab as ProfileTab || "posts");
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
+  const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const tabsYRef = useRef(0);
+
+  useEffect(() => {
+    if (!sessionToken || !onOpenBookings || !isScreenFocused) return;
+    let cancelled = false;
+    getBookings(sessionToken, undefined, "pending")
+      .then((data) => {
+        if (!cancelled) setPendingBookingsCount(data.length);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [sessionToken, onOpenBookings, isScreenFocused]);
 
   const handleTabChange = useCallback((tab: ProfileTab) => {
     setActiveTab(tab);
@@ -231,10 +244,10 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
       base.push({ key: "items", label: t("marketplace.items", "Items"), icon: "list-outline", count: userListings.length });
     }
     if (onOpenBookings) {
-      base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: 0 });
+      base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: pendingBookingsCount });
     }
     return base;
-  }, [userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem]);
+  }, [userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem, pendingBookingsCount]);
 
   const theme = user.theme;
   const { themeStyles, themeColors } = useThemeStyles(theme);

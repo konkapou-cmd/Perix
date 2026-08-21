@@ -2239,7 +2239,10 @@
     "typePetProduct": "Προϊόν",
     "services": "Υπηρεσίες",
     "declined": "Απορρίφθηκε",
-    "expired": "Έληξε"
+    "expired": "Έληξε",
+    "myBookings": "Οι κρατήσεις μου",
+    "myBookingsDesc": "Δείτε και διαχειριστείτε τις κρατήσεις σας",
+    "viewBookings": "Δείτε τις κρατήσεις μου"
   },
   "menu": {
     "starter": "Ορεκτικά",
