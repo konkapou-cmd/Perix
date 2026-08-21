@@ -276,6 +276,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 
   const publicTabs: TabDefinition[] = useMemo(() => {
     const tabs: TabDefinition[] = [];
+    if (galleryImages.length + galleryVideos.length > 0) {
+      tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
+    }
     tabs.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: businessPosts.length });
     if (businessListings.filter(l => l.status === "published" && l.is_active).length > 0) {
       tabs.push({ key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetags-outline", count: businessListings.filter(l => l.status === "published" && l.is_active).length });
@@ -311,14 +314,12 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     if (jobs.length > 0) {
       tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
     }
-    if (galleryImages.length + galleryVideos.length > 0) {
-      tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
-    }
     return tabs;
   }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings]);
 
   const privateTabs: TabDefinition[] = useMemo(() => {
     const tabs: TabDefinition[] = [];
+    tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
     tabs.push({ key: "posts", label: t("profile.posts", "Posts"), icon: "newspaper-outline", count: businessPosts.length });
     if (canAddItems || businessListings.length > 0) {
       tabs.push({ key: "items", label: t("marketplace.items", "Shop"), icon: "storefront-outline", count: businessListings.length });
@@ -360,8 +361,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     tabs.push({ key: "events", label: t("events.title", "Events"), icon: "sparkles", count: events.length });
     // 4. Jobs — always visible for owner
     tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
-    // 5. Media — always visible for owner
-    tabs.push({ key: "media", label: t("profile.media", "Media"), icon: "images-outline", count: galleryImages.length + galleryVideos.length });
     return tabs;
   }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings, canAddItems]);
 
