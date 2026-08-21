@@ -280,7 +280,6 @@
     "real-estate-agencies": "Риелторские Агентства",
     "studios": "Студии",
     "rooms": "Комнаты",
-
     "co-living-spaces": "Коворкинг-Жильё",
     "commercial-real-estate": "Коммерческая Недвижимость",
     "property-management": "Управление Недвижимостью"
@@ -445,7 +444,19 @@
     "postFailed": "Не удалось создать публикацию",
     "upcomingActivities": "Предстоящие активности",
     "nearby": "Рядом",
-    "following": "Подписки"
+    "following": "Подписки",
+    "activitiesOn": "Мероприятия {{date}}",
+    "clearCategories": "Сбросить фильтры",
+    "closed": "Закрыто",
+    "createActivity": "Создать мероприятие",
+    "favoriteCategories": "Категории",
+    "friends": "Друзья",
+    "hotels": "Местные отели",
+    "noActivitiesYet": "Пока нет мероприятий",
+    "noHotels": "Отелей поблизости нет",
+    "openNow": "Открыто сейчас",
+    "showAllCategories": "Показать все категории",
+    "useMyLocation": "Использовать моё местоположение"
   },
   "profile": {
     "title": "Профиль",

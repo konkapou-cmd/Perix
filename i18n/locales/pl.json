@@ -280,7 +280,6 @@
     "real-estate-agencies": "Agencje Nieruchomości",
     "studios": "Studia",
     "rooms": "Pokoje",
-
     "co-living-spaces": "Przestrzenie Co-Living",
     "commercial-real-estate": "Nieruchomości Komercyjne",
     "property-management": "Zarządzanie Nieruchomościami"
@@ -445,7 +444,18 @@
     "postFailed": "Nie udało się utworzyć posta",
     "upcomingActivities": "Nadchodzące aktywności",
     "nearby": "W pobliżu",
-    "friends": "Znajomi"
+    "friends": "Znajomi",
+    "activitiesOn": "Aktywności {{date}}",
+    "clearCategories": "Wyczyść filtry",
+    "closed": "Zamknięte",
+    "createActivity": "Utwórz aktywność",
+    "favoriteCategories": "Kategorie",
+    "hotels": "Lokalne hotele",
+    "noActivitiesYet": "Brak aktywności",
+    "noHotels": "Brak hoteli w pobliżu",
+    "openNow": "Otwarte teraz",
+    "showAllCategories": "Pokaż wszystkie kategorie",
+    "useMyLocation": "Użyj mojej lokalizacji"
   },
   "profile": {
     "title": "Profil",

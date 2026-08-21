@@ -280,7 +280,6 @@
     "real-estate-agencies": "Agences Immobilières",
     "studios": "Studios",
     "rooms": "Chambres",
-
     "co-living-spaces": "Espaces Colocation",
     "commercial-real-estate": "Immobilier Commercial",
     "property-management": "Gestion Immobilière"
@@ -445,7 +444,19 @@
     "upcomingActivities": "Activités à venir",
     "videoUploadFailed": "Échec du téléchargement de la vidéo",
     "nearby": "À proximité",
-    "following": "Abonnements"
+    "following": "Abonnements",
+    "activitiesOn": "Activités le {{date}}",
+    "clearCategories": "Effacer les filtres",
+    "closed": "Fermé",
+    "createActivity": "Créer une activité",
+    "favoriteCategories": "Catégories",
+    "friends": "Amis",
+    "hotels": "Hôtels locaux",
+    "noActivitiesYet": "Pas encore d'activités",
+    "noHotels": "Pas d'hôtels à proximité",
+    "openNow": "Ouvert maintenant",
+    "showAllCategories": "Afficher toutes les catégories",
+    "useMyLocation": "Utiliser ma position"
   },
   "profile": {
     "title": "Profil",

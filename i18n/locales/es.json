@@ -280,7 +280,6 @@
     "real-estate-agencies": "Inmobiliarias",
     "studios": "Estudios",
     "rooms": "Habitaciones",
-
     "co-living-spaces": "Espacios de Covivienda",
     "commercial-real-estate": "Bienes Raíces Comerciales",
     "property-management": "Administración de Propiedades"
@@ -445,7 +444,19 @@
     "postFailed": "Error al crear la publicación",
     "upcomingActivities": "Próximas Actividades",
     "nearby": "Cerca",
-    "following": "Siguiendo"
+    "following": "Siguiendo",
+    "activitiesOn": "Actividades el {{date}}",
+    "clearCategories": "Borrar filtros",
+    "closed": "Cerrado",
+    "createActivity": "Crear actividad",
+    "favoriteCategories": "Categorías",
+    "friends": "Amigos",
+    "hotels": "Hoteles locales",
+    "noActivitiesYet": "Aún no hay actividades",
+    "noHotels": "No hay hoteles cerca",
+    "openNow": "Abierto ahora",
+    "showAllCategories": "Mostrar todas las categorías",
+    "useMyLocation": "Usar mi ubicación"
   },
   "profile": {
     "title": "Perfil",

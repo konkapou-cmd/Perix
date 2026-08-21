@@ -280,7 +280,6 @@
     "real-estate-agencies": "Agencije za Nekretnine",
     "studios": "Studiji",
     "rooms": "Sobe",
-
     "co-living-spaces": "Co-Living Prostori",
     "commercial-real-estate": "Poslovne Nekretnine",
     "property-management": "Upravljanje Nekretninama"
@@ -445,7 +444,18 @@
     "postFailed": "Kreiranje objave nije uspelo",
     "upcomingActivities": "Predstojeće aktivnosti",
     "nearby": "У близини",
-    "friends": "Пријатељи"
+    "friends": "Пријатељи",
+    "activitiesOn": "Aktivnosti {{date}}",
+    "clearCategories": "Obriši filtere",
+    "closed": "Zatvoreno",
+    "createActivity": "Kreiraj aktivnost",
+    "favoriteCategories": "Kategorije",
+    "hotels": "Lokalni hoteli",
+    "noActivitiesYet": "Još nema aktivnosti",
+    "noHotels": "Nema hotela u blizini",
+    "openNow": "Otvoreno sada",
+    "showAllCategories": "Prikaži sve kategorije",
+    "useMyLocation": "Koristi moju lokaciju"
   },
   "profile": {
     "title": "Profil",

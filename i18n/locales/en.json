@@ -661,7 +661,14 @@
     "mediaPermissionMessage": "Please allow access to your photo library to add images.",
     "noLocationSet": "Please set your location in your profile to see nearby content.",
     "postFailed": "Failed to create post",
-    "upcomingActivities": "Upcoming Activities"
+    "upcomingActivities": "Upcoming Activities",
+    "activitiesOn": "Activities on {{date}}",
+    "clearCategories": "Clear filters",
+    "createActivity": "Create Activity",
+    "favoriteCategories": "Categories",
+    "noActivitiesYet": "No activities yet",
+    "showAllCategories": "Show all categories",
+    "useMyLocation": "Use My Location"
   },
   "saved": {
     "title": "Saved",

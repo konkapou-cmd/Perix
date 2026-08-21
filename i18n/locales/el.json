@@ -546,7 +546,15 @@
     "postFailed": "Αποτυχία δημιουργίας ανάρτησης",
     "upcomingActivities": "Επερχόμενες Δραστηριότητες",
     "nearby": "Κοντά",
-    "following": "Ακολουθώ"
+    "following": "Ακολουθώ",
+    "activitiesOn": "Δραστηριότητες στις {{date}}",
+    "clearCategories": "Καθαρισμός φίλτρων",
+    "createActivity": "Δημιουργία δραστηριότητας",
+    "favoriteCategories": "Κατηγορίες",
+    "friends": "Φίλοι",
+    "noActivitiesYet": "Δεν υπάρχουν δραστηριότητες ακόμα",
+    "showAllCategories": "Εμφάνιση όλων των κατηγοριών",
+    "useMyLocation": "Χρήση τοποθεσίας μου"
   },
   "profile": {
     "title": "Προφίλ",

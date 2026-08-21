@@ -279,7 +279,6 @@
     "real-estate-agencies": "Agjenci Imobiliare",
     "studios": "Studio",
     "rooms": "Dhoma",
-
     "co-living-spaces": "Hapësira Co-Living",
     "commercial-real-estate": "Pasuri Komerciale të Paluajtshme",
     "property-management": "Menaxhim Pasurish të Paluajtshme"
@@ -444,7 +443,19 @@
     "postFailed": "Dështoi krijimi i postimit",
     "upcomingActivities": "Aktivitete të Ardhshme",
     "nearby": "Pranë",
-    "following": "Duke ndjekur"
+    "following": "Duke ndjekur",
+    "activitiesOn": "Aktivitete më {{date}}",
+    "clearCategories": "Pastro filtrat",
+    "closed": "Mbyllur",
+    "createActivity": "Krijo aktivitet",
+    "favoriteCategories": "Kategoritë",
+    "friends": "Miqtë",
+    "hotels": "Hotele lokale",
+    "noActivitiesYet": "Ende pa aktivitete",
+    "noHotels": "Nuk ka hotele afër",
+    "openNow": "Hapur tani",
+    "showAllCategories": "Shfaq të gjitha kategoritë",
+    "useMyLocation": "Përdor vendndodhjen time"
   },
   "profile": {
     "title": "Profili",

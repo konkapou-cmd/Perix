@@ -280,7 +280,6 @@
     "real-estate-agencies": "Agenzie Immobiliari",
     "studios": "Studi",
     "rooms": "Camere",
-
     "co-living-spaces": "Spazi Co-Living",
     "commercial-real-estate": "Immobili Commerciali",
     "property-management": "Gestione Immobiliare"
@@ -445,7 +444,19 @@
     "postFailed": "Creazione post fallita",
     "upcomingActivities": "Prossime Attività",
     "nearby": "Vicino",
-    "following": "Seguiti"
+    "following": "Seguiti",
+    "activitiesOn": "Attività il {{date}}",
+    "clearCategories": "Cancella filtri",
+    "closed": "Chiuso",
+    "createActivity": "Crea attività",
+    "favoriteCategories": "Categorie",
+    "friends": "Amici",
+    "hotels": "Hotel locali",
+    "noActivitiesYet": "Nessuna attività ancora",
+    "noHotels": "Nessun hotel nelle vicinanze",
+    "openNow": "Aperto ora",
+    "showAllCategories": "Mostra tutte le categorie",
+    "useMyLocation": "Usa la mia posizione"
   },
   "profile": {
     "title": "Profilo",

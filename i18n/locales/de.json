@@ -530,7 +530,14 @@
     "mediaPermissionMessage": "Bitte erlaube den Zugriff auf deine Fotobibliothek, um Bilder hinzuzufügen.",
     "noLocationSet": "Bitte setze deinen Standort im Profil, um Inhalte in der Nähe zu sehen.",
     "postFailed": "Beitrag konnte nicht erstellt werden",
-    "upcomingActivities": "Kommende Aktivitäten"
+    "upcomingActivities": "Kommende Aktivitäten",
+    "activitiesOn": "Aktivitäten am {{date}}",
+    "clearCategories": "Filter löschen",
+    "createActivity": "Aktivität erstellen",
+    "favoriteCategories": "Kategorien",
+    "noActivitiesYet": "Noch keine Aktivitäten",
+    "showAllCategories": "Alle Kategorien anzeigen",
+    "useMyLocation": "Meinen Standort verwenden"
   },
   "profile": {
     "title": "Profil",
@@ -1144,11 +1151,11 @@
   "jobs": {
     "title": "Verfügbare Jobs",
     "create": "Job erstellen",
-    "jobTitlePlaceholder": "z. B. Senior Software Engineer",
-    "descriptionPlaceholder": "Beschreibe die Rolle, Aufgaben und den idealen Kandidaten...",
-    "locationPlaceholder": "z. B. Berlin, Mitte",
-    "requirementsPlaceholder": "z. B. 3+ Jahre Erfahrung, fließend Englisch",
-    "salaryPlaceholder": "z. B. 40.000 € – 55.000 € / Jahr",
+    "jobTitlePlaceholder": "z.B. Senior Software Engineer",
+    "descriptionPlaceholder": "Beschreibe die Stelle und den idealen Kandidaten...",
+    "locationPlaceholder": "z.B. Berlin, Deutschland oder Remote",
+    "requirementsPlaceholder": "Welche Qualifikationen werden benötigt?",
+    "salaryPlaceholder": "z.B. 3.000 €",
     "salaryRange": "Gehalt",
     "selectExpiry": "Ablaufdatum wählen",
     "workLocation": "Arbeitsort",
@@ -1205,15 +1212,7 @@
     "confirmDelete": "Möchtest du diesen Job wirklich löschen?",
     "jobType": "Art",
     "location": "Standort",
-    "requirements": "Anforderungen",
-    "salaryRange": "Gehalt",
-    "salaryPlaceholder": "z.B. 3.000 €",
-    "workLocation": "Arbeitsort",
-    "locationPlaceholder": "z.B. Berlin, Deutschland oder Remote",
-    "selectExpiry": "Ablaufdatum wählen",
-    "requirementsPlaceholder": "Welche Qualifikationen werden benötigt?",
-    "descriptionPlaceholder": "Beschreibe die Stelle und den idealen Kandidaten...",
-    "jobTitlePlaceholder": "z.B. Senior Software Engineer"
+    "requirements": "Anforderungen"
   },
   "languages": {
     "en": "English",
