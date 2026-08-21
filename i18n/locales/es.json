@@ -1981,7 +1981,15 @@
     "expired": "Caducado",
     "myBookings": "Mis reservas",
     "myBookingsDesc": "Ve y gestiona tus servicios reservados",
-    "viewBookings": "Ver mis reservas"
+    "viewBookings": "Ver mis reservas",
+    "by": "de",
+    "priceFrom": "Precio desde",
+    "pricePerNight": "Precio / noche",
+    "ourServices": "Nuestros servicios",
+    "gallery": "Galería",
+    "days": "días",
+    "months": "meses",
+    "sessions": "sesiones"
   },
   "menu": {
     "starter": "Entrantes",

@@ -2014,7 +2014,15 @@
     "expired": "Isteklo",
     "myBookings": "Moje rezervacije",
     "myBookingsDesc": "Pregledajte i upravljajte rezervisanim uslugama",
-    "viewBookings": "Pogledaj moje rezervacije"
+    "viewBookings": "Pogledaj moje rezervacije",
+    "by": "od",
+    "priceFrom": "Cena od",
+    "pricePerNight": "Cena / noć",
+    "ourServices": "Naše usluge",
+    "gallery": "Galerija",
+    "days": "dana",
+    "months": "meseci",
+    "sessions": "sesije"
   },
   "menu": {
     "starter": "Предјела",

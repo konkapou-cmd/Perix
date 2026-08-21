@@ -2257,7 +2257,15 @@
     "expired": "Expired",
     "myBookings": "My Bookings",
     "myBookingsDesc": "View and manage your booked services",
-    "viewBookings": "View My Bookings"
+    "viewBookings": "View My Bookings",
+    "by": "by",
+    "priceFrom": "Price from",
+    "pricePerNight": "Price / night",
+    "ourServices": "Our services",
+    "gallery": "Gallery",
+    "days": "days",
+    "months": "months",
+    "sessions": "sessions"
   },
   "detail": {
     "stay": "Stay Information",

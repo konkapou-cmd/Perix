@@ -1920,7 +1920,15 @@
     "expired": "Skaduar",
     "myBookings": "Rezervimet e mia",
     "myBookingsDesc": "Shikoni dhe menaxhoni shërbimet tuaja të rezervuara",
-    "viewBookings": "Shiko rezervimet e mia"
+    "viewBookings": "Shiko rezervimet e mia",
+    "by": "nga",
+    "priceFrom": "Çmimi nga",
+    "pricePerNight": "Çmimi / natë",
+    "ourServices": "Shërbimet tona",
+    "gallery": "Galeri",
+    "days": "ditë",
+    "months": "muaj",
+    "sessions": "seanca"
   },
   "menu": {
     "starter": "Antipasta",

@@ -2242,7 +2242,15 @@
     "expired": "Έληξε",
     "myBookings": "Οι κρατήσεις μου",
     "myBookingsDesc": "Δείτε και διαχειριστείτε τις κρατήσεις σας",
-    "viewBookings": "Δείτε τις κρατήσεις μου"
+    "viewBookings": "Δείτε τις κρατήσεις μου",
+    "by": "από",
+    "priceFrom": "Τιμή από",
+    "pricePerNight": "Τιμή / βράδυ",
+    "ourServices": "Οι υπηρεσίες μας",
+    "gallery": "Γκαλερί",
+    "days": "ημέρες",
+    "months": "μήνες",
+    "sessions": "συνεδρίες"
   },
   "menu": {
     "starter": "Ορεκτικά",

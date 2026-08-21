@@ -1986,7 +1986,15 @@
     "expired": "Scaduta",
     "myBookings": "Le mie prenotazioni",
     "myBookingsDesc": "Consulta e gestisci i tuoi servizi prenotati",
-    "viewBookings": "Vedi le mie prenotazioni"
+    "viewBookings": "Vedi le mie prenotazioni",
+    "by": "da",
+    "priceFrom": "Prezzo da",
+    "pricePerNight": "Prezzo / notte",
+    "ourServices": "I nostri servizi",
+    "gallery": "Galleria",
+    "days": "giorni",
+    "months": "mesi",
+    "sessions": "sessioni"
   },
   "menu": {
     "starter": "Antipasti",

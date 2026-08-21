@@ -1987,7 +1987,15 @@
     "expired": "Истекло",
     "myBookings": "Мои бронирования",
     "myBookingsDesc": "Просмотр и управление забронированными услугами",
-    "viewBookings": "Мои бронирования"
+    "viewBookings": "Мои бронирования",
+    "by": "от",
+    "priceFrom": "Цена от",
+    "pricePerNight": "Цена / ночь",
+    "ourServices": "Наши услуги",
+    "gallery": "Галерея",
+    "days": "дней",
+    "months": "месяцев",
+    "sessions": "сеансов"
   },
   "menu": {
     "starter": "Закуски",

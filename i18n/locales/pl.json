@@ -2027,7 +2027,15 @@
     "expired": "Wygasłe",
     "myBookings": "Moje rezerwacje",
     "myBookingsDesc": "Przeglądaj i zarządzaj zarezerwowanymi usługami",
-    "viewBookings": "Zobacz moje rezerwacje"
+    "viewBookings": "Zobacz moje rezerwacje",
+    "by": "przez",
+    "priceFrom": "Cena od",
+    "pricePerNight": "Cena / noc",
+    "ourServices": "Nasze usługi",
+    "gallery": "Galeria",
+    "days": "dni",
+    "months": "miesiące",
+    "sessions": "sesje"
   },
   "menu": {
     "starter": "Przystawki",

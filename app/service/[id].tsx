@@ -319,7 +319,7 @@ export default function ServiceDetailPage() {
           <EntityHeader
             title={service.name}
             subtitle={service.business_name || ""}
-            subtitlePrefix="von"
+            subtitlePrefix={t("services.by", "von")}
             avatarUrl={service.business_logo || undefined}
             accentColor={COLORS.servicesAccent}
             onPress={service.business_id ? () => router.push(`/business/${service.business_id}` as any) : undefined}
@@ -335,7 +335,7 @@ export default function ServiceDetailPage() {
             {service.price && (
               <InfoCard
                 icon="cash-outline"
-                label={service.type === "hotel_room" ? "Preis / Nacht" : "Preis ab"}
+                label={service.type === "hotel_room" ? t("services.pricePerNight", "Price / night") : t("services.priceFrom", "Price from")}
                 value={formatPrice(service.price)}
                 accentColor={COLORS.warning}
               />
@@ -390,9 +390,9 @@ export default function ServiceDetailPage() {
                   if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
                   if (fieldName === "calories") displayValue = String(value) + " kcal";
                   if (fieldName === "mileage_km") displayValue = String(value) + " km";
-                  if (fieldName === "duration_days") displayValue = String(value) + " Tage";
-                  if (fieldName === "duration_months") displayValue = String(value) + " Monate";
-                  if (fieldName === "sessions_count") displayValue = String(value) + " Sitzungen";
+                   if (fieldName === "duration_days") displayValue = String(value) + " " + t("services.days", "days");
+                   if (fieldName === "duration_months") displayValue = String(value) + " " + t("services.months", "months");
+                   if (fieldName === "sessions_count") displayValue = String(value) + " " + t("services.sessions", "sessions");
                   if (config.component === "chips" || config.component === "chips-multi") displayValue = String(value);
                   if (fieldName === "available_from" || fieldName === "available_until") {
                     try { displayValue = formatDate(String(value)); } catch {}
@@ -414,14 +414,14 @@ export default function ServiceDetailPage() {
           {getFacilities().length > 0 && (
             <ChecklistCard
               icon="checkmark-circle-outline"
-              title="Unsere Leistungen"
+              title={t("services.ourServices", "Our services")}
               items={getFacilities()}
               accentColor={COLORS.servicesAccent}
             />
           )}
 
           {allMediaItems.length > 0 && (
-            <ContentGallery mediaItems={allMediaItems} title="Galerie" />
+            <ContentGallery mediaItems={allMediaItems} title={t("services.gallery", "Gallery")} />
           )}
 
           {service.business_id && (

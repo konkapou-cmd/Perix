@@ -2018,7 +2018,15 @@
     "expired": "Expirée",
     "myBookings": "Mes réservations",
     "myBookingsDesc": "Consultez et gérez vos services réservés",
-    "viewBookings": "Voir mes réservations"
+    "viewBookings": "Voir mes réservations",
+    "by": "par",
+    "priceFrom": "Prix à partir de",
+    "pricePerNight": "Prix / nuit",
+    "ourServices": "Nos services",
+    "gallery": "Galerie",
+    "days": "jours",
+    "months": "mois",
+    "sessions": "séances"
   },
   "menu": {
     "starter": "Entrées",
