@@ -204,6 +204,8 @@ class ServiceUpdate(BaseModel):
 class ServiceResponse(BaseModel):
     service_id: str
     business_id: str
+    business_name: Optional[str] = None
+    business_logo: Optional[str] = None
     root_category: Optional[str] = None
     subcategory: Optional[str] = None
     type: str
