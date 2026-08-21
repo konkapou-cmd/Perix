@@ -282,7 +282,17 @@
     "rooms": "Sobe",
     "co-living-spaces": "Co-Living Prostori",
     "commercial-real-estate": "Poslovne Nekretnine",
-    "property-management": "Upravljanje Nekretninama"
+    "property-management": "Upravljanje Nekretninama",
+    "sports-fitness-wellness": "Sport, fitnes i wellness",
+    "fashion-accessories": "Moda i aksesoari",
+    "entertainment-events": "Zabava i događaji",
+    "nightlife-social": "Noćni život",
+    "food-dining": "Hrana i restorani",
+    "rentals": "Iznajmljivanje",
+    "shopping-retail": "Kupovina",
+    "automotive": "Automobili",
+    "healthcare": "Zdravstvo",
+    "pets": "Kućni ljubimci"
   },
   "upload": {
     "preparing": "Priprema videa...",
@@ -455,7 +465,10 @@
     "noHotels": "Nema hotela u blizini",
     "openNow": "Otvoreno sada",
     "showAllCategories": "Prikaži sve kategorije",
-    "useMyLocation": "Koristi moju lokaciju"
+    "useMyLocation": "Koristi moju lokaciju",
+    "rentals": "Iznajmljivanja",
+    "marketplace": "Pijaca",
+    "homesNearby": "Smeštaj u blizini"
   },
   "profile": {
     "title": "Profil",

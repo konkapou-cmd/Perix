@@ -282,7 +282,17 @@
     "rooms": "Chambres",
     "co-living-spaces": "Espaces Colocation",
     "commercial-real-estate": "Immobilier Commercial",
-    "property-management": "Gestion Immobilière"
+    "property-management": "Gestion Immobilière",
+    "sports-fitness-wellness": "Sport, Fitness et Bien-être",
+    "fashion-accessories": "Mode et Accessoires",
+    "entertainment-events": "Divertissement et Événements",
+    "nightlife-social": "Vie nocturne",
+    "food-dining": "Restauration",
+    "rentals": "Locations",
+    "shopping-retail": "Shopping",
+    "automotive": "Automobile",
+    "healthcare": "Santé",
+    "pets": "Animaux"
   },
   "upload": {
     "preparing": "Préparation de la vidéo...",
@@ -456,7 +466,10 @@
     "noHotels": "Pas d'hôtels à proximité",
     "openNow": "Ouvert maintenant",
     "showAllCategories": "Afficher toutes les catégories",
-    "useMyLocation": "Utiliser ma position"
+    "useMyLocation": "Utiliser ma position",
+    "rentals": "Locations",
+    "marketplace": "Marketplace",
+    "homesNearby": "Logements à proximité"
   },
   "profile": {
     "title": "Profil",

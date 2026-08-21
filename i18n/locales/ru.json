@@ -282,7 +282,17 @@
     "rooms": "Комнаты",
     "co-living-spaces": "Коворкинг-Жильё",
     "commercial-real-estate": "Коммерческая Недвижимость",
-    "property-management": "Управление Недвижимостью"
+    "property-management": "Управление Недвижимостью",
+    "sports-fitness-wellness": "Спорт, фитнес и здоровье",
+    "fashion-accessories": "Мода и аксессуары",
+    "entertainment-events": "Развлечения и события",
+    "nightlife-social": "Ночная жизнь",
+    "food-dining": "Еда и рестораны",
+    "rentals": "Аренда",
+    "shopping-retail": "Покупки",
+    "automotive": "Авто",
+    "healthcare": "Здоровье",
+    "pets": "Животные"
   },
   "upload": {
     "preparing": "Подготовка видео...",
@@ -456,7 +466,10 @@
     "noHotels": "Отелей поблизости нет",
     "openNow": "Открыто сейчас",
     "showAllCategories": "Показать все категории",
-    "useMyLocation": "Использовать моё местоположение"
+    "useMyLocation": "Использовать моё местоположение",
+    "rentals": "Аренда",
+    "marketplace": "Маркетплейс",
+    "homesNearby": "Жильё рядом"
   },
   "profile": {
     "title": "Профиль",

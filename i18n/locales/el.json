@@ -554,7 +554,10 @@
     "friends": "Φίλοι",
     "noActivitiesYet": "Δεν υπάρχουν δραστηριότητες ακόμα",
     "showAllCategories": "Εμφάνιση όλων των κατηγοριών",
-    "useMyLocation": "Χρήση τοποθεσίας μου"
+    "useMyLocation": "Χρήση τοποθεσίας μου",
+    "rentals": "Ενοικιάσεις",
+    "marketplace": "Αγορά",
+    "homesNearby": "Διαμονές κοντά σας"
   },
   "profile": {
     "title": "Προφίλ",

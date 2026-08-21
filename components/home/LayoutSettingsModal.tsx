@@ -19,10 +19,10 @@ const SORT_OPTIONS = ["engagement", "distance", "chronological", "random"] as co
 const SORTABLE_TYPES = ["posts", "events", "activities", "businesses", "services"] as const;
 
 const POPULAR_CATEGORIES = [
-  "restaurants-bars", "fashion-accessories", "beauty-care", "health-wellness",
-  "shopping-retail", "sports-fitness-wellness", "entertainment-events",
-  "education", "automotive", "professional-services", "pets", "food-dining",
-  "nightlife", "music", "rentals", "technology",
+  "sports-fitness-wellness", "fashion-accessories", "beauty-care",
+  "entertainment-events", "nightlife-social", "food-dining",
+  "education-creativity", "professional-services", "shopping-retail",
+  "automotive", "healthcare", "pets", "rentals",
 ];
 
 export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSection, onSetSorting, onSetFavoriteCategories }: LayoutSettingsModalProps) {
@@ -97,7 +97,7 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
             <Text style={styles.sectionLabel}>{t("home.showSections")}</Text>
             {homeLayout.sections.filter(s => s.id !== "map").map((section) => (
               <View key={section.id} style={styles.settingRow}>
-                <Text style={styles.settingLabel}>{t(`home.${section.id}`) || section.title}</Text>
+                <Text style={styles.settingLabel}>{t(`home.${section.id}`, section.title)}</Text>
                 <Pressable
                   style={[styles.toggleButton, section.enabled !== false && styles.toggleButtonActive]}
                   onPress={() => onToggleSection(section.id)}

@@ -537,7 +537,10 @@
     "favoriteCategories": "Kategorien",
     "noActivitiesYet": "Noch keine Aktivitäten",
     "showAllCategories": "Alle Kategorien anzeigen",
-    "useMyLocation": "Meinen Standort verwenden"
+    "useMyLocation": "Meinen Standort verwenden",
+    "rentals": "Vermietungen",
+    "marketplace": "Marktplatz",
+    "homesNearby": "Unterkünfte in der Nähe"
   },
   "profile": {
     "title": "Profil",

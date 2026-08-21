@@ -281,7 +281,17 @@
     "rooms": "Dhoma",
     "co-living-spaces": "Hapësira Co-Living",
     "commercial-real-estate": "Pasuri Komerciale të Paluajtshme",
-    "property-management": "Menaxhim Pasurish të Paluajtshme"
+    "property-management": "Menaxhim Pasurish të Paluajtshme",
+    "sports-fitness-wellness": "Sport, Fitnes dhe Mirëqenie",
+    "fashion-accessories": "Modë dhe Aksesorë",
+    "entertainment-events": "Argëtim dhe Ngjarje",
+    "nightlife-social": "Jeta e natës",
+    "food-dining": "Ushqim dhe Restorante",
+    "rentals": "Qira",
+    "shopping-retail": "Blerje",
+    "automotive": "Automjete",
+    "healthcare": "Shëndetësi",
+    "pets": "Kafshë shtëpiake"
   },
   "upload": {
     "preparing": "Duke përgatitur videon...",
@@ -455,7 +465,10 @@
     "noHotels": "Nuk ka hotele afër",
     "openNow": "Hapur tani",
     "showAllCategories": "Shfaq të gjitha kategoritë",
-    "useMyLocation": "Përdor vendndodhjen time"
+    "useMyLocation": "Përdor vendndodhjen time",
+    "rentals": "Qiratë",
+    "marketplace": "Tregu",
+    "homesNearby": "Banesa afër"
   },
   "profile": {
     "title": "Profili",

@@ -668,7 +668,10 @@
     "favoriteCategories": "Categories",
     "noActivitiesYet": "No activities yet",
     "showAllCategories": "Show all categories",
-    "useMyLocation": "Use My Location"
+    "useMyLocation": "Use My Location",
+    "rentals": "Rentals",
+    "marketplace": "Marketplace",
+    "homesNearby": "Homes Nearby"
   },
   "saved": {
     "title": "Saved",
