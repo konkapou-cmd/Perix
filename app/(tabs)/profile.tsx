@@ -3020,15 +3020,16 @@ currentUserId={businessDetail?.business?.business_id}
                 </View>
               );
             })}
-            
+          </ScrollView>
+          <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: "#eee" }}>
             <Pressable
-              style={[styles.primaryButton, { marginTop: 16 }]}
+              style={[styles.primaryButton, { marginTop: 0 }]}
               onPress={handleSaveBusinessInfo}
               disabled={bizSaving}
             >
               {bizSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t("business.saveChanges", "Save Changes")}</Text>}
             </Pressable>
-          </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
 
