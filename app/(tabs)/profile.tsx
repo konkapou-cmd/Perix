@@ -3048,6 +3048,26 @@ currentUserId={businessDetail?.business?.business_id}
                 key={category.slug}
                 style={styles.modalItem}
                 onPress={() => {
+                  const currentRoot = businessDetail?.business?.root_category;
+                  if (currentRoot && category.slug !== currentRoot) {
+                    Alert.alert(
+                      t("business.categoryChangeTitle", "Change business category?"),
+                      t("business.categoryChangeMessage", "Changing your category will permanently delete all services, jobs, events, bookings and media of this business."),
+                      [
+                        { text: t("common.cancel", "Cancel"), style: "cancel" },
+                        {
+                          text: t("common.confirm", "Confirm"),
+                          style: "destructive",
+                          onPress: () => {
+                            setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
+                            setBizSubcategories([]);
+                            setBizCategoryModalVisible(false);
+                          },
+                        },
+                      ],
+                    );
+                    return;
+                  }
                   setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
                   setBizSubcategories([]);
                   setBizCategoryModalVisible(false);

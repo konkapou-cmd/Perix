@@ -767,7 +767,9 @@
     "actions": "Działania biznesowe",
     "create": "Utwórz",
     "manage": "Zarządzaj",
-    "createJob": "Utwórz ofertę pracy"
+    "createJob": "Utwórz ofertę pracy",
+    "categoryChangeTitle": "Zmienić kategorię firmy?",
+    "categoryChangeMessage": "Zmiana kategorii trwale usunie wszystkie usługi, oferty pracy, wydarzenia, rezerwacje i media tej firmy."
   },
   "businessProfile": {
     "editProfile": "Izmeni profil",

@@ -767,7 +767,9 @@
     "actions": "Poslovne akcije",
     "create": "Kreiraj",
     "manage": "Upravljaj",
-    "createJob": "Kreiraj posao"
+    "createJob": "Kreiraj posao",
+    "categoryChangeTitle": "Promeniti kategoriju firme?",
+    "categoryChangeMessage": "Promena kategorije trajno će obrisati sve usluge, poslove, događaje, rezervacije i medije ove firme."
   },
   "businessProfile": {
     "basicInfo": "Osnovne informacije",

@@ -878,7 +878,9 @@
     "actions": "Business-Aktionen",
     "create": "Erstellen",
     "manage": "Verwalten",
-    "createJob": "Job erstellen"
+    "createJob": "Job erstellen",
+    "categoryChangeTitle": "Geschäftskategorie ändern?",
+    "categoryChangeMessage": "Wenn du die Kategorie änderst, werden alle Dienste, Jobs, Events, Buchungen und Medien dieses Unternehmens dauerhaft gelöscht."
   },
   "businessProfile": {
     "basicInfo": "Basisinformationen",

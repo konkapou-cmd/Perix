@@ -868,7 +868,9 @@
     "searchBusinesses": "Search businesses...",
     "actions": "Business Actions",
     "create": "Create",
-    "manage": "Manage"
+    "manage": "Manage",
+    "categoryChangeTitle": "Change business category?",
+    "categoryChangeMessage": "Changing your category will permanently delete all services, jobs, events, bookings and media of this business."
   },
   "businessProfile": {
     "editProfile": "Edit Profile",

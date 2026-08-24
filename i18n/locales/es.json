@@ -768,7 +768,9 @@
     "actions": "Acciones de negocio",
     "create": "Crear",
     "manage": "Gestionar",
-    "createJob": "Crear empleo"
+    "createJob": "Crear empleo",
+    "categoryChangeTitle": "¿Cambiar la categoría del negocio?",
+    "categoryChangeMessage": "Al cambiar la categoría se eliminarán permanentemente todos los servicios, empleos, eventos, reservas y medios de este negocio."
   },
   "businessProfile": {
     "editProfile": "Editar perfil",

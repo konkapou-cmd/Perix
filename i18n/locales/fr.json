@@ -768,7 +768,9 @@
     "actions": "Actions professionnelles",
     "create": "Créer",
     "manage": "Gérer",
-    "createJob": "Créer une offre"
+    "createJob": "Créer une offre",
+    "categoryChangeTitle": "Changer la catégorie de l'entreprise ?",
+    "categoryChangeMessage": "Changer de catégorie supprimera définitivement tous les services, offres, événements, réservations et médias de cette entreprise."
   },
   "businessProfile": {
     "basicInfo": "Informations de base",

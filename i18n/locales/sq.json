@@ -767,7 +767,9 @@
     "actions": "Veprimet e biznesit",
     "create": "Krijo",
     "manage": "Menaxho",
-    "createJob": "Krijo punë"
+    "createJob": "Krijo punë",
+    "categoryChangeTitle": "Të ndryshohet kategoria e biznesit?",
+    "categoryChangeMessage": "Ndryshimi i kategorisë do të fshijë përgjithmonë të gjitha shërbimet, punët, ngjarjet, rezervimet dhe mediat e këtij biznesi."
   },
   "businessProfile": {
     "editProfile": "Ndrysho profilin",

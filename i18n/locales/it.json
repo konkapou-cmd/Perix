@@ -768,7 +768,9 @@
     "actions": "Azioni aziendali",
     "create": "Crea",
     "manage": "Gestisci",
-    "createJob": "Crea lavoro"
+    "createJob": "Crea lavoro",
+    "categoryChangeTitle": "Cambiare la categoria dell'azienda?",
+    "categoryChangeMessage": "Cambiando categoria verranno eliminati definitivamente tutti i servizi, i lavori, gli eventi, le prenotazioni e i media di questa azienda."
   },
   "businessProfile": {
     "basicInfo": "Informazioni base",
