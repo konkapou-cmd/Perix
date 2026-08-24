@@ -64,7 +64,9 @@ function BusinessCard({ data, distance, isOpen, onPress }: BusinessCardProps) {
             {data.name}
           </Text>
           <Text style={[styles.cardSubtitle, { color: textColor }]} numberOfLines={1}>
-            {translateCategory(data.subcategory, t)} · {translateCategory(data.root_category || data.category, t)}
+            {(data as any).subcategories?.length
+              ? (data as any).subcategories.map((s: string) => translateCategory(s, t)).join(" / ")
+              : translateCategory(data.subcategory, t)} · {translateCategory(data.root_category || data.category, t)}
           </Text>
           {data.address ? (
             <View style={styles.cardMetaRow}>

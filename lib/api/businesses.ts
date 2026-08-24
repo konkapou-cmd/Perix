@@ -79,6 +79,7 @@ export const createBusiness = async (
     name: string;
     root_category: string;
     subcategory: string;
+    subcategories?: string[];
     description?: string | null;
     address: string;
     logo_image?: string | null;

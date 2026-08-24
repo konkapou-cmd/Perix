@@ -291,6 +291,7 @@ export default function ProfileScreen() {
   const bizSavingRef = useRef(false);
   const [bizCategoryModalVisible, setBizCategoryModalVisible] = useState(false);
   const [bizSubcategoryModalVisible, setBizSubcategoryModalVisible] = useState(false);
+  const [bizSubcategories, setBizSubcategories] = useState<string[]>([]);
 
   // -- ARTIST EDIT MODAL STATE --
   const userEditScrollRef = useRef<ScrollView>(null);
@@ -328,6 +329,7 @@ export default function ProfileScreen() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [pickerRoot, setPickerRoot] = useState("");
   const [pickerSub, setPickerSub] = useState("");
+  const [pickerSubs, setPickerSubs] = useState<string[]>([]);
   const creatingBusinessRef = useRef(false);
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [eventEditing, setEventEditing] = useState<EventItem | null>(null);
@@ -1021,6 +1023,9 @@ export default function ProfileScreen() {
       root_category: b.root_category || "",
       subcategory: b.subcategory || "",
     });
+    setBizSubcategories(
+      (b as any).subcategories?.length ? (b as any).subcategories : b.subcategory ? [b.subcategory] : []
+    );
     setBizLogoNew(null);
     setBizCoverNew(null);
     setBizEditModalVisible(true);
@@ -1059,7 +1064,10 @@ export default function ProfileScreen() {
       if (bizEditForm.longitude != null) payload.longitude = bizEditForm.longitude;
       if (bizEditForm.opening_hours) payload.opening_hours = bizEditForm.opening_hours;
       if (bizEditForm.root_category) payload.root_category = bizEditForm.root_category;
-      if (bizEditForm.subcategory) payload.subcategory = bizEditForm.subcategory;
+      if (bizSubcategories.length > 0) {
+        payload.subcategory = bizSubcategories[0];
+        payload.subcategories = bizSubcategories;
+      }
       if (bizLogoNew) payload.logo_image = bizLogoNew;
       if (bizCoverNew) payload.cover_image = bizCoverNew;
       await updateBusiness(sessionToken, businessDetail.business.business_id, payload);
@@ -2158,7 +2166,7 @@ try {
 
 
   const handleCreateNewBusiness = async () => {
-    if (!sessionToken || !user || !pickerRoot || !pickerSub) return;
+    if (!sessionToken || !user || !pickerRoot || pickerSubs.length === 0) return;
     if (creatingBusinessRef.current) return;
     const hasAddress = user.location && user.location !== "Not set" && user.latitude && user.longitude;
     if (!hasAddress) {
@@ -2181,13 +2189,15 @@ try {
         latitude: null as any,
         longitude: null as any,
         root_category: pickerRoot,
-        subcategory: pickerSub,
+        subcategory: pickerSubs[0],
+        subcategories: pickerSubs,
       });
       setBusinesses(prev => [...prev, created]);
       setActiveIdentity({ type: "business", id: created.business_id, name: created.name, avatar: created.logo_image });
       setShowCategoryPicker(false);
       setPickerRoot("");
       setPickerSub("");
+      setPickerSubs([]);
       refreshUser();
     } catch (e: any) {
       Alert.alert(t("common.error", "Error"), e.message || t("business.failedCreate", "Failed to create business profile"));
@@ -2913,7 +2923,7 @@ currentUserId={businessDetail?.business?.business_id}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </Pressable>
-            <Text style={styles.inputLabel}>{t("business.subcategory", "Subcategory")}</Text>
+            <Text style={styles.inputLabel}>{t("business.subcategory", "Subcategories")}</Text>
             <Pressable style={styles.pickerButton} onPress={() => {
               if (!bizEditForm.root_category) {
                 setThemedAlertMessage(t("business.selectCategoryFirst", "Please select a category first"));
@@ -2922,8 +2932,10 @@ currentUserId={businessDetail?.business?.business_id}
               }
               setBizSubcategoryModalVisible(true);
             }}>
-              <Text style={styles.pickerButtonText}>
-                {bizEditForm.subcategory ? (() => { const sc = getSubcategories(categoryTree, bizEditForm.root_category).find(s => s.slug === bizEditForm.subcategory); return sc ? translateCategory(sc.slug, t) : bizEditForm.subcategory; })() : t("business.selectSubcategory", "Select Subcategory")}
+              <Text style={styles.pickerButtonText} numberOfLines={1}>
+                {bizSubcategories.length > 0
+                  ? bizSubcategories.map(s => translateCategory(s, t)).join(", ")
+                  : t("business.selectSubcategory", "Select Subcategory")}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </Pressable>
@@ -3036,6 +3048,7 @@ currentUserId={businessDetail?.business?.business_id}
                 style={styles.modalItem}
                 onPress={() => {
                   setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
+                  setBizSubcategories([]);
                   setBizCategoryModalVisible(false);
                 }}
               >
@@ -3050,25 +3063,38 @@ currentUserId={businessDetail?.business?.business_id}
       <Modal visible={bizSubcategoryModalVisible} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t("business.selectSubcategory", "Select Subcategory")}</Text>
+            <Text style={styles.modalTitle}>{t("business.selectSubcategory", "Select Subcategories")}</Text>
             <Pressable onPress={() => setBizSubcategoryModalVisible(false)}>
               <Ionicons name="close" size={24} color={COLORS.primaryDark} />
             </Pressable>
           </View>
           <ScrollView>
-            {getSubcategories(categoryTree, bizEditForm.root_category).map((sub) => (
-              <Pressable
-                key={sub.slug}
-                style={styles.modalItem}
-                onPress={() => {
-                  setBizEditForm(prev => ({ ...prev, subcategory: sub.slug }));
-                  setBizSubcategoryModalVisible(false);
-                }}
-              >
-                <Text style={styles.modalItemText}>{translateCategory(sub.slug, t)}</Text>
-              </Pressable>
-            ))}
+            {getSubcategories(categoryTree, bizEditForm.root_category).map((sub) => {
+              const active = bizSubcategories.includes(sub.slug);
+              return (
+                <Pressable
+                  key={sub.slug}
+                  style={[styles.modalItem, active && { backgroundColor: COLORS.primaryLight }]}
+                  onPress={() => {
+                    setBizSubcategories(prev =>
+                      active ? prev.filter(s => s !== sub.slug) : [...prev, sub.slug]
+                    );
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{translateCategory(sub.slug, t)}</Text>
+                  {active && <Ionicons name="checkmark-circle" size={20} color={COLORS.primaryDark} />}
+                </Pressable>
+              );
+            })}
           </ScrollView>
+          <View style={{ padding: 16 }}>
+            <Pressable
+              style={{ backgroundColor: COLORS.primaryDark, borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
+              onPress={() => setBizSubcategoryModalVisible(false)}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.done", "Done")}</Text>
+            </Pressable>
+          </View>
         </SafeAreaView>
       </Modal>
 
@@ -3092,7 +3118,7 @@ currentUserId={businessDetail?.business?.business_id}
                     setPickerRoot(cat.slug);
                     setPickerSub("");
                     const subs = getSubcategories(categoryTree, cat.slug);
-                    if (subs.length === 1) setPickerSub(subs[0].slug);
+                    setPickerSubs(subs.length === 1 ? [subs[0].slug] : []);
                   }}
                 >
                   <Text style={{ fontSize: 14, fontWeight: "600", color: pickerRoot === cat.slug ? "#fff" : "#374151" }}>{translateCategory(cat.slug, t)}</Text>
@@ -3101,28 +3127,31 @@ currentUserId={businessDetail?.business?.business_id}
             </View>
             {pickerRoot && getSubcategories(categoryTree, pickerRoot).length > 0 && (
               <>
-                <Text style={{ fontSize: 14, color: "#6b7280", marginBottom: 12 }}>{t("business.selectSubHint", "Select a subcategory")}</Text>
+                <Text style={{ fontSize: 14, color: "#6b7280", marginBottom: 12 }}>{t("business.selectSubHint", "Select one or more subcategories")}</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 20 }}>
-                  {getSubcategories(categoryTree, pickerRoot).map((sub) => (
+                  {getSubcategories(categoryTree, pickerRoot).map((sub) => {
+                    const active = pickerSubs.includes(sub.slug);
+                    return (
                     <Pressable
                       key={sub.slug}
-                      style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: pickerSub === sub.slug ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: pickerSub === sub.slug ? COLORS.textPrimary : "#e5e7eb" }}
-                      onPress={() => setPickerSub(sub.slug)}
+                      style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: active ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: active ? COLORS.textPrimary : "#e5e7eb" }}
+                      onPress={() => setPickerSubs(prev => active ? prev.filter(s => s !== sub.slug) : [...prev, sub.slug])}
                     >
-                      <Text style={{ fontSize: 13, fontWeight: "500", color: pickerSub === sub.slug ? "#fff" : "#374151" }}>{translateCategory(sub.slug, t)}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: "500", color: active ? "#fff" : "#374151" }}>{translateCategory(sub.slug, t)}</Text>
                     </Pressable>
-                  ))}
+                    );
+                  })}
                 </View>
               </>
             )}
           </ScrollView>
           <View style={{ padding: 16, paddingBottom: 16 + insets.bottom, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e5e7eb" }}>
             <Pressable
-              style={{ backgroundColor: pickerRoot && pickerSub ? COLORS.textPrimary : "#d1d5db", borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
-              disabled={!pickerRoot || !pickerSub}
+              style={{ backgroundColor: pickerRoot && pickerSubs.length > 0 ? COLORS.textPrimary : "#d1d5db", borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
+              disabled={!pickerRoot || pickerSubs.length === 0}
               onPress={handleCreateNewBusiness}
             >
-              <Text style={{ fontSize: 16, fontWeight: "700", color: pickerRoot && pickerSub ? "#fff" : "#9ca3af" }}>{t("business.createBusiness", "Create Business")}</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: pickerRoot && pickerSubs.length > 0 ? "#fff" : "#9ca3af" }}>{t("business.createBusiness", "Create Business")}</Text>
             </Pressable>
           </View>
         </SafeAreaView>

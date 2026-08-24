@@ -535,7 +535,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Ionicons name="grid-outline" size={14} color={COLORS.textMuted} />
             <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>
-              {`${translateCategory(detail.business.root_category, t)}${detail.business.subcategory ? ` / ${translateCategory(detail.business.subcategory, t)}` : ""}`}
+              {`${translateCategory(detail.business.root_category, t)}${detail.business.subcategories?.length ? ` / ${detail.business.subcategories.map(s => translateCategory(s, t)).join(" / ")}` : detail.business.subcategory ? ` / ${translateCategory(detail.business.subcategory, t)}` : ""}`}
             </Text>
           </View>
         </View>

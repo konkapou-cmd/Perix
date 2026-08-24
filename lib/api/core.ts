@@ -560,6 +560,7 @@ export type Business = {
   category: string;
   root_category: string;
   subcategory: string;
+  subcategories?: string[];
   description?: string | null;
   logo_image?: string | null;
   profile_photo?: string | null;
