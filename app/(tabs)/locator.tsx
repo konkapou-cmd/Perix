@@ -812,7 +812,12 @@ export default function LocatorScreen() {
           <Pressable style={styles.sidebarOverlay} onPress={() => setSidebarOpen(false)} />
         )}
 
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}>
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 20 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+        >
           {/* Map Section */}
           <View style={styles.mapSection}>
         <BusinessMap
