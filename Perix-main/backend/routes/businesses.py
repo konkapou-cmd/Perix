@@ -209,6 +209,27 @@ async def update_business(
             "type": "Point",
             "coordinates": [longitude, latitude],
         }
+
+    # Root category change is destructive: category-dependent data is removed.
+    new_root = update_data.get("root_category")
+    if new_root and new_root != business.get("root_category"):
+        job_ids = [
+            j["job_id"]
+            for j in await db.jobs.find({"business_id": business_id}, {"job_id": 1}).to_list(1000)
+        ]
+        if job_ids:
+            await db.job_applications.delete_many({"job_id": {"$in": job_ids}})
+        await db.jobs.delete_many({"business_id": business_id})
+        await db.services.delete_many({"business_id": business_id})
+        await db.bookings.delete_many({"business_id": business_id})
+        await db.events.delete_many({"business_id": business_id})
+        update_data["gallery_images"] = []
+        update_data["gallery_videos"] = []
+        update_data["video_url"] = None
+        update_data["opening_hours"] = None
+        update_data["description"] = None
+        update_data["tags"] = []
+
     if update_data:
         await db.businesses.update_one({"business_id": business_id}, {"$set": update_data})
         business.update(update_data)
