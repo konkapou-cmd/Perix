@@ -318,7 +318,7 @@ export default function ServiceBookingModal({
               )}
               <Text style={s.summaryName}>{service.name}</Text>
               {service.duration_minutes && (
-                <Text style={s.summaryDetail}>{formatDuration(service.duration_minutes)}</Text>
+                <Text style={s.summaryDetail}>{formatDuration(service.duration_minutes, t)}</Text>
               )}
               {service.price && (
                 <Text style={s.summaryPrice}>{formatPrice(service.price)}</Text>

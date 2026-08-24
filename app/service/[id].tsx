@@ -348,7 +348,7 @@ export default function ServiceDetailPage() {
                 const value = serviceField(fieldName);
                 const config = FIELD_REGISTRY[fieldName];
                 if (!config) return null;
-                let displayValue = config.displayFormat === "duration" ? formatDuration(Number(value)) : String(value);
+                let displayValue = config.displayFormat === "duration" ? formatDuration(Number(value), t) : String(value);
                 if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
                 if (fieldName === "capacity" || fieldName === "max_guests") displayValue = "Bis " + value;
                 return (
@@ -386,7 +386,7 @@ export default function ServiceDetailPage() {
                   const config = FIELD_REGISTRY[fieldName];
                   if (!config || value === undefined || value === null) return null;
                   let displayValue = String(value);
-                  if (config.component === "number" && config.displayFormat === "duration") displayValue = formatDuration(Number(value));
+                  if (config.component === "number" && config.displayFormat === "duration") displayValue = formatDuration(Number(value), t);
                   if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
                   if (fieldName === "calories") displayValue = String(value) + " kcal";
                   if (fieldName === "mileage_km") displayValue = String(value) + " km";

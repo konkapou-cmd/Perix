@@ -76,7 +76,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
     if (value === null || value === undefined) return null;
 
     if (config.displayFormat === "duration") {
-      return <Text key={fieldName} style={s.meta}>{formatDuration(Number(value))}</Text>;
+      return <Text key={fieldName} style={s.meta}>{formatDuration(Number(value), t)}</Text>;
     }
 
     if (fieldName === "available_from") {
