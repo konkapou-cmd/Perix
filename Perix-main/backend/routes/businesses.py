@@ -288,6 +288,7 @@ async def get_nearby_businesses(
     longitude: float,
     max_distance_meters: int = 5000,
     root_category: Optional[str] = None,
+    subcategory: Optional[str] = None,
     min_lat: Optional[float] = None,
     max_lat: Optional[float] = None,
     min_lng: Optional[float] = None,
@@ -307,6 +308,8 @@ async def get_nearby_businesses(
         }
         if root_category and root_category != "all":
             query["root_category"] = root_category
+        if subcategory and subcategory != "All":
+            query["subcategories"] = subcategory
         
         businesses = await db.businesses.find(query, {"_id": 0}).to_list(100)
         return [build_business_response(b) for b in businesses]
@@ -328,6 +331,8 @@ async def get_nearby_businesses(
     }
     if root_category and root_category != "all":
         query["root_category"] = root_category
+    if subcategory and subcategory != "All":
+        query["subcategories"] = subcategory
     
     try:
         businesses = await db.businesses.find(query, {"_id": 0}).to_list(100)
