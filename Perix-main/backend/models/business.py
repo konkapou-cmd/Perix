@@ -23,6 +23,7 @@ class BusinessCreate(BaseModel):
     name: str
     root_category: str
     subcategory: str
+    subcategories: Optional[List[str]] = None
     description: Optional[str] = None
     logo_image: Optional[str] = None
     cover_image: Optional[str] = None
@@ -59,6 +60,7 @@ class BusinessUpdate(BaseModel):
     longitude: Optional[float] = None
     root_category: Optional[str] = None
     subcategory: Optional[str] = None
+    subcategories: Optional[List[str]] = None
     hidden_fan_posts: Optional[List[str]] = None
 
 
@@ -69,6 +71,7 @@ class BusinessResponse(BaseModel):
     category: str
     root_category: str
     subcategory: str
+    subcategories: List[str] = []
     description: Optional[str] = None
     logo_image: Optional[str] = None
     cover_image: Optional[str] = None
@@ -102,6 +105,7 @@ class BusinessSummary(BaseModel):
     category: str
     root_category: str
     subcategory: str
+    subcategories: List[str] = []
     address: str
     latitude: float
     longitude: float

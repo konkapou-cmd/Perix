@@ -41,6 +41,7 @@ def build_business_response(business_doc: Dict) -> BusinessResponse:
         "tags": [],
         "root_category": business_doc.get("category", "other"),
         "subcategory": business_doc.get("category", "other"),
+        "subcategories": [business_doc.get("subcategory") or business_doc.get("category", "other")],
         "enabled_modules": {
             "events": False,
             "tickets": False,
@@ -76,12 +77,30 @@ def build_business_summary(business_doc: Dict) -> BusinessSummary:
         category=business_doc.get("category", ""),
         root_category=business_doc.get("root_category", "other"),
         subcategory=business_doc.get("subcategory", "other"),
+        subcategories=business_doc.get("subcategories") or [business_doc.get("subcategory", "other")],
         address=business_doc.get("address", ""),
         latitude=business_doc.get("latitude", 0.0),
         longitude=business_doc.get("longitude", 0.0),
         logo_image=business_doc.get("logo_image"),
         theme=business_doc.get("theme"),
     )
+
+
+def _resolve_subcategories(root_category: str, subs: List[str]) -> List[dict]:
+    if not subs:
+        raise HTTPException(status_code=400, detail="At least one subcategory is required")
+    infos: List[dict] = []
+    seen = set()
+    for slug in subs:
+        info = database.CATEGORY_LOOKUP.get(slug)
+        if not info:
+            raise HTTPException(status_code=400, detail=f"Invalid business subcategory: {slug}")
+        if root_category and root_category != info.get("root_slug"):
+            raise HTTPException(status_code=400, detail="Subcategory does not match root category")
+        if info.get("slug") not in seen:
+            seen.add(info.get("slug"))
+            infos.append(info)
+    return infos
 
 
 def is_trial_active(business_doc: Dict) -> bool:
@@ -108,11 +127,9 @@ async def create_business(
     )
     if existing_count >= 1:
         raise HTTPException(status_code=403, detail="Only one business allowed")
-    category_info = database.CATEGORY_LOOKUP.get(payload.subcategory)
-    if not category_info:
-        raise HTTPException(status_code=400, detail="Invalid business subcategory")
-    if payload.root_category and payload.root_category != category_info["root_slug"]:
-        raise HTTPException(status_code=400, detail="Subcategory does not match root category")
+    requested_subs = payload.subcategories or [payload.subcategory]
+    infos = _resolve_subcategories(payload.root_category, requested_subs)
+    category_info = infos[0]
 
     trial_expires_at = now_utc() + timedelta(days=90)
     modules = category_info.get("modules", {})
@@ -123,6 +140,7 @@ async def create_business(
         "category": category_info["name"],
         "root_category": category_info["root_slug"],
         "subcategory": category_info["slug"],
+        "subcategories": [i["slug"] for i in infos],
         "description": payload.description,
         "service_types": category_info.get("service_types", []),
         "logo_image": payload.logo_image,
@@ -170,16 +188,19 @@ async def update_business(
         raise HTTPException(status_code=403, detail="Active subscription required to edit business profile")
     update_data = {key: value for key, value in payload.dict().items() if value is not None}
     
-    if "subcategory" in update_data:
-        category_info = database.CATEGORY_LOOKUP.get(update_data["subcategory"])
-        if not category_info:
-            raise HTTPException(status_code=400, detail="Invalid business subcategory")
-        if "root_category" in update_data and update_data["root_category"] != category_info["root_slug"]:
-            raise HTTPException(status_code=400, detail="Subcategory does not match root category")
-        update_data["root_category"] = category_info["root_slug"]
-        update_data["category"] = category_info["name"]
-        update_data["enabled_modules"] = category_info["modules"]
-        update_data["service_types"] = category_info.get("service_types", [])
+    if "subcategories" in update_data or "subcategory" in update_data:
+        requested_subs = update_data.pop("subcategories", None)
+        if not requested_subs and "subcategory" in update_data:
+            requested_subs = [update_data.pop("subcategory")]
+        if requested_subs:
+            root = update_data.get("root_category") or business.get("root_category")
+            infos = _resolve_subcategories(root, requested_subs)
+            update_data["subcategory"] = infos[0]["slug"]
+            update_data["subcategories"] = [i["slug"] for i in infos]
+            update_data["root_category"] = infos[0]["root_slug"]
+            update_data["category"] = infos[0]["name"]
+            update_data["enabled_modules"] = infos[0].get("modules", {})
+            update_data["service_types"] = infos[0].get("service_types", [])
     
     if "latitude" in update_data or "longitude" in update_data:
         latitude = update_data.get("latitude", business.get("latitude"))
@@ -256,7 +277,7 @@ async def list_businesses(
     if root_category and root_category != "all":
         query["root_category"] = root_category
     if subcategory:
-        query["subcategory"] = subcategory
+        query["subcategories"] = subcategory
     businesses = await db.businesses.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
     return [build_business_response(business) for business in businesses]
 
@@ -350,14 +371,11 @@ async def get_my_business(current_user: UserPublic = Depends(get_current_user)):
 
 @router.get("/{business_id}/product-permissions")
 async def get_product_permissions(business_id: str):
-    from utils.product_permissions import resolve_product_permission
+    from utils.product_permissions import resolve_business_product_permission
     biz = await db.businesses.find_one({"business_id": business_id})
     if not biz:
         raise HTTPException(status_code=404, detail="Business not found")
-    permission = resolve_product_permission(
-        biz.get("root_category", ""),
-        biz.get("subcategory", ""),
-    )
+    permission = resolve_business_product_permission(biz)
     return {
         "enabled": not permission.is_empty,
         "source": "category_matrix",
