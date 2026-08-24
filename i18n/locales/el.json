@@ -84,7 +84,9 @@
     "tag": "Ετικέτα",
     "allCategories": "Όλες οι κατηγορίες",
     "allSubcategories": "Όλες οι υποκατηγορίες",
-    "subcategory": "Κατηγορία"
+    "subcategory": "Κατηγορία",
+    "contact": "Επικοινωνία με τον πωλητή",
+    "loginToContact": "Συνδεθείτε για να επικοινωνήσετε με τον πωλητή."
   },
   "dashboard": {
     "analyticsOverview": "Επισκόπηση Στατιστικών",
@@ -1022,7 +1024,8 @@
     "searchEvents": "Αναζήτηση εκδηλώσεων...",
     "tagArtists": "Επισήμανση καλλιτεχνών",
     "searchArtists": "Αναζήτηση καλλιτεχνών...",
-    "title": "Εκδηλώσεις"
+    "title": "Εκδηλώσεις",
+    "taggedArtists": "Επισημασμένοι καλλιτέχνες"
   },
   "messages": {
     "title": "Μηνύματα",
@@ -1174,7 +1177,10 @@
     "reminderSetDesc": "Θα υπενθυμιστεί πριν από αυτή τη δραστηριότητα",
     "reminderTitle": "Υπενθύμιση Δραστηριότητας",
     "searchActivities": "Αναζήτηση δραστηριοτήτων...",
-    "setReminder": "Ορισμός Υπενθύμισης"
+    "setReminder": "Ορισμός Υπενθύμισης",
+    "fullyBooked": "Πλήρες!",
+    "reminderBody": "Η δραστηριότητά σας ξεκινά σύντομα.",
+    "spotsRemaining": "Μόνο {{count}} θέσεις απομένουν!"
   },
   "jobs": {
     "title": "Διαθέσιμες Θέσεις Εργασίας",
@@ -2280,7 +2286,16 @@
     "specialistName": "Ειδικός",
     "specialRequests": "Ειδικά αιτήματα",
     "validDays": "Ισχύς (ημέρες)",
-    "visitsIncluded": "Επισκέψεις που περιλαμβάνονται"
+    "visitsIncluded": "Επισκέψεις που περιλαμβάνονται",
+    "viewBusiness": "Δείτε την επιχείρηση",
+    "availability": "Διαθεσιμότητα",
+    "availabilityDates": "Διαθέσιμες ημερομηνίες (check-in έως check-out)",
+    "availabilityHintSlots": "Προσθέστε τουλάχιστον ένα χρονικό διάστημα για να δημοσιεύσετε την υπηρεσία.",
+    "availabilityHintDate": "Επιλέξτε μια ημερομηνία για να δημοσιεύσετε την υπηρεσία.",
+    "availabilityTimesRequired": "Προσθέστε τουλάχιστον μία διαθέσιμη ώρα πριν τη δημοσίευση.",
+    "availabilityDateRequired": "Επιλέξτε μια ημερομηνία διαθεσιμότητας πριν τη δημοσίευση.",
+    "availabilityLoadFailed": "Δεν ήταν δυνατή η φόρτωση της διαθεσιμότητας.",
+    "details": "Λεπτομέρειες"
   },
   "menu": {
     "starter": "Ορεκτικά",

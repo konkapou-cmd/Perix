@@ -86,7 +86,9 @@
     "tag": "Tag",
     "allCategories": "All Categories",
     "allSubcategories": "All Subcategories",
-    "subcategory": "Category"
+    "subcategory": "Category",
+    "contact": "Contact Seller",
+    "loginToContact": "Please log in to contact the seller."
   },
   "dashboard": {
     "analyticsOverview": "Analytics Overview",
@@ -950,7 +952,8 @@
     "yourResponse": "Your Response",
     "tagArtists": "Tag Artists",
     "searchArtists": "Search artists...",
-    "title": "Events"
+    "title": "Events",
+    "taggedArtists": "Tagged artists"
   },
   "messages": {
     "title": "Messages",
@@ -1088,7 +1091,13 @@
     "useCodeToJoin": "Use code to join",
     "venue": "Venue",
     "selectActivityType": "Select Activity Type",
-    "expandCategory": "Expand Category"
+    "expandCategory": "Expand Category",
+    "attendees": "Attendees",
+    "fullyBooked": "Fully booked!",
+    "invitationMessage": "Invitation message",
+    "reminderBody": "Your activity is starting soon.",
+    "spotsRemaining": "Only {{count}} spots left!",
+    "yourResponse": "Your response"
   },
   "jobs": {
     "title": "Available Jobs",
@@ -2285,7 +2294,15 @@
     "specialistName": "Specialist",
     "specialRequests": "Special requests",
     "validDays": "Valid (days)",
-    "visitsIncluded": "Visits included"
+    "visitsIncluded": "Visits included",
+    "availability": "Availability",
+    "availabilityDates": "Available dates (check-in to check-out)",
+    "availabilityHintSlots": "Add at least one time slot to publish the service.",
+    "availabilityHintDate": "Select a date to publish the service.",
+    "availabilityTimesRequired": "Please add at least one available time before publishing the service.",
+    "availabilityDateRequired": "Please select an availability date before publishing the service.",
+    "availabilityLoadFailed": "Could not load the service availability.",
+    "details": "Details"
   },
   "detail": {
     "stay": "Stay Information",

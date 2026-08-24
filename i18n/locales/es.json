@@ -78,7 +78,9 @@
     "tag": "Etiqueta",
     "allCategories": "Todas las categorías",
     "allSubcategories": "Todas las subcategorías",
-    "subcategory": "Categoría"
+    "subcategory": "Categoría",
+    "contact": "Contactar al vendedor",
+    "loginToContact": "Inicia sesión para contactar al vendedor."
   },
   "dashboard": {
     "analyticsOverview": "Resumen de Estadísticas",
@@ -869,7 +871,8 @@
     "yourResponse": "Tu Respuesta",
     "tagArtists": "Etiquetar artistas",
     "searchArtists": "Buscar artistas...",
-    "title": "Eventos"
+    "title": "Eventos",
+    "taggedArtists": "Artistas etiquetados"
   },
   "messages": {
     "title": "Mensajes",
@@ -1005,7 +1008,13 @@
     "title": "Actividades",
     "typeMessage": "Escribe un mensaje...",
     "useCodeToJoin": "Usa el código para unirte",
-    "venue": "Lugar"
+    "venue": "Lugar",
+    "attendees": "Asistentes",
+    "fullyBooked": "¡Completo!",
+    "invitationMessage": "Mensaje de invitación",
+    "reminderBody": "Tu actividad empieza pronto.",
+    "spotsRemaining": "¡Solo quedan {{count}} plazas!",
+    "yourResponse": "Tu respuesta"
   },
   "jobs": {
     "title": "Empleos Disponibles",
@@ -2056,7 +2065,16 @@
     "treatmentType": "Tipo de tratamiento",
     "validDays": "Válido (días)",
     "visitsIncluded": "Visitas incluidas",
-    "year": "Año"
+    "year": "Año",
+    "viewBusiness": "Ver negocio",
+    "availability": "Disponibilidad",
+    "availabilityDates": "Fechas disponibles (entrada hasta salida)",
+    "availabilityHintSlots": "Añade al menos un horario para publicar el servicio.",
+    "availabilityHintDate": "Selecciona una fecha para publicar el servicio.",
+    "availabilityTimesRequired": "Añade al menos una hora disponible antes de publicar.",
+    "availabilityDateRequired": "Selecciona una fecha de disponibilidad antes de publicar.",
+    "availabilityLoadFailed": "No se pudo cargar la disponibilidad.",
+    "details": "Detalles"
   },
   "menu": {
     "starter": "Entrantes",
@@ -2133,7 +2151,14 @@
     "products": "Productos",
     "listings": "Anuncios",
     "items": "Artículos",
-    "homes": "Alojamientos"
+    "homes": "Alojamientos",
+    "seller": "Vendedor",
+    "askForPrice": "Preguntar por el precio",
+    "home": "Alojamiento",
+    "product": "Producto",
+    "title": "Mercado",
+    "approximate": "Zona aproximada",
+    "exact": "Dirección exacta"
   },
   "bookingList": {
     "cancelTitle": "¿Cancelar reserva?",

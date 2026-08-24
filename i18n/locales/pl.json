@@ -78,7 +78,9 @@
     "tag": "Oznacz",
     "allCategories": "Wszystkie kategorie",
     "allSubcategories": "Wszystkie podkategorie",
-    "subcategory": "Kategoria"
+    "subcategory": "Kategoria",
+    "contact": "Skontaktuj się ze sprzedawcą",
+    "loginToContact": "Zaloguj się, aby skontaktować się ze sprzedawcą."
   },
   "dashboard": {
     "analyticsOverview": "Przegląd Statystyk",
@@ -886,7 +888,8 @@
     "typeMessage": "Unesite poruku...",
     "tagArtists": "Oznacz artystów",
     "searchArtists": "Szukaj artystów...",
-    "title": "Wydarzenia"
+    "title": "Wydarzenia",
+    "taggedArtists": "Oznaczeni artyści"
   },
   "messages": {
     "title": "Poruke",
@@ -1037,7 +1040,10 @@
     "edit": "Izmeni",
     "delete": "Obriši",
     "createNew": "Kreiraj novu aktivnost",
-    "invitationMessage": "Pozivamo vas na {{title}} od {{organizer}}! Datum: {{date}} u {{time}}. Lokacija: {{location}}"
+    "invitationMessage": "Pozivamo vas na {{title}} od {{organizer}}! Datum: {{date}} u {{time}}. Lokacija: {{location}}",
+    "fullyBooked": "W pełni zarezerwowane!",
+    "reminderBody": "Twoja aktywność wkrótce się zaczyna.",
+    "spotsRemaining": "Zostało tylko {{count}} miejsc!"
   },
   "jobs": {
     "title": "Dostupni poslovi",
@@ -2102,7 +2108,16 @@
     "treatmentType": "Rodzaj zabiegu",
     "validDays": "Ważne (dni)",
     "visitsIncluded": "Wizyty w cenie",
-    "year": "Rok"
+    "year": "Rok",
+    "viewBusiness": "Zobacz firmę",
+    "availability": "Dostępność",
+    "availabilityDates": "Dostępne daty (zameldowanie do wymeldowania)",
+    "availabilityHintSlots": "Dodaj co najmniej jeden przedział czasowy, aby opublikować usługę.",
+    "availabilityHintDate": "Wybierz datę, aby opublikować usługę.",
+    "availabilityTimesRequired": "Dodaj co najmniej jeden dostępny termin przed publikacją.",
+    "availabilityDateRequired": "Wybierz datę dostępności przed publikacją.",
+    "availabilityLoadFailed": "Nie udało się załadować dostępności.",
+    "details": "Szczegóły"
   },
   "menu": {
     "starter": "Przystawki",
@@ -2179,7 +2194,14 @@
     "products": "Produkty",
     "listings": "Ogłoszenia",
     "items": "Przedmioty",
-    "homes": "Noclegi"
+    "homes": "Noclegi",
+    "seller": "Sprzedawca",
+    "askForPrice": "Zapytaj o cenę",
+    "home": "Nocleg",
+    "product": "Produkt",
+    "title": "Marketplace",
+    "approximate": "Przybliżona okolica",
+    "exact": "Dokładny adres"
   },
   "bookingList": {
     "cancelTitle": "Anulować rezerwację?",

@@ -78,7 +78,9 @@
     "tag": "Oznaka",
     "allCategories": "Sve kategorije",
     "allSubcategories": "Sve potkategorije",
-    "subcategory": "Kategorija"
+    "subcategory": "Kategorija",
+    "contact": "Kontaktiraj prodavca",
+    "loginToContact": "Prijavite se da kontaktirate prodavca."
   },
   "dashboard": {
     "analyticsOverview": "Pregled Statistika",
@@ -881,7 +883,8 @@
     "startConversation": "Započnite razgovor!",
     "tagArtists": "Означи уметнике",
     "searchArtists": "Претражи уметнике...",
-    "title": "Događaji"
+    "title": "Događaji",
+    "taggedArtists": "Označeni umetnici"
   },
   "messages": {
     "title": "Poruke",
@@ -1032,7 +1035,10 @@
     "edit": "Izmeni",
     "delete": "Obriši",
     "createNew": "Kreiraj novu aktivnost",
-    "invitationMessage": "Pozivamo vas na {{title}} od {{organizer}}! Datum: {{date}} u {{time}}. Lokacija: {{location}}"
+    "invitationMessage": "Pozivamo vas na {{title}} od {{organizer}}! Datum: {{date}} u {{time}}. Lokacija: {{location}}",
+    "fullyBooked": "Potpuno popunjeno!",
+    "reminderBody": "Vaša aktivnost uskoro počinje.",
+    "spotsRemaining": "Ostalo je još {{count}} mesta!"
   },
   "jobs": {
     "title": "Dostupni poslovi",
@@ -2089,7 +2095,16 @@
     "treatmentType": "Tip tretmana",
     "validDays": "Važi (dana)",
     "visitsIncluded": "Uključene posete",
-    "year": "Godina"
+    "year": "Godina",
+    "viewBusiness": "Pogledaj firmu",
+    "availability": "Dostupnost",
+    "availabilityDates": "Dostupni datumi (prijava do odjava)",
+    "availabilityHintSlots": "Dodajte bar jedan termin da objavite uslugu.",
+    "availabilityHintDate": "Izaberite datum da objavite uslugu.",
+    "availabilityTimesRequired": "Dodajte bar jedno dostupno vreme pre objavljivanja.",
+    "availabilityDateRequired": "Izaberite datum dostupnosti pre objavljivanja.",
+    "availabilityLoadFailed": "Dostupnost nije mogla biti učitana.",
+    "details": "Detalji"
   },
   "menu": {
     "starter": "Предјела",
@@ -2166,7 +2181,14 @@
     "products": "Proizvodi",
     "listings": "Oglasi",
     "items": "Artikli",
-    "homes": "Smeštaj"
+    "homes": "Smeštaj",
+    "seller": "Prodavac",
+    "askForPrice": "Pitaj za cenu",
+    "home": "Smeštaj",
+    "product": "Proizvod",
+    "title": "Pijaca",
+    "approximate": "Približna zona",
+    "exact": "Tačna adresa"
   },
   "bookingList": {
     "cancelTitle": "Otkazati rezervaciju?",

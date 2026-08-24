@@ -92,7 +92,9 @@
     "permissionRequired": "Berechtigung erforderlich",
     "savedSuccessfully": "Erfolgreich gespeichert",
     "tag": "Tag",
-    "status": "Status"
+    "status": "Status",
+    "contact": "Anbieter kontaktieren",
+    "loginToContact": "Bitte melde dich an, um den Anbieter zu kontaktieren."
   },
   "dashboard": {
     "analyticsOverview": "Statistikübersicht",
@@ -1000,7 +1002,8 @@
     "yourResponse": "Deine Antwort",
     "tagArtists": "Künstler taggen",
     "searchArtists": "Künstler suchen...",
-    "title": "Veranstaltungen"
+    "title": "Veranstaltungen",
+    "taggedArtists": "Markierte Künstler"
   },
   "messages": {
     "title": "Nachrichten",
@@ -1155,7 +1158,10 @@
     "useCodeToJoin": "Code zum Beitreten verwenden",
     "venue": "Ort",
     "selectActivityType": "Aktivitätstyp wählen",
-    "expandCategory": "Kategorie erweitern"
+    "expandCategory": "Kategorie erweitern",
+    "fullyBooked": "Ausgebucht!",
+    "reminderBody": "Deine Aktivität beginnt bald.",
+    "spotsRemaining": "Nur noch {{count}} Plätze frei!"
   },
   "jobs": {
     "title": "Verfügbare Jobs",
@@ -2361,7 +2367,15 @@
     "specialistName": "Spezialist",
     "specialRequests": "Sonderwünsche",
     "validDays": "Gültig (Tage)",
-    "visitsIncluded": "Besuche enthalten"
+    "visitsIncluded": "Besuche enthalten",
+    "availability": "Verfügbarkeit",
+    "availabilityDates": "Verfügbare Daten (Check-in bis Check-out)",
+    "availabilityHintSlots": "Füge mindestens ein Zeitfenster hinzu, um den Dienst zu veröffentlichen.",
+    "availabilityHintDate": "Wähle ein Datum aus, um den Dienst zu veröffentlichen.",
+    "availabilityTimesRequired": "Bitte füge mindestens eine verfügbare Zeit hinzu, bevor du den Dienst veröffentlichst.",
+    "availabilityDateRequired": "Bitte wähle ein Verfügbarkeitsdatum, bevor du den Dienst veröffentlichst.",
+    "availabilityLoadFailed": "Die Verfügbarkeit des Dienstes konnte nicht geladen werden.",
+    "details": "Details"
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",

@@ -78,7 +78,9 @@
     "tag": "Отметить",
     "allCategories": "Все категории",
     "allSubcategories": "Все подкатегории",
-    "subcategory": "Категория"
+    "subcategory": "Категория",
+    "contact": "Связаться с продавцом",
+    "loginToContact": "Войдите, чтобы связаться с продавцом."
   },
   "dashboard": {
     "analyticsOverview": "Обзор Статистики",
@@ -869,7 +871,8 @@
     "yourResponse": "Ваш ответ",
     "tagArtists": "Отметить артистов",
     "searchArtists": "Искать артистов...",
-    "title": "События"
+    "title": "События",
+    "taggedArtists": "Отмеченные артисты"
   },
   "messages": {
     "title": "Сообщения",
@@ -1005,7 +1008,13 @@
     "title": "Активности",
     "typeMessage": "Введите сообщение...",
     "useCodeToJoin": "Используйте код для присоединения",
-    "venue": "Место"
+    "venue": "Место",
+    "attendees": "Участники",
+    "fullyBooked": "Мест нет!",
+    "invitationMessage": "Текст приглашения",
+    "reminderBody": "Ваше мероприятие скоро начнётся.",
+    "spotsRemaining": "Осталось только {{count}} мест!",
+    "yourResponse": "Ваш ответ"
   },
   "jobs": {
     "title": "Доступные вакансии",
@@ -2062,7 +2071,16 @@
     "treatmentType": "Тип процедуры",
     "validDays": "Действует (дни)",
     "visitsIncluded": "Включённые визиты",
-    "year": "Год"
+    "year": "Год",
+    "viewBusiness": "Смотреть компанию",
+    "availability": "Доступность",
+    "availabilityDates": "Доступные даты (заезд до выезда)",
+    "availabilityHintSlots": "Добавьте хотя бы один временной интервал для публикации услуги.",
+    "availabilityHintDate": "Выберите дату для публикации услуги.",
+    "availabilityTimesRequired": "Добавьте хотя бы одно доступное время перед публикацией.",
+    "availabilityDateRequired": "Выберите дату доступности перед публикацией.",
+    "availabilityLoadFailed": "Не удалось загрузить доступность.",
+    "details": "Детали"
   },
   "menu": {
     "starter": "Закуски",
@@ -2139,7 +2157,14 @@
     "products": "Товары",
     "listings": "Объявления",
     "items": "Товары",
-    "homes": "Жильё"
+    "homes": "Жильё",
+    "seller": "Продавец",
+    "askForPrice": "Узнать цену",
+    "home": "Жильё",
+    "product": "Товар",
+    "title": "Маркетплейс",
+    "approximate": "Примерный район",
+    "exact": "Точный адрес"
   },
   "bookingList": {
     "cancelTitle": "Отменить бронирование?",

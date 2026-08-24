@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES, SHADOWS } from "../../lib/designTokens";
 
 type ShareSectionProps = {
@@ -13,15 +14,17 @@ type ShareSectionProps = {
 };
 
 export const ShareSection = ({
-  title = "Freunde einladen",
+  title,
   accentColor = COLORS.primary,
   saved = false,
   onWhatsApp,
   onShare,
   onSave,
-}: ShareSectionProps) => (
+}: ShareSectionProps) => {
+  const { t } = useTranslation();
+  return (
   <View style={styles.card}>
-    <Text style={[styles.title, { color: accentColor }]}>{title}</Text>
+    <Text style={[styles.title, { color: accentColor }]}>{title ?? t("share.inviteFriends", "Invite Friends")}</Text>
 
     <View style={styles.actions}>
       <Pressable style={styles.action} onPress={onWhatsApp}>
@@ -35,18 +38,19 @@ export const ShareSection = ({
         <View style={[styles.iconCircle, { backgroundColor: accentColor + "15" }]}>
           <Ionicons name="share-social-outline" size={22} color={accentColor} />
         </View>
-        <Text style={styles.actionLabel}>Teilen</Text>
+        <Text style={styles.actionLabel}>{t("common.share", "Share")}</Text>
       </Pressable>
 
       <Pressable style={styles.action} onPress={onSave}>
         <View style={[styles.iconCircle, { backgroundColor: COLORS.gold + "20" }]}>
           <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={22} color={COLORS.gold} />
         </View>
-        <Text style={styles.actionLabel}>{saved ? "Gespeichert" : "Speichern"}</Text>
+        <Text style={styles.actionLabel}>{saved ? t("common.saved", "Saved") : t("common.save", "Save")}</Text>
       </Pressable>
     </View>
   </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   card: {

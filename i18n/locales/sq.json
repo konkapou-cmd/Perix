@@ -78,7 +78,9 @@
     "tag": "Etiketë",
     "allCategories": "Të gjitha kategoritë",
     "allSubcategories": "Të gjitha nënkategoritë",
-    "subcategory": "Kategoria"
+    "subcategory": "Kategoria",
+    "contact": "Kontakto shitësin",
+    "loginToContact": "Hyni për të kontaktuar shitësin."
   },
   "dashboard": {
     "analyticsOverview": "Përmbledhje e Statistikave",
@@ -847,7 +849,8 @@
     "yourResponse": "Përgjigja Juaj",
     "tagArtists": "Etiketo artistë",
     "searchArtists": "Kërko artistë...",
-    "title": "Evente"
+    "title": "Evente",
+    "taggedArtists": "Artistë të etiketuar"
   },
   "messages": {
     "title": "Mesazhe",
@@ -983,7 +986,13 @@
     "title": "Aktivitete",
     "typeMessage": "Shkruaj një mesazh...",
     "useCodeToJoin": "Përdor kodin për të bashkohen",
-    "venue": "Vend"
+    "venue": "Vend",
+    "attendees": "Pjesëmarrës",
+    "fullyBooked": "Plotësisht i rezervuar!",
+    "invitationMessage": "Mesazh ftese",
+    "reminderBody": "Aktiviteti juaj fillon së shpejti.",
+    "spotsRemaining": "Kanë mbetur vetëm {{count}} vende!",
+    "yourResponse": "Përgjigjja juaj"
   },
   "jobs": {
     "title": "Punë të Disponueshme",
@@ -1995,7 +2004,16 @@
     "treatmentType": "Lloji i trajtimit",
     "validDays": "E vlefshme (ditë)",
     "visitsIncluded": "Vizitat e përfshira",
-    "year": "Viti"
+    "year": "Viti",
+    "viewBusiness": "Shiko biznesin",
+    "availability": "Disponueshmëria",
+    "availabilityDates": "Datat e disponueshme (check-in deri check-out)",
+    "availabilityHintSlots": "Shto të paktën një interval kohor për të publikuar shërbimin.",
+    "availabilityHintDate": "Zgjidh një datë për të publikuar shërbimin.",
+    "availabilityTimesRequired": "Shto të paktën një orë të disponueshme përpara publikimit.",
+    "availabilityDateRequired": "Zgjidh një datë disponueshmërie përpara publikimit.",
+    "availabilityLoadFailed": "Disponueshmëria nuk mund të ngarkohej.",
+    "details": "Detajet"
   },
   "menu": {
     "starter": "Antipasta",
@@ -2072,7 +2090,14 @@
     "products": "Produkte",
     "listings": "Listimet",
     "items": "Artikuj",
-    "homes": "Banesa"
+    "homes": "Banesa",
+    "seller": "Shitësi",
+    "askForPrice": "Pyet për çmimin",
+    "home": "Banesë",
+    "product": "Produkt",
+    "title": "Tregu",
+    "approximate": "Zonë e përafërt",
+    "exact": "Adresë e saktë"
   },
   "bookingList": {
     "cancelTitle": "Anulo rezervimin?",
