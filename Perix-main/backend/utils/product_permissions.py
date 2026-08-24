@@ -31,6 +31,18 @@ class ProductPermission:
             })
         return result
 
+    def merge(self, other: "ProductPermission") -> "ProductPermission":
+        merged: dict[str, str | list[str] | None] = {}
+        for source in (self._allowed, other._allowed):
+            for cat, value in source.items():
+                if cat not in merged:
+                    merged[cat] = value
+                elif merged[cat] == "*" or value == "*":
+                    merged[cat] = "*"
+                elif isinstance(merged[cat], list) and isinstance(value, list):
+                    merged[cat] = list(set(merged[cat]) | set(value))
+        return ProductPermission(merged)
+
     @property
     def is_empty(self) -> bool:
         return len(self._allowed) == 0
@@ -144,16 +156,23 @@ def resolve_product_permission(root_category: str, subcategory: str) -> ProductP
     return ProductPermission(sub_policy)
 
 
+def resolve_business_product_permission(business: dict) -> ProductPermission:
+    """Union of the permissions granted by every subcategory of the business."""
+    root = business.get("root_category", "")
+    subs = business.get("subcategories") or [business.get("subcategory", "")]
+    permission = ProductPermission({})
+    for sub in subs:
+        permission = permission.merge(resolve_product_permission(root, sub))
+    return permission
+
+
 def validate_business_product_category(business: dict, category: Optional[str], subcategory: Optional[str]):
     if not category:
         return
 
     from fastapi import HTTPException
 
-    permission = resolve_product_permission(
-        business.get("root_category", ""),
-        business.get("subcategory", ""),
-    )
+    permission = resolve_business_product_permission(business)
 
     if permission.is_empty:
         raise HTTPException(
