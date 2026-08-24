@@ -8,6 +8,7 @@ import { getServiceCtaType, getServiceModuleIcon, getServiceFields, getServiceMo
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { formatDate } from "../../lib/formatDate";
 import { FIELD_REGISTRY } from "../../lib/fieldRegistry";
+import { optionLabel } from "../../lib/categoryTranslation";
 import AdaptiveImage from "../AdaptiveImage";
 import AdaptiveVideo from "../AdaptiveVideo";
 import FocalImage from "../FocalImage";
@@ -81,7 +82,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
     if (fieldName === "available_from") {
       const from = formatDate(String(value));
       const until = service.available_until ? formatDate(service.available_until) : null;
-      return <Text key={fieldName} style={s.meta}>{until ? `${from} – ${until}` : `Ab ${from}`}</Text>;
+      return <Text key={fieldName} style={s.meta}>{until ? `${from} – ${until}` : `${t("services.fromDate", "From {{date}}", { date: from })}`}</Text>;
     }
     if (fieldName === "available_until") {
       return null; // rendered together with available_from above
@@ -89,7 +90,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
 
     switch (config.component) {
       case "chips": {
-        const label = String(value).charAt(0).toUpperCase() + String(value).slice(1).replace(/_/g, " ");
+        const label = optionLabel(String(value), t);
         return (
           <View key={fieldName} style={s.chipSmall}>
             <Text style={s.chipSmallText}>{label}</Text>
@@ -102,7 +103,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
         return (
           <View key={fieldName} style={s.tagRow}>
             {arr.map((item: string) => (
-              <Text key={item} style={s.facilityTag}>{item.charAt(0).toUpperCase() + item.slice(1).replace(/_/g, " ")}</Text>
+              <Text key={item} style={s.facilityTag}>{optionLabel(item, t)}</Text>
             ))}
           </View>
         );
@@ -121,22 +122,22 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
           return <Text key={fieldName} style={s.meta}>{Number(value).toLocaleString()} km</Text>;
         }
         if (fieldName === "calories") {
-          return <Text key={fieldName} style={s.meta}>{value} cal</Text>;
+          return <Text key={fieldName} style={s.meta}>{value} {t("services.calShort", "cal")}</Text>;
         }
         if (fieldName === "spice_level") {
-          return <Text key={fieldName} style={s.meta}>Spice: {value}/5</Text>;
+          return <Text key={fieldName} style={s.meta}>{t("services.spiceShort", "Spice")}: {value}/5</Text>;
         }
         if (fieldName === "capacity") {
-          return <Text key={fieldName} style={s.meta}>Cap: {value}</Text>;
+          return <Text key={fieldName} style={s.meta}>{t("services.capShort", "Cap")}: {value}</Text>;
         }
         if (fieldName === "max_guests") {
-          return <Text key={fieldName} style={s.meta}>Up to {value} guests</Text>;
+          return <Text key={fieldName} style={s.meta}>{t("services.upToGuests", "Up to {{count}} guests", { count: value })}</Text>;
         }
         if (fieldName === "floor") {
-          return <Text key={fieldName} style={s.meta}>Floor: {value}</Text>;
+          return <Text key={fieldName} style={s.meta}>{t("services.floorShort", "Floor")}: {value}</Text>;
         }
         if (fieldName === "deposit") {
-          return <Text key={fieldName} style={s.meta}>Kaution: {value}</Text>;
+          return <Text key={fieldName} style={s.meta}>{t("services.depositShort", "Deposit")}: {value}</Text>;
         }
         return <Text key={fieldName} style={s.meta}>{value}</Text>;
       default:
@@ -161,11 +162,11 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
 
   const ctaType = getServiceCtaType(service.type);
   const ctaLabel =
-    ctaType === "booking" ? "Jetzt buchen"
-    : ctaType === "reservation" ? "Reservieren"
-    : ctaType === "request_quote" ? "Angebot anfragen"
-    : ctaType === "get_in_touch" ? "Kontakt"
-    : ctaType === "buy" ? "Kaufen"
+    ctaType === "booking" ? t("services.bookNow", "Book now")
+    : ctaType === "reservation" ? t("services.reserve", "Reserve")
+    : ctaType === "request_quote" ? t("services.requestQuote", "Request offer")
+    : ctaType === "get_in_touch" ? t("services.contactCta", "Contact")
+    : ctaType === "buy" ? t("services.buy", "Buy")
     : "";
   const ctaColor =
     ctaType === "booking" ? COLORS.success

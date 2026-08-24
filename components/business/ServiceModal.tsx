@@ -25,6 +25,7 @@ import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import FormScreen from "../ui/FormScreen";
 import FormBottomBar from "../ui/FormBottomBar";
+import { optionLabel } from "../../lib/categoryTranslation";
 
 export type ServiceForm = {
   type: string;
@@ -487,7 +488,7 @@ export default function ServiceModal({
 
   const getPricePlaceholder = () => {
     if (isRental) return "€800/month";
-    return "€15 / hr";
+    return `€15${t("services.perHour", " / hr")}`;
   };
 
   const renderFieldInput = (fieldName: string) => {
@@ -576,7 +577,7 @@ export default function ServiceModal({
                   onPress={() => updateField(fieldName as any, (currentVal === opt ? "" : opt) as any)}
                 >
                   <Text style={[styles.chipText, currentVal === opt && styles.chipTextSelected]}>
-                    {opt.charAt(0).toUpperCase() + opt.slice(1).replace(/_/g, " ")}
+                    {optionLabel(opt, t)}
                   </Text>
                 </Pressable>
               ))}
@@ -599,7 +600,7 @@ export default function ServiceModal({
                   onPress={() => toggleArrayItem(fieldName, opt)}
                 >
                   <Text style={[styles.chipText, currentVals.includes(opt) && styles.chipTextSelected]}>
-                    {opt.charAt(0).toUpperCase() + opt.slice(1).replace(/_/g, " ")}
+                    {optionLabel(opt, t)}
                   </Text>
                 </Pressable>
               ))}
@@ -841,16 +842,16 @@ export default function ServiceModal({
 
                   {slotDraft.is_recurring ? (
                     <View style={styles.chipRow}>
-                      {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((label, i) => (
+                      {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((dayKey, i) => (
                         <Pressable key={i} style={[styles.chip, slotDraft.day_of_week === (i + 1) % 7 && styles.chipActive]} onPress={() => setSlotDraft(prev => ({ ...prev, day_of_week: (i + 1) % 7 }))}>
-                          <Text style={[styles.chipText, slotDraft.day_of_week === (i + 1) % 7 && styles.chipTextActive]}>{label}</Text>
+                          <Text style={[styles.chipText, slotDraft.day_of_week === (i + 1) % 7 && styles.chipTextActive]}>{t(`days.${dayKey}`).slice(0, 3)}</Text>
                         </Pressable>
                       ))}
                     </View>
                   ) : (
                     <Pressable style={styles.selector} onPress={() => setShowSlotDatePicker(true)}>
                       <Text style={slotDraft.date ? styles.selectorTextSelected : styles.selectorText}>
-                        {slotDraft.date || t("services.selectDate", "Datum wählen")}
+                        {slotDraft.date ? formatDate(slotDraft.date) : t("services.selectDate", "Datum wählen")}
                       </Text>
                       <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
                     </Pressable>
@@ -902,7 +903,7 @@ export default function ServiceModal({
               <Text style={styles.label}>{t("services.availableFrom", "Verfügbar ab")}</Text>
               <Pressable style={styles.selector} onPress={() => { setDatePickerTarget("available_from"); setShowDatePicker(true); }}>
                 <Text style={form.available_from ? styles.selectorTextSelected : styles.selectorText}>
-                  {form.available_from || t("services.selectDate", "Datum wählen")}
+                  {form.available_from ? formatDate(form.available_from) : t("services.selectDate", "Datum wählen")}
                 </Text>
                 <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
               </Pressable>
@@ -915,7 +916,7 @@ export default function ServiceModal({
                     setShowDatePicker(true);
                   }}>
                     <Text style={form.available_until ? styles.selectorTextSelected : styles.selectorText}>
-                      {form.available_until || t("services.selectDate", "Datum wählen")}
+                      {form.available_until ? formatDate(form.available_until) : t("services.selectDate", "Datum wählen")}
                     </Text>
                     <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
                   </Pressable>

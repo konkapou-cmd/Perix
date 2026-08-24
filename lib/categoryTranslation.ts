@@ -63,3 +63,15 @@ export const translateJobType = (jobType: string | null | undefined, t: TFunctio
   const translated = t(key);
   return translated && translated !== key ? translated : jobType;
 };
+
+/**
+ * Translates a service option value (e.g. "hair", "makeup", "in_stock") via
+ * the services.option.* keys. Falls back to a prettified version of the value.
+ */
+export const optionLabel = (option: string | null | undefined, t: TFunction): string => {
+  if (!option) return "";
+  const pretty = option.charAt(0).toUpperCase() + option.slice(1).replace(/_/g, " ");
+  const key = `services.option.${option}`;
+  const translated = t(key);
+  return translated && translated !== key ? translated : pretty;
+};
