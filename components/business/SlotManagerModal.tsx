@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView, Platform, ActivityIndicator, Alert, KeyboardAvoidingView } from "react-native";
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView, Platform, ActivityIndicator, Alert, KeyboardAvoidingView, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CalendarList } from "react-native-calendars";
@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { TimeSlot } from "../../lib/api/core";
 import { getSlots, deleteSlot, setAvailability } from "../../lib/api/services";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { toLocalISODate } from "../../lib/booking/dateRange";
 import { formatDate } from "../../lib/formatDate";
 
@@ -19,8 +18,17 @@ type Props = {
   onClose: () => void;
 };
 
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+function todayISO(): string {
+  return toLocalISODate(new Date());
+}
+
+function addDaysISO(dateISO: string, amount: number): string {
+  const d = new Date(dateISO + "T00:00:00");
+  d.setDate(d.getDate() + amount);
+  return toLocalISODate(d);
+}
 
 export default function SlotManagerModal(props: Props) {
   if (props.serviceType === "hotel_room") return null;
@@ -32,21 +40,22 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
 
   if (serviceType === "hotel_room") return null;
 
+  const [mode, setMode] = useState<"availability" | "blocked">("availability");
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Availability state
+  const [repeatWeekly, setRepeatWeekly] = useState(true);
+  const [selectedDay, setSelectedDay] = useState<number>(1); // day_of_week (1=Mon)
   const [selectedDate, setSelectedDate] = useState(todayISO());
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("10:00");
 
-  const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [weeklyStart, setWeeklyStart] = useState("09:00");
-  const [weeklyEnd, setWeeklyEnd] = useState("17:00");
-
-  const [quickStart, setQuickStart] = useState("");
-  const [quickEnd, setQuickEnd] = useState("");
-
+  // Blocked state
   const [blockStart, setBlockStart] = useState<string | null>(null);
   const [blockEnd, setBlockEnd] = useState<string | null>(null);
-  const [blockMode, setBlockMode] = useState(false);
-  const [timePickerTarget, setTimePickerTarget] = useState<string | null>(null);
+  const [datePickerTarget, setDatePickerTarget] = useState<"blockStart" | "blockEnd">("blockStart");
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const loadSlots = useCallback(async () => {
     setLoading(true);
@@ -60,200 +69,96 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
   useEffect(() => {
     if (visible) {
       loadSlots();
+      setMode("availability");
       setSelectedDate(todayISO());
-      setBlockMode(false);
       setBlockStart(null);
       setBlockEnd(null);
-      setQuickStart("");
-      setQuickEnd("");
     }
   }, [visible, loadSlots]);
 
-  const markedDates = useMemo(() => {
-    const marks: Record<string, any> = {};
-    marks[selectedDate] = {
-      selected: true,
-      selectedColor: COLORS.primaryDark,
-      selectedTextColor: "#fff",
-      dots: marks[selectedDate]?.dots || [],
-    };
+  const recurringSlots = useMemo(
+    () => slots.filter(s => s.is_recurring && !s.is_blocked),
+    [slots],
+  );
+  const oneTimeSlots = useMemo(
+    () => slots.filter(s => !s.is_recurring && !s.is_blocked),
+    [slots],
+  );
+  const blockedSlots = useMemo(() => slots.filter(s => s.is_blocked), [slots]);
 
-    slots.forEach((slot) => {
-      if (slot.is_blocked) {
-        const date = slot.date;
-        if (date) {
-          if (!marks[date]) marks[date] = { dots: [] };
-          marks[date].dots = marks[date].dots || [];
-          marks[date].dots.push({ key: `b-${slot.slot_id}`, color: COLORS.danger });
-        }
-        return;
-      }
-
-      if (slot.is_recurring && slot.day_of_week != null) {
-        const today = new Date();
-        for (let i = 0; i < 90; i++) {
-          const d = new Date(today);
-          d.setDate(d.getDate() + i);
-          if (d.getDay() === slot.day_of_week) {
-            const ds = toLocalISODate(d);
-            if (!marks[ds]) marks[ds] = { dots: [] };
-            const dotColor = slot.is_booked ? COLORS.textMuted : COLORS.success;
-            marks[ds].dots.push({ key: `r-${slot.slot_id}`, color: dotColor });
-          }
-        }
-      } else if (slot.date) {
-        if (!marks[slot.date]) marks[slot.date] = { dots: [] };
-        const dotColor = slot.is_booked ? COLORS.textMuted : COLORS.success;
-        marks[slot.date].dots.push({ key: `s-${slot.slot_id}`, color: dotColor });
-      }
-    });
-
-    if (blockMode && blockStart && blockEnd) {
-      const start = new Date(blockStart);
-      const end = new Date(blockEnd);
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const ds = d.toISOString().split("T")[0];
-        if (!marks[ds]) marks[ds] = { dots: [] };
-        if (!marks[ds].dots.some((dot: any) => dot.color === COLORS.danger)) {
-          marks[ds].dots.push({ key: "preview-block", color: COLORS.danger + "AA" });
-        }
-      }
+  const weekDays = useMemo(() => {
+    const days: { key: string; date: string; dayOfWeek: number }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const date = addDaysISO(todayISO(), i);
+      const d = new Date(date + "T00:00:00");
+      days.push({ key: DAY_KEYS[d.getDay()], date, dayOfWeek: d.getDay() });
     }
+    return days;
+  }, []);
 
-    Object.keys(marks).forEach((date) => {
-      const dots = marks[date].dots;
-      if (dots && dots.length > 1) {
-        const seen = new Set<string>();
-        marks[date].dots = dots.filter((d: any) => {
-          const k = d.color + d.key.split("-")[0];
-          if (seen.has(k)) return false;
-          seen.add(k);
-          return true;
-        });
-        if (marks[date].dots.length > 3) {
-          marks[date].dots = marks[date].dots.slice(0, 3);
-        }
-      }
-    });
+  const persistSlots = async (next: TimeSlot[]) => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const allSlots = next.map(s => ({
+        day_of_week: s.day_of_week ?? undefined,
+        date: s.date ?? undefined,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        is_recurring: s.is_recurring,
+      }));
+      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots as any });
+      await loadSlots();
+    } catch (err: any) {
+      Alert.alert(t("common.error", "Error"), err.message);
+    }
+    setLoading(false);
+  };
 
-    return marks;
-  }, [slots, selectedDate, blockMode, blockStart, blockEnd]);
+  const parseTime = (v: string): number | null => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(v.trim());
+    if (!m) return null;
+    const h = Number(m[1]), min = Number(m[2]);
+    return (h >= 0 && h <= 23 && min >= 0 && min <= 59) ? h * 60 + min : null;
+  };
 
-  const dateSlots = useMemo(() => {
-    const selDay = new Date(selectedDate + "T00:00:00").getDay();
-    return slots.filter((s) => {
-      if (s.is_blocked && s.date === selectedDate) return true;
-      if (s.date === selectedDate) return true;
-      if (s.is_recurring && s.day_of_week === selDay) return true;
-      return false;
-    });
-  }, [slots, selectedDate]);
-
-  const handleDayPress = (day: { dateString: string }) => {
-    if (blockMode) {
-      if (!blockStart) {
-        setBlockStart(day.dateString);
-      } else if (!blockEnd) {
-        const end = day.dateString;
-        if (end < blockStart) {
-          setBlockStart(end);
-          setBlockEnd(null);
-        } else {
-          setBlockEnd(end);
-        }
-      } else {
-        setBlockStart(day.dateString);
-        setBlockEnd(null);
-      }
+  const handleAddRange = async () => {
+    const start = parseTime(startTime);
+    const end = parseTime(endTime);
+    if (start === null || end === null || start >= end) return;
+    const next = [...slots];
+    if (repeatWeekly) {
+      next.push({ slot_id: "", day_of_week: selectedDay, start_time: startTime, end_time: endTime, is_recurring: true, date: undefined } as any);
     } else {
-      setSelectedDate(day.dateString);
-      setQuickStart("");
-      setQuickEnd("");
+      next.push({ slot_id: "", date: selectedDate, start_time: startTime, end_time: endTime, is_recurring: false, day_of_week: undefined } as any);
     }
+    await persistSlots(next);
   };
 
-  const handleCreateQuickSlot = async () => {
-    if (loading) return;
-    if (!quickStart || !quickEnd) {
-      Alert.alert(t("common.error", "Error"), t("slotManager.selectTime", "Set start and end times"));
-      return;
-    }
-    setLoading(true);
-    try {
-      const allSlots = (slots || []).map(s => ({
-        day_of_week: s.day_of_week ?? undefined,
-        date: s.date ?? undefined,
-        start_time: s.start_time,
-        end_time: s.end_time,
-        is_recurring: s.is_recurring,
-      }));
-      allSlots.push({ date: selectedDate, start_time: quickStart, end_time: quickEnd, is_recurring: false, day_of_week: undefined as any });
-      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots });
-      await loadSlots();
-      setQuickStart("");
-      setQuickEnd("");
-    } catch (err: any) {
-      Alert.alert(t("common.error", "Error"), err.message);
-    }
-    setLoading(false);
-  };
-
-  const handleCreateWeekly = async () => {
-    if (loading) return;
-    if (selectedDays.length === 0) {
-      Alert.alert(t("common.error", "Error"), t("slotManager.selectDays", "Select at least one day"));
-      return;
-    }
-    if (!weeklyStart || !weeklyEnd) {
-      Alert.alert(t("common.error", "Error"), t("slotManager.selectStartEnd", "Set start and end times"));
-      return;
-    }
-    setLoading(true);
-    try {
-      const allSlots = (slots || []).map(s => ({
-        day_of_week: s.day_of_week ?? undefined,
-        date: s.date ?? undefined,
-        start_time: s.start_time,
-        end_time: s.end_time,
-        is_recurring: s.is_recurring,
-      }));
-      for (const day of selectedDays) {
-        allSlots.push({ day_of_week: day, start_time: weeklyStart, end_time: weeklyEnd, is_recurring: true, date: undefined as any });
+  const handleRemoveSlot = async (slot: TimeSlot) => {
+    if (slot.slot_id) {
+      if (loading) return;
+      setLoading(true);
+      try {
+        await deleteSlot(sessionToken, serviceId, slot.slot_id);
+        await loadSlots();
+      } catch (err: any) {
+        Alert.alert(t("common.error", "Error"), err.message);
       }
-      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots });
-      await loadSlots();
-      setSelectedDays([]);
-      Alert.alert(t("common.success", "Success"), t("slotManager.weeklySlotsCreated", "Weekly slots created"));
-    } catch (err: any) {
-      Alert.alert(t("common.error", "Error"), err.message);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  };
-
-  const handleDeleteSlot = async (slot: TimeSlot) => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      await deleteSlot(sessionToken, serviceId, slot.slot_id);
-      await loadSlots();
-    } catch (err: any) {
-      Alert.alert(t("common.error", "Error"), err.message);
-    }
-    setLoading(false);
+    const next = slots.filter(s => s !== slot);
+    await persistSlots(next);
   };
 
   const handleBlockRange = async () => {
-    if (loading) return;
-    if (!blockStart || !blockEnd) {
-      Alert.alert(t("common.error", "Error"), t("slotManager.selectDates", "Select date range"));
-      return;
-    }
+    if (loading || !blockStart || !blockEnd) return;
     setLoading(true);
     try {
       const { blockSlots } = await import("../../lib/api/services");
       await blockSlots(sessionToken, serviceId, { from_date: blockStart, to_date: blockEnd });
       await loadSlots();
-      setBlockMode(false);
       setBlockStart(null);
       setBlockEnd(null);
       Alert.alert(t("common.success", "Success"), t("slotManager.datesBlocked", "Dates blocked"));
@@ -263,199 +168,214 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
     setLoading(false);
   };
 
-  const selDayIndex = new Date(selectedDate + "T00:00:00").getDay();
-  const selDayName = t(`days.${DAY_KEYS[selDayIndex]}`);
+  const blockedDayCount = useMemo(() => {
+    if (!blockStart || !blockEnd) return 0;
+    const start = new Date(blockStart + "T00:00:00").getTime();
+    const end = new Date(blockEnd + "T00:00:00").getTime();
+    if (end < start) return 0;
+    return Math.floor((end - start) / 86400000) + 1;
+  }, [blockStart, blockEnd]);
 
-  const handleTimeChange = (_: any, selectedDate?: Date) => {
-    if (!selectedDate || !timePickerTarget) return;
-    const timeStr = selectedDate.toTimeString().slice(0, 5);
-    switch (timePickerTarget) {
-      case "quickStart": setQuickStart(timeStr); break;
-      case "quickEnd": setQuickEnd(timeStr); break;
-      case "weeklyStart": setWeeklyStart(timeStr); break;
-      case "weeklyEnd": setWeeklyEnd(timeStr); break;
-    }
-    if (Platform.OS !== "ios") setTimePickerTarget(null);
-  };
+  const dayRanges = (dayOfWeek: number) =>
+    recurringSlots.filter(s => s.day_of_week === dayOfWeek).sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
+
+  const dateRanges = (date: string) =>
+    oneTimeSlots.filter(s => s.date === date).sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
 
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={s.container} edges={["top", "bottom"]}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={s.header}>
-          <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
-            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-          </Pressable>
-          <Text style={s.headerTitle}>{t("services.manageSlots", "Manage Time Slots")}</Text>
-          <Pressable
-            onPress={() => { setBlockMode(!blockMode); setBlockStart(null); setBlockEnd(null); }}
-            style={[s.headerBtn, blockMode && { backgroundColor: COLORS.danger + "20", borderRadius: BORDER_RADIUS.md }]}
-          >
-            <Ionicons name={blockMode ? "close-circle" : "lock-closed"} size={22} color={blockMode ? COLORS.danger : COLORS.textMuted} />
-          </Pressable>
-        </View>
+          <View style={s.header}>
+            <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
+              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+            </Pressable>
+            <Text style={s.headerTitle}>{t("services.manageSlots", "Manage Time Slots")}</Text>
+            <View style={s.headerBtn} />
+          </View>
 
-        {blockMode && (
-          <View style={s.blockBanner}>
-            <Ionicons name="lock-closed" size={16} color="#fff" />
-            <Text style={s.blockBannerText}>
-              {blockStart && blockEnd
-                ? `${t("slotManager.blocking", "Blocking")}: ${formatDate(blockStart)} - ${formatDate(blockEnd)}`
-                : blockStart
-                  ? t("slotManager.tapEndDate", "Tap the end date on calendar")
-                  : t("slotManager.tapStartDate", "Tap a date to start block range")}
-            </Text>
-            {blockStart && blockEnd && (
-              <Pressable style={s.blockApplyBtn} onPress={handleBlockRange} disabled={loading}>
-                <Text style={s.blockApplyText}>{t("common.apply", "Apply")}</Text>
-              </Pressable>
+          {/* Mode switcher */}
+          <View style={s.segmentedRow}>
+            <Pressable
+              style={[s.segment, mode === "availability" && s.segmentActive]}
+              onPress={() => setMode("availability")}
+            >
+              <Ionicons name="time-outline" size={16} color={mode === "availability" ? "#fff" : COLORS.textMuted} />
+              <Text style={[s.segmentText, mode === "availability" && s.segmentTextActive]}>{t("services.availability", "Availability")}</Text>
+            </Pressable>
+            <Pressable
+              style={[s.segment, mode === "blocked" && s.segmentBlocked]}
+              onPress={() => setMode("blocked")}
+            >
+              <Ionicons name="ban" size={16} color={mode === "blocked" ? "#fff" : COLORS.textMuted} />
+              <Text style={[s.segmentText, mode === "blocked" && s.segmentTextActive]}>{t("slotManager.blockedDays", "Blocked days")}</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView style={s.body} contentContainerStyle={{ paddingBottom: SPACING.large }} keyboardShouldPersistTaps="handled">
+            {mode === "availability" ? (
+              <>
+                {/* Weekly / one-time toggle */}
+                <View style={s.chipRow}>
+                  <Pressable style={[s.chip, repeatWeekly && s.chipActive]} onPress={() => setRepeatWeekly(true)}>
+                    <Text style={[s.chipText, repeatWeekly && s.chipTextActive]}>{t("services.weekly", "Weekly")}</Text>
+                  </Pressable>
+                  <Pressable style={[s.chip, !repeatWeekly && s.chipActive]} onPress={() => setRepeatWeekly(false)}>
+                    <Text style={[s.chipText, !repeatWeekly && s.chipTextActive]}>{t("services.specificDate", "Specific date")}</Text>
+                  </Pressable>
+                </View>
+
+                {repeatWeekly ? (
+                  <>
+                    <Text style={s.sectionLabel}>{t("slotManager.weeklyRepeat", "Weekly repeat")}</Text>
+                    <View style={s.dayRow}>
+                      {DAY_KEYS.slice(1).concat(DAY_KEYS.slice(0, 1)).map((key, i) => {
+                        const dow = (i + 1) % 7;
+                        const ranges = dayRanges(dow);
+                        return (
+                          <Pressable
+                            key={key}
+                            style={[s.dayChip, selectedDay === dow && s.dayChipSelected, ranges.length > 0 && s.dayChipHasRanges]}
+                            onPress={() => setSelectedDay(dow)}
+                          >
+                            <Text style={[s.dayText, selectedDay === dow && s.dayTextSelected]}>{t(`days.${key}`).slice(0, 3)}</Text>
+                            {ranges.length > 0 && <View style={[s.dayDot, selectedDay === dow && { backgroundColor: "#fff" }]} />}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    <Text style={s.sectionLabel}>{t(`days.${DAY_KEYS[selectedDay]}`)}</Text>
+                    {dayRanges(selectedDay).map((slot) => (
+                      <View key={slot.slot_id || `${slot.start_time}-${slot.end_time}`} style={s.rangeChip}>
+                        <Ionicons name="time-outline" size={14} color={COLORS.primary} />
+                        <Text style={s.rangeText}>{slot.start_time} – {slot.end_time}</Text>
+                        <Pressable onPress={() => handleRemoveSlot(slot)} hitSlop={8}>
+                          <Ionicons name="close-circle" size={18} color={COLORS.danger} />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <Text style={s.sectionLabel}>{t("services.specificDate", "Specific date")}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.weekStrip}>
+                      {weekDays.map((day) => (
+                        <Pressable
+                          key={day.date}
+                          style={[s.weekDay, selectedDate === day.date && s.weekDaySelected]}
+                          onPress={() => setSelectedDate(day.date)}
+                        >
+                          <Text style={[s.weekDayName, selectedDate === day.date && { color: "#fff" }]}>{t(`days.${day.key}`).slice(0, 3)}</Text>
+                          <Text style={[s.weekDayNum, selectedDate === day.date && { color: "#fff" }]}>{formatDate(day.date).split(".")[0]}.{formatDate(day.date).split(".")[1]}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                    <Text style={s.sectionLabel}>{formatDate(selectedDate)}</Text>
+                    {dateRanges(selectedDate).map((slot) => (
+                      <View key={slot.slot_id || `${slot.start_time}-${slot.end_time}`} style={s.rangeChip}>
+                        <Ionicons name="time-outline" size={14} color={COLORS.primary} />
+                        <Text style={s.rangeText}>{slot.start_time} – {slot.end_time}</Text>
+                        <Pressable onPress={() => handleRemoveSlot(slot)} hitSlop={8}>
+                          <Ionicons name="close-circle" size={18} color={COLORS.danger} />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {/* Add range row */}
+                <View style={s.addRow}>
+                  <TextInput style={s.timeInput} value={startTime} onChangeText={setStartTime} placeholder="09:00" placeholderTextColor={COLORS.textDisabled} />
+                  <Text style={s.timeSep}>–</Text>
+                  <TextInput style={s.timeInput} value={endTime} onChangeText={setEndTime} placeholder="10:00" placeholderTextColor={COLORS.textDisabled} />
+                  <Pressable style={s.addBtn} onPress={handleAddRange} disabled={loading}>
+                    <Ionicons name="add" size={20} color="#fff" />
+                  </Pressable>
+                </View>
+                {loading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: SPACING.small }} />}
+              </>
+            ) : (
+              <>
+                <Text style={s.sectionLabel}>{t("slotManager.blockedDays", "Blocked days")}</Text>
+                {blockedSlots.length > 0 && (
+                  <View style={s.blockedList}>
+                    {blockedSlots.map((slot) => (
+                      <View key={slot.slot_id} style={[s.rangeChip, { borderColor: COLORS.danger }]}>
+                        <Ionicons name="ban" size={14} color={COLORS.danger} />
+                        <Text style={s.rangeText}>{slot.date ? formatDate(slot.date) : ""}</Text>
+                        <Pressable onPress={() => handleRemoveSlot(slot)} hitSlop={8}>
+                          <Ionicons name="close-circle" size={18} color={COLORS.danger} />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <Text style={s.sectionLabel}>{t("slotManager.selectDates", "Select date range")}</Text>
+                <View style={s.blockDateRow}>
+                  <Pressable style={[s.blockDateBtn, blockStart && s.blockDateBtnSet]} onPress={() => { setDatePickerTarget("blockStart"); setShowDatePicker(true); }}>
+                    <Text style={s.blockDateLabel}>{t("slotManager.blockStart", "Start date")}</Text>
+                    <Text style={[s.blockDateValue, blockStart && { color: COLORS.textPrimary }]}>{blockStart ? formatDate(blockStart) : "—"}</Text>
+                  </Pressable>
+                  <Pressable style={[s.blockDateBtn, blockEnd && s.blockDateBtnSet]} onPress={() => { setDatePickerTarget("blockEnd"); setShowDatePicker(true); }}>
+                    <Text style={s.blockDateLabel}>{t("slotManager.blockEnd", "End date")}</Text>
+                    <Text style={[s.blockDateValue, blockEnd && { color: COLORS.textPrimary }]}>{blockEnd ? formatDate(blockEnd) : "—"}</Text>
+                  </Pressable>
+                </View>
+
+                {blockedDayCount > 0 && (
+                  <Text style={s.blockPreview}>{t("slotManager.blockCount", "{{count}} days will be blocked", { count: blockedDayCount })}</Text>
+                )}
+
+                <Pressable
+                  style={[s.blockBtn, (!blockStart || !blockEnd || loading) && { opacity: 0.5 }]}
+                  onPress={handleBlockRange}
+                  disabled={!blockStart || !blockEnd || loading}
+                >
+                  <Ionicons name="ban" size={18} color="#fff" />
+                  <Text style={s.blockBtnText}>{t("slotManager.datesBlocked", "Block dates")}</Text>
+                </Pressable>
+                {loading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: SPACING.small }} />}
+              </>
             )}
-          </View>
-        )}
+          </ScrollView>
 
-        <CalendarList
-          onDayPress={handleDayPress}
-          markedDates={markedDates}
-          markingType="multi-dot"
-          pastScrollRange={1}
-          futureScrollRange={6}
-          firstDay={1}
-          style={s.calendar}
-          theme={{
-            backgroundColor: COLORS.background,
-            calendarBackground: COLORS.background,
-            textSectionTitleColor: COLORS.textMuted,
-            selectedDayBackgroundColor: COLORS.primaryDark,
-            selectedDayTextColor: "#fff",
-            todayTextColor: COLORS.primaryDark,
-            dayTextColor: COLORS.textPrimary,
-            textDisabledColor: COLORS.textDisabled,
-            dotColor: COLORS.success,
-            selectedDotColor: "#fff",
-            arrowColor: COLORS.primaryDark,
-            monthTextColor: COLORS.textPrimary,
-            textDayFontWeight: FONT_WEIGHTS.medium as any,
-            textMonthFontWeight: FONT_WEIGHTS.bold as any,
-            textDayFontSize: FONT_SIZES.caption,
-          }}
-        />
-
-        <View style={s.legendRow}>
-          <View style={s.legendItem}>
-            <View style={[s.legendDot, { backgroundColor: COLORS.success }]} />
-            <Text style={s.legendText}>{t("slotManager.available", "Available")}</Text>
-          </View>
-          <View style={s.legendItem}>
-            <View style={[s.legendDot, { backgroundColor: COLORS.textMuted }]} />
-            <Text style={s.legendText}>{t("slotManager.booked", "Booked")}</Text>
-          </View>
-          <View style={s.legendItem}>
-            <View style={[s.legendDot, { backgroundColor: COLORS.danger }]} />
-            <Text style={s.legendText}>{t("slotManager.blocked", "Blocked")}</Text>
-          </View>
-        </View>
-
-        <View style={s.panel}>
-          <Text style={s.panelTitle}>{formatDate(selectedDate)} ({selDayName})</Text>
-
-          {dateSlots.length === 0 && !loading && (
-            <Text style={s.emptySlots}>{t("slotManager.noSlotsDate", "No slots for this date")}</Text>
-          )}
-
-          {dateSlots.map((slot) => (
-            <View key={slot.slot_id} style={s.slotRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.slotInfo}>
-                  {(slot.start_time || "").match(/^\d{4}-\d{2}-\d{2}$/)
-                    ? `${slot.start_time!.split("-").reverse().join(" ")} \u2013 ${slot.end_time!.split("-").reverse().join(" ")}`
-                    : `${slot.is_recurring ? t("slotManager.recurring", "Recurring") : t("slotManager.specific", "Specific")} ${slot.start_time} - ${slot.end_time}`}
-                  {slot.is_blocked ? ` (${t("slotManager.blocked", "blocked")})` : ""}
-                  {slot.is_booked ? ` (${t("slotManager.booked", "booked")})` : ""}
-                </Text>
+          {/* Date picker modal for blocked range */}
+          <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={() => setShowDatePicker(false)}>
+            <View style={s.pickerOverlay}>
+              <View style={s.pickerCard}>
+                <View style={s.pickerHeader}>
+                  <Text style={s.pickerTitle}>{datePickerTarget === "blockStart" ? t("slotManager.blockStart", "Start date") : t("slotManager.blockEnd", "End date")}</Text>
+                  <Pressable onPress={() => setShowDatePicker(false)} hitSlop={8}>
+                    <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+                  </Pressable>
+                </View>
+                <CalendarList
+                  minDate={todayISO()}
+                  pastScrollRange={0}
+                  futureScrollRange={12}
+                  onDayPress={(day: any) => {
+                    if (datePickerTarget === "blockStart") setBlockStart(day.dateString);
+                    else setBlockEnd(day.dateString);
+                    setShowDatePicker(false);
+                  }}
+                  markedDates={{
+                    ...(blockStart ? { [blockStart]: { selected: true, selectedColor: COLORS.danger } } : {}),
+                    ...(blockEnd ? { [blockEnd]: { selected: true, selectedColor: COLORS.danger } } : {}),
+                  }}
+                  theme={{
+                    todayTextColor: COLORS.primary,
+                    selectedDayBackgroundColor: COLORS.danger,
+                    arrowColor: COLORS.primary,
+                  }}
+                />
               </View>
-              <Pressable onPress={() => handleDeleteSlot(slot)} hitSlop={8} disabled={loading}>
-                <Ionicons name="trash-outline" size={18} color={loading ? COLORS.textMuted : COLORS.danger} />
-              </Pressable>
             </View>
-          ))}
-
-          <Text style={s.quickLabel}>{t("slotManager.addSlotDate", "Add slot for this date")}</Text>
-          <View style={s.quickRow}>
-            <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("quickStart")}>
-              <Text style={s.timeChipText}>{quickStart || "09:00"}</Text>
-            </Pressable>
-            <Text style={s.timeSep}>-</Text>
-            <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("quickEnd")}>
-              <Text style={s.timeChipText}>{quickEnd || "10:00"}</Text>
-            </Pressable>
-            <Pressable style={s.quickAddBtn} onPress={handleCreateQuickSlot} disabled={loading}>
-              <Ionicons name="add" size={20} color="#fff" />
-            </Pressable>
-          </View>
-          {loading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: SPACING.small }} />}
-        </View>
-
-        <ScrollView style={s.bottomSection} contentContainerStyle={{ paddingBottom: SPACING.section }}>
-          <Text style={s.sectionTitle}>{t("services.weeklyRecurring", "Weekly Recurring")}</Text>
-          <View style={s.dayRow}>
-            {DAYS.map((day, idx) => (
-              <Pressable
-                key={idx}
-                style={[s.dayChip, selectedDays.includes(idx) && s.dayChipSelected]}
-                onPress={() => setSelectedDays((prev) => prev.includes(idx) ? prev.filter((d) => d !== idx) : [...prev, idx])}
-              >
-                <Text style={[s.dayText, selectedDays.includes(idx) && s.dayTextSelected]}>{t(`days.${day.toLowerCase()}`).slice(0, 3)}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <View style={s.timeRow}>
-            <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("weeklyStart")}>
-              <Text style={s.timeChipText}>{weeklyStart}</Text>
-            </Pressable>
-            <Text style={s.timeSep}>-</Text>
-            <Pressable style={s.timeChip} onPress={() => setTimePickerTarget("weeklyEnd")}>
-              <Text style={s.timeChipText}>{weeklyEnd}</Text>
-            </Pressable>
-          </View>
-          <Pressable style={s.createBtn} onPress={handleCreateWeekly} disabled={loading}>
-            <Text style={s.createBtnText}>{t("slotManager.createSlots", "Create Weekly Slots")}</Text>
-          </Pressable>
-        </ScrollView>
-
-        {timePickerTarget && (
-          <View style={s.pickerOverlay}>
-            <DateTimePicker
-              value={toDate(
-                timePickerTarget === "quickStart" ? quickStart :
-                timePickerTarget === "quickEnd" ? quickEnd :
-                timePickerTarget === "weeklyStart" ? weeklyStart : weeklyEnd
-              )}
-              mode="time"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={handleTimeChange}
-            />
-            {Platform.OS === "ios" && (
-              <Pressable style={s.pickerDoneBtn} onPress={() => setTimePickerTarget(null)}>
-                <Text style={s.pickerDoneText}>{t("common.done", "Done")}</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
+          </Modal>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
-}
-
-function todayISO(): string {
-  return toLocalISODate(new Date());
-}
-
-function toDate(time: string): Date {
-  const [h, m] = (time || "09:00").split(":").map(Number);
-  const d = new Date();
-  d.setHours(h || 9, m || 0, 0, 0);
-  return d;
 }
 
 const s = StyleSheet.create({
@@ -469,39 +389,50 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerBtn: { padding: 6, width: 40, alignItems: "center", justifyContent: "center" },
+  headerBtn: { padding: 6, width: 40, alignItems: "center" },
   headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
-  blockBanner: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, backgroundColor: COLORS.danger },
-  blockBannerText: { flex: 1, fontSize: FONT_SIZES.small, color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
-  blockApplyBtn: { backgroundColor: "#fff", paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full },
-  blockApplyText: { fontSize: FONT_SIZES.small, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.danger },
-  calendar: { height: 320, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  legendRow: { flexDirection: "row", justifyContent: "center", gap: SPACING.section, paddingVertical: SPACING.small, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: SPACING.tiny },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: FONT_SIZES.micro, color: COLORS.textMuted },
-  panel: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  panelTitle: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary, marginBottom: SPACING.small },
-  emptySlots: { fontSize: FONT_SIZES.small, color: COLORS.textMuted, fontStyle: "italic", marginBottom: SPACING.small },
-  slotRow: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.small, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border },
-  slotInfo: { fontSize: FONT_SIZES.small, color: COLORS.textPrimary },
-  quickLabel: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textMuted, marginTop: SPACING.small, marginBottom: SPACING.tiny },
-  quickRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small },
-  quickAddBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
-  bottomSection: { flex: 1, paddingHorizontal: SPACING.std, paddingTop: SPACING.small },
-  sectionTitle: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary, marginBottom: SPACING.small },
-  dayRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: SPACING.compact },
-  dayChip: { paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
+  segmentedRow: { flexDirection: "row", gap: SPACING.small, paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  segment: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.backgroundPage },
+  segmentActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  segmentBlocked: { backgroundColor: COLORS.danger, borderColor: COLORS.danger },
+  segmentText: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textMuted },
+  segmentTextActive: { color: "#fff" },
+  body: { flex: 1, paddingHorizontal: SPACING.std, paddingTop: SPACING.small },
+  chipRow: { flexDirection: "row", gap: SPACING.small, marginBottom: SPACING.small },
+  chip: { paddingHorizontal: SPACING.std, paddingVertical: 8, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.backgroundPage },
+  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipText: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.medium as any, color: COLORS.textSecondary },
+  chipTextActive: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
+  sectionLabel: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary, marginTop: SPACING.small, marginBottom: SPACING.small },
+  dayRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: SPACING.small },
+  dayChip: { minWidth: 46, alignItems: "center", paddingVertical: 8, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.backgroundPage },
   dayChipSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  dayText: { fontSize: FONT_SIZES.micro, color: COLORS.textPrimary },
+  dayChipHasRanges: { borderColor: COLORS.success },
+  dayText: { fontSize: FONT_SIZES.small, fontWeight: FONT_WEIGHTS.medium as any, color: COLORS.textSecondary },
   dayTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
-  timeRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, marginBottom: SPACING.compact },
-  timeChip: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, backgroundColor: COLORS.primary + "10", flex: 1, alignItems: "center" },
-  timeChipText: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.primary },
+  dayDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.success, marginTop: 4 },
+  weekStrip: { gap: SPACING.small, paddingBottom: SPACING.small },
+  weekDay: { alignItems: "center", minWidth: 54, paddingVertical: 10, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.backgroundPage },
+  weekDaySelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  weekDayName: { fontSize: FONT_SIZES.micro, color: COLORS.textMuted, fontWeight: FONT_WEIGHTS.semibold as any },
+  weekDayNum: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary, fontWeight: FONT_WEIGHTS.bold as any, marginTop: 2 },
+  rangeChip: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: 10, paddingHorizontal: SPACING.small, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surfaceSoft, marginBottom: SPACING.tiny },
+  rangeText: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary, fontWeight: FONT_WEIGHTS.medium as any },
+  addRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, marginTop: SPACING.small },
+  timeInput: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: 12, paddingVertical: 8, width: 88, textAlign: "center", fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary, backgroundColor: COLORS.backgroundPage },
   timeSep: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted },
-  createBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.small, alignItems: "center", marginTop: SPACING.tiny },
-  createBtnText: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
-  pickerOverlay: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border, paddingBottom: SPACING.section },
-  pickerDoneBtn: { alignItems: "center", paddingVertical: SPACING.compact, marginHorizontal: SPACING.std, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.primary },
-  pickerDoneText: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
+  addBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
+  blockedList: { marginBottom: SPACING.small },
+  blockDateRow: { flexDirection: "row", gap: SPACING.small, marginBottom: SPACING.small },
+  blockDateBtn: { flex: 1, padding: SPACING.small, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.backgroundPage, alignItems: "center", gap: 4 },
+  blockDateBtnSet: { borderColor: COLORS.danger },
+  blockDateLabel: { fontSize: FONT_SIZES.micro, color: COLORS.textMuted },
+  blockDateValue: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textDisabled },
+  blockPreview: { fontSize: FONT_SIZES.bodySmall, color: COLORS.danger, fontWeight: FONT_WEIGHTS.semibold as any, marginBottom: SPACING.small },
+  blockBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: COLORS.danger, borderRadius: BORDER_RADIUS.md, paddingVertical: 14, marginTop: SPACING.small },
+  blockBtnText: { color: "#fff", fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any },
+  pickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: SPACING.std },
+  pickerCard: { backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.lg, padding: SPACING.std },
+  pickerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.small },
+  pickerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
 });

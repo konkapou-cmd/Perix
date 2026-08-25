@@ -2376,5 +2376,12 @@
     "rooms": "pokoje",
     "adults": "dorośli",
     "children": "dzieci"
+  },
+  "slotManager": {
+    "blockedDays": "Zablokowane dni",
+    "weeklyRepeat": "Cotygodniowe powtarzanie",
+    "blockStart": "Data rozpoczęcia",
+    "blockEnd": "Data zakończenia",
+    "blockCount": "Zablokowanych zostanie {{count}} dni"
   }
 }

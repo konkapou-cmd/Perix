@@ -2272,5 +2272,12 @@
     "rooms": "dhoma",
     "adults": "të rritur",
     "children": "fëmijë"
+  },
+  "slotManager": {
+    "blockedDays": "Ditë të bllokuara",
+    "weeklyRepeat": "Përsëritje javore",
+    "blockStart": "Data e fillimit",
+    "blockEnd": "Data e fundit",
+    "blockCount": "Do të bllokohen {{count}} ditë"
   }
 }

@@ -2363,5 +2363,12 @@
     "rooms": "soba",
     "adults": "odrasli",
     "children": "deca"
+  },
+  "slotManager": {
+    "blockedDays": "Blokirani dani",
+    "weeklyRepeat": "Nedeljno ponavljanje",
+    "blockStart": "Datum početka",
+    "blockEnd": "Datum kraja",
+    "blockCount": "Biće blokirano {{count}} dana"
   }
 }

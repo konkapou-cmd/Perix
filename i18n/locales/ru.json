@@ -2339,5 +2339,12 @@
     "rooms": "комнат(ы)",
     "adults": "взрослых",
     "children": "детей"
+  },
+  "slotManager": {
+    "blockedDays": "Заблокированные дни",
+    "weeklyRepeat": "Еженедельный повтор",
+    "blockStart": "Дата начала",
+    "blockEnd": "Дата окончания",
+    "blockCount": "Будет заблокировано {{count}} дней"
   }
 }

@@ -2935,6 +2935,11 @@
     "addSlotDate": "Termin für diesen Tag hinzufügen",
     "createSlots": "Wöchentliche Termine erstellen",
     "recurring": "Wiederkehrend",
-    "specific": "Einmalig"
+    "specific": "Einmalig",
+    "blockedDays": "Gesperrte Tage",
+    "weeklyRepeat": "Wöchentliche Wiederholung",
+    "blockStart": "Startdatum",
+    "blockEnd": "Enddatum",
+    "blockCount": "{{count}} Tage werden gesperrt"
   }
 }

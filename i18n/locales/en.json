@@ -2864,6 +2864,11 @@
     "addSlotDate": "Add slot for this date",
     "createSlots": "Create weekly slots",
     "recurring": "Recurring",
-    "specific": "Specific"
+    "specific": "Specific",
+    "blockedDays": "Blocked days",
+    "weeklyRepeat": "Weekly repeat",
+    "blockStart": "Start date",
+    "blockEnd": "End date",
+    "blockCount": "{{count}} days will be blocked"
   }
 }

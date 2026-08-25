@@ -2367,5 +2367,12 @@
     "rooms": "chambre(s)",
     "adults": "adultes",
     "children": "enfants"
+  },
+  "slotManager": {
+    "blockedDays": "Jours bloqués",
+    "weeklyRepeat": "Répétition hebdomadaire",
+    "blockStart": "Date de début",
+    "blockEnd": "Date de fin",
+    "blockCount": "{{count}} jours seront bloqués"
   }
 }
