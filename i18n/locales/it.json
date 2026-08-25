@@ -2243,7 +2243,9 @@
     "minutesShort": "min",
     "selectDate": "Seleziona data",
     "startTime": "Inizio",
-    "endTime": "Fine"
+    "endTime": "Fine",
+    "weekly": "Settimanale",
+    "specificDate": "Data specifica"
   },
   "menu": {
     "starter": "Antipasti",

@@ -2244,7 +2244,9 @@
     "minutesShort": "мин",
     "selectDate": "Выберите дату",
     "startTime": "Начало",
-    "endTime": "Конец"
+    "endTime": "Конец",
+    "weekly": "Еженедельно",
+    "specificDate": "Конкретная дата"
   },
   "menu": {
     "starter": "Закуски",

@@ -2457,7 +2457,9 @@
     "hoursShort": "ώρ.",
     "minutesShort": "λεπ.",
     "startTime": "Έναρξη",
-    "endTime": "Λήξη"
+    "endTime": "Λήξη",
+    "weekly": "Εβδομαδιαία",
+    "specificDate": "Συγκεκριμένη ημερομηνία"
   },
   "menu": {
     "starter": "Ορεκτικά",

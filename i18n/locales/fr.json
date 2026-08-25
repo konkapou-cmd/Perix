@@ -2272,7 +2272,9 @@
     "minutesShort": "min",
     "selectDate": "Choisir la date",
     "startTime": "Début",
-    "endTime": "Fin"
+    "endTime": "Fin",
+    "weekly": "Hebdomadaire",
+    "specificDate": "Date précise"
   },
   "menu": {
     "starter": "Entrées",

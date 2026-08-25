@@ -2467,7 +2467,9 @@
     "hoursShort": "h",
     "minutesShort": "min",
     "startTime": "Start",
-    "endTime": "End"
+    "endTime": "End",
+    "weekly": "Weekly",
+    "specificDate": "Specific date"
   },
   "detail": {
     "stay": "Stay Information",

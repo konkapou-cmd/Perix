@@ -2177,7 +2177,9 @@
     "minutesShort": "min",
     "selectDate": "Zgjidh datën",
     "startTime": "Fillimi",
-    "endTime": "Fundi"
+    "endTime": "Fundi",
+    "weekly": "Javore",
+    "specificDate": "Datë specifike"
   },
   "menu": {
     "starter": "Antipasta",

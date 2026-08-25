@@ -2268,7 +2268,9 @@
     "minutesShort": "min",
     "selectDate": "Izaberi datum",
     "startTime": "Početak",
-    "endTime": "Kraj"
+    "endTime": "Kraj",
+    "weekly": "Nedeljno",
+    "specificDate": "Određeni datum"
   },
   "menu": {
     "starter": "Предјела",

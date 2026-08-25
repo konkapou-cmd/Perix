@@ -2281,7 +2281,9 @@
     "minutesShort": "min",
     "selectDate": "Wybierz datę",
     "startTime": "Start",
-    "endTime": "Koniec"
+    "endTime": "Koniec",
+    "weekly": "Co tydzień",
+    "specificDate": "Konkretna data"
   },
   "menu": {
     "starter": "Przystawki",

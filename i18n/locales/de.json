@@ -2538,7 +2538,9 @@
     "hoursShort": "Std.",
     "minutesShort": "Min.",
     "startTime": "Start",
-    "endTime": "Ende"
+    "endTime": "Ende",
+    "weekly": "Wöchentlich",
+    "specificDate": "Bestimmtes Datum"
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",
