@@ -3030,92 +3030,92 @@ currentUserId={businessDetail?.business?.business_id}
               {bizSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t("business.saveChanges", "Save Changes")}</Text>}
             </Pressable>
           </View>
-        </SafeAreaView>
-      </Modal>
 
-      {/* Category Selection Modal */}
-      <Modal visible={bizCategoryModalVisible} animationType="slide">
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t("business.selectCategory", "Select Category")}</Text>
-            <Pressable onPress={() => setBizCategoryModalVisible(false)}>
-              <Ionicons name="close" size={24} color={COLORS.primaryDark} />
-            </Pressable>
-          </View>
-          <ScrollView>
-            {categoryTree.map((category) => (
-              <Pressable
-                key={category.slug}
-                style={styles.modalItem}
-                onPress={() => {
-                  const currentRoot = businessDetail?.business?.root_category;
-                  if (currentRoot && category.slug !== currentRoot) {
-                    Alert.alert(
-                      t("business.categoryChangeTitle", "Change business category?"),
-                      t("business.categoryChangeMessage", "Changing your category will permanently delete all services, jobs, events, bookings and media of this business."),
-                      [
-                        { text: t("common.cancel", "Cancel"), style: "cancel" },
-                        {
-                          text: t("common.confirm", "Confirm"),
-                          style: "destructive",
-                          onPress: () => {
-                            setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
-                            setBizSubcategories([]);
-                            setBizCategoryModalVisible(false);
-                          },
-                        },
-                      ],
-                    );
-                    return;
-                  }
-                  setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
-                  setBizSubcategories([]);
-                  setBizCategoryModalVisible(false);
-                }}
-              >
-                <Text style={styles.modalItemText}>{translateCategory(category.slug, t)}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Subcategory Selection Modal */}
-      <Modal visible={bizSubcategoryModalVisible} animationType="slide">
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t("business.selectSubcategory", "Select Subcategories")}</Text>
-            <Pressable onPress={() => setBizSubcategoryModalVisible(false)}>
-              <Ionicons name="close" size={24} color={COLORS.primaryDark} />
-            </Pressable>
-          </View>
-          <ScrollView>
-            {getSubcategories(categoryTree, bizEditForm.root_category).map((sub) => {
-              const active = bizSubcategories.includes(sub.slug);
-              return (
-                <Pressable
-                  key={sub.slug}
-                  style={[styles.modalItem, active && { backgroundColor: COLORS.primaryLight }]}
-                  onPress={() => {
-                    setBizSubcategories(prev =>
-                      active ? prev.filter(s => s !== sub.slug) : [...prev, sub.slug]
-                    );
-                  }}
-                >
-                  <Text style={styles.modalItemText}>{translateCategory(sub.slug, t)}</Text>
-                  {active && <Ionicons name="checkmark-circle" size={20} color={COLORS.primaryDark} />}
+          {/* Category picker overlay (inline - no modal ghost taps) */}
+          {bizCategoryModalVisible && (
+            <View style={styles.pickerOverlay}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t("business.selectCategory", "Select Category")}</Text>
+                <Pressable onPress={() => setBizCategoryModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={COLORS.primaryDark} />
                 </Pressable>
-              );
-            })}
-          </ScrollView>
-          <View style={{ padding: 16 }}>
-            <Pressable
-              style={{ backgroundColor: COLORS.primaryDark, borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
-              onPress={() => setBizSubcategoryModalVisible(false)}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.done", "Done")}</Text>
-            </Pressable>
-          </View>
+              </View>
+              <ScrollView>
+                {categoryTree.map((category) => (
+                  <Pressable
+                    key={category.slug}
+                    style={styles.modalItem}
+                    onPress={() => {
+                      const currentRoot = businessDetail?.business?.root_category;
+                      if (currentRoot && category.slug !== currentRoot) {
+                        Alert.alert(
+                          t("business.categoryChangeTitle", "Change business category?"),
+                          t("business.categoryChangeMessage", "Changing your category will permanently delete all services, jobs, events, bookings and media of this business."),
+                          [
+                            { text: t("common.cancel", "Cancel"), style: "cancel" },
+                            {
+                              text: t("common.confirm", "Confirm"),
+                              style: "destructive",
+                              onPress: () => {
+                                setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
+                                setBizSubcategories([]);
+                                setBizCategoryModalVisible(false);
+                              },
+                            },
+                          ],
+                        );
+                        return;
+                      }
+                      setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
+                      setBizSubcategories([]);
+                      setBizCategoryModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.modalItemText}>{translateCategory(category.slug, t)}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Subcategory picker overlay */}
+          {bizSubcategoryModalVisible && (
+            <View style={styles.pickerOverlay}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t("business.selectSubcategory", "Select Subcategories")}</Text>
+                <Pressable onPress={() => setBizSubcategoryModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={COLORS.primaryDark} />
+                </Pressable>
+              </View>
+              <ScrollView>
+                {getSubcategories(categoryTree, bizEditForm.root_category).map((sub) => {
+                  const active = bizSubcategories.includes(sub.slug);
+                  return (
+                    <Pressable
+                      key={sub.slug}
+                      style={[styles.modalItem, active && { backgroundColor: COLORS.primaryLight }]}
+                      onPress={() => {
+                        setBizSubcategories(prev =>
+                          active ? prev.filter(s => s !== sub.slug) : [...prev, sub.slug]
+                        );
+                      }}
+                    >
+                      <Text style={styles.modalItemText}>{translateCategory(sub.slug, t)}</Text>
+                      {active && <Ionicons name="checkmark-circle" size={20} color={COLORS.primaryDark} />}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <View style={{ padding: 16 }}>
+                <Pressable
+                  style={{ backgroundColor: COLORS.primaryDark, borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
+                  onPress={() => setBizSubcategoryModalVisible(false)}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.done", "Done")}</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
         </SafeAreaView>
       </Modal>
 
@@ -3384,6 +3384,15 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  pickerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#fff",
+    zIndex: 20,
   },
   modalHeader: {
     flexDirection: "row",
