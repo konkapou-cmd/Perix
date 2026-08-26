@@ -115,36 +115,36 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
         <View style={s.bookingHeader}>
           {booking.client_id ? (
             <Pressable onPress={() => router.push(`/user/${booking.client_id}` as any)}>
-              <Text style={[s.clientName, { color: COLORS.primaryDark }]}>{booking.client_name}</Text>
+              <Text style={[s.clientName, { color: COLORS.primaryDark }]} numberOfLines={1} ellipsizeMode="tail">{booking.client_name}</Text>
             </Pressable>
           ) : (
-            <Text style={s.clientName}>{booking.client_name}</Text>
+            <Text style={s.clientName} numberOfLines={1} ellipsizeMode="tail">{booking.client_name}</Text>
           )}
           <View style={[s.statusBadge, { backgroundColor: statusColor + "20" }]}>
-            <Text style={[s.statusText, { color: statusColor }]}>{t(`bookingList.${booking.status}`, booking.status)}</Text>
+            <Text style={[s.statusText, { color: statusColor }]} numberOfLines={1}>{t(`bookingList.${booking.status}`, booking.status)}</Text>
           </View>
         </View>
-        <Text style={s.bookingDetail}>{formatDate(booking.date)} {booking.start_time ? `| ${booking.start_time}` : ""}{booking.end_time ? ` - ${booking.end_time}` : ""}</Text>
+        <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{formatDate(booking.date)} {booking.start_time ? `| ${booking.start_time}` : ""}{booking.end_time ? ` - ${booking.end_time}` : ""}</Text>
         {booking.booking_mode === "date_range" && booking.end_date && (
           <>
-            <Text style={s.bookingDetail}>{formatDate(booking.date)} → {formatDate(booking.end_date)}</Text>
-            <Text style={s.bookingDetail}>{booking.nights} {t("bookingList.nights", "nights")} · {booking.room_count || 1} {t("bookingList.rooms", "room(s)")}</Text>
-            <Text style={s.bookingDetail}>{booking.adults || 1} {t("bookingList.adults", "adults")} · {booking.children || 0} {t("bookingList.children", "children")}</Text>
-            {booking.confirmation_code && <Text style={s.bookingCode}>{booking.confirmation_code}</Text>}
-            {booking.service_name && <Text style={s.bookingDetail}>{booking.service_name}</Text>}
-            {booking.service_address && <Text style={s.bookingDetail}><Ionicons name="location" size={12} /> {booking.service_address}</Text>}
-            {booking.business_name && <Text style={s.bookingDetail}><Ionicons name="business" size={12} /> {booking.business_name}</Text>}
+            <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{formatDate(booking.date)} → {formatDate(booking.end_date)}</Text>
+            <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{booking.nights} {t("bookingList.nights", "nights")} · {booking.room_count || 1} {t("bookingList.rooms", "room(s)")}</Text>
+            <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{booking.adults || 1} {t("bookingList.adults", "adults")} · {booking.children || 0} {t("bookingList.children", "children")}</Text>
+            {booking.confirmation_code && <Text style={s.bookingCode} numberOfLines={1}>{booking.confirmation_code}</Text>}
+            {booking.service_name && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{booking.service_name}</Text>}
+            {booking.service_address && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail"><Ionicons name="location" size={12} /> {booking.service_address}</Text>}
+            {booking.business_name && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail"><Ionicons name="business" size={12} /> {booking.business_name}</Text>}
             {booking.check_in_time && booking.check_out_time && (
-              <Text style={s.bookingDetail}>Check-in: {booking.check_in_time} · Check-out: {booking.check_out_time}</Text>
+              <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">Check-in: {booking.check_in_time} · Check-out: {booking.check_out_time}</Text>
             )}
             {booking.cancellation_policy && <Text style={s.bookingNotes}>{booking.cancellation_policy}</Text>}
           </>
         )}
-        {booking.guests && !booking.booking_mode && <Text style={s.bookingDetail}>{t("bookingList.guests", "Guests")}: {booking.guests}</Text>}
+        {booking.guests && !booking.booking_mode && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{t("bookingList.guests", "Guests")}: {booking.guests}</Text>}
         {booking.total_amount != null && booking.currency ? (
           <View>
             {booking.nightly_rate_amount != null && (
-              <Text style={s.bookingDetail}>{(booking.nightly_rate_amount / 100).toFixed(2)} {booking.currency} / night</Text>
+              <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{(booking.nightly_rate_amount / 100).toFixed(2)} {booking.currency} / night</Text>
             )}
             <Text style={s.bookingPrice}>{(booking.total_amount / 100).toFixed(2)} {booking.currency}</Text>
           </View>
@@ -152,9 +152,9 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
           <Text style={s.bookingPrice}>{formatPrice(booking.total_price)}</Text>
         ) : null}
         {booking.notes && <Text style={s.bookingNotes}>{"\u201C"}{booking.notes}{"\u201D"}</Text>}
-        {booking.pet_name && <Text style={s.bookingDetail}>{t("bookingList.pet", "Pet")}: {booking.pet_name} ({booking.pet_type || "?"})</Text>}
-        {booking.reason_for_visit && <Text style={s.bookingDetail}>{t("bookingList.reason", "Reason")}: {booking.reason_for_visit}</Text>}
-        {booking.pickup_location && <Text style={s.bookingDetail}>{t("bookingList.pickup", "Pickup")}: {booking.pickup_location}</Text>}
+        {booking.pet_name && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{t("bookingList.pet", "Pet")}: {booking.pet_name} ({booking.pet_type || "?"})</Text>}
+        {booking.reason_for_visit && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{t("bookingList.reason", "Reason")}: {booking.reason_for_visit}</Text>}
+        {booking.pickup_location && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{t("bookingList.pickup", "Pickup")}: {booking.pickup_location}</Text>}
 
         <View style={s.actionRow}>
           {booking.status === "pending" && (

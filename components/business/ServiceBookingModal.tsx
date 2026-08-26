@@ -85,7 +85,17 @@ export default function ServiceBookingModal({
       setPickupLocation("");
 
       if (getBookingMode(service.type) === "time_slot") {
-        getSlots(service.service_id).then(setAllSlots).catch(() => setAllSlots([]));
+        getSlots(service.service_id).then((data) => {
+          setAllSlots(data || []);
+          const available = (data || []).filter(s => !s.is_blocked && !s.is_booked);
+          let firstDate = "";
+          for (let i = 0; i < 14 && !firstDate; i++) {
+            const d = addDays(todayText, i);
+            const dow = new Date(d + "T00:00:00").getDay();
+            if (available.some(s => s.date === d || (s.is_recurring && s.day_of_week === dow))) firstDate = d;
+          }
+          if (firstDate) setSelectedDate(prev => prev || firstDate);
+        }).catch(() => setAllSlots([]));
       } else {
         setAllSlots([]);
       }
@@ -158,8 +168,7 @@ export default function ServiceBookingModal({
     return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   };
 
-  const availableDates = dates.filter((dateStr) => {
-    const dateObj = new Date(dateStr + "T00:00:00");
+  const availableDates = dates.filter((dateStr) => {    const dateObj = new Date(dateStr + "T00:00:00");
     const dayOfWeek = dateObj.getDay();
     return allSlots.some((s) => {
       if (s.is_blocked || s.is_booked) return false;
@@ -396,19 +405,25 @@ export default function ServiceBookingModal({
           <>
           <Text style={s.sectionTitle}>{t("services.selectDate", "Select a date")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.dateRow}>
-            {displayDates.map((d) => {
+            {dates.map((d) => {
+              const hasAvailability = availableDates.includes(d);
               const isSelected = d === selectedDate;
+              const disabled = allSlots.length > 0 && !hasAvailability;
               return (
                 <Pressable
                   key={d}
-                  style={[s.dateCard, isSelected && s.dateSelected]}
+                  disabled={disabled}
+                  style={[s.dateCard, isSelected && s.dateSelected, disabled && s.dateCardDisabled]}
                   onPress={() => { setSelectedDate(d); setSelectedSlot(null); }}
                 >
-                  <Text style={[s.dateText, isSelected && s.dateTextSelected]}>{formatDate(d)}</Text>
+                  <Text style={[s.dateText, isSelected && s.dateTextSelected, disabled && s.dateTextDisabled]}>{formatDate(d)}</Text>
                 </Pressable>
               );
             })}
           </ScrollView>
+          {allSlots.length > 0 && availableDates.length === 0 && (
+            <Text style={s.emptyText}>{t("services.noSlots", "No available slots")}</Text>
+          )}
 
           {ctaType === "booking" && selectedDate && (
             <>
@@ -647,8 +662,10 @@ const s = StyleSheet.create({
   dateRow: { flexDirection: "row", marginBottom: SPACING.small },
   dateCard: { paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, marginRight: SPACING.small, backgroundColor: COLORS.background },
   dateSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  dateCardDisabled: { opacity: 0.3 },
   dateText: { fontSize: FONT_SIZES.small, color: COLORS.textPrimary },
   dateTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
+  dateTextDisabled: { color: COLORS.textMuted },
   slotRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small },
   slotCard: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
   slotSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
