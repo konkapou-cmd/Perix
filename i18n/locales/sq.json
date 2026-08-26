@@ -2216,7 +2216,9 @@
       "local-hotels": "Përshkruani dhomën, konfigurimin e krevateve, pamjen dhe lehtësirat...",
       "default": "Përshkruani shërbimin..."
     },
-    "addFirstService": "Shto shërbimin tënd të parë për të filluar"
+    "addFirstService": "Shto shërbimin tënd të parë për të filluar",
+    "requestSent": "Kërkesa u dërgua",
+    "bookingPending": "Kërkesa për rezervim u dërgua! Biznesi do ta konfirmojë së shpejti."
   },
   "menu": {
     "starter": "Antipasta",

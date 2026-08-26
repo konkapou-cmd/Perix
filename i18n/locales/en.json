@@ -2506,7 +2506,8 @@
       "local-hotels": "Describe the room, bed configuration, view and amenities included...",
       "default": "Describe the service..."
     },
-    "addFirstService": "Add your first service to get started"
+    "addFirstService": "Add your first service to get started",
+    "requestSent": "Request Sent"
   },
   "detail": {
     "stay": "Stay Information",

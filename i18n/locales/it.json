@@ -2282,7 +2282,9 @@
       "local-hotels": "Descrivi la camera, la configurazione dei letti, la vista e i servizi inclusi...",
       "default": "Descrivi il servizio..."
     },
-    "addFirstService": "Aggiungi il tuo primo servizio per iniziare"
+    "addFirstService": "Aggiungi il tuo primo servizio per iniziare",
+    "requestSent": "Richiesta inviata",
+    "bookingPending": "Richiesta di prenotazione inviata! L'azienda confermerà a breve."
   },
   "menu": {
     "starter": "Antipasti",

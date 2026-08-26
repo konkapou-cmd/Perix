@@ -2307,7 +2307,9 @@
       "local-hotels": "Opišite sobu, raspored kreveta, pogled i uključene sadržaje...",
       "default": "Opišite uslugu..."
     },
-    "addFirstService": "Dodajte svoju prvu uslugu da počnete"
+    "addFirstService": "Dodajte svoju prvu uslugu da počnete",
+    "requestSent": "Zahtev poslat",
+    "bookingPending": "Zahtev za rezervaciju je poslat! Firma će uskoro potvrditi."
   },
   "menu": {
     "starter": "Предјела",

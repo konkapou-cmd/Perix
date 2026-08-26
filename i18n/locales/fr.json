@@ -2311,7 +2311,9 @@
       "local-hotels": "Décrivez la chambre, la configuration des lits, la vue et les équipements inclus...",
       "default": "Décrivez le service..."
     },
-    "addFirstService": "Ajoutez votre premier service pour commencer"
+    "addFirstService": "Ajoutez votre premier service pour commencer",
+    "requestSent": "Demande envoyée",
+    "bookingPending": "Demande de réservation envoyée ! L'entreprise confirmera rapidement."
   },
   "menu": {
     "starter": "Entrées",

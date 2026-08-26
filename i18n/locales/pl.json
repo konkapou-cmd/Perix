@@ -2320,7 +2320,9 @@
       "local-hotels": "Opisz pokój, układ łóżek, widok i udogodnienia w cenie...",
       "default": "Opisz usługę..."
     },
-    "addFirstService": "Dodaj swoją pierwszą usługę, aby zacząć"
+    "addFirstService": "Dodaj swoją pierwszą usługę, aby zacząć",
+    "requestSent": "Wysłano prośbę",
+    "bookingPending": "Prośba o rezerwację wysłana! Firma wkrótce potwierdzi."
   },
   "menu": {
     "starter": "Przystawki",

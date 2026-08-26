@@ -2577,7 +2577,8 @@
       "local-hotels": "Beschreibe das Zimmer, die Bettkonfiguration, Aussicht und enthaltene Annehmlichkeiten...",
       "default": "Beschreibe die Dienstleistung..."
     },
-    "addFirstService": "Füge deinen ersten Dienst hinzu, um loszulegen"
+    "addFirstService": "Füge deinen ersten Dienst hinzu, um loszulegen",
+    "requestSent": "Anfrage gesendet"
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",
