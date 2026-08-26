@@ -17,6 +17,7 @@ import { FIELD_REGISTRY, LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
 import { getServiceFields, getRequiredServiceFields, getServiceCtaType, getServiceModuleIcon, getServiceModuleLabel, isServiceBookable, requiresServiceSlots, getBookingMode, SERVICE_MODULES, type ServiceModuleConfig } from "../../lib/config/serviceModules";
 import { getDefaultModule, getAllowedModules, getCategoryQuestions } from "../../lib/config/serviceCategoryMatrix";
 import type { Dispatch, SetStateAction } from "react";
+import type { TFunction } from "i18next";
 import { useState, useEffect, useRef } from "react";
 import { CalendarList } from "react-native-calendars";
 import { toLocalISODate } from "../../lib/booking/dateRange";
@@ -214,7 +215,7 @@ const DEFAULT_FORM: ServiceForm = {
 
 export { DEFAULT_FORM };
 
-function getCategoryPlaceholders(rootCategory?: string) {
+function getCategoryPlaceholders(rootCategory?: string, t?: TFunction) {
   const labels: Record<string, { name: string; desc: string }> = {
     "sports-fitness-wellness": {
       name: "e.g. Yoga Flow, HIIT Circuit, Personal Training",
@@ -279,10 +280,13 @@ function getCategoryPlaceholders(rootCategory?: string) {
 
 
   };
-  if (rootCategory && labels[rootCategory]) {
-    return labels[rootCategory];
-  }
-  return { name: "e.g. Service Name", desc: "Describe the service..." };
+  const fallback = (rootCategory && labels[rootCategory]) ? labels[rootCategory] : { name: "e.g. Service Name", desc: "Describe the service..." };
+  if (!t) return fallback;
+  const key = rootCategory || "default";
+  return {
+    name: t(`services.placeholderName.${key}`, fallback.name),
+    desc: t(`services.placeholderDesc.${key}`, fallback.desc),
+  };
 }
 
 function formToMedia(form: ServiceForm): MediaItem[] {
@@ -704,7 +708,7 @@ export default function ServiceModal({
             </Text>
             <TextInput
               style={styles.input}
-              placeholder={getCategoryPlaceholders(rootCategory).name}
+              placeholder={getCategoryPlaceholders(rootCategory, t).name}
               placeholderTextColor={COLORS.textDisabled}
               value={form.name}
               onChangeText={(v) => updateField("name", v)}
@@ -713,7 +717,7 @@ export default function ServiceModal({
             <Text style={styles.label}>{t("services.serviceDescription", "Description")}</Text>
             <TextInput
               style={[styles.input, { height: 80 }]}
-              placeholder={getCategoryPlaceholders(rootCategory).desc}
+              placeholder={getCategoryPlaceholders(rootCategory, t).desc}
               placeholderTextColor={COLORS.textDisabled}
               value={form.description}
               onChangeText={(v) => updateField("description", v)}

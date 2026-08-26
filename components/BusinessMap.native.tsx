@@ -64,7 +64,7 @@ type Props = {
 // Helper function to determine if business is currently open
 const isBusinessOpen = (business: Business): boolean => {
   const openingHours = business.opening_hours as { schedule?: Record<string, { enabled: boolean; periods: { open: string; close: string }[] }> } | undefined;
-  if (!openingHours?.schedule) return true; // Assume open if no hours set
+  if (!openingHours?.schedule) return false; // No registered hours -> treated as closed
   
   const now = new Date();
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

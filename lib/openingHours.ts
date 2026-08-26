@@ -7,7 +7,7 @@ type OpeningHours = {
 /** Determine whether a business is currently open based on its opening_hours schedule. */
 export function isBusinessOpen(business: Business): boolean {
   const openingHours = business.opening_hours as OpeningHours | undefined;
-  if (!openingHours?.schedule) return true; // Assume open when no hours are set
+  if (!openingHours?.schedule) return false; // No registered hours -> treated as closed
 
   const now = new Date();
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
