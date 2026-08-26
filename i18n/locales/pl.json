@@ -2319,7 +2319,8 @@
       "pets": "Opisz usługę, czas trwania i wymagania dla Twojego zwierzaka...",
       "local-hotels": "Opisz pokój, układ łóżek, widok i udogodnienia w cenie...",
       "default": "Opisz usługę..."
-    }
+    },
+    "addFirstService": "Dodaj swoją pierwszą usługę, aby zacząć"
   },
   "menu": {
     "starter": "Przystawki",

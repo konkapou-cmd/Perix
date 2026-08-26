@@ -2306,7 +2306,8 @@
       "pets": "Opišite uslugu, trajanje i uslove za vašeg ljubimca...",
       "local-hotels": "Opišite sobu, raspored kreveta, pogled i uključene sadržaje...",
       "default": "Opišite uslugu..."
-    }
+    },
+    "addFirstService": "Dodajte svoju prvu uslugu da počnete"
   },
   "menu": {
     "starter": "Предјела",

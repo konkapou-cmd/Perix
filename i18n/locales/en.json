@@ -2505,7 +2505,8 @@
       "pets": "Describe the service, duration and any requirements for your pet...",
       "local-hotels": "Describe the room, bed configuration, view and amenities included...",
       "default": "Describe the service..."
-    }
+    },
+    "addFirstService": "Add your first service to get started"
   },
   "detail": {
     "stay": "Stay Information",

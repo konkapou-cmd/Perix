@@ -2281,7 +2281,8 @@
       "pets": "Descrivi il servizio, la durata e i requisiti per il tuo animale...",
       "local-hotels": "Descrivi la camera, la configurazione dei letti, la vista e i servizi inclusi...",
       "default": "Descrivi il servizio..."
-    }
+    },
+    "addFirstService": "Aggiungi il tuo primo servizio per iniziare"
   },
   "menu": {
     "starter": "Antipasti",

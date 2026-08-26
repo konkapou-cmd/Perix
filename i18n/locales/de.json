@@ -2576,7 +2576,8 @@
       "pets": "Beschreibe die Dienstleistung, Dauer und Anforderungen für dein Haustier...",
       "local-hotels": "Beschreibe das Zimmer, die Bettkonfiguration, Aussicht und enthaltene Annehmlichkeiten...",
       "default": "Beschreibe die Dienstleistung..."
-    }
+    },
+    "addFirstService": "Füge deinen ersten Dienst hinzu, um loszulegen"
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",

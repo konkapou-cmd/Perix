@@ -2215,7 +2215,8 @@
       "pets": "Përshkruani shërbimin, kohëzgjatjen dhe kërkesat për kafshën tuaj...",
       "local-hotels": "Përshkruani dhomën, konfigurimin e krevateve, pamjen dhe lehtësirat...",
       "default": "Përshkruani shërbimin..."
-    }
+    },
+    "addFirstService": "Shto shërbimin tënd të parë për të filluar"
   },
   "menu": {
     "starter": "Antipasta",

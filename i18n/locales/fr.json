@@ -2310,7 +2310,8 @@
       "pets": "Décrivez le service, la durée et les exigences pour votre animal...",
       "local-hotels": "Décrivez la chambre, la configuration des lits, la vue et les équipements inclus...",
       "default": "Décrivez le service..."
-    }
+    },
+    "addFirstService": "Ajoutez votre premier service pour commencer"
   },
   "menu": {
     "starter": "Entrées",
