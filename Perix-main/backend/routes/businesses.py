@@ -223,6 +223,8 @@ async def update_business(
         await db.services.delete_many({"business_id": business_id})
         await db.bookings.delete_many({"business_id": business_id})
         await db.events.delete_many({"business_id": business_id})
+        await db.listings.delete_many({"business_id": business_id})
+        await db.posts.delete_many({"actor_type": "business", "actor_id": business_id})
         update_data["gallery_images"] = []
         update_data["gallery_videos"] = []
         update_data["video_url"] = None
