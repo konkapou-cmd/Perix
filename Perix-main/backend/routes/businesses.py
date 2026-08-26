@@ -295,7 +295,7 @@ async def list_businesses(
         "is_hidden": {"$ne": True},
         "is_active": {"$ne": False},
         # Businesses must register opening hours before they are publicly listed
-        "opening_hours": {"$exists": True, "$ne": {}},
+        "opening_hours.schedule": {"$exists": True, "$ne": {}},
     }
     if root_category and root_category != "all":
         query["root_category"] = root_category
@@ -327,7 +327,7 @@ async def get_nearby_businesses(
             "longitude": {"$gte": min_lng, "$lte": max_lng},
             "is_hidden": {"$ne": True},
             "is_active": {"$ne": False},
-            "opening_hours": {"$exists": True, "$ne": {}},
+            "opening_hours.schedule": {"$exists": True, "$ne": {}},
         }
         if root_category and root_category != "all":
             query["root_category"] = root_category
@@ -341,7 +341,7 @@ async def get_nearby_businesses(
     query: Dict[str, Any] = {
         "is_hidden": {"$ne": True},
         "is_active": {"$ne": False},
-        "opening_hours": {"$exists": True, "$ne": {}},
+        "opening_hours.schedule": {"$exists": True, "$ne": {}},
         "location": {
             "$near": {
                 "$geometry": {
