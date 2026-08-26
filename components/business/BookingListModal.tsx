@@ -113,6 +113,7 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
     return (
       <View key={booking.booking_id} style={s.bookingCard}>
         <View style={s.bookingHeader}>
+          <View style={{ flex: 1, marginRight: SPACING.small }}>
           {booking.client_id ? (
             <Pressable onPress={() => router.push(`/user/${booking.client_id}` as any)}>
               <Text style={[s.clientName, { color: COLORS.primaryDark }]} numberOfLines={1} ellipsizeMode="tail">{booking.client_name}</Text>
@@ -120,6 +121,7 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
           ) : (
             <Text style={s.clientName} numberOfLines={1} ellipsizeMode="tail">{booking.client_name}</Text>
           )}
+          </View>
           <View style={[s.statusBadge, { backgroundColor: statusColor + "20" }]}>
             <Text style={[s.statusText, { color: statusColor }]} numberOfLines={1}>{t(`bookingList.${booking.status}`, booking.status)}</Text>
           </View>

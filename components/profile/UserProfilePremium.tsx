@@ -417,8 +417,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
       )}
       {activeTab === "bookings" && (
         <View style={styles.bookingTab}>
-          <Text style={[styles.bookingTabTitle, { color: textColor }]}>{t("services.myBookings", "My Bookings")}</Text>
-          <Text style={[styles.bookingTabDesc, { color: secondaryColor }]}>{t("services.myBookingsDesc", "View and manage your booked services")}</Text>
+          <Text style={[styles.bookingTabTitle, { color: textColor }]} numberOfLines={1}>{t("services.myBookings", "My Bookings")}</Text>
+          <Text style={[styles.bookingTabDesc, { color: secondaryColor }]} numberOfLines={1} ellipsizeMode="tail">{t("services.myBookingsDesc", "View and manage your booked services")}</Text>
           <Pressable
             style={[styles.bookingTabBtn, { backgroundColor: primaryColor }]}
             onPress={() => { onOpenBookings?.(); setActiveTab("posts"); }}
