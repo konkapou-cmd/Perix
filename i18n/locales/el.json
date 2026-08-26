@@ -749,7 +749,7 @@
     "type_business": "Επιχείρηση"
   },
   "business": {
-    "seeMyBookings": "Δείτε τις κρατήσεις μου",
+    "seeMyBookings": "Δείτε τις κρατήσεις σας",
     "dashboard": "Πίνακας ελέγχου επιχείρησης",
     "profileManagement": "Διαχείριση προφίλ",
     "editInfo": "Επεξεργασία πληροφοριών",
@@ -2273,9 +2273,9 @@
     "services": "Υπηρεσίες",
     "declined": "Απορρίφθηκε",
     "expired": "Έληξε",
-    "myBookings": "Οι κρατήσεις μου",
+    "myBookings": "Οι κρατήσεις σας",
     "myBookingsDesc": "Δείτε και διαχειριστείτε τις κρατήσεις σας",
-    "viewBookings": "Δείτε τις κρατήσεις μου",
+    "viewBookings": "Δείτε τις κρατήσεις σας",
     "by": "από",
     "priceFrom": "Τιμή από",
     "pricePerNight": "Τιμή / βράδυ",
