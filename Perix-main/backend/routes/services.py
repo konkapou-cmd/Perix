@@ -395,6 +395,7 @@ async def create_booking(payload: BookingCreate, current_user: UserPublic = Depe
     doc = {
         **payload_data,
         "booking_id": generate_id("bkg"),
+        "request_id": payload_data.get("request_id") or generate_id("breq"),
         "business_id": business_id,
         "client_id": current_user.user_id,
         "booking_mode": booking_mode,
@@ -409,6 +410,13 @@ async def create_booking(payload: BookingCreate, current_user: UserPublic = Depe
     except Exception:
         if slot:
             await db.service_slots.update_one({"slot_id": slot["slot_id"]}, {"$set": {"is_booked": False}})
+        # Idempotent retry: if the same request was already submitted, return it.
+        existing = await db.bookings.find_one(
+            {"client_id": current_user.user_id, "request_id": doc["request_id"]}, {"_id": 0}
+        )
+        if existing:
+            booking = await enrich_booking(existing, service=service)
+            return BookingResponse(**booking)
         raise
 
     booking = await enrich_booking(doc, service=service)

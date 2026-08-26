@@ -362,6 +362,7 @@ async def create_date_range_booking(
         doc = {
             **payload_data,
             "booking_id": booking_id,
+            "request_id": payload_data.get("request_id") or generate_id("breq"),
             "slot_id": None,
             "business_id": business_id,
             "client_id": client_id,
