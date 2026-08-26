@@ -121,7 +121,11 @@ async def get_home_feed(
         posts = []
     
     # Get ALL businesses and artists (excluding hidden ones)
-    business_query = {"is_hidden": {"$ne": True}}
+    business_query = {
+        "is_hidden": {"$ne": True},
+        # Businesses must register opening hours before they appear publicly
+        "opening_hours.schedule": {"$exists": True, "$ne": {}},
+    }
     if use_bounds:
         business_query["latitude"] = {"$gte": min_lat, "$lte": max_lat}
         business_query["longitude"] = {"$gte": min_lng, "$lte": max_lng}
