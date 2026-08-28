@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     height: CARD_IMAGE_HEIGHT,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: COLORS.background,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   businessName: {
     fontSize: Platform.OS === "web" ? 15 : 13,
     fontWeight: "600",
-    color: "#59ABE3",
+    color: "#1F4788",
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
