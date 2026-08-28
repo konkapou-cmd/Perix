@@ -313,7 +313,7 @@ export default function BusinessMap({
       >
         <View style={styles.disabledOverlay}>
           <View style={styles.disabledContent}>
-            <Ionicons name="location" size={40} color={COLORS.pinClosed} />
+            <Ionicons name="location" size={40} color="#264348" />
             <Text style={styles.disabledText}>{disabledHint}</Text>
           </View>
         </View>
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     fontSize: 15,
-    color: COLORS.textGray,
+    color: "#264348",
     fontWeight: "500",
   },
   customPin: {
