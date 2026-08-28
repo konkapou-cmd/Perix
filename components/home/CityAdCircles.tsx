@@ -248,8 +248,6 @@ const styles = StyleSheet.create({
   uploadCardContent: {
     width: CARD_WIDTH,
     height: CARD_IMAGE_HEIGHT,
-    borderWidth: 1.5,
-    borderColor: "#59ABE3",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.backgroundPage,
