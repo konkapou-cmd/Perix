@@ -2,23 +2,21 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES } from "../../lib/designTokens";
-import { HeaderBackButton } from "../shared/HeaderBackButton";
 
 type Props = {
   title: string;
   tab: "items" | "homes";
-  onBack: () => void;
+  onBack?: () => void;
   onTabChange: (tab: "items" | "homes") => void;
   onMyListings: () => void;
 };
 
-export default function DiscoveryHeader({ title, tab, onBack, onTabChange, onMyListings }: Props) {
+export default function DiscoveryHeader({ title, tab, onTabChange, onMyListings }: Props) {
   const { t } = useTranslation();
 
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        <HeaderBackButton onPress={onBack} />
         <Text style={styles.title}>{title}</Text>
         <Pressable onPress={onMyListings} style={styles.myBtn}>
           <Ionicons name="list-outline" size={22} color={COLORS.textPrimary} />

@@ -42,7 +42,6 @@ import {
   SHADOWS,
 } from "../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
-import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 import { CATEGORY_ICONS } from "../lib/categoryIcons";
 
 export default function ServicesScreen() {
@@ -175,12 +174,10 @@ export default function ServicesScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <HeaderBackButton onPress={() => router.back()} />
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{t("modules.services", "Dienstleistungen")}</Text>
           <Text style={styles.subtitle}>{t("services.nearbyServices", "Services in deiner Nähe")}</Text>
         </View>
-        <View style={{ width: 44 }} />
       </View>
 
       {loading ? (
@@ -440,7 +437,7 @@ const styles = StyleSheet.create({
   filterButton: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(38,67,72,0.25)" },
   filterLabel: { color: "#264348", fontSize: 14 },
   filterValue: { flex: 1, color: "#59ABE3", fontSize: 14, fontWeight: "500" },
-  mapContainer: { height: 180, margin: 16, borderRadius: 16, overflow: "hidden", backgroundColor: "#EAF3FB" },
+  mapContainer: { height: 180, marginVertical: 12, borderRadius: 12, overflow: "hidden", backgroundColor: "#EAF3FB" },
   mapPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   mapPlaceholderText: { fontSize: 16, fontWeight: "600", color: "#264348", marginTop: 8 },
   mapPlaceholderSubtext: { fontSize: 13, color: "#264348", marginTop: 4 },

@@ -42,7 +42,6 @@ import {
   SHADOWS,
 } from "../../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
-import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 
 export default function JobsScreen() {
   const { t } = useTranslation();
@@ -208,7 +207,6 @@ export default function JobsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <HeaderBackButton onPress={() => router.back()} />
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{t("jobs.title")}</Text>
           <Text style={styles.subtitle}>{t("jobs.subtitle")}</Text>
@@ -516,10 +514,10 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     height: 180,
-    margin: 16,
-    borderRadius: 16,
+    marginVertical: 12,
+    borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#e5e7eb",
+    backgroundColor: "#EAF3FB",
   },
   mapPlaceholder: {
     flex: 1,
