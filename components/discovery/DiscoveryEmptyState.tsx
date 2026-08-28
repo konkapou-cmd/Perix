@@ -15,7 +15,7 @@ export default function DiscoveryEmptyState({ type }: Props) {
       <Ionicons
         name={type === "no-location" ? "navigate-outline" : "search-outline"}
         size={48}
-        color={COLORS.textMuted}
+        color="#264348"
       />
       <Text style={styles.title}>
         {type === "no-location"
@@ -41,13 +41,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.body,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#264348",
     marginTop: SPACING.small,
     textAlign: "center",
   },
   subtitle: {
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textMuted,
+    color: "#264348",
     marginTop: 4,
     textAlign: "center",
   },

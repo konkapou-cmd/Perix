@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   categoryModalIcon: { marginRight: 12 },
   subDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#264348", marginRight: 12, marginLeft: 4 },
   categoryModalItemText: { flex: 1, fontSize: 16, color: "#264348" },
-  searchContainer: { paddingHorizontal: SPACING.std, paddingTop: SPACING.small, paddingBottom: SPACING.small },
+  searchContainer: { paddingHorizontal: SPACING.small, paddingTop: SPACING.small, paddingBottom: SPACING.small },
   searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: BORDER_RADIUS.lg, paddingHorizontal: SPACING.small, height: 40, gap: SPACING.small, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(38,67,72,0.2)" },
   searchInput: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: "#264348", paddingVertical: 0 },
 });
