@@ -329,7 +329,7 @@ export default function JobsScreen() {
                 <Image source={{ uri: item.cover_image }} style={styles.jobImage} />
               ) : (
                 <View style={[styles.jobImage, styles.jobImagePlaceholder]}>
-                  <Ionicons name="briefcase" size={32} color="#9ca3af" />
+                  <Ionicons name="briefcase" size={32} color="#264348" />
                 </View>
               )}
               <View style={styles.jobInfo}>
@@ -340,7 +340,7 @@ export default function JobsScreen() {
                   {item.business_name}
                 </Text>
                 <View style={styles.jobMeta}>
-                  <Ionicons name="location-outline" size={14} color="#6b7280" />
+                  <Ionicons name="location-outline" size={14} color="#264348" />
                   <Text style={styles.jobLocation} numberOfLines={1}>
                     {item.location}
                   </Text>
@@ -369,7 +369,7 @@ export default function JobsScreen() {
                     color={savedJobIds.has(item.job_id) ? COLORS.gold : COLORS.textMuted}
                   />
                 </Pressable>
-                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                <Ionicons name="chevron-forward" size={20} color="#264348" />
               </View>
             </Pressable>
           )}
@@ -554,34 +554,35 @@ const styles = StyleSheet.create({
   },
   jobCard: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "stretch",
     backgroundColor: "#fff",
     padding: 12,
-    borderRadius: 16,
+    borderRadius: 12,
     marginBottom: 10,
+    gap: 12,
   },
   jobImage: {
-    width: 64,
-    height: 64,
+    width: "31%",
+    height: 104,
     borderRadius: 12,
   },
   jobImagePlaceholder: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#EDF4FB",
     alignItems: "center",
     justifyContent: "center",
   },
   jobInfo: {
     flex: 1,
-    marginLeft: 12,
+    justifyContent: "center",
   },
   jobTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   jobBusiness: {
     fontSize: 13,
-    color: COLORS.primaryDark,
+    color: "#59ABE3",
     marginTop: 2,
   },
   jobMeta: {
@@ -592,7 +593,7 @@ const styles = StyleSheet.create({
   },
   jobLocation: {
     fontSize: 12,
-    color: "#6b7280",
+    color: "#264348",
     flex: 1,
   },
   jobDistance: {

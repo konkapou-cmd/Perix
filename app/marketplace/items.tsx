@@ -9,7 +9,6 @@ import { Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
 import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes";
 import { getCategoryConfig, getCategoryAttributes } from "../../lib/marketplace/marketplaceTaxonomy";
 import { formatPrice } from "../../lib/serviceFormat";
-import { CarouselCard } from "../../components/shared/CarouselCard";
 import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
 import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
@@ -159,21 +158,37 @@ export default function MarketplaceItemsPage() {
       ? item.public_location_label || t("marketplace.approximateLocation", "Ungefährer Standort")
       : item.address;
     return (
-      <CarouselCard
+      <Pressable
         key={item.listing_id}
-        imageUrl={img || undefined}
-        videoUrl={item.video_url || undefined}
-        isCoverVideo={isCV}
-        muxThumbnailUrl={(item as any).mux_thumbnail_url || undefined}
-        videoStatus={(item as any).video_status || undefined}
-        title={item.title}
-        subtitle={`${formatPrice(item.price) || ""}${sellerName ? `\u00b7 ${sellerName}` : ""}`}
-        subtitleOnPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}
-        subtitleAvatarUrl={item.seller_avatar || undefined}
-        thirdLine={addressLabel || ""}
+        style={styles.card}
         onPress={() => handleCardPress(item)}
-        fallbackIcon="pricetag"
-      />
+      >
+        {img ? (
+          <View style={styles.cardPhotoWrap}>
+            <Image source={{ uri: img }} style={styles.cardImage} resizeMode="cover" />
+          </View>
+        ) : (
+          <View style={[styles.cardPhotoWrap, styles.cardPlaceholder]}>
+            <Ionicons name={isCV ? "videocam" : "pricetag"} size={26} color="#264348" />
+          </View>
+        )}
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.cardPrice}>{formatPrice(item.price)}</Text>
+          {sellerName ? (
+            <Pressable onPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}>
+              <Text style={styles.cardSeller} numberOfLines={1}>{sellerName}</Text>
+            </Pressable>
+          ) : null}
+          {addressLabel ? (
+            <View style={styles.cardAddr}>
+              <Ionicons name="location-outline" size={12} color="#264348" />
+              <Text style={styles.cardAddrText} numberOfLines={1}>{addressLabel}</Text>
+            </View>
+          ) : null}
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#264348" style={{ alignSelf: "center" }} />
+      </Pressable>
     );
   }, [handleCardPress, router, t]);
 
@@ -306,8 +321,6 @@ export default function MarketplaceItemsPage() {
         data={visibleListings}
         renderItem={renderCard}
         keyExtractor={(item) => item.listing_id}
-        numColumns={2}
-        columnWrapperStyle={styles.columnWrapper}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
@@ -327,20 +340,21 @@ export default function MarketplaceItemsPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  listContent: { paddingBottom: SPACING.section },
-  columnWrapper: { gap: SPACING.small, paddingHorizontal: SPACING.std, marginBottom: SPACING.small },
+  listContent: { paddingBottom: SPACING.section, paddingHorizontal: SPACING.std },
   card: {
-    flex: 1, backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.lg,
-    overflow: "hidden", borderWidth: 1, borderColor: COLORS.border,
+    flexDirection: "row", alignItems: "stretch", backgroundColor: COLORS.background,
+    borderRadius: BORDER_RADIUS.md, padding: SPACING.small, gap: SPACING.std,
+    marginBottom: SPACING.small,
   },
-  cardImage: { width: "100%", aspectRatio: 16 / 9, backgroundColor: COLORS.backgroundPage },
+  cardPhotoWrap: { width: "31%", height: 104, borderRadius: BORDER_RADIUS.md, overflow: "hidden", backgroundColor: "#EDF4FB" },
+  cardImage: { width: "100%", height: "100%" },
   cardPlaceholder: { alignItems: "center", justifyContent: "center" },
-  cardInfo: { padding: SPACING.small },
-  cardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.textPrimary },
+  cardInfo: { flex: 1, justifyContent: "center", minWidth: 0 },
+  cardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: "#264348" },
   cardPrice: { fontSize: FONT_SIZES.bodySmall, fontWeight: "700", color: COLORS.success, marginTop: 4 },
-  cardSeller: { fontSize: 11, color: COLORS.primary, marginTop: 4 },
+  cardSeller: { fontSize: 11, color: "#59ABE3", marginTop: 4 },
   cardAddr: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 },
-  cardAddrText: { fontSize: 11, color: COLORS.textMuted, flex: 1 },
+  cardAddrText: { fontSize: 11, color: "#264348", flex: 1 },
   filterRow: {
     flexDirection: "row", paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
     backgroundColor: COLORS.background, gap: SPACING.small,

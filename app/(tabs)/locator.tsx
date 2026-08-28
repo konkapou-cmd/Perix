@@ -1092,7 +1092,7 @@ export default function LocatorScreen() {
           </View>
         )}
 
-        <View style={{ height: 80 }} />
+        <View style={{ height: 110 }} />
       </View>
       </ScrollView>
 
