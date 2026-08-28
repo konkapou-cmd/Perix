@@ -376,7 +376,7 @@ export default function JobsScreen() {
           onEndReached={loadMoreJobs}
           onEndReachedThreshold={0.5}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={async () => { setIsRefreshing(true); await loadJobs(); setIsRefreshing(false); }} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
-          ListFooterComponent={loadingMore ? <ActivityIndicator color={#264348} /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color="#264348" /> : null}
           ListEmptyComponent={
             <EmptyState
               icon="briefcase-outline"
@@ -397,7 +397,7 @@ export default function JobsScreen() {
           <View style={styles.categoryModalHeader}>
             <Text style={styles.categoryModalTitle}>{t("locator.selectCategory")}</Text>
             <Pressable onPress={() => setCategoryModalVisible(false)}>
-              <Ionicons name="close" size={22} color={#264348} />
+              <Ionicons name="close" size={22} color="#264348" />
             </Pressable>
           </View>
           <ScrollView>
@@ -434,7 +434,7 @@ export default function JobsScreen() {
           <View style={styles.categoryModalHeader}>
             <Text style={styles.categoryModalTitle}>{t("locator.selectSubcategory")}</Text>
             <Pressable onPress={() => setSubcategoryModalVisible(false)}>
-              <Ionicons name="close" size={22} color={#264348} />
+              <Ionicons name="close" size={22} color="#264348" />
             </Pressable>
           </View>
           <ScrollView>
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: #264348,
+    color: "#264348",
   },
   subtitle: {
     color: "#6b7280",
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   },
   filterValue: {
     flex: 1,
-    color: #264348,
+    color: "#264348",
     fontSize: 14,
     fontWeight: "500",
   },
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   mapPlaceholderText: {
     fontSize: 16,
     fontWeight: "600",
-    color: #264348,
+    color: "#264348",
     marginTop: 8,
   },
   mapPlaceholderSubtext: {
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
   },
   jobDistance: {
     fontSize: 12,
-    color: #264348,
+    color: "#264348",
     fontWeight: "500",
     marginTop: 2,
   },
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: #264348,
+    color: "#264348",
   },
   modalBody: {
     flex: 1,
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
   detailTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: #264348,
+    color: "#264348",
     marginBottom: 12,
   },
   detailRow: {
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   },
   detailBusiness: {
     fontSize: 16,
-    color: #264348,
+    color: "#264348",
     fontWeight: "500",
   },
   detailLocation: {
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
   detailSectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: #264348,
+    color: "#264348",
     marginTop: 16,
     marginBottom: 8,
   },
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: #264348,
+    backgroundColor: "#264348",
     padding: 16,
     borderRadius: 12,
     marginTop: 24,
@@ -723,7 +723,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   uploadButtonText: {
-    color: #264348,
+    color: "#264348",
     fontSize: 14,
   },
   submitButton: {
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   categoryModalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: #264348,
+    color: "#264348",
   },
   categoryModalItem: {
     padding: 16,
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
   },
   myAppsBtn: {
     marginLeft: "auto",
-    backgroundColor: #264348,
+    backgroundColor: "#264348",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
