@@ -743,7 +743,10 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.stickyHeader}>
         <View style={styles.stickyHeaderLeft}>
-          <Animated.Text style={[styles.stickyHeaderBrand, { opacity: brandOpacity }]}>Perix</Animated.Text>
+          <View style={styles.brandWrap}>
+            <Animated.Text style={[styles.stickyHeaderBrand, { opacity: brandOpacity }]}>Perix</Animated.Text>
+            <Ionicons name="sunny" size={8} color="#FFC93C" style={styles.brandSun} />
+          </View>
           <Pressable style={styles.locationSearchPill} onPress={() => setShowLocationSearch(true)}>
             <Ionicons name="location-outline" size={13} color={COLORS.textMuted} />
             <Text style={styles.locationSearchPillText} numberOfLines={1}>
@@ -752,8 +755,8 @@ export default function HomeScreen() {
           </Pressable>
         </View>
         <View style={styles.stickyHeaderRight}>
-          <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.filterIconBg }]} onPress={() => setShowLayoutSettings(true)}>
-            <Ionicons name="options-outline" size={22} color={COLORS.filterIcon} />
+          <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: "#5D8CAE" }]} onPress={() => setShowLayoutSettings(true)}>
+            <Ionicons name="options-outline" size={22} color="#264348" />
           </Pressable>
           <View style={styles.identityDropWrap}>
             <IdentityDropdown
@@ -1627,6 +1630,8 @@ const styles = StyleSheet.create({
   postStatItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   postStatText: { fontSize: 13, color: COLORS.textMuted },
   stickyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACING.small, paddingVertical: 10, backgroundColor: COLORS.background, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border, zIndex: 10 },
+  brandWrap: { position: "relative" },
+  brandSun: { position: "absolute", right: 10, top: 0 },
   stickyHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
   stickyHeaderBrand: { fontSize: 22, fontWeight: "800", color: COLORS.primary, letterSpacing: -0.5 },
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },

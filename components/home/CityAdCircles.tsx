@@ -197,6 +197,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginBottom: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#59ABE3",
     shadowColor: COLORS.primaryDark,
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -271,7 +273,7 @@ const styles = StyleSheet.create({
   businessName: {
     fontSize: Platform.OS === "web" ? 15 : 13,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#59ABE3",
     paddingHorizontal: 10,
     paddingVertical: 8,
   },

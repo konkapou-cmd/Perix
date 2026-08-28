@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 12,
     fontWeight: "500",
-    color: COLORS.textMuted,
+    color: "#264348",
   },
   grid: {
     flexDirection: "row",

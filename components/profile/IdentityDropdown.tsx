@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "#59ABE3",
     gap: 8,
   },
   leftSection: {
