@@ -71,7 +71,7 @@ export default function LocatorSidebar({
         <Text style={styles.headerTitle}>{t("locator.categories", "Categories")}</Text>
         {onClose && (
           <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={8}>
-            <Ionicons name="close" size={20} color={COLORS.textMuted} />
+            <Ionicons name="close" size={20} color="#264348" />
           </Pressable>
         )}
       </View>
@@ -90,7 +90,7 @@ export default function LocatorSidebar({
             <Ionicons
               name="grid-outline"
               size={16}
-              color={selectedRoot === "All" ? COLORS.primary : COLORS.textMuted}
+              color={selectedRoot === "All" ? "#59ABE3" : "#264348"}
             />
           </View>
           <Text
@@ -127,7 +127,7 @@ export default function LocatorSidebar({
                   <Ionicons
                     name="folder-outline"
                     size={16}
-                    color={isExpanded ? COLORS.primary : COLORS.textMuted}
+                    color={isExpanded ? "#59ABE3" : "#264348"}
                   />
                 </View>
                 <Text
@@ -143,7 +143,7 @@ export default function LocatorSidebar({
                   <Ionicons
                     name={isExpanded ? "chevron-up" : "chevron-down"}
                     size={14}
-                    color={isExpanded ? COLORS.primary : COLORS.textMuted}
+                    color={isExpanded ? "#59ABE3" : "#264348"}
                     style={styles.chevron}
                   />
                 )}
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   closeBtn: {
     padding: 4,
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.small,
   },
   itemActive: {
-    backgroundColor: COLORS.primary + "10",
+    backgroundColor: "rgba(89,171,227,0.12)",
   },
   itemIcon: {
     width: 22,
@@ -257,11 +257,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: Platform.OS === "web" ? 14 : 13,
     fontWeight: FONT_WEIGHTS.medium as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
     ...Platform.select({ web: { cursor: "pointer" } as any, default: {} }),
   },
   itemTextActive: {
-    color: COLORS.primary,
+    color: "#59ABE3",
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   chevron: {
@@ -281,22 +281,22 @@ const styles = StyleSheet.create({
     gap: SPACING.small,
   },
   subItemActive: {
-    backgroundColor: COLORS.primary + "10",
+    backgroundColor: "rgba(89,171,227,0.12)",
   },
   subDot: {
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: COLORS.textMuted,
+    backgroundColor: "#264348",
   },
   subText: {
     flex: 1,
     fontSize: Platform.OS === "web" ? 13 : 12,
-    color: COLORS.textMuted,
+    color: "#264348",
     ...Platform.select({ web: { cursor: "pointer" } as any, default: {} }),
   },
   subTextActive: {
-    color: COLORS.primary,
+    color: "#59ABE3",
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   groupList: {
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   groupHeader: {
     fontSize: Platform.OS === "web" ? 11 : 10,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textMuted,
+    color: "#264348",
     textTransform: "uppercase" as any,
     letterSpacing: 0.5,
     paddingVertical: SPACING.small,

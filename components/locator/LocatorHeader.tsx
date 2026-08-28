@@ -27,7 +27,7 @@ export default function LocatorHeader({ activeTab, onTabChange, locationName, t 
     <View style={styles.container}>
       {locationName && (
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color={COLORS.textMuted} />
+          <Ionicons name="location-outline" size={14} color="#264348" />
           <Text style={styles.locationText} numberOfLines={1}>
             {locationName}
           </Text>
@@ -42,11 +42,11 @@ export default function LocatorHeader({ activeTab, onTabChange, locationName, t 
           icon: s.icon,
         }))}
         onChange={(tab) => onTabChange(tab as TabType)}
-        primaryColor={COLORS.primaryDark}
-        textColor={COLORS.textPrimary}
-        mutedColor={COLORS.textMuted}
+        primaryColor="#59ABE3"
+        textColor="#264348"
+        mutedColor="#264348"
         backgroundColor={COLORS.background}
-        borderColor={COLORS.border ?? "#e5e7eb"}
+        borderColor="rgba(38,67,72,0.25)"
       />
     </View>
   );
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 13,
-    color: COLORS.textMuted,
+    color: "#264348",
     flex: 1,
   },
 });

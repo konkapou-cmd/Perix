@@ -733,38 +733,38 @@ export default function LocatorScreen() {
         <View style={styles.searchInputContainer}>
           {Platform.OS !== "web" && (
             <Pressable onPress={() => setSidebarOpen(true)} style={{ paddingRight: 4 }}>
-              <Ionicons name="menu" size={20} color={COLORS.primary} />
+              <Ionicons name="menu" size={20} color="#264348" />
             </Pressable>
           )}
-          <Ionicons name="search" size={18} color={COLORS.textMuted} />
+          <Ionicons name="search" size={18} color="#264348" />
           <TextInput
             style={styles.searchInput}
             placeholder={activeTab === "businesses" ? t('business.searchBusinesses') : activeTab === "events" ? t('events.searchEvents') : t('activities.searchActivities')}
-            placeholderTextColor={COLORS.textDisabled}
+            placeholderTextColor="#264348"
             value={activeTab === "businesses" ? businessSearchQuery : activeTab === "events" ? eventSearchQuery : activitySearchQuery}
             onChangeText={activeTab === "businesses" ? setBusinessSearchQuery : activeTab === "events" ? setEventSearchQuery : setActivitySearchQuery}
           />
           {(businessSearchQuery || eventSearchQuery || activitySearchQuery) ? (
             <Pressable onPress={() => { setBusinessSearchQuery(""); setEventSearchQuery(""); setActivitySearchQuery(""); }}>
-              <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+              <Ionicons name="close-circle" size={18} color="#264348" />
             </Pressable>
           ) : null}
           <Pressable
             style={styles.locationSearchBtn}
             onPress={() => setShowLocationSearch(true)}
           >
-            <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+            <Ionicons name="location-outline" size={18} color="#264348" />
           </Pressable>
         </View>
         {/* Location search */}
         {showLocationSearch && (
           <View style={styles.locationSearchDropdown}>
             <View style={styles.locationSearchBar}>
-              <Ionicons name="search" size={18} color={COLORS.textMuted} />
+              <Ionicons name="search" size={18} color="#264348" />
               <TextInput
                 style={styles.locationSearchInput}
                 placeholder={t("locator.searchLocation") || "Search location..."}
-                placeholderTextColor={COLORS.textDisabled}
+                placeholderTextColor="#264348"
                 value={locationSearchQuery}
                 onChangeText={(text) => {
                   setLocationSearchQuery(text);
@@ -773,7 +773,7 @@ export default function LocatorScreen() {
                 autoFocus
               />
               <Pressable onPress={() => { setShowLocationSearch(false); setLocationSearchQuery(""); setLocationSearchSuggestions([]); }}>
-                <Ionicons name="close" size={20} color={COLORS.textMuted} />
+                <Ionicons name="close" size={20} color="#264348" />
               </Pressable>
             </View>
             {locationSearchSuggestions.length > 0 && (
@@ -785,7 +785,7 @@ export default function LocatorScreen() {
                       style={styles.locationSearchItem}
                       onPress={() => handleLocationSearchSelect(s)}
                     >
-                      <Ionicons name="location" size={16} color={COLORS.primary} />
+                      <Ionicons name="location" size={16} color="#264348" />
                       <Text style={styles.locationSearchItemText} numberOfLines={1}>{s.description}</Text>
                     </Pressable>
                   ))}
@@ -816,7 +816,7 @@ export default function LocatorScreen() {
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 20 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#264348" />}
         >
           {/* Map Section */}
           <View style={styles.mapSection}>
@@ -884,7 +884,7 @@ export default function LocatorScreen() {
             }
           }}
         >
-          <Ionicons name="locate" size={22} color={COLORS.primary} />
+          <Ionicons name="locate" size={22} color="#264348" />
         </Pressable>
       </View>
 
@@ -907,8 +907,10 @@ export default function LocatorScreen() {
               ...categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t), icon: (CATEGORY_ICONS[cat.slug] || "grid") as any })),
             ]}
             onChange={(key) => { setSelectedRoot(key); setSelectedSubcategory("All"); }}
-            primaryColor={COLORS.primary}
-            borderColor={COLORS.border ?? "#e5e7eb"}
+            primaryColor="#59ABE3"
+            mutedColor="#264348"
+            textColor="#264348"
+            borderColor="rgba(38,67,72,0.25)"
           />
           {selectedRoot !== "All" && businessSubcategories.length > 0 && (
             <ProgressivePicker
@@ -919,8 +921,10 @@ export default function LocatorScreen() {
                 ...businessSubcategories.map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t) })),
               ]}
               onChange={(key) => setSelectedSubcategory(key === "All" ? "All" : key)}
-              primaryColor={COLORS.primary}
-              borderColor={COLORS.border ?? "#e5e7eb"}
+              primaryColor="#59ABE3"
+            mutedColor="#264348"
+            textColor="#264348"
+            borderColor="rgba(38,67,72,0.25)"
             />
           )}
           <View style={styles.openNowToggle}>
@@ -945,7 +949,7 @@ export default function LocatorScreen() {
       )}
       {activeTab === "hotels" && (
         <View style={{ paddingHorizontal: 12, paddingBottom: 4 }}>
-          <Text style={{ fontSize: 13, color: COLORS.textMuted }}>
+          <Text style={{ fontSize: 13, color: "#264348" }}>
             {t("home.hotels", "Local Hotels")} — {visibleHotels.length} {t("tabs.hotels", "Hotels")}
           </Text>
         </View>
@@ -960,8 +964,10 @@ export default function LocatorScreen() {
               ...Object.entries(EVENT_THEMES).map(([key, theme]: [string, any]) => ({ key, label: theme.label })),
             ]}
             onChange={(key) => setEventThemeFilter(key === "All" ? null : key)}
-            primaryColor={COLORS.primary}
-            borderColor={COLORS.border ?? "#e5e7eb"}
+            primaryColor="#59ABE3"
+            mutedColor="#264348"
+            textColor="#264348"
+            borderColor="rgba(38,67,72,0.25)"
           />
           <ProgressivePicker
             label={t("common.date", "Datum")}
@@ -970,8 +976,10 @@ export default function LocatorScreen() {
             onPressOverride={() => setShowCalendar(true)}
             options={[{ key: "this-week" as any, label: t("common.thisWeek", "Diese Woche") }]}
             onChange={() => {}}
-            primaryColor={COLORS.primary}
-            borderColor={COLORS.border ?? "#e5e7eb"}
+            primaryColor="#59ABE3"
+            mutedColor="#264348"
+            textColor="#264348"
+            borderColor="rgba(38,67,72,0.25)"
           />
         </>
       )}
@@ -985,8 +993,10 @@ export default function LocatorScreen() {
               ...Object.entries(ACTIVITY_CATEGORIES).map(([key, cat]: [string, any]) => ({ key, label: cat.label })),
             ]}
             onChange={(key) => setActivityCategoryFilter(key === "All" ? null : key)}
-            primaryColor={COLORS.primary}
-            borderColor={COLORS.border ?? "#e5e7eb"}
+            primaryColor="#59ABE3"
+            mutedColor="#264348"
+            textColor="#264348"
+            borderColor="rgba(38,67,72,0.25)"
           />
           <ProgressivePicker
             label={t("common.date", "Datum")}
@@ -995,8 +1005,10 @@ export default function LocatorScreen() {
             onPressOverride={() => setShowCalendar(true)}
             options={[{ key: "this-week" as any, label: t("common.thisWeek", "Diese Woche") }]}
             onChange={() => {}}
-            primaryColor={COLORS.primary}
-            borderColor={COLORS.border ?? "#e5e7eb"}
+            primaryColor="#59ABE3"
+            mutedColor="#264348"
+            textColor="#264348"
+            borderColor="rgba(38,67,72,0.25)"
           />
         </>
       )}
@@ -1009,8 +1021,10 @@ export default function LocatorScreen() {
             ...rentalSubcategoryChips.map((c: any) => ({ key: c.key, label: c.label })),
           ]}
           onChange={(key) => setRentalTypeFilter(key === "All" ? null : key)}
-          primaryColor={COLORS.primary}
-          borderColor={COLORS.border ?? "#e5e7eb"}
+          primaryColor="#59ABE3"
+            mutedColor="#264348"
+            textColor="#264348"
+            borderColor="rgba(38,67,72,0.25)"
         />
       )}
       {activeTab === "jobs" && (
@@ -1022,8 +1036,10 @@ export default function LocatorScreen() {
             ...categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t) })),
           ]}
           onChange={(key) => setJobTypeFilter(key === "All" ? null : key)}
-          primaryColor={COLORS.primary}
-          borderColor={COLORS.border ?? "#e5e7eb"}
+          primaryColor="#59ABE3"
+            mutedColor="#264348"
+            textColor="#264348"
+            borderColor="rgba(38,67,72,0.25)"
         />
       )}
 
@@ -1539,7 +1555,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: Platform.OS === "web" ? 16 : 15,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   
   // Filter Row Styles
@@ -2234,7 +2250,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 15,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   locationResults: {
     flex: 1,
@@ -2669,17 +2685,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: "transparent",
   },
   sortChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   sortChipText: {
     fontSize: Platform.OS === "web" ? 13 : 12,
     fontWeight: "500",
-    color: COLORS.textMuted,
+    color: "#264348",
   },
   sortChipTextActive: {
     color: COLORS.background,
@@ -2739,17 +2755,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: "transparent",
   },
   categoryChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   categoryChipText: {
     fontSize: 12,
     fontWeight: "500",
-    color: COLORS.textMuted,
+    color: "#264348",
   },
   categoryChipTextActive: {
     color: COLORS.background,
@@ -2760,20 +2776,20 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.backgroundPage,
+    borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: "transparent",
   },
   subChipActive: {
-    backgroundColor: COLORS.primaryLight,
-    borderColor: COLORS.primary,
+    backgroundColor: "rgba(89,171,227,0.15)",
+    borderColor: "#59ABE3",
   },
   subChipText: {
     fontSize: 11,
     fontWeight: "500",
-    color: COLORS.textMuted,
+    color: "#264348",
   },
   subChipTextActive: {
-    color: COLORS.primary,
+    color: "#59ABE3",
     fontWeight: "600",
   },
   businessMeta: {
@@ -2860,7 +2876,7 @@ const styles = StyleSheet.create({
   },
   locationSearchItemText: {
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textPrimary,
+    color: "#264348",
     flexShrink: 1,
   },
   listContainer: {
@@ -2876,16 +2892,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: "transparent",
   },
   openNowBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   openNowText: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textSecondary,
+    color: "#264348",
     fontWeight: "600",
   },
   openNowTextActive: {
