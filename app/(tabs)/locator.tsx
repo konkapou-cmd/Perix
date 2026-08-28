@@ -122,11 +122,6 @@ export default function LocatorScreen() {
 
   const [activeTab, setActiveTab] = useState<TabType>("businesses");
   const [businessAvailabilityFilter, setBusinessAvailabilityFilter] = useState<"all" | "open_now">("all");
-  const [locationSearchQuery, setLocationSearchQuery] = useState("");
-  const [locationSearchSuggestions, setLocationSearchSuggestions] = useState<
-    { description: string; place_id: string; lat: number | null; lng: number | null }[]
-  >([]);
-  const [showLocationSearch, setShowLocationSearch] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Date filter state
@@ -530,37 +525,6 @@ export default function LocatorScreen() {
     }
   };
 
-  const fetchLocationSearchSuggestions = async (query: string) => {
-    if (!sessionToken || query.length < 3) {
-      setLocationSearchSuggestions([]);
-      return;
-    }
-    try {
-      const data = await apiRequest<{ predictions: { place_id: string; description: string; lat: number | null; lng: number | null }[] }>(
-        `/places/autocomplete?input=${encodeURIComponent(query)}`, "GET", sessionToken
-      );
-      setLocationSearchSuggestions(data.predictions || []);
-    } catch (error) {
-      setLocationSearchSuggestions([]);
-    }
-  };
-
-  const handleLocationSearchSelect = (suggestion: {
-    description: string;
-    place_id: string;
-    lat: number | null;
-    lng: number | null;
-    lon?: number | null;
-  }) => {
-    setLocationSearchQuery("");
-    setLocationSearchSuggestions([]);
-    setShowLocationSearch(false);
-    const lng = suggestion.lng ?? suggestion.lon ?? null;
-    if (suggestion.lat != null && lng != null) {
-      setManualLocation(suggestion.lat, lng, suggestion.description.split(",")[0]);
-    }
-  };
-
   const loadSubscriptionPlans = useCallback(async () => {
     if (!sessionToken) return;
     const plans = await getSubscriptionPlans(sessionToken);
@@ -725,51 +689,7 @@ export default function LocatorScreen() {
               <Ionicons name="close-circle" size={18} color="#264348" />
             </Pressable>
           ) : null}
-          <Pressable
-            style={styles.locationSearchBtn}
-            onPress={() => setShowLocationSearch(true)}
-          >
-            <Ionicons name="location-outline" size={18} color="#264348" />
-          </Pressable>
         </View>
-        {/* Location search */}
-        {showLocationSearch && (
-          <View style={styles.locationSearchDropdown}>
-            <View style={styles.locationSearchBar}>
-              <Ionicons name="search" size={18} color="#264348" />
-              <TextInput
-                style={styles.locationSearchInput}
-                placeholder={t("locator.searchLocation") || "Search location..."}
-                placeholderTextColor="#264348"
-                value={locationSearchQuery}
-                onChangeText={(text) => {
-                  setLocationSearchQuery(text);
-                  fetchLocationSearchSuggestions(text);
-                }}
-                autoFocus
-              />
-              <Pressable onPress={() => { setShowLocationSearch(false); setLocationSearchQuery(""); setLocationSearchSuggestions([]); }}>
-                <Ionicons name="close" size={20} color="#264348" />
-              </Pressable>
-            </View>
-            {locationSearchSuggestions.length > 0 && (
-              <View style={styles.locationSearchResults}>
-                <ScrollView nestedScrollEnabled>
-                  {locationSearchSuggestions.map((s) => (
-                    <Pressable
-                      key={s.place_id}
-                      style={styles.locationSearchItem}
-                      onPress={() => handleLocationSearchSelect(s)}
-                    >
-                      <Ionicons name="location" size={16} color="#264348" />
-                      <Text style={styles.locationSearchItemText} numberOfLines={1}>{s.description}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-          </View>
-        )}
       </View>
 
       {/* Sidebar + Content */}
@@ -2862,6 +2782,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 6,
     marginTop: 4,
+    paddingHorizontal: 16,
+    paddingBottom: 4,
   },
   openNowBtn: {
     paddingHorizontal: 14,
