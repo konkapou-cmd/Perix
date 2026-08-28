@@ -54,6 +54,7 @@ class EventCreate(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     theme: Optional[str] = None
+    themes: Optional[List[str]] = None
     profile_theme: Optional[ThemeSettings] = None
     gallery_images: List[str] = []
     gallery_videos: List[str] = []
@@ -82,6 +83,7 @@ class EventResponse(BaseModel):
     is_attending: Optional[bool] = False
     is_private: bool = False
     theme: Optional[str] = None
+    themes: List[str] = []
     profile_theme: Optional[ThemeSettings] = None
     gallery_images: List[str] = []
     gallery_videos: List[str] = []
@@ -109,6 +111,7 @@ class EventPublicResponse(BaseModel):
     attendees_count: int = 0
     is_private: bool = False
     theme: Optional[str] = None
+    themes: List[str] = []
     profile_theme: Optional[ThemeSettings] = None
     gallery_images: List[str] = []
     gallery_videos: List[str] = []
@@ -130,6 +133,7 @@ class EventUpdate(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     theme: Optional[str] = None
+    themes: Optional[List[str]] = None
     profile_theme: Optional[ThemeSettings] = None
     gallery_images: Optional[List[str]] = None
     gallery_videos: Optional[List[str]] = None

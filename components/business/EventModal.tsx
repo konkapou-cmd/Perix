@@ -31,6 +31,7 @@ type EventForm = {
   image_urls: string[];
   video_url?: string;
   theme: string;
+  themes: string[];
   gallery_images: string[];
   gallery_videos: string[];
   is_private: boolean;
@@ -195,6 +196,7 @@ export default function EventModal({
         image_urls: (eventEditing as any).image_urls || [],
         video_url: (eventEditing as any).video_url ?? undefined,
         theme: eventEditing.theme || "",
+        themes: (eventEditing as any).themes?.length ? (eventEditing as any).themes : (eventEditing.theme ? [eventEditing.theme] : []),
         gallery_images: (eventEditing as any).gallery_images || [],
         gallery_videos: (eventEditing as any).gallery_videos || [],
         is_private: (eventEditing as any).is_private || false,
@@ -339,10 +341,14 @@ export default function EventModal({
           <Text style={s.label}>{t("events.theme") || "Theme"}</Text>
           <Pressable style={s.selector} onPress={() => onShowThemePicker(!showThemePicker)}>
             <View style={s.themeChipPreview}>
-              {eventForm.theme ? (
+              {eventForm.themes?.length > 0 ? (
                 <>
-                  <Text style={s.themeChipEmoji}>{themeList.find(th => th.slug === eventForm.theme)?.emoji || DEFAULT_EVENT_THEME.emoji}</Text>
-                  <Text style={s.themeChipText}>{themeList.find(th => th.slug === eventForm.theme)?.label || DEFAULT_EVENT_THEME.label}</Text>
+                  <Text style={s.themeChipEmoji}>{themeList.find(th => th.slug === eventForm.themes[0])?.emoji || DEFAULT_EVENT_THEME.emoji}</Text>
+                  <Text style={s.themeChipText}>
+                    {eventForm.themes.length === 1
+                      ? (themeList.find(th => th.slug === eventForm.themes[0])?.label || DEFAULT_EVENT_THEME.label)
+                      : `${eventForm.themes.length} ${t("events.themes", "Themes")}`}
+                  </Text>
                 </>
               ) : (
                 <Text style={s.selectorText}>{t("events.selectTheme") || "Select theme"}</Text>
@@ -353,19 +359,25 @@ export default function EventModal({
 
           {showThemePicker && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.themeChipsRow}>
-              {themeList.map((theme) => (
+              {themeList.map((theme) => {
+                const active = (eventForm.themes || []).includes(theme.slug);
+                return (
                 <Pressable
                   key={theme.slug}
-                  style={[s.themeChip, eventForm.theme === theme.slug && { backgroundColor: theme.color || COLORS.primary, borderColor: theme.color || COLORS.primary }]}
+                  style={[s.themeChip, active && { backgroundColor: theme.color || COLORS.primary, borderColor: theme.color || COLORS.primary }]}
                   onPress={() => {
-                    onFormChange({ ...eventForm, theme: eventForm.theme === theme.slug ? "" : theme.slug });
-                    onShowThemePicker(false);
+                    const next = active
+                      ? (eventForm.themes || []).filter(t => t !== theme.slug)
+                      : [...(eventForm.themes || []), theme.slug];
+                    onFormChange({ ...eventForm, themes: next, theme: next.length > 0 ? next[0] : "" });
                   }}
                 >
                   <Text style={s.themeChipEmoji}>{theme.emoji || "🎉"}</Text>
-                  <Text style={[s.themeChipText, eventForm.theme === theme.slug && s.themeChipTextActive]}>{theme.label}</Text>
+                  <Text style={[s.themeChipText, active && s.themeChipTextActive]}>{theme.label}</Text>
+                  {active && <Ionicons name="checkmark-circle" size={14} color="#fff" />}
                 </Pressable>
-              ))}
+                );
+              })}
             </ScrollView>
           )}
 

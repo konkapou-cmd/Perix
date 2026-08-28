@@ -235,6 +235,7 @@ export type EventItem = {
   latitude?: number | null;
   longitude?: number | null;
   theme?: string | null;
+  themes?: string[];
   is_private?: boolean;
   requires_password?: boolean;
   gallery_images?: string[];

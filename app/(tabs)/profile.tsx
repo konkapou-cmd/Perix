@@ -333,7 +333,7 @@ export default function ProfileScreen() {
   const creatingBusinessRef = useRef(false);
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [eventEditing, setEventEditing] = useState<EventItem | null>(null);
-  const [eventForm, setEventForm] = useState<{title: string; description: string; start_time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; theme: string; gallery_images: string[]; gallery_videos: string[]; media_items: any[]; is_private: boolean; password: string; tagged_artist_ids: string[]}>({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
+  const [eventForm, setEventForm] = useState<{title: string; description: string; start_time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; theme: string; themes: string[]; gallery_images: string[]; gallery_videos: string[]; media_items: any[]; is_private: boolean; password: string; tagged_artist_ids: string[]}>({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
   const [eventVideoPreview, setEventVideoPreview] = useState<string | null>(null);
   const [eventThemes, setEventThemes] = useState<{slug: string; label: string; color?: string; emoji?: string; gradient?: [string, string]}[]>([]);
   const [showThemePicker, setShowThemePicker] = useState(false);
@@ -804,7 +804,7 @@ export default function ProfileScreen() {
       }
       setEventModalVisible(false);
       setEventEditing(null);
-      setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: "", theme: "", gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
+      setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: "", theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
       if (activeIdentity?.type === "business") loadBusinessProfile();
     } catch (e) {
       console.error("[handleSaveEvent] Error:", (e as Error)?.message, "Status:", (e as any)?.status, "eventEditing:", eventEditing?.event_id);
@@ -2671,7 +2671,7 @@ currentUserId={businessDetail?.business?.business_id}
         />
         <EventModal
           visible={eventModalVisible}
-          onClose={() => { setEventModalVisible(false); setEventEditing(null); setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] }); }}
+          onClose={() => { setEventModalVisible(false); setEventEditing(null); setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] }); }}
           eventForm={eventForm}
           onFormChange={setEventForm}
           eventEditing={eventEditing}

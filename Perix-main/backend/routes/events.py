@@ -101,7 +101,8 @@ async def create_event(
         "location": payload.location,
         "latitude": payload.latitude,
         "longitude": payload.longitude,
-        "theme": payload.theme,
+        "theme": (payload.themes[0] if payload.themes else payload.theme),
+        "themes": payload.themes or ([payload.theme] if payload.theme else []),
         "gallery_images": payload.gallery_images or [],
         "gallery_videos": payload.gallery_videos or [],
         "is_private": payload.is_private,
@@ -132,6 +133,7 @@ async def create_event(
         longitude=event_doc.get("longitude"),
         created_at=event_doc["created_at"],
         theme=event_doc.get("theme"),
+        themes=event_doc.get("themes") or ([event_doc.get("theme")] if event_doc.get("theme") else []),
         is_private=event_doc.get("is_private", False),
         profile_theme=business.get("theme") if business else None,
         gallery_images=event_doc.get("gallery_images", []),
@@ -284,6 +286,7 @@ async def list_events(
                 longitude=event_lng,
                 created_at=event["created_at"],
                 theme=event.get("theme"),
+                themes=event.get("themes") or ([event.get("theme")] if event.get("theme") else []),
                 is_private=event.get("is_private", False),
                 profile_theme=business.get("theme") if business else None,
                 gallery_images=event.get("gallery_images", []),
@@ -359,6 +362,7 @@ async def get_event_detail(
         is_attending=is_attending,
         is_private=event.get("is_private", False),
         theme=event.get("theme"),
+        themes=event.get("themes") or ([event.get("theme")] if event.get("theme") else []),
         profile_theme=business.get("theme") if business else None,
         gallery_images=event.get("gallery_images", []),
         gallery_videos=event.get("gallery_videos", []),
@@ -427,6 +431,7 @@ async def get_event_public(event_id: str):
         attendees_count=len(attendees),
         is_private=event.get("is_private", False),
         theme=event.get("theme"),
+        themes=event.get("themes") or ([event.get("theme")] if event.get("theme") else []),
         profile_theme=business.get("theme") if business else None,
         gallery_images=event.get("gallery_images", []),
         gallery_videos=event.get("gallery_videos", []),
@@ -466,6 +471,14 @@ async def update_event(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     update_data = payload.model_dump(exclude_unset=True)
+
+    if "themes" in update_data:
+        if update_data["themes"]:
+            update_data["theme"] = update_data["themes"][0]
+        elif "theme" not in update_data:
+            update_data["theme"] = None
+    elif "theme" in update_data:
+        update_data["themes"] = [update_data["theme"]] if update_data["theme"] else []
 
     # Business events always use the business location — override any set values
     if business:
@@ -528,6 +541,7 @@ async def update_event(
         created_at=event["created_at"],
         is_private=event.get("is_private", False),
         theme=event.get("theme"),
+        themes=event.get("themes") or ([event.get("theme")] if event.get("theme") else []),
         profile_theme=business.get("theme") if business else None,
         gallery_images=event.get("gallery_images", []),
         gallery_videos=event.get("gallery_videos", []),
