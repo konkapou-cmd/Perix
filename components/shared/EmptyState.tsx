@@ -39,7 +39,7 @@ export const EmptyState = ({
   const text = message ?? (i18nKey ? t(i18nKey) : t("common.noItems", "Keine Einträge"));
   const sub = subMessage ?? (i18nSubKey ? t(i18nSubKey) : undefined);
   const cfg = SIZE_CONFIG[size];
-  const iconColor = muted ? (COLORS.borderLight ?? "#e5e7eb") : "#d1d5db";
+  const iconColor = muted ? "#264348" : "#d1d5db";
 
   return (
     <View style={[styles.container, fullWidth && styles.fullWidth, { paddingVertical: cfg.padding }]}>
@@ -77,10 +77,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   textMuted: {
-    color: COLORS.textDisabled ?? "#c8c2d4",
+    color: "#264348",
   },
   sub: {
-    color: COLORS.textDisabled ?? "#c8c2d4",
+    color: "#264348",
     fontSize: 12,
     marginTop: 4,
     textAlign: "center",
