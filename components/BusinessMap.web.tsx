@@ -199,7 +199,24 @@ export default function BusinessMap({
           streetViewControl: false,
           fullscreenControl: !staticMode,
           gestureHandling: staticMode ? "none" : "greedy",
-          styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }],
+          styles: [
+            { elementType: 'geometry', stylers: [{ color: '#EDF4FB' }] },
+            { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+            { elementType: 'labels.text.fill', stylers: [{ color: '#5C7A99' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#EDF4FB' }] },
+            { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#DCE8F4' }] },
+            { featureType: 'administrative.country', elementType: 'labels.text.fill', stylers: [{ color: '#7C97B3' }] },
+            { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#5C7A99' }] },
+            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+            { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#C8E2F4' }] },
+            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
+            { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#7C97B3' }] },
+            { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#E2EEF9' }] },
+            { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#4A6B8C' }] },
+            { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#59ABE3' }] },
+            { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#FFFFFF' }] },
+          ],
         });
 
         map.addListener("bounds_changed", () => {
