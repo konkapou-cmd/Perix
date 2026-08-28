@@ -11,6 +11,8 @@ import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
 import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
 import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/DiscoveryMap";
+import ProgressivePicker from "../../components/navigation/ProgressivePicker";
+import EmptyState from "../../components/shared/EmptyState";
 import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState";
 import { useViewportListings } from "../../hooks/marketplace/useViewportListings";
 import { useMarketplaceInitialViewport } from "../../hooks/marketplace/useMarketplaceInitialViewport";
@@ -218,9 +220,6 @@ export default function MarketplaceHomesPage() {
         onChangeText={setSearch}
         placeholder={t("marketplace.searchHomes", "Unterkünfte durchsuchen...")}
       />
-      <DiscoveryFilterChips chips={propertyChips} onToggle={(k) => setActivePropType(k === activePropType ? "" : k)} />
-      <DiscoveryFilterChips chips={furnishedChip} onToggle={() => setFurnishedOnly(!furnishedOnly)} />
-      <DiscoveryFilterChips chips={bedroomChips} onToggle={(k) => setMinBeds(minBeds === parseInt(k.replace("beds_", "")) ? 0 : parseInt(k.replace("beds_", "")))} />
       <DiscoveryMap
         markers={markers}
         initialLocation={viewport.initialLocation!}
@@ -229,6 +228,36 @@ export default function MarketplaceHomesPage() {
         onViewportChanging={setVisibleBounds}
         onViewportChange={handleViewportChange}
       />
+      <ProgressivePicker
+        label={t("navigation.section", "Bereich")}
+        value="homes"
+        options={[
+          { key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetag-outline", color: "#59ABE3" },
+          { key: "homes", label: t("marketplace.homes", "Unterkünfte"), icon: "home-outline", color: "#59ABE3" },
+        ]}
+        onChange={(tab) => { if (tab === "items") router.replace("/marketplace/items"); }}
+        primaryColor="#59ABE3"
+        textColor="#264348"
+        mutedColor="#264348"
+        backgroundColor={COLORS.background}
+        borderColor="rgba(38,67,72,0.25)"
+      />
+      <ProgressivePicker
+        label={t("common.filter", "Filter")}
+        value={activePropType || "all"}
+        options={[
+          { key: "all", label: t("marketplace.all", "Alle") },
+          ...PROPERTY_TYPES.map((pt) => ({ key: pt, label: t(`rentals.types.${pt}`, pt), icon: "home-outline" as any })),
+        ]}
+        onChange={(key) => setActivePropType(key === "all" ? "" : key)}
+        primaryColor="#59ABE3"
+        textColor="#264348"
+        mutedColor="#264348"
+        backgroundColor={COLORS.background}
+        borderColor="rgba(38,67,72,0.25)"
+      />
+      <DiscoveryFilterChips chips={furnishedChip} onToggle={() => setFurnishedOnly(!furnishedOnly)} />
+      <DiscoveryFilterChips chips={bedroomChips} onToggle={(k) => setMinBeds(minBeds === parseInt(k.replace("beds_", "")) ? 0 : parseInt(k.replace("beds_", "")))} />
       {visibleListings.length > 0 && (
         <Text style={styles.resultCount}>
           {t("marketplace.results", "{{count}} Ergebnisse", { count: visibleListings.length })}
@@ -250,7 +279,12 @@ export default function MarketplaceHomesPage() {
           loading ? (
             <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
           ) : (
-            <DiscoveryEmptyState type="no-results" />
+            <EmptyState
+              icon="home-outline"
+              message={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
+              size="large"
+              muted
+            />
           )
         }
         showsVerticalScrollIndicator={false}
@@ -279,9 +313,12 @@ const styles = StyleSheet.create({
   cardAddr: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 },
   cardAddrText: { fontSize: 11, color: "#264348", flex: 1 },
   resultCount: {
-    fontSize: FONT_SIZES.bodySmall,
+    fontSize: 16,
+    fontWeight: "600",
     color: "#264348",
-    paddingVertical: SPACING.small,
+    paddingHorizontal: 16,
+    marginTop: SPACING.small,
+    marginBottom: 8,
   },
   locationActions: { paddingHorizontal: SPACING.section, gap: SPACING.small },
   locationBtn: {

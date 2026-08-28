@@ -16,6 +16,8 @@ import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/Dis
 import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState";
 import MarketplaceCategoryFilter from "../../components/marketplace/MarketplaceCategoryFilter";
 import MarketplaceAttributeFilters from "../../components/marketplace/MarketplaceAttributeFilters";
+import ProgressivePicker from "../../components/navigation/ProgressivePicker";
+import EmptyState from "../../components/shared/EmptyState";
 import { useViewportListings } from "../../hooks/marketplace/useViewportListings";
 import { useMarketplaceInitialViewport } from "../../hooks/marketplace/useMarketplaceInitialViewport";
 import { useMapBounds } from "../../context/MapBoundsContext";
@@ -254,19 +256,36 @@ export default function MarketplaceItemsPage() {
         onChangeText={setSearch}
         placeholder={t("marketplace.searchItems", "Artikel durchsuchen...")}
       />
-      <View style={styles.filterRow}>
-        <Pressable
-          style={[styles.filterBtn, category ? styles.filterBtnActive : undefined]}
-          onPress={() => setCategoryFilterVisible(true)}
-        >
-          <Ionicons name="options-outline" size={16} color={category ? COLORS.background : "#264348"} />
-          <Text style={[styles.filterBtnText, category ? { color: COLORS.background } : undefined]}>
-            {category
-              ? `Filter · ${catConfig ? t(catConfig.labelKey, catConfig.fallback) : category}${subLabel ? ` · ${t(catConfig?.subcategories.find((s) => s.key === subcategory)?.labelKey ?? "", subLabel)}` : ""}`
-              : t("common.filter", "Filter")}
-          </Text>
-        </Pressable>
-      </View>
+      <DiscoveryMap markers={markers} initialLocation={viewport.initialLocation!} initialBounds={viewport.initialBounds} onMarkerPress={handleMarkerPress} onViewportChanging={setVisibleBounds} onViewportChange={handleViewportChange} />
+      <ProgressivePicker
+        label={t("navigation.section", "Bereich")}
+        value="items"
+        options={[
+          { key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetag-outline", color: "#59ABE3" },
+          { key: "homes", label: t("marketplace.homes", "Unterkünfte"), icon: "home-outline", color: "#59ABE3" },
+        ]}
+        onChange={(tab) => { if (tab === "homes") router.replace("/marketplace/homes"); }}
+        primaryColor="#59ABE3"
+        textColor="#264348"
+        mutedColor="#264348"
+        backgroundColor={COLORS.background}
+        borderColor="rgba(38,67,72,0.25)"
+      />
+      <ProgressivePicker
+        label={t("common.filter", "Filter")}
+        value="all"
+        displayValue={category
+          ? `${catConfig ? t(catConfig.labelKey, catConfig.fallback) : category}${subLabel ? ` · ${t(catConfig?.subcategories.find((s) => s.key === subcategory)?.labelKey ?? "", subLabel)}` : ""}`
+          : t("common.allCategories", "Alle Kategorien")}
+        onPressOverride={() => setCategoryFilterVisible(true)}
+        onChange={() => {}}
+        options={[{ key: "all", label: t("common.allCategories", "Alle Kategorien") }]}
+        primaryColor="#59ABE3"
+        textColor="#264348"
+        mutedColor="#264348"
+        backgroundColor={COLORS.background}
+        borderColor="rgba(38,67,72,0.25)"
+      />
       <MarketplaceCategoryFilter
         visible={categoryFilterVisible}
         category={category}
@@ -305,7 +324,6 @@ export default function MarketplaceItemsPage() {
           if (k === "shipping") setShippingOnly(!shippingOnly);
         }}
       />
-      <DiscoveryMap markers={markers} initialLocation={viewport.initialLocation!} initialBounds={viewport.initialBounds} onMarkerPress={handleMarkerPress} onViewportChanging={setVisibleBounds} onViewportChange={handleViewportChange} />
       {visibleListings.length > 0 && (
         <Text style={styles.resultCount}>
           {t("marketplace.results", "{{count}} Ergebnisse", { count: visibleListings.length })}
@@ -327,7 +345,12 @@ export default function MarketplaceItemsPage() {
           loading ? (
             <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
           ) : (
-            <DiscoveryEmptyState type="no-results" />
+            <EmptyState
+              icon="pricetag-outline"
+              message={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
+              size="large"
+              muted
+            />
           )
         }
         showsVerticalScrollIndicator={false}
@@ -359,15 +382,7 @@ const styles = StyleSheet.create({
     flexDirection: "row", paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
     backgroundColor: COLORS.background, gap: SPACING.small,
   },
-  filterBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: "rgba(38,67,72,0.25)",
-    backgroundColor: "transparent",
-  },
-  filterBtnActive: { backgroundColor: "#59ABE3", borderColor: "#59ABE3" },
-  filterBtnText: { fontSize: 13, fontWeight: "600", color: "#264348" },
-  resultCount: { fontSize: FONT_SIZES.bodySmall, color: "#264348", paddingVertical: SPACING.small },
+  resultCount: { fontSize: 16, fontWeight: "600", color: "#264348", paddingHorizontal: 16, marginTop: SPACING.small, marginBottom: 8 },
   locationActions: { paddingHorizontal: SPACING.section, gap: SPACING.small },
   locationBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
