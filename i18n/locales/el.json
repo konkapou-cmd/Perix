@@ -949,7 +949,8 @@
     "tapOnMap": "Πατήστε στον χάρτη για να ορίσετε τοποθεσία",
     "permissionDenied": "Άρνηση πρόσβασης",
     "locationPermissionRequired": "Απαιτείται άδεια τοποθεσίας για τον ορισμό της επιχείρησής σας.",
-    "failedCurrentLocation": "Αποτυχία λήψης τρέχουσας τοποθεσίας."
+    "failedCurrentLocation": "Αποτυχία λήψης τρέχουσας τοποθεσίας.",
+    "searchPlaceholder": "Αναζήτηση πόλης ή τοποθεσίας..."
   },
   "events": {
     "createEvent": "Δημιουργία εκδήλωσης",

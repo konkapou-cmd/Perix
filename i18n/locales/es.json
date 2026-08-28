@@ -816,7 +816,8 @@
     "tapOnMap": "Toca en el mapa para establecer la ubicación",
     "permissionDenied": "Permiso denegado",
     "locationPermissionRequired": "Se requiere permiso de ubicación para establecer la ubicación de tu negocio.",
-    "failedCurrentLocation": "Error al obtener la ubicación actual."
+    "failedCurrentLocation": "Error al obtener la ubicación actual.",
+    "searchPlaceholder": "Buscar ciudad o ubicación..."
   },
   "events": {
     "inviteFriends": "Invitar Amigos",

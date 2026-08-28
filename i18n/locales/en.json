@@ -898,7 +898,8 @@
     "tapOnMap": "Tap on the map to set location",
     "permissionDenied": "Permission denied",
     "locationPermissionRequired": "Location permission is required to set your business location.",
-    "failedCurrentLocation": "Failed to get current location."
+    "failedCurrentLocation": "Failed to get current location.",
+    "searchPlaceholder": "Search city or location..."
   },
   "events": {
     "inviteFriends": "Invite Friends",

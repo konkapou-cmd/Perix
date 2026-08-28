@@ -929,7 +929,8 @@
     "tapOnMap": "Tippen Sie auf die Karte, um den Standort festzulegen",
     "permissionDenied": "Berechtigung verweigert",
     "locationPermissionRequired": "Standortberechtigung ist erforderlich, um Ihren Geschäftsstandort festzulegen.",
-    "failedCurrentLocation": "Aktueller Standort konnte nicht abgerufen werden."
+    "failedCurrentLocation": "Aktueller Standort konnte nicht abgerufen werden.",
+    "searchPlaceholder": "Stadt oder Ort suchen..."
   },
   "events": {
     "createEvent": "Veranstaltung erstellen",

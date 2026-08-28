@@ -794,7 +794,8 @@
     "tapOnMap": "Trokit në hartë për të vendosur vendndodhjen",
     "permissionDenied": "Leja u refuzua",
     "locationPermissionRequired": "Nevojitet leja e vendndodhjes për të vendosur vendndodhjen e biznesit tuaj.",
-    "failedCurrentLocation": "Dështoi marrja e vendndodhjes aktuale."
+    "failedCurrentLocation": "Dështoi marrja e vendndodhjes aktuale.",
+    "searchPlaceholder": "Kërko qytet ose vendndodhje..."
   },
   "events": {
     "inviteFriends": "Fto Miqtë",

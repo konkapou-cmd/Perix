@@ -816,7 +816,8 @@
     "tapOnMap": "Tocca sulla mappa per impostare la posizione",
     "permissionDenied": "Permesso negato",
     "locationPermissionRequired": "Il permesso di posizione è richiesto per impostare la posizione della tua attività.",
-    "failedCurrentLocation": "Ottenimento posizione attuale fallito."
+    "failedCurrentLocation": "Ottenimento posizione attuale fallito.",
+    "searchPlaceholder": "Cerca città o posizione..."
   },
   "events": {
     "inviteFriends": "Invita Amici",

@@ -815,7 +815,8 @@
     "tapOnMap": "Dodirnite mapu za postavljanje lokacije",
     "permissionDenied": "Dozvola odbijena",
     "locationPermissionRequired": "Dozvola za lokaciju je potrebna za postavljanje lokacije vašeg biznisa.",
-    "failedCurrentLocation": "Dobijanje trenutne lokacije nije uspelo."
+    "failedCurrentLocation": "Dobijanje trenutne lokacije nije uspelo.",
+    "searchPlaceholder": "Szukaj miasta lub lokalizacji..."
   },
   "events": {
     "inviteFriends": "Pozovi prijatelje",

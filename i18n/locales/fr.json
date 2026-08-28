@@ -816,7 +816,8 @@
     "tapOnMap": "Appuyez sur la carte pour définir la localisation",
     "permissionDenied": "Permission refusée",
     "locationPermissionRequired": "La permission de localisation est requise pour définir la localisation de votre commerce.",
-    "failedCurrentLocation": "Échec de l'obtention de la localisation actuelle."
+    "failedCurrentLocation": "Échec de l'obtention de la localisation actuelle.",
+    "searchPlaceholder": "Rechercher une ville ou un lieu..."
   },
   "events": {
     "inviteFriends": "Inviter des Amis",

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 import { apiRequest } from "../../lib/api/core";
 
@@ -20,6 +21,7 @@ interface LocationSearchOverlayProps {
 }
 
 export function LocationSearchOverlay({ visible, sessionToken, onClose, onSelectPlace }: LocationSearchOverlayProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,7 +70,7 @@ export function LocationSearchOverlay({ visible, sessionToken, onClose, onSelect
             <Ionicons name="search" size={20} color={COLORS.textPlaceholder} />
             <TextInput
               style={styles.input}
-              placeholder="Search city or location..."
+              placeholder={t("location.searchPlaceholder", "Search city or location...")}
               placeholderTextColor={COLORS.textPlaceholder}
               value={query}
               onChangeText={searchPlaces}
