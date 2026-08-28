@@ -1784,7 +1784,7 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: Platform.OS === "web" ? 18 : 16,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#264348",
     marginBottom: 12,
   },
   emptyState: {

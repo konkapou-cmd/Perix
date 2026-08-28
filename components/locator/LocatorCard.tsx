@@ -42,7 +42,6 @@ function BusinessCard({ data, distance, isOpen, onPress }: BusinessCardProps) {
   const { t } = useTranslation();
   const themeColors = getThemeColors(data.theme as any);
   const primaryColor = themeColors.primaryColor;
-  const textColor = themeColors.textColor;
   const photo = data.cover_image || data.logo_image || data.profile_photo;
 
   return (
@@ -60,17 +59,17 @@ function BusinessCard({ data, distance, isOpen, onPress }: BusinessCardProps) {
           </View>
         )}
         <View style={styles.cardBody}>
-          <Text style={[styles.cardTitle, { color: primaryColor }]} numberOfLines={1}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
             {data.name}
           </Text>
-          <Text style={[styles.cardSubtitle, { color: textColor }]} numberOfLines={1}>
+          <Text style={styles.cardSubtitle} numberOfLines={1}>
             {(data as any).subcategories?.length
               ? (data as any).subcategories.map((s: string) => translateCategory(s, t)).join(" / ")
               : translateCategory(data.subcategory, t)} · {translateCategory(data.root_category || data.category, t)}
           </Text>
           {data.address ? (
             <View style={styles.cardMetaRow}>
-              <Ionicons name="location-outline" size={12} color={COLORS.textMuted} />
+              <Ionicons name="location-outline" size={12} color="#264348" />
               <Text style={styles.cardMetaText} numberOfLines={1}>{data.address}</Text>
             </View>
           ) : null}
@@ -122,7 +121,7 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
           </View>
         )}
         <View style={styles.cardBody}>
-          <Text style={[styles.cardTitle, { color: primaryColor }]} numberOfLines={1}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
             {data.title}
           </Text>
           <View style={styles.eventMetaRow}>
@@ -170,18 +169,18 @@ function ActivityCard({ data, distance, onPress }: ActivityCardProps) {
           </View>
         )}
         <View style={styles.cardBody}>
-          <Text style={[styles.cardTitle, { color: primaryColor }]} numberOfLines={1}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
             {data.title}
           </Text>
           <View style={styles.cardMetaRow}>
-            <Ionicons name="calendar-outline" size={12} color={COLORS.textMuted} />
+            <Ionicons name="calendar-outline" size={12} color="#264348" />
             <Text style={styles.cardMetaText}>
               {dateStr}{timeStr ? ` · ${timeStr}` : ""}
             </Text>
           </View>
           {data.location && (
             <View style={styles.cardMetaRow}>
-              <Ionicons name="location-outline" size={12} color={COLORS.textMuted} />
+              <Ionicons name="location-outline" size={12} color="#264348" />
               <Text style={styles.cardMetaText} numberOfLines={1}>{data.location}</Text>
             </View>
           )}
@@ -253,10 +252,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.h4 : FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#264348",
   },
   cardSubtitle: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
     marginTop: 1,
+    color: "#264348",
   },
   cardMetaRow: {
     flexDirection: "row",
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
   },
   cardMetaText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
-    color: COLORS.textMuted,
+    color: "#264348",
   },
   // Status badges
   statusPill: {
@@ -337,7 +338,7 @@ const styles = StyleSheet.create({
   },
   eventMetaText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
-    color: COLORS.textMuted,
+    color: "#264348",
   },
   attendeesChip: {
     flexDirection: "row",
@@ -367,7 +368,7 @@ const styles = StyleSheet.create({
   },
   spotsText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,
-    color: COLORS.textMuted,
+    color: "#264348",
     fontWeight: FONT_WEIGHTS.medium as any,
   },
 });
