@@ -43,6 +43,7 @@ import {
 } from "../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
 import { HeaderBackButton } from "../components/shared/HeaderBackButton";
+import { CATEGORY_ICONS } from "../lib/categoryIcons";
 
 export default function ServicesScreen() {
   const { t } = useTranslation();
@@ -214,7 +215,7 @@ export default function ServicesScreen() {
                 >
                   <Text style={styles.filterLabel}>{t("locator.category")}: </Text>
                   <Text style={styles.filterValue}>{translatedRootCategory}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                  <Ionicons name="chevron-down" size={16} color="#264348" />
                 </Pressable>
 
                 <Pressable
@@ -224,23 +225,23 @@ export default function ServicesScreen() {
                 >
                   <Text style={styles.filterLabel}>{t("locator.subcategory")}: </Text>
                   <Text style={styles.filterValue}>{translatedSubcategory}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                  <Ionicons name="chevron-down" size={16} color="#264348" />
                 </Pressable>
               </View>
 
               <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
-                  <Ionicons name="search" size={16} color={COLORS.textMuted} />
+                  <Ionicons name="search" size={16} color="#264348" />
                   <TextInput
                     placeholder={t("services.searchServices", "Dienstleistungen suchen...")}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     style={styles.searchInput}
-                    placeholderTextColor={COLORS.textDisabled}
+                    placeholderTextColor="#264348"
                   />
                   {searchQuery.length > 0 && (
                     <Pressable onPress={() => setSearchQuery("")}>
-                      <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                      <Ionicons name="close-circle" size={16} color="#264348" />
                     </Pressable>
                   )}
                 </View>
@@ -260,7 +261,7 @@ export default function ServicesScreen() {
                         title: s.name,
                         description: s.business_name || "",
                         type: "service" as const,
-                        pinColor: COLORS.servicesAccent,
+                        pinColor: COLORS.pinService,
                       }))}
                     onMarkerPress={(id) => {
                       pushEntityRoute(router, entityRoutes.service(id), () => showInvalidEntityAlert(t));
@@ -271,7 +272,7 @@ export default function ServicesScreen() {
                   />
                 ) : (
                   <View style={styles.mapPlaceholder}>
-                    <Ionicons name="location" size={40} color={COLORS.primaryDark} />
+                    <Ionicons name="location" size={40} color="#264348" />
                     <Text style={styles.mapPlaceholderText}>{t("jobs.tapToEnableLocation")}</Text>
                     <Text style={styles.mapPlaceholderSubtext}>{t("services.viewNearbyServices", "Entdecke Services in deiner Nähe")}</Text>
                   </View>
@@ -293,7 +294,7 @@ export default function ServicesScreen() {
                 <Image source={{ uri: item.image_urls[0] }} style={styles.serviceImage} />
               ) : (
                 <View style={[styles.serviceImage, styles.serviceImagePlaceholder]}>
-                  <Ionicons name="briefcase" size={32} color="#9ca3af" />
+                  <Ionicons name="briefcase" size={32} color="#264348" />
                 </View>
               )}
               <View style={styles.serviceInfo}>
@@ -304,7 +305,7 @@ export default function ServicesScreen() {
                   {item.business_name}
                 </Text>
                 <View style={styles.serviceMeta}>
-                  <Ionicons name="location-outline" size={14} color="#6b7280" />
+                  <Ionicons name="location-outline" size={14} color="#264348" />
                   <Text style={styles.serviceLocation} numberOfLines={1}>
                     {item.address}
                   </Text>
@@ -327,19 +328,20 @@ export default function ServicesScreen() {
                   <Ionicons
                     name={savedServiceIds.has(item.service_id) ? "bookmark" : "bookmark-outline"}
                     size={20}
-                    color={savedServiceIds.has(item.service_id) ? COLORS.gold : COLORS.textMuted}
+                    color={savedServiceIds.has(item.service_id) ? COLORS.gold : "#264348"}
                   />
                 </Pressable>
-                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                <Ionicons name="chevron-forward" size={20} color="#264348" />
               </View>
             </Pressable>
           )}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={async () => { setIsRefreshing(true); await loadServices(); setIsRefreshing(false); }} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={async () => { setIsRefreshing(true); await loadServices(); setIsRefreshing(false); }} tintColor="#264348" colors={["#264348"]} />}
           ListEmptyComponent={
             <EmptyState
               icon="briefcase-outline"
               message={searchQuery ? t("services.noResults", "Keine Services gefunden") : t("services.noServices", "Noch keine Services verfügbar")}
               size="large"
+              muted
             />
           }
           contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 16 }}
@@ -351,7 +353,7 @@ export default function ServicesScreen() {
           <View style={styles.categoryModalHeader}>
             <Text style={styles.categoryModalTitle}>{t("locator.selectCategory")}</Text>
             <Pressable onPress={() => setCategoryModalVisible(false)}>
-              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+              <Ionicons name="close" size={22} color="#264348" />
             </Pressable>
           </View>
           <ScrollView>
@@ -363,7 +365,9 @@ export default function ServicesScreen() {
                 setCategoryModalVisible(false);
               }}
             >
+              <Ionicons name="grid-outline" size={20} color={rootCategory ? "#264348" : "#59ABE3"} style={styles.categoryModalIcon} />
               <Text style={styles.categoryModalItemText}>{t("locator.allCategories")}</Text>
+              {!rootCategory && <Ionicons name="checkmark" size={18} color="#59ABE3" />}
             </Pressable>
             {categories.map((category) => (
               <Pressable
@@ -375,7 +379,9 @@ export default function ServicesScreen() {
                   setCategoryModalVisible(false);
                 }}
               >
+                <Ionicons name={(CATEGORY_ICONS[category.slug] || "grid") as any} size={20} color={rootCategory === category.slug ? "#59ABE3" : "#264348"} style={styles.categoryModalIcon} />
                 <Text style={styles.categoryModalItemText}>{translateCategory(category.slug, t)}</Text>
+                {rootCategory === category.slug && <Ionicons name="checkmark" size={18} color="#59ABE3" />}
               </Pressable>
             ))}
           </ScrollView>
@@ -387,7 +393,7 @@ export default function ServicesScreen() {
           <View style={styles.categoryModalHeader}>
             <Text style={styles.categoryModalTitle}>{t("locator.selectSubcategory")}</Text>
             <Pressable onPress={() => setSubcategoryModalVisible(false)}>
-              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+              <Ionicons name="close" size={22} color="#264348" />
             </Pressable>
           </View>
           <ScrollView>
@@ -399,7 +405,9 @@ export default function ServicesScreen() {
                   setSubcategoryModalVisible(false);
                 }}
               >
+                <Ionicons name="grid-outline" size={20} color={subcategory ? "#264348" : "#59ABE3"} style={styles.categoryModalIcon} />
                 <Text style={styles.categoryModalItemText}>{t("locator.allSubcategories")}</Text>
+                {!subcategory && <Ionicons name="checkmark" size={18} color="#59ABE3" />}
               </Pressable>
             )}
             {(selectedRootGroup?.subcategories || []).map((sub) => (
@@ -411,7 +419,9 @@ export default function ServicesScreen() {
                   setSubcategoryModalVisible(false);
                 }}
               >
+                <View style={[styles.subDot, subcategory === sub.slug && { backgroundColor: "#59ABE3" }]} />
                 <Text style={styles.categoryModalItemText}>{translateCategory(sub.slug, t)}</Text>
+                {subcategory === sub.slug && <Ionicons name="checkmark" size={18} color="#59ABE3" />}
               </Pressable>
             ))}
           </ScrollView>
@@ -424,37 +434,39 @@ export default function ServicesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#ffffff" },
   header: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
-  title: { fontSize: 22, fontWeight: "700", color: COLORS.textPrimary },
-  subtitle: { color: "#6b7280", marginTop: 2 },
+  title: { fontSize: 22, fontWeight: "700", color: "#264348" },
+  subtitle: { color: "#264348", marginTop: 2 },
   filters: { paddingHorizontal: 16, gap: 8 },
-  filterButton: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "#e5e7eb" },
-  filterLabel: { color: "#6b7280", fontSize: 14 },
-  filterValue: { flex: 1, color: COLORS.textPrimary, fontSize: 14, fontWeight: "500" },
-  mapContainer: { height: 180, margin: 16, borderRadius: 16, overflow: "hidden", backgroundColor: "#e5e7eb" },
+  filterButton: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(38,67,72,0.25)" },
+  filterLabel: { color: "#264348", fontSize: 14 },
+  filterValue: { flex: 1, color: "#59ABE3", fontSize: 14, fontWeight: "500" },
+  mapContainer: { height: 180, margin: 16, borderRadius: 16, overflow: "hidden", backgroundColor: "#EAF3FB" },
   mapPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
-  mapPlaceholderText: { fontSize: 16, fontWeight: "600", color: COLORS.primaryDark, marginTop: 8 },
-  mapPlaceholderSubtext: { fontSize: 13, color: "#6b7280", marginTop: 4 },
-  sectionTitle: { fontSize: 16, fontWeight: "600", color: COLORS.textPrimary, paddingHorizontal: 16, marginBottom: 8 },
+  mapPlaceholderText: { fontSize: 16, fontWeight: "600", color: "#264348", marginTop: 8 },
+  mapPlaceholderSubtext: { fontSize: 13, color: "#264348", marginTop: 4 },
+  sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", paddingHorizontal: 16, marginBottom: 8 },
   serviceCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 12, borderRadius: 16, marginBottom: 10 },
   serviceImage: { width: 64, height: 64, borderRadius: 12 },
-  serviceImagePlaceholder: { backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" },
+  serviceImagePlaceholder: { backgroundColor: "#EDF4FB", alignItems: "center", justifyContent: "center" },
   serviceInfo: { flex: 1, marginLeft: 12 },
-  serviceTitle: { fontSize: 15, fontWeight: "600", color: COLORS.textPrimary },
-  serviceBusiness: { fontSize: 13, color: COLORS.primaryDark, marginTop: 2 },
+  serviceTitle: { fontSize: 15, fontWeight: "600", color: "#264348" },
+  serviceBusiness: { fontSize: 13, color: "#59ABE3", marginTop: 2 },
   serviceMeta: { flexDirection: "row", alignItems: "center", marginTop: 4, gap: 4 },
-  serviceLocation: { fontSize: 12, color: "#6b7280", flex: 1 },
+  serviceLocation: { fontSize: 12, color: "#264348", flex: 1 },
   serviceBadges: { flexDirection: "row", alignItems: "center", marginTop: 4, gap: 4, flexWrap: "wrap" },
-  serviceTypeBadge: { backgroundColor: "#e0e7ff", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-  serviceTypeBadgeText: { fontSize: 10, fontWeight: "600", color: COLORS.info },
+  serviceTypeBadge: { backgroundColor: "rgba(38,67,72,0.1)", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  serviceTypeBadgeText: { fontSize: 10, fontWeight: "600", color: "#264348" },
   serviceSalaryBadge: { backgroundColor: "#fef3c7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
   serviceSalaryBadgeText: { fontSize: 10, fontWeight: "600", color: COLORS.warning },
   serviceCardActions: { alignItems: "center", gap: 8 },
   categoryModalContainer: { flex: 1, backgroundColor: "#fff" },
-  categoryModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
-  categoryModalTitle: { fontSize: 18, fontWeight: "600", color: COLORS.textPrimary },
-  categoryModalItem: { padding: 16, borderBottomWidth: 1, borderBottomColor: "#f3f4f6" },
-  categoryModalItemText: { fontSize: 16, color: "#374151" },
+  categoryModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)" },
+  categoryModalTitle: { fontSize: 18, fontWeight: "600", color: "#264348" },
+  categoryModalItem: { flexDirection: "row", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.08)" },
+  categoryModalIcon: { marginRight: 12 },
+  subDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#264348", marginRight: 12, marginLeft: 4 },
+  categoryModalItemText: { flex: 1, fontSize: 16, color: "#264348" },
   searchContainer: { paddingHorizontal: SPACING.std, marginTop: SPACING.small, marginBottom: SPACING.small },
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: COLORS.backgroundPage, borderRadius: BORDER_RADIUS.lg, paddingHorizontal: SPACING.small, height: 40, gap: SPACING.small },
-  searchInput: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary, paddingVertical: 0 },
+  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: BORDER_RADIUS.lg, paddingHorizontal: SPACING.small, height: 40, gap: SPACING.small, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(38,67,72,0.2)" },
+  searchInput: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: "#264348", paddingVertical: 0 },
 });
