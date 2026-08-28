@@ -383,7 +383,7 @@ export default function EventDetailPage() {
     ? event.themes
     : (event.theme ? [event.theme] : []);
   const themeLabels = themeList.map((th: string) => EVENT_THEMES[th]?.label || th).join(" · ");
-  const pageAccent = themeInfo.color || "#FF9F1C";
+  const pageAccent = "#FF9F1C";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: COLORS.backgroundPage }]} edges={["top", "bottom"]}>
@@ -566,6 +566,7 @@ export default function EventDetailPage() {
             primaryLabel={isAttending ? "Teilnehmend" : (t("events.rsvp") || "Zusagen")}
             primaryIcon="calendar-outline"
             accentColor={pageAccent}
+            useGradient
             onPrimary={isPast ? () => {} : handleToggleAttendance}
             saved={isSaved}
             onSave={handleToggleSave}

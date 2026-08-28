@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES, SHADOWS } from "../../lib/designTokens";
 
 type BottomCTAProps = {
@@ -8,6 +9,7 @@ type BottomCTAProps = {
   primaryIcon?: keyof typeof Ionicons.glyphMap;
   secondaryLabel?: string;
   accentColor?: string;
+  useGradient?: boolean;
   onPrimary: () => void;
   onSecondary?: () => void;
   saved?: boolean;
@@ -21,6 +23,7 @@ export const BottomCTA = ({
   primaryIcon,
   secondaryLabel,
   accentColor = COLORS.primary,
+  useGradient = false,
   onPrimary,
   onSecondary,
   saved = false,
@@ -30,9 +33,17 @@ export const BottomCTA = ({
 }: BottomCTAProps) => (
   <View style={styles.container}>
     <Pressable
-      style={[styles.primaryBtn, { backgroundColor: accentColor }]}
+      style={[styles.primaryBtn, !useGradient && { backgroundColor: accentColor }]}
       onPress={onPrimary}
     >
+      {useGradient && (
+        <LinearGradient
+          colors={["#FF7A1A", "#FFC400"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       {primaryIcon && (
         <Ionicons name={primaryIcon} size={20} color="#FFF" style={{ marginRight: SPACING.small }} />
       )}
@@ -94,6 +105,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: SPACING.std,
+    overflow: "hidden",
   },
   primaryText: {
     fontSize: FONT_SIZES.body,
