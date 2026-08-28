@@ -26,13 +26,11 @@ export default function ListingDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showVideoCover, setShowVideoCover] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
 
-  const hasBothCoverAndVideo = listing ? !!(listing.cover_image_url && listing.video_url) : false;
-  const effectiveVideoCover = listing ? (hasBothCoverAndVideo ? showVideoCover : (!listing.cover_image_url && !!listing.video_url)) : false;
+  const effectiveVideoCover = listing ? (!listing.cover_image_url && !!listing.video_url) : false;
 
   useEffect(() => {
     if (!id) {
@@ -103,7 +101,7 @@ export default function ListingDetailScreen() {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color="#264348" />
         </View>
       </SafeAreaView>
     );
@@ -137,12 +135,6 @@ export default function ListingDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <HeaderBackButton onPress={() => router.back()} />
-        <Text style={styles.headerTitle} numberOfLines={1}>{listing.title}</Text>
-        <View style={{ width: 44 }} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <View style={styles.heroWrap}>
           <ContentHero
@@ -154,6 +146,7 @@ export default function ListingDetailScreen() {
             coverFocalPoint={listing.cover_focal_point}
             imageUrls={listing.image_urls}
             title={listing.title}
+            hideBack
             badges={[
               listing.price ? { icon: "pricetag", text: formatPrice(listing.price) } : null,
               listing.listing_type === "home_rental" ? { icon: "home", text: t("marketplace.home", "Home") } : { icon: "pricetag", text: t("marketplace.product", "Product") },
@@ -172,18 +165,6 @@ export default function ListingDetailScreen() {
               setViewerOpen(true);
             }}
           />
-          {hasBothCoverAndVideo && (
-            <Pressable
-              style={styles.coverToggle}
-              onPress={() => setShowVideoCover((v) => !v)}
-            >
-              <Ionicons
-                name={showVideoCover ? "image-outline" : "videocam-outline"}
-                size={18}
-                color="#fff"
-              />
-            </Pressable>
-          )}
         </View>
 
         <View style={styles.infoCard}>
@@ -209,7 +190,7 @@ export default function ListingDetailScreen() {
               {listing.seller_avatar ? (
                 <Image source={{ uri: listing.seller_avatar }} style={styles.sellerAvatar} />
               ) : (
-                <Ionicons name={listing.seller_type === "business" ? "storefront-outline" : "person-outline"} size={16} color={COLORS.primary} />
+                <Ionicons name={listing.seller_type === "business" ? "storefront-outline" : "person-outline"} size={16} color="#264348" />
               )}
               <Text style={styles.sellerText}>{listing.business_name || listing.seller_name}</Text>
             </Pressable>
@@ -223,13 +204,13 @@ export default function ListingDetailScreen() {
             ) : null}
             {listing.brand ? (
               <View style={styles.tag}>
-                <Ionicons name="bookmark-outline" size={12} color={COLORS.primary} />
+                <Ionicons name="bookmark-outline" size={12} color="#264348" />
                 <Text style={styles.tagText}>{listing.brand}</Text>
               </View>
             ) : null}
             {listing.delivery_method ? (
               <View style={styles.tag}>
-                <Ionicons name="cube-outline" size={12} color={COLORS.primary} />
+                <Ionicons name="cube-outline" size={12} color="#264348" />
                 <Text style={styles.tagText}>{t(`marketplace.${listing.delivery_method}`, listing.delivery_method)}</Text>
               </View>
             ) : null}
@@ -246,25 +227,25 @@ export default function ListingDetailScreen() {
             <View style={styles.homeDetails}>
               {listing.property_type ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="home-outline" size={16} color={COLORS.primary} />
+                  <Ionicons name="home-outline" size={16} color="#264348" />
                   <Text style={styles.homeDetailText}>{t(`rentals.types.${listing.property_type}`, listing.property_type)}</Text>
                 </View>
               ) : null}
               {listing.bedrooms ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="bed-outline" size={16} color={COLORS.primary} />
+                  <Ionicons name="bed-outline" size={16} color="#264348" />
                   <Text style={styles.homeDetailText}>{listing.bedrooms} {t("rentals.bedrooms", "Bedrooms")}</Text>
                 </View>
               ) : null}
               {listing.bathrooms ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="water-outline" size={16} color={COLORS.primary} />
+                  <Ionicons name="water-outline" size={16} color="#264348" />
                   <Text style={styles.homeDetailText}>{listing.bathrooms} {t("rentals.bathrooms", "Bathrooms")}</Text>
                 </View>
               ) : null}
               {listing.size_sqm ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="resize-outline" size={16} color={COLORS.primary} />
+                  <Ionicons name="resize-outline" size={16} color="#264348" />
                   <Text style={styles.homeDetailText}>{listing.size_sqm} m²</Text>
                 </View>
               ) : null}
@@ -276,19 +257,19 @@ export default function ListingDetailScreen() {
               ) : null}
               {listing.available_from ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+                  <Ionicons name="calendar-outline" size={16} color="#264348" />
                   <Text style={styles.homeDetailText}>{t("services.availableFrom", "Available from")}: {listing.available_from.split("-").reverse().join("-")}</Text>
                 </View>
               ) : null}
               {listing.lease_duration ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="time-outline" size={16} color={COLORS.primary} />
+                  <Ionicons name="time-outline" size={16} color="#264348" />
                   <Text style={styles.homeDetailText}>{t("services.leaseDuration", "Lease Duration")}: {listing.lease_duration}</Text>
                 </View>
               ) : null}
               {listing.deposit ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="wallet-outline" size={16} color={COLORS.primary} />
+                  <Ionicons name="wallet-outline" size={16} color="#264348" />
                   <Text style={styles.homeDetailText}>{t("rentals.deposit", "Deposit")}: {listing.deposit}</Text>
                 </View>
               ) : null}
@@ -308,10 +289,10 @@ export default function ListingDetailScreen() {
             <Text style={styles.contactText}>{t("common.contact", "Contact Seller")}</Text>
           </Pressable>
           <Pressable style={styles.iconBtn} onPress={handleShare}>
-            <Ionicons name="share-outline" size={22} color={COLORS.textPrimary} />
+            <Ionicons name="share-outline" size={22} color="#264348" />
           </Pressable>
           <Pressable style={styles.iconBtn} onPress={handleToggleSave} disabled={saving}>
-            <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={22} color={isSaved ? COLORS.gold : COLORS.textPrimary} />
+            <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={22} color={isSaved ? COLORS.gold : "#264348"} />
           </Pressable>
         </View>
       </ScrollView>
@@ -340,32 +321,32 @@ const styles = StyleSheet.create({
   cover: { width: "100%", borderRadius: BORDER_RADIUS.lg, backgroundColor: "#f3f4f6" },
   coverPlaceholder: { height: 240, alignItems: "center", justifyContent: "center" },
   infoCard: { backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.lg, padding: SPACING.std, marginTop: SPACING.std },
-  title: { fontSize: 20, fontWeight: "700", color: COLORS.textPrimary },
+  title: { fontSize: 20, fontWeight: "700", color: "#264348" },
   price: { fontSize: 22, fontWeight: "800", color: COLORS.success, marginTop: SPACING.small },
-  askPrice: { fontSize: 16, color: COLORS.textMuted, marginTop: SPACING.small, fontStyle: "italic" },
-  description: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textSecondary, marginTop: SPACING.small, lineHeight: 22 },
+  askPrice: { fontSize: 16, color: "#264348", marginTop: SPACING.small, fontStyle: "italic" },
+  description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", marginTop: SPACING.small, lineHeight: 22 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginTop: SPACING.small },
   tag: {
     flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: COLORS.primaryLight, borderRadius: BORDER_RADIUS.full,
+    backgroundColor: "rgba(38,67,72,0.08)", borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  tagText: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
+  tagText: { fontSize: 12, color: "#264348", fontWeight: "600" },
   addressRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: SPACING.small },
-  addressText: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, flex: 1 },
+  addressText: { fontSize: FONT_SIZES.caption, color: "#264348", flex: 1 },
   actions: {
     flexDirection: "row", alignItems: "center", gap: SPACING.small,
     marginTop: SPACING.std, paddingTop: SPACING.small,
   },
   contactBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    backgroundColor: COLORS.primaryDark, borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.success, borderRadius: BORDER_RADIUS.md,
     paddingVertical: 14,
   },
   contactText: { fontSize: 15, fontWeight: "600", color: "#fff" },
   iconBtn: {
     width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.background,
-    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: COLORS.border,
+    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(38,67,72,0.25)",
   },
   sellerRow: {
     flexDirection: "row", alignItems: "center", gap: 6,
@@ -377,7 +358,7 @@ const styles = StyleSheet.create({
   },
   sellerText: {
     fontSize: FONT_SIZES.bodySmall, fontWeight: "600",
-    color: COLORS.primary,
+    color: "#59ABE3",
   },
   homeDetails: {
     flexDirection: "row",
@@ -386,13 +367,13 @@ const styles = StyleSheet.create({
     marginTop: SPACING.small,
     paddingTop: SPACING.small,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: "rgba(38,67,72,0.15)",
   },
   homeDetailItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: COLORS.primaryLight + "50",
+    backgroundColor: "rgba(38,67,72,0.08)",
     borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -400,6 +381,6 @@ const styles = StyleSheet.create({
   homeDetailText: {
     fontSize: 12,
     fontWeight: "600",
-    color: COLORS.primary,
+    color: "#264348",
   },
 });

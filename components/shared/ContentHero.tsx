@@ -44,6 +44,7 @@ type ContentHeroProps = {
   mediaItems: MediaItem[];
   onMediaPress?: (index: number) => void;
   onBack?: () => void;
+  hideBack?: boolean;
 };
 
 export default function ContentHero({
@@ -60,6 +61,7 @@ export default function ContentHero({
   mediaItems,
   onMediaPress,
   onBack,
+  hideBack,
 }: ContentHeroProps) {
   const router = useRouter();
   const handleBack = onBack || (() => router.back());
@@ -155,12 +157,14 @@ export default function ContentHero({
     <View style={styles.heroContainer}>
       {renderMedia()}
 
-      <View style={styles.heroBackButton}>
-        <Pressable style={styles.heroBackPill} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
-          <Text style={styles.heroBackText}>Zurück</Text>
-        </Pressable>
-      </View>
+      {!hideBack && (
+        <View style={styles.heroBackButton}>
+          <Pressable style={styles.heroBackPill} onPress={handleBack}>
+            <Ionicons name="chevron-back" size={20} color="#fff" />
+            <Text style={styles.heroBackText}>Zurück</Text>
+          </Pressable>
+        </View>
+      )}
 
       {badges && badges.length > 0 && (
         <View style={styles.heroBadgeRow}>
