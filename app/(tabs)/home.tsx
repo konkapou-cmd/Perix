@@ -744,12 +744,14 @@ export default function HomeScreen() {
       <View style={styles.stickyHeader}>
         <View style={styles.stickyHeaderLeft}>
           <Animated.Text style={[styles.stickyHeaderBrand, { opacity: brandOpacity }]}>Perix</Animated.Text>
-          <Text style={styles.stickyHeaderSub}>{t("home.discoverNearby", "Discover nearby")}</Text>
+          <Pressable style={styles.locationSearchPill} onPress={() => setShowLocationSearch(true)}>
+            <Ionicons name="location-outline" size={13} color={COLORS.textMuted} />
+            <Text style={styles.locationSearchPillText} numberOfLines={1}>
+              {globalLocation?.name || t("location.searchPlaceholder", "Search city or location...")}
+            </Text>
+          </Pressable>
         </View>
         <View style={styles.stickyHeaderRight}>
-          <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.primaryLight }]} onPress={() => setShowLocationSearch(true)}>
-            <Ionicons name="search" size={22} color={COLORS.primary} />
-          </Pressable>
           <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: COLORS.filterIconBg }]} onPress={() => setShowLayoutSettings(true)}>
             <Ionicons name="options-outline" size={22} color={COLORS.filterIcon} />
           </Pressable>
@@ -1625,9 +1627,11 @@ const styles = StyleSheet.create({
   postStatItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   postStatText: { fontSize: 13, color: COLORS.textMuted },
   stickyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACING.small, paddingVertical: 10, backgroundColor: COLORS.background, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border, zIndex: 10 },
-  stickyHeaderLeft: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+  stickyHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
   stickyHeaderBrand: { fontSize: 22, fontWeight: "800", color: COLORS.primary, letterSpacing: -0.5 },
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
+  locationSearchPill: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: COLORS.backgroundPage, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.border },
+  locationSearchPillText: { flex: 1, fontSize: 12.5, color: COLORS.textMuted },
   stickyHeaderRight: { flexDirection: "row", gap: 4 },
   stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.backgroundPage, alignItems: "center", justifyContent: "center" },
   identityDropWrap: { marginLeft: 4 },
