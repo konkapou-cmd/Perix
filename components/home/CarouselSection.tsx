@@ -50,7 +50,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
           />
         </View>
         {seeAllRoute && (
-          <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={(e: any) => { e?.stopPropagation?.(); router.navigate(seeAllRoute as any); }}>
+          <Pressable style={styles.seeAllBtn} onPress={(e: any) => { e?.stopPropagation?.(); router.navigate(seeAllRoute as any); }}>
             <Text style={styles.seeAllText} numberOfLines={1}>{t("common.seeAll", "Όλα")}</Text>
           </Pressable>
         )}
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 13,
     fontWeight: "600",
-    color: COLORS.textLight,
+    color: "#1F4788",
   },
   filterChipRow: {
     flexDirection: "row",

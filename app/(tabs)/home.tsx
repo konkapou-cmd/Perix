@@ -878,7 +878,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.events")}
             icon="calendar"
-            color={COLORS.eventsAccent}
+            color="#59ABE3"
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "events" } } as any}
             filters={{
               options: [
@@ -944,7 +944,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("tabs.activities")}
             icon="people"
-            color={COLORS.activitiesAccent}
+            color="#59ABE3"
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "activities" } } as any}
             filters={{
               options: [
@@ -1009,7 +1009,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.businesses")}
             icon="business"
-            color={COLORS.businessesAccent}
+            color="#59ABE3"
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
             isCollapsed={collapsedSections.has("businesses")}
             onToggleCollapse={() => setSectionCollapsed("businesses", !collapsedSections.has("businesses"))}
@@ -1046,7 +1046,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.hotels", "Local Hotels")}
             icon="bed"
-            color={COLORS.businessesAccent}
+            color="#59ABE3"
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "hotels" } } as any}
             emptyMessage={t("home.noHotels", "No hotels nearby")}
             isCollapsed={collapsedSections.has("hotels")}
@@ -1084,7 +1084,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("modules.services") || "Services"}
             icon="briefcase"
-            color={COLORS.servicesAccent}
+            color="#59ABE3"
             seeAllRoute="/services"
             emptyMessage={t("services.noServices") || "No services nearby"}
             isCollapsed={collapsedSections.has("services")}
@@ -1119,7 +1119,7 @@ export default function HomeScreen() {
             <CarouselSection
               title={t("rentals.professionalRentals", "Professional Rentals")}
               icon="business"
-              color={COLORS.rentalsAccent}
+              color="#59ABE3"
               seeAllRoute="/rentals"
               emptyMessage={t("rentals.noRentals") || "No rentals nearby"}
             isCollapsed={collapsedSections.has("rentals")}
@@ -1149,7 +1149,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.jobs") || "Jobs"}
             icon="briefcase"
-            color={COLORS.jobsAccent}
+            color="#59ABE3"
             seeAllRoute="/(tabs)/jobs"
             emptyMessage={t("jobs.noJobs") || "No jobs nearby"}
             isCollapsed={collapsedSections.has("jobs")}
@@ -1181,7 +1181,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("marketplace.productsInArea", "Produkte in der Nähe")}
             icon="pricetag"
-            color={COLORS.success}
+            color="#59ABE3"
             seeAllRoute="/marketplace/items"
             emptyMessage={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
             isCollapsed={collapsedSections.has("marketplace")}
@@ -1218,7 +1218,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("marketplace.homesInArea", "Unterkünfte in der Nähe")}
             icon="home"
-            color={COLORS.rentalsAccent}
+            color="#59ABE3"
             seeAllRoute="/marketplace/homes"
             emptyMessage={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
             isCollapsed={collapsedSections.has("homes-nearby")}
@@ -1260,7 +1260,7 @@ export default function HomeScreen() {
           <View style={styles.card}>
             <View style={styles.sectionHeader}>
               <View style={styles.activitiesSectionTitle}>
-                <View style={[styles.activitiesIconContainer, { backgroundColor: COLORS.primary }]}>
+                <View style={[styles.activitiesIconContainer, { backgroundColor: "#59ABE3" }]}>
                   <Ionicons name="newspaper" size={18} color={COLORS.textLight} />
                 </View>
                 <Text style={styles.cardTitle}>{t("home.posts") || "Posts"}</Text>
@@ -1599,9 +1599,9 @@ const styles = StyleSheet.create({
   activitiesIconContainer: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   feedToggle: { flexDirection: "row", backgroundColor: COLORS.divider, borderRadius: 8, padding: 2 },
   feedToggleBtn: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 6 },
-  feedToggleBtnActive: { backgroundColor: COLORS.background,     shadowColor: COLORS.primaryDark, shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  feedToggleBtnActive: { backgroundColor: "#264348",     shadowColor: COLORS.primaryDark, shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   feedToggleText: { fontSize: 13, fontWeight: "500", color: COLORS.textMuted },
-  feedToggleTextActive: { color: COLORS.textPrimary, fontWeight: "600" },
+  feedToggleTextActive: { color: "#ffffff", fontWeight: "600" },
   filterChipRow: { flexDirection: "row", gap: 8, marginBottom: 12, marginTop: 4 },
   filterChip: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
   filterChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
