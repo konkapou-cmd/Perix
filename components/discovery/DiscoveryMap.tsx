@@ -97,7 +97,6 @@ export default function DiscoveryMap({ markers, initialLocation, initialBounds, 
 
 const styles = StyleSheet.create({
   container: {
-    height: 280,
     backgroundColor: COLORS.backgroundPage,
   },
   map: {

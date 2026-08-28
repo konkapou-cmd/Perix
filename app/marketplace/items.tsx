@@ -312,12 +312,23 @@ export default function MarketplaceItemsPage() {
         filters={draftAttributeFilters}
         onChange={handleAttrChange}
       />
-      <DiscoveryFilterChips
-        chips={deliveryChips}
-        onToggle={(k) => {
-          if (k === "pickup") setPickupOnly(!pickupOnly);
-          if (k === "shipping") setShippingOnly(!shippingOnly);
+      <ProgressivePicker
+        label={t("marketplace.delivery", "Lieferung")}
+        value={pickupOnly ? "pickup" : shippingOnly ? "shipping" : "all"}
+        options={[
+          { key: "all", label: t("marketplace.all", "Alle") },
+          { key: "pickup", label: t("marketplace.pickup", "Abholung") },
+          { key: "shipping", label: t("marketplace.shipping", "Versand") },
+        ]}
+        onChange={(key) => {
+          setPickupOnly(key === "pickup");
+          setShippingOnly(key === "shipping");
         }}
+        primaryColor="#59ABE3"
+        textColor="#264348"
+        mutedColor="#264348"
+        backgroundColor={COLORS.background}
+        borderColor="rgba(38,67,72,0.25)"
       />
       {visibleListings.length > 0 && (
         <Text style={styles.resultCount}>
@@ -325,7 +336,7 @@ export default function MarketplaceItemsPage() {
         </Text>
       )}
     </View>
-  ), [t, router, search, category, subcategory, catConfig, subLabel, categoryFilterVisible, markers, viewport, visibleListings.length, deliveryChips, draftAttributeFilters, attributeFilters, activeConditions, pickupOnly, shippingOnly, setSearch, setActiveConditions, setPickupOnly, setShippingOnly, handleAttrChange, handleMarkerPress, setVisibleBounds, handleViewportChange, pruneFilters]);
+  ), [t, router, search, category, subcategory, catConfig, subLabel, categoryFilterVisible, markers, viewport, visibleListings.length, draftAttributeFilters, attributeFilters, activeConditions, pickupOnly, shippingOnly, setSearch, setActiveConditions, setPickupOnly, setShippingOnly, handleAttrChange, handleMarkerPress, setVisibleBounds, handleViewportChange, pruneFilters]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>

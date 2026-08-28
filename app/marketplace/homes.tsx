@@ -8,7 +8,6 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designToke
 import { getListings, Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
 import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
-import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
 import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/DiscoveryMap";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import EmptyState from "../../components/shared/EmptyState";
@@ -61,16 +60,6 @@ export default function MarketplaceHomesPage() {
           color: COLORS.rentalsAccent, type: "product",
         })),
     [visibleListings],
-  );
-
-  const bedroomChips: FilterChip[] = useMemo(
-    () =>
-      [1, 2, 3, 4].map((n) => ({
-        key: `beds_${n}`,
-        label: t("marketplace.minBeds", "Min. {{n}} Schlafz.", { n }),
-        active: minBeds === n,
-      })),
-    [minBeds],
   );
 
   const handleMarkerPress = (id: string) => {
@@ -236,14 +225,27 @@ export default function MarketplaceHomesPage() {
         backgroundColor={COLORS.background}
         borderColor="rgba(38,67,72,0.25)"
       />
-      <DiscoveryFilterChips chips={bedroomChips} onToggle={(k) => setMinBeds(minBeds === parseInt(k.replace("beds_", "")) ? 0 : parseInt(k.replace("beds_", "")))} />
+      <ProgressivePicker
+        label={t("marketplace.bedrooms", "Schlafzimmer")}
+        value={minBeds ? String(minBeds) : "all"}
+        options={[
+          { key: "all", label: t("marketplace.all", "Alle") },
+          ...[1, 2, 3, 4].map((n) => ({ key: String(n), label: t("marketplace.minBeds", "Min. {{n}} Schlafz.", { n }) })),
+        ]}
+        onChange={(key) => setMinBeds(key === "all" ? 0 : parseInt(key, 10))}
+        primaryColor="#59ABE3"
+        textColor="#264348"
+        mutedColor="#264348"
+        backgroundColor={COLORS.background}
+        borderColor="rgba(38,67,72,0.25)"
+      />
       {visibleListings.length > 0 && (
         <Text style={styles.resultCount}>
           {t("marketplace.results", "{{count}} Ergebnisse", { count: visibleListings.length })}
         </Text>
       )}
     </View>
-  ), [t, router, search, bedroomChips, markers, viewport, visibleListings.length, activePropType, furnishedOnly, minBeds, setActivePropType, setFurnishedOnly, setMinBeds, handleMarkerPress, setVisibleBounds, handleViewportChange]);
+  ), [t, router, search, markers, viewport, visibleListings.length, activePropType, furnishedOnly, minBeds, setActivePropType, setFurnishedOnly, setMinBeds, handleMarkerPress, setVisibleBounds, handleViewportChange]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
