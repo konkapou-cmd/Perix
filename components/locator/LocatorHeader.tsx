@@ -1,7 +1,7 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SPACING } from "../../lib/designTokens";
+import { COLORS } from "../../lib/designTokens";
 import ProgressivePicker from "../navigation/ProgressivePicker";
 
 type TabType = "businesses" | "hotels" | "events" | "activities" | "rentals" | "jobs";
@@ -22,17 +22,9 @@ const SECTION_OPTIONS: { key: TabType; label: string; icon: keyof typeof Ionicon
   { key: "jobs", label: "Jobs", icon: "briefcase-outline" },
 ];
 
-export default function LocatorHeader({ activeTab, onTabChange, locationName, t }: Props) {
+export default function LocatorHeader({ activeTab, onTabChange, t }: Props) {
   return (
     <View style={styles.container}>
-      {locationName && (
-        <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color="#264348" />
-          <Text style={styles.locationText} numberOfLines={1}>
-            {locationName}
-          </Text>
-        </View>
-      )}
       <ProgressivePicker
         label={t("navigation.section", "Bereich")}
         value={activeTab}
@@ -54,20 +46,8 @@ export default function LocatorHeader({ activeTab, onTabChange, locationName, t 
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: SPACING.small,
+    paddingHorizontal: 0,
     paddingVertical: 4,
     backgroundColor: COLORS.background,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-  },
-  locationText: {
-    fontSize: 13,
-    color: "#264348",
-    flex: 1,
   },
 });
