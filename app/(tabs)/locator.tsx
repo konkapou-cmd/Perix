@@ -56,6 +56,7 @@ import {
 import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
 import { translateCategory, translateJobType } from "../../lib/categoryTranslation";
+import { CATEGORY_ICONS } from "../../lib/categoryIcons";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
 import { formatDate } from "../../lib/formatDate";
 import { isBusinessOpen } from "../../lib/openingHours";
@@ -65,31 +66,6 @@ import { ACTIVITY_CATEGORIES, ACTIVITY_TYPES } from "../../lib/api";
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL;
-
-const CATEGORY_ICONS: Record<string, string> = {
-  food: "restaurant",
-  drinks: "wine",
-  music: "musical-notes",
-  nightlife: "moon",
-  sports: "fitness",
-  beauty: "cut",
-  health: "heart",
-  education: "school",
-  shopping: "bag-handle",
-  technology: "hardware-chip",
-  automotive: "car",
-  realestate: "home",
-  "rental-real-estate": "home",
-  professional: "briefcase",
-  pets: "paw",
-  travel: "airplane",
-  arts: "color-palette",
-  community: "people",
-  entertainment: "film",
-  fashion: "shirt",
-  home: "home-outline",
-  other: "grid",
-};
 
 const itemWidth = (Dimensions.get("window").width - 48) / 3;
 
@@ -338,7 +314,7 @@ export default function LocatorScreen() {
         const matchingTypeKeys = Object.entries(ACTIVITY_TYPES)
           .filter(([_, t]) => t.category === activityCategoryFilter)
           .map(([key]) => key);
-        result = result.filter(a => matchingTypeKeys.includes(a.theme));
+        result = result.filter(a => matchingTypeKeys.includes(a.theme ?? ""));
       }
      // Filter by search query
      if (activitySearchQuery.trim()) {
@@ -918,7 +894,7 @@ export default function LocatorScreen() {
               value={selectedSubcategory === "All" ? "All" : selectedSubcategory}
               options={[
                 { key: "All", label: t("common.allSubcategories", "Alle Unterkategorien") },
-                ...businessSubcategories.map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t) })),
+                ...businessSubcategories.map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t), icon: (CATEGORY_ICONS[sub.slug] || "grid") as any })),
               ]}
               onChange={(key) => setSelectedSubcategory(key === "All" ? "All" : key)}
               primaryColor="#59ABE3"

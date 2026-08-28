@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { CategoryGroup } from "../../lib/api";
+import { CATEGORY_ICONS } from "../../lib/categoryIcons";
 
 type Props = {
   categories: CategoryGroup[];
@@ -125,7 +126,7 @@ export default function LocatorSidebar({
               >
                 <View style={styles.itemIcon}>
                   <Ionicons
-                    name="folder-outline"
+                    name={(CATEGORY_ICONS[cat.slug] || "folder-outline") as any}
                     size={16}
                     color={isExpanded ? "#59ABE3" : "#264348"}
                   />
