@@ -43,17 +43,17 @@ function BusinessCard({ data, distance, isOpen, onPress }: BusinessCardProps) {
   const themeColors = getThemeColors(data.theme as any);
   const primaryColor = themeColors.primaryColor;
   const textColor = themeColors.textColor;
+  const photo = data.cover_image || data.logo_image || data.profile_photo;
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardRow}>
-        {data.logo_image || data.profile_photo ? (
-          <Image
-            source={{ uri: (data.logo_image || data.profile_photo) as string }}
-            style={styles.businessAvatar}
-          />
+        {photo ? (
+          <View style={styles.photoWrap}>
+            <Image source={{ uri: photo as string }} style={styles.photo} resizeMode="cover" />
+          </View>
         ) : (
-          <View style={[styles.businessAvatarPlaceholder, { backgroundColor: primaryColor + "20" }]}>
+          <View style={[styles.photoWrap, { backgroundColor: primaryColor + "15" }]}>
             <Text style={[styles.avatarText, { color: primaryColor }]}>
               {(data.name || "B").charAt(0).toUpperCase()}
             </Text>
@@ -74,17 +74,17 @@ function BusinessCard({ data, distance, isOpen, onPress }: BusinessCardProps) {
               <Text style={styles.cardMetaText} numberOfLines={1}>{data.address}</Text>
             </View>
           ) : null}
-        </View>
-        <View style={styles.cardEnd}>
-          {isOpen !== null && (
-            <View style={[styles.statusPill, isOpen ? styles.statusOpen : styles.statusClosed]}>
-              <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
-              <Text style={[styles.statusText, isOpen ? styles.statusTextOpen : styles.statusTextClosed]}>
-                {isOpen ? t("common.open", "Geöffnet") : t("common.closed", "Geschlossen")}
-              </Text>
-            </View>
-          )}
-          {distance && <Text style={styles.distanceText}>{distance}</Text>}
+          <View style={styles.cardBottomRow}>
+            {isOpen !== null && (
+              <View style={[styles.statusPill, isOpen ? styles.statusOpen : styles.statusClosed]}>
+                <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
+                <Text style={[styles.statusText, isOpen ? styles.statusTextOpen : styles.statusTextClosed]}>
+                  {isOpen ? t("common.open", "Geöffnet") : t("common.closed", "Geschlossen")}
+                </Text>
+              </View>
+            )}
+            {distance && <Text style={styles.distanceText}>{distance}</Text>}
+          </View>
         </View>
       </View>
     </Pressable>
@@ -103,45 +103,47 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
-      {coverImage ? (
-        <View style={styles.eventImageContainer}>
-          <Image source={{ uri: coverImage }} style={styles.eventCoverImage} resizeMode="cover" />
-          <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
-            <Text style={styles.dateBadgeDay}>{dateDay}</Text>
-            <Text style={styles.dateBadgeMonth}>{dateMonth}</Text>
-          </View>
-        </View>
-      ) : (
-        <View style={[styles.eventImageContainer, styles.eventImagePlaceholder, { backgroundColor: primaryColor + "15" }]}>
-          <Ionicons name="calendar-outline" size={28} color={primaryColor} />
-          <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
-            <Text style={styles.dateBadgeDay}>{dateDay}</Text>
-            <Text style={styles.dateBadgeMonth}>{dateMonth}</Text>
-          </View>
-        </View>
-      )}
-      <View style={styles.eventCardBody}>
-        <Text style={[styles.cardTitle, { color: primaryColor }]} numberOfLines={1}>
-          {data.title}
-        </Text>
-        <View style={styles.eventMetaRow}>
-          {businessName ? (
-            <Text style={styles.eventMetaText} numberOfLines={1}>{businessName}</Text>
-          ) : null}
-          {data.location && (
-            <Text style={styles.eventMetaText} numberOfLines={1}>
-              {businessName ? " · " : ""}{data.location}
-            </Text>
-          )}
-        </View>
-        <View style={styles.eventBottomRow}>
-          {(data.attendees_count ?? 0) > 0 && (
-            <View style={[styles.attendeesChip, { backgroundColor: primaryColor + "15" }]}>
-              <Ionicons name="people" size={12} color={primaryColor} />
-              <Text style={[styles.attendeesText, { color: primaryColor }]}>{data.attendees_count ?? 0}</Text>
+      <View style={styles.cardRow}>
+        {coverImage ? (
+          <View style={styles.photoWrap}>
+            <Image source={{ uri: coverImage }} style={styles.photo} resizeMode="cover" />
+            <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
+              <Text style={styles.dateBadgeDay}>{dateDay}</Text>
+              <Text style={styles.dateBadgeMonth}>{dateMonth}</Text>
             </View>
-          )}
-          {distance && <Text style={styles.distanceText}>{distance}</Text>}
+          </View>
+        ) : (
+          <View style={[styles.photoWrap, { backgroundColor: primaryColor + "15" }]}>
+            <Ionicons name="calendar-outline" size={28} color={primaryColor} />
+            <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
+              <Text style={styles.dateBadgeDay}>{dateDay}</Text>
+              <Text style={styles.dateBadgeMonth}>{dateMonth}</Text>
+            </View>
+          </View>
+        )}
+        <View style={styles.cardBody}>
+          <Text style={[styles.cardTitle, { color: primaryColor }]} numberOfLines={1}>
+            {data.title}
+          </Text>
+          <View style={styles.eventMetaRow}>
+            {businessName ? (
+              <Text style={styles.eventMetaText} numberOfLines={1}>{businessName}</Text>
+            ) : null}
+            {data.location && (
+              <Text style={styles.eventMetaText} numberOfLines={1}>
+                {businessName ? " · " : ""}{data.location}
+              </Text>
+            )}
+          </View>
+          <View style={styles.cardBottomRow}>
+            {(data.attendees_count ?? 0) > 0 && (
+              <View style={[styles.attendeesChip, { backgroundColor: primaryColor + "15" }]}>
+                <Ionicons name="people" size={12} color={primaryColor} />
+                <Text style={[styles.attendeesText, { color: primaryColor }]}>{data.attendees_count ?? 0}</Text>
+              </View>
+            )}
+            {distance && <Text style={styles.distanceText}>{distance}</Text>}
+          </View>
         </View>
       </View>
     </Pressable>
@@ -159,10 +161,12 @@ function ActivityCard({ data, distance, onPress }: ActivityCardProps) {
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardRow}>
         {coverImage ? (
-          <Image source={{ uri: coverImage }} style={styles.activityAvatar} />
+          <View style={styles.photoWrap}>
+            <Image source={{ uri: coverImage }} style={styles.photo} resizeMode="cover" />
+          </View>
         ) : (
-          <View style={[styles.activityAvatarPlaceholder, { backgroundColor: COLORS.activityAccent + "15" }]}>
-            <Ionicons name="people-outline" size={20} color={COLORS.activityAccent} />
+          <View style={[styles.photoWrap, { backgroundColor: COLORS.activityAccent + "15" }]}>
+            <Ionicons name="people-outline" size={24} color={COLORS.activityAccent} />
           </View>
         )}
         <View style={styles.cardBody}>
@@ -181,19 +185,19 @@ function ActivityCard({ data, distance, onPress }: ActivityCardProps) {
               <Text style={styles.cardMetaText} numberOfLines={1}>{data.location}</Text>
             </View>
           )}
-        </View>
-        <View style={styles.cardEnd}>
-          {(data as any).my_status ? (
-            <View style={styles.rsvpPill}>
-              <Ionicons name="checkmark-circle" size={12} color={COLORS.statusOpenText} />
-              <Text style={styles.rsvpText}>{(data as any).my_status}</Text>
-            </View>
-          ) : (data as any).max_attendees ? (
-            <Text style={styles.spotsText}>
-              {(data as any).max_attendees - ((data as any).attendees_count || 0)} spots
-            </Text>
-          ) : null}
-          {distance && <Text style={styles.distanceText}>{distance}</Text>}
+          <View style={styles.cardBottomRow}>
+            {(data as any).my_status ? (
+              <View style={styles.rsvpPill}>
+                <Ionicons name="checkmark-circle" size={12} color={COLORS.statusOpenText} />
+                <Text style={styles.rsvpText}>{(data as any).my_status}</Text>
+              </View>
+            ) : (data as any).max_attendees ? (
+              <Text style={styles.spotsText}>
+                {(data as any).max_attendees - ((data as any).attendees_count || 0)} spots
+              </Text>
+            ) : null}
+            {distance && <Text style={styles.distanceText}>{distance}</Text>}
+          </View>
         </View>
       </View>
     </Pressable>
@@ -210,31 +214,41 @@ const styles = StyleSheet.create({
   },
   cardRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "stretch",
     padding: SPACING.std,
-    gap: SPACING.small,
+    gap: SPACING.std,
   },
-  // Business
-  businessAvatar: {
-    width: Platform.OS === "web" ? 60 : 52,
-    height: Platform.OS === "web" ? 60 : 52,
+  // Photo column (1/3 of card)
+  photoWrap: {
+    width: "31%",
+    height: Platform.OS === "web" ? 124 : 104,
     borderRadius: BORDER_RADIUS.md,
-  },
-  businessAvatarPlaceholder: {
-    width: Platform.OS === "web" ? 60 : 52,
-    height: Platform.OS === "web" ? 60 : 52,
-    borderRadius: BORDER_RADIUS.md,
+    overflow: "hidden",
+    backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
     justifyContent: "center",
+  },
+  photo: {
+    width: "100%",
+    height: "100%",
   },
   avatarText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.h2 : FONT_SIZES.h3,
     fontWeight: FONT_WEIGHTS.bold as any,
   },
-  // Card body (shared by business & activity)
+  // Card body (2/3 of card)
   cardBody: {
     flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
     gap: 2,
+  },
+  cardBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
+    gap: 6,
   },
   cardTitle: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.h4 : FONT_SIZES.body,
@@ -253,11 +267,6 @@ const styles = StyleSheet.create({
   cardMetaText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
     color: COLORS.textMuted,
-  },
-  // Card end (right side badges)
-  cardEnd: {
-    alignItems: "flex-end",
-    gap: SPACING.tiny,
   },
   // Status badges
   statusPill: {
@@ -301,19 +310,6 @@ const styles = StyleSheet.create({
     color: COLORS.success,
   },
   // Event card
-  eventImageContainer: {
-    position: "relative",
-    width: "100%",
-    height: Platform.OS === "web" ? 160 : 120,
-  },
-  eventCoverImage: {
-    width: "100%",
-    height: Platform.OS === "web" ? 160 : 120,
-  },
-  eventImagePlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
   dateBadge: {
     position: "absolute",
     top: SPACING.small,
@@ -335,10 +331,6 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.bold as any,
     lineHeight: 16,
   },
-  eventCardBody: {
-    padding: SPACING.small,
-    gap: 2,
-  },
   eventMetaRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -346,12 +338,6 @@ const styles = StyleSheet.create({
   eventMetaText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.caption : FONT_SIZES.small,
     color: COLORS.textMuted,
-  },
-  eventBottomRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: SPACING.tiny,
   },
   attendeesChip: {
     flexDirection: "row",
@@ -364,19 +350,6 @@ const styles = StyleSheet.create({
   attendeesText: {
     fontSize: Platform.OS === "web" ? FONT_SIZES.small : FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.semibold as any,
-  },
-  // Activity card
-  activityAvatar: {
-    width: Platform.OS === "web" ? 64 : 56,
-    height: Platform.OS === "web" ? 64 : 56,
-    borderRadius: BORDER_RADIUS.md,
-  },
-  activityAvatarPlaceholder: {
-    width: Platform.OS === "web" ? 64 : 56,
-    height: Platform.OS === "web" ? 64 : 56,
-    borderRadius: BORDER_RADIUS.md,
-    alignItems: "center",
-    justifyContent: "center",
   },
   rsvpPill: {
     flexDirection: "row",
