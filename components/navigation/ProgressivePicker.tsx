@@ -21,6 +21,7 @@ export type ProgressivePickerOption<T extends string = string> = {
   icon?: IconName;
   count?: number;
   disabled?: boolean;
+  color?: string;
 };
 
 type ProgressivePickerProps<T extends string = string> = {
@@ -69,6 +70,8 @@ export default function ProgressivePicker<T extends string = string>({
 
   const validValue = selectedOption?.key ?? ("" as T);
 
+  const selectedColor = selectedOption?.color ?? primaryColor;
+
   const displayedLabel = displayValue ?? (selectedOption ? `${selectedOption.label}${selectedOption.count != null ? ` ${selectedOption.count}` : ""}` : "");
 
   const open = () => {
@@ -102,7 +105,7 @@ export default function ProgressivePicker<T extends string = string>({
       >
         <Text style={[styles.stepLabel, { color: mutedColor }]}>{label}</Text>
         <View style={styles.valueArea}>
-          <Text style={[styles.valueText, { color: primaryColor }]} numberOfLines={1}>
+          <Text style={[styles.valueText, { color: selectedColor }]} numberOfLines={1}>
             {displayedLabel}
           </Text>
           <Ionicons name="chevron-down" size={16} color={mutedColor} />
@@ -128,13 +131,15 @@ export default function ProgressivePicker<T extends string = string>({
                 </Pressable>
               </View>
               <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent} bounces={false}>
-                {options.map((opt) => (
+                {options.map((opt) => {
+                  const optColor = opt.color ?? primaryColor;
+                  return (
                   <Pressable
                     key={opt.key}
                     style={[
                       styles.modalOption,
                       opt.disabled && styles.modalOptionDisabled,
-                      opt.key === validValue && { backgroundColor: primaryColor + "10" },
+                      opt.key === validValue && { backgroundColor: optColor + "10" },
                     ]}
                     onPress={() => {
                       if (!opt.disabled) handleSelect(opt.key);
@@ -147,14 +152,14 @@ export default function ProgressivePicker<T extends string = string>({
                       <Ionicons
                         name={opt.icon}
                         size={20}
-                        color={opt.key === validValue ? primaryColor : mutedColor}
+                        color={opt.key === validValue ? optColor : (opt.color ?? mutedColor)}
                         style={styles.modalOptionIcon}
                       />
                     )}
                     <Text
                       style={[
                         styles.modalOptionText,
-                        { color: opt.key === validValue ? primaryColor : textColor },
+                        { color: opt.key === validValue ? optColor : textColor },
                         opt.disabled && { color: COLORS.textDisabled },
                       ]}
                       numberOfLines={1}
@@ -164,10 +169,11 @@ export default function ProgressivePicker<T extends string = string>({
                     </Text>
                     <View style={{ flex: 1 }} />
                     {opt.key === validValue && (
-                      <Ionicons name="checkmark" size={20} color={primaryColor} />
+                      <Ionicons name="checkmark" size={20} color={optColor} />
                     )}
                   </Pressable>
-                ))}
+                  );
+                })}
                 {options.length === 0 && (
                   <Text style={[styles.modalEmpty, { color: mutedColor }]}>{t("common.noOptions", "No options available")}</Text>
                 )}

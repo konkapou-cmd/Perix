@@ -13,13 +13,13 @@ type Props = {
   t: (key: string, options?: any) => string;
 };
 
-const SECTION_OPTIONS: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: "hotels", label: "Hotels", icon: "bed" },
-  { key: "businesses", label: "Businesses", icon: "business-outline" },
-  { key: "events", label: "Events", icon: "calendar-outline" },
-  { key: "activities", label: "Activities", icon: "people-outline" },
-  { key: "rentals", label: "Rentals", icon: "home-outline" },
-  { key: "jobs", label: "Jobs", icon: "briefcase-outline" },
+const SECTION_OPTIONS: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
+  { key: "hotels", label: "Hotels", icon: "bed", color: "#59ABE3" },
+  { key: "businesses", label: "Businesses", icon: "business-outline", color: "#264348" },
+  { key: "events", label: "Events", icon: "calendar-outline", color: "#FF9F1C" },
+  { key: "activities", label: "Activities", icon: "people-outline", color: "#FF9F1C" },
+  { key: "rentals", label: "Rentals", icon: "home-outline", color: "#59ABE3" },
+  { key: "jobs", label: "Jobs", icon: "briefcase-outline", color: "#264348" },
 ];
 
 export default function LocatorHeader({ activeTab, onTabChange, t }: Props) {
@@ -32,9 +32,10 @@ export default function LocatorHeader({ activeTab, onTabChange, t }: Props) {
           key: s.key,
           label: t(`tabs.${s.key}`, s.label),
           icon: s.icon,
+          color: s.color,
         }))}
         onChange={(tab) => onTabChange(tab as TabType)}
-        primaryColor="#59ABE3"
+        primaryColor={SECTION_OPTIONS.find((s) => s.key === activeTab)?.color ?? "#264348"}
         textColor="#264348"
         mutedColor="#264348"
         backgroundColor={COLORS.background}

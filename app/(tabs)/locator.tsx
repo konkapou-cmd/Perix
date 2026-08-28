@@ -666,6 +666,11 @@ export default function LocatorScreen() {
     );
   }
 
+  const pickerAccent =
+    activeTab === "events" || activeTab === "activities" ? "#FF9F1C"
+      : activeTab === "businesses" || activeTab === "jobs" ? "#264348"
+        : "#59ABE3";
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Search Bar */}
@@ -784,7 +789,7 @@ export default function LocatorScreen() {
               ...categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t), icon: (CATEGORY_ICONS[cat.slug] || "grid") as any })),
             ]}
             onChange={(key) => { setSelectedRoot(key); setSelectedSubcategory("All"); }}
-            primaryColor="#59ABE3"
+            primaryColor={pickerAccent}
             mutedColor="#264348"
             textColor="#264348"
             borderColor="rgba(38,67,72,0.25)"
@@ -798,7 +803,7 @@ export default function LocatorScreen() {
                 ...businessSubcategories.map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t), icon: (CATEGORY_ICONS[sub.slug] || "grid") as any })),
               ]}
               onChange={(key) => setSelectedSubcategory(key === "All" ? "All" : key)}
-              primaryColor="#59ABE3"
+              primaryColor={pickerAccent}
             mutedColor="#264348"
             textColor="#264348"
             borderColor="rgba(38,67,72,0.25)"
@@ -841,7 +846,7 @@ export default function LocatorScreen() {
               ...Object.entries(EVENT_THEMES).map(([key, theme]: [string, any]) => ({ key, label: theme.label })),
             ]}
             onChange={(key) => setEventThemeFilter(key === "All" ? null : key)}
-            primaryColor="#59ABE3"
+            primaryColor={pickerAccent}
             mutedColor="#264348"
             textColor="#264348"
             borderColor="rgba(38,67,72,0.25)"
@@ -853,7 +858,7 @@ export default function LocatorScreen() {
             onPressOverride={() => setShowCalendar(true)}
             options={[{ key: "this-week" as any, label: t("common.thisWeek", "Diese Woche") }]}
             onChange={() => {}}
-            primaryColor="#59ABE3"
+            primaryColor={pickerAccent}
             mutedColor="#264348"
             textColor="#264348"
             borderColor="rgba(38,67,72,0.25)"
@@ -870,7 +875,7 @@ export default function LocatorScreen() {
               ...Object.entries(ACTIVITY_CATEGORIES).map(([key, cat]: [string, any]) => ({ key, label: cat.label })),
             ]}
             onChange={(key) => setActivityCategoryFilter(key === "All" ? null : key)}
-            primaryColor="#59ABE3"
+            primaryColor={pickerAccent}
             mutedColor="#264348"
             textColor="#264348"
             borderColor="rgba(38,67,72,0.25)"
@@ -882,7 +887,7 @@ export default function LocatorScreen() {
             onPressOverride={() => setShowCalendar(true)}
             options={[{ key: "this-week" as any, label: t("common.thisWeek", "Diese Woche") }]}
             onChange={() => {}}
-            primaryColor="#59ABE3"
+            primaryColor={pickerAccent}
             mutedColor="#264348"
             textColor="#264348"
             borderColor="rgba(38,67,72,0.25)"
@@ -898,7 +903,7 @@ export default function LocatorScreen() {
             ...rentalSubcategoryChips.map((c: any) => ({ key: c.key, label: c.label })),
           ]}
           onChange={(key) => setRentalTypeFilter(key === "All" ? null : key)}
-          primaryColor="#59ABE3"
+          primaryColor={pickerAccent}
             mutedColor="#264348"
             textColor="#264348"
             borderColor="rgba(38,67,72,0.25)"
@@ -913,7 +918,7 @@ export default function LocatorScreen() {
             ...categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t) })),
           ]}
           onChange={(key) => setJobTypeFilter(key === "All" ? null : key)}
-          primaryColor="#59ABE3"
+          primaryColor={pickerAccent}
             mutedColor="#264348"
             textColor="#264348"
             borderColor="rgba(38,67,72,0.25)"
@@ -2761,8 +2766,8 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   openNowBtnActive: {
-    backgroundColor: "#59ABE3",
-    borderColor: "#59ABE3",
+    backgroundColor: "#264348",
+    borderColor: "#264348",
   },
   openNowText: {
     fontSize: FONT_SIZES.small,
