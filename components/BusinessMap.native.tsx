@@ -322,7 +322,7 @@ export default function BusinessMap({
   }
 
   const mapStyle = [
-    { elementType: 'geometry', stylers: [{ color: '#EDF4FB' }] },
+    { elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
     { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
     { elementType: 'labels.text.fill', stylers: [{ color: '#5C7A99' }] },
     { elementType: 'labels.text.stroke', stylers: [{ color: '#EDF4FB' }] },
@@ -332,7 +332,7 @@ export default function BusinessMap({
     { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#5C7A99' }] },
     { featureType: 'poi', stylers: [{ visibility: 'off' }] },
     { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#C8E2F4' }] },
-    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#EDF4FB' }] },
     { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#7C97B3' }] },
     { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#E2EEF9' }] },
     { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#4A6B8C' }] },
