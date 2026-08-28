@@ -92,6 +92,12 @@ export default function MarketplaceHomesPage() {
     const addressLabel = item.location_visibility === "approximate"
       ? item.public_location_label || t("marketplace.approximateLocation", "Ungefahrer Standort")
       : item.address;
+    const propTypeLabel = item.property_type ? t(`rentals.types.${item.property_type}`, item.property_type) : "";
+    const detailParts: string[] = [];
+    if (propTypeLabel) detailParts.push(propTypeLabel);
+    if (item.bedrooms != null) detailParts.push(t("marketplace.roomsCount", "{{n}} Zimmer", { n: item.bedrooms }));
+    if (item.size_sqm != null) detailParts.push(`${item.size_sqm} m²`);
+    const detailsLine = detailParts.join(" · ");
     return (
       <Pressable
         key={item.listing_id}
@@ -119,6 +125,12 @@ export default function MarketplaceHomesPage() {
             <View style={styles.cardAddr}>
               <Ionicons name="location-outline" size={12} color="#264348" />
               <Text style={styles.cardAddrText} numberOfLines={1}>{addressLabel}</Text>
+            </View>
+          ) : null}
+          {detailsLine ? (
+            <View style={styles.cardAttr}>
+              <Ionicons name="bed-outline" size={12} color="#264348" />
+              <Text style={styles.cardAttrText} numberOfLines={1}>{detailsLine}</Text>
             </View>
           ) : null}
         </View>
@@ -230,7 +242,7 @@ export default function MarketplaceHomesPage() {
         value={minBeds ? String(minBeds) : "all"}
         options={[
           { key: "all", label: t("marketplace.all", "Alle") },
-          ...[1, 2, 3, 4].map((n) => ({ key: String(n), label: t("marketplace.minBeds", "Min. {{n}} Schlafz.", { n }) })),
+          ...[1, 2, 3, 4].map((n) => ({ key: String(n), label: t("marketplace.roomsCount", "{{n}} Zimmer", { n }) })),
         ]}
         onChange={(key) => setMinBeds(key === "all" ? 0 : parseInt(key, 10))}
         primaryColor="#59ABE3"
@@ -284,7 +296,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md, padding: SPACING.small, gap: SPACING.std,
     marginBottom: SPACING.small,
   },
-  cardPhotoWrap: { width: "31%", height: 104, borderRadius: BORDER_RADIUS.md, overflow: "hidden", backgroundColor: "#EDF4FB" },
+  cardPhotoWrap: { width: "34%", height: 118, borderRadius: BORDER_RADIUS.md, overflow: "hidden", backgroundColor: "#EDF4FB" },
   cardImage: { width: "100%", height: "100%" },
   cardPlaceholder: { alignItems: "center", justifyContent: "center" },
   cardInfo: { flex: 1, justifyContent: "center", minWidth: 0 },
@@ -293,6 +305,8 @@ const styles = StyleSheet.create({
   cardSeller: { fontSize: 11, color: "#59ABE3", marginTop: 4 },
   cardAddr: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 },
   cardAddrText: { fontSize: 11, color: "#264348", flex: 1 },
+  cardAttr: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4 },
+  cardAttrText: { fontSize: 11, color: "#264348", flex: 1 },
   resultCount: {
     fontSize: 16,
     fontWeight: "600",

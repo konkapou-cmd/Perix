@@ -158,6 +158,12 @@ export default function MarketplaceItemsPage() {
     const addressLabel = item.location_visibility === "approximate"
       ? item.public_location_label || t("marketplace.approximateLocation", "Ungefährer Standort")
       : item.address;
+    const catMeta = item.category ? getCategoryConfig(item.category) : null;
+    const catLabel = catMeta ? t(catMeta.labelKey, catMeta.fallback) : "";
+    const condLabel = item.condition
+      ? (CONDITION_OPTIONS.find((c) => c.key === item.condition)?.label ?? "")
+      : "";
+    const metaLine = [catLabel, condLabel].filter(Boolean).join(" · ");
     return (
       <Pressable
         key={item.listing_id}
@@ -185,6 +191,12 @@ export default function MarketplaceItemsPage() {
             <View style={styles.cardAddr}>
               <Ionicons name="location-outline" size={12} color="#264348" />
               <Text style={styles.cardAddrText} numberOfLines={1}>{addressLabel}</Text>
+            </View>
+          ) : null}
+          {metaLine ? (
+            <View style={styles.cardAttr}>
+              <Ionicons name="pricetag-outline" size={12} color="#264348" />
+              <Text style={styles.cardAttrText} numberOfLines={1}>{metaLine}</Text>
             </View>
           ) : null}
         </View>
@@ -375,7 +387,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md, padding: SPACING.small, gap: SPACING.std,
     marginBottom: SPACING.small,
   },
-  cardPhotoWrap: { width: "31%", height: 104, borderRadius: BORDER_RADIUS.md, overflow: "hidden", backgroundColor: "#EDF4FB" },
+  cardPhotoWrap: { width: "34%", height: 118, borderRadius: BORDER_RADIUS.md, overflow: "hidden", backgroundColor: "#EDF4FB" },
   cardImage: { width: "100%", height: "100%" },
   cardPlaceholder: { alignItems: "center", justifyContent: "center" },
   cardInfo: { flex: 1, justifyContent: "center", minWidth: 0 },
@@ -384,6 +396,8 @@ const styles = StyleSheet.create({
   cardSeller: { fontSize: 11, color: "#59ABE3", marginTop: 4 },
   cardAddr: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 },
   cardAddrText: { fontSize: 11, color: "#264348", flex: 1 },
+  cardAttr: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4 },
+  cardAttrText: { fontSize: 11, color: "#264348", flex: 1 },
   filterRow: {
     flexDirection: "row", paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
     backgroundColor: COLORS.background, gap: SPACING.small,
