@@ -11,6 +11,7 @@ type SectionHeaderProps = {
   onSeeAll?: () => void;
   seeAllLabel?: string;
   accent?: string;
+  titleColor?: string;
   style?: ViewStyle;
 };
 
@@ -21,6 +22,7 @@ export const SectionHeader = ({
   onSeeAll,
   seeAllLabel,
   accent = COLORS.primary,
+  titleColor,
   style,
 }: SectionHeaderProps) => {
   const { t } = useTranslation();
@@ -33,15 +35,15 @@ export const SectionHeader = ({
             <Ionicons name={icon} size={16} color={COLORS.background} />
           </View>
         )}
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+        <Text style={[styles.title, titleColor ? { color: titleColor } : null]} numberOfLines={1}>{title}</Text>
         {count !== undefined && count > 0 && (
           <Text style={styles.count}>{count}</Text>
         )}
       </View>
       {onSeeAll && (
-        <Pressable style={[styles.seeAllBtn, { backgroundColor: accent }]} onPress={onSeeAll}>
+        <Pressable style={styles.seeAllBtn} onPress={onSeeAll}>
           <Text style={styles.seeAllText} numberOfLines={1}>{label}</Text>
-          <Ionicons name="chevron-forward" size={14} color={COLORS.background} />
+          <Ionicons name="chevron-forward" size={14} color="#264348" />
         </Pressable>
       )}
     </View>
@@ -89,9 +91,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   seeAllText: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     fontWeight: FONT_WEIGHTS.semibold,
-    color: COLORS.background,
+    color: "#264348",
   },
 });
 

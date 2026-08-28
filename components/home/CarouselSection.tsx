@@ -46,6 +46,7 @@ export function CarouselSection({ title, icon, color, seeAllRoute, filters, empt
             icon={icon}
             title={title}
             accent={accent}
+            titleColor="#1F4788"
             onSeeAll={undefined}
           />
         </View>
@@ -113,9 +114,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   seeAllText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
-    color: "#1F4788",
+    color: "#264348",
   },
   filterChipRow: {
     flexDirection: "row",

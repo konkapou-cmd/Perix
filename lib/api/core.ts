@@ -247,6 +247,7 @@ export type EventItem = {
   creator?: any;
   attendees_count?: number;
   is_attending?: boolean;
+  is_creator?: boolean;
   created_at: string;
   profile_theme?: any;
   mux_thumbnail_url?: string | null;

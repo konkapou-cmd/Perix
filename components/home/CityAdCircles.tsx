@@ -64,9 +64,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
     <View style={styles.card}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitle}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="videocam" size={18} color={COLORS.textLight} />
-          </View>
+          <Ionicons name="megaphone" size={20} color="#59ABE3" />
           <Text style={styles.cardTitle}>{t("cityAd.sectionTitle", "City Ads")}</Text>
         </View>
       </View>
@@ -83,7 +81,7 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
           <Pressable style={styles.adCard} onPress={onYourStoryPress}>
             <View style={styles.uploadCardContent}>
               <View style={styles.uploadIconWrap}>
-                <Ionicons name="add" size={28} color={COLORS.primaryDark} />
+                <Ionicons name="megaphone" size={26} color="#59ABE3" />
               </View>
               <Text style={styles.businessName} numberOfLines={1}>
                 {t("cityAd.yourAd", "Your Ad")}

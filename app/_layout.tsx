@@ -21,6 +21,10 @@ import {
 import { registerPushToken } from "../lib/api";
 import { useDeepLinkHandler } from "../hooks/useDeepLinkHandler";
 import i18n from "../i18n";
+import { applyDefaultFontFamily } from "../lib/defaultFont";
+import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_600SemiBold, Quicksand_700Bold } from "@expo-google-fonts/quicksand";
+
+applyDefaultFontFamily("Quicksand_400Regular");
 
 // Ignore specific warnings that can cause issues
 LogBox.ignoreLogs([
@@ -254,6 +258,14 @@ function PushNotificationManager() {
 }
 
 export default function RootLayout() {
+  // Load app-wide fonts
+  const [fontsLoaded] = useFonts({
+    Quicksand_400Regular,
+    Quicksand_500Medium,
+    Quicksand_600SemiBold,
+    Quicksand_700Bold,
+  });
+
   // Initialize notification channels on app start
   useEffect(() => {
     try {
@@ -262,6 +274,8 @@ export default function RootLayout() {
       console.error('Error initializing notifications:', error);
     }
   }, []);
+
+  if (!fontsLoaded) return null;
 
   return (
     <I18nextProvider i18n={i18n}>
