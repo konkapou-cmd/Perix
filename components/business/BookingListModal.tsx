@@ -201,17 +201,19 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
         </View>
 
         <View style={s.tabRow}>
-          {TABS.map((tab) => (
-            <Pressable
-              key={tab}
-              style={[s.tab, activeTab === tab && s.tabActive]}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text style={[s.tabText, activeTab === tab && s.tabTextActive]}>
-                {t(`services.${tab}`, tab.charAt(0).toUpperCase() + tab.slice(1))}
-              </Text>
-            </Pressable>
-          ))}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled style={{ flex: 1 }} contentContainerStyle={s.tabScroll}>
+            {TABS.map((tab) => (
+              <Pressable
+                key={tab}
+                style={[s.tab, activeTab === tab && s.tabActive]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text style={[s.tabText, activeTab === tab && s.tabTextActive]} numberOfLines={1} ellipsizeMode="tail">
+                  {t(`services.${tab}`, tab.charAt(0).toUpperCase() + tab.slice(1))}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
 
         {loading && !refreshing ? (
@@ -250,7 +252,8 @@ const s = StyleSheet.create({
   headerBtn: { padding: 4, width: 40, alignItems: "center" },
   headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
   tabRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tab: { flex: 1, paddingVertical: SPACING.compact, alignItems: "center" },
+  tabScroll: { flexDirection: "row", gap: SPACING.tiny, paddingHorizontal: SPACING.small },
+  tab: { maxWidth: 160, paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact, alignItems: "center" },
   tabActive: { borderBottomWidth: 2, borderBottomColor: COLORS.primary },
   tabText: { fontSize: FONT_SIZES.small, color: COLORS.textMuted, fontWeight: FONT_WEIGHTS.medium as any },
   tabTextActive: { color: COLORS.primary, fontWeight: FONT_WEIGHTS.bold as any },

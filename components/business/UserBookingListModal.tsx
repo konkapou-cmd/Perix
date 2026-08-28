@@ -150,7 +150,7 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
         </View>
 
         <View style={s.tabRow}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled style={{ flex: 1 }} contentContainerStyle={s.tabScroll}>
             {TABS.map((tab) => (
               <Pressable
                 key={tab}
