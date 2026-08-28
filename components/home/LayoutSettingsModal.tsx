@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     padding: 3,
   },
   switchOn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
   },
   switchThumb: {
     width: 20,

@@ -744,7 +744,7 @@ export default function HomeScreen() {
       <View style={styles.stickyHeader}>
         <View style={styles.stickyHeaderLeft}>
           <View style={styles.brandWrap}>
-            <Animated.Text style={[styles.stickyHeaderBrand, { opacity: brandOpacity }]}>Perix</Animated.Text>
+            <Animated.Text style={[styles.stickyHeaderBrand, { opacity: brandOpacity }]}>Perıx</Animated.Text>
             <Ionicons name="sunny" size={8} color="#FFC93C" style={styles.brandSun} />
           </View>
           <Pressable style={styles.locationSearchPill} onPress={() => setShowLocationSearch(true)}>
@@ -1631,13 +1631,13 @@ const styles = StyleSheet.create({
   postStatText: { fontSize: 13, color: COLORS.textMuted },
   stickyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACING.small, paddingVertical: 10, backgroundColor: COLORS.background, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border, zIndex: 10 },
   brandWrap: { position: "relative" },
-  brandSun: { position: "absolute", right: 10, top: 0 },
+  brandSun: { position: "absolute", right: 11, top: 0 },
   stickyHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
   stickyHeaderBrand: { fontSize: 22, fontWeight: "800", color: COLORS.primary, letterSpacing: -0.5 },
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
   locationSearchPill: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: COLORS.backgroundPage, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.border },
   locationSearchPillText: { flex: 1, fontSize: 12.5, color: COLORS.textMuted },
-  stickyHeaderRight: { flexDirection: "row", gap: 4 },
+  stickyHeaderRight: { flexDirection: "row", gap: 10, marginLeft: 10 },
   stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.backgroundPage, alignItems: "center", justifyContent: "center" },
   identityDropWrap: { marginLeft: 4 },
   modalContainer: { flex: 1, backgroundColor: COLORS.background },
