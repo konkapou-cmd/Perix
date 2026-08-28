@@ -167,7 +167,7 @@ export default function ContentHero({
       )}
 
       {badges && badges.length > 0 && (
-        <View style={styles.heroBadgeRow}>
+        <View style={[styles.heroBadgeRow, hideBack && styles.heroBadgeRowTop]}>
           {badges.map((badge, idx) => (
             <View key={idx} style={[styles.heroBadge, badge.color ? { backgroundColor: badge.color } : undefined]}>
               <Ionicons name={badge.icon as any} size={11} color="#fff" />
@@ -254,6 +254,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  heroBadgeRowTop: {
+    top: 16,
   },
   heroBadge: {
     flexDirection: "row",

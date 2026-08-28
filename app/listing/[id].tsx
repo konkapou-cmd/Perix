@@ -148,9 +148,9 @@ export default function ListingDetailScreen() {
             title={listing.title}
             hideBack
             badges={[
-              listing.price ? { icon: "pricetag", text: formatPrice(listing.price) } : null,
-              listing.listing_type === "home_rental" ? { icon: "home", text: t("marketplace.home", "Home") } : { icon: "pricetag", text: t("marketplace.product", "Product") },
-              listing.condition ? { icon: "star", text: t(`listing.condition.${listing.condition}`, listing.condition) } : null,
+              listing.price ? { icon: "pricetag", text: formatPrice(listing.price), color: COLORS.success } : null,
+              listing.listing_type === "home_rental" ? { icon: "home", text: t("marketplace.home", "Home"), color: COLORS.success } : { icon: "pricetag", text: t("marketplace.product", "Product"), color: COLORS.success },
+              listing.condition ? { icon: "star", text: t(`listing.condition.${listing.condition}`, listing.condition), color: COLORS.success } : null,
             ].filter(Boolean) as any}
             subtitle={{
               text: listing.business_name || listing.seller_name || "",
@@ -190,7 +190,7 @@ export default function ListingDetailScreen() {
               {listing.seller_avatar ? (
                 <Image source={{ uri: listing.seller_avatar }} style={styles.sellerAvatar} />
               ) : (
-                <Ionicons name={listing.seller_type === "business" ? "storefront-outline" : "person-outline"} size={16} color="#264348" />
+                <Ionicons name={listing.seller_type === "business" ? "storefront-outline" : "person-outline"} size={16} color="#59ABE3" />
               )}
               <Text style={styles.sellerText}>{listing.business_name || listing.seller_name}</Text>
             </Pressable>
@@ -204,13 +204,13 @@ export default function ListingDetailScreen() {
             ) : null}
             {listing.brand ? (
               <View style={styles.tag}>
-                <Ionicons name="bookmark-outline" size={12} color="#264348" />
+                <Ionicons name="bookmark-outline" size={12} color="#59ABE3" />
                 <Text style={styles.tagText}>{listing.brand}</Text>
               </View>
             ) : null}
             {listing.delivery_method ? (
               <View style={styles.tag}>
-                <Ionicons name="cube-outline" size={12} color="#264348" />
+                <Ionicons name="cube-outline" size={12} color="#59ABE3" />
                 <Text style={styles.tagText}>{t(`marketplace.${listing.delivery_method}`, listing.delivery_method)}</Text>
               </View>
             ) : null}
@@ -227,25 +227,25 @@ export default function ListingDetailScreen() {
             <View style={styles.homeDetails}>
               {listing.property_type ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="home-outline" size={16} color="#264348" />
+                  <Ionicons name="home-outline" size={16} color="#59ABE3" />
                   <Text style={styles.homeDetailText}>{t(`rentals.types.${listing.property_type}`, listing.property_type)}</Text>
                 </View>
               ) : null}
               {listing.bedrooms ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="bed-outline" size={16} color="#264348" />
+                  <Ionicons name="bed-outline" size={16} color="#59ABE3" />
                   <Text style={styles.homeDetailText}>{listing.bedrooms} {t("rentals.bedrooms", "Bedrooms")}</Text>
                 </View>
               ) : null}
               {listing.bathrooms ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="water-outline" size={16} color="#264348" />
+                  <Ionicons name="water-outline" size={16} color="#59ABE3" />
                   <Text style={styles.homeDetailText}>{listing.bathrooms} {t("rentals.bathrooms", "Bathrooms")}</Text>
                 </View>
               ) : null}
               {listing.size_sqm ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="resize-outline" size={16} color="#264348" />
+                  <Ionicons name="resize-outline" size={16} color="#59ABE3" />
                   <Text style={styles.homeDetailText}>{listing.size_sqm} m²</Text>
                 </View>
               ) : null}
@@ -257,19 +257,19 @@ export default function ListingDetailScreen() {
               ) : null}
               {listing.available_from ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="calendar-outline" size={16} color="#264348" />
+                  <Ionicons name="calendar-outline" size={16} color="#59ABE3" />
                   <Text style={styles.homeDetailText}>{t("services.availableFrom", "Available from")}: {listing.available_from.split("-").reverse().join("-")}</Text>
                 </View>
               ) : null}
               {listing.lease_duration ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="time-outline" size={16} color="#264348" />
+                  <Ionicons name="time-outline" size={16} color="#59ABE3" />
                   <Text style={styles.homeDetailText}>{t("services.leaseDuration", "Lease Duration")}: {listing.lease_duration}</Text>
                 </View>
               ) : null}
               {listing.deposit ? (
                 <View style={styles.homeDetailItem}>
-                  <Ionicons name="wallet-outline" size={16} color="#264348" />
+                  <Ionicons name="wallet-outline" size={16} color="#59ABE3" />
                   <Text style={styles.homeDetailText}>{t("rentals.deposit", "Deposit")}: {listing.deposit}</Text>
                 </View>
               ) : null}
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   tags: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginTop: SPACING.small },
   tag: {
     flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: "rgba(38,67,72,0.08)", borderRadius: BORDER_RADIUS.full,
+    backgroundColor: "transparent", borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: 10, paddingVertical: 4,
   },
   tagText: { fontSize: 12, color: "#264348", fontWeight: "600" },
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(38,67,72,0.08)",
+    backgroundColor: "transparent",
     borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: 12,
     paddingVertical: 6,

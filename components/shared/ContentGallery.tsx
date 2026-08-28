@@ -88,9 +88,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sectionTitle: {
-    fontSize: FONT_SIZES.h3,
+    fontSize: FONT_SIZES.h4,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
     marginBottom: SPACING.small,
   },
   grid: {
