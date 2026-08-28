@@ -19,7 +19,7 @@ export default function DiscoveryHeader({ title, tab, onTabChange, onMyListings 
       <View style={styles.topRow}>
         <Text style={styles.title}>{title}</Text>
         <Pressable onPress={onMyListings} style={styles.myBtn}>
-          <Ionicons name="list-outline" size={22} color={COLORS.textPrimary} />
+          <Ionicons name="list-outline" size={22} color="#264348" />
         </Pressable>
       </View>
       <View style={styles.tabRow}>
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONT_SIZES.h3,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
     textAlign: "center",
   },
   myBtn: {
@@ -80,19 +80,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "transparent",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.25)",
   },
   tabActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   tabText: {
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: "600",
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   tabTextActive: {
     color: "#fff",

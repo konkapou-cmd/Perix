@@ -60,17 +60,17 @@ export default function MarketplaceAttributeFilters({ category, subcategory, fil
           <View key={attr.key} style={styles.row}>
             <Text style={styles.label}>{t(attr.labelKey, attr.fallback)}</Text>
             <View style={styles.inputRow}>
-              <Ionicons name="search" size={14} color={COLORS.textMuted} />
+              <Ionicons name="search" size={14} color="#264348" />
               <TextInput
                 style={styles.input}
                 value={val}
                 onChangeText={(text) => onChange(attr.key, text)}
                 placeholder={t(attr.labelKey, attr.fallback)}
-                placeholderTextColor={COLORS.textDisabled}
+                placeholderTextColor="#264348"
               />
               {val ? (
                 <Pressable onPress={() => onChange(attr.key, "")} style={styles.clearBtn}>
-                  <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                  <Ionicons name="close-circle" size={16} color="#264348" />
                 </Pressable>
               ) : null}
             </View>
@@ -93,22 +93,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: "600",
-    color: COLORS.textMuted,
+    color: "#264348",
     marginBottom: 4,
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     paddingHorizontal: 10,
   },
   input: {
     flex: 1,
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textPrimary,
+    color: "#264348",
     paddingVertical: 8,
     marginLeft: 6,
   },
@@ -124,18 +124,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.25)",
   },
   chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   chipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   chipTextActive: {
     color: COLORS.background,

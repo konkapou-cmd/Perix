@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   cardAddrText: { fontSize: 11, color: "#264348", flex: 1 },
   resultCount: {
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textMuted,
+    color: "#264348",
     paddingVertical: SPACING.small,
   },
   locationActions: { paddingHorizontal: SPACING.section, gap: SPACING.small },

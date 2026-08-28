@@ -60,13 +60,13 @@ export default function MarketplaceCategoryFilter({ visible, category, subcatego
         {!showingSubs ? (
           <>
             <View style={styles.searchRow}>
-              <Ionicons name="search" size={16} color={COLORS.textMuted} />
+              <Ionicons name="search" size={16} color="#264348" />
               <TextInput
                 style={styles.searchInput}
                 value={search}
                 onChangeText={setSearch}
                 placeholder={t("marketplace.searchCategories", "Kategorien durchsuchen...")}
-                placeholderTextColor={COLORS.textDisabled}
+                placeholderTextColor="#264348"
               />
             </View>
             <ScrollView contentContainerStyle={styles.body}>
@@ -76,9 +76,9 @@ export default function MarketplaceCategoryFilter({ visible, category, subcatego
                   style={[styles.row, stepCat === cat.key && styles.rowSelected]}
                   onPress={() => handleCatSelect(cat)}
                 >
-                  <Ionicons name={cat.icon as any} size={22} color={stepCat === cat.key ? COLORS.primary : COLORS.textMuted} style={{ marginRight: 12 }} />
+                  <Ionicons name={cat.icon as any} size={22} color={stepCat === cat.key ? "#59ABE3" : "#264348"} style={{ marginRight: 12 }} />
                   <Text style={styles.rowText}>{t(cat.labelKey, cat.fallback)}</Text>
-                  <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+                  <Ionicons name="chevron-forward" size={18} color="#264348" />
                 </Pressable>
               ))}
             </ScrollView>
@@ -86,7 +86,7 @@ export default function MarketplaceCategoryFilter({ visible, category, subcatego
         ) : (
           <ScrollView contentContainerStyle={styles.body}>
             <Pressable style={styles.backRow} onPress={() => { setShowingSubs(false); setStepCat(""); }}>
-              <Ionicons name="arrow-back" size={20} color={COLORS.primary} />
+              <Ionicons name="chevron-back" size={18} color="#264348" />
               <Text style={styles.backText}>{t("common.back", "Zurück")} — {t(currentCat!.labelKey, currentCat!.fallback)}</Text>
             </Pressable>
             <Pressable
@@ -94,7 +94,7 @@ export default function MarketplaceCategoryFilter({ visible, category, subcatego
               onPress={() => setStepSub("")}
             >
               <Text style={styles.rowText}>{t("marketplace.allSubcategories", "Alle Unterkategorien")}</Text>
-              {!stepSub && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+              {!stepSub && <Ionicons name="checkmark" size={18} color="#59ABE3" />}
             </Pressable>
             {subs.map((sub) => (
               <Pressable
@@ -103,7 +103,7 @@ export default function MarketplaceCategoryFilter({ visible, category, subcatego
                 onPress={() => setStepSub(sub.key)}
               >
                 <Text style={styles.rowText}>{t(sub.labelKey, sub.fallback)}</Text>
-                {stepSub === sub.key && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+                {stepSub === sub.key && <Ionicons name="checkmark" size={18} color="#59ABE3" />}
               </Pressable>
             ))}
           </ScrollView>
@@ -118,28 +118,28 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)",
   },
-  title: { fontSize: FONT_SIZES.h3, fontWeight: "700", color: COLORS.textPrimary },
-  clearBtn: { fontSize: FONT_SIZES.bodySmall, color: COLORS.danger },
-  doneBtn: { fontSize: FONT_SIZES.bodySmall, fontWeight: "700", color: COLORS.primary },
+  title: { fontSize: FONT_SIZES.h3, fontWeight: "700", color: "#264348" },
+  clearBtn: { fontSize: FONT_SIZES.bodySmall, color: "#264348" },
+  doneBtn: { fontSize: FONT_SIZES.bodySmall, fontWeight: "700", color: "#59ABE3" },
   searchRow: {
     flexDirection: "row", alignItems: "center",
     margin: SPACING.std, paddingHorizontal: 12,
-    backgroundColor: COLORS.backgroundPage, borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1, borderColor: "rgba(38,67,72,0.2)",
   },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: FONT_SIZES.bodySmall, color: "#264348" },
   body: { padding: SPACING.std },
   row: {
     flexDirection: "row", alignItems: "center",
-    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.08)",
   },
-  rowSelected: { backgroundColor: COLORS.primaryLight, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small },
-  rowText: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  rowSelected: { backgroundColor: "rgba(89,171,227,0.12)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small },
+  rowText: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: "#264348" },
   backRow: {
-    flexDirection: "row", alignItems: "center", gap: 8,
+    flexDirection: "row", alignItems: "center", gap: 4,
     paddingVertical: 12, marginBottom: 8,
   },
-  backText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.primary, fontWeight: "600" },
+  backText: { fontSize: FONT_SIZES.bodySmall, color: "#264348", fontWeight: "600" },
 });

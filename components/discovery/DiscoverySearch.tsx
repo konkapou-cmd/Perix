@@ -31,18 +31,18 @@ export default function DiscoverySearch({ value, onChangeText, placeholder }: Pr
 
   return (
     <View style={styles.container}>
-      <Ionicons name="search" size={18} color={COLORS.textMuted} />
+      <Ionicons name="search" size={18} color="#264348" />
       <TextInput
         style={styles.input}
         value={local}
         onChangeText={handleChange}
         placeholder={placeholder}
-        placeholderTextColor={COLORS.textDisabled}
+        placeholderTextColor="#264348"
         returnKeyType="search"
       />
       {local.length > 0 && (
         <Pressable onPress={handleClear} style={styles.clearBtn}>
-          <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+          <Ionicons name="close-circle" size={18} color="#264348" />
         </Pressable>
       )}
     </View>
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textPrimary,
+    color: "#264348",
     paddingVertical: 8,
   },
   clearBtn: {

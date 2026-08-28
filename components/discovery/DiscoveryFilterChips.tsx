@@ -52,18 +52,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.25)",
   },
   chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   chipText: {
     fontSize: 13,
     fontWeight: "600",
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   chipTextActive: {
     color: "#fff",

@@ -259,11 +259,11 @@ export default function MarketplaceItemsPage() {
           style={[styles.filterBtn, category ? styles.filterBtnActive : undefined]}
           onPress={() => setCategoryFilterVisible(true)}
         >
-          <Ionicons name="options-outline" size={16} color={category ? COLORS.background : COLORS.textPrimary} />
+          <Ionicons name="options-outline" size={16} color={category ? COLORS.background : "#264348"} />
           <Text style={[styles.filterBtnText, category ? { color: COLORS.background } : undefined]}>
             {category
-              ? `Kategorie · ${catConfig ? t(catConfig.labelKey, catConfig.fallback) : category}${subLabel ? ` · ${t(catConfig?.subcategories.find((s) => s.key === subcategory)?.labelKey ?? "", subLabel)}` : ""}`
-              : t("marketplace.category", "Kategorie")}
+              ? `Filter · ${catConfig ? t(catConfig.labelKey, catConfig.fallback) : category}${subLabel ? ` · ${t(catConfig?.subcategories.find((s) => s.key === subcategory)?.labelKey ?? "", subLabel)}` : ""}`
+              : t("common.filter", "Filter")}
           </Text>
         </Pressable>
       </View>
@@ -362,12 +362,12 @@ const styles = StyleSheet.create({
   filterBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,
     paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border,
-    backgroundColor: COLORS.backgroundPage,
+    borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: "transparent",
   },
-  filterBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  filterBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.textPrimary },
-  resultCount: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, paddingVertical: SPACING.small },
+  filterBtnActive: { backgroundColor: "#59ABE3", borderColor: "#59ABE3" },
+  filterBtnText: { fontSize: 13, fontWeight: "600", color: "#264348" },
+  resultCount: { fontSize: FONT_SIZES.bodySmall, color: "#264348", paddingVertical: SPACING.small },
   locationActions: { paddingHorizontal: SPACING.section, gap: SPACING.small },
   locationBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
