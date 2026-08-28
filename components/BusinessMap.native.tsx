@@ -342,7 +342,7 @@ export default function BusinessMap({
   ];
 
   return (
-    <View style={[styles.wrapper, height ? { height } : {}]}>
+    <View style={[styles.wrapper, height ? { height } : { aspectRatio: 16 / 9 }]}>
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -420,7 +420,6 @@ export default function BusinessMap({
 
 const styles = StyleSheet.create({
   wrapper: {
-    aspectRatio: 16 / 9,
     width: '100%',
     borderRadius: 12,
     overflow: "hidden",

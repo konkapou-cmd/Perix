@@ -93,8 +93,9 @@ export default function EventDetailPage() {
   };
 
   const getTheme = () => {
-    if (!event?.theme) return DEFAULT_EVENT_THEME;
-    return EVENT_THEMES[event.theme] || DEFAULT_EVENT_THEME;
+    const first = (event?.themes && event.themes.length > 0) ? event.themes[0] : event?.theme;
+    if (!first) return DEFAULT_EVENT_THEME;
+    return EVENT_THEMES[first] || DEFAULT_EVENT_THEME;
   };
 
   const theme = event ? getTheme() : DEFAULT_EVENT_THEME;
@@ -378,10 +379,11 @@ export default function EventDetailPage() {
   const hasCoordinates = !!(event.business?.latitude || event.artist?.latitude);
   const eventLocation = hasCoordinates ? { latitude: event.business?.latitude || event.artist?.latitude!, longitude: event.business?.longitude || event.artist?.longitude! } : null;
   const themeInfo = getTheme();
-  const EVENT_ACCENT = "#FF9F1C";
-  const themeLabels = (event.themes && event.themes.length > 0)
-    ? event.themes.map((th: string) => EVENT_THEMES[th]?.label || th).join(" · ")
-    : "";
+  const themeList = (event.themes && event.themes.length > 0)
+    ? event.themes
+    : (event.theme ? [event.theme] : []);
+  const themeLabels = themeList.map((th: string) => EVENT_THEMES[th]?.label || th).join(" · ");
+  const pageAccent = themeInfo.color || "#FF9F1C";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: COLORS.backgroundPage }]} edges={["top", "bottom"]}>
@@ -418,10 +420,10 @@ export default function EventDetailPage() {
             flush
             badges={[
               isPast
-                ? { icon: "flag", text: t("events.pastEvent") || "Past Event", color: EVENT_ACCENT }
-                : { icon: "calendar", text: themeInfo.label, color: EVENT_ACCENT },
-              { icon: "people", text: String(attendeesCount), color: EVENT_ACCENT },
-              ...(event.is_private ? [{ icon: "lock-closed", color: EVENT_ACCENT }] : []),
+                ? { icon: "flag", text: t("events.pastEvent") || "Past Event", color: pageAccent }
+                : { icon: "calendar", text: themeInfo.label, color: pageAccent },
+              { icon: "people", text: String(attendeesCount), color: pageAccent },
+              ...(event.is_private ? [{ icon: "lock-closed", color: pageAccent }] : []),
             ]}
             subtitle={organizer ? {
               text: `${t("events.by")} ${organizer}`,
@@ -441,20 +443,20 @@ export default function EventDetailPage() {
               icon="calendar-outline"
               label={t("events.date") || "Datum"}
               value={formatEventDate(event.start_time)}
-              accentColor={EVENT_ACCENT}
+              accentColor={pageAccent}
             />
             <DetailFact
               icon="time-outline"
               label={t("events.time") || "Uhrzeit"}
               value={formatEventTime(event.start_time)}
-              accentColor={EVENT_ACCENT}
+              accentColor={pageAccent}
             />
             {event.location ? (
               <DetailFact
                 icon="location-outline"
                 label={t("events.location") || "Ort"}
                 value={event.location}
-                accentColor={EVENT_ACCENT}
+                accentColor={pageAccent}
                 onPress={() => openInMaps({ latitude: eventLocation?.latitude ?? undefined, longitude: eventLocation?.longitude ?? undefined, address: event.location || "" })}
               />
             ) : null}
@@ -462,14 +464,14 @@ export default function EventDetailPage() {
               icon="people"
               label={t("events.attendees") || "Teilnehmer"}
               value={String(attendeesCount)}
-              accentColor={EVENT_ACCENT}
+              accentColor={pageAccent}
             />
             {themeLabels ? (
               <DetailFact
                 icon="sparkles"
                 label={t("events.themes") || "Themen"}
                 value={themeLabels}
-                accentColor={EVENT_ACCENT}
+                accentColor={pageAccent}
               />
             ) : null}
           </DetailFacts>
@@ -551,7 +553,7 @@ export default function EventDetailPage() {
             onSendMedia={handleSendMedia}
             sendingMessage={sendingMessage}
             userId={user?.user_id}
-            themeColor={EVENT_ACCENT}
+            themeColor={pageAccent}
             collapsible={false}
             chatType="event"
             chatId={event.event_id}
@@ -563,7 +565,7 @@ export default function EventDetailPage() {
           <BottomCTA
             primaryLabel={isAttending ? "Teilnehmend" : (t("events.rsvp") || "Zusagen")}
             primaryIcon="calendar-outline"
-            accentColor={EVENT_ACCENT}
+            accentColor={pageAccent}
             onPrimary={isPast ? () => {} : handleToggleAttendance}
             saved={isSaved}
             onSave={handleToggleSave}
