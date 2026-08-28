@@ -47,7 +47,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
             )}
             <Text style={styles.name} numberOfLines={1}>{activeIdentity?.name || user.name}</Text>
           </View>
-          <Ionicons name="chevron-down" size={16} color="#fff" />
+          <Ionicons name="chevron-down" size={16} color="#264348" />
         </View>
       </Pressable>
 
@@ -89,7 +89,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
                 <Text style={styles.itemType}>{t("profile.user") || "Personal Profile"}</Text>
               </View>
               {activeIdentity?.type === "user" && (
-                <Ionicons name="checkmark-circle" size={24} color={COLORS.primaryDark} />
+                <Ionicons name="checkmark-circle" size={24} color="#59ABE3" />
               )}
             </Pressable>
 
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: "#59ABE3",
+    backgroundColor: "transparent",
     gap: 8,
   },
   leftSection: {
@@ -172,8 +172,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.7)",
-    backgroundColor: "#1f2937",
+    borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: "#264348",
   },
   avatarText: {
     color: "#fff",
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 13,
     fontWeight: "600",
-    color: PROFILE_COLORS.CARD,
+    color: "#264348",
     marginLeft: 8,
     maxWidth: 150,
   },

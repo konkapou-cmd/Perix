@@ -177,8 +177,8 @@ export default function TabsLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: COLORS.primaryDark,
-            tabBarInactiveTintColor: COLORS.textSecondary,
+            tabBarActiveTintColor: "#59ABE3",
+            tabBarInactiveTintColor: "#264348",
             tabBarStyle: showTopNavbar ? { display: "none" } : {
               position: "absolute",
               bottom: 0,

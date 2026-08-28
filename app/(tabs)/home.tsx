@@ -748,14 +748,14 @@ export default function HomeScreen() {
             <Ionicons name="sunny" size={8} color="#FFC93C" style={styles.brandSun} />
           </View>
           <Pressable style={styles.locationSearchPill} onPress={() => setShowLocationSearch(true)}>
-            <Ionicons name="location-outline" size={13} color={COLORS.textMuted} />
+            <Ionicons name="location-outline" size={13} color="#264348" />
             <Text style={styles.locationSearchPillText} numberOfLines={1}>
               {globalLocation?.name || t("location.searchPlaceholder", "Search city or location...")}
             </Text>
           </Pressable>
         </View>
         <View style={styles.stickyHeaderRight}>
-          <Pressable style={[styles.stickyHeaderIcon, { backgroundColor: "#5D8CAE" }]} onPress={() => setShowLayoutSettings(true)}>
+          <Pressable style={styles.stickyHeaderIcon} onPress={() => setShowLayoutSettings(true)}>
             <Ionicons name="options-outline" size={22} color="#264348" />
           </Pressable>
           <View style={styles.identityDropWrap}>
@@ -1635,10 +1635,10 @@ const styles = StyleSheet.create({
   stickyHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
   stickyHeaderBrand: { fontSize: 22, fontWeight: "800", color: COLORS.primary, letterSpacing: -0.5 },
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
-  locationSearchPill: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: COLORS.backgroundPage, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.border },
-  locationSearchPillText: { flex: 1, fontSize: 12.5, color: COLORS.textMuted },
+  locationSearchPill: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: "transparent" },
+  locationSearchPillText: { flex: 1, fontSize: 12.5, color: "#264348" },
   stickyHeaderRight: { flexDirection: "row", gap: 10, marginLeft: 10 },
-  stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.backgroundPage, alignItems: "center", justifyContent: "center" },
+  stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "transparent", alignItems: "center", justifyContent: "center" },
   identityDropWrap: { marginLeft: 4 },
   modalContainer: { flex: 1, backgroundColor: COLORS.background },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },

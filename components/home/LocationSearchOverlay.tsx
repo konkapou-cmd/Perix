@@ -67,30 +67,30 @@ export function LocationSearchOverlay({ visible, sessionToken, onClose, onSelect
       <View style={styles.backdrop}>
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={20} color={COLORS.textPlaceholder} />
+            <Ionicons name="search" size={20} color="#264348" />
             <TextInput
               style={styles.input}
               placeholder={t("location.searchPlaceholder", "Search city or location...")}
-              placeholderTextColor={COLORS.textPlaceholder}
+              placeholderTextColor="#264348"
               value={query}
               onChangeText={searchPlaces}
               autoFocus
             />
             {query.length > 0 && (
               <Pressable onPress={() => { setQuery(""); setSuggestions([]); }}>
-                <Ionicons name="close-circle" size={20} color={COLORS.textPlaceholder} />
+                <Ionicons name="close-circle" size={20} color="#264348" />
               </Pressable>
             )}
             <Pressable onPress={handleClose}>
-              <Ionicons name="close" size={22} color={COLORS.textDark} />
+              <Ionicons name="close" size={22} color="#264348" />
             </Pressable>
           </View>
-          {loading && <ActivityIndicator style={styles.loader} size="small" color={COLORS.primary} />}
+          {loading && <ActivityIndicator style={styles.loader} size="small" color="#264348" />}
           {suggestions.length > 0 && (
             <ScrollView nestedScrollEnabled style={styles.suggestionList}>
               {suggestions.map((item) => (
                 <Pressable key={item.place_id} style={styles.suggestionItem} onPress={() => handleSelect(item)}>
-                  <Ionicons name="location" size={18} color={COLORS.primary} />
+                  <Ionicons name="location" size={18} color="#264348" />
                   <Text style={styles.suggestionText} numberOfLines={2}>{item.description}</Text>
                 </Pressable>
               ))}
@@ -123,16 +123,18 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.surfaceGray,
+    backgroundColor: COLORS.background,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 48,
     gap: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(38,67,72,0.2)",
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: COLORS.textPrimary,
+    color: "#264348",
     paddingVertical: 0,
   },
   loader: {
@@ -153,7 +155,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 15,
-    color: COLORS.textPrimary,
+    color: "#264348",
     flex: 1,
   },
 });
