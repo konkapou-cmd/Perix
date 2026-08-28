@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, ActivityIndicator, Alert, RefreshControl, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,12 +34,23 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    bookings.forEach((b) => { counts[b.status] = (counts[b.status] || 0) + 1; });
+    return counts;
+  }, [bookings]);
+
   const loadBookings = useCallback(async () => {
     try {
-      const data = await getBookings(sessionToken, undefined, activeTab);
-      setBookings(data);
+      const data = await getBookings(sessionToken, undefined, undefined);
+      setBookings(data || []);
     } catch { /* ignore */ }
-  }, [sessionToken, activeTab]);
+  }, [sessionToken]);
+
+  const visibleBookings = useMemo(
+    () => bookings.filter((b) => b.status === activeTab),
+    [bookings, activeTab],
+  );
 
   useEffect(() => {
     if (visible) {
@@ -160,6 +171,11 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
                 <Text style={[s.tabText, activeTab === tab && s.tabTextActive]} numberOfLines={1} ellipsizeMode="tail">
                   {t(`services.${tab}`, tab.charAt(0).toUpperCase() + tab.slice(1))}
                 </Text>
+                {(statusCounts[tab] || 0) > 0 && (
+                  <View style={[s.tabCount, activeTab === tab && s.tabCountActive]}>
+                    <Text style={[s.tabCountText, activeTab === tab && s.tabCountTextActive]}>{statusCounts[tab]}</Text>
+                  </View>
+                )}
               </Pressable>
             ))}
           </ScrollView>
@@ -167,7 +183,7 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
 
         {loading && !refreshing ? (
           <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.large }} />
-        ) : bookings.length === 0 ? (
+        ) : visibleBookings.length === 0 ? (
           <View style={s.emptyState}>
             <Ionicons name="calendar-outline" size={48} color={COLORS.textMuted} />
             <Text style={s.emptyText}>{t("services.noBookings", "No bookings yet")}</Text>
@@ -178,7 +194,7 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             contentContainerStyle={{ paddingBottom: SPACING.large }}
           >
-            {bookings.map(renderBooking)}
+            {visibleBookings.map(renderBooking)}
           </ScrollView>
         )}
         </KeyboardAvoidingView>
@@ -202,9 +218,13 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
   tabRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: COLORS.border },
   tabScroll: { flexDirection: "row", paddingHorizontal: SPACING.small, gap: SPACING.tiny },
-  tab: { maxWidth: 160, paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact, alignItems: "center" },
+  tab: { maxWidth: 160, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact },
   tabActive: { borderBottomWidth: 2, borderBottomColor: COLORS.primary },
   tabText: { fontSize: FONT_SIZES.small, color: COLORS.textMuted, fontWeight: FONT_WEIGHTS.medium as any, textAlign: "center" },
+  tabCount: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.backgroundPage, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
+  tabCountActive: { backgroundColor: COLORS.primary },
+  tabCountText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textMuted },
+  tabCountTextActive: { color: "#fff" },
   tabTextActive: { color: COLORS.primary, fontWeight: FONT_WEIGHTS.bold as any },
   body: { flex: 1, paddingHorizontal: SPACING.std, paddingVertical: SPACING.std },
   emptyState: { alignItems: "center", paddingVertical: SPACING.large, gap: SPACING.compact },
