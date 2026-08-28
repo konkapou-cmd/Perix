@@ -38,6 +38,7 @@ type Props = {
   onLoginPress?: () => void;
   chatType?: "activity" | "event";
   chatId?: string;
+  flush?: boolean;
 };
 
 export default function ChatSection({
@@ -56,6 +57,7 @@ export default function ChatSection({
   onLoginPress,
   chatType,
   chatId,
+  flush,
 }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -107,7 +109,7 @@ export default function ChatSection({
   }
 
   return (
-    <View style={styles.chatSection}>
+    <View style={[styles.chatSection, flush && styles.chatSectionFlush]}>
       <Pressable
         style={styles.chatHeader}
         onPress={() => collapsible && setShowChat(!showChat)}
@@ -288,6 +290,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(38,67,72,0.15)",
+  },
+  chatSectionFlush: {
+    marginHorizontal: 0,
+    borderRadius: 0,
   },
   chatHeader: {
     flexDirection: "row",

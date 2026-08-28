@@ -29,8 +29,6 @@ import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import { ContentHero, ContentGallery, ContentMap } from "../../components/shared";
 import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
 import ErrorState from "../../components/shared/ErrorState";
-import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
-import { RSVPSection } from "../../components/shared/RSVPSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
 import { openInMaps } from "../../lib/utils/openMapUrl";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
@@ -521,21 +519,6 @@ export default function EventDetailPage() {
             <ContentGallery mediaItems={allMediaItems} title="Galerie" />
           )}
 
-          <RSVPSection
-            accentColor={EVENT_ACCENT}
-            isAttending={isAttending}
-            hasReminder={hasReminder}
-            onAttend={isPast ? () => {} : handleToggleAttendance}
-          />
-
-          <ShareSectionComponent
-            accentColor={EVENT_ACCENT}
-            saved={isSaved}
-            onWhatsApp={shareToWhatsApp}
-            onShare={() => setShowShareModal(true)}
-            onSave={handleToggleSave}
-          />
-
           <ShareContent
             visible={showShareModal}
             onClose={() => setShowShareModal(false)}
@@ -569,11 +552,12 @@ export default function EventDetailPage() {
             sendingMessage={sendingMessage}
             userId={user?.user_id}
             themeColor={EVENT_ACCENT}
-            collapsible={true}
+            collapsible={false}
             chatType="event"
             chatId={event.event_id}
             showLoginPrompt={!sessionToken}
             onLoginPress={() => router.push("/login")}
+            flush
           />
 
           <BottomCTA
@@ -584,6 +568,7 @@ export default function EventDetailPage() {
             saved={isSaved}
             onSave={handleToggleSave}
             onShare={() => setShowShareModal(true)}
+            onWhatsApp={shareToWhatsApp}
           />
         </ScrollView>
 

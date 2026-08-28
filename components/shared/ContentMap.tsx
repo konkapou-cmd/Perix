@@ -51,8 +51,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   containerFlush: {
-    marginHorizontal: SPACING.std,
-    borderRadius: BORDER_RADIUS.lg,
+    marginHorizontal: 0,
+    borderRadius: 0,
   },
   overlay: {
     position: "absolute",

@@ -13,6 +13,7 @@ type BottomCTAProps = {
   saved?: boolean;
   onSave?: () => void;
   onShare?: () => void;
+  onWhatsApp?: () => void;
 };
 
 export const BottomCTA = ({
@@ -25,6 +26,7 @@ export const BottomCTA = ({
   saved = false,
   onSave,
   onShare,
+  onWhatsApp,
 }: BottomCTAProps) => (
   <View style={styles.container}>
     <Pressable
@@ -46,20 +48,28 @@ export const BottomCTA = ({
       </Pressable>
     )}
 
-    {(onSave || onShare) && (
-      <View style={styles.iconRow}>
-        {onSave && (
-          <Pressable style={styles.iconBtn} onPress={onSave}>
-            <Ionicons
-              name={saved ? "bookmark" : "bookmark-outline"}
-              size={22}
-              color={saved ? COLORS.gold : "#264348"}
-            />
+    {(onWhatsApp || onShare || onSave) && (
+      <View style={styles.actionRow}>
+        {onWhatsApp && (
+          <Pressable style={styles.actionBtn} onPress={onWhatsApp}>
+            <Ionicons name="logo-whatsapp" size={18} color="#22C55E" />
+            <Text style={styles.actionText}>WhatsApp</Text>
           </Pressable>
         )}
         {onShare && (
-          <Pressable style={styles.iconBtn} onPress={onShare}>
-            <Ionicons name="share-social-outline" size={22} color="#264348" />
+          <Pressable style={styles.actionBtn} onPress={onShare}>
+            <Ionicons name="share-social-outline" size={18} color="#264348" />
+            <Text style={styles.actionText}>Teilen</Text>
+          </Pressable>
+        )}
+        {onSave && (
+          <Pressable style={styles.actionBtn} onPress={onSave}>
+            <Ionicons
+              name={saved ? "bookmark" : "bookmark-outline"}
+              size={18}
+              color={saved ? COLORS.gold : "#264348"}
+            />
+            <Text style={styles.actionText}>{saved ? "Gespeichert" : "Speichern"}</Text>
           </Pressable>
         )}
       </View>
@@ -109,6 +119,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: SPACING.gap,
     marginTop: 2,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: SPACING.small,
+  },
+  actionBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "rgba(38,67,72,0.05)",
+  },
+  actionText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#264348",
   },
   iconBtn: {
     width: 44,
