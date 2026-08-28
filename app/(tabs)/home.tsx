@@ -742,11 +742,11 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.stickyHeader}>
-        <View style={styles.stickyHeaderLeft}>
-          <View style={styles.brandWrap}>
-            <Animated.Text style={[styles.stickyHeaderBrand, { opacity: brandOpacity }]}>Perıx</Animated.Text>
-            <Ionicons name="sunny" size={8} color="#FFC93C" style={styles.brandSun} />
-          </View>
+        <View style={styles.brandWrap}>
+          <Animated.Text style={[styles.stickyHeaderBrand, { opacity: brandOpacity }]}>Perıx</Animated.Text>
+          <Ionicons name="sunny" size={8} color="#FFC93C" style={styles.brandSun} />
+        </View>
+        <View style={styles.stickyHeaderMiddle}>
           <Pressable style={styles.locationSearchPill} onPress={() => setShowLocationSearch(true)}>
             <Ionicons name="location-outline" size={13} color="#264348" />
             <Text style={styles.locationSearchPillText} numberOfLines={1}>
@@ -1632,11 +1632,11 @@ const styles = StyleSheet.create({
   stickyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACING.small, paddingVertical: 10, backgroundColor: COLORS.background, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border, zIndex: 10 },
   brandWrap: { position: "relative" },
   brandSun: { position: "absolute", right: 11, top: 0 },
-  stickyHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
+  stickyHeaderMiddle: { flex: 1, minWidth: 0, flexDirection: "row", justifyContent: "center" },
   stickyHeaderBrand: { fontSize: 22, fontWeight: "800", color: COLORS.primary, letterSpacing: -0.5 },
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
-  locationSearchPill: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: "transparent" },
-  locationSearchPillText: { flex: 1, fontSize: 12.5, color: "#264348" },
+  locationSearchPill: { flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: "transparent" },
+  locationSearchPillText: { fontSize: 12.5, color: "#264348" },
   stickyHeaderRight: { flexDirection: "row", gap: 10, marginLeft: 10 },
   stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "transparent", alignItems: "center", justifyContent: "center" },
   identityDropWrap: { marginLeft: 4 },
