@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CalendarList } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
 import { formatDate } from "../../lib/formatDate";
 
@@ -141,12 +142,16 @@ export default function DatePickerModal({
     backgroundColor: COLORS.background,
     calendarBackground: COLORS.background,
     todayTextColor: accentColor,
-    dayTextColor: COLORS.textDark,
-    textDisabledColor: COLORS.borderLight,
-    monthTextColor: COLORS.textPrimary,
+    dayTextColor: "#264348",
+    textDayHeaderColor: "#264348",
+    textDisabledColor: "rgba(38,67,72,0.25)",
+    monthTextColor: "#264348",
     textDayFontWeight: "500" as const,
     textMonthFontWeight: "700" as const,
     textDayFontSize: 14,
+    textDayFontFamily: "Quicksand_500Medium",
+    textMonthFontFamily: "Quicksand_700Bold",
+    textDayHeaderFontFamily: "Quicksand_600SemiBold",
     arrowColor: accentColor,
     selectedDayBackgroundColor: accentColor,
     selectedDayTextColor: COLORS.background,
@@ -219,9 +224,14 @@ export default function DatePickerModal({
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={fullStyles.container}>
-        <View style={fullStyles.header}>
+        <LinearGradient
+          colors={["#FF7A1A", "#FFC400"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0.6 }}
+          style={fullStyles.header}
+        >
           <View style={fullStyles.headerContent}>
-            <View style={[fullStyles.headerIcon, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
+            <View style={fullStyles.headerIcon}>
               <Ionicons name="calendar" size={24} color={COLORS.background} />
             </View>
             <View>
@@ -232,7 +242,7 @@ export default function DatePickerModal({
           <Pressable style={fullStyles.closeBtn} onPress={onClose}>
             <Ionicons name="close" size={24} color={COLORS.background} />
           </Pressable>
-        </View>
+        </LinearGradient>
 
         <View style={fullStyles.body}>
           <CalendarList
@@ -264,10 +274,17 @@ export default function DatePickerModal({
               </Pressable>
             )}
             <Pressable
-              style={[fullStyles.actionBtn, fullStyles.applyBtn, { backgroundColor: accentColor }]}
+              style={[fullStyles.actionBtn, fullStyles.applyBtn]}
               onPress={handleApply}
             >
-              <Text style={[fullStyles.actionText, fullStyles.applyText]}>{t("common.apply", "Apply")}</Text>
+              <LinearGradient
+                colors={["#FF7A1A", "#FFC400"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={fullStyles.applyGradient}
+              >
+                <Text style={[fullStyles.actionText, fullStyles.applyText]}>{t("common.apply", "Apply")}</Text>
+              </LinearGradient>
             </Pressable>
           </View>
         )}
@@ -280,15 +297,16 @@ const fullStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: COLORS.primaryDark, paddingHorizontal: 20, paddingVertical: 16,
+    paddingHorizontal: 20, paddingVertical: 16,
   },
   headerContent: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   headerIcon: {
     width: 44, height: 44, borderRadius: 22,
     alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
   title: { fontSize: Platform.OS === "web" ? 20 : 18, fontWeight: "700", color: COLORS.background },
-  subtitle: { fontSize: Platform.OS === "web" ? 14 : 13, color: "rgba(255,255,255,0.85)", marginTop: 2 },
+  subtitle: { fontSize: Platform.OS === "web" ? 14 : 13, color: "rgba(255,255,255,0.9)", marginTop: 2 },
   closeBtn: { padding: 4 },
   body: { flex: 1, backgroundColor: COLORS.background, marginTop: 8 },
   calendar: {},
@@ -298,11 +316,20 @@ const fullStyles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: COLORS.borderGray,
   },
   actionBtn: {
-    flex: 1, paddingVertical: 14, borderRadius: BORDER_RADIUS.md,
-    alignItems: "center", backgroundColor: COLORS.surfaceGray,
+    flex: 1, paddingVertical: 0, borderRadius: BORDER_RADIUS.md,
+    alignItems: "center", justifyContent: "center", backgroundColor: COLORS.surfaceGray,
+    minHeight: 50,
+    overflow: "hidden",
   },
   applyBtn: {},
-  actionText: { fontSize: Platform.OS === "web" ? 16 : 15, fontWeight: "600", color: COLORS.textDark },
+  applyGradient: {
+    flex: 1,
+    alignSelf: "stretch",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: BORDER_RADIUS.md,
+  },
+  actionText: { fontSize: Platform.OS === "web" ? 16 : 15, fontWeight: "600", color: "#264348" },
   applyText: { color: COLORS.background },
 });
 

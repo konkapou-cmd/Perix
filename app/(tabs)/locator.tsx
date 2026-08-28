@@ -1100,7 +1100,7 @@ export default function LocatorScreen() {
         onApply={(v) => setDateFilter(v)}
         onReset={() => { setDateFilter({ startDate: null, endDate: null }); }}
         title={t("home.eventsCalendar", "Select Dates")}
-        accentColor={COLORS.primaryDark}
+        accentColor="#FF9F1C"
       />
 
       <Modal visible={categoryModal} animationType="slide">

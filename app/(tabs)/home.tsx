@@ -1358,7 +1358,7 @@ export default function HomeScreen() {
         value={{ startDate: calendarDate, endDate: null }}
         onApply={(v) => setCalendarDate(v.startDate ?? null)}
         title={t("home.eventsCalendar")}
-        accentColor={COLORS.primaryDark}
+        accentColor="#FF9F1C"
         pastScrollRange={3}
         futureScrollRange={6}
       >
@@ -1420,7 +1420,7 @@ export default function HomeScreen() {
         value={{ startDate: activitiesCalendarDate, endDate: null }}
         onApply={(v) => setActivitiesCalendarDate(v.startDate ?? null)}
         title={t("home.activitiesCalendar")}
-        accentColor={COLORS.primaryDark}
+        accentColor="#FF9F1C"
         pastScrollRange={3}
         futureScrollRange={6}
       >
