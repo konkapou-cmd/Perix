@@ -183,9 +183,7 @@ export default function MarketplaceItemsPage() {
           <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
           <Text style={styles.cardPrice}>{formatPrice(item.price)}</Text>
           {sellerName ? (
-            <Pressable onPress={sellerId ? () => router.push(`/marketplace/user/${sellerId}` as any) : undefined}>
-              <Text style={styles.cardSeller} numberOfLines={1}>{sellerName}</Text>
-            </Pressable>
+            <Text style={styles.cardSeller} numberOfLines={1}>{sellerName}</Text>
           ) : null}
           {addressLabel ? (
             <View style={styles.cardAddr}>
