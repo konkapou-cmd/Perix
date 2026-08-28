@@ -95,12 +95,16 @@ export const COLORS = {
   postsBg: "#F1F8FE",
 
   // Map pins
-  pinBusiness: "#096BFF",
-  pinEvent: "#FF7A1A",
+  pinBusiness: "#142B6F",
+  pinEvent: "#EF4444",
   pinActivity: "#FF7A1A",
-  pinJob: "#096BFF",
+  pinJob: "#39FF14",
   pinRental: "#02A28E",
   pinClosed: "#000000",
+  pinHotel: "#59ABE3",
+  pinService: "#096BFF",
+  pinProduct: "#FFC400",
+  pinHome: "#1F4788",
 
   // Detail page — checklist green
   detailSuccess: "#22C55E",

@@ -8,6 +8,7 @@ type MapMarker = {
   description?: string;
   isOpen?: boolean;
   pinColor?: string;
+  pinInnerColor?: string;
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product";
 };
 

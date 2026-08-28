@@ -41,7 +41,7 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
       latitude: l.latitude!,
       longitude: l.longitude!,
       title: l.title,
-      pinColor: COLORS.success,
+      pinColor: COLORS.pinProduct,
       type: "product" as const,
     })), [products]);
 
@@ -54,7 +54,7 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
       latitude: l.latitude!,
       longitude: l.longitude!,
       title: l.title,
-      pinColor: COLORS.rentalsAccent,
+      pinColor: COLORS.pinHome,
       type: "rental" as const,
     }));
   }, [ownerHomes, rentals]);

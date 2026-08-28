@@ -130,6 +130,7 @@ export default function BusinessMap({
       longitude: business.longitude,
       title: business.name,
       description: business.category,
+      pinColor: business.root_category === "hotels" ? COLORS.pinHotel : COLORS.pinBusiness,
     })),
     ...events
       .filter(e => e.latitude != null && e.longitude != null)
@@ -139,6 +140,7 @@ export default function BusinessMap({
         longitude: event.longitude!,
         title: event.title,
         description: event.location || formatEventDate(event.start_time),
+        pinColor: COLORS.pinEvent,
       })),
     ...activities
       .filter(a => a.latitude != null && a.longitude != null)
@@ -148,6 +150,7 @@ export default function BusinessMap({
         longitude: activity.longitude!,
         title: activity.title,
         description: activity.location || `${formatEventDate(activity.date)} ${activity.time || ''}`,
+        pinColor: COLORS.pinActivity,
       })),
     ...artists
       .filter(a => a.latitude != null && a.longitude != null)
@@ -157,6 +160,7 @@ export default function BusinessMap({
         longitude: artist.longitude!,
         title: artist.name,
         description: artist.town || artist.genres?.join(", ") || "",
+        pinColor: COLORS.pinClosed,
       })),
     ...rentals
       .filter(r => r.latitude != null && r.longitude != null)
@@ -166,6 +170,17 @@ export default function BusinessMap({
         longitude: rental.longitude!,
         title: rental.title,
         description: rental.rent_price || rental.address || "",
+        pinColor: COLORS.pinRental,
+      })),
+    ...jobs
+      .filter(j => j.latitude != null && j.longitude != null)
+      .map((job) => ({
+        id: job.job_id,
+        latitude: job.latitude!,
+        longitude: job.longitude!,
+        title: job.title,
+        description: job.work_location || "",
+        pinColor: COLORS.pinJob,
       })),
     ...services
       .filter(s => s.latitude != null && s.longitude != null && s.root_category !== "rentals" && s.root_category !== "rental-real-estate")
@@ -175,6 +190,7 @@ export default function BusinessMap({
         longitude: service.longitude!,
         title: service.name,
         description: service.address || "",
+        pinColor: COLORS.pinService,
       })),
   ];
 

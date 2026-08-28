@@ -16,6 +16,7 @@ type MapMarker = {
   description?: string;
   isOpen?: boolean;
   pinColor?: string;
+  pinInnerColor?: string;
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product";
 };
 
@@ -124,7 +125,9 @@ export default function BusinessMap({
       description: business.category,
       isOpen: isBusinessOpen(business),
       type: "business" as const,
-      pinColor: isBusinessOpen(business) ? COLORS.pinBusiness : COLORS.pinClosed,
+      pinColor: business.root_category === "hotels"
+        ? COLORS.pinHotel
+        : (isBusinessOpen(business) ? COLORS.pinBusiness : COLORS.pinClosed),
     })),
       ...events
       .filter(e => e.latitude != null && e.longitude != null)
@@ -136,6 +139,7 @@ export default function BusinessMap({
         description: event.location || formatEventDate(event.start_time),
         type: "event" as const,
         pinColor: COLORS.pinEvent,
+        pinInnerColor: "#FFC400",
       })),
     ...activities
       .filter(a => a.latitude != null && a.longitude != null)
@@ -147,6 +151,7 @@ export default function BusinessMap({
         description: activity.location || `${formatEventDate(activity.date)} ${activity.time || ''}`,
         type: "activity" as const,
         pinColor: COLORS.pinActivity,
+        pinInnerColor: "#FFC400",
       })),
     ...artists
       .filter(a => a.latitude != null && a.longitude != null)
@@ -190,7 +195,8 @@ export default function BusinessMap({
         title: service.name,
         description: service.address || "",
         type: "service" as const,
-        pinColor: COLORS.servicesAccent,
+        pinColor: COLORS.pinService,
+        pinInnerColor: "#EF4444",
       })),
   ];
 
@@ -212,6 +218,7 @@ export default function BusinessMap({
   const prevLocationRef = useRef<string>("");
   const readyRef = useRef(false);
   const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(12);
 
   useEffect(() => {
     const t = setTimeout(() => { readyRef.current = true; }, 800);
@@ -225,15 +232,24 @@ export default function BusinessMap({
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(m);
     });
-    return Array.from(groups.entries()).map(([key, items]) => ({
-      key,
-      items,
-      latitude: items[0].latitude,
-      longitude: items[0].longitude,
-      count: items.length,
-      pinColor: items.length === 1 ? items[0].pinColor : items.every(i => i.pinColor === items[0].pinColor) ? items[0].pinColor : '#555',
-      type: items[0].type,
-    }));
+    return Array.from(groups.entries()).map(([key, items]) => {
+      const uniqueColors: string[] = [];
+      items.forEach((i) => {
+        if (i.pinColor && !uniqueColors.includes(i.pinColor)) uniqueColors.push(i.pinColor);
+        if (i.pinInnerColor && !uniqueColors.includes(i.pinInnerColor)) uniqueColors.push(i.pinInnerColor);
+      });
+      return {
+        key,
+        items,
+        latitude: items[0].latitude,
+        longitude: items[0].longitude,
+        count: items.length,
+        pinColor: items.length === 1 ? items[0].pinColor : "#264348",
+        pinInnerColor: items.length === 1 ? items[0].pinInnerColor : undefined,
+        memberColors: items.length > 1 ? uniqueColors.slice(0, 4) : [],
+        type: items[0].type,
+      };
+    });
   }, [mapMarkers]);
 
   useEffect(() => {
@@ -255,6 +271,7 @@ export default function BusinessMap({
   }, [focusToken]);
 
   const handleRegionChangeComplete = (region: Region) => {
+    setZoomLevel(Math.max(2, Math.log2(360 / region.longitudeDelta)));
     if (disabled || !readyRef.current) return;
     const bounds: MapBounds = {
       minLat: region.latitude - region.latitudeDelta / 2,
@@ -339,7 +356,13 @@ export default function BusinessMap({
         pitchEnabled={!staticMode}
         rotateEnabled={!staticMode}
       >
-        {groupedMarkers.map((group) => (
+        {groupedMarkers.map((group) => {
+          const zoomScale = Math.max(0.8, Math.min(1.7, zoomLevel / 12));
+          const groupSize = (group.count > 1 ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40) : 20) * zoomScale;
+          const groupFontSize = Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale);
+          const dotSize = 7 * zoomScale;
+          const groupDotSize = 4 * zoomScale;
+          return (
           <Marker
             key={group.key}
             coordinate={{ latitude: group.latitude, longitude: group.longitude }}
@@ -351,13 +374,25 @@ export default function BusinessMap({
               }
             }}
           >
-            <View style={[group.count > 1 ? styles.groupPin : styles.customPin, { backgroundColor: group.pinColor || COLORS.pinClosed }]}>
-              {group.count > 1 && (
-                <Text style={styles.groupPinText}>{group.count}</Text>
-              )}
+            <View style={[group.count > 1 ? styles.groupPin : styles.customPin, { backgroundColor: group.pinColor || COLORS.pinClosed, width: groupSize, height: groupSize, borderRadius: groupSize / 2 }]}>
+              {group.count > 1 ? (
+                <>
+                  <Text style={[styles.groupPinText, { fontSize: groupFontSize }]}>{group.count}</Text>
+                  {group.memberColors.length > 0 && (
+                    <View style={styles.groupDotsRow}>
+                      {group.memberColors.map((c, i) => (
+                        <View key={i} style={[styles.groupDot, { backgroundColor: c, width: groupDotSize, height: groupDotSize, borderRadius: groupDotSize / 2 }]} />
+                      ))}
+                    </View>
+                  )}
+                </>
+              ) : group.pinInnerColor ? (
+                <View style={[styles.pinDot, { backgroundColor: group.pinInnerColor, width: dotSize, height: dotSize, borderRadius: dotSize / 2 }]} />
+              ) : null}
             </View>
           </Marker>
-        ))}
+          );
+        })}
       </MapView>
       <Modal visible={selectedGroup !== null} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
         <Pressable style={styles.sheetOverlay} onPress={() => setSelectedGroup(null)}>
@@ -422,10 +457,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 2,
     borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+  },
+  pinDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   groupPin: {
     width: 28,
@@ -439,6 +481,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 5,
     elevation: 5,
+  },
+  groupDotsRow: {
+    flexDirection: 'row',
+    gap: 2,
+    marginTop: 1,
+  },
+  groupDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
   groupPinText: {
     color: '#fff',
