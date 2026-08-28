@@ -88,7 +88,7 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
             )}
           </View>
           <View style={[s.statusBadge, { backgroundColor: statusColor + "20" }]}>
-            <Text style={[s.statusText, { color: statusColor }]} numberOfLines={1}>
+            <Text style={[s.statusText, { color: statusColor }]} numberOfLines={1} ellipsizeMode="tail">
               {t(`services.${booking.status}`, booking.status.charAt(0).toUpperCase() + booking.status.slice(1))}
             </Text>
           </View>
@@ -157,7 +157,7 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
                 style={[s.tab, activeTab === tab && s.tabActive]}
                 onPress={() => setActiveTab(tab)}
               >
-                <Text style={[s.tabText, activeTab === tab && s.tabTextActive]} numberOfLines={1}>
+                <Text style={[s.tabText, activeTab === tab && s.tabTextActive]} numberOfLines={1} ellipsizeMode="tail">
                   {t(`services.${tab}`, tab.charAt(0).toUpperCase() + tab.slice(1))}
                 </Text>
               </Pressable>
@@ -201,10 +201,10 @@ const s = StyleSheet.create({
   headerBtn: { padding: 4, width: 40, alignItems: "center" },
   headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
   tabRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tabScroll: { paddingHorizontal: SPACING.small, gap: SPACING.tiny },
-  tab: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact, alignItems: "center" },
+  tabScroll: { flexDirection: "row", paddingHorizontal: SPACING.small, gap: SPACING.tiny },
+  tab: { maxWidth: 160, paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact, alignItems: "center" },
   tabActive: { borderBottomWidth: 2, borderBottomColor: COLORS.primary },
-  tabText: { fontSize: FONT_SIZES.small, color: COLORS.textMuted, fontWeight: FONT_WEIGHTS.medium as any },
+  tabText: { fontSize: FONT_SIZES.small, color: COLORS.textMuted, fontWeight: FONT_WEIGHTS.medium as any, textAlign: "center" },
   tabTextActive: { color: COLORS.primary, fontWeight: FONT_WEIGHTS.bold as any },
   body: { flex: 1, paddingHorizontal: SPACING.std, paddingVertical: SPACING.std },
   emptyState: { alignItems: "center", paddingVertical: SPACING.large, gap: SPACING.compact },
@@ -213,8 +213,8 @@ const s = StyleSheet.create({
   bookingHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: SPACING.small },
   serviceName: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
   businessName: { fontSize: FONT_SIZES.small, color: COLORS.primary, marginTop: SPACING.tiny },
-  statusBadge: { paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: BORDER_RADIUS.full, marginLeft: SPACING.small },
-  statusText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any },
+  statusBadge: { paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: BORDER_RADIUS.full, marginLeft: SPACING.small, flexShrink: 1, maxWidth: "45%" },
+  statusText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any, textAlign: "center" },
   bookingDetail: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, marginTop: SPACING.tiny },
   bookingCode: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.primary, marginTop: SPACING.tiny },
   bookingPrice: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success, marginTop: SPACING.tiny },

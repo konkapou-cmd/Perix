@@ -123,7 +123,7 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
           )}
           </View>
           <View style={[s.statusBadge, { backgroundColor: statusColor + "20" }]}>
-            <Text style={[s.statusText, { color: statusColor }]} numberOfLines={1}>{t(`bookingList.${booking.status}`, booking.status)}</Text>
+            <Text style={[s.statusText, { color: statusColor }]} numberOfLines={1} ellipsizeMode="tail">{t(`bookingList.${booking.status}`, booking.status)}</Text>
           </View>
         </View>
         <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{formatDate(booking.date)} {booking.start_time ? `| ${booking.start_time}` : ""}{booking.end_time ? ` - ${booking.end_time}` : ""}</Text>
@@ -260,8 +260,8 @@ const s = StyleSheet.create({
   bookingCard: { backgroundColor: COLORS.surfaceSoft, borderRadius: BORDER_RADIUS.lg, padding: SPACING.std, marginBottom: SPACING.compact },
   bookingHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.small },
   clientName: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
-  statusBadge: { paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: BORDER_RADIUS.full },
-  statusText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any },
+  statusBadge: { flexShrink: 1, maxWidth: "45%", paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: BORDER_RADIUS.full },
+  statusText: { textAlign: "center", fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any },
   bookingDetail: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, marginTop: SPACING.tiny },
   bookingCode: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.primary, marginTop: SPACING.tiny },
   bookingPrice: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success, marginTop: SPACING.tiny },
