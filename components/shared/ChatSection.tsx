@@ -123,11 +123,11 @@ export default function ChatSection({
         </View>
         {collapsible && (
           <View style={styles.chatToggle}>
-            <Ionicons
-              name={showChat ? "chevron-up" : "chevron-down"}
-              size={20}
-              color={COLORS.textMuted}
-            />
+              <Ionicons
+                name={showChat ? "chevron-up" : "chevron-down"}
+                size={20}
+                color="#264348"
+              />
           </View>
         )}
         {chatType && chatId && (
@@ -201,7 +201,7 @@ export default function ChatSection({
                     {msg.text && (
                       isMe ? (
                         <LinearGradient
-                          colors={[themeColor, COLORS.primaryDark]}
+                          colors={[themeColor, "#FFC400"]}
                           style={styles.chatBubbleMeGradient}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 0 }}
@@ -241,14 +241,14 @@ export default function ChatSection({
                 {uploadingPhoto ? (
                   <ActivityIndicator size="small" color={themeColor} />
                 ) : (
-                  <Ionicons name="image-outline" size={22} color={COLORS.textMuted} />
+                  <Ionicons name="image-outline" size={22} color="#264348" />
                 )}
               </Pressable>
             )}
             <TextInput
               style={styles.chatInput}
               placeholder={t("chat.typeMessage") || "Type a message..."}
-              placeholderTextColor={COLORS.textDisabled}
+              placeholderTextColor="rgba(38,67,72,0.45)"
               value={chatText}
               onChangeText={onChatTextChange}
               multiline
@@ -260,7 +260,7 @@ export default function ChatSection({
               disabled={!chatText.trim() || sendingMessage}
             >
               <LinearGradient
-                colors={[themeColor, COLORS.primaryDark]}
+                colors={[themeColor, "#FFC400"]}
                 style={styles.chatSendBtnGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -282,10 +282,12 @@ export default function ChatSection({
 const styles = StyleSheet.create({
   chatSection: {
     backgroundColor: COLORS.background,
-    borderRadius: BORDER_RADIUS.lg,
-    marginTop: SPACING.std,
+    borderRadius: 12,
+    marginTop: SPACING.section,
+    marginHorizontal: SPACING.page,
     overflow: "hidden",
-    ...SHADOWS.subtle,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(38,67,72,0.15)",
   },
   chatHeader: {
     flexDirection: "row",
@@ -306,11 +308,11 @@ const styles = StyleSheet.create({
   chatTitle: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   chatSubtitle: {
     fontSize: FONT_SIZES.caption,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     marginTop: 2,
   },
   chatToggle: {
@@ -320,7 +322,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: `${COLORS.primary}15`,
+    backgroundColor: "rgba(38,67,72,0.08)",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: SPACING.small,
@@ -344,11 +346,11 @@ const styles = StyleSheet.create({
   emptyChatText: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.medium,
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   emptyChatSubtext: {
     fontSize: FONT_SIZES.caption,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     marginTop: 4,
   },
   chatBubble: {
@@ -382,18 +384,18 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#e0e7ff",
+    backgroundColor: "rgba(89,171,227,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
   senderAvatarText: {
     fontSize: 10,
     fontWeight: "700",
-    color: COLORS.primary,
+    color: "#59ABE3",
   },
   chatBubbleText: {
     fontSize: FONT_SIZES.body,
-    color: COLORS.textPrimary,
+    color: "#264348",
     lineHeight: 20,
   },
   chatBubbleTextMe: {
@@ -403,7 +405,7 @@ const styles = StyleSheet.create({
   },
   chatBubbleTime: {
     fontSize: FONT_SIZES.micro,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.55)",
     marginTop: 4,
   },
   chatBubbleTimeMe: {
@@ -428,12 +430,12 @@ const styles = StyleSheet.create({
   },
   chatInput: {
     flex: 1,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "rgba(38,67,72,0.05)",
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.std,
     paddingVertical: SPACING.compact,
     fontSize: FONT_SIZES.body,
-    color: COLORS.textPrimary,
+    color: "#264348",
     maxHeight: 80,
   },
   chatSendBtn: {
@@ -452,11 +454,13 @@ const styles = StyleSheet.create({
   },
   loginPrompt: {
     backgroundColor: COLORS.background,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: 12,
     padding: SPACING.page,
     alignItems: "center",
-    marginTop: SPACING.std,
-    ...SHADOWS.subtle,
+    marginTop: SPACING.section,
+    marginHorizontal: SPACING.page,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(38,67,72,0.15)",
   },
   loginPromptIcon: {
     width: 56,
@@ -468,7 +472,7 @@ const styles = StyleSheet.create({
   },
   loginPromptText: {
     fontSize: FONT_SIZES.body,
-    color: COLORS.textMuted,
+    color: "#264348",
     textAlign: "center",
     marginBottom: SPACING.std,
   },

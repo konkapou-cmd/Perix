@@ -526,7 +526,6 @@ export default function EventDetailPage() {
             isAttending={isAttending}
             hasReminder={hasReminder}
             onAttend={isPast ? () => {} : handleToggleAttendance}
-            onRemind={isPast ? undefined : handleToggleReminder}
           />
 
           <ShareSectionComponent
@@ -582,8 +581,6 @@ export default function EventDetailPage() {
             primaryIcon="calendar-outline"
             accentColor={EVENT_ACCENT}
             onPrimary={isPast ? () => {} : handleToggleAttendance}
-            secondaryLabel={hasReminder ? "Erinnert" : (t("events.remindMe") || "Erinnern")}
-            onSecondary={isPast ? undefined : handleToggleReminder}
             saved={isSaved}
             onSave={handleToggleSave}
             onShare={() => setShowShareModal(true)}

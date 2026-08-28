@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES, SHADOWS } from "../../lib/designTokens";
+import { SPACING } from "../../lib/designTokens";
 
 type RSVPSectionProps = {
   accentColor?: string;
@@ -14,7 +14,7 @@ type RSVPSectionProps = {
 };
 
 export const RSVPSection = ({
-  accentColor = COLORS.primary,
+  accentColor = "#59ABE3",
   isAttending = false,
   hasReminder = false,
   onAttend,
@@ -22,21 +22,15 @@ export const RSVPSection = ({
   attendingLabel = "Zusagen",
   remindLabel = "Erinnern",
 }: RSVPSectionProps) => (
-  <View style={styles.card}>
+  <View style={styles.section}>
     <Text style={styles.title}>Deine Antwort</Text>
 
     <View style={styles.buttons}>
-      <Pressable
-        style={[
-          styles.primaryBtn,
-          { backgroundColor: isAttending ? accentColor : COLORS.textPrimary },
-        ]}
-        onPress={onAttend}
-      >
+      <Pressable style={[styles.primaryBtn, { backgroundColor: accentColor }]} onPress={onAttend}>
         <Ionicons
           name={isAttending ? "checkmark-circle" : "calendar-outline"}
           size={20}
-          color="#FFF"
+          color="#fff"
           style={{ marginRight: SPACING.small }}
         />
         <Text style={styles.primaryText}>
@@ -46,19 +40,16 @@ export const RSVPSection = ({
 
       {onRemind && (
         <Pressable
-          style={[
-            styles.secondaryBtn,
-            hasReminder && { backgroundColor: COLORS.warning, borderColor: "transparent" },
-          ]}
+          style={[styles.secondaryBtn, { borderColor: accentColor }]}
           onPress={onRemind}
         >
           <Ionicons
             name={hasReminder ? "alarm" : "alarm-outline"}
             size={20}
-            color={hasReminder ? COLORS.textPrimary : accentColor}
+            color={accentColor}
             style={{ marginRight: SPACING.small }}
           />
-          <Text style={[styles.secondaryText, { color: hasReminder ? COLORS.textPrimary : accentColor }]}>
+          <Text style={[styles.secondaryText, { color: accentColor }]}>
             {hasReminder ? "Erinnert" : remindLabel}
           </Text>
         </Pressable>
@@ -68,17 +59,14 @@ export const RSVPSection = ({
 );
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.background,
-    borderRadius: BORDER_RADIUS.card,
-    padding: SPACING.section,
-    marginHorizontal: SPACING.page,
-    ...SHADOWS.subtle,
+  section: {
+    marginTop: SPACING.section,
+    paddingHorizontal: SPACING.page,
   },
   title: {
-    fontSize: FONT_SIZES.h3,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#264348",
     marginBottom: SPACING.std,
   },
   buttons: {
@@ -88,30 +76,28 @@ const styles = StyleSheet.create({
   primaryBtn: {
     flex: 1,
     height: 52,
-    borderRadius: BORDER_RADIUS.button,
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    ...SHADOWS.subtle,
   },
   primaryText: {
-    fontSize: FONT_SIZES.body,
+    fontSize: 15,
     fontWeight: "700",
     color: "#FFFFFF",
   },
   secondaryBtn: {
     flex: 1,
     height: 52,
-    borderRadius: BORDER_RADIUS.button,
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.background,
+    backgroundColor: "transparent",
     borderWidth: 1.5,
-    borderColor: COLORS.border,
   },
   secondaryText: {
-    fontSize: FONT_SIZES.body,
+    fontSize: 15,
     fontWeight: "600",
   },
 });

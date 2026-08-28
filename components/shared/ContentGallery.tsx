@@ -88,8 +88,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sectionTitle: {
-    fontSize: FONT_SIZES.h4,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
     color: "#264348",
     marginBottom: SPACING.small,
   },

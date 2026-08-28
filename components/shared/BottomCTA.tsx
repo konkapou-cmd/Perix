@@ -53,13 +53,13 @@ export const BottomCTA = ({
             <Ionicons
               name={saved ? "bookmark" : "bookmark-outline"}
               size={22}
-              color={saved ? COLORS.gold : COLORS.textSecondary}
+              color={saved ? COLORS.gold : "#264348"}
             />
           </Pressable>
         )}
         {onShare && (
           <Pressable style={styles.iconBtn} onPress={onShare}>
-            <Ionicons name="share-social-outline" size={22} color={COLORS.textSecondary} />
+            <Ionicons name="share-social-outline" size={22} color="#264348" />
           </Pressable>
         )}
       </View>
