@@ -501,7 +501,8 @@
     "useMyLocation": "Использовать моё местоположение",
     "rentals": "Аренда",
     "marketplace": "Маркетплейс",
-    "homesNearby": "Жильё рядом"
+    "homesNearby": "Жильё рядом",
+    "personalizeHome": "Настройте свою ленту"
   },
   "profile": {
     "title": "Профиль",
