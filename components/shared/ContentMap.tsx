@@ -11,15 +11,16 @@ type ContentMapProps = {
   title?: string;
   address?: string;
   interactive?: boolean;
+  flush?: boolean;
 };
 
-export default function ContentMap({ latitude, longitude, title, address, interactive = true }: ContentMapProps) {
+export default function ContentMap({ latitude, longitude, title, address, interactive = true, flush = false }: ContentMapProps) {
   const openMap = () => {
     openInMaps({ latitude, longitude, address, label: title });
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, flush && styles.containerFlush]}>
       <BusinessMap
         location={{ latitude, longitude }}
         markers={[{
@@ -49,6 +50,10 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
   },
+  containerFlush: {
+    marginHorizontal: SPACING.std,
+    borderRadius: BORDER_RADIUS.lg,
+  },
   overlay: {
     position: "absolute",
     bottom: 18,
@@ -57,7 +62,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: `${COLORS.textPrimary}e6`,
+    backgroundColor: "rgba(38,67,72,0.92)",
     paddingHorizontal: 18,
     borderRadius: 22,
   },

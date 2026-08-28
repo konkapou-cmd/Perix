@@ -45,6 +45,7 @@ type ContentHeroProps = {
   onMediaPress?: (index: number) => void;
   onBack?: () => void;
   hideBack?: boolean;
+  flush?: boolean;
 };
 
 export default function ContentHero({
@@ -62,6 +63,7 @@ export default function ContentHero({
   onMediaPress,
   onBack,
   hideBack,
+  flush,
 }: ContentHeroProps) {
   const router = useRouter();
   const handleBack = onBack || (() => router.back());
@@ -154,7 +156,7 @@ export default function ContentHero({
   };
 
   return (
-    <View style={styles.heroContainer}>
+    <View style={[styles.heroContainer, flush && styles.heroContainerFlush]}>
       {renderMedia()}
 
       {!hideBack && (
@@ -211,6 +213,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     borderRadius: BORDER_RADIUS.xxl,
     overflow: "hidden",
+  },
+  heroContainerFlush: {
+    borderRadius: 0,
   },
   heroMedia: {
     width: "100%",

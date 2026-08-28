@@ -26,15 +26,13 @@ import { useSocket, useSocketEvent } from "../../context/SocketContext";
 import ShareContent from "../../components/ShareContent";
 import ChatSection from "../../components/shared/ChatSection";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
-import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
-import { InfoCard } from "../../components/shared/InfoCard";
-import { LocationCard } from "../../components/shared/LocationCard";
-import EntityMapSection from "../../components/shared/EntityMapSection";
+import { ContentHero, ContentGallery, ContentMap } from "../../components/shared";
+import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
 import ErrorState from "../../components/shared/ErrorState";
 import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { RSVPSection } from "../../components/shared/RSVPSection";
-import { EntityHeader } from "../../components/shared/EntityHeader";
 import { BottomCTA } from "../../components/shared/BottomCTA";
+import { openInMaps } from "../../lib/utils/openMapUrl";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { formatEventDate, formatEventTime } from "../../lib/formatDate";
@@ -382,6 +380,10 @@ export default function EventDetailPage() {
   const hasCoordinates = !!(event.business?.latitude || event.artist?.latitude);
   const eventLocation = hasCoordinates ? { latitude: event.business?.latitude || event.artist?.latitude!, longitude: event.business?.longitude || event.artist?.longitude! } : null;
   const themeInfo = getTheme();
+  const EVENT_ACCENT = "#FF9F1C";
+  const themeLabels = (event.themes && event.themes.length > 0)
+    ? event.themes.map((th: string) => EVENT_THEMES[th]?.label || th).join(" · ")
+    : "";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: COLORS.backgroundPage }]} edges={["top", "bottom"]}>
@@ -414,12 +416,14 @@ export default function EventDetailPage() {
             coverFocalPoint={event.cover_focal_point}
             imageUrls={event.image_urls}
             title={event.title}
+            hideBack
+            flush
             badges={[
               isPast
-                ? { icon: "flag", text: t("events.pastEvent") || "Past Event" }
-                : { icon: "calendar", text: themeInfo.label },
-              { icon: "people", text: String(attendeesCount) },
-              ...(event.is_private ? [{ icon: "lock-closed" }] : []),
+                ? { icon: "flag", text: t("events.pastEvent") || "Past Event", color: EVENT_ACCENT }
+                : { icon: "calendar", text: themeInfo.label, color: EVENT_ACCENT },
+              { icon: "people", text: String(attendeesCount), color: EVENT_ACCENT },
+              ...(event.is_private ? [{ icon: "lock-closed", color: EVENT_ACCENT }] : []),
             ]}
             subtitle={organizer ? {
               text: `${t("events.by")} ${organizer}`,
@@ -434,47 +438,64 @@ export default function EventDetailPage() {
             }}
           />
 
-          <EntityHeader
-            title={event.title}
-            subtitle={organizer || ""}
-            subtitlePrefix="von"
-            avatarUrl={event.business?.logo_image || undefined}
-            avatarIcon="people-outline"
-            accentColor={COLORS.eventAccent}
-            onPress={event.business?.business_id ? () => router.push(`/business/${event.business.business_id}`) : undefined}
-          />
-
-          <View style={styles.infoRow}>
-            <InfoCard
+          <DetailFacts>
+            <DetailFact
               icon="calendar-outline"
               label={t("events.date") || "Datum"}
               value={formatEventDate(event.start_time)}
-              accentColor={COLORS.eventAccent}
+              accentColor={EVENT_ACCENT}
             />
-            <InfoCard
+            <DetailFact
               icon="time-outline"
               label={t("events.time") || "Uhrzeit"}
               value={formatEventTime(event.start_time)}
-              accentColor={COLORS.eventAccent}
+              accentColor={EVENT_ACCENT}
             />
-          </View>
+            {event.location ? (
+              <DetailFact
+                icon="location-outline"
+                label={t("events.location") || "Ort"}
+                value={event.location}
+                accentColor={EVENT_ACCENT}
+                onPress={() => openInMaps({ latitude: eventLocation?.latitude ?? undefined, longitude: eventLocation?.longitude ?? undefined, address: event.location || "" })}
+              />
+            ) : null}
+            <DetailFact
+              icon="people"
+              label={t("events.attendees") || "Teilnehmer"}
+              value={String(attendeesCount)}
+              accentColor={EVENT_ACCENT}
+            />
+            {themeLabels ? (
+              <DetailFact
+                icon="sparkles"
+                label={t("events.themes") || "Themen"}
+                value={themeLabels}
+                accentColor={EVENT_ACCENT}
+              />
+            ) : null}
+          </DetailFacts>
 
-          <EntityMapSection
-            address={event.location}
-            latitude={eventLocation?.latitude}
-            longitude={eventLocation?.longitude}
-            title={event.title}
-            accentColor={COLORS.eventAccent}
-          />
-
-          {event.description && (
-            <ContentSection icon="document-text" title={t("events.description") || "Beschreibung"}>
-              <Text style={styles.description}>{event.description}</Text>
-            </ContentSection>
+          {eventLocation && (
+            <ContentMap
+              latitude={eventLocation.latitude}
+              longitude={eventLocation.longitude}
+              title={event.title}
+              address={event.location ?? undefined}
+              flush
+            />
           )}
 
+          {event.description ? (
+            <View style={styles.plainSection}>
+              <Text style={styles.sectionTitle}>{t("events.description") || "Beschreibung"}</Text>
+              <Text style={styles.description}>{event.description}</Text>
+            </View>
+          ) : null}
+
           {event.tagged_artists && event.tagged_artists.length > 0 && (
-            <ContentSection icon="mic" title={t("events.taggedArtists", "Artists")}>
+            <View style={styles.plainSection}>
+              <Text style={styles.sectionTitle}>{t("events.taggedArtists", "Artists")}</Text>
               <View style={styles.taggedArtistsRow}>
                 {event.tagged_artists.map((artist: any) => (
                   <Pressable
@@ -486,14 +507,14 @@ export default function EventDetailPage() {
                       <Image source={{ uri: artist.profile_photo }} style={styles.taggedArtistAvatar} />
                     ) : (
                       <View style={[styles.taggedArtistAvatar, styles.taggedArtistAvatarPlaceholder]}>
-                        <Ionicons name="person" size={18} color={COLORS.textSecondary} />
+                        <Ionicons name="person" size={18} color="#264348" />
                       </View>
                     )}
                     <Text style={styles.taggedArtistName} numberOfLines={1}>{artist.name}</Text>
                   </Pressable>
                 ))}
               </View>
-            </ContentSection>
+            </View>
           )}
 
           {allMediaItems.length > 0 && (
@@ -501,7 +522,7 @@ export default function EventDetailPage() {
           )}
 
           <RSVPSection
-            accentColor={COLORS.eventAccent}
+            accentColor={EVENT_ACCENT}
             isAttending={isAttending}
             hasReminder={hasReminder}
             onAttend={isPast ? () => {} : handleToggleAttendance}
@@ -509,7 +530,7 @@ export default function EventDetailPage() {
           />
 
           <ShareSectionComponent
-            accentColor={COLORS.eventAccent}
+            accentColor={EVENT_ACCENT}
             saved={isSaved}
             onWhatsApp={shareToWhatsApp}
             onShare={() => setShowShareModal(true)}
@@ -548,7 +569,7 @@ export default function EventDetailPage() {
             onSendMedia={handleSendMedia}
             sendingMessage={sendingMessage}
             userId={user?.user_id}
-            themeColor={COLORS.eventAccent}
+            themeColor={EVENT_ACCENT}
             collapsible={true}
             chatType="event"
             chatId={event.event_id}
@@ -559,7 +580,7 @@ export default function EventDetailPage() {
           <BottomCTA
             primaryLabel={isAttending ? "Teilnehmend" : (t("events.rsvp") || "Zusagen")}
             primaryIcon="calendar-outline"
-            accentColor={COLORS.eventAccent}
+            accentColor={EVENT_ACCENT}
             onPrimary={isPast ? () => {} : handleToggleAttendance}
             secondaryLabel={hasReminder ? "Erinnert" : (t("events.remindMe") || "Erinnern")}
             onSecondary={isPast ? undefined : handleToggleReminder}
@@ -603,25 +624,20 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", padding: SPACING.section },
   content: { paddingBottom: 60 },
+  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.page },
+  sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
   errorText: { fontSize: FONT_SIZES.body, color: COLORS.textSecondary, marginTop: SPACING.compact, marginBottom: SPACING.section },
   backButton: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: BORDER_RADIUS.md },
   backButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "700" },
-  infoRow: {
-    flexDirection: "row",
-    gap: SPACING.compact,
-    marginTop: SPACING.small,
-    paddingHorizontal: SPACING.page,
-  },
-  description: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textSecondary, lineHeight: 24 },
+  description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
   taggedArtistsRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.gap, marginTop: SPACING.small },
   taggedArtistCard: {
     flexDirection: "row", alignItems: "center", gap: SPACING.small,
-    backgroundColor: COLORS.backgroundPage, paddingHorizontal: SPACING.compact,
-    paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full,
+    paddingVertical: SPACING.small,
   },
-  taggedArtistAvatar: { width: 32, height: 32, borderRadius: 16 },
-  taggedArtistAvatarPlaceholder: { backgroundColor: COLORS.borderGray, alignItems: "center", justifyContent: "center" },
-  taggedArtistName: { fontSize: FONT_SIZES.small, fontWeight: "500", color: COLORS.textPrimary },
+  taggedArtistAvatar: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: "#59ABE3" },
+  taggedArtistAvatarPlaceholder: { backgroundColor: "rgba(89,171,227,0.15)", alignItems: "center", justifyContent: "center" },
+  taggedArtistName: { fontSize: FONT_SIZES.small, fontWeight: "500", color: "#264348" },
   themedAlertOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: SPACING.section },
   themedAlertContainer: { backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.xl, padding: SPACING.page, width: "100%", maxWidth: 320, alignItems: "center" },
   themedAlertMessage: { fontSize: FONT_SIZES.body, color: COLORS.textPrimary, textAlign: "center", marginBottom: SPACING.section, lineHeight: 22 },
