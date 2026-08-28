@@ -81,6 +81,7 @@ class EventResponse(BaseModel):
     created_at: datetime
     attendees_count: Optional[int] = 0
     is_attending: Optional[bool] = False
+    is_creator: Optional[bool] = False
     is_private: bool = False
     theme: Optional[str] = None
     themes: List[str] = []
@@ -109,6 +110,7 @@ class EventPublicResponse(BaseModel):
     longitude: Optional[float] = None
     created_at: datetime
     attendees_count: int = 0
+    is_creator: Optional[bool] = False
     is_private: bool = False
     theme: Optional[str] = None
     themes: List[str] = []
