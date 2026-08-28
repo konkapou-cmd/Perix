@@ -763,25 +763,6 @@ export default function LocatorScreen() {
             });
           }) as any}
         />
-        {/* Recenter FAB */}
-        <Pressable
-          style={styles.recenterFab}
-          onPress={() => {
-            if (contextLocation) {
-              setManualLocation(contextLocation.latitude, contextLocation.longitude);
-            } else {
-              Location.requestForegroundPermissionsAsync().then(({ status }) => {
-                if (status === 'granted') {
-                  Location.getCurrentPositionAsync({}).then((loc) => {
-                    setManualLocation(loc.coords.latitude, loc.coords.longitude);
-                  });
-                }
-              });
-            }
-          }}
-        >
-          <Ionicons name="locate" size={22} color="#264348" />
-        </Pressable>
       </View>
 
       {/* Segment Tabs */}
@@ -2534,19 +2515,6 @@ const styles = StyleSheet.create({
   },
   mapSection: {
     width: "100%",
-  },
-  recenterFab: {
-    position: "absolute",
-    right: SPACING.small,
-    bottom: SPACING.small,
-    width: Platform.OS === "web" ? 48 : 44,
-    height: Platform.OS === "web" ? 48 : 44,
-    borderRadius: Platform.OS === "web" ? 24 : 22,
-    backgroundColor: COLORS.background,
-    alignItems: "center",
-    justifyContent: "center",
-    ...SHADOWS.medium,
-    zIndex: 10,
   },
   locationChip: {
     flexDirection: "row",
