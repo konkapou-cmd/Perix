@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -24,18 +23,15 @@ import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useSocket, useSocketEvent } from "../../context/SocketContext";
 
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { formatDate, formatTime } from "../../lib/formatDate";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
-import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
-import { InfoCard } from "../../components/shared/InfoCard";
-import { LocationCard } from "../../components/shared/LocationCard";
-import EntityMapSection from "../../components/shared/EntityMapSection";
+import { ContentHero, ContentGallery, ContentMap } from "../../components/shared";
+import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
 import ErrorState from "../../components/shared/ErrorState";
-import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
-import { EntityHeader } from "../../components/shared/EntityHeader";
 import { BottomCTA } from "../../components/shared/BottomCTA";
+import { openInMaps } from "../../lib/utils/openMapUrl";
 import {
   ActivityItem,
   ChatMessage,
@@ -54,6 +50,8 @@ import ChatSection from "../../components/shared/ChatSection";
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL;
+
+const PAGE_ACCENT = "#FF9F1C";
 
 export default function ActivityDetailPage() {
   const { t } = useTranslation();
@@ -212,35 +210,6 @@ export default function ActivityDetailPage() {
     } catch (_) { showThemedAlert(t("common.pleaseTryAgain")); }
   };
 
-  const handleSetReminder = () => {
-    Alert.alert(
-      t("activities.setReminder") || "Set Reminder",
-      t("activities.reminderOptions") || "When?",
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: "15 min before", onPress: () => scheduleActivityReminder(15) },
-        { text: "1 hour before", onPress: () => scheduleActivityReminder(60) },
-        { text: "1 day before", onPress: () => scheduleActivityReminder(60 * 24) },
-      ]
-    );
-  };
-
-  const scheduleActivityReminder = async (minutesBefore: number) => {
-    if (!activity) return;
-    const reminderTime = new Date(activity.date + "T" + activity.time);
-    reminderTime.setMinutes(reminderTime.getMinutes() - minutesBefore);
-    if (reminderTime <= new Date()) {
-      showThemedAlert(t("activities.pastTimeError") || "Already started.");
-      return;
-    }
-    await showLocalNotification(
-      t("activities.reminderTitle") || "Activity Reminder",
-      t("activities.reminderBody", { title: activity.title }) || `${activity.title} in ${minutesBefore}m`,
-      { type: "activity", activity_id: activity.activity_id }
-    );
-    showThemedAlert(t("activities.reminderSetDesc") || "Reminder set!");
-  };
-
   const copyInvitationCode = async () => {
     if (!activity?.invitation_code) return;
     await Share.share({ message: activity.invitation_code, title: t("activities.invitationCode") || "Code" });
@@ -267,7 +236,7 @@ export default function ActivityDetailPage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator color={COLORS.activityAccent} size="large" />
+        <ActivityIndicator color={PAGE_ACCENT} size="large" />
       </SafeAreaView>
     );
   }
@@ -280,7 +249,7 @@ export default function ActivityDetailPage() {
           fullWidth
           onRetry={() => loadActivity()}
         />
-        <Pressable style={[styles.backButton, { backgroundColor: COLORS.activityAccent }]} onPress={() => router.back()}>
+        <Pressable style={[styles.backButton, { backgroundColor: PAGE_ACCENT }]} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>{t("common.back")}</Text>
         </Pressable>
       </SafeAreaView>
@@ -292,6 +261,7 @@ export default function ActivityDetailPage() {
   const isPast = !isUpcomingActivity(activity);
   const allMediaItems = activity ? buildMediaItems(activity) : [];
   const organizer = activity.creator?.name || "";
+  const remaining = activity.max_attendees ? activity.max_attendees - goingCount : null;
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -324,11 +294,13 @@ export default function ActivityDetailPage() {
             coverFocalPoint={activity.cover_focal_point}
             imageUrls={activity.image_urls}
             title={activity.title}
+            hideBack
+            flush
             badges={[
               isPast
-                ? { icon: "flag", text: t("activities.pastActivity") || "Past Activity" }
-                : { icon: "people", text: themeLabel || t("activities.activity") || "Activity" },
-              ...(activity.is_private ? [{ icon: "lock-closed", text: t("activities.private") || "Private" }] : []),
+                ? { icon: "flag", text: t("activities.pastActivity") || "Past Activity", color: PAGE_ACCENT }
+                : { icon: "people", text: themeLabel || t("activities.activity") || "Activity", color: PAGE_ACCENT },
+              ...(activity.is_private ? [{ icon: "lock-closed", text: t("activities.private") || "Private", color: PAGE_ACCENT }] : []),
             ]}
             subtitle={activity.creator ? {
               text: `${t("activities.by")} ${activity.creator.name}`,
@@ -343,141 +315,98 @@ export default function ActivityDetailPage() {
             }}
           />
 
-          {activity.is_private && activity.is_creator && activity.invitation_code && (
-            <View style={styles.invitationCodeCard}>
-              <View style={styles.invitationCodeRow}>
-                <Ionicons name="key" size={20} color={COLORS.textPrimary} />
-                <Text style={styles.invitationCodeLabel}>{t("activities.invitationCode") || "Code"}</Text>
-              </View>
-              <View style={styles.invitationCodeValueRow}>
-                <Text style={styles.invitationCodeValue}>{activity.invitation_code}</Text>
-                <Pressable style={styles.copyButton} onPress={copyInvitationCode}>
-                  <Ionicons name="copy-outline" size={18} color={COLORS.activityAccent} />
-                </Pressable>
-              </View>
-              <Text style={styles.invitationCodeHint}>{t("activities.shareCodeHint") || "Share this code"}</Text>
-            </View>
-          )}
-
-          <EntityHeader
-            title={activity.title}
-            subtitle={organizer || ""}
-            subtitlePrefix="von"
-            avatarUrl={activity.creator?.profile_photo}
-            avatarIcon="people-outline"
-            accentColor={COLORS.activityAccent}
-            onPress={activity.creator?.user_id ? () => router.push(`/user/${activity.creator.user_id}`) : undefined}
-          />
-
-          <View style={styles.infoRow}>
-            <InfoCard
+          <DetailFacts>
+            <DetailFact
               icon="calendar-outline"
               label={t("activities.date") || "Datum"}
               value={formatDate(activity.date)}
-              accentColor={COLORS.activityAccent}
+              accentColor={PAGE_ACCENT}
             />
-            <InfoCard
+            <DetailFact
               icon="time-outline"
               label={t("activities.time") || "Uhrzeit"}
               value={activity.time}
-              accentColor={COLORS.activityAccent}
+              accentColor={PAGE_ACCENT}
             />
-          </View>
+            {activity.location ? (
+              <DetailFact
+                icon="location-outline"
+                label={t("activities.location") || "Ort"}
+                value={activity.location}
+                accentColor={PAGE_ACCENT}
+                onPress={() => openInMaps({ latitude: activity.latitude ?? undefined, longitude: activity.longitude ?? undefined, address: activity.location || "" })}
+              />
+            ) : null}
+            {activity.max_attendees ? (
+              <DetailFact
+                icon="people"
+                label={t("activities.attendees") || "Teilnehmer"}
+                value={`${goingCount}/${activity.max_attendees}`}
+                accentColor={PAGE_ACCENT}
+              />
+            ) : (
+              <DetailFact
+                icon="people"
+                label={t("activities.attendees") || "Teilnehmer"}
+                value={String(goingCount)}
+                accentColor={PAGE_ACCENT}
+              />
+            )}
+            {themeLabel ? (
+              <DetailFact
+                icon="sparkles"
+                label={t("activities.activityType") || "Art"}
+                value={themeLabel}
+                accentColor={PAGE_ACCENT}
+              />
+            ) : null}
+            {remaining !== null && remaining <= 3 && remaining > 0 ? (
+              <DetailFact
+                icon="alert-circle-outline"
+                label={t("activities.spots") || "Plätze"}
+                value={t("activities.spotsRemaining", "Nur noch {{count}} Plätze frei!", { count: remaining })}
+                accentColor={PAGE_ACCENT}
+              />
+            ) : null}
+            {remaining !== null && remaining <= 0 ? (
+              <DetailFact
+                icon="close-circle-outline"
+                label={t("activities.spots") || "Plätze"}
+                value={t("activities.fullyBooked", "Ausgebucht!")}
+                accentColor={PAGE_ACCENT}
+              />
+            ) : null}
+            {activity.is_private && isCreator && activity.invitation_code ? (
+              <DetailFact
+                icon="key"
+                label={t("activities.invitationCode") || "Code"}
+                value={activity.invitation_code}
+                accentColor={PAGE_ACCENT}
+                onPress={copyInvitationCode}
+              />
+            ) : null}
+          </DetailFacts>
 
-          <EntityMapSection
-            address={activity.location}
-            latitude={activity.latitude}
-            longitude={activity.longitude}
-            title={activity.title}
-            accentColor={COLORS.activityAccent}
-          />
-
-          {activity.description && (
-            <ContentSection icon="document-text" title={t("activities.description") || "Beschreibung"}>
-              <Text style={styles.descriptionText}>{activity.description}</Text>
-            </ContentSection>
+          {activity.latitude != null && activity.longitude != null && (
+            <ContentMap
+              latitude={activity.latitude}
+              longitude={activity.longitude}
+              title={activity.title}
+              address={activity.location ?? undefined}
+              flush
+            />
           )}
+
+          {activity.description ? (
+            <View style={styles.plainSection}>
+              <Text style={styles.sectionTitle}>{t("activities.description") || "Beschreibung"}</Text>
+              <Text style={styles.descriptionText}>{activity.description}</Text>
+            </View>
+          ) : null}
 
           {allMediaItems.length > 0 && (
             <ContentGallery mediaItems={allMediaItems} title="Galerie" />
           )}
-
-          {activity.max_attendees ? (
-            <View style={styles.attendeeCard}>
-              <View style={styles.attendeeRow}>
-                <Ionicons name="people-outline" size={20} color={COLORS.activityAccent} />
-                <Text style={styles.attendeeTitle}>
-                  {t("activities.attendees", "Teilnehmer")} ({goingCount}/{activity.max_attendees})
-                </Text>
-              </View>
-              {activity.max_attendees - goingCount <= 3 && activity.max_attendees - goingCount > 0 ? (
-                <Text style={styles.attendeeAlmostFull}>
-                  {t("activities.spotsRemaining", "Nur noch {{count}} Plätze frei!", { count: activity.max_attendees - goingCount })}
-                </Text>
-              ) : null}
-              {activity.max_attendees - goingCount <= 0 ? (
-                <Text style={styles.attendeeFull}>{t("activities.fullyBooked", "Ausgebucht!")}</Text>
-              ) : null}
-            </View>
-          ) : null}
-
-          {!isCreator && (
-            <View style={styles.rsvpCard}>
-              <Text style={styles.rsvpTitle}>{t("activities.yourResponse") || "Deine Antwort"}</Text>
-              <View style={styles.rsvpRow}>
-                <Pressable
-                  style={[styles.rsvpBtn, myStatus === "going" && { backgroundColor: COLORS.activityAccent, borderColor: COLORS.activityAccent }]}
-                  onPress={() => handleRsvp("going")}
-                >
-                  <Ionicons name="checkmark-circle" size={18} color={myStatus === "going" ? "#fff" : COLORS.activityAccent} />
-                  <Text style={[styles.rsvpBtnText, myStatus === "going" && { color: "#fff" }]}>Going</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.rsvpBtn, myStatus === "maybe" && { backgroundColor: "#f59e0b", borderColor: "#f59e0b" }]}
-                  onPress={() => handleRsvp("maybe")}
-                >
-                  <Ionicons name="help-circle" size={18} color={myStatus === "maybe" ? "#fff" : "#f59e0b"} />
-                  <Text style={[styles.rsvpBtnText, myStatus === "maybe" && { color: "#fff" }]}>Maybe</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.rsvpBtn, myStatus === "declined" && { backgroundColor: "#ef4444", borderColor: "#ef4444" }]}
-                  onPress={() => handleRsvp("declined")}
-                >
-                  <Ionicons name="close-circle" size={18} color={myStatus === "declined" ? "#fff" : "#ef4444"} />
-                  <Text style={[styles.rsvpBtnText, myStatus === "declined" && { color: "#fff" }]}>Can't</Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
-
-          <ShareSectionComponent
-            accentColor={COLORS.activityAccent}
-            saved={isSaved}
-            onWhatsApp={shareToWhatsApp}
-            onShare={() => setShowShareModal(true)}
-            onSave={handleToggleSave}
-          />
-
-          {!isCreator && (
-            <BottomCTA
-              primaryLabel="Teilnehmen"
-              primaryIcon="people-outline"
-              accentColor={COLORS.activityAccent}
-              onPrimary={() => handleRsvp("going")}
-              secondaryLabel="Erinnern"
-              onSecondary={handleSetReminder}
-              saved={isSaved}
-              onSave={handleToggleSave}
-              onShare={() => setShowShareModal(true)}
-            />
-          )}
-
-          <LazyMediaViewer
-            visible={viewerOpen}
-            media={viewerMedia}
-            initialIndex={viewerIndex}
-            onClose={() => setViewerOpen(false)}
-          />
 
           <ChatSection
             title={activity.title}
@@ -489,13 +418,28 @@ export default function ActivityDetailPage() {
             onSendMedia={handleSendMedia}
             sendingMessage={sendingMessage}
             userId={user?.user_id}
-            themeColor={COLORS.activityAccent}
+            themeColor={PAGE_ACCENT}
             chatType="activity"
             chatId={activity.activity_id}
-            collapsible={true}
+            collapsible={false}
             showLoginPrompt={!sessionToken}
             onLoginPress={() => router.push("/login")}
+            flush
           />
+
+          {!isCreator && (
+            <BottomCTA
+              primaryLabel={myStatus === "going" ? "Teilnehmend" : "Teilnehmen"}
+              primaryIcon="people-outline"
+              accentColor={PAGE_ACCENT}
+              useGradient
+              onPrimary={() => handleRsvp("going")}
+              saved={isSaved}
+              onSave={handleToggleSave}
+              onShare={() => setShowShareModal(true)}
+              onWhatsApp={shareToWhatsApp}
+            />
+          )}
         </ScrollView>
         <ShareContent
           visible={showShareModal}
@@ -519,64 +463,14 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.backgroundPage, padding: SPACING.section },
   content: { paddingBottom: 60 },
-  errorText: { fontSize: FONT_SIZES.body, color: COLORS.textSecondary, marginTop: SPACING.compact, marginBottom: SPACING.section },
+  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.page },
+  sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
   backButton: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: BORDER_RADIUS.md },
   backButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "700" },
-  infoRow: {
-    flexDirection: "row",
-    gap: SPACING.compact,
-    marginTop: SPACING.small,
-    paddingHorizontal: SPACING.page,
-  },
-  descriptionText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textSecondary, lineHeight: 20 },
-  invitationCodeCard: {
-    backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.card, padding: SPACING.section,
-    marginHorizontal: SPACING.page, marginBottom: SPACING.std, borderWidth: 2, borderStyle: "dashed", borderColor: COLORS.activityAccent + "40",
-  },
-  invitationCodeRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, marginBottom: SPACING.compact },
-  invitationCodeLabel: { fontSize: 14, fontWeight: "600", color: COLORS.textSecondary },
-  invitationCodeValueRow: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: COLORS.surfaceSoft, borderRadius: BORDER_RADIUS.md, padding: SPACING.compact,
-  },
-  invitationCodeValue: { fontSize: 24, fontWeight: "700", color: COLORS.textPrimary, letterSpacing: 4 },
-  copyButton: { padding: SPACING.small },
-  invitationCodeHint: { fontSize: 12, color: COLORS.textSecondary, marginTop: SPACING.small, textAlign: "center" },
-  taggedBusinessCard: {
-    flexDirection: "row", alignItems: "center", backgroundColor: COLORS.background,
-    borderRadius: BORDER_RADIUS.card, padding: SPACING.section, marginHorizontal: SPACING.page,
-    marginBottom: SPACING.std, ...SHADOWS.subtle,
-  },
-  taggedBusinessLogo: { width: 48, height: 48, borderRadius: BORDER_RADIUS.md, marginRight: SPACING.compact },
-  taggedBusinessInfo: { flex: 1 },
-  taggedBusinessLabel: { fontSize: FONT_SIZES.micro, color: COLORS.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 },
-  taggedBusinessName: { fontSize: FONT_SIZES.body, fontWeight: "600", color: COLORS.textPrimary },
-  rsvpCard: {
-    backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.card, padding: SPACING.section,
-    marginHorizontal: SPACING.page, marginTop: SPACING.small, ...SHADOWS.subtle,
-  },
-  rsvpTitle: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: COLORS.textPrimary, marginBottom: SPACING.std },
-  rsvpRow: { flexDirection: "row", gap: SPACING.small },
-  rsvpBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    paddingVertical: SPACING.compact, borderRadius: BORDER_RADIUS.button,
-    borderWidth: 1.5, borderColor: COLORS.activityAccent, backgroundColor: COLORS.background,
-  },
-  rsvpBtnText: { fontSize: FONT_SIZES.small, fontWeight: "700", color: COLORS.activityAccent },
-  attendeeCard: {
-    backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.xl, padding: SPACING.std,
-    marginHorizontal: SPACING.page, marginTop: SPACING.small, ...SHADOWS.subtle,
-  },
-  attendeeRow: {
-    flexDirection: "row", alignItems: "center", gap: SPACING.small,
-    marginBottom: SPACING.small,
-  },
-  attendeeTitle: { fontSize: FONT_SIZES.body, fontWeight: "700", color: COLORS.textPrimary },
-  attendeeAlmostFull: { fontSize: FONT_SIZES.small, color: "#f59e0b", fontWeight: "600", marginTop: 4 },
-  attendeeFull: { fontSize: FONT_SIZES.body, color: "#ef4444", fontWeight: "700", marginTop: 4 },
+  descriptionText: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
   themedAlertOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: SPACING.section },
   themedAlertContainer: { backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.xl, padding: SPACING.page, width: "100%", maxWidth: 320, alignItems: "center" },
-  themedAlertMessage: { fontSize: FONT_SIZES.body, color: COLORS.textPrimary, textAlign: "center", marginBottom: SPACING.section, lineHeight: 22 },
-  themedAlertButton: { backgroundColor: COLORS.activityAccent, paddingHorizontal: SPACING.large, paddingVertical: SPACING.compact, borderRadius: BORDER_RADIUS.md, width: "100%", alignItems: "center" },
+  themedAlertMessage: { fontSize: FONT_SIZES.body, color: "#264348", textAlign: "center", marginBottom: SPACING.section, lineHeight: 22 },
+  themedAlertButton: { backgroundColor: PAGE_ACCENT, paddingHorizontal: SPACING.large, paddingVertical: SPACING.compact, borderRadius: BORDER_RADIUS.md, width: "100%", alignItems: "center" },
   themedAlertButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "600" },
 });
