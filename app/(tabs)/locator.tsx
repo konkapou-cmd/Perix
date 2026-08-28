@@ -2533,7 +2533,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mapSection: {
-    height: 280,
     width: "100%",
   },
   recenterFab: {
