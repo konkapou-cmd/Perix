@@ -1571,7 +1571,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 24, fontWeight: "700", color: COLORS.textPrimary },
   headerSubtitle: { marginTop: 6, color: COLORS.textMuted },
   card: { backgroundColor: COLORS.background, marginHorizontal: 0, marginBottom: 10, paddingTop: 12, paddingHorizontal: SPACING.small, paddingBottom: 8 },
-  cardTitle: { fontSize: Platform.OS === "web" ? 18 : 16, fontWeight: "600", color: COLORS.textPrimary, marginBottom: 8 },
+  cardTitle: { fontSize: Platform.OS === "web" ? 18 : 16, fontWeight: "600", color: "#1F4788", marginBottom: 8 },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   sectionHeaderRight: { flexDirection: "row", alignItems: "center", gap: 8 },
   seeAllButton: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },

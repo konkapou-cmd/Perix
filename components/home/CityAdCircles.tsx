@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: FONT_SIZES.bodyLarge,
     fontWeight: FONT_WEIGHTS.semibold,
-    color: COLORS.textPrimary,
+    color: "#1F4788",
   },
   adCard: {
     width: CARD_WIDTH,
