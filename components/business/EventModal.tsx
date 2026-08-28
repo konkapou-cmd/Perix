@@ -347,7 +347,7 @@ export default function EventModal({
                   <Text style={s.themeChipText}>
                     {eventForm.themes.length === 1
                       ? (themeList.find(th => th.slug === eventForm.themes[0])?.label || DEFAULT_EVENT_THEME.label)
-                      : `${eventForm.themes.length} ${t("events.themes", "Themes")}`}
+                      : `${eventForm.themes.length} ${t("events.themesTitle", "Themes")}`}
                   </Text>
                 </>
               ) : (

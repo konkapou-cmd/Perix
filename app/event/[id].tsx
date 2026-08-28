@@ -469,7 +469,7 @@ export default function EventDetailPage() {
             {themeLabels ? (
               <DetailFact
                 icon="sparkles"
-                label={t("events.themes") || "Themen"}
+                label={t("events.themesTitle", "Themen")}
                 value={themeLabels}
                 accentColor={pageAccent}
               />
