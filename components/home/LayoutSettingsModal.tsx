@@ -90,7 +90,7 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
               <Text style={styles.subtitle}>{t("home.personalizeHome", "Personalize your home feed")}</Text>
             </View>
             <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
-              <Ionicons name="close" size={22} color={COLORS.textSecondary} />
+              <Ionicons name="close" size={22} color="#264348" />
             </Pressable>
           </View>
 
@@ -98,13 +98,13 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
             {/* Sort order */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="swap-vertical" size={16} color={COLORS.primary} />
+                <Ionicons name="swap-vertical" size={16} color="#264348" />
                 <Text style={styles.cardTitle}>{t("home.sortContent")}</Text>
               </View>
               {SORTABLE_TYPES.map((type) => (
                 <View key={type} style={styles.sortRow}>
                   <View style={styles.sortLabelRow}>
-                    <Ionicons name={TYPE_ICONS[type]} size={16} color={COLORS.textSecondary} />
+                    <Ionicons name={TYPE_ICONS[type]} size={16} color="#264348" />
                     <Text style={styles.sortLabel}>{t(`home.${type}`)}</Text>
                   </View>
                   <View style={styles.sortChips}>
@@ -116,7 +116,7 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
                           style={[styles.sortChip, active && styles.sortChipActive]}
                           onPress={() => onSetSorting(type, sort)}
                         >
-                          <Ionicons name={SORT_META[sort].icon} size={13} color={active ? "#fff" : COLORS.textMuted} />
+                          <Ionicons name={SORT_META[sort].icon} size={13} color={active ? "#fff" : "#264348"} />
                           <Text style={[styles.sortChipText, active && styles.sortChipTextActive]}>
                             {t(`home.${SORT_META[sort].key}`)}
                           </Text>
@@ -131,7 +131,7 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
             {/* Favorite categories */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="grid" size={16} color={COLORS.primary} />
+                <Ionicons name="grid" size={16} color="#264348" />
                 <Text style={styles.cardTitle}>{t("home.favoriteCategories", "Categories")}</Text>
               </View>
               <View style={styles.categoryChips}>
@@ -152,7 +152,7 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
                       <Ionicons
                         name={(CATEGORY_ICONS[cat] || "ellipse-outline") as any}
                         size={14}
-                        color={active ? "#fff" : COLORS.textSecondary}
+                        color={active ? "#fff" : "#264348"}
                       />
                       <Text style={[styles.catChipText, active && styles.catChipTextActive]} numberOfLines={1}>
                         {translateCategory(cat, t)}
@@ -164,7 +164,7 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
               </View>
               {(homeLayout?.favoriteCategories?.length ?? 0) > 0 && (
                 <Pressable style={styles.clearBtn} onPress={() => onSetFavoriteCategories([])}>
-                  <Ionicons name="refresh" size={14} color={COLORS.primary} />
+                  <Ionicons name="refresh" size={14} color="#59ABE3" />
                   <Text style={styles.clearBtnText}>{t("home.showAllCategories", "Alle Kategorien anzeigen")}</Text>
                 </Pressable>
               )}
@@ -173,7 +173,7 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
             {/* Section toggles */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="eye" size={16} color={COLORS.primary} />
+                <Ionicons name="eye" size={16} color="#264348" />
                 <Text style={styles.cardTitle}>{t("home.showSections")}</Text>
               </View>
               {sections.map((section) => {
@@ -184,14 +184,14 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
                     style={styles.sectionRow}
                     onPress={() => onToggleSection(section.id)}
                   >
-                    <View style={[styles.sectionIcon, { backgroundColor: enabled ? COLORS.primaryLight : COLORS.backgroundPage }]}>
+                    <View style={[styles.sectionIcon, { backgroundColor: enabled ? "rgba(89,171,227,0.15)" : "rgba(38,67,72,0.08)" }]}>
                       <Ionicons
                         name={(SECTION_ICONS[section.id] || "albums-outline") as any}
                         size={18}
-                        color={enabled ? COLORS.primary : COLORS.textMuted}
+                        color={enabled ? "#59ABE3" : "#264348"}
                       />
                     </View>
-                    <Text style={[styles.sectionLabel, !enabled && { color: COLORS.textMuted }]}>
+                    <Text style={[styles.sectionLabel, !enabled && { color: "rgba(38,67,72,0.45)" }]}>
                       {t(`home.${section.id}`, section.title)}
                     </Text>
                     <View style={[styles.switch, enabled && styles.switchOn]}>
@@ -236,25 +236,25 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#264348",
     alignItems: "center",
     justifyContent: "center",
   },
   title: {
     fontSize: FONT_SIZES.h4,
     fontWeight: FONT_WEIGHTS.bold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   subtitle: {
     fontSize: FONT_SIZES.caption,
-    color: COLORS.textMuted,
+    color: "#264348",
     marginTop: 1,
   },
   closeBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: FONT_SIZES.h4,
     fontWeight: FONT_WEIGHTS.bold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   sortRow: {
     marginBottom: SPACING.std,
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   sortLabel: {
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   sortChips: {
     flexDirection: "row",
@@ -309,17 +309,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.backgroundPage,
+    borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: "transparent",
   },
   sortChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   sortChipText: {
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.medium as any,
-    color: COLORS.textMuted,
+    color: "#264348",
   },
   sortChipTextActive: {
     color: "#fff",
@@ -338,18 +338,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.25)",
   },
   catChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   catChipText: {
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.medium as any,
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   catChipTextActive: {
     color: "#fff",
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   clearBtnText: {
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.primary,
+    color: "#59ABE3",
   },
   sectionRow: {
     flexDirection: "row",
@@ -386,13 +386,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   switch: {
     width: 46,
     height: 26,
     borderRadius: 13,
-    backgroundColor: COLORS.border,
+    backgroundColor: "rgba(38,67,72,0.25)",
     padding: 3,
   },
   switchOn: {

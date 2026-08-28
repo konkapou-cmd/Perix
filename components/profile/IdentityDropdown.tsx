@@ -62,7 +62,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t("profile.switchIdentity") || "Switch Identity"}</Text>
               <Pressable onPress={() => setModalVisible(false)} style={styles.closeButton}>
-                <Ionicons name="close" size={20} color="#6b7280" />
+                <Ionicons name="close" size={20} color="#264348" />
               </Pressable>
             </View>
 
@@ -80,7 +80,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
               {user.profile_photo || user.picture ? (
                 <Image source={{ uri: user.profile_photo || user.picture || "" }} style={styles.itemAvatar} />
               ) : (
-                <View style={[styles.itemAvatarPlaceholder, { backgroundColor: '#000000' }]}>
+                <View style={[styles.itemAvatarPlaceholder, { backgroundColor: '#264348' }]}>
                   <Text style={styles.itemAvatarText}>{user.name?.charAt(0) || "U"}</Text>
                 </View>
               )}
@@ -109,7 +109,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
                 {business.logo_image ? (
                   <Image source={{ uri: business.logo_image }} style={styles.itemAvatar} />
                 ) : (
-                  <View style={[styles.itemAvatarPlaceholder, { backgroundColor: '#10b981' }]}>
+                  <View style={[styles.itemAvatarPlaceholder, { backgroundColor: '#264348' }]}>
                     <Ionicons name="business" size={20} color="#fff" />
                   </View>
                 )}
@@ -118,7 +118,7 @@ export const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
                   <Text style={styles.itemType}>{t("profile.business") || "Business Profile"}</Text>
                 </View>
                 {activeIdentity?.type === "business" && activeIdentity.id === business.business_id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                  <Ionicons name="checkmark-circle" size={24} color="#59ABE3" />
                 )}
               </Pressable>
             ))}
@@ -208,11 +208,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   closeButton: {
     padding: 8,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "rgba(38,67,72,0.08)",
     borderRadius: 20,
   },
   identityItem: {
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   },
   identityItemActive: {
     backgroundColor: PROFILE_COLORS.CARD,
-    borderColor: "#e5e7eb",
+    borderColor: "#59ABE3",
   },
   itemAvatar: {
     width: 48,
@@ -253,11 +253,11 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   itemType: {
     fontSize: 13,
-    color: "#6b7280",
+    color: "#264348",
     marginTop: 2,
   },
   createActions: {
