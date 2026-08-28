@@ -43,6 +43,7 @@ import {
 } from "../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
 import { CATEGORY_ICONS } from "../lib/categoryIcons";
+import ProgressivePicker from "../components/navigation/ProgressivePicker";
 
 export default function ServicesScreen() {
   const { t } = useTranslation();
@@ -173,13 +174,6 @@ export default function ServicesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{t("modules.services", "Dienstleistungen")}</Text>
-          <Text style={styles.subtitle}>{t("services.nearbyServices", "Services in deiner Nähe")}</Text>
-        </View>
-      </View>
-
       {loading ? (
         <View style={{ backgroundColor: COLORS.backgroundPage }}>
           <SkeletonBox width="100%" height={180} borderRadius={16} style={{ marginHorizontal: 16, marginTop: 16 }} />
@@ -204,28 +198,6 @@ export default function ServicesScreen() {
           nestedScrollEnabled
           ListHeaderComponent={
             <>
-              <View style={styles.filters}>
-                <Pressable
-                  style={styles.filterButton}
-                  onPress={() => setCategoryModalVisible(true)}
-                  data-testid="category-filter-btn"
-                >
-                  <Text style={styles.filterLabel}>{t("locator.category")}: </Text>
-                  <Text style={styles.filterValue}>{translatedRootCategory}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#264348" />
-                </Pressable>
-
-                <Pressable
-                  style={styles.filterButton}
-                  onPress={() => setSubcategoryModalVisible(true)}
-                  data-testid="subcategory-filter-btn"
-                >
-                  <Text style={styles.filterLabel}>{t("locator.subcategory")}: </Text>
-                  <Text style={styles.filterValue}>{translatedSubcategory}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#264348" />
-                </Pressable>
-              </View>
-
               <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
                   <Ionicons name="search" size={16} color="#264348" />
@@ -275,6 +247,33 @@ export default function ServicesScreen() {
                   </View>
                 )}
               </View>
+
+              <ProgressivePicker
+                label={t("common.filter", "Filter")}
+                value="all"
+                displayValue={translatedRootCategory}
+                onPressOverride={() => setCategoryModalVisible(true)}
+                onChange={() => {}}
+                options={[{ key: "all", label: t("locator.allCategories") }]}
+                primaryColor="#59ABE3"
+                textColor="#264348"
+                mutedColor="#264348"
+                backgroundColor={COLORS.background}
+                borderColor="rgba(38,67,72,0.25)"
+              />
+              <ProgressivePicker
+                label={t("common.subcategory", "Kategorie")}
+                value="all"
+                displayValue={translatedSubcategory}
+                onPressOverride={() => setSubcategoryModalVisible(true)}
+                onChange={() => {}}
+                options={[{ key: "all", label: t("locator.allSubcategories") }]}
+                primaryColor="#59ABE3"
+                textColor="#264348"
+                mutedColor="#264348"
+                backgroundColor={COLORS.background}
+                borderColor="rgba(38,67,72,0.25)"
+              />
 
               <Text style={styles.sectionTitle}>{t("services.nearbyServices", "Services in der Nähe")}</Text>
             </>
@@ -430,14 +429,7 @@ export default function ServicesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#ffffff" },
-  header: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
-  title: { fontSize: 22, fontWeight: "700", color: "#264348" },
-  subtitle: { color: "#264348", marginTop: 2 },
-  filters: { paddingHorizontal: 16, gap: 8 },
-  filterButton: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(38,67,72,0.25)" },
-  filterLabel: { color: "#264348", fontSize: 14 },
-  filterValue: { flex: 1, color: "#59ABE3", fontSize: 14, fontWeight: "500" },
-  mapContainer: { height: 180, marginVertical: 12, borderRadius: 12, overflow: "hidden", backgroundColor: "#EAF3FB" },
+  mapContainer: { borderRadius: 12, overflow: "hidden", backgroundColor: "#EAF3FB" },
   mapPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   mapPlaceholderText: { fontSize: 16, fontWeight: "600", color: "#264348", marginTop: 8 },
   mapPlaceholderSubtext: { fontSize: 13, color: "#264348", marginTop: 4 },
@@ -463,7 +455,7 @@ const styles = StyleSheet.create({
   categoryModalIcon: { marginRight: 12 },
   subDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#264348", marginRight: 12, marginLeft: 4 },
   categoryModalItemText: { flex: 1, fontSize: 16, color: "#264348" },
-  searchContainer: { paddingHorizontal: SPACING.std, marginTop: SPACING.small, marginBottom: SPACING.small },
+  searchContainer: { paddingHorizontal: SPACING.std, paddingTop: SPACING.small, paddingBottom: SPACING.small },
   searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: BORDER_RADIUS.lg, paddingHorizontal: SPACING.small, height: 40, gap: SPACING.small, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(38,67,72,0.2)" },
   searchInput: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: "#264348", paddingVertical: 0 },
 });

@@ -42,6 +42,7 @@ import {
   SHADOWS,
 } from "../../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
+import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 
 export default function JobsScreen() {
   const { t } = useTranslation();
@@ -206,16 +207,6 @@ export default function JobsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{t("jobs.title")}</Text>
-          <Text style={styles.subtitle}>{t("jobs.subtitle")}</Text>
-        </View>
-        <Pressable onPress={() => router.push("/my-applications")} style={styles.myAppsBtn}>
-          <Text style={styles.myAppsBtnText}>{t("jobs.myApplications")}</Text>
-        </Pressable>
-      </View>
-
       {loading ? (
         <View style={{ backgroundColor: COLORS.backgroundPage }}>
           <SkeletonBox width="100%" height={180} borderRadius={16} style={{ marginHorizontal: 16, marginTop: 16 }} />
@@ -240,43 +231,19 @@ export default function JobsScreen() {
           nestedScrollEnabled
           ListHeaderComponent={
             <>
-              {/* Category Filters */}
-              <View style={styles.filters}>
-                <Pressable
-                  style={styles.filterButton}
-                  onPress={() => setCategoryModalVisible(true)}
-                  data-testid="category-filter-btn"
-                >
-                  <Text style={styles.filterLabel}>{t("locator.category")}: </Text>
-                  <Text style={styles.filterValue}>{translatedRootCategory}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
-                </Pressable>
-
-                <Pressable
-                  style={styles.filterButton}
-                  onPress={() => setSubcategoryModalVisible(true)}
-                  data-testid="subcategory-filter-btn"
-                >
-                  <Text style={styles.filterLabel}>{t("locator.subcategory")}: </Text>
-                  <Text style={styles.filterValue}>{translatedSubcategory}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
-                </Pressable>
-              </View>
-
-              {/* Search Bar */}
               <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
-                  <Ionicons name="search" size={16} color={COLORS.textMuted} />
+                  <Ionicons name="search" size={16} color="#264348" />
                   <TextInput
                     placeholder={t("jobs.searchJobs", "Search jobs...")}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     style={styles.searchInput}
-                    placeholderTextColor={COLORS.textDisabled}
+                    placeholderTextColor="#264348"
                   />
                   {searchQuery.length > 0 && (
                     <Pressable onPress={() => setSearchQuery("")}>
-                      <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                      <Ionicons name="close-circle" size={16} color="#264348" />
                     </Pressable>
                   )}
                 </View>
@@ -308,15 +275,48 @@ export default function JobsScreen() {
                   />
                 ) : (
                   <View style={styles.mapPlaceholder}>
-                    <Ionicons name="location" size={40} color={COLORS.primaryDark} />
+                    <Ionicons name="location" size={40} color="#264348" />
                     <Text style={styles.mapPlaceholderText}>{t("jobs.tapToEnableLocation")}</Text>
-                    <Text style={styles.mapPlaceholderSubtext}>{t("jobs.viewNearbyJobs")}</Text>
+                    <Text style={styles.mapPlaceholderSubtext}>{t("jobs.viewNearbyJobs", "Entdecke Jobs in deiner Nähe")}</Text>
                   </View>
                 )}
               </View>
 
-              {/* Job List title */}
-              <Text style={styles.sectionTitle}>{t("jobs.nearbyJobs")}</Text>
+              <ProgressivePicker
+                label={t("common.filter", "Filter")}
+                value="all"
+                displayValue={translatedRootCategory}
+                onPressOverride={() => setCategoryModalVisible(true)}
+                onChange={() => {}}
+                options={[{ key: "all", label: t("locator.allCategories") }]}
+                primaryColor="#264348"
+                textColor="#264348"
+                mutedColor="#264348"
+                backgroundColor={COLORS.background}
+                borderColor="rgba(38,67,72,0.25)"
+              />
+              <ProgressivePicker
+                label={t("common.subcategory", "Kategorie")}
+                value="all"
+                displayValue={translatedSubcategory}
+                onPressOverride={() => setSubcategoryModalVisible(true)}
+                onChange={() => {}}
+                options={[{ key: "all", label: t("locator.allSubcategories") }]}
+                primaryColor="#264348"
+                textColor="#264348"
+                mutedColor="#264348"
+                backgroundColor={COLORS.background}
+                borderColor="rgba(38,67,72,0.25)"
+              />
+
+              <Pressable
+                onPress={() => router.push("/my-applications")}
+                style={{ paddingHorizontal: 16, paddingTop: 10, alignSelf: "flex-start" }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#264348" }}>{t("jobs.myApplications")}</Text>
+              </Pressable>
+
+              <Text style={styles.sectionTitle}>{t("jobs.nearbyJobs", "Jobs in der Nähe")}</Text>
             </>
           }
           renderItem={({ item }) => (
@@ -513,8 +513,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   mapContainer: {
-    height: 180,
-    marginVertical: 12,
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#EAF3FB",
@@ -538,8 +536,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#264348",
     paddingHorizontal: 16,
+    marginTop: 10,
     marginBottom: 8,
   },
   emptyCard: {
@@ -784,22 +783,24 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: SPACING.std,
-    marginTop: SPACING.small,
-    marginBottom: SPACING.small,
+    paddingTop: SPACING.small,
+    paddingBottom: SPACING.small,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.small,
     height: 40,
     gap: SPACING.small,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(38,67,72,0.2)",
   },
   searchInput: {
     flex: 1,
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textPrimary,
+    color: "#264348",
     paddingVertical: 0,
   },
   jobBadges: {
