@@ -9,7 +9,6 @@ import { Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
 import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes";
 import { getCategoryConfig, getCategoryAttributes } from "../../lib/marketplace/marketplaceTaxonomy";
 import { formatPrice } from "../../lib/serviceFormat";
-import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
 import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
 import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/DiscoveryMap";
@@ -202,13 +201,6 @@ export default function MarketplaceItemsPage() {
 
   if (viewport.needsLocation) return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <DiscoveryHeader
-        title={t("marketplace.title", "Marktplatz")}
-        tab="items"
-        onBack={() => router.back()}
-        onTabChange={(tab) => tab === "homes" && router.replace("/marketplace/homes")}
-        onMyListings={() => router.push("/my-listings" as any)}
-      />
       <DiscoveryEmptyState type="no-location" />
       <View style={styles.locationActions}>
         <Pressable
@@ -244,13 +236,6 @@ export default function MarketplaceItemsPage() {
 
   const listHeader = useMemo(() => (
     <View>
-      <DiscoveryHeader
-        title={t("marketplace.title", "Marktplatz")}
-        tab="items"
-        onBack={() => router.back()}
-        onTabChange={(tab) => tab === "homes" && router.replace("/marketplace/homes")}
-        onMyListings={() => router.push("/my-listings" as any)}
-      />
       <DiscoverySearch
         value={search}
         onChangeText={setSearch}
@@ -286,6 +271,20 @@ export default function MarketplaceItemsPage() {
         backgroundColor={COLORS.background}
         borderColor="rgba(38,67,72,0.25)"
       />
+      <ProgressivePicker
+        label={t("marketplace.condition", "Zustand")}
+        value={activeConditions[0] ?? "all"}
+        options={[
+          { key: "all", label: t("marketplace.all", "Alle") },
+          ...CONDITION_OPTIONS.map((c) => ({ key: c.key, label: c.label })),
+        ]}
+        onChange={(key) => setActiveConditions(key === "all" ? [] : [key])}
+        primaryColor="#59ABE3"
+        textColor="#264348"
+        mutedColor="#264348"
+        backgroundColor={COLORS.background}
+        borderColor="rgba(38,67,72,0.25)"
+      />
       <MarketplaceCategoryFilter
         visible={categoryFilterVisible}
         category={category}
@@ -314,10 +313,6 @@ export default function MarketplaceItemsPage() {
         onChange={handleAttrChange}
       />
       <DiscoveryFilterChips
-        chips={conditionChips}
-        onToggle={(k) => setActiveConditions((prev) => prev.includes(k) ? prev.filter((c) => c !== k) : [...prev, k])}
-      />
-      <DiscoveryFilterChips
         chips={deliveryChips}
         onToggle={(k) => {
           if (k === "pickup") setPickupOnly(!pickupOnly);
@@ -330,7 +325,7 @@ export default function MarketplaceItemsPage() {
         </Text>
       )}
     </View>
-  ), [t, router, search, category, subcategory, catConfig, subLabel, categoryFilterVisible, markers, viewport, visibleListings.length, conditionChips, deliveryChips, draftAttributeFilters, attributeFilters, activeConditions, pickupOnly, shippingOnly, setSearch, setActiveConditions, setPickupOnly, setShippingOnly, handleAttrChange, handleMarkerPress, setVisibleBounds, handleViewportChange, pruneFilters]);
+  ), [t, router, search, category, subcategory, catConfig, subLabel, categoryFilterVisible, markers, viewport, visibleListings.length, deliveryChips, draftAttributeFilters, attributeFilters, activeConditions, pickupOnly, shippingOnly, setSearch, setActiveConditions, setPickupOnly, setShippingOnly, handleAttrChange, handleMarkerPress, setVisibleBounds, handleViewportChange, pruneFilters]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>

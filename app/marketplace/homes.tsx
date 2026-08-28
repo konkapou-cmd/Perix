@@ -7,7 +7,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { getListings, Listing, ListingDiscoveryQuery } from "../../lib/api/listings";
 import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes";
-import DiscoveryHeader from "../../components/discovery/DiscoveryHeader";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
 import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
 import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/DiscoveryMap";
@@ -64,21 +63,6 @@ export default function MarketplaceHomesPage() {
     [visibleListings],
   );
 
-  const propertyChips: FilterChip[] = useMemo(
-    () => [
-      { key: "", label: t("marketplace.all", "Alle"), active: activePropType === "" },
-      ...PROPERTY_TYPES.map((pt) => ({ key: pt, label: t(`rentals.types.${pt}`, pt), active: activePropType === pt })),
-    ],
-    [activePropType],
-  );
-
-  const furnishedChip: FilterChip[] = useMemo(
-    () => [
-      { key: "furnished", label: t("services.furnished", "Möbliert"), active: furnishedOnly },
-    ],
-    [furnishedOnly],
-  );
-
   const bedroomChips: FilterChip[] = useMemo(
     () =>
       [1, 2, 3, 4].map((n) => ({
@@ -88,10 +72,6 @@ export default function MarketplaceHomesPage() {
       })),
     [minBeds],
   );
-
-  const handleTabChange = (tab: "items" | "homes") => {
-    if (tab === "items") router.replace("/marketplace/items");
-  };
 
   const handleMarkerPress = (id: string) => {
     pushEntityRoute(router, entityRoutes.listing(id), () => {});
@@ -166,13 +146,6 @@ export default function MarketplaceHomesPage() {
 
   if (viewport.needsLocation) return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <DiscoveryHeader
-        title={t("marketplace.title", "Marktplatz")}
-        tab="homes"
-        onBack={() => router.back()}
-        onTabChange={handleTabChange}
-        onMyListings={() => router.push("/my-listings" as any)}
-      />
       <DiscoveryEmptyState type="no-location" />
       <View style={styles.locationActions}>
         <Pressable
@@ -208,13 +181,6 @@ export default function MarketplaceHomesPage() {
 
   const listHeader = useMemo(() => (
     <View>
-      <DiscoveryHeader
-        title={t("marketplace.title", "Marktplatz")}
-        tab="homes"
-        onBack={() => router.back()}
-        onTabChange={handleTabChange}
-        onMyListings={() => router.push("/my-listings" as any)}
-      />
       <DiscoverySearch
         value={search}
         onChangeText={setSearch}
@@ -256,7 +222,20 @@ export default function MarketplaceHomesPage() {
         backgroundColor={COLORS.background}
         borderColor="rgba(38,67,72,0.25)"
       />
-      <DiscoveryFilterChips chips={furnishedChip} onToggle={() => setFurnishedOnly(!furnishedOnly)} />
+      <ProgressivePicker
+        label={t("services.furnished", "Möbliert")}
+        value={furnishedOnly ? "furnished" : "all"}
+        options={[
+          { key: "all", label: t("marketplace.all", "Alle") },
+          { key: "furnished", label: t("services.furnished", "Möbliert") },
+        ]}
+        onChange={(key) => setFurnishedOnly(key === "furnished")}
+        primaryColor="#59ABE3"
+        textColor="#264348"
+        mutedColor="#264348"
+        backgroundColor={COLORS.background}
+        borderColor="rgba(38,67,72,0.25)"
+      />
       <DiscoveryFilterChips chips={bedroomChips} onToggle={(k) => setMinBeds(minBeds === parseInt(k.replace("beds_", "")) ? 0 : parseInt(k.replace("beds_", "")))} />
       {visibleListings.length > 0 && (
         <Text style={styles.resultCount}>
