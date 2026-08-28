@@ -243,7 +243,7 @@ export default function MarketplaceHomesPage() {
         </Text>
       )}
     </View>
-  ), [t, router, search, propertyChips, furnishedChip, bedroomChips, markers, viewport, visibleListings.length, activePropType, furnishedOnly, minBeds, setActivePropType, setFurnishedOnly, setMinBeds, handleMarkerPress, setVisibleBounds, handleViewportChange]);
+  ), [t, router, search, bedroomChips, markers, viewport, visibleListings.length, activePropType, furnishedOnly, minBeds, setActivePropType, setFurnishedOnly, setMinBeds, handleMarkerPress, setVisibleBounds, handleViewportChange]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
