@@ -1070,6 +1070,6 @@ const styles = StyleSheet.create({
   slotModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.small },
   slotModalTitle: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: COLORS.textPrimary },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: 4 },
-  chipActive: { backgroundcolor: "#7B3FF2", borderColor: "#7B3FF2" },
+  chipActive: { backgroundColor: "#7B3FF2", borderColor: "#7B3FF2" },
   chipTextActive: { color: "#fff" },
 });
