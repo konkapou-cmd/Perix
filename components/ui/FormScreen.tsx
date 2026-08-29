@@ -22,9 +22,9 @@ export default function FormScreen({ title, onClose, visible, children }: FormSc
           style={styles.kav}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <View style={[styles.header, { borderBottomColor: COLORS.border }]}>
+          <View style={[styles.header, { borderBottomColor: "rgba(38,67,72,0.15)" }]}>
             <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={12}>
-              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+              <Ionicons name="close" size={24} color="#264348" />
             </Pressable>
             <Text style={styles.title} numberOfLines={1}>
               {title}
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: FONT_SIZES.h3,
     fontWeight: FONT_WEIGHTS.bold,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   body: {
     flex: 1,

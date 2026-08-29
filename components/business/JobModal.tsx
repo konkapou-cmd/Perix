@@ -155,6 +155,8 @@ export default function JobModal({
               onChange={handleMediaChange}
               sessionToken={sessionToken}
               label={t("jobs.coverImage", "Cover Image")}
+              accentColor="#264348"
+              lightBackground
             />
 
             <Text style={s.label}><Text style={s.required}>* </Text>{t("jobs.jobTitle", "Job Title")}</Text>
@@ -163,7 +165,7 @@ export default function JobModal({
               value={jobForm.title}
               onChangeText={(v) => handleFormChange("title", v)}
               placeholder={t("jobs.jobTitlePlaceholder", "e.g. Senior Software Engineer")}
-              placeholderTextColor={COLORS.textDisabled}
+              placeholderTextColor="rgba(38,67,72,0.45)"
             />
 
             <Text style={s.label}><Text style={s.required}>* </Text>{t("jobs.jobDescription", "Description")}</Text>
@@ -172,7 +174,7 @@ export default function JobModal({
               value={jobForm.description}
               onChangeText={(v) => handleFormChange("description", v)}
               placeholder={t("jobs.descriptionPlaceholder", "Describe the role, responsibilities, and ideal candidate...")}
-              placeholderTextColor={COLORS.textDisabled}
+              placeholderTextColor="rgba(38,67,72,0.45)"
               multiline
             />
 
@@ -195,7 +197,7 @@ export default function JobModal({
               value={jobForm.requirements}
               onChangeText={(v) => handleFormChange("requirements", v)}
               placeholder={t("jobs.requirementsPlaceholder", "Welche Qualifikationen werden benötigt?")}
-              placeholderTextColor={COLORS.textDisabled}
+              placeholderTextColor="rgba(38,67,72,0.45)"
               multiline
             />
 
@@ -205,7 +207,7 @@ export default function JobModal({
               value={jobForm.salary_range}
               onChangeText={(v) => handleFormChange("salary_range", v)}
               placeholder={t("jobs.salaryPlaceholder", "z.B. 3.000 €")}
-              placeholderTextColor={COLORS.textDisabled}
+              placeholderTextColor="rgba(38,67,72,0.45)"
             />
 
             <Text style={s.label}>{t("jobs.workLocation", "Arbeitsort")}</Text>
@@ -229,7 +231,7 @@ export default function JobModal({
               <Text style={jobForm.expires_at ? s.selectorTextSelected : s.selectorText}>
                 {jobForm.expires_at ? formatDateShort(jobForm.expires_at) : t("jobs.selectExpiry", "Ablaufdatum wählen")}
               </Text>
-              <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+              <Ionicons name="calendar-outline" size={18} color="#264348" />
             </Pressable>
 
             <Text style={s.label}>{t("common.status") || "Status"}</Text>
@@ -251,6 +253,7 @@ export default function JobModal({
         isSaving={isSaving}
         disabled={!jobForm.title.trim() || !jobForm.description.trim()}
         saveLabel={isEditing ? t("common.save", "Speichern") : t("jobs.create", "Job erstellen")}
+        accentColor="#264348"
       />
     </FormScreen>
 
@@ -262,7 +265,7 @@ export default function JobModal({
         horizontal
         value={{ startDate: jobForm.expires_at, endDate: null }}
         onApply={(v) => handleFormChange("expires_at", v.startDate ?? "")}
-        accentColor={COLORS.primary}
+        accentColor="#264348"
       />
     </>
   );
@@ -336,7 +339,7 @@ const s = StyleSheet.create({
   label: {
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textSecondary,
+    color: "#264348",
     marginBottom: SPACING.tiny,
     marginTop: SPACING.std,
   },
@@ -345,13 +348,13 @@ const s = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.compact,
     fontSize: FONT_SIZES.body,
-    color: COLORS.textPrimary,
-    backgroundColor: COLORS.backgroundPage,
+    color: "#264348",
+    backgroundColor: COLORS.background,
   },
   textArea: {
     minHeight: 80,
@@ -362,19 +365,19 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.compact,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: COLORS.background,
   },
   selectorText: {
     fontSize: FONT_SIZES.body,
-    color: COLORS.textDisabled,
+    color: "rgba(38,67,72,0.45)",
   },
   selectorTextSelected: {
     fontSize: FONT_SIZES.body,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   chipRow: {
     flexDirection: "row",
@@ -386,16 +389,16 @@ const s = StyleSheet.create({
     paddingVertical: SPACING.small,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: "transparent",
   },
   chipSelected: {
-    backgroundColor: COLORS.primaryDark,
-    borderColor: COLORS.primaryDark,
+    backgroundColor: "#264348",
+    borderColor: "#264348",
   },
   chipText: {
     fontSize: FONT_SIZES.caption,
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   chipTextSelected: {
     color: "#fff",

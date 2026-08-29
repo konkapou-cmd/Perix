@@ -10,6 +10,7 @@ type FormBottomBarProps = {
   cancelLabel?: string;
   isSaving?: boolean;
   disabled?: boolean;
+  accentColor?: string;
 };
 
 export default function FormBottomBar({
@@ -19,25 +20,26 @@ export default function FormBottomBar({
   cancelLabel,
   isSaving = false,
   disabled = false,
+  accentColor = COLORS.primary,
 }: FormBottomBarProps) {
   const { t } = useTranslation();
   const saveText = saveLabel ?? t("common.save", "Speichern");
   const cancelText = cancelLabel ?? t("common.cancel", "Abbrechen");
 
   return (
-    <View style={[styles.bar, { borderTopColor: COLORS.border, backgroundColor: COLORS.background }]}>
+    <View style={[styles.bar, { borderTopColor: "rgba(38,67,72,0.15)", backgroundColor: COLORS.background }]}>
       <Pressable
-        style={[styles.btn, styles.cancelBtn, { borderColor: COLORS.border }]}
+        style={[styles.btn, styles.cancelBtn, { borderColor: "rgba(38,67,72,0.25)" }]}
         onPress={onCancel}
       >
-        <Text style={[styles.cancelText, { color: COLORS.textPrimary }]}>{cancelText}</Text>
+        <Text style={[styles.cancelText, { color: "#264348" }]}>{cancelText}</Text>
       </Pressable>
 
       <Pressable
         style={[
           styles.btn,
           styles.saveBtn,
-          { backgroundColor: COLORS.primary },
+          { backgroundColor: accentColor },
           (disabled || isSaving) && styles.saveDisabled,
         ]}
         onPress={disabled || isSaving ? undefined : onSave}

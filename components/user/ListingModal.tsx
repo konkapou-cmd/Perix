@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)", backgroundColor: COLORS.background,
   },
   closeBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: "700", color: "#264348" },
+  headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: "700", color: COLORS.success },
   body: { padding: SPACING.std, paddingBottom: 100 },
   label: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: "#264348", marginTop: SPACING.small, marginBottom: 4 },
   required: { color: COLORS.danger },

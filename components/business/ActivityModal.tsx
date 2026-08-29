@@ -200,6 +200,8 @@ export default function ActivityModal({
             onChange={handleMediaChange}
             sessionToken={sessionToken}
             label={t("activities.media") || "Media"}
+            accentColor="#FF9F1C"
+            lightBackground
           />
 
           <Text style={s.label}><Text style={s.required}>* </Text>{t("activities.activityTitle")}</Text>
@@ -208,7 +210,7 @@ export default function ActivityModal({
             value={activityForm.title}
             onChangeText={(text) => onFormChange({ ...activityForm, title: text })}
             placeholder={t("activities.activityTitlePlaceholder") || "Activity title"}
-            placeholderTextColor={COLORS.textDisabled}
+            placeholderTextColor="rgba(38,67,72,0.45)"
           />
 
           <Text style={s.label}>{t("activities.description")}</Text>
@@ -217,7 +219,7 @@ export default function ActivityModal({
             value={activityForm.description}
             onChangeText={(text) => onFormChange({ ...activityForm, description: text })}
             placeholder={t("activities.descriptionPlaceholder") || "Describe your activity..."}
-            placeholderTextColor={COLORS.textDisabled}
+            placeholderTextColor="rgba(38,67,72,0.45)"
             multiline
           />
 
@@ -228,14 +230,14 @@ export default function ActivityModal({
                 <Text style={s.selectorTextSelected}>
                   {activityForm.date ? formatDateShort(activityForm.date) : t("activities.selectDate", "Select date")}
                 </Text>
-                <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+                <Ionicons name="calendar-outline" size={18} color="#264348" />
               </Pressable>
             </View>
             <View style={s.halfWidth}>
               <Text style={s.label}><Text style={s.required}>* </Text>{t("activities.time")}</Text>
               <Pressable style={s.selector} onPress={() => onShowTimePicker(true)}>
                 <Text style={s.selectorTextSelected}>{formatTime(activityTime)}</Text>
-                <Ionicons name="time-outline" size={18} color={COLORS.textMuted} />
+                <Ionicons name="time-outline" size={18} color="#264348" />
               </Pressable>
             </View>
           </View>
@@ -250,7 +252,7 @@ export default function ActivityModal({
               onFormChange({ ...activityForm, date: dateStr });
               onDateChange(null, new Date(dateStr + "T00:00:00"));
             }}
-            accentColor={COLORS.primary}
+            accentColor="#FF9F1C"
           />
 
           {showActivityTimePicker && (
@@ -282,7 +284,7 @@ export default function ActivityModal({
             value={activityForm.max_attendees ? String(activityForm.max_attendees) : ""}
             onChangeText={(text) => onFormChange({ ...activityForm, max_attendees: text ? Number(text) : 10 })}
             placeholder={t("activities.maxAttendeesPlaceholder") || "No limit"}
-            placeholderTextColor={COLORS.textDisabled}
+            placeholderTextColor="rgba(38,67,72,0.45)"
             keyboardType="numeric"
           />
 
@@ -343,6 +345,7 @@ export default function ActivityModal({
         isSaving={isSaving}
         disabled={!activityForm.title.trim()}
         saveLabel={activityEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
+        accentColor="#FF9F1C"
       />
     </FormScreen>
   );
@@ -369,7 +372,7 @@ const s = StyleSheet.create({
   headerTitle: {
     fontSize: FONT_SIZES.h3,
     fontWeight: FONT_WEIGHTS.bold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   body: {
     flex: 1,
@@ -390,12 +393,12 @@ const s = StyleSheet.create({
     paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
   },
   cancelBtnText: {
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   saveBtn: {
     paddingVertical: SPACING.small,
@@ -411,7 +414,7 @@ const s = StyleSheet.create({
   label: {
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textSecondary,
+    color: "#264348",
     marginBottom: SPACING.tiny,
     marginTop: SPACING.std,
   },
@@ -421,25 +424,25 @@ const s = StyleSheet.create({
   labelNoMargin: {
     fontSize: FONT_SIZES.caption,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textSecondary,
+    color: "#264348",
     marginBottom: 0,
     marginTop: 0,
   },
   labelHint: {
     fontSize: FONT_SIZES.micro,
-    color: COLORS.textDisabled,
+    color: "rgba(38,67,72,0.45)",
     marginTop: -2,
     marginBottom: SPACING.small,
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.compact,
     fontSize: FONT_SIZES.body,
-    color: COLORS.textPrimary,
-    backgroundColor: COLORS.backgroundPage,
+    color: "#264348",
+    backgroundColor: "transparent",
   },
   textArea: {
     minHeight: 80,
@@ -457,15 +460,15 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.compact,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "transparent",
   },
   selectorTextSelected: {
     fontSize: FONT_SIZES.body,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   themeChipsRow: {
     flexDirection: "row",
@@ -481,8 +484,8 @@ const s = StyleSheet.create({
     paddingVertical: SPACING.small,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.backgroundPage,
+    borderColor: "rgba(38,67,72,0.2)",
+    backgroundColor: "transparent",
   },
   themeChipEmoji: {
     fontSize: FONT_SIZES.small,
@@ -490,7 +493,7 @@ const s = StyleSheet.create({
   themeChipText: {
     fontSize: FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.medium as any,
-    color: COLORS.textMuted,
+    color: "#264348",
   },
   themeChipTextActive: {
     color: "#fff",
@@ -505,10 +508,10 @@ const s = StyleSheet.create({
     gap: SPACING.small,
     paddingVertical: SPACING.compact,
     paddingHorizontal: SPACING.small,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "transparent",
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
   },
   categoryEmoji: {
     fontSize: FONT_SIZES.body,
@@ -517,7 +520,7 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   categoryBody: {
     paddingTop: SPACING.small,
@@ -529,7 +532,7 @@ const s = StyleSheet.create({
   subcategoryLabel: {
     fontSize: FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.medium as any,
-    color: COLORS.textSecondary,
+    color: "#264348",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: SPACING.tiny,
