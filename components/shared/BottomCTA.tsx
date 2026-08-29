@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    marginTop: SPACING.std,
     paddingHorizontal: SPACING.std,
     paddingBottom: SPACING.section,
     paddingTop: SPACING.compact,

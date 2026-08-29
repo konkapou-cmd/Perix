@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.backgroundPage, padding: SPACING.section },
   content: { paddingBottom: 60 },
-  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.page },
+  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.std },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
   backButton: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: BORDER_RADIUS.md },
   backButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "700" },

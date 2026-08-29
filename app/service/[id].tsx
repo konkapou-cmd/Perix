@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.backgroundPage },
   content: { paddingBottom: 60 },
-  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.page },
+  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.std },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
   description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
   facilityRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.tiny },
