@@ -10,6 +10,7 @@ type BottomCTAProps = {
   secondaryLabel?: string;
   accentColor?: string;
   useGradient?: boolean;
+  gradientColors?: [string, string];
   onPrimary: () => void;
   onSecondary?: () => void;
   saved?: boolean;
@@ -24,6 +25,7 @@ export const BottomCTA = ({
   secondaryLabel,
   accentColor = COLORS.primary,
   useGradient = false,
+  gradientColors = ["#FF7A1A", "#FFC400"],
   onPrimary,
   onSecondary,
   saved = false,
@@ -38,7 +40,7 @@ export const BottomCTA = ({
     >
       {useGradient && (
         <LinearGradient
-          colors={["#FF7A1A", "#FFC400"]}
+          colors={gradientColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={StyleSheet.absoluteFill}

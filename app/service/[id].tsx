@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Constants from "expo-constants";
 import { useAuth } from "../../context/AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
 import { getServiceDetail, sendServiceInquiry } from "../../lib/api/services";
 import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { Service } from "../../lib/api/core";
@@ -24,7 +25,7 @@ import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
 import ErrorState from "../../components/shared/ErrorState";
 import { BottomCTA } from "../../components/shared/BottomCTA";
 
-const SERVICES_ACCENT = "#59ABE3";
+const SERVICES_ACCENT = "#7B3FF2";
 
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -434,6 +435,8 @@ export default function ServiceDetailPage() {
               primaryLabel={ctaLabel}
               primaryIcon={ctaIcon}
               accentColor={SERVICES_ACCENT}
+              useGradient
+              gradientColors={["#7B3FF2", "#4C1D95"]}
               onPrimary={handleCta}
               saved={isSaved}
               onSave={handleToggleSave}
@@ -486,7 +489,14 @@ export default function ServiceDetailPage() {
             <Text style={styles.modalSectionTitle}>{t("services.message")} *</Text>
             <TextInput style={[styles.input, styles.textArea]} value={inquiryMessage} onChangeText={setInquiryMessage} placeholder={t("services.messagePlaceholder")} multiline numberOfLines={4} />
             <Pressable style={[styles.submitButton, submittingInquiry && styles.submitButtonDisabled]} onPress={handleSendInquiry} disabled={submittingInquiry}>
-              {submittingInquiry ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>{t("services.send")}</Text>}
+              <LinearGradient
+                colors={["#7B3FF2", "#4C1D95"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitGradient}
+              >
+                {submittingInquiry ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>{t("services.send")}</Text>}
+              </LinearGradient>
             </Pressable>
             <View style={{ height: 20 }} />
           </ScrollView>
@@ -553,7 +563,8 @@ const styles = StyleSheet.create({
   stepper: { flexDirection: "row", alignItems: "center", gap: SPACING.compact },
   stepperBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: COLORS.borderGray, alignItems: "center", justifyContent: "center" },
   stepperValue: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: COLORS.textPrimary, minWidth: 30, textAlign: "center" },
-  submitButton: { backgroundColor: COLORS.servicesAccent, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.std },
+  submitButton: { borderRadius: BORDER_RADIUS.md, marginTop: SPACING.std, overflow: "hidden" },
+  submitGradient: { paddingVertical: SPACING.std, alignItems: "center" },
   submitButtonDisabled: { opacity: 0.6 },
   submitButtonText: { fontSize: FONT_SIZES.body, fontWeight: "700", color: "#fff" },
   moduleGrid: { gap: SPACING.small },
