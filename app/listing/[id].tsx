@@ -9,7 +9,11 @@ import { getListing, Listing } from "../../lib/api/listings";
 import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
-import { ContentHero, ContentGallery } from "../../components/shared";
+import { ContentHero, ContentGallery, ContentMap } from "../../components/shared";
+import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
+import { BottomCTA } from "../../components/shared/BottomCTA";
+import { openInMaps } from "../../lib/utils/openMapUrl";
+import { getCategoryConfig } from "../../lib/marketplace/marketplaceTaxonomy";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
@@ -147,6 +151,7 @@ export default function ListingDetailScreen() {
             imageUrls={listing.image_urls}
             title={listing.title}
             hideBack
+            flush
             badges={[
               listing.price ? { icon: "pricetag", text: formatPrice(listing.price), color: COLORS.success } : null,
               listing.listing_type === "home_rental" ? { icon: "home", text: t("marketplace.home", "Home"), color: COLORS.success } : { icon: "pricetag", text: t("marketplace.product", "Product"), color: COLORS.success },
@@ -167,134 +172,172 @@ export default function ListingDetailScreen() {
           />
         </View>
 
-        <View style={styles.infoCard}>
-          <Text style={styles.title}>{listing.title}</Text>
-          {listing.price ? (
-             <Text style={styles.price}>{formatPrice(listing.price)}</Text>
-          ) : (
-            <Text style={styles.askPrice}>{t("marketplace.askForPrice", "Ρωτήστε για τιμή")}</Text>
-          )}
-
-          {listing.description ? (
-            <Text style={styles.description}>{listing.description}</Text>
+        <DetailFacts>
+          <DetailFact
+            icon="pricetag"
+            label={t("listing.price") || "Preis"}
+            value={listing.price ? formatPrice(listing.price) : t("marketplace.askForPrice", "Preis auf Anfrage")}
+            accentColor={COLORS.success}
+          />
+          {listing.condition ? (
+            <DetailFact
+              icon="star"
+              label={t("listing.conditionTitle") || "Zustand"}
+              value={t(`listing.condition.${listing.condition}`, listing.condition)}
+              accentColor={COLORS.success}
+            />
           ) : null}
-
-          {(listing.business_name || listing.seller_name) && (
-            <Pressable
-              style={styles.sellerRow}
+          {listing.category ? (
+            <DetailFact
+              icon="grid"
+              label={t("marketplace.category") || "Kategorie"}
+              value={(() => {
+                const cfg = getCategoryConfig(listing.category!);
+                const sub = listing.subcategory ? cfg?.subcategories.find((s) => s.key === listing.subcategory) : null;
+                const catLabel = cfg ? t(cfg.labelKey, cfg.fallback) : listing.category;
+                return sub ? `${catLabel} · ${t(sub.labelKey, sub.fallback)}` : catLabel;
+              })()}
+              accentColor={COLORS.success}
+            />
+          ) : null}
+          {listing.brand ? (
+            <DetailFact
+              icon="bookmark-outline"
+              label={t("listing.brand") || "Marke"}
+              value={listing.brand}
+              accentColor={COLORS.success}
+            />
+          ) : null}
+          {listing.delivery_method ? (
+            <DetailFact
+              icon="cube-outline"
+              label={t("marketplace.delivery") || "Lieferung"}
+              value={t(`marketplace.${listing.delivery_method}`, listing.delivery_method)}
+              accentColor={COLORS.success}
+            />
+          ) : null}
+          {(listing.business_name || listing.seller_name) ? (
+            <DetailFact
+              icon={listing.seller_type === "business" ? "storefront-outline" : "person-outline"}
+              label={t("marketplace.seller") || "Verkäufer"}
+              value={listing.business_name || listing.seller_name || ""}
+              accentColor={COLORS.success}
               onPress={() => {
                 const sid = listing.seller_id || listing.owner_id;
                 if (sid) router.push(`/user/${sid}` as any);
               }}
-            >
-              {listing.seller_avatar ? (
-                <Image source={{ uri: listing.seller_avatar }} style={styles.sellerAvatar} />
-              ) : (
-                <Ionicons name={listing.seller_type === "business" ? "storefront-outline" : "person-outline"} size={16} color="#59ABE3" />
-              )}
-              <Text style={styles.sellerText}>{listing.business_name || listing.seller_name}</Text>
-            </Pressable>
-          )}
-
-          <View style={styles.tags}>
-                {listing.condition ? (
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>{t(`listing.condition.${listing.condition}`, listing.condition)}</Text>
-              </View>
-            ) : null}
-            {listing.brand ? (
-              <View style={styles.tag}>
-                <Ionicons name="bookmark-outline" size={12} color="#59ABE3" />
-                <Text style={styles.tagText}>{listing.brand}</Text>
-              </View>
-            ) : null}
-            {listing.delivery_method ? (
-              <View style={styles.tag}>
-                <Ionicons name="cube-outline" size={12} color="#59ABE3" />
-                <Text style={styles.tagText}>{t(`marketplace.${listing.delivery_method}`, listing.delivery_method)}</Text>
-              </View>
-            ) : null}
-          </View>
-
-          {listing.address ? (
-            <View style={styles.addressRow}>
-              <Ionicons name="location-outline" size={16} color={COLORS.textMuted} />
-              <Text style={styles.addressText}>{listing.address}</Text>
-            </View>
+            />
           ) : null}
-
+          {listing.address ? (
+            <DetailFact
+              icon="location-outline"
+              label={t("listing.address") || "Ort"}
+              value={listing.address}
+              accentColor={COLORS.success}
+              onPress={() => openInMaps({ latitude: listing.latitude ?? undefined, longitude: listing.longitude ?? undefined, address: listing.address || "" })}
+            />
+          ) : null}
           {listing.listing_type === "home_rental" && (
-            <View style={styles.homeDetails}>
+            <>
               {listing.property_type ? (
-                <View style={styles.homeDetailItem}>
-                  <Ionicons name="home-outline" size={16} color="#59ABE3" />
-                  <Text style={styles.homeDetailText}>{t(`rentals.types.${listing.property_type}`, listing.property_type)}</Text>
-                </View>
+                <DetailFact
+                  icon="home-outline"
+                  label={t("rentals.propertyType") || "Art"}
+                  value={t(`rentals.types.${listing.property_type}`, listing.property_type)}
+                  accentColor={COLORS.success}
+                />
               ) : null}
               {listing.bedrooms ? (
-                <View style={styles.homeDetailItem}>
-                  <Ionicons name="bed-outline" size={16} color="#59ABE3" />
-                  <Text style={styles.homeDetailText}>{listing.bedrooms} {t("rentals.bedrooms", "Bedrooms")}</Text>
-                </View>
+                <DetailFact
+                  icon="bed-outline"
+                  label={t("rentals.bedrooms") || "Zimmer"}
+                  value={`${listing.bedrooms} ${t("rentals.bedrooms", "Bedrooms")}`}
+                  accentColor={COLORS.success}
+                />
               ) : null}
               {listing.bathrooms ? (
-                <View style={styles.homeDetailItem}>
-                  <Ionicons name="water-outline" size={16} color="#59ABE3" />
-                  <Text style={styles.homeDetailText}>{listing.bathrooms} {t("rentals.bathrooms", "Bathrooms")}</Text>
-                </View>
+                <DetailFact
+                  icon="water-outline"
+                  label={t("rentals.bathrooms") || "Bäder"}
+                  value={`${listing.bathrooms} ${t("rentals.bathrooms", "Bathrooms")}`}
+                  accentColor={COLORS.success}
+                />
               ) : null}
               {listing.size_sqm ? (
-                <View style={styles.homeDetailItem}>
-                  <Ionicons name="resize-outline" size={16} color="#59ABE3" />
-                  <Text style={styles.homeDetailText}>{listing.size_sqm} m²</Text>
-                </View>
+                <DetailFact
+                  icon="resize-outline"
+                  label={t("rentals.size") || "Größe"}
+                  value={`${listing.size_sqm} m²`}
+                  accentColor={COLORS.success}
+                />
               ) : null}
               {listing.furnished ? (
-                <View style={styles.homeDetailItem}>
-                  <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.success} />
-                  <Text style={[styles.homeDetailText, { color: COLORS.success }]}>{t("services.furnished", "Furnished")}</Text>
-                </View>
+                <DetailFact
+                  icon="checkmark-circle-outline"
+                  label={t("services.furnished") || "Möbliert"}
+                  value={t("services.furnished", "Furnished")}
+                  accentColor={COLORS.success}
+                />
               ) : null}
               {listing.available_from ? (
-                <View style={styles.homeDetailItem}>
-                  <Ionicons name="calendar-outline" size={16} color="#59ABE3" />
-                  <Text style={styles.homeDetailText}>{t("services.availableFrom", "Available from")}: {listing.available_from.split("-").reverse().join("-")}</Text>
-                </View>
+                <DetailFact
+                  icon="calendar-outline"
+                  label={t("services.availableFrom") || "Verfügbar ab"}
+                  value={listing.available_from.split("-").reverse().join("-")}
+                  accentColor={COLORS.success}
+                />
               ) : null}
               {listing.lease_duration ? (
-                <View style={styles.homeDetailItem}>
-                  <Ionicons name="time-outline" size={16} color="#59ABE3" />
-                  <Text style={styles.homeDetailText}>{t("services.leaseDuration", "Lease Duration")}: {listing.lease_duration}</Text>
-                </View>
+                <DetailFact
+                  icon="time-outline"
+                  label={t("services.leaseDuration") || "Laufzeit"}
+                  value={listing.lease_duration}
+                  accentColor={COLORS.success}
+                />
               ) : null}
               {listing.deposit ? (
-                <View style={styles.homeDetailItem}>
-                  <Ionicons name="wallet-outline" size={16} color="#59ABE3" />
-                  <Text style={styles.homeDetailText}>{t("rentals.deposit", "Deposit")}: {listing.deposit}</Text>
-                </View>
+                <DetailFact
+                  icon="wallet-outline"
+                  label={t("rentals.deposit") || "Kaution"}
+                  value={listing.deposit}
+                  accentColor={COLORS.success}
+                />
               ) : null}
-            </View>
+            </>
           )}
-        </View>
+        </DetailFacts>
 
-        {allMediaItems.length > 0 && (
-          <View style={{ marginHorizontal: -SPACING.std }}>
-            <ContentGallery mediaItems={allMediaItems} title={t("listing.gallery", "Γκαλερί")} />
-          </View>
+        {listing.latitude != null && listing.longitude != null && (
+          <ContentMap
+            latitude={listing.latitude}
+            longitude={listing.longitude}
+            title={listing.title}
+            address={listing.address ?? undefined}
+            flush
+          />
         )}
 
-        <View style={styles.actions}>
-          <Pressable style={styles.contactBtn} onPress={handleContact}>
-            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
-            <Text style={styles.contactText}>{t("common.contact", "Contact Seller")}</Text>
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={handleShare}>
-            <Ionicons name="share-outline" size={22} color="#264348" />
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={handleToggleSave} disabled={saving}>
-            <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={22} color={isSaved ? COLORS.gold : "#264348"} />
-          </Pressable>
-        </View>
+        {listing.description ? (
+          <View style={styles.plainSection}>
+            <Text style={styles.sectionTitle}>{t("listing.description") || "Beschreibung"}</Text>
+            <Text style={styles.description}>{listing.description}</Text>
+          </View>
+        ) : null}
+
+        {allMediaItems.length > 0 && (
+          <ContentGallery mediaItems={allMediaItems} title={t("listing.gallery", "Galerie")} />
+        )}
+
+        <BottomCTA
+          primaryLabel={t("common.contact", "Contact Seller")}
+          primaryIcon="chatbubble-ellipses-outline"
+          accentColor={COLORS.success}
+          onPrimary={handleContact}
+          saved={isSaved}
+          onSave={handleToggleSave}
+          onShare={handleShare}
+          onWhatsApp={handleShare}
+        />
       </ScrollView>
 
       <LazyMediaViewer
@@ -315,8 +358,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background, borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   headerTitle: { fontSize: FONT_SIZES.body, fontWeight: "600", color: COLORS.textPrimary, flex: 1, marginLeft: SPACING.small },
-  body: { padding: SPACING.std, paddingBottom: 60 },
+  body: { paddingBottom: 60 },
   heroWrap: { position: "relative" },
+  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.std },
+  sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
+  description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   cover: { width: "100%", borderRadius: BORDER_RADIUS.lg, backgroundColor: "#f3f4f6" },
   coverPlaceholder: { height: 240, alignItems: "center", justifyContent: "center" },
