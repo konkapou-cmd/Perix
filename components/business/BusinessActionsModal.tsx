@@ -73,7 +73,7 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
       }}
     >
       <View style={styles.actionIcon}>
-        <Ionicons name={action.icon} size={22} color={COLORS.primaryDark} />
+        <Ionicons name={action.icon} size={22} color="#59ABE3" />
       </View>
       <View style={styles.actionInfo}>
         <Text style={styles.actionLabel}>{action.label}</Text>
@@ -83,7 +83,7 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
           <Text style={styles.countText}>{action.count}</Text>
         </View>
       )}
-      <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+      <Ionicons name="chevron-forward" size={18} color="#264348" />
     </Pressable>
   );
 
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
     textAlign: "center",
     marginBottom: 16,
   },
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: COLORS.background,
+    backgroundColor: "rgba(89,171,227,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -183,10 +183,10 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   countBadge: {
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "rgba(38,67,72,0.08)",
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 2,
@@ -195,20 +195,22 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 13,
     fontWeight: "600",
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   cancelBtn: {
     marginHorizontal: 16,
     marginTop: 12,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: COLORS.background,
+    backgroundColor: "transparent",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.25)",
   },
   cancelText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#6b7280",
+    color: "#264348",
   },
   loadingContainer: {
     paddingVertical: 40,

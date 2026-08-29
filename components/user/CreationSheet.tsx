@@ -67,13 +67,13 @@ export default function CreationSheet({ visible, onClose, onAction }: Props) {
                 }}
               >
                 <View style={styles.actionIcon}>
-                  <Ionicons name={action.icon as any} size={22} color={COLORS.primaryDark} />
+                  <Ionicons name={action.icon as any} size={22} color="#59ABE3" />
                 </View>
                 <View style={styles.actionInfo}>
                   <Text style={styles.actionLabel}>{action.title}</Text>
                   <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+                <Ionicons name="chevron-forward" size={18} color="#264348" />
               </Pressable>
             ))}
           </View>
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
     textAlign: "center",
     marginBottom: 16,
     paddingHorizontal: 20,
@@ -130,13 +130,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "rgba(38,67,72,0.08)",
   },
   actionIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: COLORS.primaryTint,
+    backgroundColor: "rgba(89,171,227,0.15)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
@@ -147,11 +147,11 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   actionSubtitle: {
     fontSize: 12,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     marginTop: 2,
   },
   cancelBtn: {
@@ -160,11 +160,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.25)",
   },
   cancelText: {
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
 });
