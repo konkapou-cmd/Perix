@@ -18,6 +18,7 @@ import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { formatPrice } from "../../lib/serviceFormat";
+import { LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
 
 export default function ListingDetailScreen() {
   const { t } = useTranslation();
@@ -250,16 +251,16 @@ export default function ListingDetailScreen() {
               {listing.bedrooms ? (
                 <DetailFact
                   icon="bed-outline"
-                  label={t("rentals.bedrooms") || "Zimmer"}
-                  value={`${listing.bedrooms} ${t("rentals.bedrooms", "Bedrooms")}`}
+                  label={t("rentals.bedrooms", "Schlafzimmer")}
+                  value={String(listing.bedrooms)}
                   accentColor={COLORS.success}
                 />
               ) : null}
               {listing.bathrooms ? (
                 <DetailFact
                   icon="water-outline"
-                  label={t("rentals.bathrooms") || "Bäder"}
-                  value={`${listing.bathrooms} ${t("rentals.bathrooms", "Bathrooms")}`}
+                  label={t("rentals.bathrooms", "Badezimmer")}
+                  value={String(listing.bathrooms)}
                   accentColor={COLORS.success}
                 />
               ) : null}
@@ -290,16 +291,16 @@ export default function ListingDetailScreen() {
               {listing.lease_duration ? (
                 <DetailFact
                   icon="time-outline"
-                  label={t("services.leaseDuration") || "Laufzeit"}
-                  value={listing.lease_duration}
+                  label={t("services.leaseDuration", "Mietdauer")}
+                  value={LEASE_DURATION_LABELS[listing.lease_duration] || listing.lease_duration}
                   accentColor={COLORS.success}
                 />
               ) : null}
               {listing.deposit ? (
                 <DetailFact
                   icon="wallet-outline"
-                  label={t("rentals.deposit") || "Kaution"}
-                  value={listing.deposit}
+                  label={t("rentals.deposit", "Kaution")}
+                  value={formatPrice(String(listing.deposit), "€")}
                   accentColor={COLORS.success}
                 />
               ) : null}
