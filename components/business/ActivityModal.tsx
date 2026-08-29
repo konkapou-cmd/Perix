@@ -404,7 +404,7 @@ const s = StyleSheet.create({
     paddingVertical: SPACING.small,
     paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#FF9F1C",
   },
   saveBtnText: {
     fontSize: FONT_SIZES.bodySmall,
@@ -412,7 +412,7 @@ const s = StyleSheet.create({
     color: "#fff",
   },
   label: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#264348",
     marginBottom: SPACING.tiny,
@@ -422,7 +422,7 @@ const s = StyleSheet.create({
     color: COLORS.danger,
   },
   labelNoMargin: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#264348",
     marginBottom: 0,
@@ -440,7 +440,7 @@ const s = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.compact,
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     color: "#264348",
     backgroundColor: "transparent",
   },
@@ -467,7 +467,7 @@ const s = StyleSheet.create({
     backgroundColor: "transparent",
   },
   selectorTextSelected: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     color: "#264348",
   },
   themeChipsRow: {
@@ -514,7 +514,7 @@ const s = StyleSheet.create({
     borderColor: "rgba(38,67,72,0.2)",
   },
   categoryEmoji: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
   },
   categoryLabel: {
     flex: 1,
@@ -555,7 +555,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   toggleActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#FF9F1C",
   },
   toggleKnob: {
     width: 24,
@@ -573,9 +573,9 @@ const s = StyleSheet.create({
     marginTop: SPACING.small,
   },
   pickerDoneText: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.primary,
+    color: "#FF9F1C",
   },
   calendarOverlay: {
     flex: 1,
@@ -597,9 +597,9 @@ const s = StyleSheet.create({
     paddingBottom: 4,
   },
   calendarDoneText: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.primary,
+    color: "#FF9F1C",
   },
   calendar: {
     height: 320,

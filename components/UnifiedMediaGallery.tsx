@@ -413,7 +413,7 @@ export default function UnifiedMediaGallery({
               return (
                 <View key={`m-${realIdx}`} style={[s.gridItem, { width: itemSize, height: itemSize }]}>
                   <View style={[s.processingTile, isFailed && s.failedTile]}>
-                    <Ionicons name={isFailed ? "alert-circle-outline" : "hourglass-outline"} size={24} color={isFailed ? COLORS.danger : COLORS.primary} />
+                    <Ionicons name={isFailed ? "alert-circle-outline" : "hourglass-outline"} size={24} color={isFailed ? COLORS.danger : accentColor} />
                     <Text style={[s.processingText, isFailed && { color: COLORS.danger }]}>
                       {isFailed ? t("upload.videoFailed", "Fehlgeschlagen") : t("upload.videoProcessing", "Wird verarbeitet")}
                     </Text>

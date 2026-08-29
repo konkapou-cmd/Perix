@@ -366,7 +366,7 @@ export default function EventModal({
                 return (
                 <Pressable
                   key={theme.slug}
-                  style={[s.themeChip, active && { backgroundColor: theme.color || COLORS.primary, borderColor: theme.color || COLORS.primary }]}
+                  style={[s.themeChip, active && { backgroundColor: theme.color || "#FF9F1C", borderColor: theme.color || "#FF9F1C" }]}
                   onPress={() => {
                     const next = active
                       ? (eventForm.themes || []).filter(t => t !== theme.slug)
@@ -502,7 +502,7 @@ const s = StyleSheet.create({
     paddingVertical: SPACING.small,
     paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#FF9F1C",
   },
   saveBtnText: {
     fontSize: FONT_SIZES.bodySmall,
@@ -510,7 +510,7 @@ const s = StyleSheet.create({
     color: "#fff",
   },
   label: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#264348",
     marginBottom: SPACING.tiny,
@@ -520,7 +520,7 @@ const s = StyleSheet.create({
     color: COLORS.danger,
   },
   labelNoMargin: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#264348",
     marginBottom: 0,
@@ -538,7 +538,7 @@ const s = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.compact,
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     color: "#264348",
     backgroundColor: "transparent",
   },
@@ -565,11 +565,11 @@ const s = StyleSheet.create({
     backgroundColor: "transparent",
   },
   selectorText: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     color: "rgba(38,67,72,0.45)",
   },
   selectorTextSelected: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     color: "#264348",
   },
   themeChipPreview: {
@@ -640,9 +640,9 @@ const s = StyleSheet.create({
     marginTop: SPACING.small,
   },
   pickerDoneText: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.primary,
+    color: "#FF9F1C",
   },
   // Artist tagging
   artistSection: {
@@ -657,7 +657,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: COLORS.primary + "15",
+    backgroundColor: "rgba(255,159,28,0.15)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: BORDER_RADIUS.full,
@@ -673,7 +673,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   taggedArtistName: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     fontWeight: FONT_WEIGHTS.medium as any,
     color: "#264348",
     maxWidth: 100,
@@ -715,13 +715,13 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   artistSuggestionName: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     fontWeight: FONT_WEIGHTS.medium as any,
     color: "#264348",
     maxWidth: 100,
   },
   hint: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     color: "#264348",
     marginTop: SPACING.tiny,
   },

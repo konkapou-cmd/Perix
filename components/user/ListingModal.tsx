@@ -681,6 +681,6 @@ const styles = StyleSheet.create({
   calendarDoneText: {
     fontSize: FONT_SIZES.body,
     fontWeight: "600" as const,
-    color: COLORS.primary,
+    color: COLORS.success,
   },
 });

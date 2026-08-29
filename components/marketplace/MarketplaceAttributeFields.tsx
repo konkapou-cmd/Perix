@@ -28,7 +28,7 @@ export default function MarketplaceAttributeFields({ attributes, values, onChang
               <Switch
                 value={!!val}
                 onValueChange={(v) => onChange(attr.key, v)}
-                trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                trackColor={{ false: "rgba(38,67,72,0.25)", true: COLORS.success }}
               />
             </View>
           );
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.backgroundPage, borderWidth: 1, borderColor: COLORS.border,
   },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipActive: { backgroundColor: COLORS.success, borderColor: COLORS.success },
   chipText: { fontSize: 12, fontWeight: "600", color: COLORS.textSecondary },
   chipTextActive: { color: "#fff" },
 });

@@ -324,7 +324,7 @@ const s = StyleSheet.create({
     paddingVertical: SPACING.small,
     paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#264348",
     minWidth: 80,
     alignItems: "center",
   },
@@ -337,7 +337,7 @@ const s = StyleSheet.create({
     color: "#fff",
   },
   label: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#264348",
     marginBottom: SPACING.tiny,
@@ -352,7 +352,7 @@ const s = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.compact,
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     color: "#264348",
     backgroundColor: COLORS.background,
   },
@@ -372,11 +372,11 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   selectorText: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     color: "rgba(38,67,72,0.45)",
   },
   selectorTextSelected: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     color: "#264348",
   },
   chipRow: {
@@ -397,7 +397,7 @@ const s = StyleSheet.create({
     borderColor: "#264348",
   },
   chipText: {
-    fontSize: FONT_SIZES.caption,
+    fontSize: 14,
     color: "#264348",
   },
   chipTextSelected: {
@@ -423,8 +423,8 @@ const s = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   calendarDoneText: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.primary,
+    color: "#264348",
   },
 });

@@ -624,7 +624,7 @@ export default function ServiceModal({
             <Ionicons
               name={boolVal ? "checkmark-circle" : "ellipse-outline"}
               size={20}
-              color={boolVal ? COLORS.primary : COLORS.textMuted}
+              color={boolVal ? "#7B3FF2" : "#264348"}
             />
             <Text style={[styles.toggleLabel, boolVal && { color: COLORS.primary }]}>{label}</Text>
           </Pressable>
@@ -788,13 +788,13 @@ export default function ServiceModal({
                     }}
                     markedDates={
                       slotDraft.date
-                        ? { [slotDraft.date]: { selected: true, selectedColor: COLORS.primary } }
+                        ? { [slotDraft.date]: { selected: true, selectedColor: "#7B3FF2" } }
                         : {}
                     }
                     theme={{
-                      todayTextColor: COLORS.primary,
-                      selectedDayBackgroundColor: COLORS.primary,
-                      arrowColor: COLORS.primary,
+                      todayTextColor: "#7B3FF2",
+                      selectedDayBackgroundColor: "#7B3FF2",
+                      arrowColor: "#7B3FF2",
                     }}
                   />
                 </View>
@@ -910,8 +910,8 @@ export default function ServiceModal({
               ))}
 
               <View style={styles.addSlotRow}>
-                <Pressable style={[styles.addSlotBtn, { borderColor: COLORS.primary }]} onPress={() => setShowSlotEditor(true)}>
-                  <Ionicons name="time-outline" size={18} color={COLORS.primary} />
+                <Pressable style={[styles.addSlotBtn, { borderColor: "#7B3FF2" }]} onPress={() => setShowSlotEditor(true)}>
+                  <Ionicons name="time-outline" size={18} color="#7B3FF2" />
                   <Text style={[styles.addSlotText, { color: COLORS.primary }]}>{t("services.addTimeSlot", "Zeitfenster hinzufügen")}</Text>
                 </Pressable>
               </View>
@@ -1013,7 +1013,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.small,
     paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#7B3FF2",
     minWidth: 80,
     alignItems: "center",
   },
@@ -1023,21 +1023,21 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#fff",
   },
-  label: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348", marginBottom: SPACING.tiny, marginTop: SPACING.std },
+  label: { fontSize: 14, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348", marginBottom: SPACING.tiny, marginTop: SPACING.std },
   required: { color: COLORS.danger, fontWeight: FONT_WEIGHTS.bold as any },
-  input: { borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: "#264348", backgroundColor: COLORS.backgroundPage },
-  dateText: { fontSize: FONT_SIZES.body, color: COLORS.textPrimary },
+  input: { borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.bodySmall, color: "#264348", backgroundColor: COLORS.backgroundPage },
+  dateText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
   dateTextPlaceholder: { color: COLORS.textDisabled },
   datePickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   datePickerContainer: { backgroundColor: COLORS.background, borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl, maxHeight: "70%" },
   datePickerHeader: { flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  datePickerDone: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.primary },
+  datePickerDone: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.primary },
   row: { flexDirection: "row", gap: SPACING.compact },
   pickerRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: SPACING.tiny },
   chipWideRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small },
   chip: { flexDirection: "row", alignItems: "center", gap: SPACING.tiny, paddingHorizontal: SPACING.compact, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", backgroundColor: COLORS.background },
-  chipSelected: { backgroundColor: COLORS.primaryDark, borderColor: COLORS.primaryDark },
-  chipText: { fontSize: FONT_SIZES.caption, color: COLORS.textSecondary },
+  chipSelected: { backgroundColor: "#7B3FF2", borderColor: COLORS.primaryDark },
+  chipText: { fontSize: 14, color: COLORS.textSecondary },
   chipTextSelected: { color: "#fff" },
   imagePicker: { marginTop: SPACING.tiny },
   coverImage: { width: "100%", height: 180, borderRadius: BORDER_RADIUS.md },
@@ -1052,17 +1052,17 @@ const styles = StyleSheet.create({
   toggleBtnActive: {},
   toggleLabel: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
   availabilitySection: { paddingHorizontal: SPACING.std, paddingBottom: SPACING.small, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: SPACING.small },
-  sectionTitle: { fontSize: FONT_SIZES.body, fontWeight: "700", color: "#264348", marginBottom: SPACING.small },
+  sectionTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "700", color: "#264348", marginBottom: SPACING.small },
   slotRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  slotLabel: { fontSize: FONT_SIZES.caption, color: "#264348", width: 40 },
-  slotTime: { fontSize: FONT_SIZES.caption, color: "#264348", flex: 1 },
+  slotLabel: { fontSize: 14, color: "#264348", width: 40 },
+  slotTime: { fontSize: 14, color: "#264348", flex: 1 },
   addSlotRow: { marginTop: SPACING.small },
   addSlotBtn: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.small, paddingHorizontal: SPACING.small, borderWidth: 1, borderRadius: BORDER_RADIUS.md },
   addSlotText: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600" },
   selector: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "transparent", padding: SPACING.std, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border },
   selectorText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textDisabled },
   selectorTextSelected: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
-  availabilityHint: { fontSize: FONT_SIZES.caption, color: COLORS.danger, marginTop: SPACING.small },
+  availabilityHint: { fontSize: 14, color: COLORS.danger, marginTop: SPACING.small },
   pricePerLabel: { fontSize: 12, color: COLORS.success, marginTop: 4, fontStyle: "italic", fontWeight: "600" },
   slotEditor: { paddingVertical: SPACING.small },
   slotModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: SPACING.std },
@@ -1070,6 +1070,6 @@ const styles = StyleSheet.create({
   slotModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.small },
   slotModalTitle: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: COLORS.textPrimary },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: 4 },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipActive: { backgroundcolor: "#7B3FF2", borderColor: "#7B3FF2" },
   chipTextActive: { color: "#fff" },
 });
