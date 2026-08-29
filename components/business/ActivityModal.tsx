@@ -442,7 +442,7 @@ const s = StyleSheet.create({
     paddingVertical: SPACING.compact,
     fontSize: FONT_SIZES.bodySmall,
     color: "#264348",
-    backgroundColor: "transparent",
+    backgroundColor: "#fff",
   },
   textArea: {
     minHeight: 80,
@@ -464,7 +464,7 @@ const s = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.compact,
-    backgroundColor: "transparent",
+    backgroundColor: "#fff",
   },
   selectorTextSelected: {
     fontSize: FONT_SIZES.bodySmall,

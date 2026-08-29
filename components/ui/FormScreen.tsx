@@ -72,8 +72,8 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     textAlign: "center",
-    fontSize: FONT_SIZES.h3,
-    fontWeight: FONT_WEIGHTS.bold,
+    fontSize: FONT_SIZES.h4,
+    fontWeight: FONT_WEIGHTS.semibold,
   },
   body: {
     flex: 1,

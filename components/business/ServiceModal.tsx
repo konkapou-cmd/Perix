@@ -808,7 +808,7 @@ export default function ServiceModal({
             <View style={styles.slotModalHeader}>
               <Text style={styles.slotModalTitle}>{t("services.addTimeSlot", "Zeitfenster hinzufügen")}</Text>
               <Pressable onPress={() => setShowSlotEditor(false)} hitSlop={8}>
-                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+                <Ionicons name="close" size={22} color="#264348" />
               </Pressable>
             </View>
 
@@ -1025,7 +1025,7 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 14, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348", marginBottom: SPACING.tiny, marginTop: SPACING.std },
   required: { color: COLORS.danger, fontWeight: FONT_WEIGHTS.bold as any },
-  input: { borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.bodySmall, color: "#264348", backgroundColor: COLORS.backgroundPage },
+  input: { borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.bodySmall, color: "#264348", backgroundColor: "#fff" },
   dateText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
   dateTextPlaceholder: { color: COLORS.textDisabled },
   datePickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
