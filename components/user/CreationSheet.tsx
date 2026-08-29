@@ -67,7 +67,7 @@ export default function CreationSheet({ visible, onClose, onAction }: Props) {
                 }}
               >
                 <View style={styles.actionIcon}>
-                  <Ionicons name={action.icon as any} size={22} color="#264348" />
+                  <Ionicons name={action.icon as any} size={22} color="#59ABE3" />
                 </View>
                 <View style={styles.actionInfo}>
                   <Text style={styles.actionLabel}>{action.title}</Text>

@@ -73,7 +73,7 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
       }}
     >
       <View style={styles.actionIcon}>
-        <Ionicons name={action.icon} size={22} color="#264348" />
+        <Ionicons name={action.icon} size={22} color="#59ABE3" />
       </View>
       <View style={styles.actionInfo}>
         <Text style={styles.actionLabel}>{action.label}</Text>
