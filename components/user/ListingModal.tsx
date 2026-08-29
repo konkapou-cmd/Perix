@@ -322,7 +322,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={styles.header}>
             <Pressable onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+              <Ionicons name="close" size={24} color="#264348" />
             </Pressable>
             <Text style={styles.headerTitle}>
               {isEditing
@@ -395,7 +395,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                   style={[styles.toggle, scope === "profile_and_marketplace" && styles.toggleActive]}
                   onPress={() => setScope(scope === "profile_and_marketplace" ? "profile_only" : "profile_and_marketplace")}
                 >
-                  <Ionicons name={scope === "profile_and_marketplace" ? "checkbox" : "square-outline"} size={20} color={scope === "profile_and_marketplace" ? COLORS.primary : COLORS.textMuted} />
+                  <Ionicons name={scope === "profile_and_marketplace" ? "checkbox" : "square-outline"} size={20} color={scope === "profile_and_marketplace" ? COLORS.success : "#264348"} />
                   <Text style={styles.toggleText}>{t("marketplace.showInMarketplace", "Im Marktplatz anzeigen")}</Text>
                 </Pressable>
 
@@ -410,7 +410,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                       }
                     }}
                   >
-                    <Ionicons name={address === businessAddress ? "checkbox" : "square-outline"} size={20} color={address === businessAddress ? COLORS.primary : COLORS.textMuted} />
+                    <Ionicons name={address === businessAddress ? "checkbox" : "square-outline"} size={20} color={address === businessAddress ? COLORS.success : "#264348"} />
                     <Text style={styles.toggleText}>{t("marketplace.useBusinessAddress", "Geschäftsadresse verwenden")}</Text>
                   </Pressable>
                 )}
@@ -468,7 +468,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 <TextInput style={styles.input} value={sizeSqm} onChangeText={setSizeSqm} keyboardType="numeric" placeholder="65" placeholderTextColor={COLORS.textDisabled} />
 
                 <Pressable style={[styles.toggle, furnished && styles.toggleActive]} onPress={() => setFurnished(!furnished)}>
-                  <Ionicons name={furnished ? "checkbox" : "square-outline"} size={20} color={furnished ? COLORS.primary : COLORS.textMuted} />
+                  <Ionicons name={furnished ? "checkbox" : "square-outline"} size={20} color={furnished ? COLORS.success : "#264348"} />
                   <Text style={styles.toggleText}>{t("services.furnished", "Furnished")}</Text>
                 </Pressable>
 
@@ -578,7 +578,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         horizontal
         value={{ startDate: availableFrom, endDate: null }}
         onApply={(v) => setAvailableFrom(v.startDate ?? "")}
-        accentColor={COLORS.primary}
+        accentColor={COLORS.success}
       />
     </Modal>
   );
@@ -589,43 +589,43 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border, backgroundColor: COLORS.background,
+    borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)", backgroundColor: COLORS.background,
   },
   closeBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: "700", color: COLORS.textPrimary },
+  headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: "700", color: "#264348" },
   body: { padding: SPACING.std, paddingBottom: 100 },
-  label: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.textPrimary, marginTop: SPACING.small, marginBottom: 4 },
+  label: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: "#264348", marginTop: SPACING.small, marginBottom: 4 },
   required: { color: COLORS.danger },
   input: {
-    backgroundColor: COLORS.backgroundPage, borderRadius: BORDER_RADIUS.md,
-    padding: 12, fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary,
-    borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.md,
+    padding: 12, fontSize: FONT_SIZES.bodySmall, color: "#264348",
+    borderWidth: 1, borderColor: "rgba(38,67,72,0.2)",
   },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: 4 },
   chip: {
     paddingHorizontal: SPACING.small, paddingVertical: 6,
-    borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.backgroundPage,
-    borderWidth: 1, borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.md, backgroundColor: "transparent",
+    borderWidth: 1, borderColor: "rgba(38,67,72,0.25)",
   },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { fontSize: 13, color: COLORS.textSecondary },
+  chipActive: { backgroundColor: COLORS.success, borderColor: COLORS.success },
+  chipText: { fontSize: 13, color: "#264348" },
   chipTextActive: { color: "#fff" },
   row: { flexDirection: "row", gap: SPACING.small },
   toggle: { flexDirection: "row", alignItems: "center", gap: SPACING.small, marginVertical: SPACING.small },
   toggleActive: {},
-  toggleText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  toggleText: { fontSize: FONT_SIZES.bodySmall, color: "#264348" },
   statusRow: { flexDirection: "row", gap: SPACING.small, marginTop: SPACING.section },
   statusBtn: {
     flex: 1, paddingVertical: 12, borderRadius: BORDER_RADIUS.md,
-    alignItems: "center", backgroundColor: COLORS.backgroundPage, borderWidth: 1, borderColor: COLORS.border,
+    alignItems: "center", backgroundColor: "transparent", borderWidth: 1, borderColor: "rgba(38,67,72,0.25)",
   },
-  statusBtnDraft: { borderColor: COLORS.textMuted },
-  statusBtnPub: { borderColor: COLORS.primary },
-  statusBtnText: { fontSize: 14, fontWeight: "600", color: COLORS.textSecondary },
-  statusBtnTextDraft: { color: COLORS.textPrimary },
-  statusBtnTextPub: { color: COLORS.primary },
+  statusBtnDraft: { backgroundColor: "#264348", borderColor: "#264348" },
+  statusBtnPub: { backgroundColor: COLORS.success, borderColor: COLORS.success },
+  statusBtnText: { fontSize: 14, fontWeight: "600", color: "#264348" },
+  statusBtnTextDraft: { color: "#fff" },
+  statusBtnTextPub: { color: "#fff" },
   saveBtn: {
-    marginTop: SPACING.section, backgroundColor: COLORS.primaryDark,
+    marginTop: SPACING.section, backgroundColor: COLORS.success,
     borderRadius: BORDER_RADIUS.md, paddingVertical: 14, alignItems: "center",
   },
   saveBtnText: { fontSize: FONT_SIZES.body, fontWeight: "700", color: "#fff" },
@@ -633,29 +633,29 @@ const styles = StyleSheet.create({
   locationLabelPressable: {
     flexDirection: "row", alignItems: "center", gap: 6,
     padding: SPACING.small, borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.backgroundPage, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: "transparent", borderWidth: 1, borderColor: "rgba(38,67,72,0.2)",
   },
-  locationLabelText: { flex: 1, fontSize: 13, color: COLORS.textPrimary },
-  locationLabelEdit: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
+  locationLabelText: { flex: 1, fontSize: 13, color: "#264348" },
+  locationLabelEdit: { fontSize: 12, color: COLORS.success, fontWeight: "600" },
   field: { marginTop: SPACING.small },
   selector: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.compact,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: COLORS.background,
   },
   selectorText: {
     fontSize: FONT_SIZES.body,
-    color: COLORS.textDisabled,
+    color: "rgba(38,67,72,0.45)",
   },
   selectorTextSelected: {
     fontSize: FONT_SIZES.body,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   calendarOverlay: {
     flex: 1,
