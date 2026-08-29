@@ -19,15 +19,12 @@ import { formatDate } from "../../lib/formatDate";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import ShareContent from "../../components/ShareContent";
-import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
-import { InfoCard } from "../../components/shared/InfoCard";
-import { LocationCard } from "../../components/shared/LocationCard";
-import EntityMapSection from "../../components/shared/EntityMapSection";
+import { ContentHero, ContentGallery, ContentMap } from "../../components/shared";
+import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
 import ErrorState from "../../components/shared/ErrorState";
-import { ChecklistCard } from "../../components/shared/ChecklistCard";
-import { ShareSection as ShareSectionComponent } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
-import { EntityHeader } from "../../components/shared/EntityHeader";
+
+const SERVICES_ACCENT = "#59ABE3";
 
 const BACKEND_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
@@ -307,148 +304,141 @@ export default function ServiceDetailPage() {
             coverFocalPoint={service.cover_focal_point}
             imageUrls={service.image_urls}
             title={service.name}
+            hideBack
+            flush
             badges={[
-              { icon: getTypeIcon(service.type), text: getTypeLabel(service.type), color: COLORS.servicesAccent },
-              ...(service.price ? [{ icon: "cash", text: formatPrice(service.price), color: COLORS.warning }] : []),
+              { icon: getTypeIcon(service.type), text: getTypeLabel(service.type), color: SERVICES_ACCENT },
+              ...(service.price ? [{ icon: "cash", text: formatPrice(service.price), color: "#FFC400" }] : []),
             ]}
             subtitle={service.address ? { text: service.address, icon: "location" } : undefined}
             mediaItems={allMediaItems}
             onMediaPress={(idx) => { setMediaViewerItems(allMediaItems); setMediaViewerIndex(idx); setMediaViewerVisible(true); }}
           />
 
-          <EntityHeader
-            title={service.name}
-            subtitle={service.business_name || ""}
-            subtitlePrefix={t("services.by", "von")}
-            avatarUrl={service.business_logo || undefined}
-            accentColor={COLORS.servicesAccent}
-            onPress={service.business_id ? () => router.push(`/business/${service.business_id}` as any) : undefined}
-          />
-
-          <View style={styles.infoRow}>
-            <InfoCard
+          <DetailFacts>
+            <DetailFact
               icon={getTypeIcon(service.type) as any}
               label={t("services.serviceCategory", "Kategorie")}
               value={getTypeLabel(service.type)}
-              accentColor={COLORS.servicesAccent}
+              accentColor={SERVICES_ACCENT}
             />
-            {service.price && (
-              <InfoCard
+            {service.price ? (
+              <DetailFact
                 icon="cash-outline"
                 label={service.type === "hotel_room" ? t("services.pricePerNight", "Price / night") : t("services.priceFrom", "Price from")}
                 value={formatPrice(service.price)}
-                accentColor={COLORS.warning}
+                accentColor={SERVICES_ACCENT}
               />
-            )}
-          </View>
+            ) : null}
+            {getQuickInfoFields().map((fieldName) => {
+              const value = serviceField(fieldName);
+              const config = FIELD_REGISTRY[fieldName];
+              if (!config) return null;
+              let displayValue = config.displayFormat === "duration" ? formatDuration(Number(value), t) : String(value);
+              if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
+              if (fieldName === "capacity" || fieldName === "max_guests") displayValue = "Bis " + value;
+              return (
+                <DetailFact
+                  key={fieldName}
+                  icon={getFieldIcon(fieldName) as any}
+                  label={t(config.labelKey, config.labelKey)}
+                  value={displayValue}
+                  accentColor={SERVICES_ACCENT}
+                />
+              );
+            })}
+            {service.business_name ? (
+              <DetailFact
+                icon="business"
+                label={t("services.viewBusiness") || "Unternehmen"}
+                value={service.business_name}
+                accentColor={SERVICES_ACCENT}
+                onPress={service.business_id ? () => router.push(`/business/${service.business_id}` as any) : undefined}
+              />
+            ) : null}
+          </DetailFacts>
 
-          {getQuickInfoFields().length > 0 && (
-            <View style={styles.infoRow}>
-              {getQuickInfoFields().map((fieldName) => {
-                const value = serviceField(fieldName);
-                const config = FIELD_REGISTRY[fieldName];
-                if (!config) return null;
-                let displayValue = config.displayFormat === "duration" ? formatDuration(Number(value), t) : String(value);
-                if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
-                if (fieldName === "capacity" || fieldName === "max_guests") displayValue = "Bis " + value;
-                return (
-                  <InfoCard
-                    key={fieldName}
-                    icon={getFieldIcon(fieldName) as any}
-                    label={t(config.labelKey, config.labelKey)}
-                    value={displayValue}
-                    accentColor={COLORS.servicesAccent}
-                  />
-                );
-              })}
-            </View>
+          {service.latitude != null && service.longitude != null && (
+            <ContentMap
+              latitude={service.latitude}
+              longitude={service.longitude}
+              title={service.name}
+              address={service.address ?? undefined}
+              flush
+            />
           )}
 
-          <EntityMapSection
-            address={service.address}
-            latitude={service.latitude}
-            longitude={service.longitude}
-            title={service.name}
-            accentColor={COLORS.servicesAccent}
-          />
-
-          {service.description && (
-            <ContentSection icon="document-text" title={t("services.description", "Beschreibung")}>
+          {service.description ? (
+            <View style={styles.plainSection}>
+              <Text style={styles.sectionTitle}>{t("services.description", "Beschreibung")}</Text>
               <Text style={styles.description}>{service.description}</Text>
-            </ContentSection>
-          )}
+            </View>
+          ) : null}
 
-          {getModuleDetailSections().map((section) => (
-            <ContentSection key={section.title} icon={section.icon} title={section.title}>
-              <View style={styles.moduleGrid}>
-                {section.fields.map((fieldName) => {
-                  const value = serviceField(fieldName);
-                  const config = FIELD_REGISTRY[fieldName];
-                  if (!config || value === undefined || value === null) return null;
-                  let displayValue = String(value);
-                  if (config.component === "number" && config.displayFormat === "duration") displayValue = formatDuration(Number(value), t);
-                  if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
-                  if (fieldName === "calories") displayValue = String(value) + " kcal";
-                  if (fieldName === "mileage_km") displayValue = String(value) + " km";
-                   if (fieldName === "duration_days") displayValue = String(value) + " " + t("services.days", "days");
-                   if (fieldName === "duration_months") displayValue = String(value) + " " + t("services.months", "months");
-                   if (fieldName === "sessions_count") displayValue = String(value) + " " + t("services.sessions", "sessions");
-                  if (config.component === "chips" || config.component === "chips-multi") displayValue = String(value);
-                  if (fieldName === "available_from" || fieldName === "available_until") {
-                    try { displayValue = formatDate(String(value)); } catch {}
-                  }
-                  if (fieldName === "min_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));
-                  if (fieldName === "max_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));
-                  return (
-                    <View key={fieldName} style={styles.moduleItem}>
-                      <Ionicons name={(getFieldIcon(fieldName) || "information-circle") as any} size={18} color={COLORS.textMuted} />
-                      <Text style={styles.moduleLabel}>{t(config.labelKey, config.labelKey)}</Text>
-                      <Text style={styles.moduleValue} selectable>{displayValue}</Text>
-                    </View>
-                  );
-                })}
+          {getModuleDetailSections().map((section) => {
+            const facts = section.fields.map((fieldName) => {
+              const value = serviceField(fieldName);
+              const config = FIELD_REGISTRY[fieldName];
+              if (!config || value === undefined || value === null) return null;
+              let displayValue = String(value);
+              if (config.component === "number" && config.displayFormat === "duration") displayValue = formatDuration(Number(value), t);
+              if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
+              if (fieldName === "calories") displayValue = String(value) + " kcal";
+              if (fieldName === "mileage_km") displayValue = String(value) + " km";
+              if (fieldName === "duration_days") displayValue = String(value) + " " + t("services.days", "days");
+              if (fieldName === "duration_months") displayValue = String(value) + " " + t("services.months", "months");
+              if (fieldName === "sessions_count") displayValue = String(value) + " " + t("services.sessions", "sessions");
+              if (config.component === "chips" || config.component === "chips-multi") displayValue = String(value);
+              if (fieldName === "available_from" || fieldName === "available_until") {
+                try { displayValue = formatDate(String(value)); } catch {}
+              }
+              if (fieldName === "min_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));
+              if (fieldName === "max_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));
+              return (
+                <DetailFact
+                  key={fieldName}
+                  icon={(getFieldIcon(fieldName) || "information-circle") as any}
+                  label={t(config.labelKey, config.labelKey)}
+                  value={displayValue}
+                  accentColor={SERVICES_ACCENT}
+                />
+              );
+            }).filter(Boolean);
+            if (facts.length === 0) return null;
+            return (
+              <View key={section.title} style={styles.plainSection}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <DetailFacts>{facts}</DetailFacts>
               </View>
-            </ContentSection>
-          ))}
+            );
+          })}
 
           {getFacilities().length > 0 && (
-            <ChecklistCard
-              icon="checkmark-circle-outline"
-              title={t("services.ourServices", "Our services")}
-              items={getFacilities()}
-              accentColor={COLORS.servicesAccent}
-            />
+            <View style={styles.plainSection}>
+              <Text style={styles.sectionTitle}>{t("services.ourServices", "Our services")}</Text>
+              {getFacilities().map((f) => (
+                <View key={f} style={styles.facilityRow}>
+                  <Ionicons name="checkmark-circle-outline" size={18} color={SERVICES_ACCENT} />
+                  <Text style={styles.facilityText}>{f}</Text>
+                </View>
+              ))}
+            </View>
           )}
 
           {allMediaItems.length > 0 && (
             <ContentGallery mediaItems={allMediaItems} title={t("services.gallery", "Gallery")} />
           )}
 
-          {service.business_id && (
-            <Pressable style={styles.businessRow} onPress={() => router.push(`/business/${service.business_id}` as any)}>
-              <Ionicons name="business" size={20} color={COLORS.servicesAccent} />
-              <Text style={styles.businessRowText}>{t("services.viewBusiness")}</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.textSecondary} />
-            </Pressable>
-          )}
-
-          <ShareSectionComponent
-            accentColor={COLORS.servicesAccent}
-            saved={isSaved}
-            onWhatsApp={handleWhatsAppShare}
-            onShare={() => setShowShareModal(true)}
-            onSave={handleToggleSave}
-          />
-
           {ctaType !== "browse_only" && (
             <BottomCTA
               primaryLabel={ctaLabel}
               primaryIcon={ctaIcon}
-              accentColor={COLORS.servicesAccent}
+              accentColor={SERVICES_ACCENT}
               onPrimary={handleCta}
               saved={isSaved}
               onSave={handleToggleSave}
               onShare={handleShareService}
+              onWhatsApp={handleWhatsAppShare}
             />
           )}
         </ScrollView>
@@ -512,11 +502,11 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.backgroundPage },
   content: { paddingBottom: 60 },
-  errorText: { fontSize: FONT_SIZES.body, color: COLORS.textSecondary, marginTop: SPACING.compact, marginBottom: SPACING.section },
-  backButton: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: BORDER_RADIUS.md },
-  backButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "700" },
-  infoRow: { flexDirection: "row", gap: SPACING.compact, marginTop: SPACING.small, paddingHorizontal: SPACING.page },
-  description: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textSecondary, lineHeight: 24 },
+  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.page },
+  sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
+  description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
+  facilityRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.tiny },
+  facilityText: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 20 },
   businessRow: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.card,

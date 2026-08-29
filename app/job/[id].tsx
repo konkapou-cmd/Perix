@@ -22,17 +22,15 @@ import { useAuth } from "../../context/AuthContext";
 import ShareContent from "../../components/ShareContent";
 import { getJob, applyToJob, uploadMedia, Job, toggleSaved, checkSaved } from "../../lib/api";
 import { translateJobType } from "../../lib/categoryTranslation";
-import { ContentHero, ContentGallery, ContentMap, ContentSection } from "../../components/shared";
-import { InfoCard } from "../../components/shared/InfoCard";
-import { LocationCard } from "../../components/shared/LocationCard";
-import EntityMapSection from "../../components/shared/EntityMapSection";
+import { ContentHero, ContentGallery, ContentMap } from "../../components/shared";
+import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
 import ErrorState from "../../components/shared/ErrorState";
-import { ChecklistCard } from "../../components/shared/ChecklistCard";
-import { ShareSection } from "../../components/shared/ShareSection";
 import { BottomCTA } from "../../components/shared/BottomCTA";
-import { EntityHeader } from "../../components/shared/EntityHeader";
+import { openInMaps } from "../../lib/utils/openMapUrl";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
+
+const JOBS_ACCENT = "#264348";
 
 export default function JobDetailPage() {
   const { t } = useTranslation();
@@ -147,7 +145,7 @@ export default function JobDetailPage() {
           fullWidth
         />
         <Pressable style={styles.notFoundBack} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color={COLORS.jobsAccent} />
+          <Ionicons name="chevron-back" size={20} color={JOBS_ACCENT} />
           <Text style={styles.backText}>{t("common.back")}</Text>
         </Pressable>
       </SafeAreaView>
@@ -157,7 +155,7 @@ export default function JobDetailPage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered} edges={["top", "bottom"]}>
-        <ActivityIndicator size="large" color={COLORS.jobsAccent} />
+        <ActivityIndicator size="large" color={JOBS_ACCENT} />
       </SafeAreaView>
     );
   }
@@ -171,7 +169,7 @@ export default function JobDetailPage() {
           onRetry={() => loadJob()}
         />
         <Pressable style={styles.notFoundBack} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color={COLORS.jobsAccent} />
+          <Ionicons name="chevron-back" size={20} color={JOBS_ACCENT} />
           <Text style={styles.backText}>{t("common.back")}</Text>
         </Pressable>
       </SafeAreaView>
@@ -204,55 +202,74 @@ export default function JobDetailPage() {
             coverFocalPoint={job.cover_focal_point}
             imageUrls={job.image_urls || []}
             title={job.title}
-            badges={job.job_type ? [{ icon: "briefcase", text: translateJobType(job.job_type, t), color: COLORS.jobsAccent }] : []}
-            subtitle={job.business_name ? { text: job.business_name, icon: "business-outline" } : undefined}
+            hideBack
+            flush
+            badges={job.job_type ? [{ icon: "briefcase", text: translateJobType(job.job_type, t), color: JOBS_ACCENT }] : []}
+            subtitle={job.business_name ? { text: job.business_name, icon: "business-outline", onPress: job.business_id ? () => router.push(`/business/${job.business_id}`) : undefined } : undefined}
             mediaItems={mediaItems}
           />
 
-          <EntityHeader
-            title={job.title}
-            subtitle={job.business_name || ""}
-            subtitlePrefix="bei"
-            avatarUrl={job.business_logo}
-            accentColor={COLORS.jobsAccent}
-            onPress={job.business_id ? () => router.push(`/business/${job.business_id}`) : undefined}
-          />
-
-          <View style={styles.infoRow}>
-            <InfoCard
+          <DetailFacts>
+            <DetailFact
               icon="briefcase-outline"
               label={t("jobs.jobType") || "Art"}
               value={translateJobType(job.job_type, t) || "—"}
-              accentColor={COLORS.jobsAccent}
+              accentColor={JOBS_ACCENT}
             />
-            <InfoCard
+            <DetailFact
               icon="cash-outline"
               label={t("jobs.salary") || "Gehalt"}
               value={job.salary_range || "—"}
-              accentColor={COLORS.warning}
+              accentColor={JOBS_ACCENT}
             />
-          </View>
+            {job.location ? (
+              <DetailFact
+                icon="location-outline"
+                label={t("jobs.location") || "Ort"}
+                value={job.location}
+                accentColor={JOBS_ACCENT}
+                onPress={() => openInMaps({ latitude: job.latitude ?? undefined, longitude: job.longitude ?? undefined, address: job.location || "" })}
+              />
+            ) : null}
+            {job.business_name ? (
+              <DetailFact
+                icon="business"
+                label={t("services.viewBusiness") || "Unternehmen"}
+                value={job.business_name}
+                accentColor={JOBS_ACCENT}
+                onPress={job.business_id ? () => router.push(`/business/${job.business_id}`) : undefined}
+              />
+            ) : null}
+          </DetailFacts>
 
-          <EntityMapSection
-            address={job.location}
-            latitude={job.latitude}
-            longitude={job.longitude}
-            title={job.title}
-            accentColor={COLORS.jobsAccent}
-          />
-
-          <ContentSection icon="document-text" title={t("jobs.jobDescription") || "Beschreibung"}>
-            <Text style={styles.description}>{job.description}</Text>
-          </ContentSection>
-
-          {job.requirements && (
-            <ChecklistCard
-              icon="checkmark-circle-outline"
-              title={t("jobs.requirements") || "Anforderungen"}
-              items={job.requirements.split("\n").filter((r: string) => r.trim()).map((r: string) => r.trim())}
-              accentColor={COLORS.jobsAccent}
+          {job.latitude != null && job.longitude != null && (
+            <ContentMap
+              latitude={job.latitude}
+              longitude={job.longitude}
+              title={job.title}
+              address={job.location ?? undefined}
+              flush
             />
           )}
+
+          {job.description ? (
+            <View style={styles.plainSection}>
+              <Text style={styles.sectionTitle}>{t("jobs.jobDescription") || "Beschreibung"}</Text>
+              <Text style={styles.description}>{job.description}</Text>
+            </View>
+          ) : null}
+
+          {job.requirements ? (
+            <View style={styles.plainSection}>
+              <Text style={styles.sectionTitle}>{t("jobs.requirements") || "Anforderungen"}</Text>
+              {job.requirements.split("\n").filter((r: string) => r.trim()).map((r: string) => (
+                <View key={r} style={styles.requirementRow}>
+                  <Ionicons name="checkmark-circle-outline" size={18} color={JOBS_ACCENT} />
+                  <Text style={styles.requirementText}>{r.trim()}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           {(job.image_urls || job.gallery_images || job.gallery_videos) && (
             <ContentGallery
@@ -265,39 +282,15 @@ export default function JobDetailPage() {
             />
           )}
 
-          {job.business_id && job.business_name && (
-            <Pressable
-              style={styles.businessRow}
-              onPress={() => router.push(`/business/${job.business_id}`)}
-            >
-              {job.business_logo ? (
-                <Image source={{ uri: job.business_logo }} style={styles.businessLogoSm} />
-              ) : (
-                <View style={styles.businessLogoPlaceholderSm}>
-                  <Ionicons name="business" size={16} color={COLORS.textSecondary} />
-                </View>
-              )}
-              <Text style={styles.businessRowText}>{t("services.viewBusiness") || "Unternehmen ansehen"}</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.textSecondary} />
-            </Pressable>
-          )}
-
-          <ShareSection
-            accentColor={COLORS.jobsAccent}
-            saved={isSaved}
-            onWhatsApp={() => setShowShareModal(true)}
-            onShare={() => setShowShareModal(true)}
-            onSave={handleToggleSave}
-          />
-
           <BottomCTA
             primaryLabel={t("jobs.apply") || "Jetzt bewerben"}
             primaryIcon="paper-plane"
-            accentColor={COLORS.jobsAccent}
+            accentColor={JOBS_ACCENT}
             onPrimary={() => setApplyModalVisible(true)}
             saved={isSaved}
             onSave={handleToggleSave}
             onShare={() => setShowShareModal(true)}
+            onWhatsApp={() => setShowShareModal(true)}
           />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -321,7 +314,7 @@ export default function JobDetailPage() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Pressable onPress={() => setApplyModalVisible(false)}>
-              <Ionicons name="close" size={28} color={COLORS.textPrimary} />
+              <Ionicons name="close" size={28} color="#264348" />
             </Pressable>
             <Text style={styles.modalTitle}>{t("jobs.apply") || "Apply"}</Text>
             <View style={{ width: 28 }} />
@@ -340,13 +333,13 @@ export default function JobDetailPage() {
 
             <Text style={styles.inputLabel}>{t("jobs.uploadCV") || "Upload CV"}</Text>
             <Pressable style={styles.uploadButton} onPress={() => pickDocument("cv")}>
-              <Ionicons name="document-attach" size={20} color={COLORS.textPrimary} />
+              <Ionicons name="document-attach" size={20} color="#264348" />
               <Text style={styles.uploadButtonText}>{cvUrl ? "CV uploaded" : t("jobs.uploadCV") || "Upload CV"}</Text>
             </Pressable>
 
             <Text style={styles.inputLabel}>{t("jobs.uploadCoverLetter") || "Cover Letter"}</Text>
             <Pressable style={styles.uploadButton} onPress={() => pickDocument("coverLetter")}>
-              <Ionicons name="document-attach" size={20} color={COLORS.textPrimary} />
+              <Ionicons name="document-attach" size={20} color="#264348" />
               <Text style={styles.uploadButtonText}>{coverLetterUrl ? "Cover letter uploaded" : t("jobs.uploadCoverLetter") || "Upload Cover Letter"}</Text>
             </Pressable>
 
@@ -374,16 +367,14 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.backgroundPage },
   content: { paddingBottom: 60 },
+  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.page },
+  sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
+  description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
+  requirementRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.tiny },
+  requirementText: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 20 },
   errorText: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 16 },
   notFoundBack: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.small },
-  backText: { fontSize: FONT_SIZES.body, color: COLORS.jobsAccent, marginLeft: 4 },
-  infoRow: {
-    flexDirection: "row",
-    gap: SPACING.compact,
-    marginTop: SPACING.small,
-    paddingHorizontal: SPACING.page,
-  },
-  description: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textSecondary, lineHeight: 24 },
+  backText: { fontSize: FONT_SIZES.body, color: JOBS_ACCENT, marginLeft: 4 },
   businessRow: {
     flexDirection: "row", alignItems: "center", gap: SPACING.small,
     backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.card,
@@ -395,7 +386,7 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: COLORS.surfaceGray, alignItems: "center", justifyContent: "center",
   },
-  businessRowText: { flex: 1, fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.jobsAccent },
+  businessRowText: { flex: 1, fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: JOBS_ACCENT },
   modalContainer: { flex: 1, backgroundColor: "#fff" },
   modalHeader: {
     flexDirection: "row",
@@ -406,18 +397,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  modalTitle: { fontSize: FONT_SIZES.h4, fontWeight: "600", color: COLORS.textPrimary },
+  modalTitle: { fontSize: FONT_SIZES.h4, fontWeight: "600", color: "#264348" },
   modalBody: { flex: 1 },
   applyContent: { padding: SPACING.section },
-  inputLabel: { fontSize: 14, fontWeight: "600", color: COLORS.textDark, marginBottom: 6, marginTop: SPACING.compact },
+  inputLabel: { fontSize: 14, fontWeight: "600", color: "#264348", marginBottom: 6, marginTop: SPACING.compact },
   messageInput: {
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.compact,
     fontSize: 16,
-    color: COLORS.textPrimary,
+    color: "#264348",
     minHeight: 120,
     textAlignVertical: "top",
   },
@@ -428,16 +419,16 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     borderStyle: "dashed",
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: "#fff",
   },
-  uploadButtonText: { fontSize: 14, color: COLORS.textSecondary, fontWeight: "500" },
+  uploadButtonText: { fontSize: 14, color: "#264348", fontWeight: "500" },
   submitApplyButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.jobsAccent,
+    backgroundColor: JOBS_ACCENT,
     paddingVertical: 14,
     borderRadius: BORDER_RADIUS.button,
     marginTop: SPACING.page,
