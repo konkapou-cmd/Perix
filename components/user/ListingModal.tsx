@@ -351,6 +351,8 @@ export default function ListingModal({ visible, listingType, editingListing, ses
               onChange={setMedia}
               sessionToken={sessionToken}
               label={t("marketplace.photosVideos", "Photos & Videos")}
+              accentColor={COLORS.success}
+              lightBackground
             />
 
             {isProduct && (

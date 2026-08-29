@@ -37,6 +37,8 @@ type Props = {
   isCreator?: boolean;
   onCoverFocalPointChange?: (focalPoint: { x: number; y: number }) => void;
   mediaContext?: MediaContext;
+  accentColor?: string;
+  lightBackground?: boolean;
 };
 
 function isResolved(item: MediaItem): boolean {
@@ -76,6 +78,8 @@ export default function UnifiedMediaGallery({
   isCreator = true,
   onCoverFocalPointChange,
   mediaContext = "cover",
+  accentColor = COLORS.primary,
+  lightBackground = false,
 }: Props) {
   const { t } = useTranslation();
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
@@ -356,9 +360,9 @@ export default function UnifiedMediaGallery({
             <FocalImage uri={coverItem.uri} aspectRatio={16 / 9} focalPoint={coverItem.focalPoint ?? { x: 0.5, y: 0.5 }} borderRadius={BORDER_RADIUS.lg} style={s.heroImage} showLoader={false} />
           )
         ) : (
-          <View style={s.heroPlaceholder}>
-            <Ionicons name="image-outline" size={32} color={COLORS.textDisabled} />
-            <Text style={s.heroPlaceholderText}>{t("activities.images") || "Add photos/videos"}</Text>
+          <View style={[s.heroPlaceholder, lightBackground && s.heroPlaceholderLight]}>
+            <Ionicons name="image-outline" size={32} color={lightBackground ? accentColor : COLORS.textDisabled} />
+            <Text style={[s.heroPlaceholderText, lightBackground && s.heroPlaceholderTextLight]}>{t("activities.images") || "Add photos/videos"}</Text>
           </View>
         )}
         {coverItem && (
@@ -498,8 +502,8 @@ export default function UnifiedMediaGallery({
       {isCreator && media.length < maxItemsResolved && (
         <View style={s.addRow}>
           <Pressable style={s.addBtn} onPress={addImages} disabled={uploadingIndex !== null}>
-            <Ionicons name="image-outline" size={20} color={COLORS.primary} />
-            <Text style={s.addBtnText}>{t("activities.addPhoto") || "Photo"}</Text>
+            <Ionicons name="image-outline" size={20} color={accentColor} />
+            <Text style={[s.addBtnText, lightBackground && s.addBtnTextLight]}>{t("activities.addPhoto") || "Photo"}</Text>
           </Pressable>
           <Pressable style={s.addBtn} onPress={addVideo} disabled={uploadingIndex !== null}>
             {uploadingIndex !== null ? (
@@ -510,9 +514,9 @@ export default function UnifiedMediaGallery({
                 size={36}
               />
             ) : (
-              <Ionicons name="videocam-outline" size={20} color={COLORS.primary} />
+              <Ionicons name="videocam-outline" size={20} color={accentColor} />
             )}
-            <Text style={s.addBtnText}>{uploadingIndex !== null ? (t("upload.uploading") || "Uploading...") : "Video"}</Text>
+            <Text style={[s.addBtnText, lightBackground && s.addBtnTextLight]}>{uploadingIndex !== null ? (t("upload.uploading") || "Uploading...") : "Video"}</Text>
           </Pressable>
         </View>
       )}
@@ -567,6 +571,18 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.backgroundPage,
     alignItems: "center",
     justifyContent: "center",
+  },
+  heroPlaceholderLight: {
+    backgroundColor: COLORS.background,
+    borderColor: "rgba(38,67,72,0.25)",
+  },
+  heroPlaceholderText: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textDisabled,
+    marginTop: SPACING.tiny,
+  },
+  heroPlaceholderTextLight: {
+    color: "#264348",
   },
   heroPlaceholderText: {
     fontSize: FONT_SIZES.small,
@@ -698,6 +714,9 @@ const s = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.medium as any,
+  },
+  addBtnTextLight: {
+    color: "#264348",
   },
   processingTile: {
     flex: 1, alignItems: "center", justifyContent: "center",
