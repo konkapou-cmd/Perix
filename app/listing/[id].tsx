@@ -176,14 +176,14 @@ export default function ListingDetailScreen() {
         <DetailFacts>
           <DetailFact
             icon="pricetag"
-            label={t("listing.price") || "Preis"}
+            label={t("listing.price", "Preis")}
             value={listing.price ? formatPrice(listing.price) : t("marketplace.askForPrice", "Preis auf Anfrage")}
             accentColor={COLORS.success}
           />
           {listing.condition ? (
             <DetailFact
               icon="star"
-              label={t("listing.conditionTitle") || "Zustand"}
+              label={t("listing.conditionTitle", "Zustand")}
               value={t(`listing.condition.${listing.condition}`, listing.condition)}
               accentColor={COLORS.success}
             />
@@ -191,7 +191,7 @@ export default function ListingDetailScreen() {
           {listing.category ? (
             <DetailFact
               icon="grid"
-              label={t("marketplace.category") || "Kategorie"}
+              label={t("marketplace.category", "Kategorie")}
               value={(() => {
                 const cfg = getCategoryConfig(listing.category!);
                 const sub = listing.subcategory ? cfg?.subcategories.find((s) => s.key === listing.subcategory) : null;
@@ -204,7 +204,7 @@ export default function ListingDetailScreen() {
           {listing.brand ? (
             <DetailFact
               icon="bookmark-outline"
-              label={t("listing.brand") || "Marke"}
+              label={t("listing.brand", "Marke")}
               value={listing.brand}
               accentColor={COLORS.success}
             />
@@ -212,7 +212,7 @@ export default function ListingDetailScreen() {
           {listing.delivery_method ? (
             <DetailFact
               icon="cube-outline"
-              label={t("marketplace.delivery") || "Lieferung"}
+              label={t("marketplace.delivery", "Lieferung")}
               value={t(`marketplace.${listing.delivery_method}`, listing.delivery_method)}
               accentColor={COLORS.success}
             />
@@ -220,7 +220,7 @@ export default function ListingDetailScreen() {
           {(listing.business_name || listing.seller_name) ? (
             <DetailFact
               icon={listing.seller_type === "business" ? "storefront-outline" : "person-outline"}
-              label={t("marketplace.seller") || "Verkäufer"}
+              label={t("marketplace.seller", "Verkäufer")}
               value={listing.business_name || listing.seller_name || ""}
               accentColor={COLORS.success}
               onPress={() => {
@@ -232,7 +232,7 @@ export default function ListingDetailScreen() {
           {listing.address ? (
             <DetailFact
               icon="location-outline"
-              label={t("listing.address") || "Ort"}
+              label={t("listing.address", "Ort")}
               value={listing.address}
               accentColor={COLORS.success}
               onPress={() => openInMaps({ latitude: listing.latitude ?? undefined, longitude: listing.longitude ?? undefined, address: listing.address || "" })}
@@ -243,7 +243,7 @@ export default function ListingDetailScreen() {
               {listing.property_type ? (
                 <DetailFact
                   icon="home-outline"
-                  label={t("rentals.propertyType") || "Art"}
+                  label={t("rentals.propertyType", "Art")}
                   value={t(`rentals.types.${listing.property_type}`, listing.property_type)}
                   accentColor={COLORS.success}
                 />
@@ -320,7 +320,7 @@ export default function ListingDetailScreen() {
 
         {listing.description ? (
           <View style={styles.plainSection}>
-            <Text style={styles.sectionTitle}>{t("listing.description") || "Beschreibung"}</Text>
+            <Text style={styles.sectionTitle}>{t("listing.description", "Beschreibung")}</Text>
             <Text style={styles.description}>{listing.description}</Text>
           </View>
         ) : null}
