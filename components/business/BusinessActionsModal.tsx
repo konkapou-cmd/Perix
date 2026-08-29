@@ -73,7 +73,7 @@ export default function BusinessActionsModal({ visible, loading, businessProduct
       }}
     >
       <View style={styles.actionIcon}>
-        <Ionicons name={action.icon} size={22} color="#59ABE3" />
+        <Ionicons name={action.icon} size={22} color="#264348" />
       </View>
       <View style={styles.actionInfo}>
         <Text style={styles.actionLabel}>{action.label}</Text>
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: "rgba(89,171,227,0.15)",
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },

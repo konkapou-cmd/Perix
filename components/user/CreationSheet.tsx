@@ -67,7 +67,7 @@ export default function CreationSheet({ visible, onClose, onAction }: Props) {
                 }}
               >
                 <View style={styles.actionIcon}>
-                  <Ionicons name={action.icon as any} size={22} color="#59ABE3" />
+                  <Ionicons name={action.icon as any} size={22} color="#264348" />
                 </View>
                 <View style={styles.actionInfo}>
                   <Text style={styles.actionLabel}>{action.title}</Text>
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(89,171,227,0.15)",
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
