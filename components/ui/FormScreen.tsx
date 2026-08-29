@@ -10,9 +10,10 @@ type FormScreenProps = {
   onClose: () => void;
   visible: boolean;
   children?: React.ReactNode;
+  titleColor?: string;
 };
 
-export default function FormScreen({ title, onClose, visible, children }: FormScreenProps) {
+export default function FormScreen({ title, onClose, visible, children, titleColor = "#264348" }: FormScreenProps) {
   const { t } = useTranslation();
 
   return (
@@ -26,7 +27,7 @@ export default function FormScreen({ title, onClose, visible, children }: FormSc
             <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={12}>
               <Ionicons name="close" size={24} color="#264348" />
             </Pressable>
-            <Text style={styles.title} numberOfLines={1}>
+            <Text style={[styles.title, { color: titleColor }]} numberOfLines={1}>
               {title}
             </Text>
             <View style={styles.closeBtn} />
@@ -73,7 +74,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: FONT_SIZES.h3,
     fontWeight: FONT_WEIGHTS.bold,
-    color: "#264348",
   },
   body: {
     flex: 1,

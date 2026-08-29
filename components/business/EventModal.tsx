@@ -247,7 +247,7 @@ export default function EventModal({
     : Object.entries(themesMap).map(([slug, t]) => ({ slug, label: t.label, color: t.color, emoji: t.emoji, gradient: t.gradient }));
 
   return (
-    <FormScreen title={eventEditing ? t("events.editEvent") : t("events.createEvent")} onClose={onClose} visible={visible}>
+    <FormScreen title={eventEditing ? t("events.editEvent") : t("events.createEvent")} onClose={onClose} visible={visible} titleColor="#FF9F1C">
       <UnifiedMediaGallery
             media={media}
             onChange={handleMediaChange}

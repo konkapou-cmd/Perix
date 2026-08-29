@@ -194,7 +194,7 @@ export default function ActivityModal({
   };
 
   return (
-    <FormScreen title={activityEditing ? t("activities.editActivity") : t("activities.createActivity")} onClose={onClose} visible={visible}>
+    <FormScreen title={activityEditing ? t("activities.editActivity") : t("activities.createActivity")} onClose={onClose} visible={visible} titleColor="#FF9F1C">
       <UnifiedMediaGallery
             media={media}
             onChange={handleMediaChange}

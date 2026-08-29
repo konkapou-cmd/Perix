@@ -149,7 +149,7 @@ export default function JobModal({
 
   return (
     <>
-    <FormScreen title={modalTitle} onClose={onClose} visible={visible}>
+    <FormScreen title={modalTitle} onClose={onClose} visible={visible} titleColor="#264348">
       <UnifiedMediaGallery
               media={media}
               onChange={handleMediaChange}

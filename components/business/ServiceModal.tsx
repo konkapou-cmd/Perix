@@ -675,7 +675,7 @@ export default function ServiceModal({
   };
 
   return (
-    <FormScreen title={modalTitle} onClose={onClose} visible={visible}>
+    <FormScreen title={modalTitle} onClose={onClose} visible={visible} titleColor="#7B3FF2">
       <Text style={styles.label}>
         {t("services.serviceType", "Type")}
         <Text style={styles.required}>*</Text>
