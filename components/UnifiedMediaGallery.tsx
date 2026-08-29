@@ -584,11 +584,6 @@ const s = StyleSheet.create({
   heroPlaceholderTextLight: {
     color: "#264348",
   },
-  heroPlaceholderText: {
-    fontSize: FONT_SIZES.small,
-    color: COLORS.textDisabled,
-    marginTop: SPACING.tiny,
-  },
   heroOverlay: {
     position: "absolute",
     bottom: SPACING.small,
