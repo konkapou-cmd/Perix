@@ -1,4 +1,5 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -69,68 +70,76 @@ export default function EventsSection({
                 >
                   <View style={s.cardMedia}>
                     {event.cover_image_url ? (
-                      <FocalImage uri={event.cover_image_url} aspectRatio={16 / 9} focalPoint={event.cover_focal_point} borderRadius={0} showLoader={false} />
+                      <FocalImage uri={event.cover_image_url} aspectRatio={16 / 9} focalPoint={event.cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
                     ) : hasVideo ? (
-                      <AdaptiveVideo uri={event.video_url || ""} autoPlay style={{ width: "100%", aspectRatio: 16 / 9 }} isLooping initialMuted />
+                      <AdaptiveVideo uri={event.video_url || ""} autoPlay style={{ width: "100%", height: "100%" }} isLooping initialMuted />
                     ) : imageUrl ? (
-                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={event.cover_focal_point} borderRadius={0} showLoader={false} />
+                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={event.cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
                     ) : (
                       <View style={[s.imagePlaceholder, { backgroundColor: `${theme.color}30` }]}>
                         <Text style={s.themeEmoji}>{theme.emoji}</Text>
                       </View>
                     )}
-                    {event.is_private && (
-                      <View style={s.privateBadge}>
-                        <Ionicons name="lock-closed" size={12} color="#fff" />
-                      </View>
-                    )}
-                    <StatusBadge
-                      label={theme.label}
-                      color={theme.color}
-                      size="sm"
+                    <LinearGradient
+                      colors={["transparent", "rgba(0,0,0,0.75)"]}
+                      locations={[0.45, 1]}
+                      style={StyleSheet.absoluteFill}
                     />
-                    {event.is_attending && (
+                    <View style={s.badgesWrap}>
+                      {event.is_private && (
+                        <View style={s.privateBadge}>
+                          <Ionicons name="lock-closed" size={12} color="#fff" />
+                        </View>
+                      )}
                       <StatusBadge
-                        label={t("events.attending", "Du nimmst teil")}
-                        variant="active"
+                        label={theme.label}
+                        color={theme.color}
                         size="sm"
                       />
-                    )}
+                      {event.is_attending && (
+                        <StatusBadge
+                          label={t("events.attending", "Du nimmst teil")}
+                          variant="active"
+                          size="sm"
+                        />
+                      )}
+                    </View>
                   </View>
                   <View style={s.info}>
-                    <Text style={[s.title, { color: textColor }]} numberOfLines={1}>
+                    <Text style={s.title} numberOfLines={1}>
                       {event.title}
                     </Text>
                     <View style={s.metaRow}>
-                      <Ionicons name="calendar-outline" size={12} color={secondaryColor} />
-                      <Text style={[s.metaText, { color: secondaryColor }]}>
+                      <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.85)" />
+                      <Text style={s.metaText}>
                         {formatEventDate(event.start_time)}
                       </Text>
                     </View>
                     {event.location && (
                       <View style={s.metaRow}>
-                        <Ionicons name="location-outline" size={12} color={secondaryColor} />
-                        <Text style={[s.metaText, { color: secondaryColor }]} numberOfLines={1}>
+                        <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.85)" />
+                        <Text style={s.metaText} numberOfLines={1}>
                           {event.location}
                         </Text>
                       </View>
                     )}
                     {event.attendees_count != null && (
-                      <StatusBadge
-                        label={t("events.goingCount", "{{count}} dabei", { count: event.attendees_count })}
-                        variant="default"
-                        size="sm"
-                      />
+                      <View style={s.metaRow}>
+                        <Ionicons name="people-outline" size={12} color="rgba(255,255,255,0.85)" />
+                        <Text style={s.metaText}>
+                          {t("events.goingCount", "{{count}} dabei", { count: event.attendees_count })}
+                        </Text>
+                      </View>
                     )}
                   </View>
                 </Pressable>
                 {!readOnly && (
                   <View style={s.actions}>
                     <Pressable style={s.actionBtn} onPress={() => onEditEvent(event)}>
-                      <Ionicons name="create-outline" size={18} color={primaryColor} />
+                      <Ionicons name="create-outline" size={16} color="#fff" />
                     </Pressable>
                     <Pressable style={s.actionBtn} onPress={() => onDeleteEvent(event.event_id)}>
-                       <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+                       <Ionicons name="trash-outline" size={16} color="#fff" />
                     </Pressable>
                   </View>
                 )}
@@ -177,7 +186,8 @@ const s = StyleSheet.create({
     paddingBottom: SPACING.small,
   },
   card: {
-    width: 250,
+    width: 200,
+    height: 240,
     borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
     ...SHADOWS.subtle,
@@ -186,11 +196,8 @@ const s = StyleSheet.create({
     flex: 1,
   },
   cardMedia: {
-    width: "100%",
-    aspectRatio: 16 / 9,
+    ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
-    borderTopLeftRadius: BORDER_RADIUS.card,
-    borderTopRightRadius: BORDER_RADIUS.card,
   },
   imagePlaceholder: {
     width: "100%",
@@ -201,10 +208,15 @@ const s = StyleSheet.create({
   themeEmoji: {
     fontSize: 36,
   },
-  privateBadge: {
+  badgesWrap: {
     position: "absolute",
     top: SPACING.small,
-    right: SPACING.small,
+    left: SPACING.small,
+    gap: 4,
+    alignItems: "flex-start",
+    zIndex: 5,
+  },
+  privateBadge: {
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 12,
     paddingHorizontal: SPACING.small,
@@ -247,11 +259,16 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   info: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
     padding: 10,
   },
   title: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#fff",
     marginBottom: SPACING.tiny,
   },
   metaRow: {
@@ -262,6 +279,7 @@ const s = StyleSheet.create({
   },
   metaText: {
     fontSize: FONT_SIZES.small,
+    color: "rgba(255,255,255,0.85)",
   },
   statusBadge: {
     alignSelf: "flex-start",
@@ -275,13 +293,18 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   actions: {
+    position: "absolute",
+    top: SPACING.small,
+    right: SPACING.small,
     flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingHorizontal: SPACING.small,
     gap: SPACING.small,
-    paddingBottom: SPACING.small,
   },
   actionBtn: {
-    padding: SPACING.tiny,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

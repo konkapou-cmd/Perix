@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Image } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -201,6 +202,11 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
                     <Ionicons name="image-outline" size={24} color="#264348" />
                   </View>
                 )}
+                <LinearGradient
+                  colors={["transparent", "rgba(0,0,0,0.75)"]}
+                  locations={[0.45, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
                 <View style={styles.cardInfo}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{listing.title}</Text>
                   <View style={styles.cardMeta}>
@@ -214,13 +220,13 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
                 {isOwner && (
                   <View style={styles.cardActions}>
                     <Pressable style={styles.actionBtn} onPress={(e) => { (e as any).stopPropagation?.(); onEdit(listing); }}>
-                      <Ionicons name="create-outline" size={16} color="#264348" />
+                      <Ionicons name="create-outline" size={16} color="#fff" />
                     </Pressable>
                     <Pressable style={styles.actionBtn} onPress={(e) => { (e as any).stopPropagation?.(); onToggleMarketplace(listing); }}>
                       <Ionicons
                         name={listing.publication_scope === "profile_and_marketplace" ? "stop-circle-outline" : "storefront-outline"}
                         size={16}
-                        color={listing.publication_scope === "profile_and_marketplace" ? COLORS.warning : "#59ABE3"}
+                        color="#fff"
                       />
                     </Pressable>
                     <Pressable style={styles.actionBtn} onPress={(e) => {
@@ -230,7 +236,7 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
                         { text: t("common.delete", "Löschen"), style: "destructive", onPress: () => onDelete(listing) },
                       ]);
                     }}>
-                      <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
+                      <Ionicons name="trash-outline" size={16} color="#fff" />
                     </Pressable>
                   </View>
                 )}
@@ -271,21 +277,35 @@ const styles = StyleSheet.create({
   },
   carousel: { gap: SPACING.small, paddingBottom: SPACING.small },
   card: {
-    width: 250,
+    width: 200,
+    height: 240,
     backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1, borderColor: "rgba(38,67,72,0.15)",
     overflow: "hidden",
   },
   cardImg: {
-    width: "100%", aspectRatio: 16 / 9, backgroundColor: COLORS.backgroundPage,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.backgroundPage,
   },
-  cardInfo: { padding: SPACING.small },
-  cardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: "#264348" },
+  cardInfo: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: SPACING.small,
+  },
+  cardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: "#fff" },
   cardMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
   badgeText: { fontSize: 11, fontWeight: "600" },
-  cardPrice: { fontSize: 13, fontWeight: "700", color: COLORS.success },
-  cardActions: { flexDirection: "row", gap: 4, paddingHorizontal: SPACING.small, paddingBottom: SPACING.small, justifyContent: "flex-end" },
-  actionBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  cardPrice: { fontSize: 13, fontWeight: "700", color: "#4ade80" },
+  cardActions: { position: "absolute", top: SPACING.small, right: SPACING.small, flexDirection: "row", gap: 6 },
+  actionBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   emptyText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, textAlign: "center", marginTop: SPACING.section },
 });

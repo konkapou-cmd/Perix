@@ -1,4 +1,5 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -60,69 +61,75 @@ export default function JobsSection({
               <View key={job.job_id} style={[s.card, { backgroundColor: cardColor }]}>
                 <Pressable
                   style={s.cardContent}
-                  onPress={() => pushEntityRoute(router, entityRoutes.job(job.job_id), () => showInvalidEntityAlert(t))}
+                  onPress={() => pushEntityRoute(router, entityRoutes.job(job.job_id), () => showInvalidEntityAlert(t as any))}
                 >
                   <View style={s.cardMedia}>
                     {job.cover_image ? (
-                      <FocalImage uri={job.cover_image} aspectRatio={16 / 9} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} />
+                      <FocalImage uri={job.cover_image} aspectRatio={16 / 9} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
                     ) : hasVideo ? (
-                      <AdaptiveVideo uri={job.video_url || ""} autoPlay style={{ width: "100%", aspectRatio: 16 / 9 }} isLooping initialMuted />
+                      <AdaptiveVideo uri={job.video_url || ""} autoPlay style={{ width: "100%", height: "100%" }} isLooping initialMuted />
                     ) : imageUrl ? (
-                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} />
+                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
                     ) : (
                       <View style={[s.imagePlaceholder, { backgroundColor: `${primaryColor}30` }]}>
                         <Ionicons name="briefcase" size={36} color={primaryColor} />
                       </View>
                     )}
-                    {job.job_type && (
-                      <StatusBadge label={job.job_type} color={primaryColor} size="sm" />
-                    )}
-                    {job.is_active ? (
-                      <StatusBadge label={t("jobs.active", "Aktiv")} variant="active" size="sm" />
-                    ) : (
-                      <StatusBadge label={t("jobs.inactive", "Inactive")} variant="draft" size="sm" />
-                    )}
+                    <LinearGradient
+                      colors={["transparent", "rgba(0,0,0,0.75)"]}
+                      locations={[0.45, 1]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={s.badgesWrap}>
+                      {job.job_type && (
+                        <StatusBadge label={job.job_type} color={primaryColor} size="sm" />
+                      )}
+                      {job.is_active ? (
+                        <StatusBadge label={t("jobs.active", "Aktiv")} variant="active" size="sm" />
+                      ) : (
+                        <StatusBadge label={t("jobs.inactive", "Inactive")} variant="draft" size="sm" />
+                      )}
+                    </View>
                   </View>
                   <View style={s.info}>
-                    <Text style={[s.title, { color: textColor }]} numberOfLines={1}>
+                    <Text style={s.title} numberOfLines={1}>
                       {job.title}
                     </Text>
                     {job.salary_range && (
                       <View style={s.metaRow}>
-                        <Ionicons name="cash-outline" size={12} color={secondaryColor} />
-                        <Text style={[s.metaText, { color: secondaryColor }]}>
+                        <Ionicons name="cash-outline" size={12} color="rgba(255,255,255,0.85)" />
+                        <Text style={s.metaText}>
                           {job.salary_range}
                         </Text>
                       </View>
                     )}
                     {job.work_location && (
                       <View style={s.metaRow}>
-                        <Ionicons name="location-outline" size={12} color={secondaryColor} />
-                        <Text style={[s.metaText, { color: secondaryColor }]} numberOfLines={1}>
+                        <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.85)" />
+                        <Text style={s.metaText} numberOfLines={1}>
                           {job.work_location}
                         </Text>
                       </View>
                     )}
                     {job.expires_at ? (
-                      <View style={[s.statusBadge, { backgroundColor: `${primaryColor}20` }]}>
-                        <Text style={[s.statusText, { color: primaryColor }]}>
+                      <View style={s.metaRow}>
+                        <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.85)" />
+                        <Text style={s.metaText}>
                           {t("jobs.expiresAt")}: {formatDate(job.expires_at)}
                         </Text>
                       </View>
-                    ) : (
-                      <StatusBadge label={t("jobs.noExpiry", "No expiry")} variant="default" size="sm" />
-                    )}
+                    ) : null}
                   </View>
                 </Pressable>
                 {!readOnly && onDeleteJob && (
                   <View style={s.actions}>
                     {onEditJob && (
                       <Pressable style={s.actionBtn} onPress={() => onEditJob(job)}>
-                        <Ionicons name="create-outline" size={18} color={primaryColor} />
+                        <Ionicons name="create-outline" size={16} color="#fff" />
                       </Pressable>
                     )}
                     <Pressable style={s.actionBtn} onPress={() => onDeleteJob(job.job_id)}>
-                       <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+                       <Ionicons name="trash-outline" size={16} color="#fff" />
                     </Pressable>
                   </View>
                 )}
@@ -169,7 +176,8 @@ const s = StyleSheet.create({
     paddingBottom: SPACING.small,
   },
   card: {
-    width: 250,
+    width: 200,
+    height: 240,
     borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
     ...SHADOWS.subtle,
@@ -178,11 +186,16 @@ const s = StyleSheet.create({
     flex: 1,
   },
   cardMedia: {
-    width: "100%",
-    aspectRatio: 16 / 9,
+    ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
-    borderTopLeftRadius: BORDER_RADIUS.card,
-    borderTopRightRadius: BORDER_RADIUS.card,
+  },
+  badgesWrap: {
+    position: "absolute",
+    top: SPACING.small,
+    left: SPACING.small,
+    gap: 4,
+    alignItems: "flex-start",
+    zIndex: 5,
   },
   imagePlaceholder: {
     width: "100%",
@@ -190,56 +203,17 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  typeBadge: {
-    position: "absolute",
-    top: SPACING.small,
-    left: SPACING.small,
-    borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.small,
-    paddingVertical: 2,
-  },
-  typeBadgeLabel: {
-    color: "#fff",
-    fontSize: FONT_SIZES.micro,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-  },
-  activeBadge: {
-    position: "absolute",
-    bottom: SPACING.small,
-    left: SPACING.small,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: SPACING.small,
-    paddingVertical: 2,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: "#10b981",
-  },
-  activeText: {
-    fontSize: FONT_SIZES.small,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-    color: "#fff",
-  },
-  inactiveBadge: {
-    position: "absolute",
-    bottom: SPACING.small,
-    left: SPACING.small,
-    paddingHorizontal: SPACING.small,
-    paddingVertical: 2,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  inactiveText: {
-    fontSize: FONT_SIZES.small,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-    color: "#fff",
-  },
   info: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
     padding: 10,
   },
   title: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#fff",
     marginBottom: SPACING.tiny,
   },
   metaRow: {
@@ -250,26 +224,21 @@ const s = StyleSheet.create({
   },
   metaText: {
     fontSize: FONT_SIZES.small,
-  },
-  statusBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: SPACING.small,
-    paddingVertical: SPACING.tiny,
-    borderRadius: BORDER_RADIUS.md,
-    marginTop: SPACING.tiny,
-  },
-  statusText: {
-    fontSize: FONT_SIZES.small,
-    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "rgba(255,255,255,0.85)",
   },
   actions: {
+    position: "absolute",
+    top: SPACING.small,
+    right: SPACING.small,
     flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingHorizontal: SPACING.small,
     gap: SPACING.small,
-    paddingBottom: SPACING.small,
   },
   actionBtn: {
-    padding: SPACING.tiny,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -171,7 +171,7 @@ const s = StyleSheet.create({
     paddingBottom: SPACING.small,
   },
   cardWrap: {
-    width: 250,
+    width: 200,
   },
   actionRow: {
     flexDirection: "row",

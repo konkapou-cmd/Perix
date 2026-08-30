@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { Service } from "../../lib/api";
 import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES, FONT_WEIGHTS, SHADOWS } from "../../lib/designTokens";
@@ -180,6 +181,11 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
   return (
     <Pressable style={[s.card, { backgroundColor: cardColor }]} onPress={() => onPress?.(service)}>
       <MediaWithOverlay service={service} placeholderIcon={typeIcon} />
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.75)"]}
+        locations={[0.45, 1]}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={s.imageBadges}>
         <View style={[s.typeBadge, { backgroundColor: primaryColor }]}>
           <Ionicons name={typeIcon as any} size={10} color="#fff" />
@@ -192,7 +198,7 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
         )}
       </View>
       <View style={s.info}>
-        <Text style={[s.name, { color: textColor }]} numberOfLines={1}>
+        <Text style={s.name} numberOfLines={1}>
           {service.name}
         </Text>
         {service.description ? <Text style={s.desc} numberOfLines={2}>{service.description}</Text> : null}
@@ -207,17 +213,15 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
+    width: "100%",
+    height: 240,
     borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
     ...SHADOWS.subtle,
   },
   cardMedia: {
-    width: "100%",
-    aspectRatio: 16 / 9,
+    ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
-    borderTopLeftRadius: BORDER_RADIUS.card,
-    borderTopRightRadius: BORDER_RADIUS.card,
   },
   imagePlaceholder: {
     width: "100%",
@@ -249,28 +253,33 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
   info: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
     padding: 10,
   },
   name: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#fff",
     marginBottom: SPACING.tiny,
   },
   desc: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textMuted,
+    color: "rgba(255,255,255,0.85)",
     marginTop: 2,
     lineHeight: 16,
   },
   meta: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textMuted,
+    color: "rgba(255,255,255,0.85)",
     marginTop: 2,
   },
   price: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.bold as any,
-    color: COLORS.success,
+    color: "#4ade80",
     marginTop: SPACING.tiny,
   },
   tagRow: {

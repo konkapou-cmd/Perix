@@ -1,4 +1,5 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -73,73 +74,75 @@ export default function ActivitiesSection({
                 >
                   <View style={s.cardMedia}>
                     {activity.cover_image_url ? (
-                      <FocalImage uri={activity.cover_image_url} aspectRatio={16 / 9} focalPoint={activity.cover_focal_point} borderRadius={0} showLoader={false} />
+                      <FocalImage uri={activity.cover_image_url} aspectRatio={16 / 9} focalPoint={(activity as any).cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
                     ) : hasVideo ? (
-                      <AdaptiveVideo uri={activity.video_url || ""} autoPlay style={{ width: "100%", aspectRatio: 16 / 9 }} isLooping initialMuted />
+                      <AdaptiveVideo uri={activity.video_url || ""} autoPlay style={{ width: "100%", height: "100%" }} isLooping initialMuted />
                     ) : imageUrl ? (
-                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={activity.cover_focal_point} borderRadius={0} showLoader={false} />
+                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={(activity as any).cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
                     ) : (
                       <View style={[s.imagePlaceholder, { backgroundColor: `${theme.color}30` }]}>
                         <Text style={s.themeEmoji}>{theme.emoji}</Text>
                       </View>
                     )}
-                    {activity.is_private && (
-                      <View style={s.privateBadge}>
-                        <Ionicons name="lock-closed" size={12} color="#fff" />
-                      </View>
-                    )}
-                    <StatusBadge
-                      label={theme.label}
-                      color={theme.color}
-                      size="sm"
+                    <LinearGradient
+                      colors={["transparent", "rgba(0,0,0,0.75)"]}
+                      locations={[0.45, 1]}
+                      style={StyleSheet.absoluteFill}
                     />
-                    {(activity.my_status === "accepted" || activity.my_status === "going") && (
+                    <View style={s.badgesWrap}>
+                      {activity.is_private && (
+                        <View style={s.privateBadge}>
+                          <Ionicons name="lock-closed" size={12} color="#fff" />
+                        </View>
+                      )}
                       <StatusBadge
-                        label={t("activities.going", "Dabei")}
-                        variant="active"
+                        label={theme.label}
+                        color={theme.color}
                         size="sm"
                       />
-                    )}
-                    {activity.is_creator && activity.my_status !== "accepted" && activity.my_status !== "going" && (
-                      <StatusBadge
-                        label={t("activities.yours", "Deins")}
-                        variant="owner"
-                        size="sm"
-                      />
-                    )}
+                      {(activity.my_status === "accepted" || activity.my_status === "going") && (
+                        <StatusBadge
+                          label={t("activities.going", "Dabei")}
+                          variant="active"
+                          size="sm"
+                        />
+                      )}
+                      {activity.is_creator && activity.my_status !== "accepted" && activity.my_status !== "going" && (
+                        <StatusBadge
+                          label={t("activities.yours", "Deins")}
+                          variant="owner"
+                          size="sm"
+                        />
+                      )}
+                    </View>
                   </View>
                   <View style={s.info}>
-                    <Text style={[s.title, { color: textColor }]} numberOfLines={1}>
+                    <Text style={s.title} numberOfLines={1}>
                       {activity.title}
                     </Text>
                     <View style={s.metaRow}>
-                      <Ionicons name="calendar-outline" size={12} color={secondaryColor} />
-                      <Text style={[s.metaText, { color: secondaryColor }]}>
+                      <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.85)" />
+                      <Text style={s.metaText}>
                         {formatDate(activity.date)}{activity.time ? ` · ${activity.time}` : ""}
                       </Text>
                     </View>
                     {activity.location && (
                       <View style={s.metaRow}>
-                        <Ionicons name="location-outline" size={12} color={secondaryColor} />
-                        <Text style={[s.metaText, { color: secondaryColor }]} numberOfLines={1}>
+                        <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.85)" />
+                        <Text style={s.metaText} numberOfLines={1}>
                           {activity.location}
                         </Text>
                       </View>
                     )}
-                    <StatusBadge
-                      label={activity.is_creator ? t("activities.hosting", "Gastgeber") : activity.my_status || t("activities.joined", "Dabei")}
-                      variant="default"
-                      size="sm"
-                    />
                   </View>
                 </Pressable>
                 {activity.is_creator && !readOnly && (
                   <View style={s.actions}>
                     <Pressable style={s.actionBtn} onPress={() => onEditActivity(activity)}>
-                      <Ionicons name="create-outline" size={18} color={primaryColor} />
+                      <Ionicons name="create-outline" size={16} color="#fff" />
                     </Pressable>
                     <Pressable style={s.actionBtn} onPress={() => onDeleteActivity(activity.activity_id)}>
-                       <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+                       <Ionicons name="trash-outline" size={16} color="#fff" />
                     </Pressable>
                   </View>
                 )}
@@ -186,7 +189,8 @@ const s = StyleSheet.create({
     paddingBottom: SPACING.small,
   },
   card: {
-    width: 250,
+    width: 200,
+    height: 240,
     borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
     ...SHADOWS.subtle,
@@ -195,11 +199,8 @@ const s = StyleSheet.create({
     flex: 1,
   },
   cardMedia: {
-    width: "100%",
-    aspectRatio: 16 / 9,
+    ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
-    borderTopLeftRadius: BORDER_RADIUS.card,
-    borderTopRightRadius: BORDER_RADIUS.card,
   },
   imagePlaceholder: {
     width: "100%",
@@ -210,14 +211,57 @@ const s = StyleSheet.create({
   themeEmoji: {
     fontSize: 36,
   },
-  privateBadge: {
+  badgesWrap: {
     position: "absolute",
     top: SPACING.small,
-    right: SPACING.small,
+    left: SPACING.small,
+    gap: 4,
+    alignItems: "flex-start",
+    zIndex: 5,
+  },
+  privateBadge: {
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 12,
     paddingHorizontal: SPACING.small,
     paddingVertical: 2,
+  },
+  info: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 10,
+  },
+  title: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#fff",
+    marginBottom: SPACING.tiny,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.tiny,
+    marginBottom: 2,
+  },
+  metaText: {
+    fontSize: FONT_SIZES.small,
+    color: "rgba(255,255,255,0.85)",
+  },
+  actions: {
+    position: "absolute",
+    top: SPACING.small,
+    right: SPACING.small,
+    flexDirection: "row",
+    gap: SPACING.small,
+  },
+  actionBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   goingBadge: {
     position: "absolute",
@@ -271,43 +315,5 @@ const s = StyleSheet.create({
     color: "#fff",
     fontSize: FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.semibold as any,
-  },
-  info: {
-    padding: 10,
-  },
-  title: {
-    fontSize: FONT_SIZES.body,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-    marginBottom: SPACING.tiny,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.tiny,
-    marginBottom: 2,
-  },
-  metaText: {
-    fontSize: FONT_SIZES.small,
-  },
-  statusBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: SPACING.small,
-    paddingVertical: SPACING.tiny,
-    borderRadius: BORDER_RADIUS.md,
-    marginTop: SPACING.tiny,
-  },
-  statusText: {
-    fontSize: FONT_SIZES.small,
-    fontWeight: FONT_WEIGHTS.semibold as any,
-  },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingHorizontal: SPACING.small,
-    gap: SPACING.small,
-    paddingBottom: SPACING.small,
-  },
-  actionBtn: {
-    padding: SPACING.tiny,
   },
 });
