@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { Job } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
+import { jobTypeIcon } from "../../lib/categoryTranslation";
 import { formatDate } from "../../lib/formatDate";
 import { EmptyState } from "../shared";
 import StatusBadge from "../ui/StatusBadge";
@@ -72,7 +73,7 @@ export default function JobsSection({
                       <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
                     ) : (
                       <View style={[s.imagePlaceholder, { backgroundColor: `${primaryColor}30` }]}>
-                        <Ionicons name="briefcase" size={36} color={primaryColor} />
+                        <Ionicons name={jobTypeIcon(job.job_type) as any} size={36} color={primaryColor} />
                       </View>
                     )}
                     <LinearGradient

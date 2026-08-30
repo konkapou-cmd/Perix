@@ -64,6 +64,17 @@ export const translateJobType = (jobType: string | null | undefined, t: TFunctio
   return translated && translated !== key ? translated : jobType;
 };
 
+const JOB_TYPE_ICONS: Record<string, string> = {
+  vollzeit: "briefcase",
+  teilzeit: "briefcase-outline",
+  vertrag: "document-text-outline",
+  praktikum: "school-outline",
+  remote: "laptop-outline",
+};
+
+export const jobTypeIcon = (jobType?: string | null): string =>
+  JOB_TYPE_ICONS[(jobType || "").toLowerCase()] || "briefcase-outline";
+
 /**
  * Translates a service option value (e.g. "hair", "makeup", "in_stock") via
  * the services.option.* keys. Falls back to a prettified version of the value.

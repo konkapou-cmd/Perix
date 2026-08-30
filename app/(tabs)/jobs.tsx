@@ -30,7 +30,7 @@ import {
 } from "../../lib/api";
 import BusinessMap from "../../components/BusinessMap";
 import { useMapBounds } from "../../context/MapBoundsContext";
-import { translateCategory, translateJobType } from "../../lib/categoryTranslation";
+import { translateCategory, translateJobType, jobTypeIcon } from "../../lib/categoryTranslation";
 import EmptyState from "../../components/shared/EmptyState";
 import { SkeletonBox } from "../../components/shared";
 import {
@@ -329,7 +329,7 @@ export default function JobsScreen() {
                 <Image source={{ uri: item.cover_image }} style={styles.jobImage} />
               ) : (
                 <View style={[styles.jobImage, styles.jobImagePlaceholder]}>
-                  <Ionicons name="briefcase" size={32} color="#264348" />
+                  <Ionicons name={jobTypeIcon(item.job_type) as any} size={32} color="#264348" />
                 </View>
               )}
               <View style={styles.jobInfo}>
