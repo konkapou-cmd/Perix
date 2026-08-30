@@ -21,14 +21,14 @@ function MediaWithOverlay({ service, placeholderIcon }: { service: Service; plac
   return (
     <View style={s.cardMedia}>
       {service.cover_image_url ? (
-        <FocalImage uri={service.cover_image_url} aspectRatio={16 / 9} focalPoint={service.cover_focal_point} borderRadius={0} showLoader={false} />
+        <FocalImage uri={service.cover_image_url} focalPoint={service.cover_focal_point} borderRadius={0} showLoader={false} style={{ width: "100%", height: "100%" }} />
       ) : hasVideo ? (
-        <AdaptiveVideo uri={service.video_url!} autoPlay style={{ width: "100%", aspectRatio: 16 / 9 }} isLooping initialMuted />
+        <AdaptiveVideo uri={service.video_url!} autoPlay style={{ width: "100%", height: "100%" }} isLooping initialMuted />
       ) : imageUri ? (
-        <FocalImage uri={imageUri} aspectRatio={16 / 9} focalPoint={service.cover_focal_point} borderRadius={0} showLoader={false} />
+        <FocalImage uri={imageUri} focalPoint={service.cover_focal_point} borderRadius={0} showLoader={false} style={{ width: "100%", height: "100%" }} />
       ) : (
         <View style={s.imagePlaceholder}>
-          <Ionicons name={placeholderIcon as any} size={32} color={COLORS.textMuted} />
+          <Ionicons name={placeholderIcon as any} size={32} color="#264348" />
         </View>
       )}
       {galleryCount > 0 && (
@@ -226,7 +226,7 @@ const s = StyleSheet.create({
   imagePlaceholder: {
     width: "100%",
     height: "100%",
-    backgroundColor: COLORS.border,
+    backgroundColor: "#EDF4FB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -264,6 +264,7 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#fff",
     marginBottom: SPACING.tiny,
+    flexShrink: 1,
   },
   desc: {
     fontSize: FONT_SIZES.small,
@@ -275,6 +276,7 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.small,
     color: "rgba(255,255,255,0.85)",
     marginTop: 2,
+    flexShrink: 1,
   },
   price: {
     fontSize: FONT_SIZES.body,

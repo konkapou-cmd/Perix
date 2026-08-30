@@ -215,6 +215,7 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#fff",
+    flexShrink: 1,
     marginBottom: SPACING.tiny,
   },
   metaRow: {
@@ -226,6 +227,7 @@ const s = StyleSheet.create({
   metaText: {
     fontSize: FONT_SIZES.small,
     color: "rgba(255,255,255,0.85)",
+    flexShrink: 1,
   },
   actions: {
     position: "absolute",
