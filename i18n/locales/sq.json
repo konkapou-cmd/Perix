@@ -2223,7 +2223,16 @@
     },
     "addFirstService": "Shto shërbimin tënd të parë për të filluar",
     "requestSent": "Kërkesa u dërgua",
-    "bookingPending": "Kërkesa për rezervim u dërgua! Biznesi do ta konfirmojë së shpejti."
+    "bookingPending": "Kërkesa për rezervim u dërgua! Biznesi do ta konfirmojë së shpejti.",
+    "tabMenu": "Menu",
+    "tabRooms": "Rooms",
+    "tabProducts": "Products",
+    "tabAppointments": "Appointments",
+    "tabCourses": "Courses & Services",
+    "tabVehicles": "Vehicles",
+    "tabReservations": "Reservations",
+    "tabBookings": "Bookings",
+    "tabServices": "Services"
   },
   "menu": {
     "starter": "Antipasta",

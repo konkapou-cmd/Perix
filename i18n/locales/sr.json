@@ -2314,7 +2314,16 @@
     },
     "addFirstService": "Dodajte svoju prvu uslugu da počnete",
     "requestSent": "Zahtev poslat",
-    "bookingPending": "Zahtev za rezervaciju je poslat! Firma će uskoro potvrditi."
+    "bookingPending": "Zahtev za rezervaciju je poslat! Firma će uskoro potvrditi.",
+    "tabMenu": "Menu",
+    "tabRooms": "Rooms",
+    "tabProducts": "Products",
+    "tabAppointments": "Appointments",
+    "tabCourses": "Courses & Services",
+    "tabVehicles": "Vehicles",
+    "tabReservations": "Reservations",
+    "tabBookings": "Bookings",
+    "tabServices": "Services"
   },
   "menu": {
     "starter": "Предјела",

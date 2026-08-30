@@ -2583,7 +2583,16 @@
       "default": "Beschreibe die Dienstleistung..."
     },
     "addFirstService": "Füge deinen ersten Dienst hinzu, um loszulegen",
-    "requestSent": "Anfrage gesendet"
+    "requestSent": "Anfrage gesendet",
+    "tabMenu": "Menü",
+    "tabRooms": "Zimmer",
+    "tabProducts": "Produkte",
+    "tabAppointments": "Termine",
+    "tabCourses": "Kurse & Dienste",
+    "tabVehicles": "Fahrzeuge",
+    "tabReservations": "Reservierungen",
+    "tabBookings": "Buchungen",
+    "tabServices": "Dienste"
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",

@@ -48,6 +48,7 @@ export default function JobsSection({
         accent={primaryColor}
         onSeeAll={!readOnly && onAddJob ? onAddJob : undefined}
         seeAllLabel={t("jobs.createJob", "Job erstellen")}
+        style={{ paddingHorizontal: SPACING.std }}
       />
 
       {jobs.length === 0 ? (

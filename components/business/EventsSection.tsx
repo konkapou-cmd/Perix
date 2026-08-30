@@ -51,6 +51,7 @@ export default function EventsSection({
         accent={primaryColor}
         onSeeAll={!readOnly ? onAddEvent : undefined}
         seeAllLabel={t("events.createEvent", "Event erstellen")}
+        style={{ paddingHorizontal: SPACING.std }}
       />
 
       {events.length === 0 ? (

@@ -2318,7 +2318,16 @@
     },
     "addFirstService": "Ajoutez votre premier service pour commencer",
     "requestSent": "Demande envoyée",
-    "bookingPending": "Demande de réservation envoyée ! L'entreprise confirmera rapidement."
+    "bookingPending": "Demande de réservation envoyée ! L'entreprise confirmera rapidement.",
+    "tabMenu": "Menu",
+    "tabRooms": "Rooms",
+    "tabProducts": "Products",
+    "tabAppointments": "Appointments",
+    "tabCourses": "Courses & Services",
+    "tabVehicles": "Vehicles",
+    "tabReservations": "Reservations",
+    "tabBookings": "Bookings",
+    "tabServices": "Services"
   },
   "menu": {
     "starter": "Entrées",

@@ -2290,7 +2290,16 @@
     },
     "addFirstService": "Добавьте свою первую услугу, чтобы начать",
     "requestSent": "Запрос отправлен",
-    "bookingPending": "Запрос на бронирование отправлен! Компания скоро подтвердит."
+    "bookingPending": "Запрос на бронирование отправлен! Компания скоро подтвердит.",
+    "tabMenu": "Menu",
+    "tabRooms": "Rooms",
+    "tabProducts": "Products",
+    "tabAppointments": "Appointments",
+    "tabCourses": "Courses & Services",
+    "tabVehicles": "Vehicles",
+    "tabReservations": "Reservations",
+    "tabBookings": "Bookings",
+    "tabServices": "Services"
   },
   "menu": {
     "starter": "Закуски",

@@ -2327,7 +2327,16 @@
     },
     "addFirstService": "Dodaj swoją pierwszą usługę, aby zacząć",
     "requestSent": "Wysłano prośbę",
-    "bookingPending": "Prośba o rezerwację wysłana! Firma wkrótce potwierdzi."
+    "bookingPending": "Prośba o rezerwację wysłana! Firma wkrótce potwierdzi.",
+    "tabMenu": "Menu",
+    "tabRooms": "Rooms",
+    "tabProducts": "Products",
+    "tabAppointments": "Appointments",
+    "tabCourses": "Courses & Services",
+    "tabVehicles": "Vehicles",
+    "tabReservations": "Reservations",
+    "tabBookings": "Bookings",
+    "tabServices": "Services"
   },
   "menu": {
     "starter": "Przystawki",

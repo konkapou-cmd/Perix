@@ -190,11 +190,11 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
       <View style={s.imageBadges}>
         <View style={[s.typeBadge, { backgroundColor: primaryColor }]}>
           <Ionicons name={typeIcon as any} size={10} color="#fff" />
-          <Text style={s.typeBadgeText}>{typeName}</Text>
+          <Text style={s.typeBadgeText} numberOfLines={1}>{typeName}</Text>
         </View>
         {ctaType !== "browse_only" && (
           <View style={[s.ctaPill, { backgroundColor: ctaColor + "20" }]}>
-            <Text style={[s.ctaText, { color: ctaColor }]}>{ctaLabel}</Text>
+            <Text style={[s.ctaText, { color: ctaColor }]} numberOfLines={1}>{ctaLabel}</Text>
           </View>
         )}
       </View>
@@ -247,11 +247,14 @@ const s = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: 2,
+    flexShrink: 1,
+    maxWidth: "55%",
   },
   typeBadgeText: {
     color: "#fff",
     fontSize: FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.semibold as any,
+    flexShrink: 1,
   },
   info: {
     position: "absolute",
@@ -349,9 +352,12 @@ const s = StyleSheet.create({
     paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.full,
+    flexShrink: 1,
+    maxWidth: "55%",
   },
   ctaText: {
     fontSize: FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.bold as any,
+    flexShrink: 1,
   },
 });

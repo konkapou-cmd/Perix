@@ -25,18 +25,17 @@ type Props = {
   secondaryColor?: string;
 };
 
-function getTabLabel(rootCategory: string): string {
+function getTabLabel(rootCategory: string, t: (k: string, fb?: string) => string): string {
   switch (rootCategory) {
-    case "food-dining": return "Menü";
-    case "rentals": case "rental-real-estate": return "Zimmer";
-    case "shopping-retail": case "fashion-accessories": return "Produkte";
-    case "beauty-care": case "healthcare": case "pets": return "Termine";
-    case "sports-fitness-wellness": return "Kurse & Dienste";
-    case "education-creativity": return "Kurse & Dienste";
-    case "automotive": return "Fahrzeuge";
-    case "nightlife-social": return "Reservierungen";
-    case "entertainment-events": return "Buchungen";
-    default: return "Dienste";
+    case "food-dining": return t("services.tabMenu", "Menü");
+    case "rentals": case "rental-real-estate": return t("services.tabRooms", "Zimmer");
+    case "shopping-retail": case "fashion-accessories": return t("services.tabProducts", "Produkte");
+    case "beauty-care": case "healthcare": case "pets": return t("services.tabAppointments", "Termine");
+    case "sports-fitness-wellness": case "education-creativity": return t("services.tabCourses", "Kurse & Dienste");
+    case "automotive": return t("services.tabVehicles", "Fahrzeuge");
+    case "nightlife-social": return t("services.tabReservations", "Reservierungen");
+    case "entertainment-events": return t("services.tabBookings", "Buchungen");
+    default: return t("services.tabServices", "Dienste");
   }
 }
 
@@ -44,7 +43,7 @@ export default function ServiceSection({
   services, rootCategory, readOnly, onAddService, onServicePress, onEditService, onDeleteService, onOpenSlotManager, primaryColor = COLORS.primary, cardColor = "#fff", textColor = COLORS.textPrimary, secondaryColor = COLORS.textSecondary,
 }: Props) {
   const { t } = useTranslation();
-  const tabLabel = getTabLabel(rootCategory);
+  const tabLabel = getTabLabel(rootCategory, (k, fb) => t(k, fb ?? ""));
 
   const groupedByType: Record<string, Service[]> = {};
   services.forEach((s) => {
@@ -84,9 +83,10 @@ export default function ServiceSection({
       <SectionHeader
         icon={getServiceModuleIcon(getDefaultModule(rootCategory)) || "construct"}
         title={tabLabel}
-        accent={primaryColor}
+        accent="#59ABE3"
         onSeeAll={!readOnly && onAddService ? () => onAddService(getDefaultModule(rootCategory)) : undefined}
         seeAllLabel={t("services.add", "Hinzufügen")}
+        style={{ paddingHorizontal: SPACING.std }}
       />
       {typeEntries.map(([type, items]) => {
         const icon = getServiceModuleIcon(type);

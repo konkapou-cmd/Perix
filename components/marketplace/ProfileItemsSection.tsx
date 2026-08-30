@@ -126,6 +126,7 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
         accent="#59ABE3"
         onSeeAll={isOwner && canAdd && !addLoading ? onAdd : undefined}
         seeAllLabel={listingType === "home_rental" ? t("marketplace.addHome", "Home hinzufügen") : t("marketplace.addItem", "Artikel hinzufügen")}
+        style={{ paddingHorizontal: 0 }}
       />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>

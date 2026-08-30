@@ -55,6 +55,7 @@ export default function ActivitiesSection({
         accent={primaryColor}
         onSeeAll={!readOnly ? onAddActivity : undefined}
         seeAllLabel={t("activities.createActivity", "Aktivität erstellen")}
+        style={{ paddingHorizontal: SPACING.std }}
       />
 
       {activities.length === 0 ? (

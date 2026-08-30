@@ -2289,7 +2289,16 @@
     },
     "addFirstService": "Aggiungi il tuo primo servizio per iniziare",
     "requestSent": "Richiesta inviata",
-    "bookingPending": "Richiesta di prenotazione inviata! L'azienda confermerà a breve."
+    "bookingPending": "Richiesta di prenotazione inviata! L'azienda confermerà a breve.",
+    "tabMenu": "Menu",
+    "tabRooms": "Rooms",
+    "tabProducts": "Products",
+    "tabAppointments": "Appointments",
+    "tabCourses": "Courses & Services",
+    "tabVehicles": "Vehicles",
+    "tabReservations": "Reservations",
+    "tabBookings": "Bookings",
+    "tabServices": "Services"
   },
   "menu": {
     "starter": "Antipasti",

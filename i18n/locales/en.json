@@ -2512,7 +2512,16 @@
       "default": "Describe the service..."
     },
     "addFirstService": "Add your first service to get started",
-    "requestSent": "Request Sent"
+    "requestSent": "Request Sent",
+    "tabMenu": "Menu",
+    "tabRooms": "Rooms",
+    "tabProducts": "Products",
+    "tabAppointments": "Appointments",
+    "tabCourses": "Courses & Services",
+    "tabVehicles": "Vehicles",
+    "tabReservations": "Reservations",
+    "tabBookings": "Bookings",
+    "tabServices": "Services"
   },
   "detail": {
     "stay": "Stay Information",
