@@ -31,8 +31,8 @@ export const SectionHeader = ({
     <View style={[styles.row, style]}>
       <View style={styles.left}>
         {icon && (
-          <View style={[styles.iconContainer, { backgroundColor: accent }]}>
-            <Ionicons name={icon} size={16} color={COLORS.background} />
+          <View style={[styles.iconContainer, { backgroundColor: COLORS.background }]}>
+            <Ionicons name={icon} size={16} color={accent} />
           </View>
         )}
         <Text style={[styles.title, titleColor ? { color: titleColor } : null]} numberOfLines={1}>{title}</Text>

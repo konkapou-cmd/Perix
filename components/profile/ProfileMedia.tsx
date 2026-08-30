@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
-import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
+import { PROFILE_COLORS } from "./ProfileDesign";
 import EmptyState from "../shared/EmptyState";
 import MediaThumbnail from "../ui/MediaThumbnail";
 import LazyMediaViewer, { MediaItem as MediaViewerItem } from "../LazyMediaViewer";
@@ -26,7 +26,7 @@ function getVideoThumbnailUrl(uri: string): string {
   }
   return uri.replace("/upload/", "/upload/so_0,vc_00,w_300/");
 }
-const MAX_GALLERY_ITEMS = 15;
+const MAX_GALLERY_ITEMS = 30;
 
 type MediaItem = { uri: string; type: "image" | "video"; source: "post" | "gallery"; id: string };
 
@@ -52,7 +52,6 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
   onDeleteItem,
 }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"photos" | "videos">("photos");
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
 
@@ -117,13 +116,9 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
     return media.slice(0, MAX_GALLERY_ITEMS);
   }, [images, videos, posts]);
 
-  const photoItems = allMedia.filter((item) => item.type === "image");
-  const videoItems = allMedia.filter((item) => item.type === "video");
-  const mediaItems = activeTab === "photos" ? photoItems : videoItems;
-
   const viewerItems: MediaViewerItem[] = useMemo(() =>
-    mediaItems.map(item => ({ type: item.type, uri: item.uri })),
-    [mediaItems]
+    allMedia.map(item => ({ type: item.type, uri: item.uri })),
+    [allMedia]
   );
 
   const handleItemPress = (item: MediaItem, index: number) => {
@@ -137,45 +132,16 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.tabRow, { backgroundColor: cardColor }]}>
-        <Pressable
-          style={[styles.subTab, activeTab === "photos" && { borderBottomColor: primaryColor, borderBottomWidth: 2 }]}
-          onPress={() => setActiveTab("photos")}
-        >
-          <Ionicons
-            name={activeTab === "photos" ? "images" : "images-outline"}
-            size={18}
-            color={activeTab === "photos" ? primaryColor : PROFILE_COLORS.TEXT_SECONDARY}
-          />
-          <Text style={[styles.subTabText, activeTab === "photos" && { color: primaryColor }]}>
-            {t("profile.photos", "Photos")} {photoItems.length}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.subTab, activeTab === "videos" && { borderBottomColor: primaryColor, borderBottomWidth: 2 }]}
-          onPress={() => setActiveTab("videos")}
-        >
-          <Ionicons
-            name={activeTab === "videos" ? "videocam" : "videocam-outline"}
-            size={18}
-            color={activeTab === "videos" ? primaryColor : PROFILE_COLORS.TEXT_SECONDARY}
-          />
-          <Text style={[styles.subTabText, activeTab === "videos" && { color: primaryColor }]}>
-            {t("profile.videos", "Videos")} {videoItems.length}
-          </Text>
-        </Pressable>
-      </View>
-
-      {mediaItems.length === 0 ? (
+      {allMedia.length === 0 ? (
         <EmptyState
-          icon={activeTab === "photos" ? "images-outline" : "videocam-outline"}
-          i18nKey={activeTab === "photos" ? "profile.noPhotos" : "profile.noVideos"}
-          message={activeTab === "photos" ? "Noch keine Fotos" : "Noch keine Videos"}
+          icon="images-outline"
+          i18nKey="profile.noMedia"
+          message="Noch keine Fotos oder Videos"
           size="large"
         />
       ) : (
         <View style={styles.webGrid}>
-          {mediaItems.map((item, index) => (
+          {allMedia.map((item, index) => (
             <Pressable
               key={item.id}
               style={[styles.webGridItem, { width: itemSize, height: itemSize }]}
@@ -185,9 +151,16 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
                 uri={item.type === "video" ? getVideoThumbnailUrl(item.uri) : item.uri}
                 type={item.type}
                 aspectRatio={1}
-                showTypeBadge
+                showTypeBadge={false}
                 borderRadius={0}
               />
+              {item.type === "video" && (
+                <View style={styles.videoOverlay}>
+                  <View style={styles.playCircle}>
+                    <Ionicons name="play" size={18} color="#fff" style={{ marginLeft: 2 }} />
+                  </View>
+                </View>
+              )}
               {item.source === "post" && (
                 <View style={styles.postBadge}>
                   <Ionicons name="document-text" size={10} color="#fff" />
@@ -218,35 +191,6 @@ const styles: Record<string, any> = StyleSheet.create({
     flex: 1,
     marginTop: 8,
   },
-  tabRow: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: PROFILE_COLORS.BORDER,
-  },
-  subTab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
-  },
-  subTabText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: PROFILE_COLORS.TEXT_SECONDARY,
-  },
-  gridContainer: {
-    padding: 8,
-  },
-  gridItem: {
-    width: 100,
-    height: 100,
-    margin: 4,
-    position: "relative",
-    overflow: "hidden",
-  },
   webGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -259,35 +203,22 @@ const styles: Record<string, any> = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: COLORS.textPrimary,
+    backgroundColor: "#EDF4FB",
     position: "relative",
-  },
-  webGridMedia: {
-    width: "100%",
-    height: "100%",
-  },
-  gridImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 8,
-  },
-  videoThumbnail: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 4,
-    overflow: "hidden",
-    backgroundColor: "#1f2937",
-  },
-  gridVideo: {
-    width: "100%",
-    height: "100%",
   },
   videoOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.3)",
-    borderRadius: 4,
+    backgroundColor: "rgba(0,0,0,0.15)",
+  },
+  playCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   postBadge: {
     position: "absolute",
@@ -303,14 +234,5 @@ const styles: Record<string, any> = StyleSheet.create({
     right: 4,
     backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 11,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 60,
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: PROFILE_COLORS.TEXT_SECONDARY,
   },
 });
