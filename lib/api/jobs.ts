@@ -106,6 +106,9 @@ export const applyToJob = async (
 export const getJobApplications = async (token: string, jobId: string): Promise<import("./core").JobApplication[]> => {
   return apiRequest<import("./core").JobApplication[]>(`/jobs/${jobId}/applications`, "GET", token);
 };
+export const getReceivedJobApplications = async (token: string): Promise<(import("./core").JobApplication & { job_title?: string })[]> => {
+  return apiRequest<(import("./core").JobApplication & { job_title?: string })[]>('/jobs/applications/received', 'GET', token);
+};
 export const updateApplicationStatus = async (
   token: string,
   applicationId: string,

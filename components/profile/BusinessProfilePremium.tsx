@@ -35,6 +35,9 @@ import {
   JobsSection,
   ServiceSection,
 } from "../business";
+import JobsApplicationsModal from "../business/JobsApplicationsModal";
+import { getReceivedJobApplications, updateApplicationStatus } from "../../lib/api/jobs";
+import { JobApplication } from "../../lib/api/core";
 import { ContentMap } from "../shared";
 import {
   ProfileHeader,
@@ -288,6 +291,47 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     setPrivateActiveTab(tab);
   }, []);
   const [coverRepositionFp, setCoverRepositionFp] = useState(detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 });
+  const [showJobApplications, setShowJobApplications] = useState(false);
+  const [receivedApplications, setReceivedApplications] = useState<(JobApplication & { job_title?: string })[]>([]);
+  const [loadingApplications, setLoadingApplications] = useState(false);
+
+  const loadReceivedApplications = useCallback(async () => {
+    if (!sessionToken) return;
+    try {
+      const data = await getReceivedJobApplications(sessionToken);
+      setReceivedApplications(data || []);
+    } catch (e) {
+      console.warn("Failed to load received applications:", e);
+    }
+  }, [sessionToken]);
+
+  useEffect(() => {
+    if (sessionToken) {
+      loadReceivedApplications();
+    }
+  }, [sessionToken, loadReceivedApplications]);
+
+  const handleOpenJobApplications = async () => {
+    setShowJobApplications(true);
+    setLoadingApplications(true);
+    try {
+      await loadReceivedApplications();
+    } finally {
+      setLoadingApplications(false);
+    }
+  };
+
+  const handleApplicationStatus = async (applicationId: string, status: "accepted" | "rejected") => {
+    if (!sessionToken) return;
+    try {
+      await updateApplicationStatus(sessionToken, applicationId, status);
+      setReceivedApplications((prev) =>
+        prev.map((a) => (a.application_id === applicationId ? { ...a, status } : a))
+      );
+    } catch (e) {
+      console.warn("Failed to update application status:", e);
+    }
+  };
 
   const publicTabs: TabDefinition[] = useMemo(() => {
     const tabs: TabDefinition[] = [];
@@ -674,6 +718,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           cardColor={cardColor}
           textColor={textColor}
           secondaryColor={secondaryColor}
+          onViewApplications={isOwnProfile && !readOnly ? handleOpenJobApplications : undefined}
+          applicationsCount={receivedApplications.length}
         />
       )}
       {privateActiveTab.startsWith("svc:") && (
@@ -973,6 +1019,14 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           }}
         />
       )}
+
+      <JobsApplicationsModal
+        visible={showJobApplications}
+        applications={receivedApplications}
+        loading={loadingApplications}
+        onClose={() => setShowJobApplications(false)}
+        onStatusChange={handleApplicationStatus}
+      />
     </KeyboardAvoidingView>
   );
 };

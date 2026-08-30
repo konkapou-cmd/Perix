@@ -24,6 +24,8 @@ type Props = {
   cardColor?: string;
   textColor?: string;
   secondaryColor?: string;
+  onViewApplications?: () => void;
+  applicationsCount?: number;
 };
 
 export default function JobsSection({
@@ -36,6 +38,8 @@ export default function JobsSection({
   cardColor = "#fff",
   textColor = COLORS.textPrimary,
   secondaryColor = COLORS.textSecondary,
+  onViewApplications,
+  applicationsCount = 0,
 }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -50,6 +54,17 @@ export default function JobsSection({
         seeAllLabel={t("jobs.createJob", "Job erstellen")}
         style={{ paddingHorizontal: SPACING.std }}
       />
+
+      {onViewApplications && (
+        <Pressable style={s.applicationsBtn} onPress={onViewApplications}>
+          <Ionicons name="mail-open-outline" size={16} color="#264348" />
+          <Text style={s.applicationsText}>
+            {t("jobs.receivedApplications", "Eingegangene Bewerbungen")}
+            {applicationsCount > 0 ? ` (${applicationsCount})` : ""}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color="#264348" />
+        </Pressable>
+      )}
 
       {jobs.length === 0 ? (
         <EmptyState icon="briefcase" message={t("jobs.noJobs")} subMessage={readOnly ? undefined : t("jobs.addFirstJob")} />
@@ -176,6 +191,19 @@ const s = StyleSheet.create({
     gap: SPACING.small,
     paddingHorizontal: SPACING.std,
     paddingBottom: SPACING.small,
+  },
+  applicationsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginHorizontal: SPACING.std,
+    marginBottom: SPACING.small,
+    alignSelf: "flex-start",
+  },
+  applicationsText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#264348",
   },
   card: {
     width: 200,
