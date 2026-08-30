@@ -180,11 +180,11 @@ const abStyles = StyleSheet.create({
     minHeight: 44,
   },
   flatBtn: {
-    flex: 0,
+    flex: 1,
     paddingVertical: 4,
     paddingHorizontal: 2,
     minHeight: 0,
-    justifyContent: "flex-start",
+    justifyContent: "center",
   },
   iconOnly: {
     padding: 6,
@@ -768,8 +768,8 @@ const styles = StyleSheet.create({
   },
   primaryActions: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
+    justifyContent: "space-between",
+    gap: 8,
   },
   primaryBtn: {
     flex: 1,
