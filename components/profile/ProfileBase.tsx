@@ -768,6 +768,7 @@ const styles = StyleSheet.create({
   },
   primaryActions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 16,
   },
   primaryBtn: {
