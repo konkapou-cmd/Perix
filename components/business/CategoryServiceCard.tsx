@@ -264,7 +264,7 @@ const s = StyleSheet.create({
     padding: 10,
   },
   name: {
-    fontSize: FONT_SIZES.bodySmall,
+    fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#fff",
     marginBottom: SPACING.tiny,
@@ -295,7 +295,7 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   chipSmall: {
-    backgroundColor: COLORS.primary + "15",
+    backgroundColor: "rgba(255,255,255,0.18)",
     paddingHorizontal: SPACING.small,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.full,
@@ -305,12 +305,12 @@ const s = StyleSheet.create({
   chipSmallText: {
     fontSize: FONT_SIZES.micro,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.primary,
+    color: "#fff",
   },
   facilityTag: {
     fontSize: FONT_SIZES.micro,
-    color: COLORS.textMuted,
-    backgroundColor: COLORS.backgroundPage,
+    color: "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(255,255,255,0.18)",
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.sm,
