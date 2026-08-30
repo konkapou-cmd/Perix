@@ -395,14 +395,14 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   }, [requestedSection, privateTabs]);
 
   const theme = detail.business.theme;
-  const { themeStyles, themeColors, isDark } = useThemeStyles(theme);
+  const { themeStyles, isDark } = useThemeStyles(theme);
   const { isDesktop } = useResponsiveLayout();
-  const bgColor = themeColors.backgroundColor;
-  const primaryColor = themeColors.primaryColor;
-  const textColor = themeColors.textColor;
-  const secondaryColor = themeColors.secondaryColor;
-  const cardColor = themeColors.cardColor;
-  const borderColor = themeColors.borderColor;
+  const bgColor = COLORS.backgroundPage;
+  const primaryColor = "#59ABE3";
+  const textColor = "#264348";
+  const secondaryColor = "rgba(38,67,72,0.65)";
+  const cardColor = "#FFFFFF";
+  const borderColor = "rgba(38,67,72,0.15)";
 
   const slugUrl = slug ? `${APP_URL}/business/${slug}` : undefined;
 

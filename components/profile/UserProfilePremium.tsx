@@ -250,13 +250,13 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   }, [userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem, pendingBookingsCount]);
 
   const theme = user.theme;
-  const { themeStyles, themeColors } = useThemeStyles(theme);
-  const bgColor = themeColors.backgroundColor;
-  const primaryColor = themeColors.primaryColor;
-  const textColor = themeColors.textColor;
-  const secondaryColor = themeColors.secondaryColor;
-  const cardColor = themeColors.cardColor;
-  const borderColor = themeColors.borderColor;
+  const { themeStyles } = useThemeStyles(theme);
+  const bgColor = COLORS.backgroundPage;
+  const primaryColor = "#59ABE3";
+  const textColor = "#264348";
+  const secondaryColor = "rgba(38,67,72,0.65)";
+  const cardColor = "#FFFFFF";
+  const borderColor = "rgba(38,67,72,0.15)";
   const resolvedUserId = userId || user.user_id;
 
   const slugUrl = slug ? `${APP_URL}/user/${slug}` : undefined;
