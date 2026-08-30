@@ -137,17 +137,17 @@ function ProfileActionButton({
 
   if (isIcon && !label) {
     return (
-      <IconActionButton
-        icon={icon as any}
-        onPress={onPress}
-        variant={
-          variant === "dangerIcon" ? "danger"
-          : variant === "savedIcon" ? "gold"
-          : "muted"
-        }
-        size="sm"
-        disabled={disabled}
-      />
+      <Pressable onPress={onPress} disabled={disabled} style={abStyles.iconOnly}>
+        <Ionicons
+          name={icon as any}
+          size={20}
+          color={
+            variant === "dangerIcon" ? PROFILE_COLORS.DANGER
+            : variant === "savedIcon" ? COLORS.gold
+            : "#1F4788"
+          }
+        />
+      </Pressable>
     );
   }
 
@@ -185,6 +185,9 @@ const abStyles = StyleSheet.create({
     paddingHorizontal: 2,
     minHeight: 0,
     justifyContent: "flex-start",
+  },
+  iconOnly: {
+    padding: 6,
   },
   text: {
     fontSize: 14,
@@ -377,7 +380,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 label={t("common.edit", "Profil bearbeiten")}
                 variant="flat"
                 onPress={onEditProfile}
-                color={primaryColor}
+                color="#1F4788"
               />
               {onShare && (
                 <ProfileActionButton
@@ -385,7 +388,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   label={t("common.share", "Teilen")}
                   variant="flat"
                   onPress={onShare}
-                  color={primaryColor}
+                  color="#1F4788"
                 />
               )}
               {onViewPublic && (
@@ -394,7 +397,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   label={t("profile.viewProfile", "Profil")}
                   variant="flat"
                   onPress={onViewPublic}
-                  color={primaryColor}
+                  color="#1F4788"
                 />
               )}
             </View>
@@ -530,10 +533,10 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
         <Ionicons
           name={tab.icon as any}
           size={22}
-          color={active ? primaryColor : PROFILE_COLORS.TEXT_SECONDARY || "#999"}
+          color={active ? primaryColor : "#1F4788"}
         />
         {tab.count !== undefined && tab.count > 0 && (
-          <View style={[iconStyles.badge, { backgroundColor: active ? primaryColor : (PROFILE_COLORS.TEXT_SECONDARY || "#999") }]}>
+          <View style={[iconStyles.badge, { backgroundColor: active ? primaryColor : "#1F4788" }]}>
             <Text style={iconStyles.badgeText}>{tab.count > 99 ? "99+" : tab.count}</Text>
           </View>
         )}

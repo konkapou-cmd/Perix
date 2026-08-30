@@ -331,7 +331,7 @@ pendingMentionIds = [],
         <TextInput
           style={[styles.createPostTextInput, { backgroundColor: bgColor || "#f3f4f6", color: textColor }]}
           placeholder={t("profile.whatsNew", "What's on your mind?")}
-          placeholderTextColor={PROFILE_COLORS.TEXT_SECONDARY}
+          placeholderTextColor="#1F4788"
           value={postText}
           onChangeText={setPostText}
           multiline
@@ -386,14 +386,14 @@ pendingMentionIds = [],
       )}
       <View style={styles.createPostActions}>
         <Pressable style={styles.createPostAction} onPress={pickPostImage}>
-          <Ionicons name="image" size={22} color={PROFILE_COLORS.TEXT_SECONDARY} />
+          <Ionicons name="image" size={22} color="#1F4788" />
         </Pressable>
         <Pressable style={styles.createPostAction} onPress={pickPostVideo}>
-          <Ionicons name="videocam" size={22} color={PROFILE_COLORS.TEXT_SECONDARY} />
+          <Ionicons name="videocam" size={22} color="#1F4788" />
         </Pressable>
         {onOpenTagModal && (
           <Pressable style={styles.createPostAction} onPress={onOpenTagModal}>
-            <Ionicons name="at" size={22} color={PROFILE_COLORS.TEXT_SECONDARY} />
+            <Ionicons name="at" size={22} color="#1F4788" />
           </Pressable>
         )}
         {onCreateStory && (
@@ -640,7 +640,9 @@ const styles: Record<string, any> = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "rgba(89,171,227,0.4)",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
