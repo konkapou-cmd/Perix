@@ -7,6 +7,7 @@ import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../
 import { getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
 import { getDefaultModule } from "../../lib/config/serviceCategoryMatrix";
 import { EmptyState } from "../shared";
+import { SectionHeader } from "../shared/SectionHeader";
 import CategoryServiceCard from "./CategoryServiceCard";
 
 type Props = {
@@ -80,6 +81,13 @@ export default function ServiceSection({
 
   return (
     <View style={s.container}>
+      <SectionHeader
+        icon={getServiceModuleIcon(getDefaultModule(rootCategory)) || "construct"}
+        title={tabLabel}
+        accent={primaryColor}
+        onSeeAll={!readOnly && onAddService ? () => onAddService(getDefaultModule(rootCategory)) : undefined}
+        seeAllLabel={t("services.add", "Hinzufügen")}
+      />
       {typeEntries.map(([type, items]) => {
         const icon = getServiceModuleIcon(type);
         const label = getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? type));
@@ -91,12 +99,6 @@ export default function ServiceSection({
                 <Ionicons name={icon} size={16} color={primaryColor} style={{ marginRight: SPACING.small }} />
                 <Text style={[s.categoryTitle, { color: textColor }]}>{label}</Text>
               </View>
-            )}
-            {!readOnly && onAddService && (
-              <Pressable style={[s.addBtn, { backgroundColor: cardColor, borderColor: primaryColor }]} onPress={() => onAddService(type)}>
-                <Ionicons name="add-circle-outline" size={18} color={primaryColor} />
-                <Text style={[s.addBtnText, { color: primaryColor }]}>{t("services.add", "Hinzufügen")} {label}</Text>
-              </Pressable>
             )}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
               {items.map((item) => (

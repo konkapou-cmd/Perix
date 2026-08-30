@@ -9,6 +9,7 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designToke
 import { Listing, ListingStatus } from "../../lib/api/listings";
 import { entityRoutes, pushEntityRoute } from "../../lib/navigation/entityRoutes";
 import { MARKETPLACE_CATEGORIES, getCategoryConfig, getSubcategories } from "../../lib/marketplace/marketplaceTaxonomy";
+import { SectionHeader } from "../shared/SectionHeader";
 
 function getMuxThumb(uri?: string): string | null {
   if (!uri) return null;
@@ -119,27 +120,13 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
 
   return (
     <View style={styles.container}>
-      {isOwner && (
-        <Pressable
-          style={[styles.addBtn, (!canAdd || addLoading) && styles.addBtnDisabled]}
-          onPress={canAdd && !addLoading ? onAdd : undefined}
-        >
-          <Ionicons
-            name={addLoading ? "hourglass-outline" : "add-circle-outline"}
-            size={20}
-            color={canAdd && !addLoading ? COLORS.primary : COLORS.textMuted}
-          />
-          <Text style={[styles.addText, (!canAdd || addLoading) && { color: COLORS.textMuted }]}>
-            {addLoading
-              ? t("common.loading", "Lädt...")
-              : !canAdd && addDisabledReason
-                ? addDisabledReason
-                : listingType === "home_rental"
-                  ? t("marketplace.addHome", "Home hinzufügen")
-                  : t("marketplace.addItem", "Artikel hinzufügen")}
-          </Text>
-        </Pressable>
-      )}
+      <SectionHeader
+        icon={listingType === "home_rental" ? "home" : "pricetag"}
+        title={listingType === "home_rental" ? t("marketplace.listings", "Unterkünfte") : t("marketplace.items", "Artikel")}
+        accent="#59ABE3"
+        onSeeAll={isOwner && canAdd && !addLoading ? onAdd : undefined}
+        seeAllLabel={listingType === "home_rental" ? t("marketplace.addHome", "Home hinzufügen") : t("marketplace.addItem", "Artikel hinzufügen")}
+      />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
         <Pressable
@@ -209,6 +196,19 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
                 />
                 <View style={styles.cardInfo}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{listing.title}</Text>
+                  {(() => {
+                    const isHome = listingType === "home_rental";
+                    const catCfg = listing.category ? getCategoryConfig(listing.category) : null;
+                    const catLabel = catCfg ? t(catCfg.labelKey, catCfg.fallback) : "";
+                    const condFallback: Record<string, string> = { new: "Neu", like_new: "Wie neu", good: "Gut", used: "Gebraucht" };
+                    const condLabel = listing.condition
+                      ? t(`listing.condition.${listing.condition}`, condFallback[listing.condition] ?? listing.condition)
+                      : "";
+                    const homeMeta = isHome
+                      ? [listing.property_type ? t(`rentals.types.${listing.property_type}`, listing.property_type) : "", listing.bedrooms ? `${listing.bedrooms} Zi.` : "", listing.size_sqm ? `${listing.size_sqm} m²` : ""].filter(Boolean).join(" · ")
+                      : [catLabel, condLabel].filter(Boolean).join(" · ");
+                    return homeMeta ? <Text style={styles.cardMetaLine} numberOfLines={1}>{homeMeta}</Text> : null;
+                  })()}
                   <View style={styles.cardMeta}>
                     <View style={[styles.badge, { backgroundColor: badge.color + "20" }]}>
                       <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
@@ -294,6 +294,7 @@ const styles = StyleSheet.create({
     padding: SPACING.small,
   },
   cardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: "#fff" },
+  cardMetaLine: { fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 2 },
   cardMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
   badgeText: { fontSize: 11, fontWeight: "600" },
