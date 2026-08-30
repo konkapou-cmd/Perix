@@ -118,6 +118,26 @@ async def get_my_applications(current_user: UserPublic = Depends(get_current_use
     
     return result
 
+
+@router.get("/applications/received")
+async def get_received_applications(current_user: UserPublic = Depends(get_current_user)):
+    """Get all applications received for jobs owned by the current user"""
+    jobs = await db.jobs.find(
+        {"owner_id": current_user.user_id},
+        {"_id": 0, "job_id": 1, "title": 1}
+    ).to_list(200)
+    job_ids = [j["job_id"] for j in jobs]
+    if not job_ids:
+        return []
+    applications = await db.job_applications.find(
+        {"job_id": {"$in": job_ids}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(200)
+    title_map = {j["job_id"]: j.get("title", "") for j in jobs}
+    for app in applications:
+        app["job_title"] = title_map.get(app.get("job_id"), "")
+    return applications
+
 @router.post("")
 async def create_job(
     job_data: JobCreate,
