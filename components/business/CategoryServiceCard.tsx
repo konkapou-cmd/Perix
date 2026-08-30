@@ -170,11 +170,12 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
     : ctaType === "buy" ? t("services.buy", "Buy")
     : "";
   const ctaColor =
-    ctaType === "booking" ? COLORS.success
-    : ctaType === "reservation" ? COLORS.primary
-    : ctaType === "request_quote" ? COLORS.primaryDark
-    : ctaType === "get_in_touch" ? COLORS.textSecondary
-    : COLORS.textMuted;
+    ctaType === "booking" ? "#4ade80"
+    : ctaType === "reservation" ? "#59ABE3"
+    : ctaType === "request_quote" ? "#FF9F1C"
+    : ctaType === "get_in_touch" ? "#264348"
+    : ctaType === "buy" ? "#7B3FF2"
+    : "#264348";
 
   const typeName = getServiceModuleLabel(service.type, (k: string, fb?: string) => t(k, fb ?? service.type));
 
@@ -260,26 +261,26 @@ const s = StyleSheet.create({
     padding: 10,
   },
   name: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#fff",
     marginBottom: SPACING.tiny,
     flexShrink: 1,
   },
   desc: {
-    fontSize: FONT_SIZES.small,
+    fontSize: 12,
     color: "rgba(255,255,255,0.85)",
     marginTop: 2,
-    lineHeight: 16,
+    lineHeight: 15,
   },
   meta: {
-    fontSize: FONT_SIZES.small,
+    fontSize: 12,
     color: "rgba(255,255,255,0.85)",
     marginTop: 2,
     flexShrink: 1,
   },
   price: {
-    fontSize: FONT_SIZES.body,
+    fontSize: 14,
     fontWeight: FONT_WEIGHTS.bold as any,
     color: "#4ade80",
     marginTop: SPACING.tiny,

@@ -115,17 +115,17 @@ export default function ServiceSection({
                     <View style={s.actionRow}>
                       {onOpenSlotManager && (
                         <Pressable onPress={() => onOpenSlotManager(item.service_id, item.type)} hitSlop={8} style={s.actionBtn}>
-                          <Ionicons name="time-outline" size={16} color={primaryColor} />
+                          <Ionicons name="time-outline" size={16} color="#fff" />
                         </Pressable>
                       )}
                       {onEditService && (
                         <Pressable onPress={() => onEditService(item)} hitSlop={8} style={s.actionBtn}>
-                          <Ionicons name="create-outline" size={16} color={primaryColor} />
+                          <Ionicons name="create-outline" size={16} color="#fff" />
                         </Pressable>
                       )}
                       {onDeleteService && (
                         <Pressable onPress={() => onDeleteService(item.service_id)} hitSlop={8} style={s.actionBtn}>
-                          <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
+                          <Ionicons name="trash-outline" size={16} color="#fff" />
                         </Pressable>
                       )}
                     </View>
@@ -174,16 +174,21 @@ const s = StyleSheet.create({
   },
   cardWrap: {
     width: 200,
+    position: "relative",
   },
   actionRow: {
+    position: "absolute",
+    top: SPACING.small,
+    right: SPACING.small,
     flexDirection: "row",
-    justifyContent: "flex-end",
     gap: SPACING.small,
-    paddingTop: SPACING.tiny,
-    paddingBottom: SPACING.small,
-    paddingRight: SPACING.tiny,
   },
   actionBtn: {
-    padding: SPACING.tiny,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
