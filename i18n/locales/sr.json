@@ -80,7 +80,8 @@
     "allSubcategories": "Sve potkategorije",
     "subcategory": "Kategorija",
     "contact": "Kontaktiraj prodavca",
-    "loginToContact": "Prijavite se da kontaktirate prodavca."
+    "loginToContact": "Prijavite se da kontaktirate prodavca.",
+    "logout": "Одјавите се"
   },
   "dashboard": {
     "analyticsOverview": "Pregled Statistika",
@@ -616,7 +617,9 @@
       "closesAt": "Zatvara se u {{time}}",
       "opensAt": "Otvara se u {{time}}",
       "directions": "Uputstva"
-    }
+    },
+    "completeYourProfile": "Довршите свој профил",
+    "viewProfile": "Погледајте профил"
   },
   "saved": {
     "title": "Sačuvano",

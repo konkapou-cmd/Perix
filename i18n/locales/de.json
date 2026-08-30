@@ -94,7 +94,8 @@
     "tag": "Tag",
     "status": "Status",
     "contact": "Anbieter kontaktieren",
-    "loginToContact": "Bitte melde dich an, um den Anbieter zu kontaktieren."
+    "loginToContact": "Bitte melde dich an, um den Anbieter zu kontaktieren.",
+    "logout": "Abmelden"
   },
   "dashboard": {
     "analyticsOverview": "Statistikübersicht",
@@ -716,7 +717,9 @@
       "closesAt": "Schließt um {{time}}",
       "opensAt": "Öffnet um {{time}}",
       "directions": "Route"
-    }
+    },
+    "completeYourProfile": "Profil vervollständigen",
+    "viewProfile": "Profil ansehen"
   },
   "saved": {
     "title": "Gespeichert",

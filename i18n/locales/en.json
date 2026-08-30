@@ -88,7 +88,8 @@
     "allSubcategories": "All Subcategories",
     "subcategory": "Category",
     "contact": "Contact Seller",
-    "loginToContact": "Please log in to contact the seller."
+    "loginToContact": "Please log in to contact the seller.",
+    "logout": "Log out"
   },
   "dashboard": {
     "analyticsOverview": "Analytics Overview",
@@ -539,7 +540,9 @@
     "deletePost": "Delete Post",
     "editPost": "Edit Post",
     "friendRequests": "Friend Requests",
-    "whatsNew": "What's new?"
+    "whatsNew": "What's new?",
+    "completeYourProfile": "Complete your profile",
+    "viewProfile": "View profile"
   },
   "modules": {
     "events": "Events",

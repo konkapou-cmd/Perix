@@ -80,7 +80,8 @@
     "allSubcategories": "Все подкатегории",
     "subcategory": "Категория",
     "contact": "Связаться с продавцом",
-    "loginToContact": "Войдите, чтобы связаться с продавцом."
+    "loginToContact": "Войдите, чтобы связаться с продавцом.",
+    "logout": "Выйти"
   },
   "dashboard": {
     "analyticsOverview": "Обзор Статистики",
@@ -617,7 +618,9 @@
       "closesAt": "Закрывается в {{time}}",
       "opensAt": "Открывается в {{time}}",
       "directions": "Маршрут"
-    }
+    },
+    "completeYourProfile": "Заполните свой профиль",
+    "viewProfile": "Просмотреть профиль"
   },
   "saved": {
     "title": "Сохранено",

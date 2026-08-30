@@ -80,7 +80,8 @@
     "allSubcategories": "Toutes les sous-catégories",
     "subcategory": "Catégorie",
     "contact": "Contacter le vendeur",
-    "loginToContact": "Connectez-vous pour contacter le vendeur."
+    "loginToContact": "Connectez-vous pour contacter le vendeur.",
+    "logout": "Se déconnecter"
   },
   "dashboard": {
     "analyticsOverview": "Aperçu des Statistiques",
@@ -617,7 +618,9 @@
       "closesAt": "Ferme à {{time}}",
       "opensAt": "Ouvre à {{time}}",
       "directions": "Itinéraire"
-    }
+    },
+    "completeYourProfile": "Complétez votre profil",
+    "viewProfile": "Voir le profil"
   },
   "saved": {
     "title": "Enregistrés",

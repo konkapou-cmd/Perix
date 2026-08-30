@@ -80,7 +80,8 @@
     "allSubcategories": "Tutte le sottocategorie",
     "subcategory": "Categoria",
     "contact": "Contatta il venditore",
-    "loginToContact": "Accedi per contattare il venditore."
+    "loginToContact": "Accedi per contattare il venditore.",
+    "logout": "Esci"
   },
   "dashboard": {
     "analyticsOverview": "Panoramica Statistiche",
@@ -617,7 +618,9 @@
       "closesAt": "Chiude alle {{time}}",
       "opensAt": "Apre alle {{time}}",
       "directions": "Indicazioni"
-    }
+    },
+    "completeYourProfile": "Completa il tuo profilo",
+    "viewProfile": "Vedi profilo"
   },
   "saved": {
     "title": "Salvati",

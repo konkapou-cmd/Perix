@@ -80,7 +80,8 @@
     "allSubcategories": "Të gjitha nënkategoritë",
     "subcategory": "Kategoria",
     "contact": "Kontakto shitësin",
-    "loginToContact": "Hyni për të kontaktuar shitësin."
+    "loginToContact": "Hyni për të kontaktuar shitësin.",
+    "logout": "Dil"
   },
   "dashboard": {
     "analyticsOverview": "Përmbledhje e Statistikave",
@@ -616,7 +617,9 @@
       "closesAt": "Mbyllet në {{time}}",
       "opensAt": "Hapet në {{time}}",
       "directions": "Udhëzime"
-    }
+    },
+    "completeYourProfile": "Plotësoni profilin tuaj",
+    "viewProfile": "Shiko profilin"
   },
   "saved": {
     "title": "Të Ruajtura",

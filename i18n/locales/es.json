@@ -80,7 +80,8 @@
     "allSubcategories": "Todas las subcategorías",
     "subcategory": "Categoría",
     "contact": "Contactar al vendedor",
-    "loginToContact": "Inicia sesión para contactar al vendedor."
+    "loginToContact": "Inicia sesión para contactar al vendedor.",
+    "logout": "Cerrar sesión"
   },
   "dashboard": {
     "analyticsOverview": "Resumen de Estadísticas",
@@ -617,7 +618,9 @@
       "closesAt": "Cierra a las {{time}}",
       "opensAt": "Abre a las {{time}}",
       "directions": "Direcciones"
-    }
+    },
+    "completeYourProfile": "Completa tu perfil",
+    "viewProfile": "Ver perfil"
   },
   "saved": {
     "title": "Guardado",

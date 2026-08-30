@@ -86,7 +86,8 @@
     "allSubcategories": "Όλες οι υποκατηγορίες",
     "subcategory": "Κατηγορία",
     "contact": "Επικοινωνία με τον πωλητή",
-    "loginToContact": "Συνδεθείτε για να επικοινωνήσετε με τον πωλητή."
+    "loginToContact": "Συνδεθείτε για να επικοινωνήσετε με τον πωλητή.",
+    "logout": "Αποσύνδεση"
   },
   "dashboard": {
     "analyticsOverview": "Επισκόπηση Στατιστικών",
@@ -736,7 +737,9 @@
       "closesAt": "Κλείνει στις {{time}}",
       "opensAt": "Ανοίγει στις {{time}}",
       "directions": "Οδηγίες"
-    }
+    },
+    "completeYourProfile": "Ολοκληρώστε το προφίλ σας",
+    "viewProfile": "Προβολή προφίλ"
   },
   "saved": {
     "title": "Αποθηκευμένα",
