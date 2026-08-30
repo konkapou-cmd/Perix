@@ -251,7 +251,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
 
   const theme = user.theme;
   const { themeStyles } = useThemeStyles(theme);
-  const bgColor = COLORS.backgroundPage;
+  const bgColor = "#FFFFFF";
   const primaryColor = "#59ABE3";
   const textColor = "#264348";
   const secondaryColor = "rgba(38,67,72,0.65)";
@@ -328,9 +328,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         isSaved={readOnly ? isSaved : undefined}
         savingItem={readOnly ? savingItem : undefined}
         stats={[
-          { label: t("profile.posts", "Posts"), count: userPosts.length },
           { label: t("profile.friends", "Friends"), count: friends.length, onPress: onViewFriends },
-          { label: t("userProfile.activities", "Activities"), count: userActivities.length },
         ]}
         completenessItems={
           !readOnly
@@ -353,26 +351,6 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         onEditProfile={onEditProfile}
         themeStyles={themeStyles}
       />
-
-      {isOwnProfile && (
-        <FriendsCarousel
-          friends={friends as FriendProfile[]}
-          showAddButton={true}
-          currentUserId={currentUserId}
-          currentUserName={user.name}
-        />
-      )}
-
-      {readOnly && (
-        <FriendsSection
-          friends={friends as FriendProfile[]}
-          isFriend={friendStatus === "friends" || friendStatus === "request_sent"}
-          onToggleFriend={onFriendPress || (() => {})}
-          isLoading={false}
-          showMakeButton={true}
-          showFriendRequests={false}
-        />
-      )}
 
       <View onLayout={(e) => { tabsYRef.current = e.nativeEvent.layout.y; }}>
         <ProfileTabs

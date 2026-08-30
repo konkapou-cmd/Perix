@@ -99,7 +99,7 @@ interface ProfileHeaderProps {
   completenessItems?: { label: string; done: boolean }[];
 }
 
-type ActionBtnVariant = "primary" | "outline" | "secondaryIcon" | "dangerIcon" | "savedIcon";
+type ActionBtnVariant = "primary" | "outline" | "secondaryIcon" | "dangerIcon" | "savedIcon" | "flat";
 
 function ProfileActionButton({
   label,
@@ -118,6 +118,7 @@ function ProfileActionButton({
 }) {
   const isPrimary = variant === "primary" || variant === "savedIcon";
   const isOutline = variant === "outline";
+  const isFlat = variant === "flat";
   const isIcon = variant === "secondaryIcon" || variant === "dangerIcon" || variant === "savedIcon";
 
   const bg = variant === "primary" ? color
@@ -129,6 +130,7 @@ function ProfileActionButton({
     : variant === "outline" ? color
     : variant === "dangerIcon" ? PROFILE_COLORS.DANGER
     : variant === "savedIcon" ? COLORS.gold
+    : isFlat ? color
     : PROFILE_COLORS.TEXT_SECONDARY;
 
   const iconSize = isPrimary ? 16 : 20;
@@ -153,6 +155,7 @@ function ProfileActionButton({
     <Pressable
       style={[
         abStyles.btn,
+        isFlat && abStyles.flatBtn,
         isPrimary && { backgroundColor: bg },
         isOutline && { backgroundColor: bg, borderWidth: 1.5, borderColor: color },
       ]}
@@ -175,6 +178,13 @@ const abStyles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: PROFILE.BUTTON_RADIUS,
     minHeight: 44,
+  },
+  flatBtn: {
+    flex: 0,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    minHeight: 0,
+    justifyContent: "flex-start",
   },
   text: {
     fontSize: 14,
@@ -311,8 +321,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
         {location && (
           <View style={styles.locationRow}>
-            <Ionicons name="location" size={13} color={PROFILE_COLORS.TEXT_SECONDARY} />
-            <Text style={[styles.locationText, { color: PROFILE_COLORS.TEXT_SECONDARY }, themeStyles as TextStyle]}>
+            <Ionicons name="location" size={13} color="#1F4788" />
+            <Text style={[styles.locationText, { color: "#1F4788" }, themeStyles as TextStyle]}>
               {location}
             </Text>
           </View>
@@ -331,12 +341,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             s.onPress ? (
               <Pressable key={i} style={styles.statItem} onPress={s.onPress}>
                 <Text style={[styles.statCount, { color: textColor }, themeStyles as TextStyle]}>{s.count}</Text>
-                <Text style={[styles.statLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]} numberOfLines={1} ellipsizeMode="tail">{s.label}</Text>
+                <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">{s.label}</Text>
               </Pressable>
             ) : (
               <View key={i} style={styles.statItem}>
                 <Text style={[styles.statCount, { color: textColor }, themeStyles as TextStyle]}>{s.count}</Text>
-                <Text style={[styles.statLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]} numberOfLines={1} ellipsizeMode="tail">{s.label}</Text>
+                <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">{s.label}</Text>
               </View>
             )
           ))}
@@ -344,11 +354,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       )}
 
       {!readOnly && completenessItems && completenessItems.some(c => !c.done) && (
-        <View style={[styles.completenessCard, { backgroundColor: cardColor, borderColor }]}>
-          <Text style={[styles.completenessTitle, { color: textColor }]}>Complete your profile</Text>
+        <View style={[styles.completenessCard, { backgroundColor: cardColor }]}>
+          <Text style={[styles.completenessTitle, { color: textColor }]}>{t("profile.completeYourProfile", "Complete your profile")}</Text>
           {completenessItems.filter(c => !c.done).map((c, i) => (
             <View key={i} style={styles.completenessRow}>
-              <Ionicons name="close-circle" size={16} color={PROFILE_COLORS.DANGER} />
+              <Ionicons name="ellipse-outline" size={14} color={primaryColor} />
               <Text style={[styles.completenessLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>{c.label}</Text>
             </View>
           ))}
@@ -365,6 +375,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <ProfileActionButton
                 icon="create-outline"
                 label={t("common.edit", "Profil bearbeiten")}
+                variant="flat"
                 onPress={onEditProfile}
                 color={primaryColor}
               />
@@ -372,8 +383,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <ProfileActionButton
                   icon="share-social-outline"
                   label={t("common.share", "Teilen")}
-                  variant="outline"
+                  variant="flat"
                   onPress={onShare}
+                  color={primaryColor}
+                />
+              )}
+              {onViewPublic && (
+                <ProfileActionButton
+                  icon="open-outline"
+                  label={t("profile.viewProfile", "Profil")}
+                  variant="flat"
+                  onPress={onViewPublic}
                   color={primaryColor}
                 />
               )}
@@ -703,13 +723,13 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     fontWeight: "500",
+    color: "#1F4788",
   },
   completenessCard: {
     marginHorizontal: PROFILE.HORIZONTAL_PADDING,
     marginTop: 10,
     padding: 14,
     borderRadius: PROFILE.BUTTON_RADIUS,
-    borderWidth: 1,
     gap: 6,
   },
   completenessTitle: {

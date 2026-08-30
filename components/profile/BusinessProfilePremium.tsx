@@ -397,7 +397,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const theme = detail.business.theme;
   const { themeStyles, isDark } = useThemeStyles(theme);
   const { isDesktop } = useResponsiveLayout();
-  const bgColor = COLORS.backgroundPage;
+  const bgColor = "#FFFFFF";
   const primaryColor = "#59ABE3";
   const textColor = "#264348";
   const secondaryColor = "rgba(38,67,72,0.65)";
@@ -515,10 +515,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         savingItem={savingItem}
         friendStatus={friendStatus || "none"}
         stats={[
-          { label: t("profile.posts", "Posts"), count: businessPosts.length },
           { label: t("profile.friends", "Friends"), count: detail.business.friends_count ?? friends.length, onPress: onViewFriends },
-          { label: t("business.events", "Events"), count: events.length },
-          { label: t("jobs.myJobs", "Jobs"), count: jobs.length },
         ]}
         completenessItems={
           !readOnly
@@ -558,23 +555,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           title={detail.business.name}
           address={detail.business.address}
           interactive={false}
-        />
-      )}
-      {isOwnProfile && !readOnly && (
-        <FriendsCarousel
-          friends={friends as any}
-          showAddButton={false}
-          currentUserId={currentUserId}
-          currentUserName={detail.business.name}
-        />
-      )}
-      {readOnly && (
-        <FriendsSection
-          friends={friends as any}
-          isFriend={friendStatus === "friends"}
-          onToggleFriend={onFollowPress || (() => {})}
-          showMakeButton={false}
-          showFriendRequests={false}
         />
       )}
     </>
