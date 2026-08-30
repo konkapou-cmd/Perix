@@ -361,8 +361,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <Text style={[styles.completenessTitle, { color: textColor }]}>{t("profile.completeYourProfile", "Complete your profile")}</Text>
           {completenessItems.filter(c => !c.done).map((c, i) => (
             <View key={i} style={styles.completenessRow}>
-              <Ionicons name="ellipse-outline" size={14} color={primaryColor} />
-              <Text style={[styles.completenessLabel, { color: PROFILE_COLORS.TEXT_SECONDARY }]}>{c.label}</Text>
+              <Ionicons name="ellipse-outline" size={14} color="#1F4788" />
+              <Text style={styles.completenessLabel}>{c.label}</Text>
             </View>
           ))}
           <Pressable style={[styles.completenessBtn, { backgroundColor: primaryColor }]} onPress={onEditProfile}>
@@ -683,6 +683,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     marginBottom: 2,
+    color: "#1F4788",
   },
   slugRow: {
     flexDirection: "row",
@@ -747,6 +748,7 @@ const styles = StyleSheet.create({
   },
   completenessLabel: {
     fontSize: 13,
+    color: "#1F4788",
   },
   completenessBtn: {
     marginTop: 6,

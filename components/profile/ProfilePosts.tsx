@@ -734,6 +734,7 @@ const styles: Record<string, any> = StyleSheet.create({
   postAuthor: {
     fontSize: Platform.OS === "web" ? 16 : 14,
     fontWeight: "600",
+    color: "#1F4788",
   },
   postDate: {
     fontSize: Platform.OS === "web" ? 13 : 12,
