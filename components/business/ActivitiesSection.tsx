@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -59,7 +59,7 @@ export default function ActivitiesSection({
       {activities.length === 0 ? (
         <EmptyState icon="people" message={t("userProfile.noActivities")} subMessage={!readOnly ? t("userProfile.addFirstActivity") : undefined} />
       ) : (
-        <View style={s.grid}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
           {activities.map((activity) => {
             const theme = getThemeInfo(activity.theme);
             const imageUrl = activity.cover_image_url || activity.gallery_images?.[0] || activity.image_urls?.[0];
@@ -146,7 +146,7 @@ export default function ActivitiesSection({
               </View>
             );
           })}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -180,10 +180,13 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
     fontSize: FONT_SIZES.bodySmall,
   },
-  grid: {
+  carousel: {
     gap: SPACING.small,
+    paddingHorizontal: SPACING.std,
+    paddingBottom: SPACING.small,
   },
   card: {
+    width: 250,
     borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
     ...SHADOWS.subtle,

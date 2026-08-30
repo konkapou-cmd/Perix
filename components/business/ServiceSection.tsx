@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Service } from "../../lib/api/core";
@@ -98,9 +98,9 @@ export default function ServiceSection({
                 <Text style={[s.addBtnText, { color: primaryColor }]}>{t("services.add", "Hinzufügen")} {label}</Text>
               </Pressable>
             )}
-            <View style={s.grid}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
               {items.map((item) => (
-                <View key={item.service_id}>
+                <View key={item.service_id} style={s.cardWrap}>
                   <CategoryServiceCard
                     service={item}
                     rootCategory={rootCategory}
@@ -130,7 +130,7 @@ export default function ServiceSection({
                   )}
                 </View>
               ))}
-            </View>
+            </ScrollView>
           </View>
         );
       })}
@@ -166,8 +166,12 @@ const s = StyleSheet.create({
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
   },
-  grid: {
+  carousel: {
     gap: SPACING.small,
+    paddingBottom: SPACING.small,
+  },
+  cardWrap: {
+    width: 250,
   },
   actionRow: {
     flexDirection: "row",

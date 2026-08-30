@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -55,7 +55,7 @@ export default function EventsSection({
       {events.length === 0 ? (
         <EmptyState icon="calendar" message={t("business.noEvents")} subMessage={readOnly ? undefined : t("business.addFirstEvent")} />
       ) : (
-        <View style={s.grid}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
           {events.map((event) => {
             const theme = getThemeInfo(event.theme);
             const imageUrl = event.cover_image_url || event.image_urls?.[0] || event.gallery_images?.[0];
@@ -137,7 +137,7 @@ export default function EventsSection({
               </View>
             );
           })}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -171,10 +171,13 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
     fontSize: FONT_SIZES.bodySmall,
   },
-  grid: {
+  carousel: {
     gap: SPACING.small,
+    paddingHorizontal: SPACING.std,
+    paddingBottom: SPACING.small,
   },
   card: {
+    width: 250,
     borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
     ...SHADOWS.subtle,

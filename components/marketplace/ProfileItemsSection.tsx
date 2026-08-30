@@ -187,56 +187,58 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
         </ScrollView>
       )}
 
-      {visibleListings.map((listing) => {
-        const badge = statusBadge(listing.status, listing.is_active, t);
-        const img = resolveCardImage(listing);
-        return (
-          <Pressable key={listing.listing_id} style={styles.card} onPress={() => handleCardPress(listing)}>
-            <View style={styles.cardRow}>
-              {img ? (
-                <Image source={{ uri: img }} style={styles.cardImg} />
-              ) : (
-                <View style={[styles.cardImg, { backgroundColor: COLORS.backgroundPage, alignItems: "center", justifyContent: "center" }]}>
-                  <Ionicons name="image-outline" size={24} color={COLORS.textDisabled} />
-                </View>
-              )}
-              <View style={styles.cardInfo}>
-                <Text style={styles.cardTitle} numberOfLines={2}>{listing.title}</Text>
-                <View style={styles.cardMeta}>
-                  <View style={[styles.badge, { backgroundColor: badge.color + "20" }]}>
-                    <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
+      {visibleListings.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
+          {visibleListings.map((listing) => {
+            const badge = statusBadge(listing.status, listing.is_active, t);
+            const img = resolveCardImage(listing);
+            return (
+              <Pressable key={listing.listing_id} style={styles.card} onPress={() => handleCardPress(listing)}>
+                {img ? (
+                  <Image source={{ uri: img }} style={styles.cardImg} />
+                ) : (
+                  <View style={[styles.cardImg, { backgroundColor: "#EDF4FB", alignItems: "center", justifyContent: "center" }]}>
+                    <Ionicons name="image-outline" size={24} color="#264348" />
                   </View>
-                  {listing.price ? <Text style={styles.cardPrice}>{listing.price}</Text> : null}
+                )}
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>{listing.title}</Text>
+                  <View style={styles.cardMeta}>
+                    <View style={[styles.badge, { backgroundColor: badge.color + "20" }]}>
+                      <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
+                    </View>
+                    {listing.price ? <Text style={styles.cardPrice}>{listing.price}</Text> : null}
+                  </View>
                 </View>
-              </View>
-            </View>
 
-            {isOwner && (
-              <View style={styles.cardActions}>
-                <Pressable style={styles.actionBtn} onPress={(e) => { (e as any).stopPropagation?.(); onEdit(listing); }}>
-                  <Ionicons name="create-outline" size={16} color={COLORS.textPrimary} />
-                </Pressable>
-                <Pressable style={styles.actionBtn} onPress={(e) => { (e as any).stopPropagation?.(); onToggleMarketplace(listing); }}>
-                  <Ionicons
-                    name={listing.publication_scope === "profile_and_marketplace" ? "stop-circle-outline" : "storefront-outline"}
-                    size={16}
-                    color={listing.publication_scope === "profile_and_marketplace" ? COLORS.warning : COLORS.primary}
-                  />
-                </Pressable>
-                <Pressable style={styles.actionBtn} onPress={(e) => {
-                  (e as any).stopPropagation?.();
-                  Alert.alert(t("common.confirmDelete", "Löschen"), t("common.areYouSure", "Bist du sicher?"), [
-                    { text: t("common.cancel", "Abbrechen"), style: "cancel" },
-                    { text: t("common.delete", "Löschen"), style: "destructive", onPress: () => onDelete(listing) },
-                  ]);
-                }}>
-                  <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
-                </Pressable>
-              </View>
-            )}
-          </Pressable>
-        );
-      })}
+                {isOwner && (
+                  <View style={styles.cardActions}>
+                    <Pressable style={styles.actionBtn} onPress={(e) => { (e as any).stopPropagation?.(); onEdit(listing); }}>
+                      <Ionicons name="create-outline" size={16} color="#264348" />
+                    </Pressable>
+                    <Pressable style={styles.actionBtn} onPress={(e) => { (e as any).stopPropagation?.(); onToggleMarketplace(listing); }}>
+                      <Ionicons
+                        name={listing.publication_scope === "profile_and_marketplace" ? "stop-circle-outline" : "storefront-outline"}
+                        size={16}
+                        color={listing.publication_scope === "profile_and_marketplace" ? COLORS.warning : "#59ABE3"}
+                      />
+                    </Pressable>
+                    <Pressable style={styles.actionBtn} onPress={(e) => {
+                      (e as any).stopPropagation?.();
+                      Alert.alert(t("common.confirmDelete", "Löschen"), t("common.areYouSure", "Bist du sicher?"), [
+                        { text: t("common.cancel", "Abbrechen"), style: "cancel" },
+                        { text: t("common.delete", "Löschen"), style: "destructive", onPress: () => onDelete(listing) },
+                      ]);
+                    }}>
+                      <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
+                    </Pressable>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {visibleListings.length === 0 && (
         <Text style={styles.emptyText}>{t("marketplace.noItems", "Keine Artikel")}</Text>
@@ -267,22 +269,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.backgroundPage, borderWidth: 1, borderColor: COLORS.border,
   },
+  carousel: { gap: SPACING.small, paddingBottom: SPACING.small },
   card: {
+    width: 250,
     backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.border, marginBottom: SPACING.small,
-    padding: SPACING.small,
+    borderWidth: 1, borderColor: "rgba(38,67,72,0.15)",
+    overflow: "hidden",
   },
-  cardRow: { flexDirection: "row", gap: SPACING.small },
   cardImg: {
-    width: 72, height: 72, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.backgroundPage,
+    width: "100%", aspectRatio: 16 / 9, backgroundColor: COLORS.backgroundPage,
   },
-  cardInfo: { flex: 1 },
-  cardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.textPrimary },
+  cardInfo: { padding: SPACING.small },
+  cardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: "#264348" },
   cardMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
   badgeText: { fontSize: 11, fontWeight: "600" },
   cardPrice: { fontSize: 13, fontWeight: "700", color: COLORS.success },
-  cardActions: { flexDirection: "row", gap: 4, marginTop: 8, justifyContent: "flex-end" },
+  cardActions: { flexDirection: "row", gap: 4, paddingHorizontal: SPACING.small, paddingBottom: SPACING.small, justifyContent: "flex-end" },
   actionBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   emptyText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, textAlign: "center", marginTop: SPACING.section },
 });

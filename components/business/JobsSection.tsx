@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -51,7 +51,7 @@ export default function JobsSection({
       {jobs.length === 0 ? (
         <EmptyState icon="briefcase" message={t("jobs.noJobs")} subMessage={readOnly ? undefined : t("jobs.addFirstJob")} />
       ) : (
-        <View style={s.grid}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
           {jobs.map((job) => {
             const imageUrl = job.cover_image || job.image_urls?.[0] || job.gallery_images?.[0];
             const hasVideo = !!job.video_url;
@@ -129,7 +129,7 @@ export default function JobsSection({
               </View>
             );
           })}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -163,10 +163,13 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
     fontSize: FONT_SIZES.bodySmall,
   },
-  grid: {
+  carousel: {
     gap: SPACING.small,
+    paddingHorizontal: SPACING.std,
+    paddingBottom: SPACING.small,
   },
   card: {
+    width: 250,
     borderRadius: BORDER_RADIUS.card,
     overflow: "hidden",
     ...SHADOWS.subtle,
