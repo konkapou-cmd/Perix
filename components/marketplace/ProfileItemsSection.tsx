@@ -266,14 +266,14 @@ const styles = StyleSheet.create({
   catChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.backgroundPage, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: "transparent", borderWidth: 1, borderColor: "rgba(38,67,72,0.25)",
   },
-  catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  catChipText: { fontSize: 12, fontWeight: "600", color: COLORS.textSecondary },
-  catChipTextActive: { color: COLORS.background },
+  catChipActive: { backgroundColor: "#59ABE3", borderColor: "#59ABE3" },
+  catChipText: { fontSize: 12, fontWeight: "600", color: "#264348" },
+  catChipTextActive: { color: "#fff" },
   subChip: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.backgroundPage, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: "transparent", borderWidth: 1, borderColor: "rgba(38,67,72,0.25)",
   },
   carousel: { gap: SPACING.small, paddingBottom: SPACING.small },
   card: {

@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.h4,
     fontWeight: FONT_WEIGHTS.semibold,
-    color: COLORS.textPrimary,
+    color: "#264348",
     flexShrink: 1,
   },
   count: {
