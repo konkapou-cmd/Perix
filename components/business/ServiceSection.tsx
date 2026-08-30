@@ -170,6 +170,7 @@ const s = StyleSheet.create({
   },
   carousel: {
     gap: SPACING.small,
+    paddingHorizontal: SPACING.std,
     paddingBottom: SPACING.small,
   },
   cardWrap: {
