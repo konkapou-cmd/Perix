@@ -246,6 +246,9 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
     if (onOpenBookings) {
       base.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: pendingBookingsCount });
     }
+    if (!readOnly) {
+      base.push({ key: "applications", label: t("jobs.myApplications", "Meine Bewerbungen"), icon: "briefcase" });
+    }
     return base;
   }, [userActivities.length, userPosts.length, galleryImages.length, galleryVideos.length, onOpenBookings, t, userListings.length, userHomeListings.length, onAddItem, pendingBookingsCount]);
 
@@ -403,6 +406,19 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           >
             <Ionicons name="calendar" size={18} color="#fff" />
             <Text style={styles.bookingTabBtnText}>{t("services.viewBookings", "View My Bookings")}</Text>
+          </Pressable>
+        </View>
+      )}
+      {activeTab === "applications" && (
+        <View style={styles.bookingTab}>
+          <Text style={[styles.bookingTabTitle, { color: textColor }]} numberOfLines={1}>{t("jobs.myApplications", "Meine Bewerbungen")}</Text>
+          <Text style={[styles.bookingTabDesc, { color: secondaryColor }]} numberOfLines={1} ellipsizeMode="tail">{t("jobs.myApplicationsDesc", "Hier findest du deine Bewerbungen")}</Text>
+          <Pressable
+            style={[styles.bookingTabBtn, { backgroundColor: primaryColor }]}
+            onPress={() => router.push("/my-applications" as any)}
+          >
+            <Ionicons name="briefcase" size={18} color="#fff" />
+            <Text style={styles.bookingTabBtnText}>{t("jobs.myApplications", "Meine Bewerbungen")}</Text>
           </Pressable>
         </View>
       )}

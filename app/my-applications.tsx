@@ -65,7 +65,7 @@ export default function MyApplicationsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <HeaderBackButton onPress={() => router.back()} />
+        <HeaderBackButton onPress={() => router.back()} tintColor="#264348" />
         <Text style={styles.title}>{t("jobs.myApplications") || "My Applications"}</Text>
         <View style={{ width: 40 }} />
       </View>
