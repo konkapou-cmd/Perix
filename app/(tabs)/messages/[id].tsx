@@ -146,7 +146,7 @@ function VoiceMessageBubble({ uri, isMine }: { uri: string; isMine: boolean }) {
 
   return (
     <Pressable style={[styles.voiceBubble, isMine && styles.voiceBubbleMine]} onPress={playSound}>
-      <Ionicons name={playing ? "pause" : "play"} size={18} color={isMine ? "#fff" : COLORS.textPrimary} />
+      <Ionicons name={playing ? "pause" : "play"} size={18} color={isMine ? "#fff" : "#264348"} />
       <View style={styles.voiceWaveform}>
         <View style={[styles.voiceProgress, { flex: duration > 0 ? position / duration : 0 }, isMine && styles.voiceProgressMine]} />
       </View>
@@ -600,7 +600,7 @@ export default function ChatScreen() {
     >
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <View style={styles.header}>
-        <HeaderBackButton onPress={() => router.back()} />
+        <HeaderBackButton onPress={() => router.back()} tintColor="#264348" />
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{name || t("messages.chat")}</Text>
         </View>
@@ -613,7 +613,7 @@ export default function ChatScreen() {
                 params: { userId: id, userName: name, callType: "voice", mode: "outgoing" }
               })}
             >
-              <Ionicons name="call-outline" size={20} color={COLORS.textPrimary} />
+              <Ionicons name="call-outline" size={20} color="#264348" />
             </Pressable>
             <Pressable
               style={styles.headerIcon}
@@ -622,7 +622,7 @@ export default function ChatScreen() {
                 params: { userId: id, userName: name, callType: "video", mode: "outgoing" }
               })}
             >
-              <Ionicons name="videocam-outline" size={20} color={COLORS.textPrimary} />
+              <Ionicons name="videocam-outline" size={20} color="#264348" />
             </Pressable>
           </View>
         )}
@@ -630,7 +630,7 @@ export default function ChatScreen() {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color="#59ABE3" />
         </View>
       ) : (
         <ScrollView style={styles.chat} contentContainerStyle={styles.chatContent}>
@@ -695,7 +695,7 @@ export default function ChatScreen() {
                           <Ionicons 
                             name={message.read ? "checkmark-done" : "checkmark"} 
                             size={14} 
-                            color={message.read ? COLORS.success : COLORS.textDisabled} 
+                            color={message.read ? COLORS.success : "rgba(38,67,72,0.45)"} 
                           />
                         </View>
                       )}
@@ -714,7 +714,7 @@ export default function ChatScreen() {
       {/* Uploading media indicator */}
       {uploadingMedia && (
         <View style={styles.uploadingBar}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
+          <ActivityIndicator size="small" color="#59ABE3" />
           <Text style={styles.uploadingText}>{t("messages.uploadingMedia") || "Uploading/Processing..."}</Text>
         </View>
       )}
@@ -745,14 +745,14 @@ export default function ChatScreen() {
             onPress={() => handlePickMedia("image")}
             disabled={uploadingMedia}
           >
-            <Ionicons name="image-outline" size={ICON_SIZES.interactive} color={COLORS.textMuted} />
+            <Ionicons name="image-outline" size={ICON_SIZES.interactive} color="#264348" />
           </Pressable>
           <Pressable
             style={styles.mediaButton}
             onPress={() => handlePickMedia("video")}
             disabled={uploadingMedia}
           >
-            <Ionicons name="videocam-outline" size={ICON_SIZES.interactive} color={COLORS.textMuted} />
+            <Ionicons name="videocam-outline" size={ICON_SIZES.interactive} color="#264348" />
           </Pressable>
           
           <TextInput
@@ -761,7 +761,7 @@ export default function ChatScreen() {
             onChangeText={handleTextChange}
             style={styles.input}
             multiline
-            placeholderTextColor={COLORS.textDisabled}
+            placeholderTextColor="rgba(38,67,72,0.45)"
           />
           
           {text.trim().length === 0 ? (
@@ -771,7 +771,7 @@ export default function ChatScreen() {
               disabled={uploadingMedia}
               data-testid="chat-voice-btn"
             >
-              <Ionicons name="mic" size={ICON_SIZES.interactive} color={COLORS.textPrimary} />
+              <Ionicons name="mic" size={ICON_SIZES.interactive} color="#264348" />
             </Pressable>
           ) : (
             <Pressable
@@ -842,7 +842,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -852,12 +852,12 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.small,
     backgroundColor: COLORS.background,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: "rgba(38,67,72,0.15)",
   },
   headerTitle: {
     fontSize: FONT_SIZES.h4,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
     marginLeft: SPACING.std,
   },
   headerActions: {
@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.small,
   },
   emptyText: {
-    color: COLORS.textDisabled,
+    color: "rgba(38,67,72,0.45)",
     textAlign: "center",
     marginTop: 40,
     fontSize: FONT_SIZES.bodySmall,
@@ -899,11 +899,11 @@ const styles = StyleSheet.create({
   dateLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: "rgba(38,67,72,0.15)",
   },
   dateText: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     fontWeight: FONT_WEIGHTS.medium as any,
   },
   messageBubble: {
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   myBubble: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
     alignSelf: "flex-end",
     borderBottomRightRadius: 4,
   },
@@ -925,7 +925,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.subtle,
   },
   messageText: {
-    color: COLORS.textPrimary,
+    color: "#264348",
     fontSize: FONT_SIZES.bodySmall,
     lineHeight: 20,
   },
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: FONT_SIZES.micro,
-    color: COLORS.textDisabled,
+    color: "rgba(38,67,72,0.45)",
   },
   messageFooter: {
     flexDirection: "row",
@@ -947,7 +947,7 @@ const styles = StyleSheet.create({
   },
   editedLabel: {
     fontSize: FONT_SIZES.micro,
-    color: COLORS.textDisabled,
+    color: "rgba(38,67,72,0.45)",
     fontStyle: "italic",
   },
   readReceipt: {
@@ -961,24 +961,24 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.small,
     backgroundColor: COLORS.background,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: "rgba(38,67,72,0.15)",
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.small,
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textPrimary,
+    color: "#264348",
     maxHeight: 80,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1008,19 +1008,19 @@ const styles = StyleSheet.create({
   editModalTitle: {
     fontSize: FONT_SIZES.h3,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
     marginBottom: SPACING.std,
     textAlign: "center",
   },
   editInput: {
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.small,
     fontSize: FONT_SIZES.bodySmall,
     minHeight: 80,
     textAlignVertical: "top",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   editModalActions: {
     flexDirection: "row",
@@ -1033,11 +1033,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.std,
   },
   editCancelText: {
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     fontWeight: FONT_WEIGHTS.medium as any,
   },
   editSaveButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
     paddingVertical: 10,
     paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.sm,
@@ -1062,7 +1062,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1070,7 +1070,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1086,7 +1086,7 @@ const styles = StyleSheet.create({
   },
   typingName: {
     fontSize: FONT_SIZES.micro,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     marginBottom: SPACING.tiny,
   },
   typingDotsRow: {
@@ -1097,13 +1097,13 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.textMuted,
+    backgroundcolor: "rgba(38,67,72,0.65)",
   },
   voiceBubble: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.small,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#fff",
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.small,
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
   },
   voiceProgress: {
     height: "100%",
-    backgroundColor: COLORS.textMuted,
+    backgroundcolor: "rgba(38,67,72,0.65)",
     borderRadius: 2,
   },
   voiceProgressMine: {
@@ -1129,7 +1129,7 @@ const styles = StyleSheet.create({
   },
   voiceDuration: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
   },
   voiceDurationMine: {
     color: "rgba(255,255,255,0.7)",
@@ -1140,11 +1140,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: SPACING.small,
     gap: SPACING.small,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#fff",
   },
   uploadingText: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   recordingBar: {
     flexDirection: "row",
@@ -1174,7 +1174,7 @@ const styles = StyleSheet.create({
   },
   recordingDuration: {
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     marginLeft: SPACING.small,
   },
   recordingActions: {
@@ -1194,7 +1194,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
     alignItems: "center",
     justifyContent: "center",
   },
