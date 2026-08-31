@@ -1196,7 +1196,57 @@
     "expandCategory": "Kategorie erweitern",
     "fullyBooked": "Ausgebucht!",
     "reminderBody": "Deine Aktivität beginnt bald.",
-    "spotsRemaining": "Nur noch {{count}} Plätze frei!"
+    "spotsRemaining": "Nur noch {{count}} Plätze frei!",
+    "themes": {
+      "categories": {
+        "movement_outdoor": "Bewegung & Draußen",
+        "simple_sports": "Einfacher Sport",
+        "calm_wellness": "Ruhe & Wellness",
+        "social_meetups": "Soziale Treffen"
+      },
+      "subcategories": {
+        "walking_activities": "Spaziergänge",
+        "light_fitness": "Leichtes Fitness",
+        "city_movement": "Stadtbewegung",
+        "ball_sports": "Ballsport",
+        "racket_easy_games": "Schlägerspiele",
+        "mindfulness": "Achtsamkeit",
+        "nature_slow_living": "Natur & Langsamkeit",
+        "simple_hangouts": "Hangouts",
+        "easy_social_walks": "Soziale Spaziergänge",
+        "conversation_meetups": "Gespräche"
+      },
+      "types": {
+        "casual_walk_meetup": "Lockere Spaziergang-Gruppe",
+        "morning_coffee_walk": "Kaffee-Spaziergang am Morgen",
+        "sunset_walk": "Sonnenuntergangs-Spaziergang",
+        "beginner_run_club": "Lauftreff für Anfänger",
+        "stretching_in_the_park": "Dehnen im Park",
+        "outdoor_workout_circle": "Outdoor-Workout-Kreis",
+        "bike_ride_meetup": "Fahrradtour-Treffen",
+        "casual_football_kickabout": "Lockeres Fußballkicken",
+        "basketball_shootaround": "Basketball werfen",
+        "volleyball_circle": "Volleyball-Runde",
+        "frisbee_in_the_park": "Frisbee im Park",
+        "ping_pong_meetup": "Tischtennis-Treffen",
+        "badminton_in_the_park": "Badminton im Park",
+        "tennis_wall_practice": "Tennis-Wandtraining",
+        "meditation_in_the_park": "Meditation im Park",
+        "gratitude_walk": "Dankbarkeits-Spaziergang",
+        "digital_detox_meetup": "Digital-Detox-Treffen",
+        "nature_sit": "Natur sitzen",
+        "sunrise_meetup": "Sonnenaufgangs-Treffen",
+        "slow_sunday_walk": "Langsamer Sonntagsspaziergang",
+        "sit_in_the_park_meetup": "Park-Sitztreffen",
+        "one_hour_hangout": "Ein-Stunden-Hangout",
+        "bring_your_own_drink_meetup": "Bring-dein-Getränk-Treffen",
+        "dog_walk_meetup": "Hundespaziergang-Treffen",
+        "playlist_walk": "Playlist-Spaziergang",
+        "explore_one_street": "Eine Straße erkunden",
+        "no_agenda_meetup": "Treffen ohne Agenda",
+        "bench_talk": "Bankgespräch"
+      }
+    }
   },
   "jobs": {
     "title": "Verfügbare Jobs",

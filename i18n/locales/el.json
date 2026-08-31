@@ -1212,7 +1212,57 @@
     "setReminder": "Ορισμός Υπενθύμισης",
     "fullyBooked": "Πλήρες!",
     "reminderBody": "Η δραστηριότητά σας ξεκινά σύντομα.",
-    "spotsRemaining": "Μόνο {{count}} θέσεις απομένουν!"
+    "spotsRemaining": "Μόνο {{count}} θέσεις απομένουν!",
+    "themes": {
+      "categories": {
+        "movement_outdoor": "Κίνηση & Υπαίθρια",
+        "simple_sports": "Απλά Αθλήματα",
+        "calm_wellness": "Ηρεμία & Ευεξία",
+        "social_meetups": "Κοινωνικές Συναντήσεις"
+      },
+      "subcategories": {
+        "walking_activities": "Περπάτημα",
+        "light_fitness": "Ελαφριά γυμναστική",
+        "city_movement": "Κίνηση στην πόλη",
+        "ball_sports": "Αθλήματα με μπάλα",
+        "racket_easy_games": "Ρακέτες & εύκολα παιχνίδια",
+        "mindfulness": "Ενσυνειδητότητα",
+        "nature_slow_living": "Φύση & αργή ζωή",
+        "simple_hangouts": "Απλές συναντήσεις",
+        "easy_social_walks": "Εύκολες κοινωνικές βόλτες",
+        "conversation_meetups": "Συζητήσεις"
+      },
+      "types": {
+        "casual_walk_meetup": "Χαλαρή βόλτα με παρέα",
+        "morning_coffee_walk": "Πρωινός περίπατος με καφέ",
+        "sunset_walk": "Βόλτα στο ηλιοβασίλεμα",
+        "beginner_run_club": "Λέσχη τρεξίματος αρχαρίων",
+        "stretching_in_the_park": "Διατάσεις στο πάρκο",
+        "outdoor_workout_circle": "Υπαίθρια προπόνηση",
+        "bike_ride_meetup": "Ποδηλατική συνάντηση",
+        "casual_football_kickabout": "Χαλαρό ποδόσφαιρο",
+        "basketball_shootaround": "Μπάσκετ",
+        "volleyball_circle": "Βόλεϊ",
+        "frisbee_in_the_park": "Φρίσμπι στο πάρκο",
+        "ping_pong_meetup": "Πινγκ πονγκ",
+        "badminton_in_the_park": "Μπάντμιντον στο πάρκο",
+        "tennis_wall_practice": "Τένις",
+        "meditation_in_the_park": "Διαλογισμός στο πάρκο",
+        "gratitude_walk": "Περίπατος ευγνωμοσύνης",
+        "digital_detox_meetup": "Ψηφιακή αποτοξίνωση",
+        "nature_sit": "Κάθισμα στη φύση",
+        "sunrise_meetup": "Συνάντηση ανατολής",
+        "slow_sunday_walk": "Αργή κυριακάτικη βόλτα",
+        "sit_in_the_park_meetup": "Συνάντηση στο πάρκο",
+        "one_hour_hangout": "Μονόωρη συνάντηση",
+        "bring_your_own_drink_meetup": "Φέρε το ποτό σου",
+        "dog_walk_meetup": "Βόλτα με σκύλους",
+        "playlist_walk": "Περίπατος με playlist",
+        "explore_one_street": "Εξερεύνηση δρόμου",
+        "no_agenda_meetup": "Συνάντηση χωρίς ατζέντα",
+        "bench_talk": "Κουβέντα στο παγκάκι"
+      }
+    }
   },
   "jobs": {
     "title": "Διαθέσιμες Θέσεις Εργασίας",

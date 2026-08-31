@@ -226,7 +226,7 @@ export default function ActivityModal({
                   onPress={() => setExpandedCategory(isExpanded ? null : catKey)}
                 >
                   <Text style={s.categoryEmoji}>{cat.emoji}</Text>
-                  <Text style={s.categoryLabel}>{cat.label}</Text>
+                  <Text style={s.categoryLabel}>{t(`activities.themes.categories.${catKey}`, cat.label)}</Text>
                   <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color="#264348" />
                 </Pressable>
 
@@ -238,7 +238,7 @@ export default function ActivityModal({
                         const subTypes = categoryTypes.filter(([_, t]) => t.subcategory === subKey);
                         return (
                           <View key={subKey} style={s.subcategorySection}>
-                            <Text style={s.subcategoryLabel}>{sub.label}</Text>
+                            <Text style={s.subcategoryLabel}>{t(`activities.themes.subcategories.${subKey}`, sub.label)}</Text>
                             <View style={s.themeChipsRow}>
                               {subTypes.map(([typeKey, type]) => (
                                 <Pressable
@@ -251,7 +251,7 @@ export default function ActivityModal({
                                 >
                                   <Text style={s.themeChipEmoji}>{type.emoji}</Text>
                                   <Text style={[s.themeChipText, activityForm.theme === typeKey && s.themeChipTextActive]}>
-                                    {type.shortLabel || type.label}
+                                    {t(`activities.themes.types.${typeKey}`, type.shortLabel || type.label)}
                                   </Text>
                                 </Pressable>
                               ))}

@@ -238,13 +238,13 @@ export default function EventModal({
         const local = themesMap[t.slug];
         return {
           slug: t.slug,
-          label: t.label,
+          label: t(`events.themes.${t.slug}`, t.label),
           color: t.color || local?.color,
           emoji: t.emoji || local?.emoji,
           gradient: t.gradient || local?.gradient,
         };
       })
-    : Object.entries(themesMap).map(([slug, t]) => ({ slug, label: t.label, color: t.color, emoji: t.emoji, gradient: t.gradient }));
+    : Object.entries(themesMap).map(([slug, th]) => ({ slug, label: t(`events.themes.${slug}`, th.label), color: th.color, emoji: th.emoji, gradient: th.gradient }));
 
   return (
     <FormScreen title={eventEditing ? t("events.editEvent") : t("events.createEvent")} onClose={onClose} visible={visible} titleColor="#FF9F1C">
