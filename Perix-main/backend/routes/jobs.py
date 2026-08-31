@@ -107,12 +107,13 @@ async def get_my_applications(current_user: UserPublic = Depends(get_current_use
     # Enrich with job details
     result = []
     for app in applications:
-        job = await db.jobs.find_one({"job_id": app["job_id"]}, {"_id": 0, "title": 1, "business_name": 1, "business_logo": 1, "location": 1})
+        job = await db.jobs.find_one({"job_id": app["job_id"]}, {"_id": 0, "title": 1, "business_name": 1, "business_logo": 1, "location": 1, "business_id": 1})
         result.append({
             **app,
             "job_title": job.get("title") if job else "Unknown",
             "business_name": job.get("business_name") if job else app.get("business_name", "Unknown"),
             "business_logo": job.get("business_logo") if job else None,
+            "business_id": job.get("business_id") if job else app.get("business_id"),
             "job_location": job.get("location") if job else None,
         })
     
