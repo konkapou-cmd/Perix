@@ -1277,7 +1277,12 @@
     "location": "Τοποθεσία",
     "requirements": "Απαιτήσεις",
     "cvAttached": "Δείτε το βιογραφικό",
-    "coverLetterAttached": "Δείτε τη συνοδευτική επιστολή"
+    "coverLetterAttached": "Δείτε τη συνοδευτική επιστολή",
+    "receivedApplications": "Ληφθείσες αιτήσεις",
+    "noApplications": "Δεν έχετε λάβει αιτήσεις ακόμα",
+    "reject": "Απόρριψη",
+    "accept": "Αποδοχή",
+    "noCv": "Δεν μεταφορτώθηκε βιογραφικό"
   },
   "languages": {
     "en": "English",

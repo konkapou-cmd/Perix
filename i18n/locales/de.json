@@ -1264,7 +1264,12 @@
     "location": "Standort",
     "requirements": "Anforderungen",
     "cvAttached": "Lebenslauf ansehen",
-    "coverLetterAttached": "Anschreiben ansehen"
+    "coverLetterAttached": "Anschreiben ansehen",
+    "receivedApplications": "Eingegangene Bewerbungen",
+    "noApplications": "Noch keine Bewerbungen eingegangen",
+    "reject": "Ablehnen",
+    "accept": "Annehmen",
+    "noCv": "Kein Lebenslauf hochgeladen"
   },
   "languages": {
     "en": "English",

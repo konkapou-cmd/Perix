@@ -1140,7 +1140,12 @@
     "location": "Lokalizacja",
     "requirements": "Wymagania",
     "cvAttached": "View CV",
-    "coverLetterAttached": "View cover letter"
+    "coverLetterAttached": "View cover letter",
+    "receivedApplications": "Received Applications",
+    "noApplications": "No applications received yet",
+    "reject": "Reject",
+    "accept": "Accept",
+    "noCv": "No CV uploaded"
   },
   "languages": {
     "en": "English",

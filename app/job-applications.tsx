@@ -83,17 +83,21 @@ export default function JobApplicationsScreen() {
               <View key={app.application_id} style={styles.card}>
                 <View style={styles.cardHeader}>
                   <View style={styles.applicantWrap}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{(app.applicant_name || "?").charAt(0).toUpperCase()}</Text>
-                    </View>
+                    <Pressable onPress={() => router.push(`/user/${app.applicant_id}` as any)}>
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>{(app.applicant_name || "?").charAt(0).toUpperCase()}</Text>
+                      </View>
+                    </Pressable>
                     <View style={styles.applicantInfo}>
-                      <Text style={styles.applicantName}>{app.applicant_name}</Text>
+                      <Pressable onPress={() => router.push(`/user/${app.applicant_id}` as any)}>
+                        <Text style={styles.applicantName}>{app.applicant_name}</Text>
+                      </Pressable>
                       {app.job_title ? <Text style={styles.jobTitle} numberOfLines={1}>{app.job_title}</Text> : null}
                       <Text style={styles.date}>{app.created_at ? formatDate(app.created_at.slice(0, 10)) : ""}</Text>
                     </View>
                   </View>
                   <View style={[styles.statusChip, { backgroundColor: meta.color + "20" }]}>
-                    <Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text>
+                    <Text style={[styles.statusText, { color: meta.color }]}>{t(`jobs.${app.status}`, meta.label)}</Text>
                   </View>
                 </View>
 
@@ -176,7 +180,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 16, fontWeight: "700", color: "#59ABE3" },
   applicantInfo: { flex: 1 },
-  applicantName: { fontSize: 15, fontWeight: "600", color: "#264348" },
+  applicantName: { fontSize: 15, fontWeight: "600", color: "#59ABE3" },
   jobTitle: { fontSize: 12, color: "#59ABE3", marginTop: 1 },
   date: { fontSize: 11, color: "rgba(38,67,72,0.65)", marginTop: 1 },
   statusChip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: BORDER_RADIUS.full },
