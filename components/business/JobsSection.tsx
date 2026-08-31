@@ -56,13 +56,17 @@ export default function JobsSection({
       />
 
       {onViewApplications && (
-        <Pressable style={s.applicationsBtn} onPress={onViewApplications}>
-          <Ionicons name="mail-open-outline" size={16} color="#264348" />
+        <Pressable
+          style={({ pressed }) => [s.applicationsBtn, pressed && { opacity: 0.7 }]}
+          onPress={onViewApplications}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="mail-open-outline" size={18} color="#264348" />
           <Text style={s.applicationsText}>
             {t("jobs.receivedApplications", "Eingegangene Bewerbungen")}
             {applicationsCount > 0 ? ` (${applicationsCount})` : ""}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color="#264348" />
+          <Ionicons name="chevron-forward" size={18} color="#264348" />
         </Pressable>
       )}
 
@@ -195,10 +199,14 @@ const s = StyleSheet.create({
   applicationsBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     marginHorizontal: SPACING.std,
     marginBottom: SPACING.small,
     alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: "rgba(89,171,227,0.12)",
   },
   applicationsText: {
     fontSize: 14,
