@@ -292,11 +292,6 @@ export default function UserProfileScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 44 : 0}
       >
       <View style={{ flex: 1, ...Platform.select({ web: { width: "100%", maxWidth: 914, alignSelf: "center" } as any, default: {} }) }}>
-        <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
-          <Text style={styles.backText}>{t("common.back")}</Text>
-        </Pressable>
-
         <UserProfilePremium
           user={profile.user}
           displayName={profile.user.name || ""}
