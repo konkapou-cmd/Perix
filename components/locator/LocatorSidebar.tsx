@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { CategoryGroup } from "../../lib/api";
-import { CATEGORY_ICONS } from "../../lib/categoryIcons";
+import { CATEGORY_ICONS, subcategoryIcon } from "../../lib/categoryIcons";
 
 type Props = {
   categories: CategoryGroup[];
@@ -164,7 +164,12 @@ export default function LocatorSidebar({
                               style={[styles.subItem, isSubActive && styles.subItemActive]}
                               onPress={() => handleSubSelect(sub.slug)}
                             >
-                              <View style={styles.subDot} />
+                              <Ionicons
+                                name={subcategoryIcon(sub.slug) as any}
+                                size={14}
+                                color={isSubActive ? "#59ABE3" : "#264348"}
+                                style={styles.subIcon}
+                              />
                               <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
                                 {label(sub.slug, sub.name)}
                               </Text>
@@ -176,23 +181,28 @@ export default function LocatorSidebar({
                   ))}
                 </View>
               ) : isExpanded && hasSubs ? (
-                <View style={styles.subList}>
-                  {allSubs.map((sub) => {
-                    const isSubActive = selectedSubcategory === sub.slug;
-                    return (
-                      <Pressable
-                        key={sub.slug}
-                        style={[styles.subItem, isSubActive && styles.subItemActive]}
-                        onPress={() => handleSubSelect(sub.slug)}
-                      >
-                        <View style={styles.subDot} />
-                        <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
-                          {label(sub.slug, sub.name)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                  <View style={styles.subList}>
+                    {allSubs.map((sub) => {
+                      const isSubActive = selectedSubcategory === sub.slug;
+                      return (
+                        <Pressable
+                          key={sub.slug}
+                          style={[styles.subItem, isSubActive && styles.subItemActive]}
+                          onPress={() => handleSubSelect(sub.slug)}
+                        >
+                          <Ionicons
+                            name={subcategoryIcon(sub.slug) as any}
+                            size={14}
+                            color={isSubActive ? "#59ABE3" : "#264348"}
+                            style={styles.subIcon}
+                          />
+                          <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
+                            {label(sub.slug, sub.name)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
               ) : null}
             </View>
           );
@@ -283,6 +293,10 @@ const styles = StyleSheet.create({
   },
   subItemActive: {
     backgroundColor: "rgba(89,171,227,0.12)",
+  },
+  subIcon: {
+    marginRight: SPACING.small,
+    marginLeft: 1,
   },
   subDot: {
     width: 5,

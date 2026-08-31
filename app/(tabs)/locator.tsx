@@ -56,7 +56,7 @@ import {
 import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
 import { translateCategory, translateJobType } from "../../lib/categoryTranslation";
-import { CATEGORY_ICONS } from "../../lib/categoryIcons";
+import { CATEGORY_ICONS, subcategoryIcon } from "../../lib/categoryIcons";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
 import { formatDate } from "../../lib/formatDate";
 import { isBusinessOpen } from "../../lib/openingHours";
@@ -800,7 +800,7 @@ export default function LocatorScreen() {
               value={selectedSubcategory === "All" ? "All" : selectedSubcategory}
               options={[
                 { key: "All", label: t("common.allSubcategories", "Alle Unterkategorien") },
-                ...businessSubcategories.map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t), icon: (CATEGORY_ICONS[sub.slug] || "grid") as any })),
+                ...businessSubcategories.map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t), icon: (subcategoryIcon(sub.slug) || "grid") as any })),
               ]}
               onChange={(key) => setSelectedSubcategory(key === "All" ? "All" : key)}
               primaryColor={pickerAccent}
