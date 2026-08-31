@@ -290,7 +290,6 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     setPrivateActiveTab(tab);
   }, []);
   const [coverRepositionFp, setCoverRepositionFp] = useState(detail.business.cover_focal_point ?? { x: 0.5, y: 0.5 });
-  const [showJobApplications, setShowJobApplications] = useState(false);
   const [receivedApplications, setReceivedApplications] = useState<(JobApplication & { job_title?: string })[]>([]);
 
   const loadReceivedApplications = useCallback(async () => {
