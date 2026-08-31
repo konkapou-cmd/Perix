@@ -292,7 +292,7 @@ export default function MessagesScreen() {
                 style={styles.headerIconButtonOutline}
                 onPress={() => router.push("/call-history")}
               >
-                <Ionicons name="call" size={18} color={COLORS.textPrimary} />
+                <Ionicons name="call" size={18} color="#264348" />
               </Pressable>
             </View>
           </View>
@@ -303,7 +303,7 @@ export default function MessagesScreen() {
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={16} color={COLORS.textMuted} />
+            <Ionicons name="search" size={16} color="rgba(38,67,72,0.65)" />
             <TextInput
               placeholder={t("messages.searchConversations", "Unterhaltungen suchen")}
               value={searchQuery}
@@ -313,7 +313,7 @@ export default function MessagesScreen() {
             />
             {searchQuery.length > 0 && (
               <Pressable onPress={() => setSearchQuery("")}>
-                <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                <Ionicons name="close-circle" size={16} color="rgba(38,67,72,0.65)" />
               </Pressable>
             )}
           </View>
@@ -333,7 +333,7 @@ export default function MessagesScreen() {
               <Ionicons
                 name={friendRequestsExpanded ? "chevron-up" : "chevron-down"}
                 size={18}
-                color={COLORS.textMuted}
+                color="rgba(38,67,72,0.65)"
               />
             </Pressable>
 
@@ -495,7 +495,7 @@ export default function MessagesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t("messages.newMessage")}</Text>
               <Pressable onPress={() => { setShowFriendPicker(false); setSelectedFriend(null); setMessage(""); setErrorMessage(""); }}>
-                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+                <Ionicons name="close" size={24} color="#264348" />
               </Pressable>
             </View>
             
@@ -630,11 +630,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.h1,
     fontWeight: FONT_WEIGHTS.bold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   subtitle: {
     marginTop: SPACING.tiny,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     fontSize: FONT_SIZES.caption,
   },
   searchContainer: {
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textPrimary,
+    color: "#264348",
     paddingVertical: 0,
   },
   card: {
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: FONT_SIZES.h4,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
     marginBottom: SPACING.small,
   },
   sectionHeaderRow: {
@@ -703,12 +703,12 @@ const styles = StyleSheet.create({
   },
   friendRequestName: {
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
     fontSize: FONT_SIZES.bodySmall,
   },
   friendRequestMeta: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     marginTop: 2,
   },
   friendRequestActions: {
@@ -775,12 +775,12 @@ const styles = StyleSheet.create({
   chatName: {
     flex: 1,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
     fontSize: FONT_SIZES.bodySmall,
   },
   chatTime: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     marginLeft: SPACING.small,
   },
   chatMessageRow: {
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
   },
   chatMessage: {
     flex: 1,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     fontSize: FONT_SIZES.caption,
   },
   unreadBadge: {
@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: FONT_SIZES.h3,
     fontWeight: FONT_WEIGHTS.bold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   searchInputModal: {
     margin: SPACING.std,
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
     padding: SPACING.small,
     fontSize: FONT_SIZES.bodySmall,
     backgroundColor: COLORS.backgroundPage,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   friendList: {
     paddingHorizontal: SPACING.std,
@@ -917,11 +917,11 @@ const styles = StyleSheet.create({
   friendName: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   friendEmail: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textMuted,
+    color: "rgba(38,67,72,0.65)",
     marginTop: 2,
   },
   emptyFriendsState: {
@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.small,
     paddingVertical: SPACING.small,
     fontSize: FONT_SIZES.bodySmall,
-    color: COLORS.textPrimary,
+    color: "#264348",
     maxHeight: 80,
     textAlignVertical: "top",
   },
