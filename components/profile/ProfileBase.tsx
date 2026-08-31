@@ -97,6 +97,7 @@ interface ProfileHeaderProps {
   savingItem?: boolean;
   stats?: { label: string; count: number; onPress?: () => void }[];
   completenessItems?: { label: string; done: boolean }[];
+  identityPicker?: React.ReactNode;
 }
 
 type ActionBtnVariant = "primary" | "outline" | "secondaryIcon" | "dangerIcon" | "savedIcon" | "flat";

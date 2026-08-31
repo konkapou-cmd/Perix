@@ -626,7 +626,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
               services={filteredServices}
               rootCategory={cat}
               readOnly={true}
-              onServicePress={(s) => pushEntityRoute(router, entityRoutes.service(s.service_id), () => showInvalidEntityAlert(t))}
+              onServicePress={(s) => pushEntityRoute(router, entityRoutes.service(s.service_id), () => showInvalidEntityAlert(t as any))}
               cardColor={cardColor}
               textColor={textColor}
             />
@@ -719,7 +719,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
               onEditService={handleEditService}
               onDeleteService={handleDeleteService}
               onOpenSlotManager={onOpenSlotManager}
-              onServicePress={(service) => pushEntityRoute(router, entityRoutes.service(service.service_id), () => showInvalidEntityAlert(t))}
+              onServicePress={(service) => pushEntityRoute(router, entityRoutes.service(service.service_id), () => showInvalidEntityAlert(t as any))}
               cardColor={cardColor}
               textColor={textColor}
             />
