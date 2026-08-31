@@ -248,15 +248,6 @@ export default function EventModal({
 
   return (
     <FormScreen title={eventEditing ? t("events.editEvent") : t("events.createEvent")} onClose={onClose} visible={visible} titleColor="#FF9F1C">
-      <UnifiedMediaGallery
-            media={media}
-            onChange={handleMediaChange}
-            sessionToken={sessionToken}
-            label={t("events.media") || "Media"}
-            accentColor="#FF9F1C"
-            lightBackground
-          />
-
           <Text style={s.label}><Text style={s.required}>* </Text>{t("events.eventTitle") || "Event Title"}</Text>
           <TextInput
             style={s.input}
@@ -275,6 +266,49 @@ export default function EventModal({
             placeholderTextColor="rgba(38,67,72,0.45)"
             multiline
           />
+
+          <Text style={s.label}>{t("events.theme") || "Theme"}</Text>
+          <Pressable style={s.selector} onPress={() => onShowThemePicker(!showThemePicker)}>
+            <View style={s.themeChipPreview}>
+              {eventForm.themes?.length > 0 ? (
+                <>
+                  <Text style={s.themeChipEmoji}>{themeList.find(th => th.slug === eventForm.themes[0])?.emoji || DEFAULT_EVENT_THEME.emoji}</Text>
+                  <Text style={s.themeChipText}>
+                    {eventForm.themes.length === 1
+                      ? (themeList.find(th => th.slug === eventForm.themes[0])?.label || DEFAULT_EVENT_THEME.label)
+                      : `${eventForm.themes.length} ${t("events.themesTitle", "Themes")}`}
+                  </Text>
+                </>
+              ) : (
+                <Text style={s.selectorText}>{t("events.selectTheme") || "Select theme"}</Text>
+              )}
+            </View>
+            <Ionicons name="chevron-down" size={18} color="#264348" />
+          </Pressable>
+
+          {showThemePicker && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.themeChipsRow}>
+              {themeList.map((theme) => {
+                const active = (eventForm.themes || []).includes(theme.slug);
+                return (
+                <Pressable
+                  key={theme.slug}
+                  style={[s.themeChip, active && { backgroundColor: theme.color || "#FF9F1C", borderColor: theme.color || "#FF9F1C" }]}
+                  onPress={() => {
+                    const next = active
+                      ? (eventForm.themes || []).filter(t => t !== theme.slug)
+                      : [...(eventForm.themes || []), theme.slug];
+                    onFormChange({ ...eventForm, themes: next, theme: next.length > 0 ? next[0] : "" });
+                  }}
+                >
+                  <Text style={s.themeChipEmoji}>{theme.emoji || "🎉"}</Text>
+                  <Text style={[s.themeChipText, active && s.themeChipTextActive]}>{theme.label}</Text>
+                  {active && <Ionicons name="checkmark-circle" size={14} color="#fff" />}
+                </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
 
           <View style={s.row}>
             <View style={s.halfWidth}>
@@ -340,49 +374,6 @@ export default function EventModal({
             />
           )}
 
-          <Text style={s.label}>{t("events.theme") || "Theme"}</Text>
-          <Pressable style={s.selector} onPress={() => onShowThemePicker(!showThemePicker)}>
-            <View style={s.themeChipPreview}>
-              {eventForm.themes?.length > 0 ? (
-                <>
-                  <Text style={s.themeChipEmoji}>{themeList.find(th => th.slug === eventForm.themes[0])?.emoji || DEFAULT_EVENT_THEME.emoji}</Text>
-                  <Text style={s.themeChipText}>
-                    {eventForm.themes.length === 1
-                      ? (themeList.find(th => th.slug === eventForm.themes[0])?.label || DEFAULT_EVENT_THEME.label)
-                      : `${eventForm.themes.length} ${t("events.themesTitle", "Themes")}`}
-                  </Text>
-                </>
-              ) : (
-                <Text style={s.selectorText}>{t("events.selectTheme") || "Select theme"}</Text>
-              )}
-            </View>
-            <Ionicons name="chevron-down" size={18} color="#264348" />
-          </Pressable>
-
-          {showThemePicker && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.themeChipsRow}>
-              {themeList.map((theme) => {
-                const active = (eventForm.themes || []).includes(theme.slug);
-                return (
-                <Pressable
-                  key={theme.slug}
-                  style={[s.themeChip, active && { backgroundColor: theme.color || "#FF9F1C", borderColor: theme.color || "#FF9F1C" }]}
-                  onPress={() => {
-                    const next = active
-                      ? (eventForm.themes || []).filter(t => t !== theme.slug)
-                      : [...(eventForm.themes || []), theme.slug];
-                    onFormChange({ ...eventForm, themes: next, theme: next.length > 0 ? next[0] : "" });
-                  }}
-                >
-                  <Text style={s.themeChipEmoji}>{theme.emoji || "🎉"}</Text>
-                  <Text style={[s.themeChipText, active && s.themeChipTextActive]}>{theme.label}</Text>
-                  {active && <Ionicons name="checkmark-circle" size={14} color="#fff" />}
-                </Pressable>
-                );
-              })}
-            </ScrollView>
-          )}
-
           {/* Artist Tagging */}
           <View style={s.artistSection}>
             <Text style={s.label}>{t("events.tagArtists", "Tag Artists")}</Text>
@@ -436,6 +427,15 @@ export default function EventModal({
               </ScrollView>
             )}
           </View>
+
+      <UnifiedMediaGallery
+            media={media}
+            onChange={handleMediaChange}
+            sessionToken={sessionToken}
+            label={t("events.media") || "Media"}
+            accentColor="#FF9F1C"
+            lightBackground
+          />
 
       <FormBottomBar
         onCancel={onClose}

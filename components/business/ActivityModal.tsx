@@ -195,15 +195,6 @@ export default function ActivityModal({
 
   return (
     <FormScreen title={activityEditing ? t("activities.editActivity") : t("activities.createActivity")} onClose={onClose} visible={visible} titleColor="#FF9F1C">
-      <UnifiedMediaGallery
-            media={media}
-            onChange={handleMediaChange}
-            sessionToken={sessionToken}
-            label={t("activities.media") || "Media"}
-            accentColor="#FF9F1C"
-            lightBackground
-          />
-
           <Text style={s.label}><Text style={s.required}>* </Text>{t("activities.activityTitle")}</Text>
           <TextInput
             style={s.input}
@@ -221,6 +212,67 @@ export default function ActivityModal({
             placeholder={t("activities.descriptionPlaceholder") || "Describe your activity..."}
             placeholderTextColor="rgba(38,67,72,0.45)"
             multiline
+          />
+
+          <Text style={s.label}>{t("activities.theme") || "Activity Type"}</Text>
+
+          {Object.entries(ACTIVITY_CATEGORIES).map(([catKey, cat]) => {
+            const isExpanded = expandedCategory === catKey;
+            const categoryTypes = Object.entries(ACTIVITY_TYPES).filter(([_, t]) => t.category === catKey);
+            return (
+              <View key={catKey} style={s.categorySection}>
+                <Pressable
+                  style={s.categoryHeader}
+                  onPress={() => setExpandedCategory(isExpanded ? null : catKey)}
+                >
+                  <Text style={s.categoryEmoji}>{cat.emoji}</Text>
+                  <Text style={s.categoryLabel}>{cat.label}</Text>
+                  <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color="#264348" />
+                </Pressable>
+
+                {isExpanded && (
+                  <View style={s.categoryBody}>
+                    {Object.entries(ACTIVITY_SUBCATEGORIES)
+                      .filter(([_, sub]) => sub.category === catKey)
+                      .map(([subKey, sub]) => {
+                        const subTypes = categoryTypes.filter(([_, t]) => t.subcategory === subKey);
+                        return (
+                          <View key={subKey} style={s.subcategorySection}>
+                            <Text style={s.subcategoryLabel}>{sub.label}</Text>
+                            <View style={s.themeChipsRow}>
+                              {subTypes.map(([typeKey, type]) => (
+                                <Pressable
+                                  key={typeKey}
+                                  style={[
+                                    s.themeChip,
+                                    activityForm.theme === typeKey && { backgroundColor: type.color, borderColor: type.color },
+                                  ]}
+                                  onPress={() => onFormChange({ ...activityForm, theme: activityForm.theme === typeKey ? "" : typeKey })}
+                                >
+                                  <Text style={s.themeChipEmoji}>{type.emoji}</Text>
+                                  <Text style={[s.themeChipText, activityForm.theme === typeKey && s.themeChipTextActive]}>
+                                    {type.shortLabel || type.label}
+                                  </Text>
+                                </Pressable>
+                              ))}
+                            </View>
+                          </View>
+                        );
+                      })}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+
+          <Text style={s.label}>{t("activities.maxAttendees")}</Text>
+          <TextInput
+            style={s.input}
+            value={activityForm.max_attendees ? String(activityForm.max_attendees) : ""}
+            onChangeText={(text) => onFormChange({ ...activityForm, max_attendees: text ? Number(text) : 10 })}
+            placeholder={t("activities.maxAttendeesPlaceholder") || "No limit"}
+            placeholderTextColor="rgba(38,67,72,0.45)"
+            keyboardType="numeric"
           />
 
           <View style={s.row}>
@@ -278,66 +330,14 @@ export default function ActivityModal({
             confirmed={!!activityForm.location}
           />
 
-          <Text style={s.label}>{t("activities.maxAttendees")}</Text>
-          <TextInput
-            style={s.input}
-            value={activityForm.max_attendees ? String(activityForm.max_attendees) : ""}
-            onChangeText={(text) => onFormChange({ ...activityForm, max_attendees: text ? Number(text) : 10 })}
-            placeholder={t("activities.maxAttendeesPlaceholder") || "No limit"}
-            placeholderTextColor="rgba(38,67,72,0.45)"
-            keyboardType="numeric"
+      <UnifiedMediaGallery
+            media={media}
+            onChange={handleMediaChange}
+            sessionToken={sessionToken}
+            label={t("activities.media") || "Media"}
+            accentColor="#FF9F1C"
+            lightBackground
           />
-
-          <Text style={s.label}>{t("activities.theme") || "Activity Type"}</Text>
-
-          {Object.entries(ACTIVITY_CATEGORIES).map(([catKey, cat]) => {
-            const isExpanded = expandedCategory === catKey;
-            const categoryTypes = Object.entries(ACTIVITY_TYPES).filter(([_, t]) => t.category === catKey);
-            return (
-              <View key={catKey} style={s.categorySection}>
-                <Pressable
-                  style={s.categoryHeader}
-                  onPress={() => setExpandedCategory(isExpanded ? null : catKey)}
-                >
-                  <Text style={s.categoryEmoji}>{cat.emoji}</Text>
-                  <Text style={s.categoryLabel}>{cat.label}</Text>
-                  <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color={COLORS.textSecondary} />
-                </Pressable>
-
-                {isExpanded && (
-                  <View style={s.categoryBody}>
-                    {Object.entries(ACTIVITY_SUBCATEGORIES)
-                      .filter(([_, sub]) => sub.category === catKey)
-                      .map(([subKey, sub]) => {
-                        const subTypes = categoryTypes.filter(([_, t]) => t.subcategory === subKey);
-                        return (
-                          <View key={subKey} style={s.subcategorySection}>
-                            <Text style={s.subcategoryLabel}>{sub.label}</Text>
-                            <View style={s.themeChipsRow}>
-                              {subTypes.map(([typeKey, type]) => (
-                                <Pressable
-                                  key={typeKey}
-                                  style={[
-                                    s.themeChip,
-                                    activityForm.theme === typeKey && { backgroundColor: type.color, borderColor: type.color },
-                                  ]}
-                                  onPress={() => onFormChange({ ...activityForm, theme: activityForm.theme === typeKey ? "" : typeKey })}
-                                >
-                                  <Text style={s.themeChipEmoji}>{type.emoji}</Text>
-                                  <Text style={[s.themeChipText, activityForm.theme === typeKey && s.themeChipTextActive]}>
-                                    {type.shortLabel || type.label}
-                                  </Text>
-                                </Pressable>
-                              ))}
-                            </View>
-                          </View>
-                        );
-                      })}
-                  </View>
-                )}
-              </View>
-            );
-          })}
 
       <FormBottomBar
         onCancel={onClose}
