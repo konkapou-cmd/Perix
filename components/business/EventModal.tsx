@@ -234,14 +234,14 @@ export default function EventModal({
   };
 
   const themeList = eventThemes.length > 0
-    ? eventThemes.map(t => {
-        const local = themesMap[t.slug];
+    ? eventThemes.map(th => {
+        const local = themesMap[th.slug];
         return {
-          slug: t.slug,
-          label: t(`events.themes.${t.slug}`, t.label),
-          color: t.color || local?.color,
-          emoji: t.emoji || local?.emoji,
-          gradient: t.gradient || local?.gradient,
+          slug: th.slug,
+          label: t(`events.themes.${th.slug}`, th.label),
+          color: th.color || local?.color,
+          emoji: th.emoji || local?.emoji,
+          gradient: th.gradient || local?.gradient,
         };
       })
     : Object.entries(themesMap).map(([slug, th]) => ({ slug, label: t(`events.themes.${slug}`, th.label), color: th.color, emoji: th.emoji, gradient: th.gradient }));
