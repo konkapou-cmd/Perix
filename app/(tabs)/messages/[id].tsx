@@ -1097,7 +1097,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundcolor: "rgba(38,67,72,0.65)",
+    backgroundColor: "rgba(38,67,72,0.65)",
   },
   voiceBubble: {
     flexDirection: "row",
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
   },
   voiceProgress: {
     height: "100%",
-    backgroundcolor: "rgba(38,67,72,0.65)",
+    backgroundColor: "rgba(38,67,72,0.65)",
     borderRadius: 2,
   },
   voiceProgressMine: {
