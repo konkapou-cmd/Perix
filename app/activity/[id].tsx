@@ -291,7 +291,7 @@ export default function ActivityDetailPage() {
             muxThumbnailUrl={(activity as any).mux_thumbnail_url}
             videoStatus={(activity as any).video_status}
             isCoverVideo={!activity.cover_image_url && !!activity.video_url}
-            coverFocalPoint={activity.cover_focal_point}
+            coverFocalPoint={(activity as any).cover_focal_point}
             imageUrls={activity.image_urls}
             title={activity.title}
             hideBack

@@ -92,7 +92,7 @@ export default function MediaEditor() {
       const d = payload?.duration ?? 0;
       setOriginalDuration(d);
       setVideoDuration(Math.min(d, maxDurationSeconds));
-      setTrimEnd(Math.min(d, maxDurationSeconds));
+      setTrimEnd(Math.min(d, maxDurationSeconds) as any);
     });
     return () => sub.remove();
   }, [player, isVideo]);
@@ -284,7 +284,7 @@ export default function MediaEditor() {
                       <Text style={styles.trimBtn}>-1s</Text>
                     </Pressable>
                     <Text style={styles.trimInfo}>{trimStart.toFixed(1)}s — {trimEnd.toFixed(1)}s</Text>
-                    <Pressable onPress={() => { setTrimEnd(Math.min(videoDuration, trimEnd + 1)); try { player.currentTime = trimEnd; } catch (_) {} }}>
+                    <Pressable onPress={() => { setTrimEnd(Math.min(videoDuration, trimEnd + 1) as any); try { player.currentTime = trimEnd; } catch (_) {} }}>
                       <Text style={styles.trimBtn}>+1s</Text>
                     </Pressable>
                   </View>

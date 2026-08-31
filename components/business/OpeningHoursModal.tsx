@@ -35,6 +35,7 @@ type Props = {
   onHoursChange: (hours: Record<string, DayHours>) => void;
   onSave: () => void;
   isSaving?: boolean;
+  timezone?: string;
 };
 
 export default function OpeningHoursModal({

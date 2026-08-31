@@ -85,7 +85,7 @@ export default function RentalDetailPage() {
   }) : [];
 
   const isCoverVideo = !rental?.cover_image && !!(rental as any)?.video_url;
-  const roomsText = rental?.rooms || rental?.rooms_size;
+  const roomsText = (rental as any)?.rooms || rental?.rooms_size;
   const addressLabel = (rental as any)?.public_location_label || rental?.address;
 
   if (!id) {

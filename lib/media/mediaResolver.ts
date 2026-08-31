@@ -97,5 +97,5 @@ export function mapToMediaAsset(items: MinimalMedia[]): MediaAsset[] {
     is_cover: !!m.isCoverImage || !!m.isCoverVideo,
     sort_order: i,
     created_at: new Date().toISOString(),
-  }));
+  } as MediaAsset));
 }

@@ -145,6 +145,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   handleDeleteGalleryItem,
   handleUpdateProfilePhoto,
   handleUpdateCoverPhoto,
+  refreshUser,
   setLanguageModalVisible,
   handleLogout,
   galleryImages = [],
@@ -451,7 +452,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           listings={userHomeListings}
           isOwner={isOwnProfile ?? false}
           listingType="home_rental"
-          onAdd={isOwnProfile ? onAddItem! : undefined}
+          onAdd={isOwnProfile ? onAddItem! : (() => {})}
           onEdit={(l) => onEditItem?.(l)}
           onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
           onDelete={(l) => onDeleteItem?.(l)}
@@ -515,7 +516,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
             onCancel={() => setShowCoverReposition(false)}
             onSave={async (fp) => {
               if (sessionToken) {
-                await updateProfileMedia(sessionToken, { cover_focal_point: fp });
+                await updateProfileMedia(sessionToken, { cover_focal_point: fp } as any);
               }
               setShowCoverReposition(false);
               refreshUser?.();
@@ -596,7 +597,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           onCancel={() => setShowCoverReposition(false)}
           onSave={async (fp) => {
             if (sessionToken) {
-              await updateProfileMedia(sessionToken, { cover_focal_point: fp });
+              await updateProfileMedia(sessionToken, { cover_focal_point: fp } as any);
             }
             setShowCoverReposition(false);
             refreshUser?.();

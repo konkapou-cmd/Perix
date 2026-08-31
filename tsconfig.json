@@ -19,6 +19,8 @@
     "dist",
     ".expo",
     ".metro-cache",
-    "node_modules"
+    "node_modules",
+    "tests",
+    "Perix-main"
   ]
 }

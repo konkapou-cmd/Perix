@@ -363,7 +363,6 @@ const styles = StyleSheet.create({
   heroWrap: { position: "relative" },
   plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.std },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
-  description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   cover: { width: "100%", borderRadius: BORDER_RADIUS.lg, backgroundColor: "#f3f4f6" },
   coverPlaceholder: { height: 240, alignItems: "center", justifyContent: "center" },

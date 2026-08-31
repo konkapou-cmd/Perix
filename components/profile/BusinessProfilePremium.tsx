@@ -144,7 +144,7 @@ interface BusinessProfilePremiumProps {
   onPlan?: () => void;
   services?: Service[];
   rentals?: any[];
-  openMediaViewer?: (index: number) => void;
+  openMediaViewer?: (indexOrUri: any, type?: any) => void;
   onAddService?: (type: string) => void;
   handleEditService?: (service: Service) => void;
   handleDeleteService?: (serviceId: string) => void;
@@ -431,7 +431,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 
   const handleCopyLink = async () => {
     if (slugUrl) {
-      await Clipboard.setStringAsync(slugUrl);
+      await (Clipboard as any).setStringAsync(slugUrl);
     }
   };
 

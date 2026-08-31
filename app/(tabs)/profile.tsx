@@ -111,8 +111,8 @@ import { getBusinessSellerListings, getManageListings, Listing, updateListing, d
 import SocialLinksModal from "../../components/SocialLinksModal";
 import PlacesAutocompleteInput from "../../components/PlacesAutocompleteInput";
 
-function normalizeOpeningHoursForState(raw: any): DayHours {
-  if (!raw || typeof raw !== "object") return defaultDayHours();
+function normalizeOpeningHoursForState(raw: any): { timezone: string; schedule: Record<string, DayHours> } {
+  if (!raw || typeof raw !== "object") return { timezone: "Europe/Berlin", schedule: {} };
   const schedule: Record<string, any> = {};
   const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   const uppercaseDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -392,14 +392,14 @@ export default function ProfileScreen() {
       const bizRes = await getMyBusinesses(sessionToken);
       setBusinesses(bizRes);
     } catch (e) {
-      console.log("Failed to load businesses:", e?.message || e);
+      console.log("Failed to load businesses:", (e as any)?.message || e);
     }
 
     try {
       const friendRes = await getMyFriendProfiles(sessionToken);
       setFriends(friendRes);
     } catch (e) {
-      console.log("Failed to load friends:", e?.message || e);
+      console.log("Failed to load friends:", (e as any)?.message || e);
     }
   }, [sessionToken]);
 
@@ -475,6 +475,10 @@ export default function ProfileScreen() {
       setActiveIdentity(identities[0]);
     }
   }, [identities, activeIdentity, setActiveIdentity]);
+
+  const [businessDetail, setBusinessDetail] = useState<BusinessDetail | null>(null);
+  const [businessProductsEnabled, setBusinessProductsEnabled] = useState(false);
+  const [businessPermsLoading, setBusinessPermsLoading] = useState(true);
 
   // Watch for business action params from BusinessActionsModal
   useEffect(() => {
@@ -925,7 +929,7 @@ export default function ProfileScreen() {
     });
     if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
       const uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      const updated = await updateProfileMedia(sessionToken, { cover_photo: uri, cover_focal_point: { x: 0.5, y: 0.5 } });
+      const updated = await updateProfileMedia(sessionToken, { cover_photo: uri, cover_focal_point: { x: 0.5, y: 0.5 } } as any);
       setCoverPhoto(updated.cover_photo || null);
       refreshUser();
     }
@@ -1171,7 +1175,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       setUploadProgress(null);
       setGallerySaving(false);
     }
-    loadUserProfile().catch(() => {});
+    Promise.resolve(loadUserProfile()).catch(() => {});
   };
 
   const handleAddVideo = async () => {
@@ -1213,7 +1217,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       setUploadProgress(null);
       setGallerySaving(false);
     }
-    loadUserProfile().catch(() => {});
+    Promise.resolve(loadUserProfile()).catch(() => {});
   };
 
   const handleDeleteGalleryItem = async (type: "image" | "video", index: number) => {
@@ -1243,7 +1247,6 @@ const handleUpdateSlug = async (newSlug: string) => {
   // ---------------------------------------------------------------------------
   // 3. BUSINESS VIEW STATE & HANDLERS
   // ---------------------------------------------------------------------------
-  const [businessDetail, setBusinessDetail] = useState<BusinessDetail | null>(null);
   const [bizEvents, setBizEvents] = useState<EventItem[]>([]);
   const [bizPosts, setBizPosts] = useState<Post[]>([]);
   const [bizJobs, setBizJobs] = useState<Job[]>([]);
@@ -1261,13 +1264,11 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [listingModalVisible, setListingModalVisible] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [businessAllowedTaxonomy, setBusinessAllowedTaxonomy] = useState<Record<string, "*" | string[]> | null>(null);
-  const [businessProductsEnabled, setBusinessProductsEnabled] = useState(false);
-  const [businessPermsLoading, setBusinessPermsLoading] = useState(true);
 
   // Business editing state
   const [hoursModalVisible, setHoursModalVisible] = useState(false);
   const [socialLinksModalVisible, setSocialLinksModalVisible] = useState(false);
-  const [businessOpeningHours, setBusinessOpeningHours] = useState<DayHours>(defaultDayHours());
+  const [businessOpeningHours, setBusinessOpeningHours] = useState<{ timezone: string; schedule: Record<string, DayHours> }>({ timezone: "Europe/Berlin", schedule: {} });
   const [businessSocialLinks, setBusinessSocialLinks] = useState<Record<string, string>>({});
   const [bizGalleryImages, setBizGalleryImages] = useState<string[]>([]);
   const [bizGalleryVideos, setBizGalleryVideos] = useState<string[]>([]);
@@ -1395,9 +1396,9 @@ const handleUpdateSlug = async (newSlug: string) => {
     setListingModalVisible(false);
     setEditingListing(null);
     if (activeIdentity?.type === "business") {
-      loadBusinessProfile().catch(() => {});
+      Promise.resolve(loadBusinessProfile()).catch(() => {});
     } else {
-      loadUserProfile().catch(() => {});
+      Promise.resolve(loadUserProfile()).catch(() => {});
     }
   };
 
@@ -1546,7 +1547,7 @@ const handleUpdateSlug = async (newSlug: string) => {
         status: (service.status as "draft" | "published" | "hidden") || "published",
         sort_order: service.sort_order?.toString() || "0",
         availability_slots: normalizedSlots,
-      });
+      } as any);
       setServiceModalVisible(true);
     } catch {
       Alert.alert(
@@ -2398,7 +2399,7 @@ postText={postText}
                   }}
                   onToggleMarketplace={handleUserToggleMarketplace}
                    onDeleteItem={handleUserDeleteListing}
-                   initialTab={userInitialTab}
+                   initialTab={userInitialTab ?? undefined}
                  />
                )}
 
@@ -2497,7 +2498,7 @@ postText={postText}
               onUpdateSlug={handleUpdateBusinessSlug}
               fanGalleryPosts={[]}
               handleHideFanPost={() => {}}
-              openingHours={businessOpeningHours}
+              openingHours={businessOpeningHours.schedule}
               openHoursModal={undefined}
               openLocationModal={undefined}
               socialLinks={businessSocialLinks}
@@ -2579,7 +2580,6 @@ currentUserId={businessDetail?.business?.business_id}
                    onOpenBookingList={handleOpenBookingList}
                    onViewFriends={() => router.push(`/friends/${businessDetail?.business?.business_id}` as any)}
                    businessListings={businessListings}
-                   businessHomeListings={businessHomeListings}
                    onAddItem={() => {
                      if (businessPermsLoading || !businessProductsEnabled) return;
                      setEditingListing(null);
@@ -2653,8 +2653,8 @@ currentUserId={businessDetail?.business?.business_id}
         <OpeningHoursModal
           visible={hoursModalVisible}
           onClose={() => setHoursModalVisible(false)}
-          openingHours={businessOpeningHours}
-          onHoursChange={setBusinessOpeningHours}
+          openingHours={businessOpeningHours.schedule}
+          onHoursChange={(hours) => setBusinessOpeningHours((prev) => ({ ...prev, schedule: hours }))}
           onSave={handleSaveBusinessHours}
           timezone={businessOpeningHours.timezone}
           isSaving={hoursSaving}
@@ -2673,7 +2673,7 @@ currentUserId={businessDetail?.business?.business_id}
           visible={eventModalVisible}
           onClose={() => { setEventModalVisible(false); setEventEditing(null); setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] }); }}
           eventForm={eventForm}
-          onFormChange={setEventForm}
+              onFormChange={(f) => setEventForm(f as any)}
           eventEditing={eventEditing}
           eventThemes={eventThemes}
           eventDate={eventDate}
@@ -2698,7 +2698,7 @@ currentUserId={businessDetail?.business?.business_id}
           visible={activityModalVisible}
           onClose={() => { setActivityModalVisible(false); setActivityEditing(null); setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] }); }}
           activityForm={activityForm}
-          onFormChange={setActivityForm}
+              onFormChange={(f) => setActivityForm(f as any)}
           activityEditing={activityEditing}
           activityDate={activityDate}
           activityTime={activityTime}
@@ -2718,7 +2718,7 @@ currentUserId={businessDetail?.business?.business_id}
           visible={jobModalVisible}
           onClose={() => { setJobModalVisible(false); setEditingJobId(null); setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], media_items: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" }); }}
           jobForm={jobForm}
-          onFormChange={setJobForm}
+              onFormChange={(f) => setJobForm(f as any)}
           onSave={async () => {
             if (!sessionToken || !jobForm.title.trim()) return;
             const businessId = activeIdentity?.type === "business" ? activeIdentity.id : null;
@@ -2744,8 +2744,8 @@ currentUserId={businessDetail?.business?.business_id}
                 requirements: jobForm.requirements || undefined,
                 salary_range: jobForm.salary_range || undefined,
                 work_location: jobForm.work_location || undefined,
-                latitude: jobForm.latitude ?? undefined,
-                longitude: jobForm.longitude ?? undefined,
+                latitude: (jobForm as any).latitude ?? undefined,
+                longitude: (jobForm as any).longitude ?? undefined,
                 expires_at: jobForm.expires_at || undefined,
                 status: jobForm.status || "published",
                 cover_focal_point: (jobForm as any).cover_focal_point || undefined,
@@ -2770,7 +2770,7 @@ currentUserId={businessDetail?.business?.business_id}
               }
             }
             setJobSaving(false);
-            loadBusinessProfile().catch(() => {});
+            Promise.resolve(loadBusinessProfile()).catch(() => {});
           }}
           isSaving={jobSaving}
           editingId={editingJobId}
@@ -2975,16 +2975,16 @@ currentUserId={businessDetail?.business?.business_id}
             
             <Text style={styles.inputLabel}>{t("business.openingHours", "Opening Hours")}</Text>
             {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((dayKey) => {
-              const schedule = bizEditForm.opening_hours?.schedule || {};
+              const schedule = (bizEditForm.opening_hours as any)?.schedule || {};
               const dayHours = schedule[dayKey] || { enabled: false, periods: [{ open: "09:00", close: "18:00" }] };
               return (
                 <View key={dayKey} style={styles.dayRowEdit}>
                   <View style={styles.dayHeaderEdit}>
                     <Pressable onPress={() => {
-                      const oh = bizEditForm.opening_hours || { timezone: "Europe/Berlin", schedule: {} };
+                      const oh = (bizEditForm.opening_hours as any) || { timezone: "Europe/Berlin", schedule: {} };
                       const newSchedule = { ...oh.schedule };
                       newSchedule[dayKey] = { ...dayHours, enabled: !dayHours.enabled };
-                      setBizEditForm({ ...bizEditForm, opening_hours: { ...oh, schedule: newSchedule } });
+                      setBizEditForm({ ...bizEditForm, opening_hours: { ...oh, schedule: newSchedule } as any });
                     }}>
                       <Ionicons name={dayHours.enabled ? "checkbox" : "square-outline"} size={22} color={dayHours.enabled ? COLORS.primaryDark : "#9ca3af"} />
                     </Pressable>
@@ -2996,10 +2996,10 @@ currentUserId={businessDetail?.business?.business_id}
                         style={styles.timeInputSmall}
                         value={dayHours.periods[0]?.open || "09:00"}
                         onChangeText={(text) => {
-                          const oh = bizEditForm.opening_hours || { timezone: "Europe/Berlin", schedule: {} };
+                          const oh = (bizEditForm.opening_hours as any) || { timezone: "Europe/Berlin", schedule: {} };
                           const newSchedule = { ...oh.schedule };
                           newSchedule[dayKey] = { ...dayHours, periods: [{ ...dayHours.periods[0], open: text }] };
-                          setBizEditForm({ ...bizEditForm, opening_hours: { ...oh, schedule: newSchedule } });
+                          setBizEditForm({ ...bizEditForm, opening_hours: { ...oh, schedule: newSchedule } as any });
                         }}
                         placeholder="09:00"
                       />
@@ -3008,10 +3008,10 @@ currentUserId={businessDetail?.business?.business_id}
                         style={styles.timeInputSmall}
                         value={dayHours.periods[0]?.close || "18:00"}
                         onChangeText={(text) => {
-                          const oh = bizEditForm.opening_hours || { timezone: "Europe/Berlin", schedule: {} };
+                          const oh = (bizEditForm.opening_hours as any) || { timezone: "Europe/Berlin", schedule: {} };
                           const newSchedule = { ...oh.schedule };
                           newSchedule[dayKey] = { ...dayHours, periods: [{ ...dayHours.periods[0], close: text }] };
-                          setBizEditForm({ ...bizEditForm, opening_hours: { ...oh, schedule: newSchedule } });
+                          setBizEditForm({ ...bizEditForm, opening_hours: { ...oh, schedule: newSchedule } as any });
                         }}
                         placeholder="18:00"
                       />

@@ -512,6 +512,8 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.backgroundPage },
   content: { paddingBottom: 60 },
+  backButton: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: BORDER_RADIUS.md, alignSelf: "center", marginTop: SPACING.section },
+  backButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "700" },
   plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.std },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
   description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },

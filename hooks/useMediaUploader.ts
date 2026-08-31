@@ -89,9 +89,9 @@ export function useMediaUploader(options: UseMediaUploaderOptions = {}) {
           const validation = validateMedia({
             type: itemType,
             uri: asset.uri,
-            fileSize: asset.fileSize,
-            duration: asset.duration,
-          });
+            fileSize: asset.fileSize ?? undefined,
+            duration: asset.duration ?? undefined,
+          } as any);
           if (!validation.valid) {
             Alert.alert("Invalid media", validation.error);
             continue;

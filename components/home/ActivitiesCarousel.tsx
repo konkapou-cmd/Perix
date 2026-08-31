@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -8,6 +9,7 @@ import EmptyState from "../shared/EmptyState";
 import { ActivityItem } from "../../lib/api";
 import { ACTIVITY_TYPES } from "../../lib/api/core";
 import { formatDate } from "../../lib/formatDate";
+import { COLORS } from "../../lib/designTokens";
 
 function getThemeEmoji(theme?: string | null): string {
   if (!theme) return "✨";
@@ -25,22 +27,10 @@ const CARD_WIDTH = 220;
 const CARD_HEIGHT = 260;
 const SNAP_INTERVAL = CARD_WIDTH + 12;
 
-function getThemeEmoji(theme?: string | null): string {
-  if (!theme) return "✨";
-  const themeData = (ACTIVITY_TYPES as Record<string, any>)[theme];
-  return themeData?.emoji || "✨";
-}
-
-function getThemeColor(theme?: string | null): string {
-  if (!theme) return "#6B7280";
-  const themeData = (ACTIVITY_TYPES as Record<string, any>)[theme];
-  return themeData?.color || "#6B7280";
-}
-
 function getThemeLabel(theme?: string | null): string {
   if (!theme) return "Activity";
   const themeData = (ACTIVITY_TYPES as Record<string, any>)[theme];
-  return themeData?.label || (EVENT_THEMES as Record<string, any>)?.[theme]?.label || theme;
+  return themeData?.label || theme;
 }
 
 function formatTime(timeStr?: string | null): string {
@@ -60,6 +50,15 @@ function formatTime(timeStr?: string | null): string {
 function getAttendeeCount(activity: ActivityItem): number {
   return activity.invites?.filter(i => i.status === "accepted" || i.status === "going").length || 0;
 }
+
+type ActivitiesCarouselProps = {
+  activities: ActivityItem[];
+  savedActivityIds?: Set<string>;
+  filter?: string;
+  onFilterChange?: (filter: string) => void;
+  onCalendarOpen?: () => void;
+  mapRefreshKey?: number;
+};
 
 export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFilterChange, onCalendarOpen, mapRefreshKey }: ActivitiesCarouselProps) {
   const router = useRouter();
@@ -103,7 +102,7 @@ export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFil
           <Pressable
             key={opt.key}
             style={[styles.filterChip, filter === opt.key && styles.filterChipActive]}
-            onPress={() => onFilterChange(opt.key)}
+            onPress={() => onFilterChange?.(opt.key)}
           >
             <Text style={[styles.filterChipText, filter === opt.key && styles.filterChipTextActive]}>
               {opt.label}
@@ -181,7 +180,7 @@ export function ActivitiesCarousel({ activities, savedActivityIds, filter, onFil
                     </View>
                   )}
 
-                  {savedActivityIds.has(activity.activity_id) && (
+                  {savedActivityIds?.has(activity.activity_id) && (
                     <View style={styles.savedBadge}>
                       <Ionicons name="bookmark" size={10} color={COLORS.gold} />
                     </View>

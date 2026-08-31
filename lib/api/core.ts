@@ -161,6 +161,8 @@ export type Message = {
   media_type?: "image" | "video" | "audio" | null;
   read: boolean;
   edited_at?: string | null;
+  to_business_id?: string | null;
+  to_artist_id?: string | null;
 };
 
 export type Conversation = {
