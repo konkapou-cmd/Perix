@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getMyApplications, MyApplication } from "../lib/api";
 import EmptyState from "../components/shared/EmptyState";
 import LoadingState from "../components/shared/LoadingState";
+import { formatDate } from "../lib/formatDate";
 import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 
 export default function MyApplicationsScreen() {
@@ -88,18 +89,24 @@ export default function MyApplicationsScreen() {
                 <View style={styles.cardHeader}>
                   <View style={styles.cardLeft}>
                     {app.business_logo ? (
-                      <Image source={{ uri: app.business_logo }} style={styles.logo} />
+                      <Pressable onPress={() => app.business_id && router.push(`/business/${app.business_id}` as any)}>
+                        <Image source={{ uri: app.business_logo }} style={styles.logo} />
+                      </Pressable>
                     ) : (
-                      <View style={[styles.logo, styles.logoPlaceholder]}>
-                        <Ionicons name="business" size={20} color="#9ca3af" />
-                      </View>
+                      <Pressable onPress={() => app.business_id && router.push(`/business/${app.business_id}` as any)}>
+                        <View style={[styles.logo, styles.logoPlaceholder]}>
+                          <Ionicons name="business" size={20} color="#59ABE3" />
+                        </View>
+                      </Pressable>
                     )}
                     <View style={{ flex: 1 }}>
                       <Text style={styles.jobTitle}>{app.job_title}</Text>
-                      <Text style={styles.businessName}>{app.business_name}</Text>
+                      <Pressable onPress={() => app.business_id && router.push(`/business/${app.business_id}` as any)}>
+                        <Text style={styles.businessName}>{app.business_name}</Text>
+                      </Pressable>
                       {app.job_location && (
                         <View style={styles.locationRow}>
-                          <Ionicons name="location-outline" size={13} color="#6b7280" />
+                          <Ionicons name="location-outline" size={13} color="rgba(38,67,72,0.65)" />
                           <Text style={styles.location}>{app.job_location}</Text>
                         </View>
                       )}
@@ -114,7 +121,7 @@ export default function MyApplicationsScreen() {
                     </Text>
                   </View>
                   <Text style={styles.date}>
-                    {new Date(app.created_at).toLocaleDateString()}
+                    {app.created_at ? formatDate(app.created_at.slice(0, 10)) : ""}
                   </Text>
                 </View>
                 {app.cv_url && (

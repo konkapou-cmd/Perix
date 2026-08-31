@@ -1050,6 +1050,7 @@ export type MyApplication = {
   job_title?: string;
   business_name?: string;
   business_logo?: string;
+  business_id?: string | null;
   job_location?: string;
 };
 
