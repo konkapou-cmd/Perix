@@ -277,9 +277,11 @@ export default function MessagesScreen() {
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <View>
+            <View style={styles.headerTitleWrap}>
+              <View style={styles.headerTitleIcon}>
+                <Ionicons name="chatbubbles-outline" size={16} color="#59ABE3" />
+              </View>
               <Text style={styles.title}>{t("messages.title")}</Text>
-              <Text style={styles.subtitle}>{t("messages.chatSubtitle")}</Text>
             </View>
             <View style={styles.headerButtons}>
               <Pressable 
@@ -602,7 +604,22 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
+  },
+  headerTitleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.small,
+  },
+  headerTitleIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(38,67,72,0.15)",
   },
   headerButtons: {
     flexDirection: "row",
@@ -628,8 +645,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   title: {
-    fontSize: FONT_SIZES.h1,
-    fontWeight: FONT_WEIGHTS.bold as any,
+    fontSize: FONT_SIZES.h4,
+    fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#264348",
   },
   subtitle: {
