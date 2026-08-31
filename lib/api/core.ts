@@ -1029,6 +1029,7 @@ export type JobApplication = {
   applicant_id: string;
   applicant_name: string;
   applicant_email: string;
+  applicant_avatar?: string | null;
   message: string;
   cv_url?: string;
   cover_letter_url?: string;

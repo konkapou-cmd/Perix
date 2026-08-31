@@ -367,6 +367,7 @@ async def apply_to_job(
         "applicant_id": current_user.user_id,
         "applicant_name": current_user.name,
         "applicant_email": current_user.email,
+        "applicant_avatar": current_user.profile_photo or current_user.picture,
         "message": application.message,
         "cv_url": application.cv_url,
         "cover_letter_url": application.cover_letter_url,

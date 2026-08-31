@@ -147,8 +147,8 @@ const s = StyleSheet.create({
   typeHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: SPACING.compact,
-    marginBottom: SPACING.small,
+    marginTop: 0,
+    marginBottom: SPACING.tiny,
   },
   categoryTitle: {
     fontSize: FONT_SIZES.body,

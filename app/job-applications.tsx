@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -84,9 +84,13 @@ export default function JobApplicationsScreen() {
                 <View style={styles.cardHeader}>
                   <View style={styles.applicantWrap}>
                     <Pressable onPress={() => router.push(`/user/${app.applicant_id}` as any)}>
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{(app.applicant_name || "?").charAt(0).toUpperCase()}</Text>
-                      </View>
+                      {app.applicant_avatar ? (
+                        <Image source={{ uri: app.applicant_avatar }} style={styles.avatar} />
+                      ) : (
+                        <View style={styles.avatar}>
+                          <Text style={styles.avatarText}>{(app.applicant_name || "?").charAt(0).toUpperCase()}</Text>
+                        </View>
+                      )}
                     </Pressable>
                     <View style={styles.applicantInfo}>
                       <Pressable onPress={() => router.push(`/user/${app.applicant_id}` as any)}>
