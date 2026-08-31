@@ -1246,7 +1246,7 @@
     "businessRequired": "Wähle ein Unternehmen aus, um eine Stellenanzeige zu erstellen",
     "saveFailed": "Fehler beim Speichern der Stellenanzeige",
     "pending": "Ausstehend",
-    "reviewed": "Überprüft",
+    "reviewed": "Geprüft",
     "accepted": "Angenommen",
     "rejected": "Abgelehnt",
     "tapToEnableLocation": "Tippen um Standort zu aktivieren",
@@ -1262,7 +1262,9 @@
     "confirmDelete": "Möchtest du diesen Job wirklich löschen?",
     "jobType": "Art",
     "location": "Standort",
-    "requirements": "Anforderungen"
+    "requirements": "Anforderungen",
+    "cvAttached": "Lebenslauf ansehen",
+    "coverLetterAttached": "Anschreiben ansehen"
   },
   "languages": {
     "en": "English",

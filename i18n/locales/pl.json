@@ -1122,10 +1122,10 @@
     "deleteJob": "Obriši posao",
     "confirmDeleteJob": "Da li ste sigurni da želite da obrišete ovaj oglas za posao?",
     "jobDeleted": "Posao uspešno obrisan",
-    "pending": "Na čekanju",
-    "reviewed": "Pregledano",
-    "accepted": "Prihvaćeno",
-    "rejected": "Odbijeno",
+    "pending": "Pending",
+    "reviewed": "Reviewed",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
     "tapToEnableLocation": "Dodirnite za omogućavanje lokacije",
     "viewNearbyJobs": "Pogledaj obližnje poslove na mapi",
     "myApplications": "Moje aplikacje",
@@ -1138,7 +1138,9 @@
     "confirmDelete": "Czy na pewno chcesz usunąć tę pracę?",
     "jobType": "Typ",
     "location": "Lokalizacja",
-    "requirements": "Wymagania"
+    "requirements": "Wymagania",
+    "cvAttached": "View CV",
+    "coverLetterAttached": "View cover letter"
   },
   "languages": {
     "en": "English",

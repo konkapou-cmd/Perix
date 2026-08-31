@@ -1093,10 +1093,10 @@
     "deleteJob": "Удалить вакансию",
     "confirmDeleteJob": "Вы уверены, что хотите удалить эту вакансию?",
     "jobDeleted": "Вакансия успешно удалена",
-    "pending": "На рассмотрении",
-    "reviewed": "Рассмотрено",
-    "accepted": "Принято",
-    "rejected": "Отклонено",
+    "pending": "Pending",
+    "reviewed": "Reviewed",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
     "tapToEnableLocation": "Нажмите, чтобы включить геолокацию",
     "viewNearbyJobs": "Посмотреть вакансии поблизости на карте",
     "myApplications": "Мои заявки",
@@ -1109,7 +1109,9 @@
     "confirmDelete": "Вы уверены, что хотите удалить эту вакансию?",
     "jobType": "Тип",
     "location": "Местоположение",
-    "requirements": "Требования"
+    "requirements": "Требования",
+    "cvAttached": "View CV",
+    "coverLetterAttached": "View cover letter"
   },
   "languages": {
     "en": "English",

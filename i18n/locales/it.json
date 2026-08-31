@@ -1093,10 +1093,10 @@
     "deleteJob": "Elimina Lavoro",
     "confirmDeleteJob": "Sei sicuro di voler eliminare questa offerta di lavoro?",
     "jobDeleted": "Lavoro eliminato con successo",
-    "pending": "In attesa",
-    "reviewed": "Esaminato",
-    "accepted": "Accettato",
-    "rejected": "Rifiutato",
+    "pending": "Pending",
+    "reviewed": "Reviewed",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
     "tapToEnableLocation": "Tocca per abilitare la posizione",
     "viewNearbyJobs": "Vedi lavori vicini sulla mappa",
     "myApplications": "Le Mie Candidature",
@@ -1109,7 +1109,9 @@
     "confirmDelete": "Sei sicuro di voler eliminare questo lavoro?",
     "jobType": "Tipo",
     "location": "Posizione",
-    "requirements": "Requisiti"
+    "requirements": "Requisiti",
+    "cvAttached": "View CV",
+    "coverLetterAttached": "View cover letter"
   },
   "languages": {
     "en": "English",

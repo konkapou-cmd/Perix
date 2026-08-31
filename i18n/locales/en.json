@@ -1195,7 +1195,9 @@
     "confirmDelete": "Are you sure you want to delete this job?",
     "jobType": "Type",
     "location": "Location",
-    "requirements": "Requirements"
+    "requirements": "Requirements",
+    "cvAttached": "View CV",
+    "coverLetterAttached": "View cover letter"
   },
   "languages": {
     "en": "English",

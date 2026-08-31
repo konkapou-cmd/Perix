@@ -1071,10 +1071,10 @@
     "deleteJob": "Fshi Punën",
     "confirmDeleteJob": "Je i sigurt që dëshiron ta fshish këtë njoftim pune?",
     "jobDeleted": "Puna u fshi me sukses",
-    "pending": "Në pritje",
-    "reviewed": "Rishikuar",
-    "accepted": "Pranuar",
-    "rejected": "Refuzuar",
+    "pending": "Pending",
+    "reviewed": "Reviewed",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
     "tapToEnableLocation": "Trokit për të aktivizuar vendndodhjen",
     "viewNearbyJobs": "Shiko punët afër në hartë",
     "myApplications": "Aplikimet e Mia",
@@ -1087,7 +1087,9 @@
     "confirmDelete": "Je i sigurt që dëshiron ta fshish këtë punë?",
     "jobType": "Lloji",
     "location": "Vendndodhja",
-    "requirements": "Kërkesa"
+    "requirements": "Kërkesa",
+    "cvAttached": "View CV",
+    "coverLetterAttached": "View cover letter"
   },
   "languages": {
     "en": "English",

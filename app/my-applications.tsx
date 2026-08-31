@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Linking,
+  Pressable,
   ScrollView,
   RefreshControl,
   StyleSheet,
@@ -108,15 +110,25 @@ export default function MyApplicationsScreen() {
                 <View style={styles.footer}>
                   <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
                     <Text style={[styles.statusText, { color: colors.text }]}>
-                      {t("jobs." + app.status) || app.status}
+                      {t(`jobs.${app.status}`, app.status)}
                     </Text>
                   </View>
                   <Text style={styles.date}>
                     {new Date(app.created_at).toLocaleDateString()}
                   </Text>
                 </View>
-                {app.cv_url && <Text style={styles.doc}>CV: Attached</Text>}
-                {app.cover_letter_url && <Text style={styles.doc}>Cover Letter: Attached</Text>}
+                {app.cv_url && (
+                  <Pressable style={styles.docBtn} onPress={() => Linking.openURL(app.cv_url!)}>
+                    <Ionicons name="document-text-outline" size={16} color="#264348" />
+                    <Text style={styles.docText}>{t("jobs.cvAttached", "Lebenslauf ansehen")}</Text>
+                  </Pressable>
+                )}
+                {app.cover_letter_url && (
+                  <Pressable style={styles.docBtn} onPress={() => Linking.openURL(app.cover_letter_url!)}>
+                    <Ionicons name="mail-outline" size={16} color="#264348" />
+                    <Text style={styles.docText}>{t("jobs.coverLetterAttached", "Anschreiben ansehen")}</Text>
+                  </Pressable>
+                )}
               </View>
             );
           })
@@ -127,29 +139,40 @@ export default function MyApplicationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f3f4f6" },
+  container: { flex: 1, backgroundColor: "#ffffff" },
   loading: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
-  title: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)" },
+  title: { fontSize: 18, fontWeight: "600", color: "#264348" },
   content: { flex: 1, padding: 16 },
   empty: { alignItems: "center", paddingTop: 80 },
-  emptyTitle: { fontSize: 20, fontWeight: "700", color: "#374151", marginTop: 16 },
-  emptySubtitle: { fontSize: 15, color: "#6b7280", marginTop: 8, marginBottom: 24 },
-  browseBtn: { backgroundColor: COLORS.primaryDark, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
+  emptyTitle: { fontSize: 20, fontWeight: "700", color: "#264348", marginTop: 16 },
+  emptySubtitle: { fontSize: 15, color: "rgba(38,67,72,0.65)", marginTop: 8, marginBottom: 24 },
+  browseBtn: { backgroundColor: "#59ABE3", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
   browseBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "#e5e7eb" },
+  card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(38,67,72,0.15)" },
   cardHeader: { marginBottom: 10 },
   cardLeft: { flexDirection: "row", alignItems: "flex-start" },
   logo: { width: 44, height: 44, borderRadius: 8, marginRight: 12 },
-  logoPlaceholder: { backgroundColor: "#f3f4f6", justifyContent: "center", alignItems: "center" },
-  jobTitle: { fontSize: 16, fontWeight: "600", color: "#111827" },
-  businessName: { fontSize: 14, color: COLORS.primaryDark, marginTop: 2 },
+  logoPlaceholder: { backgroundColor: "rgba(89,171,227,0.15)", justifyContent: "center", alignItems: "center" },
+  jobTitle: { fontSize: 16, fontWeight: "600", color: "#264348" },
+  businessName: { fontSize: 14, color: "#59ABE3", marginTop: 2 },
   locationRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
-  location: { fontSize: 13, color: "#6b7280", marginLeft: 2 },
-  message: { fontSize: 14, color: "#374151", marginBottom: 12, lineHeight: 20 },
+  location: { fontSize: 13, color: "rgba(38,67,72,0.65)", marginLeft: 2 },
+  message: { fontSize: 14, color: "#264348", marginBottom: 12, lineHeight: 20 },
   footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 13, fontWeight: "600" },
-  date: { fontSize: 13, color: "#9ca3af" },
-  doc: { fontSize: 13, color: COLORS.primaryDark, marginTop: 6 },
+  date: { fontSize: 13, color: "rgba(38,67,72,0.55)" },
+  docBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(89,171,227,0.12)",
+  },
+  docText: { fontSize: 13, fontWeight: "600", color: "#264348" },
 });
