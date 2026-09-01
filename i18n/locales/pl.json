@@ -504,7 +504,16 @@
     "homesNearby": "Noclegi w pobliżu",
     "personalizeHome": "Spersonalizuj swój feed"
   },
-  "profile": {
+    "detail": {
+    "stay": "Informacje o pobycie",
+    "timing": "Czas trwania i dostępność",
+    "specs": "Szczegóły",
+    "vehicle": "Dane pojazdu",
+    "food": "Informacje o jedzeniu",
+    "health": "Zdrowie i opieka",
+    "included": "W cenie"
+  },
+"profile": {
     "title": "Profil",
     "editProfile": "Izmeni profil",
     "viewPublicProfile": "Pogledaj javni profil",
@@ -2082,6 +2091,8 @@
     "ourServices": "Nasze usługi",
     "gallery": "Galeria",
     "days": "dni",
+    "upTo": "Do",
+    "night": "noc",
     "months": "miesiące",
     "sessions": "sesje",
     "address": "Adres",

@@ -504,7 +504,16 @@
     "homesNearby": "Banesa afër",
     "personalizeHome": "Personalizo ushqimin tuaj kryesor"
   },
-  "profile": {
+    "detail": {
+    "stay": "Informacion mbi qëndrimin",
+    "timing": "Kohëzgjatja dhe disponueshmëria",
+    "specs": "Detajet",
+    "vehicle": "Të dhënat e automjetit",
+    "food": "Informacion ushqimi",
+    "health": "Shëndeti dhe kujdesi",
+    "included": "Të përfshira"
+  },
+"profile": {
     "title": "Profili",
     "editProfile": "Ndrysho profilin",
     "viewPublicProfile": "Shiko Profilin Publik",
@@ -1978,6 +1987,8 @@
     "ourServices": "Shërbimet tona",
     "gallery": "Galeri",
     "days": "ditë",
+    "upTo": "Deri në",
+    "night": "natë",
     "months": "muaj",
     "sessions": "seanca",
     "address": "Adresa",

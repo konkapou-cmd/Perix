@@ -505,7 +505,16 @@
     "homesNearby": "Logements à proximité",
     "personalizeHome": "Personnalisez votre fil d actualité"
   },
-  "profile": {
+    "detail": {
+    "stay": "Informations sur le séjour",
+    "timing": "Durée et disponibilité",
+    "specs": "Détails",
+    "vehicle": "Données du véhicule",
+    "food": "Infos repas",
+    "health": "Santé et soins",
+    "included": "Inclus"
+  },
+"profile": {
     "title": "Profil",
     "editProfile": "Modifier le profil",
     "viewPublicProfile": "Voir le Profil Public",
@@ -2073,6 +2082,8 @@
     "ourServices": "Nos services",
     "gallery": "Galerie",
     "days": "jours",
+    "upTo": "Jusqu'à",
+    "night": "nuit",
     "months": "mois",
     "sessions": "séances",
     "address": "Adresse",

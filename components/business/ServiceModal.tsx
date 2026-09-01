@@ -695,15 +695,6 @@ export default function ServiceModal({
               ))}
             </View>
 
-            <UnifiedMediaGallery
-              media={media}
-              onChange={handleMediaChange}
-              sessionToken={sessionToken}
-              label={t("services.images", "Photos & Videos")}
-              accentColor="#7B3FF2"
-              lightBackground
-            />
-
             <Text style={styles.label}>
               {t("services.serviceName", "Name")}
               <Text style={styles.required}>*</Text>
@@ -958,6 +949,15 @@ export default function ServiceModal({
           )}
         </View>
       )}
+
+      <UnifiedMediaGallery
+        media={media}
+        onChange={handleMediaChange}
+        sessionToken={sessionToken}
+        label={t("services.images", "Photos & Videos")}
+        accentColor="#7B3FF2"
+        lightBackground
+      />
 
       <FormBottomBar
         onCancel={onClose}

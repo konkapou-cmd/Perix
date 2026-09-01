@@ -504,7 +504,16 @@
     "homesNearby": "Smeštaj u blizini",
     "personalizeHome": "Prilagodite svoj fid"
   },
-  "profile": {
+    "detail": {
+    "stay": "Informacije o boravku",
+    "timing": "Trajanje i dostupnost",
+    "specs": "Detalji",
+    "vehicle": "Podaci o vozilu",
+    "food": "Informacije o hrani",
+    "health": "Zdravlje i nega",
+    "included": "Uključeno"
+  },
+"profile": {
     "title": "Profil",
     "editProfile": "Izmeni profil",
     "viewPublicProfile": "Pogledaj javni profil",
@@ -2069,6 +2078,8 @@
     "ourServices": "Naše usluge",
     "gallery": "Galerija",
     "days": "dana",
+    "upTo": "Do",
+    "night": "noć",
     "months": "meseci",
     "sessions": "sesije",
     "address": "Adresa",

@@ -15,6 +15,7 @@ import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceF
 import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
+import { optionLabel } from "../../lib/categoryTranslation";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { formatDate } from "../../lib/formatDate";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
@@ -337,7 +338,7 @@ export default function ServiceDetailPage() {
               if (!config) return null;
               let displayValue = config.displayFormat === "duration" ? formatDuration(Number(value), t) : String(value);
               if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
-              if (fieldName === "capacity" || fieldName === "max_guests") displayValue = "Bis " + value;
+              if (fieldName === "capacity" || fieldName === "max_guests") displayValue = t("services.upTo", "Bis zu") + " " + value;
               return (
                 <DetailFact
                   key={fieldName}
@@ -389,7 +390,7 @@ export default function ServiceDetailPage() {
               if (fieldName === "duration_days") displayValue = String(value) + " " + t("services.days", "days");
               if (fieldName === "duration_months") displayValue = String(value) + " " + t("services.months", "months");
               if (fieldName === "sessions_count") displayValue = String(value) + " " + t("services.sessions", "sessions");
-              if (config.component === "chips" || config.component === "chips-multi") displayValue = String(value);
+              if (config.component === "chips" || config.component === "chips-multi") displayValue = optionLabel(String(value), t);
               if (fieldName === "available_from" || fieldName === "available_until") {
                 try { displayValue = formatDate(String(value)); } catch {}
               }

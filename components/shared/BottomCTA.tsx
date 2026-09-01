@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES, SHADOWS } from "../../lib/designTokens";
+import i18n from "../../i18n";
 
 type BottomCTAProps = {
   primaryLabel: string;
@@ -72,7 +73,7 @@ export const BottomCTA = ({
         {onShare && (
           <Pressable style={styles.actionBtn} onPress={onShare}>
             <Ionicons name="share-social-outline" size={18} color="#264348" />
-            <Text style={styles.actionText}>Teilen</Text>
+            <Text style={styles.actionText}>{i18n.t("common.share", "Teilen")}</Text>
           </Pressable>
         )}
         {onSave && (
@@ -82,7 +83,7 @@ export const BottomCTA = ({
               size={18}
               color={saved ? COLORS.gold : "#264348"}
             />
-            <Text style={styles.actionText}>{saved ? "Gespeichert" : "Speichern"}</Text>
+            <Text style={styles.actionText}>{saved ? i18n.t("common.saved", "Gespeichert") : i18n.t("common.save", "Speichern")}</Text>
           </Pressable>
         )}
       </View>
