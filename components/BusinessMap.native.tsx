@@ -70,7 +70,7 @@ const isBusinessOpen = (business: Business): boolean => {
   const now = new Date();
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const currentDay = days[now.getDay()];
-  const daySchedule = openingHours.schedule[currentDay];
+  const daySchedule = openingHours.schedule[currentDay] || openingHours.schedule[currentDay.toLowerCase()];
   
   if (!daySchedule || !daySchedule.enabled) return false;
   

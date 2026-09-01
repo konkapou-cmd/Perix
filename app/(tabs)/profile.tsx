@@ -114,19 +114,19 @@ import PlacesAutocompleteInput from "../../components/PlacesAutocompleteInput";
 function normalizeOpeningHoursForState(raw: any): { timezone: string; schedule: Record<string, DayHours> } {
   if (!raw || typeof raw !== "object") return { timezone: "Europe/Berlin", schedule: {} };
   const schedule: Record<string, any> = {};
-  const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-  const uppercaseDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const lowercaseDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
   if (raw.schedule && typeof raw.schedule === "object") {
-    days.forEach((d) => {
-      const ds = raw.schedule[d];
+    days.forEach((d, i) => {
+      const ds = raw.schedule[d] ?? raw.schedule[lowercaseDays[i]];
       schedule[d] = ds ? { enabled: !!ds.enabled, periods: Array.isArray(ds.periods) ? ds.periods : [] } : { enabled: false, periods: [] };
     });
     return { timezone: raw.timezone || "Europe/Berlin", schedule };
   }
 
   days.forEach((d, i) => {
-    const ds = raw[d] || raw[uppercaseDays[i]];
+    const ds = raw[d] ?? raw[lowercaseDays[i]];
     if (ds && typeof ds === "object") {
       schedule[d] = { enabled: !!ds.enabled, periods: Array.isArray(ds.periods) ? ds.periods : [] };
     } else {

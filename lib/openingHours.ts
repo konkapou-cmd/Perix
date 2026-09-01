@@ -11,7 +11,10 @@ export function isBusinessOpen(business: Business): boolean {
 
   const now = new Date();
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const daySchedule = openingHours.schedule[days[now.getDay()]];
+  const dayName = days[now.getDay()];
+  const daySchedule =
+    openingHours.schedule[dayName] ||
+    openingHours.schedule[dayName.toLowerCase()];
 
   if (!daySchedule || !daySchedule.enabled) return false;
 
