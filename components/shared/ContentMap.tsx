@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import BusinessMap from "../BusinessMap";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
 import { openInMaps } from "../../lib/utils/openMapUrl";
@@ -15,6 +16,7 @@ type ContentMapProps = {
 };
 
 export default function ContentMap({ latitude, longitude, title, address, interactive = true, flush = false }: ContentMapProps) {
+  const { t } = useTranslation();
   const openMap = () => {
     openInMaps({ latitude, longitude, address, label: title });
   };
@@ -36,7 +38,7 @@ export default function ContentMap({ latitude, longitude, title, address, intera
       />
       <Pressable style={styles.overlay} onPress={openMap}>
         <Ionicons name="navigate" size={20} color="#fff" />
-        <Text style={styles.overlayText}>In Maps öffnen</Text>
+        <Text style={styles.overlayText}>{t("common.openInMaps", "In Maps öffnen")}</Text>
       </Pressable>
     </View>
   );
