@@ -109,7 +109,7 @@ export default function StartGroupCallScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primaryDark} />
+          <ActivityIndicator size="large" color="#264348" />
         </View>
       </SafeAreaView>
     );
@@ -121,7 +121,7 @@ export default function StartGroupCallScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.primaryDark} />
+          <Ionicons name="chevron-back" size={24} color="#264348" />
         </Pressable>
         <Text style={styles.headerTitle}>{t("call.startGroupCall") || "Start Group Call"}</Text>
         <View style={{ width: 40 }} />
@@ -176,7 +176,7 @@ export default function StartGroupCallScreen() {
         <TextInput
           style={styles.groupNameInput}
           placeholder={t("call.groupNamePlaceholder") || "e.g., Friday Night Hangout"}
-          placeholderTextColor="#6b7280"
+          placeholderTextColor="#264348"
           value={groupName}
           onChangeText={setGroupName}
           maxLength={50}
@@ -225,11 +225,11 @@ export default function StartGroupCallScreen() {
       {/* Search */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#6b7280" />
+          <Ionicons name="search" size={20} color="#264348" />
           <TextInput
             style={styles.searchInput}
             placeholder={t("call.searchFriends") || "Search friends..."}
-            placeholderTextColor="#6b7280"
+            placeholderTextColor="#264348"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -240,7 +240,7 @@ export default function StartGroupCallScreen() {
       <ScrollView style={styles.friendsList} contentContainerStyle={styles.friendsContent}>
         {filteredFriends.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="people-outline" size={48} color="#6b7280" />
+            <Ionicons name="people-outline" size={48} color="#264348" />
             <Text style={styles.emptyText}>
               {searchQuery
                 ? t("call.noMatchingFriends") || "No friends match your search"
@@ -291,7 +291,7 @@ export default function StartGroupCallScreen() {
           disabled={selectedFriends.length === 0 || starting}
         >
           <LinearGradient
-            colors={selectedFriends.length > 0 ? [COLORS.primaryDark, "#FFD700"] : ["#9ca3af", "#9ca3af"]}
+            colors={selectedFriends.length > 0 ? ["#59ABE3", "#1F4788"] : ["#9ca3af", "#9ca3af"]}
             style={styles.startButtonGradient}
           >
             {starting ? (
@@ -322,7 +322,7 @@ export default function StartGroupCallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#fff",
   },
   loadingContainer: {
     flex: 1,
@@ -336,20 +336,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: "rgba(38,67,72,0.15)",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   callTypeSection: {
     padding: 16,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#6b7280",
+    color: "#264348",
     marginBottom: 12,
   },
   callTypeRow: {
@@ -372,18 +372,18 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#fff",
     borderWidth: 2,
     borderColor: "transparent",
   },
   callTypeBtnActive: {
-    backgroundColor: COLORS.primaryDark,
-    borderColor: COLORS.primaryDark,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   callTypeText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#6b7280",
+    color: "#264348",
   },
   callTypeTextActive: {
     color: "#fff",
@@ -395,12 +395,12 @@ const styles = StyleSheet.create({
   groupNameInput: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "rgba(38,67,72,0.25)",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   selectedSection: {
     paddingHorizontal: 16,
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   selectedChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#fff",
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 10,
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: COLORS.primaryDark,
+    backgroundColor: "#59ABE3",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   },
   selectedName: {
     fontSize: 14,
-    color: COLORS.textPrimary,
+    color: "#264348",
     fontWeight: "500",
     maxWidth: 80,
   },
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   friendsList: {
     flex: 1,
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: "#6b7280",
+    color: "#264348",
     marginTop: 12,
     textAlign: "center",
   },
@@ -482,10 +482,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: "rgba(38,67,72,0.15)",
   },
   friendItemSelected: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#fff",
     marginHorizontal: -16,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: "rgba(89,171,227,0.15)",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   friendAvatarText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#6b7280",
+    color: "#264348",
   },
   friendInfo: {
     flex: 1,
@@ -515,11 +515,11 @@ const styles = StyleSheet.create({
   friendName: {
     fontSize: 16,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   friendLocation: {
     fontSize: 13,
-    color: "#6b7280",
+    color: "#264348",
     marginTop: 2,
   },
   checkbox: {
@@ -527,18 +527,18 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#e5e7eb",
+    borderColor: "rgba(38,67,72,0.25)",
     justifyContent: "center",
     alignItems: "center",
   },
   checkboxSelected: {
-    backgroundColor: COLORS.primaryDark,
-    borderColor: COLORS.primaryDark,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   footer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
+    borderTopColor: "rgba(38,67,72,0.15)",
   },
   startButton: {
     borderRadius: 16,
