@@ -62,9 +62,9 @@ export const deleteSlot = async (token: string, serviceId: string, slotId: strin
 export const setAvailability = async (
   token: string,
   serviceId: string,
-  payload: { timezone: string; slots: { day_of_week?: number; date?: string; start_time: string; end_time: string; is_recurring: boolean }[] },
-): Promise<TimeSlot[]> => {
-  return apiRequest<TimeSlot[]>(`/services/${serviceId}/availability`, "PUT", token, payload);
+  payload: { timezone: string; slots: { day_of_week?: number; date?: string; start_time: string; end_time: string; is_recurring: boolean; is_blocked?: boolean }[] },
+): Promise<{ slots: TimeSlot[]; kept_booked_slots: number; skipped_conflicts: number }> => {
+  return apiRequest<{ slots: TimeSlot[]; kept_booked_slots: number; skipped_conflicts: number }>(`/services/${serviceId}/availability`, "PUT", token, payload);
 };
 
 export const getAvailability = async (serviceId: string, date: string): Promise<any[]> => {

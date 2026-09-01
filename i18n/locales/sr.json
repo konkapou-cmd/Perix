@@ -2445,6 +2445,8 @@
     "blockStart": "Datum početka",
     "blockEnd": "Datum kraja",
     "blockCount": "Biće blokirano {{count}} dana",
+    "keptBooked": "Zadržano {{count}} termina sa postojećim rezervacijama",
+    "skippedConflicts": "Preskočeno {{count}} termina u sukobu sa zadržanim rezervacijama",
     "skippedBlocked": "Preskočeno {{count}} termina u blokiranim danima",
     "dayBlocked": "Ovaj dan je blokiran — preskočen je."
   }

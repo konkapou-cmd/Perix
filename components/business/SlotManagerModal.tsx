@@ -135,10 +135,20 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
         is_recurring: s.is_recurring,
         is_blocked: s.is_blocked,
       }));
-      await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots as any });
+      const res = await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots as any });
       await loadSlots();
+      const msgs: string[] = [];
+      if (res.kept_booked_slots > 0) {
+        msgs.push(t("slotManager.keptBooked", "{{count}} slot(s) with existing bookings were kept", { count: res.kept_booked_slots }));
+      }
+      if (res.skipped_conflicts > 0) {
+        msgs.push(t("slotManager.skippedConflicts", "{{count}} slot(s) conflicting with kept bookings were skipped", { count: res.skipped_conflicts }));
+      }
       if (skipped > 0) {
-        Alert.alert(t("common.info", "Info"), t("slotManager.skippedBlocked", "{{count}} slot(s) on blocked days were skipped", { count: skipped }));
+        msgs.push(t("slotManager.skippedBlocked", "{{count}} slot(s) on blocked days were skipped", { count: skipped }));
+      }
+      if (msgs.length > 0) {
+        Alert.alert(t("common.info", "Info"), msgs.join("\n"));
       }
     } catch (err: any) {
       Alert.alert(t("common.error", "Error"), err.message);

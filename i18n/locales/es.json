@@ -2415,6 +2415,8 @@
     "blockStart": "Fecha de inicio",
     "blockEnd": "Fecha de fin",
     "blockCount": "Se bloquearán {{count}} días",
+    "keptBooked": "Se conservaron {{count}} citas con reservas existentes",
+    "skippedConflicts": "Se omitieron {{count}} citas que chocan con reservas conservadas",
     "skippedBlocked": "Se omitieron {{count}} citas en días bloqueados",
     "dayBlocked": "Este día está bloqueado: se omitió."
   }

@@ -2449,6 +2449,8 @@
     "blockStart": "Date de début",
     "blockEnd": "Date de fin",
     "blockCount": "{{count}} jours seront bloqués",
+    "keptBooked": "{{count}} créneau(x) avec réservations existantes ont été conservés",
+    "skippedConflicts": "{{count}} créneau(x) en conflit avec des réservations conservées ont été ignorés",
     "skippedBlocked": "{{count}} créneau(x) de jours bloqués ont été ignorés",
     "dayBlocked": "Ce jour est bloqué — il a été ignoré."
   }

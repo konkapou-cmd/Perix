@@ -3054,6 +3054,8 @@
     "blockStart": "Startdatum",
     "blockEnd": "Enddatum",
     "blockCount": "{{count}} Tage werden gesperrt",
+    "keptBooked": "{{count}} Zeitfenster mit bestehenden Buchungen wurden beibehalten",
+    "skippedConflicts": "{{count}} Zeitfenster, die mit beibehaltenen Buchungen kollidieren, wurden übersprungen",
     "skippedBlocked": "{{count}} Zeitfenster an blockierten Tagen wurden übersprungen",
     "dayBlocked": "Dieser Tag ist blockiert — er wurde übersprungen."
   }

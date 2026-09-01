@@ -2354,6 +2354,8 @@
     "blockStart": "Data e fillimit",
     "blockEnd": "Data e fundit",
     "blockCount": "Do të bllokohen {{count}} ditë",
+    "keptBooked": "U mbajtën {{count}} orare me rezervime ekzistuese",
+    "skippedConflicts": "U anashkaluan {{count}} orare në konflikt me rezervimet e mbajtura",
     "skippedBlocked": "{{count}} orare në ditë të bllokuara u anashkaluan",
     "dayBlocked": "Kjo ditë është e bllokuar — u anashkalua."
   }

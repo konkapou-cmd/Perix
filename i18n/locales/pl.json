@@ -2458,6 +2458,8 @@
     "blockStart": "Data rozpoczęcia",
     "blockEnd": "Data zakończenia",
     "blockCount": "Zablokowanych zostanie {{count}} dni",
+    "keptBooked": "Zachowano {{count}} terminy z istniejącymi rezerwacjami",
+    "skippedConflicts": "Pominięto {{count}} terminy kolidujące z zachowanymi rezerwacjami",
     "skippedBlocked": "Pominięto {{count}} terminy w zablokowane dni",
     "dayBlocked": "Ten dzień jest zablokowany — pominięto go."
   }

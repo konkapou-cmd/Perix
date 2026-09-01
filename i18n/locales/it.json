@@ -2420,6 +2420,8 @@
     "blockStart": "Data di inizio",
     "blockEnd": "Data di fine",
     "blockCount": "Verranno bloccati {{count}} giorni",
+    "keptBooked": "{{count}} fasce orarie con prenotazioni esistenti sono state mantenute",
+    "skippedConflicts": "{{count}} fasce orarie in conflitto con prenotazioni mantenute sono state saltate",
     "skippedBlocked": "{{count}} fasce orarie in giorni bloccati sono state saltate",
     "dayBlocked": "Questo giorno è bloccato: è stato saltato."
   }

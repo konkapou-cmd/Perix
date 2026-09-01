@@ -2933,6 +2933,8 @@
     "blockStart": "Start date",
     "blockEnd": "End date",
     "blockCount": "{{count}} days will be blocked",
+    "keptBooked": "{{count}} slot(s) with existing bookings were kept",
+    "skippedConflicts": "{{count}} slot(s) conflicting with kept bookings were skipped",
     "skippedBlocked": "{{count}} slot(s) on blocked days were skipped",
     "dayBlocked": "This day is blocked — it was skipped."
   }
