@@ -136,7 +136,6 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
         <EmptyState
           icon="images-outline"
           message={t("profile.noMedia", "Noch keine Fotos oder Videos")}
-          size="large"
         />
       ) : (
         <View style={styles.webGrid}>
