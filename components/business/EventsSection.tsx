@@ -55,7 +55,7 @@ export default function EventsSection({
       />
 
       {events.length === 0 ? (
-        <EmptyState icon="calendar" message={t("business.noEvents")} subMessage={readOnly ? undefined : t("business.addFirstEvent")} />
+        <EmptyState icon="calendar" message={t("business.noEvents", "Keine Events vorhanden")} subMessage={readOnly ? undefined : t("business.addFirstEvent", "Erstelle dein erstes Event")} />
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
           {events.map((event) => {

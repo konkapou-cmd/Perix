@@ -71,7 +71,7 @@ export default function JobsSection({
       )}
 
       {jobs.length === 0 ? (
-        <EmptyState icon="briefcase" message={t("jobs.noJobs")} subMessage={readOnly ? undefined : t("jobs.addFirstJob")} />
+        <EmptyState icon="briefcase" message={t("jobs.noJobs", "Keine Jobs vorhanden")} subMessage={readOnly ? undefined : t("jobs.addFirstJob", "Erstelle deine erste Stellenanzeige")} />
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
           {jobs.map((job) => {

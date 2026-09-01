@@ -59,7 +59,7 @@ export default function ActivitiesSection({
       />
 
       {activities.length === 0 ? (
-        <EmptyState icon="people" message={t("userProfile.noActivities")} subMessage={!readOnly ? t("userProfile.addFirstActivity") : undefined} />
+        <EmptyState icon="people" message={t("userProfile.noActivities", "Keine Aktivitäten vorhanden")} subMessage={!readOnly ? t("userProfile.addFirstActivity", "Erstelle deine erste Aktivität") : undefined} />
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
           {activities.map((activity) => {
