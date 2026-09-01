@@ -675,7 +675,26 @@ export default function ServiceModal({
   };
 
   return (
-    <FormScreen title={modalTitle} onClose={onClose} visible={visible} titleColor="#7B3FF2">
+    <FormScreen title={modalTitle} onClose={onClose} visible={visible} titleColor="#7B3FF2" footer={
+      <FormBottomBar
+        onCancel={onClose}
+        onSave={handleSaveWithValidation}
+        saveLabel={isEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
+        isSaving={isSaving}
+        accentColor="#7B3FF2"
+        disabled={
+          !form.type || !form.name.trim() ||
+          (form.status === "published" && isServiceBookable(form.type) &&
+            (requiresServiceSlots(form.type)
+              ? !(form.availability_slots?.length) || !form.availability_slots!.every(s => {
+                  const p = (v: string) => { const m = /^(\d{1,2}):(\d{2})$/.exec(v.trim()); if (!m) return null; const h = Number(m[1]), min = Number(m[2]); return (h >= 0 && h <= 23 && min >= 0 && min <= 59) ? h * 60 + min : null; };
+                  const a = p(s.start_time), b = p(s.end_time);
+                  return a !== null && b !== null && a < b && (s.is_recurring ? s.day_of_week !== undefined : !!s.date);
+                })
+              : !form.available_from))
+        }
+      />
+    }>
       <Text style={styles.label}>
         {t("services.serviceType", "Type")}
         <Text style={styles.required}>*</Text>
@@ -957,25 +976,6 @@ export default function ServiceModal({
         label={t("services.images", "Photos & Videos")}
         accentColor="#7B3FF2"
         lightBackground
-      />
-
-      <FormBottomBar
-        onCancel={onClose}
-        onSave={handleSaveWithValidation}
-        saveLabel={isEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
-        isSaving={isSaving}
-        accentColor="#7B3FF2"
-        disabled={
-          !form.type || !form.name.trim() ||
-          (form.status === "published" && isServiceBookable(form.type) &&
-            (requiresServiceSlots(form.type)
-              ? !(form.availability_slots?.length) || !form.availability_slots!.every(s => {
-                  const p = (v: string) => { const m = /^(\d{1,2}):(\d{2})$/.exec(v.trim()); if (!m) return null; const h = Number(m[1]), min = Number(m[2]); return (h >= 0 && h <= 23 && min >= 0 && min <= 59) ? h * 60 + min : null; };
-                  const a = p(s.start_time), b = p(s.end_time);
-                  return a !== null && b !== null && a < b && (s.is_recurring ? s.day_of_week !== undefined : !!s.date);
-                })
-              : !form.available_from))
-        }
       />
     </FormScreen>
   );

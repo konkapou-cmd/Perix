@@ -10,10 +10,11 @@ type FormScreenProps = {
   onClose: () => void;
   visible: boolean;
   children?: React.ReactNode;
+  footer?: React.ReactNode;
   titleColor?: string;
 };
 
-export default function FormScreen({ title, onClose, visible, children, titleColor = "#264348" }: FormScreenProps) {
+export default function FormScreen({ title, onClose, visible, children, footer, titleColor = "#264348" }: FormScreenProps) {
   const { t } = useTranslation();
 
   return (
@@ -40,6 +41,8 @@ export default function FormScreen({ title, onClose, visible, children, titleCol
           >
             {children}
           </ScrollView>
+
+          {footer ? <View style={styles.footer}>{footer}</View> : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -81,6 +84,13 @@ const styles = StyleSheet.create({
   bodyContent: {
     paddingHorizontal: SPACING.std,
     paddingTop: SPACING.std,
-    paddingBottom: 100,
+    paddingBottom: 24,
+  },
+  footer: {
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(38,67,72,0.15)",
+    backgroundColor: COLORS.background,
   },
 });
