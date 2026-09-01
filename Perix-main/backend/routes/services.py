@@ -794,22 +794,26 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
         elif not effective_available_from:
             raise HTTPException(status_code=400, detail="Add an availability date before publishing this service.")
 
-    # Check booked slots before replacing
+    # Check booked slots before replacing: slots with active bookings stay,
+    # everything else is replaced with the new schedule.
     slots_changed = (
         incoming_slots is not None
         and normalize_slots(incoming_slots) != normalize_slots(existing_slots)
     )
 
-    if slots_changed:
-        booked_count = await db.service_slots.count_documents({
-            "service_id": service_id,
-            "is_booked": True,
-        })
-        if booked_count:
-            raise HTTPException(
-                status_code=409,
-                detail="Availability with existing bookings cannot be replaced.",
-            )
+    booked_slot_ids: set = set()
+    if slots_changed and existing_slots:
+        active_statuses = ["pending", "confirmed", "completed"]
+        async for booking in db.bookings.find(
+            {"slot_id": {"$in": [s["slot_id"] for s in existing_slots]}, "status": {"$in": active_statuses}},
+            {"slot_id": 1},
+        ):
+            booked_slot_ids.add(booking["slot_id"])
+
+    kept_slots = [s for s in existing_slots if s["slot_id"] in booked_slot_ids]
+    effective_incoming = [
+        s for s in incoming_slots if not any(_conflicts(s, k) for k in kept_slots)
+    ] if incoming_slots is not None else None
 
     original_update_values = {
         key: service.get(key) for key in update_data
@@ -817,8 +821,11 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
 
     try:
         if slots_changed:
-            await db.service_slots.delete_many({"service_id": service_id})
-            if incoming_slots:
+            if booked_slot_ids:
+                await db.service_slots.delete_many({"service_id": service_id, "slot_id": {"$nin": list(booked_slot_ids)}})
+            else:
+                await db.service_slots.delete_many({"service_id": service_id})
+            if effective_incoming:
                 slot_docs = [
                     {
                         **slot,
@@ -828,7 +835,7 @@ async def update_service(service_id: str, payload: ServiceUpdate, current_user: 
                         "is_booked": False,
                         "created_at": now_utc(),
                     }
-                    for slot in incoming_slots
+                    for slot in effective_incoming
                 ]
                 await db.service_slots.insert_many(slot_docs)
 
@@ -959,6 +966,36 @@ def _parse_time(t: str):
     return tuple(int(x) for x in t.split(":"))
 
 
+def _minutes(t: str) -> int:
+    h, m = _parse_time(t)
+    return h * 60 + m
+
+
+def _js_weekday(date_str: str) -> int:
+    from datetime import datetime as _dt
+    return (_dt.strptime(date_str, "%Y-%m-%d").weekday() + 1) % 7
+
+
+def _conflicts(a: dict, b: dict) -> bool:
+    """True when two availability entries target the same day/weekday and overlap."""
+    if a.get("is_blocked") or b.get("is_blocked"):
+        return False
+    same_target = False
+    if a.get("is_recurring") and b.get("is_recurring"):
+        same_target = a.get("day_of_week") == b.get("day_of_week")
+    elif a.get("date") and b.get("date"):
+        same_target = a["date"] == b["date"]
+    elif a.get("is_recurring") and b.get("date"):
+        same_target = a.get("day_of_week") == _js_weekday(b["date"])
+    elif b.get("is_recurring") and a.get("date"):
+        same_target = b.get("day_of_week") == _js_weekday(a["date"])
+    if not same_target:
+        return False
+    a_start, a_end = _minutes(a["start_time"]), _minutes(a["end_time"])
+    b_start, b_end = _minutes(b["start_time"]), _minutes(b["end_time"])
+    return a_start < b_end and b_start < a_end
+
+
 def _validate_slots(slots: list[dict]):
     for i, slot in enumerate(slots):
         try:
@@ -1023,32 +1060,6 @@ async def set_availability(
         ):
             booked_slot_ids.add(booking["slot_id"])
     kept_slots = [s for s in old_slots if s["slot_id"] in booked_slot_ids]
-
-    def _minutes(t: str) -> int:
-        h, m = _parse_time(t)
-        return h * 60 + m
-
-    def _js_weekday(date_str: str) -> int:
-        from datetime import datetime as _dt
-        return (_dt.strptime(date_str, "%Y-%m-%d").weekday() + 1) % 7
-
-    def _conflicts(a: dict, b: dict) -> bool:
-        if a.get("is_blocked") or b.get("is_blocked"):
-            return False
-        same_target = False
-        if a.get("is_recurring") and b.get("is_recurring"):
-            same_target = a.get("day_of_week") == b.get("day_of_week")
-        elif a.get("date") and b.get("date"):
-            same_target = a["date"] == b["date"]
-        elif a.get("is_recurring") and b.get("date"):
-            same_target = a.get("day_of_week") == _js_weekday(b["date"])
-        elif b.get("is_recurring") and a.get("date"):
-            same_target = b.get("day_of_week") == _js_weekday(a["date"])
-        if not same_target:
-            return False
-        a_start, a_end = _minutes(a["start_time"]), _minutes(a["end_time"])
-        b_start, b_end = _minutes(b["start_time"]), _minutes(b["end_time"])
-        return a_start < b_end and b_start < a_end
 
     final_new = [s for s in new_slots if not any(_conflicts(s, k) for k in kept_slots)]
     skipped_count = len(new_slots) - len(final_new)
