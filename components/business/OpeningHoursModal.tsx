@@ -50,9 +50,14 @@ export default function OpeningHoursModal({
 
   const toggleDay = (day: string) => {
     const current = openingHours[day] || { enabled: true, periods: [{ open: "09:00", close: "18:00" }] };
+    const enabling = !current.enabled;
     onHoursChange({
       ...openingHours,
-      [day]: { ...current, enabled: !current.enabled },
+      [day]: {
+        ...current,
+        enabled: enabling,
+        periods: enabling && current.periods.length === 0 ? [{ open: "09:00", close: "18:00" }] : current.periods,
+      },
     });
   };
 

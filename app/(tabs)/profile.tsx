@@ -2983,7 +2983,14 @@ currentUserId={businessDetail?.business?.business_id}
                     <Pressable onPress={() => {
                       const oh = (bizEditForm.opening_hours as any) || { timezone: "Europe/Berlin", schedule: {} };
                       const newSchedule = { ...oh.schedule };
-                      newSchedule[dayKey] = { ...dayHours, enabled: !dayHours.enabled };
+                      const enabling = !dayHours.enabled;
+                      newSchedule[dayKey] = {
+                        ...dayHours,
+                        enabled: enabling,
+                        periods: enabling && (!dayHours.periods || dayHours.periods.length === 0)
+                          ? [{ open: "09:00", close: "18:00" }]
+                          : dayHours.periods,
+                      };
                       setBizEditForm({ ...bizEditForm, opening_hours: { ...oh, schedule: newSchedule } as any });
                     }}>
                       <Ionicons name={dayHours.enabled ? "checkbox" : "square-outline"} size={22} color={dayHours.enabled ? COLORS.primaryDark : "#9ca3af"} />
