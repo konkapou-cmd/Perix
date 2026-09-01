@@ -160,25 +160,25 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
           <View style={s.headerBtn} />
         </View>
 
-        <View style={s.tabRow}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled style={{ flex: 1 }} contentContainerStyle={s.tabScroll}>
-            {TABS.map((tab) => (
+        <View style={s.filterList}>
+          {TABS.map((tab) => {
+            const count = statusCounts[tab] || 0;
+            const active = activeTab === tab;
+            return (
               <Pressable
                 key={tab}
-                style={[s.tab, activeTab === tab && s.tabActive]}
+                style={[s.filterBtn, active && s.filterBtnActive]}
                 onPress={() => setActiveTab(tab)}
               >
-                <Text style={[s.tabText, activeTab === tab && s.tabTextActive]} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={[s.filterBtnText, active && s.filterBtnTextActive]} numberOfLines={1} ellipsizeMode="tail">
                   {t(`services.${tab}`, tab.charAt(0).toUpperCase() + tab.slice(1))}
                 </Text>
-                {(statusCounts[tab] || 0) > 0 && (
-                  <View style={[s.tabCount, activeTab === tab && s.tabCountActive]}>
-                    <Text style={[s.tabCountText, activeTab === tab && s.tabCountTextActive]}>{statusCounts[tab]}</Text>
-                  </View>
-                )}
+                <View style={[s.filterCount, active && s.filterCountActive]}>
+                  <Text style={[s.filterCountText, active && s.filterCountTextActive]}>{count}</Text>
+                </View>
               </Pressable>
-            ))}
-          </ScrollView>
+            );
+          })}
         </View>
 
         {loading && !refreshing ? (
@@ -216,16 +216,15 @@ const s = StyleSheet.create({
   },
   headerBtn: { padding: 4, width: 40, alignItems: "center" },
   headerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textPrimary },
-  tabRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tabScroll: { flexDirection: "row", paddingHorizontal: SPACING.small, gap: SPACING.tiny },
-  tab: { maxWidth: 160, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: "#59ABE3" },
-  tabText: { fontSize: FONT_SIZES.small, color: "#264348", fontWeight: FONT_WEIGHTS.medium as any, textAlign: "center" },
-  tabCount: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: "rgba(38,67,72,0.08)", alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
-  tabCountActive: { backgroundColor: "#59ABE3" },
-  tabCountText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textMuted },
-  tabCountTextActive: { color: "#fff" },
-  tabTextActive: { color: "#59ABE3", fontWeight: FONT_WEIGHTS.bold as any },
+  filterList: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, gap: SPACING.small, borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)" },
+  filterBtn: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.std, paddingVertical: 12 },
+  filterBtnActive: { backgroundColor: "#59ABE3", borderColor: "#59ABE3" },
+  filterBtnText: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348" },
+  filterBtnTextActive: { color: "#fff" },
+  filterCount: { minWidth: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(38,67,72,0.08)", alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
+  filterCountActive: { backgroundColor: "rgba(255,255,255,0.25)" },
+  filterCountText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textMuted },
+  filterCountTextActive: { color: "#fff" },
   body: { flex: 1, paddingHorizontal: SPACING.std, paddingVertical: SPACING.std },
   emptyState: { alignItems: "center", paddingVertical: SPACING.large, gap: SPACING.compact },
   emptyText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted },
