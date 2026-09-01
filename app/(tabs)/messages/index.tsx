@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -244,10 +244,21 @@ export default function MessagesScreen() {
     }
   };
 
-  const filteredFriends = friends.filter(friend => 
+  const filteredFriends = friends.filter(friend =>
     friend.name.toLowerCase().includes(friendSearchQuery.toLowerCase()) ||
     friend.email.toLowerCase().includes(friendSearchQuery.toLowerCase())
   );
+
+  const filteredSearchFriends = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return friends
+      .filter((friend) =>
+        (friend.name || "").toLowerCase().includes(q) ||
+        (friend.email || "").toLowerCase().includes(q)
+      )
+      .slice(0, 8);
+  }, [friends, searchQuery]);
 
   if (loading) {
     return (
@@ -285,12 +296,6 @@ export default function MessagesScreen() {
             </View>
             <View style={styles.headerButtons}>
               <Pressable 
-                style={styles.headerIconButton}
-                onPress={() => router.push("/start-group-call")}
-              >
-                <Ionicons name="people" size={16} color="#fff" />
-              </Pressable>
-              <Pressable 
                 style={styles.headerIconButtonOutline}
                 onPress={() => router.push("/call-history")}
               >
@@ -320,6 +325,40 @@ export default function MessagesScreen() {
             )}
           </View>
         </View>
+
+        {/* Friend Search Results */}
+        {filteredSearchFriends.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t("messages.friends", "Freunde")}</Text>
+            {filteredSearchFriends.map((friend) => (
+              <Pressable
+                key={friend.user_id}
+                style={styles.friendSearchItem}
+                onPress={() => {
+                  setSelectedFriend(friend);
+                  setFriendSearchQuery("");
+                  setMessage("");
+                  setErrorMessage("");
+                  setShowFriendPicker(true);
+                }}
+              >
+                <Avatar
+                  uri={friend.profile_photo || friend.picture}
+                  name={friend.name}
+                  size="sm"
+                />
+                <View style={styles.friendSearchInfo}>
+                  <Text style={styles.friendSearchName} numberOfLines={1}>{friend.name}</Text>
+                  <Text style={styles.friendSearchEmail} numberOfLines={1}>{friend.email}</Text>
+                </View>
+                <View style={styles.friendMessageBtn}>
+                  <Ionicons name="chatbubble-outline" size={14} color="#fff" />
+                  <Text style={styles.friendMessageText}>{t("messages.sendMessage", "Nachricht")}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         {/* Friend Requests Section */}
         {incomingRequests.length > 0 && (
@@ -633,6 +672,41 @@ const styles = StyleSheet.create({
     backgroundColor: "#59ABE3",
     alignItems: "center",
     justifyContent: "center",
+  },
+  friendSearchItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(38,67,72,0.1)",
+    gap: 10,
+  },
+  friendSearchInfo: {
+    flex: 1,
+  },
+  friendSearchName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#264348",
+  },
+  friendSearchEmail: {
+    fontSize: 12,
+    color: "rgba(38,67,72,0.65)",
+    marginTop: 1,
+  },
+  friendMessageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#59ABE3",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  friendMessageText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#fff",
   },
   headerIconButtonOutline: {
     width: 36,
