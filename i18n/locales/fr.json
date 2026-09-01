@@ -2448,6 +2448,8 @@
     "weeklyRepeat": "Répétition hebdomadaire",
     "blockStart": "Date de début",
     "blockEnd": "Date de fin",
-    "blockCount": "{{count}} jours seront bloqués"
+    "blockCount": "{{count}} jours seront bloqués",
+    "skippedBlocked": "{{count}} créneau(x) de jours bloqués ont été ignorés",
+    "dayBlocked": "Ce jour est bloqué — il a été ignoré."
   }
 }

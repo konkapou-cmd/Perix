@@ -2444,6 +2444,8 @@
     "weeklyRepeat": "Nedeljno ponavljanje",
     "blockStart": "Datum početka",
     "blockEnd": "Datum kraja",
-    "blockCount": "Biće blokirano {{count}} dana"
+    "blockCount": "Biće blokirano {{count}} dana",
+    "skippedBlocked": "Preskočeno {{count}} termina u blokiranim danima",
+    "dayBlocked": "Ovaj dan je blokiran — preskočen je."
   }
 }

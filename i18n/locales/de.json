@@ -3053,6 +3053,8 @@
     "weeklyRepeat": "Wöchentliche Wiederholung",
     "blockStart": "Startdatum",
     "blockEnd": "Enddatum",
-    "blockCount": "{{count}} Tage werden gesperrt"
+    "blockCount": "{{count}} Tage werden gesperrt",
+    "skippedBlocked": "{{count}} Zeitfenster an blockierten Tagen wurden übersprungen",
+    "dayBlocked": "Dieser Tag ist blockiert — er wurde übersprungen."
   }
 }

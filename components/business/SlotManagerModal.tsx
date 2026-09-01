@@ -100,15 +100,46 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
     if (loading) return;
     setLoading(true);
     try {
-      const allSlots = next.map(s => ({
+      const blocked = next.filter(s => s.is_blocked);
+      const availability = next.filter(s => !s.is_blocked);
+
+      const overlaps = (a: TimeSlot, b: TimeSlot) => {
+        const aStart = parseTime(a.start_time) ?? 0;
+        const aEnd = parseTime(a.end_time) ?? 0;
+        const bStart = parseTime(b.start_time) ?? 0;
+        const bEnd = parseTime(b.end_time) ?? 0;
+        return aStart < bEnd && bStart < aEnd;
+      };
+
+      const isBlockedDate = (s: TimeSlot) =>
+        !s.is_recurring && blocked.some(b => b.is_blocked && !b.is_recurring && b.date === s.date);
+
+      const kept: TimeSlot[] = [];
+      let skipped = 0;
+      for (const av of availability) {
+        if (isBlockedDate(av)) { skipped++; continue; }
+        const sameTarget = kept.find(k =>
+          av.is_recurring
+            ? k.is_recurring && k.day_of_week === av.day_of_week
+            : !k.is_recurring && k.date === av.date
+        );
+        if (sameTarget && overlaps(av, sameTarget)) { skipped++; continue; }
+        kept.push(av);
+      }
+
+      const allSlots = [...blocked, ...kept].map(s => ({
         day_of_week: s.day_of_week ?? undefined,
         date: s.date ?? undefined,
         start_time: s.start_time,
         end_time: s.end_time,
         is_recurring: s.is_recurring,
+        is_blocked: s.is_blocked,
       }));
       await setAvailability(sessionToken, serviceId, { timezone: "Europe/Berlin", slots: allSlots as any });
       await loadSlots();
+      if (skipped > 0) {
+        Alert.alert(t("common.info", "Info"), t("slotManager.skippedBlocked", "{{count}} slot(s) on blocked days were skipped", { count: skipped }));
+      }
     } catch (err: any) {
       Alert.alert(t("common.error", "Error"), err.message);
     }
@@ -126,6 +157,10 @@ function SlotManagerModalContent({ visible, serviceId, sessionToken, serviceType
     const start = parseTime(startTime);
     const end = parseTime(endTime);
     if (start === null || end === null || start >= end) return;
+    if (!repeatWeekly && slots.some(s => s.is_blocked && !s.is_recurring && s.date === selectedDate)) {
+      Alert.alert(t("common.info", "Info"), t("slotManager.dayBlocked", "This day is blocked — it was skipped."));
+      return;
+    }
     const next = [...slots];
     if (repeatWeekly) {
       next.push({ slot_id: "", day_of_week: selectedDay, start_time: startTime, end_time: endTime, is_recurring: true, date: undefined } as any);

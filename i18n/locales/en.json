@@ -2932,6 +2932,8 @@
     "weeklyRepeat": "Weekly repeat",
     "blockStart": "Start date",
     "blockEnd": "End date",
-    "blockCount": "{{count}} days will be blocked"
+    "blockCount": "{{count}} days will be blocked",
+    "skippedBlocked": "{{count}} slot(s) on blocked days were skipped",
+    "dayBlocked": "This day is blocked — it was skipped."
   }
 }

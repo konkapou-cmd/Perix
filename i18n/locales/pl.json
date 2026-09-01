@@ -2457,6 +2457,8 @@
     "weeklyRepeat": "Cotygodniowe powtarzanie",
     "blockStart": "Data rozpoczęcia",
     "blockEnd": "Data zakończenia",
-    "blockCount": "Zablokowanych zostanie {{count}} dni"
+    "blockCount": "Zablokowanych zostanie {{count}} dni",
+    "skippedBlocked": "Pominięto {{count}} terminy w zablokowane dni",
+    "dayBlocked": "Ten dzień jest zablokowany — pominięto go."
   }
 }

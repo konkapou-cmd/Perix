@@ -2419,6 +2419,8 @@
     "weeklyRepeat": "Ripetizione settimanale",
     "blockStart": "Data di inizio",
     "blockEnd": "Data di fine",
-    "blockCount": "Verranno bloccati {{count}} giorni"
+    "blockCount": "Verranno bloccati {{count}} giorni",
+    "skippedBlocked": "{{count}} fasce orarie in giorni bloccati sono state saltate",
+    "dayBlocked": "Questo giorno è bloccato: è stato saltato."
   }
 }

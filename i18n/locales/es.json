@@ -2414,6 +2414,8 @@
     "weeklyRepeat": "Repetición semanal",
     "blockStart": "Fecha de inicio",
     "blockEnd": "Fecha de fin",
-    "blockCount": "Se bloquearán {{count}} días"
+    "blockCount": "Se bloquearán {{count}} días",
+    "skippedBlocked": "Se omitieron {{count}} citas en días bloqueados",
+    "dayBlocked": "Este día está bloqueado: se omitió."
   }
 }

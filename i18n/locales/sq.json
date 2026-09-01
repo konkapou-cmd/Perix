@@ -2353,6 +2353,8 @@
     "weeklyRepeat": "Përsëritje javore",
     "blockStart": "Data e fillimit",
     "blockEnd": "Data e fundit",
-    "blockCount": "Do të bllokohen {{count}} ditë"
+    "blockCount": "Do të bllokohen {{count}} ditë",
+    "skippedBlocked": "{{count}} orare në ditë të bllokuara u anashkaluan",
+    "dayBlocked": "Kjo ditë është e bllokuar — u anashkalua."
   }
 }
