@@ -1463,6 +1463,13 @@ const handleUpdateSlug = async (newSlug: string) => {
   const handleEditService = async (service: Service) => {
     try {
       const slots = await getSlots(service.service_id);
+      const today = (() => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      })();
       const normalizedSlots = slots.map((s: any) => ({
         day_of_week: s.day_of_week,
         date: s.date,
@@ -1470,6 +1477,7 @@ const handleUpdateSlug = async (newSlug: string) => {
         end_time: s.end_time,
         is_recurring: s.is_recurring,
       }));
+      const todaySlots = normalizedSlots.filter((s: any) => !s.date || s.date >= today);
       setOriginalAvailabilitySlots(normalizedSlots);
       setEditingServiceId(service.service_id);
       setServiceForm({
@@ -1555,7 +1563,7 @@ const handleUpdateSlug = async (newSlug: string) => {
         currency: service.currency || "EUR",
         status: (service.status as "draft" | "published" | "hidden") || "published",
         sort_order: service.sort_order?.toString() || "0",
-        availability_slots: normalizedSlots,
+        availability_slots: todaySlots,
       } as any);
       setServiceModalVisible(true);
     } catch {
