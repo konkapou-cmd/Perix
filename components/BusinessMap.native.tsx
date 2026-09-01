@@ -64,29 +64,42 @@ type Props = {
 
 // Helper function to determine if business is currently open
 const isBusinessOpen = (business: Business): boolean => {
-  const openingHours = business.opening_hours as { schedule?: Record<string, { enabled: boolean; periods: { open: string; close: string }[] }> } | undefined;
+  const openingHours = business.opening_hours as { timezone?: string; schedule?: Record<string, { enabled: boolean; periods: { open: string; close: string }[] }> } | undefined;
   if (!openingHours?.schedule) return false; // No registered hours -> treated as closed
-  
+
   const now = new Date();
+  let dayIndex = now.getDay();
+  let currentTime = now.getHours() * 60 + now.getMinutes();
+  if (openingHours.timezone) {
+    try {
+      const weekday = new Intl.DateTimeFormat("en-US", { timeZone: openingHours.timezone, weekday: "short" }).format(now);
+      const hours = new Intl.DateTimeFormat("en-US", { timeZone: openingHours.timezone, hour: "2-digit", hour12: false }).format(now);
+      const minutes = new Intl.DateTimeFormat("en-US", { timeZone: openingHours.timezone, minute: "2-digit" }).format(now);
+      const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+      dayIndex = dayMap[weekday] ?? now.getDay();
+      const h = parseInt(hours, 10) % 24;
+      const m = parseInt(minutes, 10);
+      if (!Number.isNaN(h) && !Number.isNaN(m)) currentTime = h * 60 + m;
+    } catch {}
+  }
+
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const currentDay = days[now.getDay()];
+  const currentDay = days[dayIndex];
   const daySchedule = openingHours.schedule[currentDay] || openingHours.schedule[currentDay.toLowerCase()];
-  
+
   if (!daySchedule || !daySchedule.enabled) return false;
-  
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-  
+
   for (const period of daySchedule.periods) {
     const [openHour, openMin] = period.open.split(":").map(Number);
     const [closeHour, closeMin] = period.close.split(":").map(Number);
     const openTime = openHour * 60 + openMin;
     const closeTime = closeHour * 60 + closeMin;
-    
+
     if (currentTime >= openTime && currentTime <= closeTime) {
       return true;
     }
   }
-  
+
   return false;
 };
 
