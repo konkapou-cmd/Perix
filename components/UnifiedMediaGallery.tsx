@@ -371,13 +371,13 @@ export default function UnifiedMediaGallery({
           </Pressable>
         )}
         {coverItem && coverItem.isCoverImage && (
-          <View style={s.coverBadge}><Text style={s.coverBadgeText}>Cover</Text></View>
+          <View style={s.coverBadge}><Text style={s.coverBadgeText}>{t("gallery.cover", "Cover")}</Text></View>
         )}
         {coverItem && coverItem.isCoverVideo && (
-          <View style={[s.coverBadge, { backgroundColor: "#8b5cf6" }]}><Text style={s.coverBadgeText}>Video</Text></View>
+          <View style={[s.coverBadge, { backgroundColor: "#8b5cf6" }]}><Text style={s.coverBadgeText}>{t("gallery.video", "Video")}</Text></View>
         )}
         {coverItem && !coverItem.isCoverImage && !coverItem.isCoverVideo && (
-          <View style={[s.coverBadge, { backgroundColor: COLORS.textDisabled }]}><Text style={s.coverBadgeText}>Item 1</Text></View>
+          <View style={[s.coverBadge, { backgroundColor: COLORS.textDisabled }]}><Text style={s.coverBadgeText}>{t("gallery.firstItem", "Item 1")}</Text></View>
         )}
         {coverItem && isCreator && (
           <Pressable style={s.removeHeroBtn} onPress={() => removeItem(effectiveCoverIndex)}>
