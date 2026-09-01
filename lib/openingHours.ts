@@ -5,6 +5,37 @@ type OpeningHours = {
   schedule?: Record<string, { enabled: boolean; periods: { open: string; close: string }[] }>;
 };
 
+export type FlatDayHours = {
+  enabled: boolean;
+  periods: { open: string; close: string }[];
+};
+
+/**
+ * Normalize any opening_hours shape (wrapped {timezone, schedule}, flat day map,
+ * capitalized or lowercase keys) into a flat lowercase schedule.
+ */
+export function unpackOpeningHoursSchedule(openingHours: any): Record<string, FlatDayHours> {
+  const schedule: Record<string, FlatDayHours> = {};
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const lowercaseDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const src =
+    openingHours?.schedule && typeof openingHours.schedule === "object"
+      ? openingHours.schedule
+      : openingHours || {};
+
+  days.forEach((d, i) => {
+    const cap = src[d];
+    const low = src[lowercaseDays[i]];
+    const capPeriods = Array.isArray(cap?.periods) ? cap.periods.length : 0;
+    const lowPeriods = Array.isArray(low?.periods) ? low.periods.length : 0;
+    const best = capPeriods >= lowPeriods ? cap : low;
+    const enabled = !!(cap?.enabled || low?.enabled);
+    const periods = best && Array.isArray(best.periods) ? best.periods : [];
+    schedule[lowercaseDays[i]] = { enabled, periods };
+  });
+  return schedule;
+}
+
 function currentTimeInZone(timezone?: string): { dayIndex: number; minutes: number } {
   const now = new Date();
   if (timezone) {

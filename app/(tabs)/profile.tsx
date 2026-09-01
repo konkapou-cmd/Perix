@@ -117,30 +117,30 @@ function normalizeOpeningHoursForState(raw: any): { timezone: string; schedule: 
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const lowercaseDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
-  if (raw.schedule && typeof raw.schedule === "object") {
-    days.forEach((d, i) => {
+  const readSource = (d: string, i: number) => {
+    if (raw.schedule && typeof raw.schedule === "object") {
       const cap = raw.schedule[d];
       const low = raw.schedule[lowercaseDays[i]];
       const capPeriods = cap?.periods?.length || 0;
       const lowPeriods = low?.periods?.length || 0;
-      const ds = capPeriods >= lowPeriods ? cap : low;
+      const best = capPeriods >= lowPeriods ? cap : low;
       const enabled = !!(cap?.enabled || low?.enabled);
-      const periods = ds && Array.isArray(ds.periods) ? ds.periods : [];
-      schedule[d] = {
-        enabled,
-        periods: enabled && periods.length === 0 ? [{ open: "09:00", close: "18:00" }] : periods,
-      };
-    });
-    return { timezone: raw.timezone || "Europe/Berlin", schedule };
-  }
-
-  days.forEach((d, i) => {
+      const periods = best && Array.isArray(best.periods) ? best.periods : [];
+      return { enabled, periods };
+    }
     const ds = raw[d] ?? raw[lowercaseDays[i]];
     if (ds && typeof ds === "object") {
-      schedule[d] = { enabled: !!ds.enabled, periods: Array.isArray(ds.periods) ? ds.periods : [] };
-    } else {
-      schedule[d] = { enabled: false, periods: [] };
+      return { enabled: !!ds.enabled, periods: Array.isArray(ds.periods) ? ds.periods : [] };
     }
+    return { enabled: false, periods: [] };
+  };
+
+  days.forEach((d, i) => {
+    const { enabled, periods } = readSource(d, i);
+    schedule[lowercaseDays[i]] = {
+      enabled,
+      periods: enabled && periods.length === 0 ? [{ open: "09:00", close: "18:00" }] : periods,
+    };
   });
   return { timezone: raw.timezone || "Europe/Berlin", schedule };
 }

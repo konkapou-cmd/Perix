@@ -49,6 +49,7 @@ import { ProfileMedia } from "./ProfileMedia";
 import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE_COLORS } from "./ProfileDesign";
+import { unpackOpeningHoursSchedule } from "../../lib/openingHours";
 import { COLORS, resolveCategory } from "../../lib/designTokens";
 import { hasServiceModules, getAllowedModules, getDefaultModule, getCategoryIcon } from "../../lib/config/serviceCategoryMatrix";
 import { getServiceModuleIcon, getServiceModuleLabel, getServiceModuleTabLabel } from "../../lib/config/serviceModules";
@@ -451,10 +452,11 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const ALL_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   
   const transformedHours: Record<string, { open: string; close: string }> = {};
+  const normalizedHours = unpackOpeningHoursSchedule(openingHours);
   
   // Always include all 7 days with data from API or defaults
   ALL_DAYS.forEach((day) => {
-    const dayData = openingHours?.[day];
+    const dayData = normalizedHours[day];
     if (dayData && dayData.periods && dayData.periods[0]) {
       transformedHours[day] = {
         open: dayData.periods[0].open || "09:00",
@@ -483,7 +485,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         const now = new Date();
         const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
         const todayKey = dayNames[now.getDay()];
-        const todayData = openingHours?.[todayKey];
+        const todayData = normalizedHours[todayKey];
         if (!todayData || !todayData.enabled || !todayData.periods?.[0]) return false;
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
         for (const period of todayData.periods) {

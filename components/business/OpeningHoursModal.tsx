@@ -14,8 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
 
-// Days of the week
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+// Days of the week (lowercase keys match backend storage + display components)
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
 // Opening hours data structure
 export type DayHours = {
@@ -118,7 +118,7 @@ export default function OpeningHoursModal({
                     size={24}
                     color={openingHours[day]?.enabled ? COLORS.primaryDark : "#9ca3af"}
                   />
-                  <Text style={styles.dayName}>{t(`business.days.${day.toLowerCase()}`)}</Text>
+                  <Text style={styles.dayName}>{t(`business.days.${day}`)}</Text>
                 </Pressable>
                 {openingHours[day]?.enabled && (
                   <Pressable
