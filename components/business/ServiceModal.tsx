@@ -764,6 +764,8 @@ export default function ServiceModal({
                 setShowDatePicker(false);
               }}
               accentColor="#7B3FF2"
+              minDate={toLocalISODate(new Date())}
+              pastScrollRange={0}
             />
 
             {/* Slot date picker modal */}
@@ -786,6 +788,7 @@ export default function ServiceModal({
                     horizontal
                     pagingEnabled
                     minDate={toLocalISODate(new Date())}
+                    pastScrollRange={0}
                     style={{ height: slotCalendarHeight }}
                     calendarHeight={slotCalendarHeight}
                     onDayPress={(day: any) => {
