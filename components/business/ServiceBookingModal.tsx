@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Platform, ActivityIndicator, Alert, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,6 +12,7 @@ import { getSlots, getAvailability, createBooking, getStayAvailability, sendServ
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
 import { formatDate } from "../../lib/formatDate";
 import { addDays, createRequestId, isValidStayRange, toLocalISODate } from "../../lib/booking/dateRange";
+import { getPickerLocaleTag } from "../../lib/calendarLocale";
 import AdaptiveImage from "../AdaptiveImage";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 
@@ -33,7 +34,7 @@ export default function ServiceBookingModal({
   visible, service, rootCategory, sessionToken, userName, userEmail,
   onClose, onSuccess, onAskAbout, cardColor = "#fff", textColor = COLORS.textPrimary,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const submittingRef = useRef(false);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -165,7 +166,7 @@ export default function ServiceBookingModal({
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + "T00:00:00");
-    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    return d.toLocaleDateString(getPickerLocaleTag(i18n.language), { weekday: "short", month: "short", day: "numeric" });
   };
 
   const availableDates = dates.filter((dateStr) => {    const dateObj = new Date(dateStr + "T00:00:00");
@@ -393,7 +394,7 @@ export default function ServiceBookingModal({
                 <View style={{ marginTop: 12, padding: 12, backgroundColor: COLORS.success + "15", borderRadius: BORDER_RADIUS.md }}>
                   <Text style={s.quoteTitle}>{stayQuote.nights} {t("services.nights", "nights")}</Text>
                   <Text style={s.quoteLine}>{(stayQuote.nightly_rate_amount / 100).toFixed(2)} {stayQuote.currency} / night</Text>
-                  <Text style={s.quoteTotal}>Total: {(stayQuote.total_amount / 100).toFixed(2)} {stayQuote.currency}</Text>
+                  <Text style={s.quoteTotal}>{t("services.total", "Total")}: {(stayQuote.total_amount / 100).toFixed(2)} {stayQuote.currency}</Text>
                   {!stayQuote.available && <Text style={{ color: COLORS.danger, marginTop: 4 }}>{t("services.stayUnavailable")}</Text>}
                 </View>
               )}
@@ -457,37 +458,37 @@ export default function ServiceBookingModal({
 
           {ctaType !== "booking" && selectedDate && (
             <>
-              <Text style={s.sectionTitle}>Preferred time (optional)</Text>
+              <Text style={s.sectionTitle}>{t("services.preferredTime", "Preferred time (optional)")}</Text>
               <TextInput
                 style={s.input}
                 placeholder="e.g. Morning, 10:00\u201312:00"
                 value={preferredTime}
                 onChangeText={setPreferredTime}
-                placeholderTextColor={COLORS.textDisabled}
+                placeholderTextColor="rgba(38,67,72,0.45)"
               />
-              <Text style={s.sectionTitle}>Message / notes</Text>
+              <Text style={s.sectionTitle}>{t("services.messageNotes", "Message / notes")}</Text>
               <TextInput
                 style={[s.input, { height: 80 }]}
                 multiline
                 placeholder="Tell the business what you need..."
                 value={notes}
                 onChangeText={setNotes}
-                placeholderTextColor={COLORS.textDisabled}
+                placeholderTextColor="rgba(38,67,72,0.45)"
               />
             </>
           )}
 
           {ctaType === "browse_only" && (
             <View style={{ alignItems: "center", paddingVertical: SPACING.section }}>
-              <Text style={{ fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, textAlign: "center", marginBottom: SPACING.std }}>
-                This service is available for viewing. Send a message to ask the business about it.
+              <Text style={{ fontSize: FONT_SIZES.bodySmall, color: "#264348", textAlign: "center", marginBottom: SPACING.std }}>
+                {t("services.browseOnlyHint", "This service is available for viewing. Send a message to ask the business about it.")}
               </Text>
               <Pressable
                 style={[s.bookBtn, { backgroundColor: COLORS.primary }]}
                 onPress={() => { onAskAbout?.(service?.business_id || ""); onClose(); }}
               >
                 <Ionicons name="chatbubble-ellipses-outline" size={16} color="#fff" />
-                <Text style={s.bookBtnText}>Ask about this</Text>
+                <Text style={s.bookBtnText}>{t("services.askAboutThis", "Ask about this")}</Text>
               </Pressable>
             </View>
           )}
@@ -508,38 +509,38 @@ export default function ServiceBookingModal({
           </>)}
 
           <Text style={s.sectionTitle}>{t("services.yourName", "Your name")} *</Text>
-          <TextInput style={s.input} value={name} onChangeText={setName} placeholder="John Doe" placeholderTextColor={COLORS.textDisabled} />
+          <TextInput style={s.input} value={name} onChangeText={setName} placeholder="John Doe" placeholderTextColor="rgba(38,67,72,0.45)" />
 
           <Text style={s.sectionTitle}>{t("services.yourEmail", "Your email")}</Text>
-          <TextInput style={s.input} value={email} onChangeText={setEmail} placeholder="john@example.com" keyboardType="email-address" placeholderTextColor={COLORS.textDisabled} />
+          <TextInput style={s.input} value={email} onChangeText={setEmail} placeholder="john@example.com" keyboardType="email-address" placeholderTextColor="rgba(38,67,72,0.45)" />
 
           {showPets && (
             <>
               <Text style={s.sectionTitle}>{t("services.petName", "Pet name")}</Text>
-              <TextInput style={s.input} value={petName} onChangeText={setPetName} placeholder="Max" placeholderTextColor={COLORS.textDisabled} />
+              <TextInput style={s.input} value={petName} onChangeText={setPetName} placeholder="Max" placeholderTextColor="rgba(38,67,72,0.45)" />
               <Text style={s.sectionTitle}>{t("services.petType", "Pet type")}</Text>
-              <TextInput style={s.input} value={petType} onChangeText={setPetType} placeholder="Dog / Cat" placeholderTextColor={COLORS.textDisabled} />
+              <TextInput style={s.input} value={petType} onChangeText={setPetType} placeholder="Dog / Cat" placeholderTextColor="rgba(38,67,72,0.45)" />
             </>
           )}
 
           {showHealthcare && (
             <>
               <Text style={s.sectionTitle}>{t("services.reasonForVisit", "Reason for visit")}</Text>
-              <TextInput style={[s.input, { height: 80 }]} value={reasonForVisit} onChangeText={setReasonForVisit} placeholder="Describe your symptoms..." multiline placeholderTextColor={COLORS.textDisabled} />
+              <TextInput style={[s.input, { height: 80 }]} value={reasonForVisit} onChangeText={setReasonForVisit} placeholder="Describe your symptoms..." multiline placeholderTextColor="rgba(38,67,72,0.45)" />
             </>
           )}
 
           {showAutoRental && (
             <>
               <Text style={s.sectionTitle}>{t("services.pickupLocation", "Pickup location")}</Text>
-              <TextInput style={s.input} value={pickupLocation} onChangeText={setPickupLocation} placeholder="Address" placeholderTextColor={COLORS.textDisabled} />
+              <TextInput style={s.input} value={pickupLocation} onChangeText={setPickupLocation} placeholder="Address" placeholderTextColor="rgba(38,67,72,0.45)" />
             </>
           )}
 
           {ctaType !== "browse_only" && (
             <>
               <Text style={s.sectionTitle}>{t("services.notes", "Notes / Special requests")}</Text>
-              <TextInput style={[s.input, { height: 80 }]} value={notes} onChangeText={setNotes} placeholder="Any special requests..." multiline placeholderTextColor={COLORS.textDisabled} />
+              <TextInput style={[s.input, { height: 80 }]} value={notes} onChangeText={setNotes} placeholder="Any special requests..." multiline placeholderTextColor="rgba(38,67,72,0.45)" />
             </>
           )}
 
@@ -607,7 +608,7 @@ export default function ServiceBookingModal({
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -615,10 +616,10 @@ const s = StyleSheet.create({
     paddingHorizontal: SPACING.std,
     paddingVertical: SPACING.small,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: "rgba(38,67,72,0.15)",
   },
   headerBtn: { padding: 4, width: 40, alignItems: "center" },
-  headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold as any, color: "#264348" },
   body: { flex: 1, paddingHorizontal: SPACING.std },
   footer: {
     flexDirection: "row",
@@ -627,20 +628,21 @@ const s = StyleSheet.create({
     paddingHorizontal: SPACING.std,
     paddingVertical: SPACING.small,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    borderTopColor: "rgba(38,67,72,0.15)",
+    backgroundColor: "#fff",
   },
   cancelBtn: {
     paddingVertical: SPACING.small,
     paddingHorizontal: SPACING.section,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(38,67,72,0.2)",
+    backgroundColor: "#fff",
   },
   cancelBtnText: {
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.textSecondary,
+    color: "#264348",
   },
   saveBtn: {
     paddingVertical: SPACING.small,
@@ -653,43 +655,43 @@ const s = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#fff",
   },
-  summaryCard: { padding: SPACING.std, borderRadius: BORDER_RADIUS.lg, marginBottom: SPACING.section, alignItems: "center" },
+  summaryCard: { padding: SPACING.std, borderRadius: BORDER_RADIUS.lg, marginBottom: SPACING.section, alignItems: "center", backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(38,67,72,0.15)" },
   summaryImage: { width: 120, height: 90, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.small },
-  summaryName: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
-  summaryDetail: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, marginTop: SPACING.tiny },
+  summaryName: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: "#264348" },
+  summaryDetail: { fontSize: FONT_SIZES.caption, color: "rgba(38,67,72,0.7)", marginTop: SPACING.tiny },
   summaryPrice: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success, marginTop: SPACING.tiny },
-  sectionTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textPrimary, marginTop: SPACING.std, marginBottom: SPACING.small },
+  sectionTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348", marginTop: SPACING.std, marginBottom: SPACING.small },
   dateRow: { flexDirection: "row", marginBottom: SPACING.small },
-  dateCard: { paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, marginRight: SPACING.small, backgroundColor: COLORS.background },
+  dateCard: { paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", marginRight: SPACING.small, backgroundColor: "#fff" },
   dateSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   dateCardDisabled: { opacity: 0.3 },
-  dateText: { fontSize: FONT_SIZES.small, color: COLORS.textPrimary },
+  dateText: { fontSize: FONT_SIZES.small, color: "#264348" },
   dateTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
-  dateTextDisabled: { color: COLORS.textMuted },
+  dateTextDisabled: { color: "rgba(38,67,72,0.45)" },
   slotRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small },
-  slotCard: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
+  slotCard: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", backgroundColor: "#fff" },
   slotSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   slotCardFull: { opacity: 0.4, borderColor: COLORS.danger },
-  slotText: { fontSize: FONT_SIZES.caption, color: COLORS.textPrimary },
+  slotText: { fontSize: FONT_SIZES.caption, color: "#264348" },
   slotTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
   slotTextFull: { textDecorationLine: "line-through" },
-  emptyText: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, textAlign: "center", marginVertical: SPACING.section },
+  emptyText: { fontSize: FONT_SIZES.caption, color: "#264348", textAlign: "center", marginVertical: SPACING.section },
   stepperRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: SPACING.small },
-  stepperBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" },
-  stepperValue: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary, minWidth: 30, textAlign: "center" },
-  stepperLabel: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
+  stepperBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
+  stepperValue: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: "#264348", minWidth: 30, textAlign: "center" },
+  stepperLabel: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: "#264348" },
   stepperControls: { flexDirection: "row", alignItems: "center", gap: SPACING.small },
-  fieldLabel: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textSecondary, marginBottom: SPACING.tiny },
-  inputText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary },
-  quoteTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
-  quoteLine: { marginTop: SPACING.tiny, fontSize: FONT_SIZES.caption, color: COLORS.textSecondary },
+  fieldLabel: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.semibold as any, color: "rgba(38,67,72,0.7)", marginBottom: SPACING.tiny },
+  inputText: { fontSize: FONT_SIZES.bodySmall, color: "#264348" },
+  quoteTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: "#264348" },
+  quoteLine: { marginTop: SPACING.tiny, fontSize: FONT_SIZES.caption, color: "rgba(38,67,72,0.7)" },
   quoteTotal: { marginTop: SPACING.small, fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success },
   datePickerOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
-  datePickerContainer: { backgroundColor: COLORS.background, borderTopLeftRadius: BORDER_RADIUS.lg, borderTopRightRadius: BORDER_RADIUS.lg, padding: SPACING.std },
+  datePickerContainer: { backgroundColor: "#fff", borderTopLeftRadius: BORDER_RADIUS.lg, borderTopRightRadius: BORDER_RADIUS.lg, padding: SPACING.std },
   datePickerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.small },
-  datePickerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textPrimary },
+  datePickerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: "#264348" },
   errorText: { marginTop: SPACING.small, fontSize: FONT_SIZES.caption, color: COLORS.danger },
-  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, marginBottom: SPACING.small },
+  input: { borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: "#264348", marginBottom: SPACING.small, backgroundColor: "#fff" },
   bookBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.section },
   bookBtnText: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
 });
