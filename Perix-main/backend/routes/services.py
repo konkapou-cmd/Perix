@@ -1011,22 +1011,58 @@ async def set_availability(
     new_slots = [s.model_dump() for s in payload.slots]
     _validate_slots(new_slots)
 
-    # Check if any existing slot has bookings
-    old_slot_ids = set()
-    async for old in db.service_slots.find({"service_id": service_id}, {"_id": 0, "slot_id": 1}):
-        old_slot_ids.add(old["slot_id"])
-    if old_slot_ids:
-        booked = await db.bookings.count_documents({"slot_id": {"$in": list(old_slot_ids)}, "status": {"$in": ["confirmed", "completed"]}})
-        if booked > 0:
-            raise HTTPException(status_code=409, detail="Cannot replace schedule — existing confirmed bookings exist")
+    # Slots that have active bookings must stay — their appointments reference them.
+    # Everything else is replaced with the new schedule.
+    old_slots = [s async for s in db.service_slots.find({"service_id": service_id}, {"_id": 0})]
+    booked_slot_ids: set = set()
+    if old_slots:
+        active_statuses = ["pending", "confirmed", "completed"]
+        async for booking in db.bookings.find(
+            {"slot_id": {"$in": [s["slot_id"] for s in old_slots]}, "status": {"$in": active_statuses}},
+            {"slot_id": 1},
+        ):
+            booked_slot_ids.add(booking["slot_id"])
+    kept_slots = [s for s in old_slots if s["slot_id"] in booked_slot_ids]
+
+    def _minutes(t: str) -> int:
+        h, m = _parse_time(t)
+        return h * 60 + m
+
+    def _js_weekday(date_str: str) -> int:
+        from datetime import datetime as _dt
+        return (_dt.strptime(date_str, "%Y-%m-%d").weekday() + 1) % 7
+
+    def _conflicts(a: dict, b: dict) -> bool:
+        if a.get("is_blocked") or b.get("is_blocked"):
+            return False
+        same_target = False
+        if a.get("is_recurring") and b.get("is_recurring"):
+            same_target = a.get("day_of_week") == b.get("day_of_week")
+        elif a.get("date") and b.get("date"):
+            same_target = a["date"] == b["date"]
+        elif a.get("is_recurring") and b.get("date"):
+            same_target = a.get("day_of_week") == _js_weekday(b["date"])
+        elif b.get("is_recurring") and a.get("date"):
+            same_target = b.get("day_of_week") == _js_weekday(a["date"])
+        if not same_target:
+            return False
+        a_start, a_end = _minutes(a["start_time"]), _minutes(a["end_time"])
+        b_start, b_end = _minutes(b["start_time"]), _minutes(b["end_time"])
+        return a_start < b_end and b_start < a_end
+
+    final_new = [s for s in new_slots if not any(_conflicts(s, k) for k in kept_slots)]
+    skipped_count = len(new_slots) - len(final_new)
 
     try:
-        # Delete old slots
-        await db.service_slots.delete_many({"service_id": service_id})
+        # Remove everything except slots that still carry active bookings
+        if booked_slot_ids:
+            await db.service_slots.delete_many({"service_id": service_id, "slot_id": {"$nin": list(booked_slot_ids)}})
+        else:
+            await db.service_slots.delete_many({"service_id": service_id})
         # Insert new slots atomically, preserving blocked markers
-        if new_slots:
+        if final_new:
             docs = []
-            for s in new_slots:
+            for s in final_new:
                 docs.append({
                     **s,
                     "slot_id": generate_id("slt"),
@@ -1039,7 +1075,11 @@ async def set_availability(
         raise HTTPException(status_code=500, detail="Failed to save availability schedule")
 
     slots = await db.service_slots.find({"service_id": service_id}, {"_id": 0}).sort([("date", 1), ("start_time", 1)]).to_list(500)
-    return [TimeSlotResponse(**s) for s in slots]
+    return {
+        "slots": [TimeSlotResponse(**s) for s in slots],
+        "kept_booked_slots": len(kept_slots),
+        "skipped_conflicts": skipped_count,
+    }
 
 
 @router.get("/{service_id}/available-dates")
