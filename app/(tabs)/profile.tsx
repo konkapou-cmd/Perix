@@ -119,8 +119,17 @@ function normalizeOpeningHoursForState(raw: any): { timezone: string; schedule: 
 
   if (raw.schedule && typeof raw.schedule === "object") {
     days.forEach((d, i) => {
-      const ds = raw.schedule[d] ?? raw.schedule[lowercaseDays[i]];
-      schedule[d] = ds ? { enabled: !!ds.enabled, periods: Array.isArray(ds.periods) ? ds.periods : [] } : { enabled: false, periods: [] };
+      const cap = raw.schedule[d];
+      const low = raw.schedule[lowercaseDays[i]];
+      const capPeriods = cap?.periods?.length || 0;
+      const lowPeriods = low?.periods?.length || 0;
+      const ds = capPeriods >= lowPeriods ? cap : low;
+      const enabled = !!(cap?.enabled || low?.enabled);
+      const periods = ds && Array.isArray(ds.periods) ? ds.periods : [];
+      schedule[d] = {
+        enabled,
+        periods: enabled && periods.length === 0 ? [{ open: "09:00", close: "18:00" }] : periods,
+      };
     });
     return { timezone: raw.timezone || "Europe/Berlin", schedule };
   }
@@ -2848,6 +2857,7 @@ currentUserId={businessDetail?.business?.business_id}
               <Ionicons name="close" size={24} color={COLORS.primaryDark} />
             </Pressable>
           </View>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView ref={userEditScrollRef} contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
             <Text style={styles.inputLabel}>{t("profile.name", "Name")}</Text>
             <TextInput
@@ -2898,6 +2908,7 @@ currentUserId={businessDetail?.business?.business_id}
               {savingInfo ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t("common.save", "Save")}</Text>}
             </Pressable>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -2911,6 +2922,7 @@ currentUserId={businessDetail?.business?.business_id}
               <Ionicons name="close" size={24} color={COLORS.primaryDark} />
             </Pressable>
           </View>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView ref={bizEditScrollRef} contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
             <Text style={styles.inputLabel}>{t("business.name", "Business Name")}</Text>
             <TextInput style={styles.input} value={bizEditForm.name} onChangeText={(text) => setBizEditForm((prev) => ({ ...prev, name: text }))} placeholder={t("business.name", "Business Name")} />
@@ -3028,6 +3040,7 @@ currentUserId={businessDetail?.business?.business_id}
               );
             })}
           </ScrollView>
+          </KeyboardAvoidingView>
           <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: "#eee" }}>
             <Pressable
               style={[styles.primaryButton, { marginTop: 0 }]}

@@ -34,19 +34,24 @@ export function isBusinessOpen(business: Business): boolean {
   const { dayIndex, minutes: currentMinutes } = currentTimeInZone(openingHours.timezone);
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const dayName = days[dayIndex];
-  const daySchedule =
-    openingHours.schedule[dayName] ||
-    openingHours.schedule[dayName.toLowerCase()];
+  const candidates = [
+    openingHours.schedule[dayName],
+    openingHours.schedule[dayName.toLowerCase()],
+  ].filter((s): s is NonNullable<typeof s> => !!s);
 
-  if (!daySchedule || !daySchedule.enabled) return false;
+  if (candidates.length === 0) return false;
 
-  for (const period of daySchedule.periods) {
-    const [openHour, openMin] = period.open.split(":").map(Number);
-    const [closeHour, closeMin] = period.close.split(":").map(Number);
-    const openMinutes = openHour * 60 + openMin;
-    const closeMinutes = closeHour * 60 + closeMin;
-    if (currentMinutes >= openMinutes && currentMinutes <= closeMinutes) {
-      return true;
+  for (const daySchedule of candidates) {
+    if (!daySchedule.enabled) continue;
+    const periods = Array.isArray(daySchedule.periods) ? daySchedule.periods : [];
+    for (const period of periods) {
+      const [openHour, openMin] = String(period.open || "09:00").split(":").map(Number);
+      const [closeHour, closeMin] = String(period.close || "18:00").split(":").map(Number);
+      const openMinutes = (openHour || 0) * 60 + (openMin || 0);
+      const closeMinutes = (closeHour || 0) * 60 + (closeMin || 0);
+      if (currentMinutes >= openMinutes && currentMinutes <= closeMinutes) {
+        return true;
+      }
     }
   }
   return false;
