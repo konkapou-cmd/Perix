@@ -825,6 +825,7 @@
     "time": "Ora",
     "location": "Vendndodhja",
     "locationPlaceholder": "Vendndodhja ose adresë",
+    "businessLocationLocked": "Ngjarjet përdorin adresën e biznesit tuaj.",
     "theme": "Temë",
     "selectTheme": "Zgjidh temë",
     "private": "Private",

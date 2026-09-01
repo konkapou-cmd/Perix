@@ -1040,6 +1040,7 @@
     "eventTitlePlaceholder": "Εισαγωγή τίτλου εκδήλωσης",
     "descriptionPlaceholder": "Περιγράψτε την εκδήλωσή σας...",
     "locationPlaceholder": "Τοποθεσία ή διεύθυνση",
+    "businessLocationLocked": "Οι εκδηλώσεις χρησιμοποιούν τη διεύθυνση της επιχείρησής σας.",
     "theme": "Θέμα",
     "private": "Ιδιωτική",
     "privateHint": "Μόνο άτομα με τον κωδικό μπορούν να συμμετάσχουν",

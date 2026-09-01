@@ -847,6 +847,7 @@
     "time": "Heure",
     "location": "Lieu",
     "locationPlaceholder": "Lieu ou adresse",
+    "businessLocationLocked": "Les événements utilisent l'adresse de votre entreprise.",
     "theme": "Thème",
     "selectTheme": "Sélectionner le Thème",
     "private": "Privé",

@@ -135,8 +135,7 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
       {allMedia.length === 0 ? (
         <EmptyState
           icon="images-outline"
-          i18nKey="profile.noMedia"
-          message="Noch keine Fotos oder Videos"
+          message={t("profile.noMedia", "Noch keine Fotos oder Videos")}
           size="large"
         />
       ) : (

@@ -847,6 +847,7 @@
     "time": "Ora",
     "location": "Posizione",
     "locationPlaceholder": "Luogo o indirizzo",
+    "businessLocationLocked": "Gli eventi usano l'indirizzo della tua attività.",
     "theme": "Tema",
     "selectTheme": "Seleziona tema",
     "private": "Privato",

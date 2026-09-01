@@ -847,6 +847,7 @@
     "time": "Время",
     "location": "Местоположение",
     "locationPlaceholder": "Местоположение или адрес",
+    "businessLocationLocked": "Мероприятия используют адрес вашего бизнеса.",
     "theme": "Тема",
     "selectTheme": "Выберите тему",
     "private": "Приватное",

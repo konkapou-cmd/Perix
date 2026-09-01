@@ -846,6 +846,7 @@
     "time": "Vreme",
     "location": "Lokacija",
     "locationPlaceholder": "Lokalizacja lub adres",
+    "businessLocationLocked": "Wydarzenia korzystają z adresu Twojej firmy.",
     "theme": "Motyw",
     "selectTheme": "Izaberite temu",
     "private": "Prywatne",

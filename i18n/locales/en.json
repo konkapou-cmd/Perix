@@ -929,6 +929,7 @@
     "time": "Time",
     "location": "Location",
     "locationPlaceholder": "Location or address",
+    "businessLocationLocked": "Events use your business address.",
     "theme": "Theme",
     "selectTheme": "Select theme",
     "private": "Private",

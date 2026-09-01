@@ -1007,6 +1007,7 @@
     "eventTitlePlaceholder": "Veranstaltungstitel eingeben",
     "descriptionPlaceholder": "Beschreibe deine Veranstaltung...",
     "locationPlaceholder": "Ort oder Adresse",
+    "businessLocationLocked": "Veranstaltungen verwenden deine Geschäftsadresse.",
     "theme": "Thema",
     "private": "Privat",
     "privateHint": "Nur Personen mit dem Passwort können beitreten",
