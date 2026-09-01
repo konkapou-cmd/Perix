@@ -974,6 +974,9 @@ def _validate_slots(slots: list[dict]):
             raise HTTPException(status_code=400, detail=f"Time out of range 00:00-24:00 in slot {i}")
         for j in range(i + 1, len(slots)):
             s2 = slots[j]
+            # Blocked entries mark closed days and never conflict with availability
+            if slot.get("is_blocked") or s2.get("is_blocked"):
+                continue
             if slot.get("is_recurring") and s2.get("is_recurring") and slot.get("day_of_week") == s2.get("day_of_week"):
                 s2h, s2m = _parse_time(s2["start_time"])
                 s2_start = s2h * 60 + s2m
@@ -1020,7 +1023,7 @@ async def set_availability(
     try:
         # Delete old slots
         await db.service_slots.delete_many({"service_id": service_id})
-        # Insert new slots atomically
+        # Insert new slots atomically, preserving blocked markers
         if new_slots:
             docs = []
             for s in new_slots:
@@ -1028,7 +1031,7 @@ async def set_availability(
                     **s,
                     "slot_id": generate_id("slt"),
                     "service_id": service_id,
-                    "is_blocked": False,
+                    "is_blocked": s.get("is_blocked", False),
                     "is_booked": False,
                 })
             await db.service_slots.insert_many(docs)

@@ -11,6 +11,7 @@ class AvailabilitySlotInput(BaseModel):
     start_time: str
     end_time: str
     is_recurring: bool = False
+    is_blocked: bool = False
 
 
 class BulkAvailabilityRequest(BaseModel):
