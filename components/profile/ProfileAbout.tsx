@@ -25,7 +25,7 @@ export interface ProfileAboutData {
   email?: string | null;
   phone?: string | null;
   socialLinks?: Record<string, string>;
-  openingHours?: Record<string, { open: string; close: string }>;
+  openingHours?: Record<string, { open: string; close: string; enabled?: boolean }>;
   genres?: string[];
   category?: string;
   isOpen?: boolean;

@@ -2508,7 +2508,7 @@ postText={postText}
               fanGalleryPosts={[]}
               handleHideFanPost={() => {}}
               openingHours={businessOpeningHours.schedule}
-              openHoursModal={undefined}
+              openHoursModal={() => setHoursModalVisible(true)}
               openLocationModal={undefined}
               socialLinks={businessSocialLinks}
               openSocialLinksModal={() => setSocialLinksModalVisible(true)}

@@ -451,22 +451,23 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 
   const ALL_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   
-  const transformedHours: Record<string, { open: string; close: string }> = {};
+  const transformedHours: Record<string, { open: string; close: string; enabled?: boolean }> = {};
   const normalizedHours = unpackOpeningHoursSchedule(openingHours);
   
-  // Always include all 7 days with data from API or defaults
+  // Always include all 7 days; only enabled days with real periods get times
   ALL_DAYS.forEach((day) => {
     const dayData = normalizedHours[day];
-    if (dayData && dayData.periods && dayData.periods[0]) {
+    if (dayData && dayData.enabled && dayData.periods && dayData.periods[0]) {
       transformedHours[day] = {
+        enabled: true,
         open: dayData.periods[0].open || "09:00",
         close: dayData.periods[0].close || "18:00",
       };
     } else {
-      // Default hours if not set
       transformedHours[day] = {
-        open: "09:00",
-        close: "18:00",
+        enabled: false,
+        open: "",
+        close: "",
       };
     }
   });
@@ -479,7 +480,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     email: isOwnProfile ? undefined : detail.business.email,
     phone: isOwnProfile ? undefined : detail.business.phone,
     socialLinks: isOwnProfile ? undefined : socialLinks,
-    openingHours: isOwnProfile ? undefined : transformedHours,
+    openingHours: transformedHours,
     isOpen: (() => {
       try {
         const now = new Date();

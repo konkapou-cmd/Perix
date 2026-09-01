@@ -16,7 +16,7 @@ type AboutDataType = {
   email?: string | null;
   phone?: string | null;
   socialLinks?: Record<string, string>;
-  openingHours?: Record<string, { open: string; close: string }>;
+  openingHours?: Record<string, { open: string; close: string; enabled?: boolean }>;
   isOpen?: boolean;
 };
 
