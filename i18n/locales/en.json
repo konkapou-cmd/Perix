@@ -425,6 +425,7 @@
     "email": "Email",
     "noContact": "No contact info",
     "photos": "Photos",
+    "noMedia": "No photos or videos yet.",
     "videos": "Videos",
     "name": "Name",
     "emptyPost": "Post cannot be empty",
