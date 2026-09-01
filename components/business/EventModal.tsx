@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { EventItem, EVENT_THEMES, DEFAULT_EVENT_THEME } from "../../lib/api/events";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { getPickerLocaleTag } from "../../lib/calendarLocale";
 import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
 import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 import FormScreen from "../ui/FormScreen";
@@ -154,7 +155,7 @@ export default function EventModal({
   availableArtists,
   isSaving = false,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [artistQuery, setArtistQuery] = useState("");
   const [showArtistSuggestions, setShowArtistSuggestions] = useState(false);
 
@@ -222,9 +223,9 @@ export default function EventModal({
   }, [visible]);
 
   const formatDate = (date: Date) =>
-    date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+    date.toLocaleDateString(getPickerLocaleTag(i18n.language), { year: "numeric", month: "long", day: "numeric" });
   const formatTime = (date: Date) =>
-    date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    date.toLocaleTimeString(getPickerLocaleTag(i18n.language), { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const media = formToMedia(eventForm);
   const formRef = useRef(eventForm);
@@ -334,7 +335,7 @@ export default function EventModal({
                   <Text style={s.pickerDoneText}>{t("common.done") || "Done"}</Text>
                 </Pressable>
               )}
-              <DateTimePicker value={eventDate} mode="date" display={Platform.OS === "ios" ? "spinner" : "default"} onChange={onDateChange} />
+              <DateTimePicker value={eventDate} mode="date" display={Platform.OS === "ios" ? "spinner" : "default"} locale={getPickerLocaleTag(i18n.language)} onChange={onDateChange} />
             </View>
           )}
           {showEventTimePicker && (
@@ -344,7 +345,7 @@ export default function EventModal({
                   <Text style={s.pickerDoneText}>{t("common.done") || "Done"}</Text>
                 </Pressable>
               )}
-              <DateTimePicker value={eventTime} mode="time" display={Platform.OS === "ios" ? "spinner" : "default"} onChange={onTimeChange} />
+              <DateTimePicker value={eventTime} mode="time" display={Platform.OS === "ios" ? "spinner" : "default"} locale={getPickerLocaleTag(i18n.language)} onChange={onTimeChange} />
             </View>
           )}
 
