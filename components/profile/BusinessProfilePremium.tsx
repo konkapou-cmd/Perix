@@ -580,7 +580,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           longitude={detail.business.longitude}
           title={detail.business.name}
           address={detail.business.address}
-          interactive={false}
+          flush
         />
       )}
     </>
