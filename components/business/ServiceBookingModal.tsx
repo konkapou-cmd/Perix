@@ -5,8 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
-import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
+import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType, getServiceModuleIcon } from "../../lib/config/serviceModules";
 import { Service, TimeSlot, StayAvailability } from "../../lib/api/core";
 import { getSlots, getAvailability, createBooking, getStayAvailability, sendServiceInquiry } from "../../lib/api/services";
 import { formatPrice, formatDuration } from "../../lib/serviceFormat";
@@ -322,17 +323,23 @@ export default function ServiceBookingModal({
         </View>
         <ScrollView style={s.body} contentContainerStyle={{ paddingBottom: SPACING.large }} keyboardShouldPersistTaps="handled">
           {service && (
-            <View style={[s.summaryCard, { backgroundColor: COLORS.surfaceSoft }]}>
-              {(service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0]) && (
+            <View style={[s.summaryCard, { backgroundColor: "#fff" }]}>
+              {(service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0]) ? (
                 <AdaptiveImage uri={service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0]} style={s.summaryImage} borderRadius={BORDER_RADIUS.md} />
+              ) : (
+                <View style={s.summaryImagePlaceholder}>
+                  <Ionicons name={getServiceModuleIcon(service.type)} size={22} color="#7B3FF2" />
+                </View>
               )}
-              <Text style={s.summaryName}>{service.name}</Text>
-              {service.duration_minutes && (
-                <Text style={s.summaryDetail}>{formatDuration(service.duration_minutes, t)}</Text>
-              )}
-              {service.price && (
-                <Text style={s.summaryPrice}>{formatPrice(service.price)}</Text>
-              )}
+              <View style={s.summaryInfo}>
+                <Text style={s.summaryName} numberOfLines={2}>{service.name}</Text>
+                <Text style={s.summaryDetail} numberOfLines={1}>
+                  {[service.duration_minutes ? formatDuration(service.duration_minutes, t) : "", service.price ? formatPrice(service.price) : ""].filter(Boolean).join(" · ")}
+                </Text>
+                {service.price ? (
+                  <Text style={s.summaryPrice}>{formatPrice(service.price)}</Text>
+                ) : null}
+              </View>
             </View>
           )}
 
@@ -346,7 +353,10 @@ export default function ServiceBookingModal({
 
           {isDateRange && service && (
             <View>
-              <Text style={s.sectionTitle}>{t("services.stayDates", "Stay dates")}</Text>
+              <View style={s.sectionHeaderRow}>
+                <Ionicons name="calendar-outline" size={16} color="#7B3FF2" />
+                <Text style={s.sectionTitle}>{t("services.stayDates", "Stay dates")}</Text>
+              </View>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.fieldLabel}>{t("services.checkIn", "Check-in")}</Text>
@@ -404,7 +414,10 @@ export default function ServiceBookingModal({
 
           {!isDateRange && (
           <>
-          <Text style={s.sectionTitle}>{t("services.selectDate", "Select a date")}</Text>
+          <View style={s.sectionHeaderRow}>
+            <Ionicons name="calendar-outline" size={16} color="#7B3FF2" />
+            <Text style={s.sectionTitle}>{t("services.selectDate", "Select a date")}</Text>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.dateRow}>
             {dates.map((d) => {
               const hasAvailability = availableDates.includes(d);
@@ -428,7 +441,10 @@ export default function ServiceBookingModal({
 
           {ctaType === "booking" && selectedDate && (
             <>
-              <Text style={s.sectionTitle}>{t("services.selectSlot", "Select a time slot")}</Text>
+              <View style={s.sectionHeaderRow}>
+                <Ionicons name="time-outline" size={16} color="#7B3FF2" />
+                <Text style={s.sectionTitle}>{t("services.selectSlot", "Select a time slot")}</Text>
+              </View>
               {loadingSlots ? (
                 <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: SPACING.section }} />
               ) : slots.length === 0 ? (
@@ -496,7 +512,10 @@ export default function ServiceBookingModal({
 
           {!isDateRange && (
           <>
-          <Text style={s.sectionTitle}>{t("services.guests", "Guests")}</Text>
+          <View style={s.sectionHeaderRow}>
+            <Ionicons name="people-outline" size={16} color="#7B3FF2" />
+            <Text style={s.sectionTitle}>{t("services.guests", "Guests")}</Text>
+          </View>
           <View style={s.stepperRow}>
             <Pressable style={s.stepperBtn} onPress={() => setGuests(Math.max(1, guests - 1))}>
               <Ionicons name="remove" size={20} color={COLORS.textPrimary} />
@@ -508,39 +527,60 @@ export default function ServiceBookingModal({
           </View>
           </>)}
 
-          <Text style={s.sectionTitle}>{t("services.yourName", "Your name")} *</Text>
+          <View style={s.sectionHeaderRow}>
+            <Ionicons name="person-outline" size={16} color="#7B3FF2" />
+            <Text style={s.sectionTitle}>{t("services.yourName", "Your name")} *</Text>
+          </View>
           <TextInput style={s.input} value={name} onChangeText={setName} placeholder="John Doe" placeholderTextColor="rgba(38,67,72,0.45)" />
 
-          <Text style={s.sectionTitle}>{t("services.yourEmail", "Your email")}</Text>
+          <View style={s.sectionHeaderRow}>
+            <Ionicons name="mail-outline" size={16} color="#7B3FF2" />
+            <Text style={s.sectionTitle}>{t("services.yourEmail", "Your email")}</Text>
+          </View>
           <TextInput style={s.input} value={email} onChangeText={setEmail} placeholder="john@example.com" keyboardType="email-address" placeholderTextColor="rgba(38,67,72,0.45)" />
 
           {showPets && (
             <>
-              <Text style={s.sectionTitle}>{t("services.petName", "Pet name")}</Text>
+              <View style={s.sectionHeaderRow}>
+                <Ionicons name="paw-outline" size={16} color="#7B3FF2" />
+                <Text style={s.sectionTitle}>{t("services.petName", "Pet name")}</Text>
+              </View>
               <TextInput style={s.input} value={petName} onChangeText={setPetName} placeholder="Max" placeholderTextColor="rgba(38,67,72,0.45)" />
-              <Text style={s.sectionTitle}>{t("services.petType", "Pet type")}</Text>
+              <View style={s.sectionHeaderRow}>
+                <Ionicons name="paw-outline" size={16} color="#7B3FF2" />
+                <Text style={s.sectionTitle}>{t("services.petType", "Pet type")}</Text>
+              </View>
               <TextInput style={s.input} value={petType} onChangeText={setPetType} placeholder="Dog / Cat" placeholderTextColor="rgba(38,67,72,0.45)" />
             </>
           )}
 
           {showHealthcare && (
             <>
-              <Text style={s.sectionTitle}>{t("services.reasonForVisit", "Reason for visit")}</Text>
+              <View style={s.sectionHeaderRow}>
+                <Ionicons name="medkit-outline" size={16} color="#7B3FF2" />
+                <Text style={s.sectionTitle}>{t("services.reasonForVisit", "Reason for visit")}</Text>
+              </View>
               <TextInput style={[s.input, { height: 80 }]} value={reasonForVisit} onChangeText={setReasonForVisit} placeholder="Describe your symptoms..." multiline placeholderTextColor="rgba(38,67,72,0.45)" />
             </>
           )}
 
           {showAutoRental && (
             <>
-              <Text style={s.sectionTitle}>{t("services.pickupLocation", "Pickup location")}</Text>
+              <View style={s.sectionHeaderRow}>
+                <Ionicons name="car-outline" size={16} color="#7B3FF2" />
+                <Text style={s.sectionTitle}>{t("services.pickupLocation", "Pickup location")}</Text>
+              </View>
               <TextInput style={s.input} value={pickupLocation} onChangeText={setPickupLocation} placeholder="Address" placeholderTextColor="rgba(38,67,72,0.45)" />
             </>
           )}
 
           {ctaType !== "browse_only" && (
             <>
-              <Text style={s.sectionTitle}>{t("services.notes", "Notes / Special requests")}</Text>
-              <TextInput style={[s.input, { height: 80 }]} value={notes} onChangeText={setNotes} placeholder="Any special requests..." multiline placeholderTextColor="rgba(38,67,72,0.45)" />
+              <View style={s.sectionHeaderRow}>
+                <Ionicons name="document-text-outline" size={16} color="#7B3FF2" />
+                <Text style={s.sectionTitle}>{t("services.notes", "Notes / Special requests")}</Text>
+              </View>
+              <TextInput style={[s.input, { height: 80 }]} value={notes} onChangeText={setNotes} placeholder={t("services.notesPlaceholder", "Any special requests...")} multiline placeholderTextColor="rgba(38,67,72,0.45)" />
             </>
           )}
 
@@ -557,15 +597,22 @@ export default function ServiceBookingModal({
               onPress={handleBook}
               disabled={bookingDisabled}
             >
-              {submitting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={s.saveBtnText}>
-                  {service?.type === "hotel_room" ? t("services.sendRequest", "Send Request")
-                   : ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
-                   : t("services.requestBooking", "Anfrage senden")}
-                </Text>
-              )}
+              <LinearGradient
+                colors={["#7B3FF2", "#4C1D95"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={s.saveBtnGradient}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={s.saveBtnText}>
+                    {service?.type === "hotel_room" ? t("services.sendRequest", "Send Request")
+                     : ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
+                     : t("services.requestBooking", "Anfrage senden")}
+                  </Text>
+                )}
+              </LinearGradient>
             </Pressable>
           </View>
         )}
@@ -582,7 +629,7 @@ export default function ServiceBookingModal({
             <Calendar
               minDate={datePickerTarget === "checkOut" ? minimumCheckout : (service?.available_from && service.available_from > todayText ? service.available_from : todayText)}
               maxDate={effectiveMaxCheckout}
-              markedDates={{ [checkIn]: { startingDay: true, color: COLORS.primary, textColor: "#fff" }, [checkOut]: { endingDay: true, color: COLORS.primary, textColor: "#fff" } }}
+              markedDates={{ [checkIn]: { startingDay: true, color: "#7B3FF2", textColor: "#fff" }, [checkOut]: { endingDay: true, color: "#7B3FF2", textColor: "#fff" } }}
               markingType="period"
               firstDay={1}
               onDayPress={(day) => {
@@ -598,7 +645,7 @@ export default function ServiceBookingModal({
                 } else { setCheckOut(day.dateString); }
                 setDatePickerTarget(null);
               }}
-              theme={{ todayTextColor: COLORS.primary, arrowColor: COLORS.primary, monthTextColor: COLORS.textPrimary }}
+              theme={{ todayTextColor: "#7B3FF2", arrowColor: "#7B3FF2", monthTextColor: "#264348", selectedDayBackgroundColor: "#7B3FF2" }}
             />
           </View>
         </View>
@@ -645,32 +692,43 @@ const s = StyleSheet.create({
     color: "#264348",
   },
   saveBtn: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: "hidden",
+    minWidth: 140,
+  },
+  saveBtnGradient: {
     paddingVertical: SPACING.small,
     paddingHorizontal: SPACING.section,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.primary,
   },
   saveBtnText: {
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#fff",
   },
-  summaryCard: { padding: SPACING.std, borderRadius: BORDER_RADIUS.lg, marginBottom: SPACING.section, alignItems: "center", backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(38,67,72,0.15)" },
-  summaryImage: { width: 120, height: 90, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.small },
-  summaryName: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: "#264348" },
-  summaryDetail: { fontSize: FONT_SIZES.caption, color: "rgba(38,67,72,0.7)", marginTop: SPACING.tiny },
-  summaryPrice: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success, marginTop: SPACING.tiny },
-  sectionTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348", marginTop: SPACING.std, marginBottom: SPACING.small },
+  summaryCard: { flexDirection: "row", alignItems: "center", padding: SPACING.std, borderRadius: BORDER_RADIUS.lg, marginBottom: SPACING.section, backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", gap: SPACING.small },
+  summaryImage: { width: 64, height: 64, borderRadius: BORDER_RADIUS.md },
+  summaryImagePlaceholder: { width: 64, height: 64, borderRadius: BORDER_RADIUS.md, alignItems: "center", justifyContent: "center", backgroundColor: "#7B3FF2" + "15" },
+  summaryInfo: { flex: 1 },
+  summaryName: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: "#264348" },
+  summaryDetail: { fontSize: FONT_SIZES.small, color: "rgba(38,67,72,0.7)", marginTop: 2 },
+  summaryPrice: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success, marginTop: 2 },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: SPACING.std, marginBottom: SPACING.small },
+  sectionTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348" },
   dateRow: { flexDirection: "row", marginBottom: SPACING.small },
   dateCard: { paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", marginRight: SPACING.small, backgroundColor: "#fff" },
-  dateSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  dateSelected: { backgroundColor: "#7B3FF2", borderColor: "#7B3FF2" },
   dateCardDisabled: { opacity: 0.3 },
   dateText: { fontSize: FONT_SIZES.small, color: "#264348" },
   dateTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
   dateTextDisabled: { color: "rgba(38,67,72,0.45)" },
   slotRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small },
   slotCard: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", backgroundColor: "#fff" },
-  slotSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  slotSelected: { backgroundColor: "#7B3FF2", borderColor: "#7B3FF2" },
   slotCardFull: { opacity: 0.4, borderColor: COLORS.danger },
   slotText: { fontSize: FONT_SIZES.caption, color: "#264348" },
   slotTextSelected: { color: "#fff", fontWeight: FONT_WEIGHTS.semibold as any },
@@ -692,6 +750,6 @@ const s = StyleSheet.create({
   datePickerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold as any, color: "#264348" },
   errorText: { marginTop: SPACING.small, fontSize: FONT_SIZES.caption, color: COLORS.danger },
   input: { borderWidth: 1, borderColor: "rgba(38,67,72,0.2)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: "#264348", marginBottom: SPACING.small, backgroundColor: "#fff" },
-  bookBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.section },
+  bookBtn: { backgroundColor: "#7B3FF2", borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.std, alignItems: "center", marginTop: SPACING.section },
   bookBtnText: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.bold as any, color: "#fff" },
 });

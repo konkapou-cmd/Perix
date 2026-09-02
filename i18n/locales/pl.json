@@ -2128,6 +2128,8 @@
     "gallery": "Galeria",
     "days": "dni",
     "upTo": "Do",
+    "notes": "Notatki / Prośby specjalne",
+    "notesPlaceholder": "Specjalne prośby...",
     "total": "Razem",
     "preferredTime": "Preferowana godzina (opcjonalnie)",
     "messageNotes": "Wiadomość / notatki",

@@ -2115,6 +2115,8 @@
     "gallery": "Galerija",
     "days": "dana",
     "upTo": "Do",
+    "notes": "Beleške / Posebni zahtevi",
+    "notesPlaceholder": "Posebni zahtevi...",
     "total": "Ukupno",
     "preferredTime": "Poželjno vreme (opciono)",
     "messageNotes": "Poruka / beleške",

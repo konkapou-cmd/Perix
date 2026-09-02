@@ -2119,6 +2119,8 @@
     "gallery": "Galerie",
     "days": "jours",
     "upTo": "Jusqu'à",
+    "notes": "Notes / Demandes spéciales",
+    "notesPlaceholder": "Des demandes spéciales...",
     "total": "Total",
     "preferredTime": "Heure préférée (facultatif)",
     "messageNotes": "Message / notes",
