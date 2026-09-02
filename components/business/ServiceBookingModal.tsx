@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useMemo } from "react";
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Platform, ActivityIndicator, Alert, KeyboardAvoidingView } from "react-native";
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Platform, ActivityIndicator, Alert, KeyboardAvoidingView, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar, CalendarList } from "react-native-calendars";
@@ -389,7 +389,8 @@ export default function ServiceBookingModal({
             futureScrollRange={12}
             firstDay={1}
             calendarHeight={330}
-            style={{ height: 330, borderRadius: 12, borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", marginBottom: SPACING.small }}
+            calendarWidth={Dimensions.get("window").width - SPACING.std * 2}
+            style={{ height: 330, width: Dimensions.get("window").width - SPACING.std * 2, alignSelf: "center", borderRadius: 12, borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", marginBottom: SPACING.small }}
             onDayPress={(day: any) => { setSelectedDate(day.dateString); setSelectedSlot(null); }}
             markedDates={calendarMarks}
             theme={{
