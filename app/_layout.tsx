@@ -275,7 +275,9 @@ export default function RootLayout() {
     }
   }, []);
 
-  if (!fontsLoaded) return null;
+  // On web, never block rendering on font loading — expo-font can hang there
+  // and would leave a white screen. Fall back to system fonts if needed.
+  if (!fontsLoaded && Platform.OS !== "web") return null;
 
   return (
     <I18nextProvider i18n={i18n}>
