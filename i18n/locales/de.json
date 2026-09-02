@@ -1869,6 +1869,7 @@
     "propertyType": "Immobilientyp",
     "bedrooms": "Schlafzimmer",
     "bathrooms": "Badezimmer",
+    "size": "Größe",
     "rental": "Vermietung",
     "invalidRental": "Diese Vermietung kann nicht geöffnet werden.",
     "types": {
@@ -2758,6 +2759,7 @@
   "marketplace": {
     "title": "Marktplatz",
     "delivery": "Lieferung",
+    "contactRenter": "Kontakt mit dem Vermieter",
     "both": "Beides",
     "inactive": "Inaktiv",
     "items": "Artikel",

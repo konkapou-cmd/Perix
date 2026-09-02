@@ -330,7 +330,11 @@ export default function ListingDetailScreen() {
         )}
 
         <BottomCTA
-          primaryLabel={t("common.contact", "Contact Seller")}
+          primaryLabel={
+            listing.listing_type === "home_rental"
+              ? t("marketplace.contactRenter", "Επικοινωνία με τον ενοικιαστή")
+              : t("common.contact", "Contact Seller")
+          }
           primaryIcon="chatbubble-ellipses-outline"
           accentColor={COLORS.success}
           onPrimary={handleContact}

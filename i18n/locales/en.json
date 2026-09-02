@@ -2009,6 +2009,7 @@
     "propertyType": "Property Type",
     "bedrooms": "Bedrooms",
     "bathrooms": "Bathrooms",
+    "size": "Size",
     "rental": "Rental",
     "invalidRental": "This rental cannot be opened.",
     "types": {
@@ -2654,6 +2655,7 @@
   "marketplace": {
     "title": "Marketplace",
     "delivery": "Delivery",
+    "contactRenter": "Contact the renter",
     "both": "Both",
     "inactive": "Inactive",
     "items": "Items",
