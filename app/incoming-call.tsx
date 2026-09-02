@@ -118,13 +118,14 @@ export default function IncomingCallScreen() {
         pathname: "/call",
         params: {
           callId: params.callId,
-          userId: response.caller_uid.toString(),
+          userId: String(response.callee_uid ?? response.caller_uid ?? 0),
           userName: params.callerName,
           userPhoto: params.callerPhoto,
           callType: params.callType,
           mode: "active",
           channel: response.channel,
           token: response.token,
+          appId: response.app_id || "",
         },
       });
     } catch (error) {

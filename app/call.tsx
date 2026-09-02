@@ -343,6 +343,10 @@ export default function CallScreen() {
           const uid = response.callee_uid;
 
           joinChannel(channel, token, uid, callType === "video", appId);
+        } else if (callMode === "active" && params.channel && params.token) {
+          const appId = params.appId || AGORA_APP_ID;
+          const engine = initEngine(appId);
+          joinChannel(params.channel, params.token, Number(params.userId || 0), callType === "video", appId);
         }
       } catch (err: any) {
         setError(err.message || "Failed to connect call");
