@@ -4,6 +4,8 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "openInMaps": "Abrir en Mapas",
+    "allThemes": "Todos los temas",
+    "gallery": "Galería",
     "status": "Estado",
     "saveDraft": "Guardar como borrador",
     "publish": "Publicar",
@@ -1030,6 +1032,7 @@
     "anyoneCanJoin": "Cualquier persona puede ver y unirse",
     "at": "en",
     "attending": "Asistiendo",
+    "selectDate": "Seleccionar fecha",
     "themes": {
       "categories": {
         "movement_outdoor": "Movimiento y aire libre",

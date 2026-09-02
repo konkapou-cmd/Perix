@@ -4,6 +4,8 @@
     "save": "Sačuvaj",
     "cancel": "Otkaži",
     "openInMaps": "Otvori u mapama",
+    "allThemes": "Sve teme",
+    "gallery": "Galerija",
     "status": "Status",
     "saveDraft": "Sačuvaj kao nacrt",
     "publish": "Objavi",
@@ -1042,6 +1044,7 @@
     "anyoneCanJoin": "Svi mogu videti i pridružiti se",
     "at": "u",
     "attending": "Dolazim",
+    "selectDate": "Izaberi datum",
     "themes": {
       "categories": {
         "movement_outdoor": "Kretanje i napolju",

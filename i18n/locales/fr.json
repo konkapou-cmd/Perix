@@ -4,6 +4,8 @@
     "save": "Enregistrer",
     "cancel": "Annuler",
     "openInMaps": "Ouvrir dans Maps",
+    "allThemes": "Tous les thèmes",
+    "gallery": "Galerie",
     "status": "Statut",
     "saveDraft": "Enregistrer comme brouillon",
     "publish": "Publier",
@@ -1073,6 +1075,7 @@
     "anyoneCanJoin": "Tout le monde peut voir et rejoindre",
     "at": "à",
     "attending": "Participent",
+    "selectDate": "Sélectionner une date",
     "themes": {
       "categories": {
         "movement_outdoor": "Mouvement & plein air",

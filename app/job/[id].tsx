@@ -278,7 +278,7 @@ export default function JobDetailPage() {
                 ...(job.gallery_images || []).map(uri => ({ uri, type: "image" as const })),
                 ...(job.gallery_videos || []).map(uri => ({ uri, type: "video" as const })),
               ]}
-              title="Galerie"
+              title={t("common.gallery", "Galerie")}
             />
           )}
 

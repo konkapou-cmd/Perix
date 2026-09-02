@@ -4,6 +4,8 @@
     "save": "Сохранить",
     "cancel": "Отмена",
     "openInMaps": "Открыть в картах",
+    "allThemes": "Все темы",
+    "gallery": "Галерея",
     "status": "Статус",
     "saveDraft": "Сохранить как черновик",
     "publish": "Опубликовать",
@@ -1030,6 +1032,7 @@
     "anyoneCanJoin": "Любой может увидеть и присоединиться",
     "at": "в",
     "attending": "Участвую",
+    "selectDate": "Выберите дату",
     "themes": {
       "categories": {
         "movement_outdoor": "Движение и улица",

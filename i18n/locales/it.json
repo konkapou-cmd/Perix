@@ -4,6 +4,8 @@
     "save": "Salva",
     "cancel": "Annulla",
     "openInMaps": "Apri in Maps",
+    "allThemes": "Tutti i temi",
+    "gallery": "Galleria",
     "status": "Stato",
     "saveDraft": "Salva come bozza",
     "publish": "Pubblica",
@@ -1030,6 +1032,7 @@
     "anyoneCanJoin": "Chiunque può vedere e partecipare",
     "at": "a",
     "attending": "Partecipa",
+    "selectDate": "Seleziona data",
     "themes": {
       "categories": {
         "movement_outdoor": "Movimento & outdoor",

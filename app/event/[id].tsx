@@ -518,7 +518,7 @@ export default function EventDetailPage() {
           )}
 
           {allMediaItems.length > 0 && (
-            <ContentGallery mediaItems={allMediaItems} title="Galerie" />
+            <ContentGallery mediaItems={allMediaItems} title={t("common.gallery", "Galerie")} />
           )}
 
           <ShareContent

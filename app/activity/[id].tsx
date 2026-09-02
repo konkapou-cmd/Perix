@@ -409,7 +409,7 @@ export default function ActivityDetailPage() {
           ) : null}
 
           {allMediaItems.length > 0 && (
-            <ContentGallery mediaItems={allMediaItems} title="Galerie" />
+            <ContentGallery mediaItems={allMediaItems} title={t("common.gallery", "Galerie")} />
           )}
 
           <ChatSection

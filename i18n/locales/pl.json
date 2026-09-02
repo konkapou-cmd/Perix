@@ -4,6 +4,8 @@
     "save": "Zapisz",
     "cancel": "Anuluj",
     "openInMaps": "Otwórz w Mapach",
+    "allThemes": "Wszystkie tematy",
+    "gallery": "Galeria",
     "status": "Status",
     "saveDraft": "Zapisz jako szkic",
     "publish": "Opublikuj",
@@ -1047,6 +1049,7 @@
     "anyoneCanJoin": "Każdy może zobaczyć i dołączyć",
     "at": "w",
     "attending": "Uczestniczy",
+    "selectDate": "Wybierz datę",
     "themes": {
       "categories": {
         "movement_outdoor": "Ruch i świeże powietrze",

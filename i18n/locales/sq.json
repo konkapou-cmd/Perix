@@ -4,6 +4,8 @@
     "save": "Ruaj",
     "cancel": "Anulo",
     "openInMaps": "Hap në Maps",
+    "allThemes": "Të gjitha temat",
+    "gallery": "Galeria",
     "status": "Statusi",
     "saveDraft": "Ruaj si draft",
     "publish": "Publiko",
@@ -1008,6 +1010,7 @@
     "anyoneCanJoin": "Kushdo mund ta shohë dhe bashkohet",
     "at": "në",
     "attending": "Duke marrë pjesë",
+    "selectDate": "Zgjidh datën",
     "themes": {
       "categories": {
         "movement_outdoor": "Lëvizje & jashtë",

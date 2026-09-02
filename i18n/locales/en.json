@@ -10,6 +10,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "openInMaps": "Open in Maps",
+    "allThemes": "All Themes",
+    "gallery": "Gallery",
     "status": "Status",
     "saveDraft": "Save as draft",
     "publish": "Publish",
@@ -1102,6 +1104,7 @@
     "anyoneCanJoin": "Anyone can see and join",
     "at": "at",
     "attending": "Attending",
+    "selectDate": "Select date",
     "themes": {
       "categories": {
         "movement_outdoor": "Movement & Outdoor",
