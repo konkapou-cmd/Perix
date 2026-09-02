@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, ActivityIndicator, Alert, RefreshControl, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +17,7 @@ type Props = {
   onClose: () => void;
 };
 
-const TABS = ["pending", "confirmed", "completed", "declined", "cancelled", "expired"] as const;
+const TABS = ["confirmed", "pending", "completed", "declined", "cancelled", "expired"] as const;
 type Tab = typeof TABS[number];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -32,7 +32,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function BookingListModal({ visible, businessId, sessionToken, onClose }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("pending");
+  const [activeTab, setActiveTab] = useState<Tab>("confirmed");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
