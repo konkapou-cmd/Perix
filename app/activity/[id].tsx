@@ -433,25 +433,23 @@ export default function ActivityDetailPage() {
             flush
           />
 
-          {!isCreator && (
-            <BottomCTA
-              primaryLabel={
-                remaining !== null && remaining <= 0
-                  ? t("activities.fullyBooked", "Ausgebucht!")
-                  : myStatus === "going"
-                    ? t("activities.attending", "Teilnehmend")
-                    : t("activities.attend", "Teilnehmen")
-              }
-              primaryIcon={remaining !== null && remaining <= 0 ? "close-circle-outline" : "people-outline"}
-              accentColor={PAGE_ACCENT}
-              useGradient
-              onPrimary={remaining !== null && remaining <= 0 ? () => {} : () => handleRsvp("going")}
-              saved={isSaved}
-              onSave={handleToggleSave}
-              onShare={() => setShowShareModal(true)}
-              onWhatsApp={shareToWhatsApp}
-            />
-          )}
+          <BottomCTA
+            primaryLabel={
+              remaining !== null && remaining <= 0
+                ? t("activities.fullyBooked", "Ausgebucht!")
+                : myStatus === "going"
+                  ? t("activities.attending", "Teilnehmend")
+                  : t("activities.attend", "Teilnehmen")
+            }
+            primaryIcon={remaining !== null && remaining <= 0 ? "close-circle-outline" : "people-outline"}
+            accentColor={PAGE_ACCENT}
+            useGradient
+            onPrimary={remaining !== null && remaining <= 0 ? () => {} : () => handleRsvp("going")}
+            saved={isSaved}
+            onSave={handleToggleSave}
+            onShare={() => setShowShareModal(true)}
+            onWhatsApp={shareToWhatsApp}
+          />
         </ScrollView>
         <ShareContent
           visible={showShareModal}
