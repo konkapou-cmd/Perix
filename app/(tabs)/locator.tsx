@@ -758,14 +758,10 @@ export default function LocatorScreen() {
           }}
           disabled={!contextLocation}
           disabledHint="Tap to enable location"
-          onMapPress={contextLocation ? undefined : (() => {
-            Location.requestForegroundPermissionsAsync().then(({ status }) => {
-              if (status === 'granted') {
-                Location.getCurrentPositionAsync({}).then((loc) => {
-                  setManualLocation(loc.coords.latitude, loc.coords.longitude);
-                });
-              }
-            });
+          onMapPress={contextLocation ? undefined : ((lat?: number, lng?: number) => {
+            if (typeof lat === "number" && typeof lng === "number") {
+              setManualLocation(lat, lng);
+            }
           }) as any}
         />
       </View>

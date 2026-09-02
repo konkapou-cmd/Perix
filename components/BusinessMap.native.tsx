@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import MapView, { Marker, Region } from "react-native-maps";
-import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
@@ -232,6 +232,8 @@ export default function BusinessMap({
   const readyRef = useRef(false);
   const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
   const [zoomLevel, setZoomLevel] = useState(12);
+  const [enabling, setEnabling] = useState(false);
+  const enablingRef = useRef(false);
 
   useEffect(() => {
     const t = setTimeout(() => { readyRef.current = true; }, 800);
@@ -311,7 +313,9 @@ export default function BusinessMap({
       <Pressable 
         style={[styles.wrapper, { height }]} 
         onPress={async () => {
-          if (onMapPress) {
+          if (onMapPress && !enablingRef.current) {
+            enablingRef.current = true;
+            setEnabling(true);
             try {
               const { status } = await Location.requestForegroundPermissionsAsync();
               if (status === "granted") {
@@ -320,14 +324,21 @@ export default function BusinessMap({
               }
             } catch (error) {
               console.error("Failed to get location:", error);
+            } finally {
+              enablingRef.current = false;
+              setEnabling(false);
             }
           }
         }}
       >
         <View style={styles.disabledOverlay}>
           <View style={styles.disabledContent}>
-            <Ionicons name="location" size={40} color="#264348" />
-            <Text style={styles.disabledText}>{disabledHint}</Text>
+            {enabling ? (
+              <ActivityIndicator size="large" color="#59ABE3" />
+            ) : (
+              <Ionicons name="location" size={40} color="#264348" />
+            )}
+            <Text style={styles.disabledText}>{enabling ? "…" : disabledHint}</Text>
           </View>
         </View>
       </Pressable>
