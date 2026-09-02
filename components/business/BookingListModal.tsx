@@ -9,6 +9,8 @@ import { Booking } from "../../lib/api/core";
 import { getBookings, confirmBooking, declineBooking, cancelBooking, completeBooking } from "../../lib/api/services";
 import { formatPrice } from "../../lib/serviceFormat";
 import { formatDate } from "../../lib/formatDate";
+import { translateServiceType } from "../../lib/categoryTranslation";
+import { getServiceModuleIcon } from "../../lib/config/serviceModules";
 
 type Props = {
   visible: boolean;
@@ -137,7 +139,20 @@ export default function BookingListModal({ visible, businessId, sessionToken, on
             <Text style={[s.statusText, { color: statusColor }]} numberOfLines={1} ellipsizeMode="tail">{t(`bookingList.${booking.status}`, booking.status)}</Text>
           </View>
         </View>
-        <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{formatDate(booking.date)} {booking.start_time ? `| ${booking.start_time}` : ""}{booking.end_time ? ` - ${booking.end_time}` : ""}</Text>
+        {booking.service_name && (
+          <View style={s.serviceRow}>
+            <Ionicons name={getServiceModuleIcon(booking.service_type || "")} size={14} color="#59ABE3" />
+            <Text style={s.serviceName} numberOfLines={1} ellipsizeMode="tail">{booking.service_name}</Text>
+            {booking.service_type && (
+              <View style={s.typeBadge}>
+                <Text style={s.typeBadgeText} numberOfLines={1}>{translateServiceType(booking.service_type, t)}</Text>
+              </View>
+            )}
+          </View>
+        )}
+        {booking.booking_mode !== "date_range" && (
+          <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{formatDate(booking.date)} {booking.start_time ? `| ${booking.start_time}` : ""}{booking.end_time ? ` - ${booking.end_time}` : ""}</Text>
+        )}
         {booking.booking_mode === "date_range" && booking.end_date && (
           <>
             <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{formatDate(booking.date)} → {formatDate(booking.end_date)}</Text>
@@ -281,6 +296,10 @@ const s = StyleSheet.create({
   emptyText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted },
   bookingCard: { backgroundColor: "#fff", borderRadius: BORDER_RADIUS.lg, borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", padding: SPACING.std, marginBottom: SPACING.compact },
   bookingHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.small },
+  serviceRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: SPACING.tiny },
+  serviceName: { flexShrink: 1, fontSize: FONT_SIZES.small, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348" },
+  typeBadge: { backgroundColor: "#59ABE3" + "20", paddingHorizontal: SPACING.small, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
+  typeBadgeText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any, color: "#1F4788" },
   clientName: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textPrimary },
   statusBadge: { flexShrink: 1, maxWidth: "45%", paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: BORDER_RADIUS.full },
   statusText: { textAlign: "center", fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any },

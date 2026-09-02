@@ -8,6 +8,8 @@ import { Booking } from "../../lib/api/core";
 import { getBookings, cancelBooking } from "../../lib/api/services";
 import { formatPrice } from "../../lib/serviceFormat";
 import { formatDate } from "../../lib/formatDate";
+import { translateServiceType } from "../../lib/categoryTranslation";
+import { getServiceModuleIcon } from "../../lib/config/serviceModules";
 
 type Props = {
   visible: boolean;
@@ -93,7 +95,15 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
       <View key={booking.booking_id} style={s.bookingCard}>
         <View style={s.bookingHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={s.serviceName} numberOfLines={1} ellipsizeMode="tail">{booking.service_name || booking.service_id}</Text>
+            <View style={s.serviceRow}>
+              <Ionicons name={getServiceModuleIcon(booking.service_type || "")} size={14} color="#59ABE3" />
+              <Text style={s.serviceName} numberOfLines={1} ellipsizeMode="tail">{booking.service_name || booking.service_id}</Text>
+            </View>
+            {booking.service_type && (
+              <View style={s.typeBadge}>
+                <Text style={s.typeBadgeText} numberOfLines={1}>{translateServiceType(booking.service_type, t)}</Text>
+              </View>
+            )}
             {booking.business_name && (
               <Text style={s.businessName} numberOfLines={1} ellipsizeMode="tail">{booking.business_name}</Text>
             )}
@@ -230,6 +240,9 @@ const s = StyleSheet.create({
   emptyText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted },
   bookingCard: { backgroundColor: "#fff", borderRadius: BORDER_RADIUS.lg, borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", padding: SPACING.std, marginBottom: SPACING.compact },
   bookingHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: SPACING.small },
+  serviceRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  typeBadge: { alignSelf: "flex-start", backgroundColor: "#59ABE3" + "20", paddingHorizontal: SPACING.small, paddingVertical: 2, borderRadius: BORDER_RADIUS.full, marginTop: SPACING.tiny },
+  typeBadgeText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any, color: "#1F4788" },
   serviceName: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textPrimary },
   businessName: { fontSize: FONT_SIZES.small, color: "#59ABE3", marginTop: SPACING.tiny },
   statusBadge: { paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: BORDER_RADIUS.full, marginLeft: SPACING.small, flexShrink: 1, maxWidth: "45%" },
