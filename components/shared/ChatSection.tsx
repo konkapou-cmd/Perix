@@ -149,6 +149,7 @@ export default function ChatSection({
             style={styles.chatMessages}
             nestedScrollEnabled={true}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {loadingChat ? (
               <ActivityIndicator size="small" color={themeColor} style={{ marginVertical: 20 }} />

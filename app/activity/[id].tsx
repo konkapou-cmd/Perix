@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -186,6 +187,7 @@ export default function ActivityDetailPage() {
       const newMsg = await sendActivityMessage(sessionToken, id, chatText.trim());
       setChatMessages(prev => [...prev, newMsg]);
       setChatText("");
+      Keyboard.dismiss();
       setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (_) { showThemedAlert(t("common.pleaseTryAgain")); }
     finally { setSendingMessage(false); }

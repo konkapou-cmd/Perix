@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -205,6 +206,7 @@ export default function EventDetailPage() {
       const newMsg = await sendEventMessage(sessionToken, id, chatText.trim());
       setChatMessages(prev => [...prev, newMsg]);
       setChatText("");
+      Keyboard.dismiss();
       setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (_) {
       showThemedAlert(t("common.pleaseTryAgain"));
@@ -379,10 +381,12 @@ export default function EventDetailPage() {
   const hasCoordinates = !!(event.business?.latitude || event.artist?.latitude);
   const eventLocation = hasCoordinates ? { latitude: event.business?.latitude || event.artist?.latitude!, longitude: event.business?.longitude || event.artist?.longitude! } : null;
   const themeInfo = getTheme();
+  const firstThemeSlug = (event?.themes && event.themes.length > 0) ? event.themes[0] : event?.theme;
+  const themeBadgeText = firstThemeSlug ? t(`events.themes.${firstThemeSlug}`, themeInfo.label) as string : themeInfo.label;
   const themeList = (event.themes && event.themes.length > 0)
     ? event.themes
     : (event.theme ? [event.theme] : []);
-  const themeLabels = themeList.map((th: string) => EVENT_THEMES[th]?.label || th).join(" · ");
+  const themeLabels = themeList.map((th: string) => t(`events.themes.${th}`, EVENT_THEMES[th]?.label || th) as string).join(" · ");
   const pageAccent = "#FF9F1C";
 
   return (
@@ -421,7 +425,7 @@ export default function EventDetailPage() {
             badges={[
               isPast
                 ? { icon: "flag", text: t("events.pastEvent") || "Past Event", color: pageAccent }
-                : { icon: "calendar", text: themeInfo.label, color: pageAccent },
+                : { icon: "calendar", text: themeBadgeText, color: pageAccent },
               { icon: "people", text: String(attendeesCount), color: pageAccent },
               ...(event.is_private ? [{ icon: "lock-closed", color: pageAccent }] : []),
             ]}
