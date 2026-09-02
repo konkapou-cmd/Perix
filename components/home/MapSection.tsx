@@ -70,7 +70,12 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
     const act = activities.find(a => a.activity_id === id);
     if (act) { router.push(`/activity/${id}` as any); return; }
     const rental = rentals.find(r => r.rental_id === id);
-    if (rental) { pushEntityRoute(router, entityRoutes.rental(getRentalNavigationId(rental as any)), () => {}); return; }
+    if (rental) {
+      const navId = getRentalNavigationId(rental as any) as any;
+      const route = (rental as any).source_type === "owner" ? entityRoutes.listing(navId) : entityRoutes.rental(navId);
+      pushEntityRoute(router, route, () => {});
+      return;
+    }
     const service = services.find(s => s.service_id === id);
     if (service) { pushEntityRoute(router, entityRoutes.service(id), () => {}); return; }
     const job = jobs.find(j => j.job_id === id);
