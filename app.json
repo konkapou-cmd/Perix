@@ -7,7 +7,9 @@
     "extra": {
       "eas": {
         "projectId": "a551ab03-fb09-467e-8e04-cec4567ef0bd"
-      }
+      },
+      "EXPO_PUBLIC_GEO_KEY": "AIzaSyC-uxDbahu0DyIu-8NVAgJvc0yWFPYkXEI",
+      "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyC-uxDbahu0DyIu-8NVAgJvc0yWFPYkXEI"
     }
   }
 }
