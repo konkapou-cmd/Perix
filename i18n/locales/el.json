@@ -1031,6 +1031,8 @@
     "messages": "μηνύματα",
     "themes": {
       "hip-hop": "Hip Hop",
+      "business-event": "Επαγγελματική εκδήλωση",
+      "arts-event": "Καλλιτεχνική εκδήλωση",
       "rnb": "R&B",
       "dance-edm": "Dance / EDM",
       "techno": "Techno",
@@ -1217,6 +1219,7 @@
     "anyoneCanJoin": "Όλοι μπορούν να δουν και να συμμετάσχουν",
     "at": "στις",
     "attending": "Συμμετέχων",
+    "attend": "Συμμετοχή",
     "customTheme": "Εισάγετε προσαρμοσμένο θέμα",
     "dateRequired": "Παρακαλώ επιλέξτε ημερομηνία",
     "gallery": "Γκαλερί",

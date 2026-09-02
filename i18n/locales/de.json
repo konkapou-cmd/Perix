@@ -1004,7 +1004,7 @@
       "festival": "Festival-Style Party",
       "greek-music": "Griechische Musik",
       "international": "Internationale Musik",
-      "business-event": "Business Event",
+      "business-event": "Business-Event",
       "arts-event": "Kunst-Event"
     },
     "allEvents": "Alle Veranstaltungen",
@@ -1181,6 +1181,7 @@
     "anyoneCanJoin": "Jeder kann sehen und teilnehmen",
     "at": "um",
     "attending": "Teilnehmend",
+    "attend": "Teilnehmen",
     "customTheme": "Eigener Aktivitätstyp",
     "dateRequired": "Bitte wähle ein Datum",
     "gallery": "Galerie",

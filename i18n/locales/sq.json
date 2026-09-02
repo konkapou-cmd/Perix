@@ -856,6 +856,8 @@
     "saveFailed": "Dështoi ruajtja e eventit",
     "themes": {
       "hip-hop": "Hip Hop",
+      "business-event": "Event biznesi",
+      "arts-event": "Event artistik",
       "rnb": "R&B",
       "dance-edm": "Dance / EDM",
       "techno": "Techno",
@@ -1006,6 +1008,27 @@
     "anyoneCanJoin": "Kushdo mund ta shohë dhe bashkohet",
     "at": "në",
     "attending": "Duke marrë pjesë",
+    "themes": {
+      "categories": {
+        "movement_outdoor": "Lëvizje & jashtë",
+        "simple_sports": "Sporte të thjeshta",
+        "calm_wellness": "Qetësi & mirëqenie",
+        "social_meetups": "Takime sociale"
+      },
+      "subcategories": {
+        "walking_activities": "Shëtitje",
+        "light_fitness": "Fitnes i lehtë",
+        "city_movement": "Lëvizje në qytet",
+        "ball_sports": "Sporte me top",
+        "racket_easy_games": "Lojëra me raketë",
+        "mindfulness": "Vetëdije",
+        "nature_slow_living": "Natyrë",
+        "simple_hangouts": "Takime të thjeshta",
+        "easy_social_walks": "Shëtitje sociale",
+        "conversation_meetups": "Biseda"
+      }
+    },
+    "attend": "Merr pjesë",
     "by": "nga",
     "chat": "Chat",
     "create": "Krijo",

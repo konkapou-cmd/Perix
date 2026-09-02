@@ -203,7 +203,11 @@ export default function ActivityDetailPage() {
   };
 
   const handleRsvp = async (status: "going" | "maybe" | "declined") => {
-    if (!sessionToken || !id) return;
+    if (!id) return;
+    if (!sessionToken) {
+      router.push("/login");
+      return;
+    }
     try {
       const result = await rsvpActivity(sessionToken, id, status);
       setMyStatus(result.my_status);
@@ -257,7 +261,7 @@ export default function ActivityDetailPage() {
   }
 
   const themeLabel = activity.custom_theme ||
-    (activity.theme ? (ACTIVITY_TYPES as Record<string, any>)[activity.theme]?.label : null);
+    (activity.theme ? t(`activities.themes.types.${activity.theme}`, (ACTIVITY_TYPES as Record<string, any>)[activity.theme]?.label || "") as string : null);
   const isPast = !isUpcomingActivity(activity);
   const allMediaItems = activity ? buildMediaItems(activity) : [];
   const organizer = activity.creator?.name || "";
@@ -429,11 +433,17 @@ export default function ActivityDetailPage() {
 
           {!isCreator && (
             <BottomCTA
-              primaryLabel={myStatus === "going" ? "Teilnehmend" : "Teilnehmen"}
-              primaryIcon="people-outline"
+              primaryLabel={
+                remaining !== null && remaining <= 0
+                  ? t("activities.fullyBooked", "Ausgebucht!")
+                  : myStatus === "going"
+                    ? t("activities.attending", "Teilnehmend")
+                    : t("activities.attend", "Teilnehmen")
+              }
+              primaryIcon={remaining !== null && remaining <= 0 ? "close-circle-outline" : "people-outline"}
               accentColor={PAGE_ACCENT}
               useGradient
-              onPrimary={() => handleRsvp("going")}
+              onPrimary={remaining !== null && remaining <= 0 ? () => {} : () => handleRsvp("going")}
               saved={isSaved}
               onSave={handleToggleSave}
               onShare={() => setShowShareModal(true)}

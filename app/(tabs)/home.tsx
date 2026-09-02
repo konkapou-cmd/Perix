@@ -979,7 +979,7 @@ export default function HomeScreen() {
                   imageUrl={activityImg}
                   videoUrl={activity.video_url}
                   title={activity.title}
-                  subtitle={`${activity.theme && ACTIVITY_TYPES[activity.theme] ? ACTIVITY_TYPES[activity.theme].label + " · " : ""}${activity.creator?.name || ""}`}
+                  subtitle={`${activity.theme && ACTIVITY_TYPES[activity.theme] ? t(`activities.themes.types.${activity.theme}`, ACTIVITY_TYPES[activity.theme].label) + " · " : ""}${activity.creator?.name || ""}`}
                   thirdLine={`${formatEventDate(activity.date)}${activity.time ? " · " + activity.time : ""}`}
                   thirdLineIcon="calendar"
                   fourthLine={[activity.location || "", spotsText].filter(Boolean).join(" · ")}

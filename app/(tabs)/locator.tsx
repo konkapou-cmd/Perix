@@ -872,7 +872,7 @@ export default function LocatorScreen() {
             value={activityCategoryFilter ?? "All"}
             options={[
               { key: "All", label: t("common.allCategories", "Alle Kategorien") },
-              ...Object.entries(ACTIVITY_CATEGORIES).map(([key, cat]: [string, any]) => ({ key, label: cat.label })),
+              ...Object.entries(ACTIVITY_CATEGORIES).map(([key, cat]: [string, any]) => ({ key, label: t(`activities.themes.categories.${key}`, cat.label) as string })),
             ]}
             onChange={(key) => setActivityCategoryFilter(key === "All" ? null : key)}
             primaryColor={pickerAccent}

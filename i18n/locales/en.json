@@ -1102,6 +1102,27 @@
     "anyoneCanJoin": "Anyone can see and join",
     "at": "at",
     "attending": "Attending",
+    "themes": {
+      "categories": {
+        "movement_outdoor": "Movement & Outdoor",
+        "simple_sports": "Simple Sports",
+        "calm_wellness": "Calm & Wellness",
+        "social_meetups": "Social Meetups"
+      },
+      "subcategories": {
+        "walking_activities": "Walking",
+        "light_fitness": "Light Fitness",
+        "city_movement": "City Movement",
+        "ball_sports": "Ball Sports",
+        "racket_easy_games": "Racket Games",
+        "mindfulness": "Mindfulness",
+        "nature_slow_living": "Nature",
+        "simple_hangouts": "Hangouts",
+        "easy_social_walks": "Walks",
+        "conversation_meetups": "Conversation"
+      }
+    },
+    "attend": "Attend",
     "by": "by",
     "chat": "Chat",
     "create": "Create Activity",

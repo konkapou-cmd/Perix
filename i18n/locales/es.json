@@ -878,6 +878,8 @@
     "saveFailed": "Error al guardar el evento",
     "themes": {
       "hip-hop": "Hip Hop",
+      "business-event": "Evento de negocios",
+      "arts-event": "Evento de arte",
       "rnb": "R&B",
       "dance-edm": "Dance / EDM",
       "techno": "Techno",
@@ -1028,6 +1030,27 @@
     "anyoneCanJoin": "Cualquier persona puede ver y unirse",
     "at": "en",
     "attending": "Asistiendo",
+    "themes": {
+      "categories": {
+        "movement_outdoor": "Movimiento y aire libre",
+        "simple_sports": "Deportes simples",
+        "calm_wellness": "Calma y bienestar",
+        "social_meetups": "Encuentros sociales"
+      },
+      "subcategories": {
+        "walking_activities": "Caminatas",
+        "light_fitness": "Fitness ligero",
+        "city_movement": "Movimiento urbano",
+        "ball_sports": "Deportes de pelota",
+        "racket_easy_games": "Juegos de raqueta",
+        "mindfulness": "Atención plena",
+        "nature_slow_living": "Naturaleza",
+        "simple_hangouts": "Reuniones simples",
+        "easy_social_walks": "Paseos sociales",
+        "conversation_meetups": "Conversación"
+      }
+    },
+    "attend": "Asistir",
     "by": "por",
     "chat": "Chat",
     "create": "Crear",

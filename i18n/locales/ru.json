@@ -878,6 +878,8 @@
     "saveFailed": "Не удалось сохранить событие",
     "themes": {
       "hip-hop": "Хип-хоп",
+      "business-event": "Бизнес-мероприятие",
+      "arts-event": "Художественное мероприятие",
       "rnb": "R&B",
       "dance-edm": "Дэнс / EDM",
       "techno": "Техно",
@@ -1028,6 +1030,27 @@
     "anyoneCanJoin": "Любой может увидеть и присоединиться",
     "at": "в",
     "attending": "Участвую",
+    "themes": {
+      "categories": {
+        "movement_outdoor": "Движение и улица",
+        "simple_sports": "Простые виды спорта",
+        "calm_wellness": "Спокойствие и здоровье",
+        "social_meetups": "Социальные встречи"
+      },
+      "subcategories": {
+        "walking_activities": "Прогулки",
+        "light_fitness": "Лёгкий фитнес",
+        "city_movement": "Городское движение",
+        "ball_sports": "Игры с мячом",
+        "racket_easy_games": "Игры с ракеткой",
+        "mindfulness": "Осознанность",
+        "nature_slow_living": "Природа",
+        "simple_hangouts": "Простые встречи",
+        "easy_social_walks": "Социальные прогулки",
+        "conversation_meetups": "Беседы"
+      }
+    },
+    "attend": "Участвовать",
     "by": "от",
     "chat": "Чат",
     "create": "Создать",

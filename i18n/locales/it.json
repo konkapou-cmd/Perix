@@ -878,6 +878,8 @@
     "saveFailed": "Salvataggio evento fallito",
     "themes": {
       "hip-hop": "Hip Hop",
+      "business-event": "Evento aziendale",
+      "arts-event": "Evento artistico",
       "rnb": "R&B",
       "dance-edm": "Dance / EDM",
       "techno": "Techno",
@@ -1028,6 +1030,27 @@
     "anyoneCanJoin": "Chiunque può vedere e partecipare",
     "at": "a",
     "attending": "Partecipa",
+    "themes": {
+      "categories": {
+        "movement_outdoor": "Movimento & outdoor",
+        "simple_sports": "Sport semplici",
+        "calm_wellness": "Calma e benessere",
+        "social_meetups": "Incontri sociali"
+      },
+      "subcategories": {
+        "walking_activities": "Camminate",
+        "light_fitness": "Fitness leggero",
+        "city_movement": "Movimento in città",
+        "ball_sports": "Sport con palla",
+        "racket_easy_games": "Giochi con racchetta",
+        "mindfulness": "Consapevolezza",
+        "nature_slow_living": "Natura",
+        "simple_hangouts": "Incontri semplici",
+        "easy_social_walks": "Passeggiate sociali",
+        "conversation_meetups": "Conversazione"
+      }
+    },
+    "attend": "Partecipa",
     "by": "di",
     "chat": "Chat",
     "create": "Crea",

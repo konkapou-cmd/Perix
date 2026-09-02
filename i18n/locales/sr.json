@@ -877,6 +877,8 @@
     "saveFailed": "Čuvanje događaja nije uspelo",
     "themes": {
       "hip-hop": "Hip Hop",
+      "business-event": "Poslovni događaj",
+      "arts-event": "Umetnički događaj",
       "rnb": "R&B",
       "dance-edm": "Dance / EDM",
       "techno": "Techno",
@@ -1040,6 +1042,27 @@
     "anyoneCanJoin": "Svi mogu videti i pridružiti se",
     "at": "u",
     "attending": "Dolazim",
+    "themes": {
+      "categories": {
+        "movement_outdoor": "Kretanje i napolju",
+        "simple_sports": "Jednostavni sportovi",
+        "calm_wellness": "Smirenost i wellness",
+        "social_meetups": "Društvena okupljanja"
+      },
+      "subcategories": {
+        "walking_activities": "Šetnje",
+        "light_fitness": "Laki fitnes",
+        "city_movement": "Gradsko kretanje",
+        "ball_sports": "Sportovi sa loptom",
+        "racket_easy_games": "Igre sa reketom",
+        "mindfulness": "Svesnost",
+        "nature_slow_living": "Priroda",
+        "simple_hangouts": "Jednostavna druženja",
+        "easy_social_walks": "Društvene šetnje",
+        "conversation_meetups": "Razgovori"
+      }
+    },
+    "attend": "Prisustvuj",
     "by": "od",
     "chat": "Ćaskanje",
     "create": "Kreiraj",

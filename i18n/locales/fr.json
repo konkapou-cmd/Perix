@@ -878,6 +878,8 @@
     "saveFailed": "Échec de l'enregistrement de l'événement",
     "themes": {
       "hip-hop": "Hip Hop",
+      "business-event": "Événement d'affaires",
+      "arts-event": "Événement artistique",
       "rnb": "R&B",
       "dance-edm": "Dance / EDM",
       "techno": "Techno",
@@ -1071,6 +1073,27 @@
     "anyoneCanJoin": "Tout le monde peut voir et rejoindre",
     "at": "à",
     "attending": "Participent",
+    "themes": {
+      "categories": {
+        "movement_outdoor": "Mouvement & plein air",
+        "simple_sports": "Sports simples",
+        "calm_wellness": "Calme & bien-être",
+        "social_meetups": "Rencontres sociales"
+      },
+      "subcategories": {
+        "walking_activities": "Balades",
+        "light_fitness": "Fitness léger",
+        "city_movement": "Mouvement urbain",
+        "ball_sports": "Sports de balle",
+        "racket_easy_games": "Jeux de raquette",
+        "mindfulness": "Pleine conscience",
+        "nature_slow_living": "Nature",
+        "simple_hangouts": "Rencontres simples",
+        "easy_social_walks": "Balades sociales",
+        "conversation_meetups": "Conversation"
+      }
+    },
+    "attend": "Participer",
     "customTheme": "Entrez votre thème personnalisé",
     "dateRequired": "Veuillez sélectionner une date",
     "gallery": "Galerie",

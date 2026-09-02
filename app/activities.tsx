@@ -909,7 +909,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                       onPress={() => setExpandedCreateCategory(isExpanded ? null : catKey)}
                     >
                       <Text style={styles.createCategoryEmoji}>{cat.emoji}</Text>
-                      <Text style={styles.createCategoryLabel}>{cat.label}</Text>
+                      <Text style={styles.createCategoryLabel}>{t(`activities.themes.categories.${catKey}`, cat.label)}</Text>
                       <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color={COLORS.textSecondary} />
                     </Pressable>
 
@@ -919,7 +919,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                           .filter(([_, sub]) => sub.category === catKey)
                           .map(([subKey, sub]) => (
                             <View key={subKey} style={styles.createSubcategorySection}>
-                              <Text style={styles.createSubcategoryLabel}>{sub.label}</Text>
+                              <Text style={styles.createSubcategoryLabel}>{t(`activities.themes.subcategories.${subKey}`, sub.label)}</Text>
                               <View style={styles.themeChipRow}>
                                 {Object.entries(ACTIVITY_TYPES)
                                   .filter(([_, t]) => t.subcategory === subKey)
@@ -934,7 +934,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                                     >
                                       <Text style={styles.themeEmoji}>{type.emoji}</Text>
                                       <Text style={[styles.themeChipText, form.theme === typeKey && { color: '#fff' }]}>
-                                        {type.shortLabel || type.label}
+                                        {t(`activities.themes.types.${typeKey}`, type.shortLabel || type.label)}
                                       </Text>
                                     </Pressable>
                                   ))}
