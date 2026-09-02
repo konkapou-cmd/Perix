@@ -1,8 +1,8 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef, useMemo } from "react";
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, Platform, ActivityIndicator, Alert, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Calendar } from "react-native-calendars";
+import { Calendar, CalendarList } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,7 +15,6 @@ import { formatDate } from "../../lib/formatDate";
 import { addDays, createRequestId, isValidStayRange, toLocalISODate } from "../../lib/booking/dateRange";
 import { getPickerLocaleTag } from "../../lib/calendarLocale";
 import AdaptiveImage from "../AdaptiveImage";
-import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
 
 type Props = {
   visible: boolean;
@@ -181,6 +180,25 @@ export default function ServiceBookingModal({
   });
   const displayDates = allSlots.length > 0 ? availableDates : dates;
 
+  const calendarMarks = useMemo(() => {
+    const marks: Record<string, any> = {};
+    for (let i = 0; i < 42; i++) {
+      const d = addDays(todayText, i);
+      const dow = new Date(d + "T00:00:00").getDay();
+      const has = allSlots.some((s) => {
+        if (s.is_blocked || s.is_booked) return false;
+        if (s.date === d) return true;
+        if (s.is_recurring && s.day_of_week === dow) return true;
+        return false;
+      });
+      if (has) marks[d] = { marked: true, dotColor: "#7B3FF2" };
+    }
+    if (selectedDate) {
+      marks[selectedDate] = { ...(marks[selectedDate] || {}), selected: true, selectedColor: "#7B3FF2" };
+    }
+    return marks;
+  }, [allSlots, selectedDate, todayText]);
+
   const handleBook = async () => {
     if (submittingRef.current) return;
     if (!service || !name.trim()) {
@@ -271,29 +289,6 @@ export default function ServiceBookingModal({
   const showHealthcare = rootCategory === "healthcare";
   const showAutoRental = rootCategory === "automotive" && service?.type === "auto_rental";
 
-  const serviceMedia: MediaItem[] = React.useMemo(() => {
-    if (!service) return [];
-    const items: MediaItem[] = [];
-    if (service.cover_image_url) {
-      items.push({ uri: service.cover_image_url, type: "image" });
-    } else if (service.video_url) {
-      items.push({ uri: service.video_url, type: "video" });
-    }
-    service.image_urls?.forEach((u) => {
-      if (u !== service.cover_image_url) items.push({ uri: u, type: "image" });
-    });
-    if (service.video_url && items.length > 0 && items[0].uri !== service.video_url) {
-      items.push({ uri: service.video_url, type: "video" });
-    }
-    service.gallery_images?.forEach((u) => {
-      if (!items.some((m) => m.uri === u)) items.push({ uri: u, type: "image" });
-    });
-    service.gallery_videos?.forEach((u) => {
-      if (!items.some((m) => m.uri === u)) items.push({ uri: u, type: "video" });
-    });
-    return items;
-  }, [service]);
-
   const bookingDisabled =
     submitting ||
     !name.trim() ||
@@ -341,14 +336,6 @@ export default function ServiceBookingModal({
                 ) : null}
               </View>
             </View>
-          )}
-
-          {serviceMedia.length > 0 && (
-            <UnifiedMediaGallery
-              media={serviceMedia}
-              onChange={() => {}}
-              isCreator={false}
-            />
           )}
 
           {isDateRange && service && (
@@ -418,23 +405,30 @@ export default function ServiceBookingModal({
             <Ionicons name="calendar-outline" size={16} color="#7B3FF2" />
             <Text style={s.sectionTitle}>{t("services.selectDate", "Select a date")}</Text>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.dateRow}>
-            {dates.map((d) => {
-              const hasAvailability = availableDates.includes(d);
-              const isSelected = d === selectedDate;
-              const disabled = allSlots.length > 0 && !hasAvailability;
-              return (
-                <Pressable
-                  key={d}
-                  disabled={disabled}
-                  style={[s.dateCard, isSelected && s.dateSelected, disabled && s.dateCardDisabled]}
-                  onPress={() => { setSelectedDate(d); setSelectedSlot(null); }}
-                >
-                  <Text style={[s.dateText, isSelected && s.dateTextSelected, disabled && s.dateTextDisabled]}>{formatDate(d)}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          <CalendarList
+            horizontal
+            pagingEnabled
+            minDate={todayText}
+            pastScrollRange={0}
+            futureScrollRange={12}
+            firstDay={1}
+            calendarHeight={330}
+            style={{ height: 330, borderRadius: 12, borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", marginBottom: SPACING.small }}
+            onDayPress={(day: any) => { setSelectedDate(day.dateString); setSelectedSlot(null); }}
+            markedDates={calendarMarks}
+            theme={{
+              todayTextColor: "#7B3FF2",
+              selectedDayBackgroundColor: "#7B3FF2",
+              selectedDayTextColor: "#fff",
+              arrowColor: "#7B3FF2",
+              dayTextColor: "#264348",
+              textDisabledColor: "rgba(38,67,72,0.25)",
+              monthTextColor: "#264348",
+              textDayFontSize: 14,
+              textMonthFontSize: 16,
+              textMonthFontWeight: "700",
+            }}
+          />
           {allSlots.length > 0 && availableDates.length === 0 && (
             <Text style={s.emptyText}>{t("services.noSlots", "No available slots")}</Text>
           )}
