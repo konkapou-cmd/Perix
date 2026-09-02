@@ -84,6 +84,7 @@ export default function MarketplaceCategoryFilter({ visible, category, subcatego
             </ScrollView>
           </>
         ) : (
+          <>
           <ScrollView contentContainerStyle={styles.body}>
             <Pressable style={styles.backRow} onPress={() => { setShowingSubs(false); setStepCat(""); }}>
               <Ionicons name="chevron-back" size={18} color="#264348" />
@@ -107,6 +108,17 @@ export default function MarketplaceCategoryFilter({ visible, category, subcatego
               </Pressable>
             ))}
           </ScrollView>
+          <View style={styles.footer}>
+            <Text style={styles.selectionSummary} numberOfLines={1}>
+              {stepCat ? t(currentCat!.labelKey, currentCat!.fallback) : ""}
+              {stepSub ? ` · ${(() => { const s = subs.find((x) => x.key === stepSub); return s ? t(s.labelKey, s.fallback) : stepSub; })()}` : ""}
+            </Text>
+            <Pressable style={styles.applyBtn} onPress={handleDone}>
+              <Ionicons name="checkmark" size={16} color="#fff" />
+              <Text style={styles.applyBtnText}>{t("common.apply", "Anwenden")}</Text>
+            </Pressable>
+          </View>
+          </>
         )}
       </SafeAreaView>
     </Modal>
@@ -120,26 +132,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
     borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)",
   },
-  title: { fontSize: FONT_SIZES.h3, fontWeight: "700", color: "#264348" },
-  clearBtn: { fontSize: FONT_SIZES.bodySmall, color: "#264348" },
-  doneBtn: { fontSize: FONT_SIZES.bodySmall, fontWeight: "700", color: "#59ABE3" },
+  title: { fontSize: 18, fontWeight: "700", color: "#264348" },
+  clearBtn: { fontSize: 14, fontWeight: "600", color: "#264348" },
+  doneBtn: { fontSize: 14, fontWeight: "700", color: "#59ABE3" },
   searchRow: {
     flexDirection: "row", alignItems: "center",
     margin: SPACING.std, paddingHorizontal: 12,
     backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.md,
     borderWidth: 1, borderColor: "rgba(38,67,72,0.2)",
   },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: FONT_SIZES.bodySmall, color: "#264348" },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, color: "#264348" },
   body: { padding: SPACING.std },
   row: {
     flexDirection: "row", alignItems: "center",
     paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.08)",
   },
   rowSelected: { backgroundColor: "rgba(89,171,227,0.12)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.small },
-  rowText: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: "#264348" },
+  rowText: { flex: 1, fontSize: 14, fontWeight: "600", color: "#264348" },
   backRow: {
     flexDirection: "row", alignItems: "center", gap: 4,
     paddingVertical: 12, marginBottom: 8,
   },
-  backText: { fontSize: FONT_SIZES.bodySmall, color: "#264348", fontWeight: "600" },
+  backText: { fontSize: 14, color: "#264348", fontWeight: "600" },
+  footer: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
+    borderTopWidth: 1, borderTopColor: "rgba(38,67,72,0.15)",
+    backgroundColor: "#fff",
+  },
+  selectionSummary: { flex: 1, fontSize: 14, fontWeight: "600", color: "#264348" },
+  applyBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "#59ABE3", borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.std, paddingVertical: 12,
+  },
+  applyBtnText: { fontSize: 14, fontWeight: "700", color: "#fff" },
 });

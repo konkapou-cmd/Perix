@@ -4,6 +4,10 @@
     "save": "Sačuvaj",
     "cancel": "Otkaži",
     "openInMaps": "Otvori u mapama",
+    "status": "Status",
+    "saveDraft": "Sačuvaj kao nacrt",
+    "publish": "Objavi",
+    "savedAsDraft": "Sačuvano kao nacrt",
     "delete": "Obriši",
     "hide": "Sakrij",
     "edit": "Izmeni",
@@ -2430,7 +2434,12 @@
     "price": "Cena",
     "conditionTitle": "Stanje",
     "address": "Lokacija",
-    "description": "Opis"
+    "description": "Opis",    "condition": {
+      "new": "Novo",
+      "like_new": "Kao novo",
+      "good": "Dobro",
+      "used": "Korišćeno"
+    }
   },
 "marketplace": {
     "addProduct": "Dodaj proizvod",
@@ -2444,6 +2453,9 @@
     "product": "Proizvod",
     "title": "Pijaca",
     "delivery": "Isporuka",
+    "pickup": "Preuzimanje",
+    "shipping": "Isporuka",
+    "both": "Oba",
     "condition": "Stanje",
     "approximate": "Približna zona",
     "exact": "Tačna adresa"

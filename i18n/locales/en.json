@@ -10,6 +10,10 @@
     "save": "Save",
     "cancel": "Cancel",
     "openInMaps": "Open in Maps",
+    "status": "Status",
+    "saveDraft": "Save as draft",
+    "publish": "Publish",
+    "savedAsDraft": "Saved as draft",
     "delete": "Delete",
     "hide": "Hide",
     "edit": "Edit",
@@ -2625,6 +2629,7 @@
   "marketplace": {
     "title": "Marketplace",
     "delivery": "Delivery",
+    "both": "Both",
     "inactive": "Inactive",
     "items": "Items",
     "homes": "Homes",

@@ -4,6 +4,10 @@
     "save": "Zapisz",
     "cancel": "Anuluj",
     "openInMaps": "Otwórz w Mapach",
+    "status": "Status",
+    "saveDraft": "Zapisz jako szkic",
+    "publish": "Opublikuj",
+    "savedAsDraft": "Zapisano jako szkic",
     "delete": "Usuń",
     "hide": "Ukryj",
     "edit": "Edytuj",
@@ -2443,7 +2447,12 @@
     "price": "Cena",
     "conditionTitle": "Stan",
     "address": "Lokalizacja",
-    "description": "Opis"
+    "description": "Opis",    "condition": {
+      "new": "Nowy",
+      "like_new": "Jak nowy",
+      "good": "Dobry",
+      "used": "Używany"
+    }
   },
 "marketplace": {
     "addProduct": "Dodaj produkt",
@@ -2457,6 +2466,9 @@
     "product": "Produkt",
     "title": "Marketplace",
     "delivery": "Dostawa",
+    "pickup": "Odbiór",
+    "shipping": "Wysyłka",
+    "both": "Oba",
     "condition": "Stan",
     "approximate": "Przybliżona okolica",
     "exact": "Dokładny adres"

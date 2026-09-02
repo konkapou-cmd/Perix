@@ -404,9 +404,9 @@ pendingMentionIds = [],
         <View style={{ flex: 1 }} />
         {(postText.trim() || postImage || postVideoPreview) && (
           <Pressable
-            style={[styles.createPostSubmit, { backgroundColor: primaryColor }, (isPosting || uploadPercent > 0) && { opacity: 0.7 }]}
+            style={[styles.createPostSubmit, { backgroundColor: primaryColor }, isPosting && { opacity: 0.7 }]}
             onPress={handleCreatePost}
-            disabled={isPosting || uploadPercent > 0}
+            disabled={isPosting}
           >
             {isPosting ? (
               <ActivityIndicator size="small" color="#fff" />

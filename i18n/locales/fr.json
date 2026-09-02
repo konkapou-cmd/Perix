@@ -4,6 +4,10 @@
     "save": "Enregistrer",
     "cancel": "Annuler",
     "openInMaps": "Ouvrir dans Maps",
+    "status": "Statut",
+    "saveDraft": "Enregistrer comme brouillon",
+    "publish": "Publier",
+    "savedAsDraft": "Enregistré comme brouillon",
     "delete": "Supprimer",
     "hide": "Masquer",
     "edit": "Modifier",
@@ -2434,7 +2438,12 @@
     "price": "Prix",
     "conditionTitle": "État",
     "address": "Lieu",
-    "description": "Description"
+    "description": "Description",    "condition": {
+      "new": "Neuf",
+      "like_new": "Comme neuf",
+      "good": "Bon",
+      "used": "Usagé"
+    }
   },
 "marketplace": {
     "addProduct": "Ajouter un produit",
@@ -2448,6 +2457,9 @@
     "product": "Produit",
     "title": "Marketplace",
     "delivery": "Livraison",
+    "pickup": "Retrait",
+    "shipping": "Expédition",
+    "both": "Les deux",
     "condition": "État",
     "approximate": "Zone approximative",
     "exact": "Adresse exacte"

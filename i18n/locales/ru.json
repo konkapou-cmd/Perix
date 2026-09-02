@@ -4,6 +4,10 @@
     "save": "Сохранить",
     "cancel": "Отмена",
     "openInMaps": "Открыть в картах",
+    "status": "Статус",
+    "saveDraft": "Сохранить как черновик",
+    "publish": "Опубликовать",
+    "savedAsDraft": "Сохранено как черновик",
     "delete": "Удалить",
     "hide": "Скрыть",
     "edit": "Редактировать",
@@ -2406,7 +2410,12 @@
     "price": "Цена",
     "conditionTitle": "Состояние",
     "address": "Местоположение",
-    "description": "Описание"
+    "description": "Описание",    "condition": {
+      "new": "Новый",
+      "like_new": "Как новый",
+      "good": "Хорошее",
+      "used": "Б/у"
+    }
   },
 "marketplace": {
     "addProduct": "Добавить товар",
@@ -2420,6 +2429,9 @@
     "product": "Товар",
     "title": "Маркетплейс",
     "delivery": "Доставка",
+    "pickup": "Самовывоз",
+    "shipping": "Доставка",
+    "both": "Оба",
     "condition": "Состояние",
     "approximate": "Примерный район",
     "exact": "Точный адрес"

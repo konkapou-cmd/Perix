@@ -718,10 +718,14 @@ export default function ProfileScreen() {
           setShowUploadProgress(true);
           setUploadContext('video');
           setUploadProgress({ phase: "preparing", progress: 0 });
-          const muxResult = await uploadVideoMux(sessionToken, asset.uri, undefined, (progress) => {
+          const uploadPromise = uploadVideoMux(sessionToken, asset.uri, undefined, (progress) => {
             setUploadProgress(progress);
+          }).then((muxResult) => {
+            const url = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : "");
+            setPostVideo(url);
+            return url || null;
           });
-          setPostVideo(muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : ""));
+          videoUploadPromiseRef.current = uploadPromise;
           setTimeout(() => {
             setShowUploadProgress(false);
             setUploadProgress(null);
@@ -1306,6 +1310,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [postMediaRatio, setPostMediaRatio] = useState<number | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const postingRef = useRef(false);
+  const videoUploadPromiseRef = useRef<Promise<string | null> | null>(null);
   const [gallerySaving, setGallerySaving] = useState(false);
 
   const loadBusinessFullData = async (bizId: string) => {
@@ -1986,13 +1991,18 @@ try {
          let uploadedVideoUrl = undefined;
          let muxUploadId = undefined;
     
-          if (postImage) {
-            if (hasMedia) setUploadProgress({ phase: "uploading", progress: 30 });
-            uploadedImageUrl = await uploadImageToCloudinary(sessionToken, postImage);
-          }
-          if (postVideo) {
-            uploadedVideoUrl = postVideo; // Already uploaded during video pick
-          }
+           if (postImage) {
+             if (hasMedia) setUploadProgress({ phase: "uploading", progress: 30 });
+             uploadedImageUrl = await uploadImageToCloudinary(sessionToken, postImage);
+           }
+           if (videoUploadPromiseRef.current) {
+             try {
+               uploadedVideoUrl = (await videoUploadPromiseRef.current) ?? undefined;
+             } catch { /* upload failed — post without video */ }
+           }
+           if (!uploadedVideoUrl && postVideo) {
+             uploadedVideoUrl = postVideo; // Already uploaded during video pick
+           }
    
         if (hasMedia) setUploadProgress({ phase: "processing", progress: 90 });
  

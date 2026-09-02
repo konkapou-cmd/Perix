@@ -34,8 +34,8 @@ type Props = {
 };
 
 const HOME_TYPES = ["apartment", "house", "studio", "room"];
-const CONDITION_LABELS: Record<string, string> = { new: "Neu", like_new: "Wie neu", good: "Gut", used: "Gebraucht" };
-const DELIVERY_LABELS: Record<string, string> = { pickup: "Abholung", shipping: "Versand", both: "Beides" };
+const CONDITION_FALLBACKS: Record<string, string> = { new: "New", like_new: "Like new", good: "Good", used: "Used" };
+const DELIVERY_FALLBACKS: Record<string, string> = { pickup: "Pickup", shipping: "Shipping", both: "Both" };
 
 function listingToMedia(listing: Listing | null | undefined): MediaItem[] {
   if (!listing) return [];
@@ -425,9 +425,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
               <>
                 <Text style={styles.label}>{t("services.condition", "Condition")}</Text>
                 <View style={styles.chipRow}>
-                  {Object.entries(CONDITION_LABELS).map(([key, label]) => (
+                  {Object.entries(CONDITION_FALLBACKS).map(([key, fallback]) => (
                     <Pressable key={key} style={[styles.chip, condition === key && styles.chipActive]} onPress={() => setCondition(condition === key ? "" : key)}>
-                      <Text style={[styles.chipText, condition === key && styles.chipTextActive]}>{label}</Text>
+                      <Text style={[styles.chipText, condition === key && styles.chipTextActive]}>{t(`listing.condition.${key}`, fallback)}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -437,9 +437,9 @@ export default function ListingModal({ visible, listingType, editingListing, ses
 
                 <Text style={styles.label}>{t("services.delivery", "Delivery")}</Text>
                 <View style={styles.chipRow}>
-                  {Object.entries(DELIVERY_LABELS).map(([key, label]) => (
+                  {Object.entries(DELIVERY_FALLBACKS).map(([key, fallback]) => (
                     <Pressable key={key} style={[styles.chip, delivery === key && styles.chipActive]} onPress={() => setDelivery(delivery === key ? "" : key)}>
-                      <Text style={[styles.chipText, delivery === key && styles.chipTextActive]}>{label}</Text>
+                      <Text style={[styles.chipText, delivery === key && styles.chipTextActive]}>{t(`marketplace.${key}`, fallback)}</Text>
                     </Pressable>
                   ))}
                 </View>

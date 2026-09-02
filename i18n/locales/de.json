@@ -9,6 +9,9 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "openInMaps": "In Maps öffnen",
+    "saveDraft": "Als Entwurf speichern",
+    "publish": "Veröffentlichen",
+    "savedAsDraft": "Als Entwurf gespeichert",
     "delete": "Löschen",
     "hide": "Ausblenden",
     "edit": "Bearbeiten",
@@ -2751,6 +2754,7 @@
   "marketplace": {
     "title": "Marktplatz",
     "delivery": "Lieferung",
+    "both": "Beides",
     "inactive": "Inaktiv",
     "items": "Artikel",
     "homes": "Unterkünfte",

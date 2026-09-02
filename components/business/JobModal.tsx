@@ -234,7 +234,7 @@ export default function JobModal({
               <Ionicons name="calendar-outline" size={18} color="#264348" />
             </Pressable>
 
-            <Text style={s.label}>{t("common.status") || "Status"}</Text>
+            <Text style={s.label}>{t("common.status", "Status")}</Text>
             <View style={s.chipRow}>
               {(Object.entries({ draft: t("common.draft", "Draft"), published: t("common.published", "Published") }) as [string, string][]).map(([key, label]) => (
                 <Pressable

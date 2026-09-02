@@ -4,6 +4,10 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "openInMaps": "Abrir en Mapas",
+    "status": "Estado",
+    "saveDraft": "Guardar como borrador",
+    "publish": "Publicar",
+    "savedAsDraft": "Guardado como borrador",
     "delete": "Eliminar",
     "hide": "Ocultar",
     "edit": "Editar",
@@ -2400,7 +2404,12 @@
     "price": "Precio",
     "conditionTitle": "Estado",
     "address": "Ubicación",
-    "description": "Descripción"
+    "description": "Descripción",    "condition": {
+      "new": "Nuevo",
+      "like_new": "Como nuevo",
+      "good": "Bueno",
+      "used": "Usado"
+    }
   },
 "marketplace": {
     "addProduct": "Añadir producto",
@@ -2414,6 +2423,9 @@
     "product": "Producto",
     "title": "Mercado",
     "delivery": "Entrega",
+    "pickup": "Recogida",
+    "shipping": "Envío",
+    "both": "Ambos",
     "condition": "Estado",
     "approximate": "Zona aproximada",
     "exact": "Dirección exacta"

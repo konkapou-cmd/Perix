@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { Job } from "../../lib/api";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
-import { jobTypeIcon } from "../../lib/categoryTranslation";
+import { jobTypeIcon, translateJobType } from "../../lib/categoryTranslation";
 import { formatDate } from "../../lib/formatDate";
 import { EmptyState } from "../shared";
 import StatusBadge from "../ui/StatusBadge";
@@ -103,7 +103,7 @@ export default function JobsSection({
                     />
                     <View style={s.badgesWrap}>
                       {job.job_type && (
-                        <StatusBadge label={job.job_type} color={primaryColor} size="sm" />
+                        <StatusBadge label={translateJobType(job.job_type, t)} color={primaryColor} size="sm" />
                       )}
                       {job.is_active ? (
                         <StatusBadge label={t("jobs.active", "Aktiv")} variant="active" size="sm" />
