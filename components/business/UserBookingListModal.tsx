@@ -115,6 +115,9 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
           </View>
         </View>
         <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{booking.date}{booking.start_time ? ` | ${booking.start_time}${booking.end_time ? ` - ${booking.end_time}` : ""}` : ""}</Text>
+        {booking.service_address && (
+          <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail"><Ionicons name="location" size={12} /> {booking.service_address}</Text>
+        )}
         {booking.booking_mode === "date_range" && booking.end_date && (
           <>
             <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{formatDate(booking.date)} → {formatDate(booking.end_date)}</Text>
@@ -122,7 +125,6 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
             <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{booking.adults || 1} {t("bookingList.adults", "adults")} · {booking.children || 0} {t("bookingList.children", "children")}</Text>
             {booking.confirmation_code && <Text style={s.bookingCode} numberOfLines={1}>{booking.confirmation_code}</Text>}
             {booking.service_name && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{booking.service_name}</Text>}
-            {booking.service_address && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail"><Ionicons name="location" size={12} /> {booking.service_address}</Text>}
             {booking.business_name && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail"><Ionicons name="business" size={12} /> {booking.business_name}</Text>}
             {booking.check_in_time && booking.check_out_time && (
               <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">Check-in: {booking.check_in_time} · Check-out: {booking.check_out_time}</Text>
