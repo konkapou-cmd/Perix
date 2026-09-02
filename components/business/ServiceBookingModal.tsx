@@ -7,14 +7,11 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
-import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType, getServiceModuleIcon } from "../../lib/config/serviceModules";
+import { getServiceCtaType, getBookingMode, requiresServiceSlots, isServiceBookable, ServiceCtaType } from "../../lib/config/serviceModules";
 import { Service, TimeSlot, StayAvailability } from "../../lib/api/core";
 import { getSlots, getAvailability, createBooking, getStayAvailability, sendServiceInquiry } from "../../lib/api/services";
-import { formatPrice, formatDuration } from "../../lib/serviceFormat";
-import { formatDate } from "../../lib/formatDate";
 import { addDays, createRequestId, isValidStayRange, toLocalISODate } from "../../lib/booking/dateRange";
 import { getPickerLocaleTag } from "../../lib/calendarLocale";
-import AdaptiveImage from "../AdaptiveImage";
 
 type Props = {
   visible: boolean;
@@ -317,27 +314,6 @@ export default function ServiceBookingModal({
           <View style={s.headerBtn} />
         </View>
         <ScrollView style={s.body} contentContainerStyle={{ paddingBottom: SPACING.large }} keyboardShouldPersistTaps="handled">
-          {service && (
-            <View style={[s.summaryCard, { backgroundColor: "#fff" }]}>
-              {(service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0]) ? (
-                <AdaptiveImage uri={service.cover_image_url || service.image_urls?.[0] || service.gallery_images?.[0]} style={s.summaryImage} borderRadius={BORDER_RADIUS.md} />
-              ) : (
-                <View style={s.summaryImagePlaceholder}>
-                  <Ionicons name={getServiceModuleIcon(service.type)} size={22} color="#7B3FF2" />
-                </View>
-              )}
-              <View style={s.summaryInfo}>
-                <Text style={s.summaryName} numberOfLines={2}>{service.name}</Text>
-                <Text style={s.summaryDetail} numberOfLines={1}>
-                  {[service.duration_minutes ? formatDuration(service.duration_minutes, t) : "", service.price ? formatPrice(service.price) : ""].filter(Boolean).join(" · ")}
-                </Text>
-                {service.price ? (
-                  <Text style={s.summaryPrice}>{formatPrice(service.price)}</Text>
-                ) : null}
-              </View>
-            </View>
-          )}
-
           {isDateRange && service && (
             <View>
               <View style={s.sectionHeaderRow}>
@@ -649,7 +625,7 @@ export default function ServiceBookingModal({
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
+  container: { flex: 1, backgroundColor: "#fff" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -658,9 +634,10 @@ const s = StyleSheet.create({
     paddingVertical: SPACING.small,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(38,67,72,0.15)",
+    backgroundColor: "#fff",
   },
   headerBtn: { padding: 4, width: 40, alignItems: "center" },
-  headerTitle: { fontSize: FONT_SIZES.h3, fontWeight: FONT_WEIGHTS.bold as any, color: "#264348" },
+  headerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.semibold as any, color: "#7B3FF2" },
   body: { flex: 1, paddingHorizontal: SPACING.std },
   footer: {
     flexDirection: "row",
