@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { getSavedItems, toggleSaved, SavedItem } from "../lib/api";
 import { translateJobType } from "../lib/categoryTranslation";
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../lib/designTokens";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
 import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 
 const TYPE_ICONS: Record<string, string> = {
@@ -232,8 +232,8 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   headerTitle: {
-    fontSize: FONT_SIZES.h3,
-    fontWeight: "700",
+    fontSize: FONT_SIZES.h4,
+    fontWeight: FONT_WEIGHTS.semibold as any,
     color: "#264348",
   },
   filterList: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, gap: SPACING.small, borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)", backgroundColor: COLORS.background },
@@ -293,16 +293,17 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: FONT_SIZES.body,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#264348",
   },
   cardSubtitle: {
     fontSize: FONT_SIZES.small,
-    color: COLORS.textSecondary,
+    color: "rgba(38,67,72,0.75)",
     marginTop: 1,
   },
   cardType: {
     fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.semibold as any,
     color: COLORS.textMuted,
     textTransform: "capitalize",
     marginTop: 2,
@@ -322,7 +323,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.section,
   },
   emptyText: {
-    fontSize: FONT_SIZES.body,
+    fontSize: FONT_SIZES.bodySmall,
     color: COLORS.textMuted,
     textAlign: "center",
   },

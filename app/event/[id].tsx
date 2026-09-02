@@ -567,7 +567,7 @@ export default function EventDetailPage() {
           />
 
           <BottomCTA
-            primaryLabel={isAttending ? "Teilnehmend" : (t("events.rsvp") || "Zusagen")}
+            primaryLabel={isAttending ? t("events.attending", "Teilnehmend") : (t("events.rsvp") || "Zusagen")}
             primaryIcon="calendar-outline"
             accentColor={pageAccent}
             useGradient
