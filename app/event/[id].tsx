@@ -568,7 +568,7 @@ export default function EventDetailPage() {
 
           <BottomCTA
             primaryLabel={isAttending ? t("events.attending", "Teilnehmend") : (t("events.rsvp") || "Zusagen")}
-            primaryIcon="calendar-outline"
+            primaryIcon={isAttending ? "checkmark-circle" : "calendar-outline"}
             accentColor={pageAccent}
             useGradient
             onPrimary={isPast ? () => {} : handleToggleAttendance}

@@ -403,13 +403,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               )}
             </View>
             <View style={styles.secondaryRow}>
-              {onCustomizeTheme && (
-                <ProfileActionButton
-                  icon="color-palette-outline"
-                  variant="secondaryIcon"
-                  onPress={onCustomizeTheme}
-                />
-              )}
               {onPlan && (
                 <ProfileActionButton
                   icon="star-outline"

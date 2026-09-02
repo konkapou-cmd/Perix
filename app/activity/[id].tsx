@@ -441,7 +441,7 @@ export default function ActivityDetailPage() {
                   ? t("activities.attending", "Teilnehmend")
                   : t("activities.attend", "Teilnehmen")
             }
-            primaryIcon={remaining !== null && remaining <= 0 ? "close-circle-outline" : "people-outline"}
+            primaryIcon={remaining !== null && remaining <= 0 ? "close-circle-outline" : myStatus === "going" ? "checkmark-circle" : "people-outline"}
             accentColor={PAGE_ACCENT}
             useGradient
             onPrimary={remaining !== null && remaining <= 0 ? () => {} : () => handleRsvp("going")}

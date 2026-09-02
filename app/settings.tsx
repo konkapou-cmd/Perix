@@ -294,7 +294,7 @@ export default function SettingsScreen() {
         {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
       </View>
       {rightElement || (onPress && (
-        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+        <Ionicons name="chevron-forward" size={20} color="rgba(38,67,72,0.45)" />
       ))}
     </Pressable>
   );
@@ -327,7 +327,7 @@ export default function SettingsScreen() {
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ false: "#e5e7eb", true: COLORS.primaryDark }}
+        trackColor={{ false: "rgba(38,67,72,0.2)", true: "#59ABE3" }}
         thumbColor="#fff"
       />
     </View>
@@ -348,7 +348,7 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <ToggleRow
             icon="chatbubble"
-            iconColor="#FFD700"
+            iconColor="#59ABE3"
             title={t("settings.notifyMessages") || "Messages"}
             subtitle={t("settings.notifyMessagesDesc") || "New direct messages and chat"}
             value={notifPrefs.messages}
@@ -416,7 +416,7 @@ export default function SettingsScreen() {
           )}
           <ToggleRow
             icon="calendar"
-            iconColor="#f59e0b"
+            iconColor="#59ABE3"
             title={t("settings.notifyEvents") || "Events"}
             subtitle={t("settings.notifyEventsDesc") || "Event reminders and updates"}
             value={notifPrefs.events}
@@ -424,7 +424,7 @@ export default function SettingsScreen() {
           />
           <ToggleRow
             icon="people"
-            iconColor="#10b981"
+            iconColor="#59ABE3"
             title={t("settings.notifyActivities") || "Activities"}
             subtitle={t("settings.notifyActivitiesDesc") || "Activity invitations and updates"}
             value={notifPrefs.activities}
@@ -432,7 +432,7 @@ export default function SettingsScreen() {
           />
           <ToggleRow
             icon="person-add"
-            iconColor="#ec4899"
+            iconColor="#59ABE3"
             title={t("settings.notifyFriendRequests") || "Friend Requests"}
             subtitle={t("settings.notifyFriendRequestsDesc") || "New friend requests and acceptances"}
             value={notifPrefs.friendRequests}
@@ -440,7 +440,7 @@ export default function SettingsScreen() {
           />
           <ToggleRow
             icon="call"
-            iconColor="#3b82f6"
+            iconColor="#59ABE3"
             title={t("settings.notifyCalls") || "Calls"}
             subtitle={t("settings.notifyCallsDesc") || "Incoming call notifications"}
             value={notifPrefs.calls}
@@ -448,7 +448,7 @@ export default function SettingsScreen() {
           />
           <ToggleRow
             icon="megaphone"
-            iconColor="#8b5cf6"
+            iconColor="#59ABE3"
             title={t("settings.notifyMarketing") || "Updates & Tips"}
             subtitle={t("settings.notifyMarketingDesc") || "New features and helpful tips"}
             value={notifPrefs.marketing}
@@ -460,28 +460,28 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <SettingRow
             icon="language"
-            iconColor="#0891b2"
+            iconColor="#59ABE3"
             title={t("profile.language") || "Language"}
             subtitle={t("settings.changeLanguage") || "Select your preferred language"}
             onPress={() => setShowLanguagePicker(true)}
           />
           <SettingRow
             icon="shield-checkmark"
-            iconColor="#059669"
+            iconColor="#59ABE3"
             title={t("settings.privacyPolicy") || "Privacy Policy"}
             subtitle={t("settings.privacyPolicyDesc") || "How we handle your data"}
             onPress={() => router.push("/privacy-policy" as any)}
           />
           <SettingRow
             icon="document-text"
-            iconColor="#6b7280"
+            iconColor="#264348"
             title={t("settings.termsOfService") || "Terms of Service"}
             subtitle={t("settings.termsOfServiceDesc") || "Rules and guidelines"}
             onPress={() => router.push("/terms-of-service" as any)}
           />
           <SettingRow
             icon="help-circle"
-            iconColor="#2563eb"
+            iconColor="#59ABE3"
             title={t("settings.helpSupport") || "Help & Support"}
             subtitle={t("settings.helpSupportDesc") || "Get help or contact us"}
             onPress={() => router.push("/help-support" as any)}
@@ -499,28 +499,28 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <SettingRow
             icon="person-circle"
-            iconColor="#FFD700"
+            iconColor="#59ABE3"
             title={user?.name || t("settings.viewProfile") || "View Profile"}
             subtitle={t("settings.profileEmail") || user?.email || ""}
             onPress={() => router.navigate("/(tabs)/profile" as any)}
           />
           <SettingRow
             icon="create-outline"
-            iconColor="#0891b2"
+            iconColor="#59ABE3"
             title={t("settings.editProfile") || "Edit Profile"}
             subtitle={t("settings.editProfileDesc") || "Name, bio, location, photo"}
             onPress={() => router.navigate("/(tabs)/profile" as any)}
           />
           <SettingRow
             icon="lock-closed"
-            iconColor="#f59e0b"
+            iconColor="#59ABE3"
             title={t("settings.changePassword") || "Change Password"}
             subtitle={t("settings.changePasswordDesc") || "Update your password"}
             onPress={() => setShowPasswordModal(true)}
           />
           <SettingRow
             icon="trash-outline"
-            iconColor="#6b7280"
+            iconColor="#264348"
             title={t("settings.clearCache") || "Clear Cache"}
             subtitle={t("settings.clearCacheDesc") || "Free up storage"}
             onPress={handleClearCache}
@@ -531,7 +531,7 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <SettingRow
             icon="log-out"
-            iconColor="#6b7280"
+            iconColor="#264348"
             title={t("profile.logout") || "Logout"}
             subtitle={t("settings.logoutDesc") || "Sign out of your account"}
             onPress={handleLogout}
@@ -567,7 +567,7 @@ export default function SettingsScreen() {
               value={currentPassword}
               onChangeText={setCurrentPassword}
               placeholder={t("settings.currentPassword") || "Current password"}
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor="rgba(38,67,72,0.45)"
               secureTextEntry
             />
             <TextInput
@@ -575,7 +575,7 @@ export default function SettingsScreen() {
               value={newPassword}
               onChangeText={setNewPassword}
               placeholder={t("settings.newPassword") || "New password"}
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor="rgba(38,67,72,0.45)"
               secureTextEntry
             />
             <View style={styles.modalButtons}>
@@ -604,7 +604,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.backgroundPage,
   },
   header: {
     flexDirection: "row",
@@ -614,20 +614,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "rgba(38,67,72,0.15)",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.15)",
     justifyContent: "center",
     alignItems: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   scrollView: {
     flex: 1,
@@ -638,7 +640,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#6b7280",
+    color: "rgba(38,67,72,0.65)",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     paddingHorizontal: 16,
@@ -657,7 +659,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: "rgba(38,67,72,0.08)",
   },
   settingRowPressable: {
     backgroundColor: "#fff",
@@ -669,7 +671,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: "rgba(38,67,72,0.08)",
   },
   toggleLeft: {
     flexDirection: "row",
@@ -690,11 +692,11 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: "500",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   settingSubtitle: {
     fontSize: 13,
-    color: "#6b7280",
+    color: "rgba(38,67,72,0.65)",
     marginTop: 2,
   },
   dangerText: {
@@ -707,11 +709,11 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: "rgba(38,67,72,0.55)",
   },
   appVersion: {
     fontSize: 13,
-    color: "#9ca3af",
+    color: "rgba(38,67,72,0.55)",
     marginTop: 4,
   },
   modalOverlay: {
@@ -731,17 +733,19 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
     marginBottom: 16,
   },
   modalInput: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#fff",
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.2)",
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
     marginBottom: 10,
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
   modalButtons: {
     flexDirection: "row",
@@ -752,19 +756,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#fff",
     alignItems: "center",
   },
   modalCancelText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#374151",
+    color: "#264348",
   },
   modalSaveBtn: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: "#000",
+    backgroundColor: "#59ABE3",
     alignItems: "center",
   },
   modalSaveText: {
