@@ -31,6 +31,7 @@
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/native-stack": "^7.3.10",
+    "agora-rtc-sdk-ng": "^4.24.8",
     "babel-preset-expo": "~54.0.12",
     "expo": "~54.0.34",
     "expo-audio": "~1.1.1",

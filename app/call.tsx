@@ -28,6 +28,7 @@ import {
 } from "../lib/api";
 import { Camera } from "expo-camera";
 import { Audio } from "expo-av";
+import { getWebCallClient, releaseWebCallClient } from "../lib/agora/webCallClient";
 
 type CallMode = "outgoing" | "incoming" | "active";
 
@@ -69,8 +70,15 @@ export default function CallScreen() {
   const callIdRef = useRef<string | null>(null);
   const [agoraAvailable, setAgoraAvailable] = useState(false);
   const [agoraModules, setAgoraModules] = useState<any>(null);
+  const isWeb = Platform.OS === "web";
+  const localVideoDivRef = useRef<any>(null);
+  const remoteVideoDivRef = useRef<any>(null);
 
   useEffect(() => {
+    if (Platform.OS === "web") {
+      setAgoraAvailable(true);
+      return;
+    }
     let mounted = true;
     (async () => {
       try {
@@ -93,7 +101,7 @@ export default function CallScreen() {
     if (call.status === "active" && callMode === "outgoing") {
       if (pollingRef.current) clearInterval(pollingRef.current);
       const cd = callData;
-      if (cd) joinChannel(cd.channel, cd.token, cd.caller_uid, callType === "video");
+      if (cd) joinChannel(cd.channel, cd.token, cd.caller_uid, callType === "video", cd.app_id || AGORA_APP_ID);
     } else if (call.status === "rejected" || call.status === "ended") {
       if (pollingRef.current) clearInterval(pollingRef.current);
       navigateBack();
@@ -114,6 +122,10 @@ export default function CallScreen() {
   // Cleanup engine on unmount
   useEffect(() => {
     return () => {
+      if (isWeb) {
+        releaseWebCallClient();
+        return;
+      }
       if (engineRef.current) {
         try {
           engineRef.current.leaveChannel();
@@ -202,7 +214,43 @@ export default function CallScreen() {
   }, [agoraModules]);
 
   // Join channel with engine
-  const joinChannel = useCallback(async (channel: string, token: string, uid: number, enableVideo: boolean) => {
+  const joinChannel = useCallback(async (channel: string, token: string, uid: number, enableVideo: boolean, appId?: string) => {
+    if (isWeb) {
+      const client = getWebCallClient();
+      client.setEvents({
+        onJoined: () => {
+          setCallMode("active");
+          setIsConnecting(false);
+          setTimeout(() => {
+            if (enableVideo && localVideoDivRef.current) {
+              client.playLocalVideo(localVideoDivRef.current);
+            }
+          }, 150);
+        },
+        onRemoteJoined: (u) => {
+          setRemoteUid(u);
+          setTimeout(() => {
+            if (remoteVideoDivRef.current) {
+              client.playRemoteVideo(u, remoteVideoDivRef.current);
+            }
+          }, 150);
+        },
+        onRemoteLeft: () => {
+          setRemoteUid(null);
+          handleEndCall();
+        },
+        onDisconnected: () => navigateBack(),
+        onError: (m) => setError(m),
+      });
+      try {
+        await client.join(channel, token, uid, enableVideo, appId || AGORA_APP_ID);
+      } catch (e: any) {
+        setError(e?.message || "Failed to join call");
+        setIsConnecting(false);
+      }
+      return;
+    }
+
     const engine = engineRef.current;
     if (!engine) return;
 
@@ -233,7 +281,7 @@ export default function CallScreen() {
   // Initialize call
   useEffect(() => {
     const initCall = async () => {
-      if (!agoraAvailable || !agoraModules) {
+      if (!isWeb && (!agoraAvailable || !agoraModules)) {
         setError("Voice/Video calls require a development build of Perix. Please install the full app to use this feature.");
         setIsConnecting(false);
         return;
@@ -270,7 +318,7 @@ export default function CallScreen() {
                 const status = await getCallStatus(sessionToken, response.call_id);
                 if (status.status === "active") {
                   clearInterval(pollingRef.current!);
-                  joinChannel(channel, token, uid, callType === "video");
+                  joinChannel(channel, token, uid, callType === "video", appId);
                 } else if (status.status === "rejected" || status.status === "ended") {
                   clearInterval(pollingRef.current!);
                   navigateBack();
@@ -294,7 +342,7 @@ export default function CallScreen() {
           const token = params.token;
           const uid = response.callee_uid;
 
-          joinChannel(channel, token, uid, callType === "video");
+          joinChannel(channel, token, uid, callType === "video", appId);
         }
       } catch (err: any) {
         setError(err.message || "Failed to connect call");
@@ -314,6 +362,10 @@ export default function CallScreen() {
   const handleEndCall = async () => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
+    }
+
+    if (isWeb) {
+      await getWebCallClient().leave();
     }
 
     if (engineRef.current) {
@@ -399,6 +451,11 @@ export default function CallScreen() {
   };
 
   const toggleMute = () => {
+    if (isWeb) {
+      getWebCallClient().toggleMute();
+      setIsMuted(!isMuted);
+      return;
+    }
     if (engineRef.current) {
       if (isMuted) {
         engineRef.current.enableAudio();
@@ -410,6 +467,11 @@ export default function CallScreen() {
   };
 
   const toggleSpeaker = () => {
+    if (isWeb) {
+      getWebCallClient().toggleSpeaker();
+      setIsSpeakerOn(!isSpeakerOn);
+      return;
+    }
     if (engineRef.current) {
       if (isSpeakerOn) {
         engineRef.current.setEnableSpeakerphone(false);
@@ -421,6 +483,12 @@ export default function CallScreen() {
   };
 
   const toggleVideo = () => {
+    if (isWeb) {
+      const next = getWebCallClient().toggleVideo();
+      setLocalVideoEnabled(next);
+      setIsVideoEnabled(next);
+      return;
+    }
     if (engineRef.current) {
       if (localVideoEnabled) {
         engineRef.current.disableVideo();
@@ -455,21 +523,44 @@ export default function CallScreen() {
       {/* Video background */}
       {callType === "video" && agoraAvailable && (
         <View style={styles.videoBackground}>
-          {remoteUid ? (
-            <agoraModules.RtcSurfaceView
-              style={styles.remoteVideo}
-              canvas={{ uid: remoteUid, renderMode: agoraModules.RenderModeType.RenderModeHidden }}
-            />
+          {isWeb ? (
+            <>
+              {remoteUid ? (
+                React.createElement("div", {
+                  ref: remoteVideoDivRef,
+                  style: { width: "100%", height: "100%", backgroundColor: "#000", objectFit: "cover" },
+                })
+              ) : (
+                <View style={styles.remoteVideoPlaceholder} />
+              )}
+              {localVideoEnabled && (
+                <View style={styles.localVideo}>
+                  {React.createElement("div", {
+                    ref: localVideoDivRef,
+                    style: { width: 100, height: 140, borderRadius: 12, overflow: "hidden", backgroundColor: "#000" },
+                  })}
+                </View>
+              )}
+            </>
           ) : (
-            <View style={styles.remoteVideoPlaceholder} />
-          )}
-          {localVideoEnabled && (
-            <View style={styles.localVideo}>
-              <agoraModules.RtcSurfaceView
-                style={{ width: 100, height: 140, borderRadius: 12 }}
-                canvas={{ uid: 0, renderMode: agoraModules.RenderModeType.RenderModeHidden }}
-              />
-            </View>
+            <>
+              {remoteUid ? (
+                <agoraModules.RtcSurfaceView
+                  style={styles.remoteVideo}
+                  canvas={{ uid: remoteUid, renderMode: agoraModules.RenderModeType.RenderModeHidden }}
+                />
+              ) : (
+                <View style={styles.remoteVideoPlaceholder} />
+              )}
+              {localVideoEnabled && (
+                <View style={styles.localVideo}>
+                  <agoraModules.RtcSurfaceView
+                    style={{ width: 100, height: 140, borderRadius: 12 }}
+                    canvas={{ uid: 0, renderMode: agoraModules.RenderModeType.RenderModeHidden }}
+                  />
+                </View>
+              )}
+            </>
           )}
         </View>
       )}

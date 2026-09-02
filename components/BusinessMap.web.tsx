@@ -117,6 +117,8 @@ export default function BusinessMap({
   const markersRef = useRef<any[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState(false);
+  const [enabling, setEnabling] = useState(false);
+  const enablingRef = useRef(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const lastBoundsRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -268,17 +270,20 @@ export default function BusinessMap({
     markersRef.current.forEach((m: any) => m.setMap(null));
     markersRef.current = [];
     allMarkers.forEach((data) => {
+      const pinColor = data.pinColor ?? COLORS.success;
       const marker = new google.maps.Marker({
         position: { lat: data.latitude, lng: data.longitude },
         map: mapRef.current,
         title: data.title,
         icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: data.pinColor ?? COLORS.success,
+          path: "M12 0C7.03 0 3 4.03 3 9c0 6.4 9 15 9 15s9-8.6 9-15C21 4.03 16.97 0 12 0zM12 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8z",
+          fillColor: pinColor,
           fillOpacity: 1,
-          strokeColor: "white",
-          strokeWeight: 2,
+          strokeColor: "#ffffff",
+          strokeWeight: 1.6,
+          scale: 1.6,
+          anchor: new google.maps.Point(12, 24),
+          fillRule: "evenodd",
         },
       });
       marker.addListener("click", () => {
@@ -309,10 +314,48 @@ export default function BusinessMap({
   if (disabled) {
     return (
       <View style={[s.wrap, { height }]}>
-        <View style={s.disabledOverlay}>
-          <Ionicons name="location" size={40} color={COLORS.pinClosed} />
-          <Text style={s.disabledText}>{disabledHint}</Text>
-        </View>
+        <Pressable
+          style={s.disabledOverlay}
+          onPress={async () => {
+            if (!onMapPress || enablingRef.current) return;
+            enablingRef.current = true;
+            setEnabling(true);
+            try {
+              const granted = await new Promise<boolean>((resolve) => {
+                if (!navigator?.geolocation) {
+                  resolve(false);
+                  return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                  () => resolve(true),
+                  () => resolve(false),
+                  { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
+                );
+              });
+              if (granted) {
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => {
+                    onMapPress(pos.coords.latitude, pos.coords.longitude);
+                  },
+                  () => {},
+                  { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
+                );
+              }
+            } catch (e) {
+              console.error("Web geolocation failed:", e);
+            } finally {
+              enablingRef.current = false;
+              setEnabling(false);
+            }
+          }}
+        >
+          {enabling ? (
+            <ActivityIndicator size="large" color="#59ABE3" />
+          ) : (
+            <Ionicons name="location" size={40} color={COLORS.pinClosed} />
+          )}
+          <Text style={s.disabledText}>{enabling ? "…" : disabledHint}</Text>
+        </Pressable>
       </View>
     );
   }
