@@ -356,8 +356,15 @@ export default function SettingsScreen() {
           />
           {/* Quiet Hours for Messages */}
           <View style={styles.quietHoursSection}>
-            <Text style={styles.quietHoursLabel}>{t("settings.quietHours") || "Quiet Hours"}</Text>
-            <Text style={styles.quietHoursDesc}>{t("settings.quietHoursDesc") || "Suppress message notifications during set hours"}</Text>
+            <View style={styles.quietHoursHeader}>
+              <View style={styles.quietHoursIcon}>
+                <Ionicons name="moon" size={16} color="#59ABE3" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.quietHoursLabel}>{t("settings.quietHours") || "Quiet Hours"}</Text>
+                <Text style={styles.quietHoursDesc}>{t("settings.quietHoursDesc") || "Suppress message notifications during set hours"}</Text>
+              </View>
+            </View>
             <View style={styles.quietHoursModes}>
               {["off", "business_hours", "custom"].map((mode) => {
                 const isActive = (notifPrefs.messages_quiet_hours_mode || "off") === mode;
@@ -375,10 +382,15 @@ export default function SettingsScreen() {
                     ]}
                     onPress={() => setQuietHoursMode(mode)}
                   >
-                    <Text style={[
-                      styles.quietHoursModeText,
-                      isActive && styles.quietHoursModeTextActive,
-                    ]}>{label}</Text>
+                    <Text
+                      style={[
+                        styles.quietHoursModeText,
+                        isActive && styles.quietHoursModeTextActive,
+                      ]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                    >{label}</Text>
                   </Pressable>
                 );
               })}
@@ -389,16 +401,22 @@ export default function SettingsScreen() {
                   style={styles.quietHoursTimeBtn}
                   onPress={() => setShowTimePicker("start")}
                 >
-                  <Text style={styles.quietHoursTimeLabel}>{t("settings.quietHoursStart") || "Start"}</Text>
-                  <Text style={styles.quietHoursTimeValue}>{notifPrefs.messages_quiet_hours_start || "22:00"}</Text>
+                  <Ionicons name="time-outline" size={15} color="#59ABE3" />
+                  <View style={styles.quietHoursTimeTextWrap}>
+                    <Text style={styles.quietHoursTimeLabel}>{t("settings.quietHoursStart") || "Start"}</Text>
+                    <Text style={styles.quietHoursTimeValue}>{notifPrefs.messages_quiet_hours_start || "22:00"}</Text>
+                  </View>
                 </Pressable>
                 <Text style={styles.quietHoursSeparator}>{t("settings.to") || "to"}</Text>
                 <Pressable
                   style={styles.quietHoursTimeBtn}
                   onPress={() => setShowTimePicker("end")}
                 >
-                  <Text style={styles.quietHoursTimeLabel}>{t("settings.quietHoursEnd") || "End"}</Text>
-                  <Text style={styles.quietHoursTimeValue}>{notifPrefs.messages_quiet_hours_end || "08:00"}</Text>
+                  <Ionicons name="time-outline" size={15} color="#59ABE3" />
+                  <View style={styles.quietHoursTimeTextWrap}>
+                    <Text style={styles.quietHoursTimeLabel}>{t("settings.quietHoursEnd") || "End"}</Text>
+                    <Text style={styles.quietHoursTimeValue}>{notifPrefs.messages_quiet_hours_end || "08:00"}</Text>
+                  </View>
                 </Pressable>
               </View>
             )}
@@ -776,21 +794,33 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
   },
-  quietHoursSection: { marginBottom: 20 },
-  quietHoursLabel: { fontSize: 16, fontWeight: "600", color: "#264348" },
-  quietHoursDesc: { fontSize: 13, color: "rgba(38,67,72,0.65)", marginTop: 4 },
+  quietHoursSection: { marginBottom: 20, paddingHorizontal: 16 },
+  quietHoursHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  quietHoursIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "#59ABE3" + "15",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quietHoursLabel: { fontSize: 15, fontWeight: "600", color: "#264348" },
+  quietHoursDesc: { fontSize: 13, color: "rgba(38,67,72,0.65)", marginTop: 2 },
   quietHoursModes: { flexDirection: "row", gap: 8, marginTop: 12 },
   quietHoursModeBtn: {
     flex: 1,
+    minHeight: 40,
+    paddingHorizontal: 6,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(38,67,72,0.25)",
     alignItems: "center",
-    backgroundColor: "transparent",
+    justifyContent: "center",
+    backgroundColor: "#fff",
   },
   quietHoursModeBtnActive: { backgroundColor: "#59ABE3", borderColor: "#59ABE3" },
-  quietHoursModeText: { fontSize: 14, fontWeight: "600", color: "#264348" },
+  quietHoursModeText: { fontSize: 13, fontWeight: "600", color: "#264348", textAlign: "center" },
   quietHoursModeTextActive: { color: "#fff" },
   quietHoursTimeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 },
   quietHoursTimeBtn: {
@@ -799,12 +829,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: "#fff",
   },
-  quietHoursTimeLabel: { fontSize: 13, color: "rgba(38,67,72,0.65)" },
-  quietHoursTimeValue: { flex: 1, fontSize: 14, fontWeight: "600", color: "#264348", textAlign: "right" },
+  quietHoursTimeTextWrap: { flex: 1 },
+  quietHoursTimeLabel: { fontSize: 12, color: "rgba(38,67,72,0.65)" },
+  quietHoursTimeValue: { fontSize: 14, fontWeight: "600", color: "#264348", marginTop: 1 },
   quietHoursSeparator: { fontSize: 14, color: "#264348" },
 });
