@@ -49,16 +49,24 @@ export default function SavedScreen() {
 
   useEffect(() => {
     loadItems();
-  }, [sessionToken, activeFilter]);
+  }, [sessionToken]);
+
+  const typeCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    items.forEach((i) => { counts[i.item_type] = (counts[i.item_type] || 0) + 1; });
+    return counts;
+  }, [items]);
+
+  const visibleItems = React.useMemo(
+    () => (activeFilter === "all" ? items : items.filter((i) => i.item_type === activeFilter)),
+    [items, activeFilter]
+  );
 
   const loadItems = async () => {
     if (!sessionToken) return;
     setLoading(true);
     try {
-      const res = await getSavedItems(
-        sessionToken,
-        activeFilter === "all" ? undefined : activeFilter
-      );
+      const res = await getSavedItems(sessionToken, undefined);
       setItems(res.items);
     } catch (e) {
       console.log("Failed to load saved items:", e);
@@ -161,42 +169,36 @@ export default function SavedScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterRow}
-        contentContainerStyle={styles.filterContent}
-      >
-        {filters.map((f) => (
-          <Pressable
-            key={f}
-            style={[
-              styles.filterChip,
-              activeFilter === f && styles.filterChipActive,
-            ]}
-            onPress={() => setActiveFilter(f)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                activeFilter === f && styles.filterTextActive,
-              ]}
+      <View style={styles.filterList}>
+        {filters.map((f) => {
+          const count = f === "all" ? items.length : (typeCounts[f] || 0);
+          const active = activeFilter === f;
+          return (
+            <Pressable
+              key={f}
+              style={[styles.filterBtn, active && styles.filterBtnActive]}
+              onPress={() => setActiveFilter(f)}
             >
-              {f === "all"
-                ? t("saved.all", "All")
-                : t(`saved.type_${f}`, f)}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+              <Text style={[styles.filterBtnText, active && styles.filterBtnTextActive]} numberOfLines={1} ellipsizeMode="tail">
+                {f === "all"
+                  ? t("saved.all", "All")
+                  : t(`saved.type_${f}`, f)}
+              </Text>
+              <View style={[styles.filterCount, active && styles.filterCountActive]}>
+                <Text style={[styles.filterCountText, active && styles.filterCountTextActive]}>{count}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color="#59ABE3" />
         </View>
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <View style={styles.center}>
-          <Ionicons name="bookmark-outline" size={48} color={COLORS.textDisabled} />
+          <Ionicons name="bookmark-outline" size={48} color="#264348" />
           <Text style={styles.emptyText}>
             {t("saved.empty", "No saved items yet")}
           </Text>
@@ -207,7 +209,7 @@ export default function SavedScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
-          {items.map(renderItem)}
+          {visibleItems.map(renderItem)}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -232,37 +234,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONT_SIZES.h3,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
   },
-  filterRow: {
-    backgroundColor: COLORS.background,
-    maxHeight: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  filterContent: {
-    paddingHorizontal: SPACING.std,
-    paddingVertical: SPACING.small,
-    gap: SPACING.small,
-  },
-  filterChip: {
-    paddingHorizontal: SPACING.compact,
-    paddingVertical: SPACING.tiny,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.backgroundPage,
-    marginRight: SPACING.small,
-  },
-  filterChipActive: {
-    backgroundColor: COLORS.primary,
-  },
-  filterText: {
-    fontSize: FONT_SIZES.small,
-    color: COLORS.textSecondary,
-    fontWeight: "500",
-  },
-  filterTextActive: {
-    color: "#fff",
-  },
+  filterList: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, gap: SPACING.small, borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)", backgroundColor: COLORS.background },
+  filterBtn: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.std, paddingVertical: 12 },
+  filterBtnActive: { backgroundColor: "#59ABE3", borderColor: "#59ABE3" },
+  filterBtnText: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: "#264348" },
+  filterBtnTextActive: { color: "#fff" },
+  filterCount: { minWidth: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(38,67,72,0.08)", alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
+  filterCountActive: { backgroundColor: "rgba(255,255,255,0.25)" },
+  filterCountText: { fontSize: FONT_SIZES.micro, fontWeight: "700", color: COLORS.textMuted },
+  filterCountTextActive: { color: "#fff" },
   list: {
     flex: 1,
   },
@@ -273,10 +255,11 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.background,
+    backgroundColor: "#fff",
     borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.15)",
     padding: SPACING.compact,
-    ...SHADOWS.subtle,
   },
   typeBadge: {
     width: 36,
