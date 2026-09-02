@@ -2426,7 +2426,13 @@
     "contact": "Контакт",
     "contactContent": "Email support@perix.app"
   },
-  "marketplace": {
+    "listing": {
+    "price": "Cena",
+    "conditionTitle": "Stanje",
+    "address": "Lokacija",
+    "description": "Opis"
+  },
+"marketplace": {
     "addProduct": "Dodaj proizvod",
     "products": "Proizvodi",
     "listings": "Oglasi",
@@ -2437,6 +2443,8 @@
     "home": "Smeštaj",
     "product": "Proizvod",
     "title": "Pijaca",
+    "delivery": "Isporuka",
+    "condition": "Stanje",
     "approximate": "Približna zona",
     "exact": "Tačna adresa"
   },

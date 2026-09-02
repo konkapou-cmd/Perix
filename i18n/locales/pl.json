@@ -2439,7 +2439,13 @@
     "contact": "Kontakt",
     "contactContent": "Email support@perix.app"
   },
-  "marketplace": {
+    "listing": {
+    "price": "Cena",
+    "conditionTitle": "Stan",
+    "address": "Lokalizacja",
+    "description": "Opis"
+  },
+"marketplace": {
     "addProduct": "Dodaj produkt",
     "products": "Produkty",
     "listings": "Ogłoszenia",
@@ -2450,6 +2456,8 @@
     "home": "Nocleg",
     "product": "Produkt",
     "title": "Marketplace",
+    "delivery": "Dostawa",
+    "condition": "Stan",
     "approximate": "Przybliżona okolica",
     "exact": "Dokładny adres"
   },

@@ -2402,7 +2402,13 @@
     "contact": "Контакт",
     "contactContent": "Email support@perix.app"
   },
-  "marketplace": {
+    "listing": {
+    "price": "Цена",
+    "conditionTitle": "Состояние",
+    "address": "Местоположение",
+    "description": "Описание"
+  },
+"marketplace": {
     "addProduct": "Добавить товар",
     "products": "Товары",
     "listings": "Объявления",
@@ -2413,6 +2419,8 @@
     "home": "Жильё",
     "product": "Товар",
     "title": "Маркетплейс",
+    "delivery": "Доставка",
+    "condition": "Состояние",
     "approximate": "Примерный район",
     "exact": "Точный адрес"
   },

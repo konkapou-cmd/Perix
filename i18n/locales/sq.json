@@ -2335,7 +2335,13 @@
     "contact": "Kontakt",
     "contactContent": "Email support@perix.app"
   },
-  "marketplace": {
+    "listing": {
+    "price": "Çmimi",
+    "conditionTitle": "Gjendja",
+    "address": "Vendndodhja",
+    "description": "Përshkrimi"
+  },
+"marketplace": {
     "addProduct": "Shto produkt",
     "products": "Produkte",
     "listings": "Listimet",
@@ -2346,6 +2352,8 @@
     "home": "Banesë",
     "product": "Produkt",
     "title": "Tregu",
+    "delivery": "Dorëzimi",
+    "condition": "Gjendja",
     "approximate": "Zonë e përafërt",
     "exact": "Adresë e saktë"
   },

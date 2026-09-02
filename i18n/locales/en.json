@@ -2624,6 +2624,7 @@
   },
   "marketplace": {
     "title": "Marketplace",
+    "delivery": "Delivery",
     "inactive": "Inactive",
     "items": "Items",
     "homes": "Homes",
@@ -2822,6 +2823,10 @@
   },
   "listing": {
     "gallery": "Gallery",
+    "price": "Price",
+    "conditionTitle": "Condition",
+    "address": "Location",
+    "description": "Description",
     "notFound": "Listing not found",
     "invalid": "This listing cannot be opened.",
     "brand": "Brand",

@@ -2750,6 +2750,7 @@
   },
   "marketplace": {
     "title": "Marktplatz",
+    "delivery": "Lieferung",
     "inactive": "Inaktiv",
     "items": "Artikel",
     "homes": "Unterkünfte",
@@ -2948,6 +2949,10 @@
   },
   "listing": {
     "gallery": "Galerie",
+    "price": "Preis",
+    "conditionTitle": "Zustand",
+    "address": "Ort",
+    "description": "Beschreibung",
     "notFound": "Eintrag nicht gefunden",
     "invalid": "Dieser Eintrag kann nicht geöffnet werden.",
     "brand": "Marke",

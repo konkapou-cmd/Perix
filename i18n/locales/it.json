@@ -2401,7 +2401,13 @@
     "contact": "Contatto",
     "contactContent": "Email support@perix.app"
   },
-  "marketplace": {
+    "listing": {
+    "price": "Prezzo",
+    "conditionTitle": "Condizioni",
+    "address": "Posizione",
+    "description": "Descrizione"
+  },
+"marketplace": {
     "addProduct": "Aggiungi prodotto",
     "products": "Prodotti",
     "listings": "Annunci",
@@ -2412,6 +2418,8 @@
     "home": "Alloggio",
     "product": "Prodotto",
     "title": "Marketplace",
+    "delivery": "Consegna",
+    "condition": "Condizioni",
     "approximate": "Zona approssimativa",
     "exact": "Indirizzo esatto"
   },
