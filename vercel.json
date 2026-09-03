@@ -1,9 +1,0 @@
-{
-  "version": 2,
-  "builds": [{ "src": "dist/**", "use": "@vercel/static" }],
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/_expo/(.*)", "dest": "/dist/_expo/$1" },
-    { "src": "/(.*)", "dest": "/dist/index.html" }
-  ]
-}
