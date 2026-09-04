@@ -27,7 +27,7 @@ type MapBounds = {
 };
 
 type Props = {
-  location: { latitude: number; longitude: number };
+  location?: { latitude: number; longitude: number };
   initialRegion?: {
     latitude: number;
     longitude: number;
@@ -119,6 +119,8 @@ export default function BusinessMap({
   const [mapError, setMapError] = useState(false);
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
+  const centerLat = location?.latitude ?? initialRegion?.latitude ?? 52.52;
+  const centerLng = location?.longitude ?? initialRegion?.longitude ?? 13.405;
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const lastBoundsRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -209,7 +211,7 @@ export default function BusinessMap({
         if (!mapDivRef.current) return;
         const google = (window as any).google;
         const map = new google.maps.Map(mapDivRef.current, {
-          center: { lat: location.latitude, lng: location.longitude },
+          center: { lat: centerLat, lng: centerLng },
           zoom: 14,
           disableDefaultUI: staticMode,
           zoomControl: !staticMode,
@@ -261,7 +263,7 @@ export default function BusinessMap({
       })
       .catch(() => setMapError(true));
     return () => { mapRef.current = null; };
-  }, [location.latitude, location.longitude]);
+  }, [centerLat, centerLng]);
 
   // Sync markers
   useEffect(() => {
@@ -297,7 +299,7 @@ export default function BusinessMap({
 
   // Fly to location
   useEffect(() => {
-    if (!mapRef.current || !mapReady) return;
+    if (!mapRef.current || !mapReady || !location) return;
     const key = `${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
     if (key === prevLocationRef.current) return;
     prevLocationRef.current = key;
