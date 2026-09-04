@@ -94,3 +94,5 @@ QUICK_START.md
 README_TESTING.md
 TESTING_GUIDE.md
 perix-design-system/
+.vercel
+.env*

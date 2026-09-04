@@ -1,6 +1,6 @@
 {
   "installCommand": "npm install",
-  "buildCommand": "npm install && node scripts/patch-reanimated.js && EXPO_NO_MINIFY=1 npx expo export --platform web --clear",
+  "buildCommand": "node scripts/patch-reanimated.js && EXPO_NO_MINIFY=1 npx expo export --platform web --clear",
   "outputDirectory": "dist",
   "routes": [
     { "handle": "filesystem" },
