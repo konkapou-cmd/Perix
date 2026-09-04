@@ -3,5 +3,11 @@
   "routes": [
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/((?!_expo/|favicon).*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    }
   ]
 }
