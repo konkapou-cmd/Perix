@@ -29,14 +29,14 @@ applyDefaultFontFamily("Quicksand_400Regular");
 class RootErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: string | null }> {
   state = { error: null as string | null };
   static getDerivedStateFromError(e: any) {
-    return { error: String(e?.message || e) };
+    return { error: String(e?.message || e) + (e?.stack ? "\n\n" + String(e.stack).split("\n").slice(0, 12).join("\n") : "") };
   }
   render() {
     if (this.state.error) {
       return (
         <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center" }}>
           <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 16, marginBottom: 8 }}>App Error</Text>
-          <Text selectable style={{ color: "#111", fontSize: 13 }}>{this.state.error}</Text>
+          <Text selectable style={{ color: "#111", fontSize: 12 }}>{this.state.error}</Text>
         </View>
       );
     }
