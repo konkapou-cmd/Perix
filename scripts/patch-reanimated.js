@@ -41,7 +41,6 @@ function walkDir(dir) {
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'node_modules') continue; // don't descend into nested node_modules via this walk
       walkDir(full);
     } else if (entry.name === 'isDisabled.js' && full.includes(path.join('modules', 'AccessibilityUtil'))) {
       try {
