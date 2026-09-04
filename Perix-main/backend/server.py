@@ -8,11 +8,13 @@ of both services (backend + Perix)
 import asyncio
 import time
 from collections import defaultdict
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException, Depends, Query
 from routes.dependencies import get_current_user
 from models.user import UserPublic
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, FileResponse
+from starlette.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -119,6 +121,21 @@ app.add_middleware(
 
 # Include the main API router
 app.include_router(api_router)
+
+# --- Web app static hosting (SPA) ---
+WEB_DIST = Path(__file__).parent / "webdist"
+if WEB_DIST.exists():
+    app.mount("/_expo", StaticFiles(directory=WEB_DIST / "_expo"), name="web-expo")
+    app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="web-assets")
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    async def web_favicon():
+        return FileResponse(WEB_DIST / "favicon.ico")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def web_spa_fallback(full_path: str):
+        # SPA fallback: serve index.html for any non-API GET request
+        return FileResponse(WEB_DIST / "index.html")
 
 
 @app.get("/api/ping-deploy")
