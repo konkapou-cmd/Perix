@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Stack, usePathname, useSegments, router } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { I18nextProvider } from "react-i18next";
@@ -25,6 +25,48 @@ import { applyDefaultFontFamily } from "../lib/defaultFont";
 import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_600SemiBold, Quicksand_700Bold } from "@expo-google-fonts/quicksand";
 
 applyDefaultFontFamily("Quicksand_400Regular");
+
+class RootErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: string | null }> {
+  state = { error: null as string | null };
+  static getDerivedStateFromError(e: any) {
+    return { error: String(e?.message || e) };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center" }}>
+          <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 16, marginBottom: 8 }}>App Error</Text>
+          <Text selectable style={{ color: "#111", fontSize: 13 }}>{this.state.error}</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function WebErrorOverlay({ children }: { children: React.ReactNode }) {
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const onErr = (ev: any) => {
+      const msg = ev?.message || ev?.reason?.message || (typeof ev?.reason === "string" ? ev.reason : "") || "Unknown error";
+      setError((prev) => prev || String(msg));
+    };
+    (window as any).addEventListener("error", onErr);
+    (window as any).addEventListener("unhandledrejection", onErr);
+    return () => {
+      (window as any).removeEventListener("error", onErr);
+      (window as any).removeEventListener("unhandledrejection", onErr);
+    };
+  }, []);
+  if (!error) return <>{children}</>;
+  return (
+    <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center" }}>
+      <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 16, marginBottom: 8 }}>App Error</Text>
+      <Text selectable style={{ color: "#111", fontSize: 13 }}>{error}</Text>
+    </View>
+  );
+}
 
 // Ignore specific warnings that can cause issues
 LogBox.ignoreLogs([
@@ -280,6 +322,8 @@ export default function RootLayout() {
   if (!fontsLoaded && Platform.OS !== "web") return null;
 
   return (
+    <WebErrorOverlay>
+      <RootErrorBoundary>
     <I18nextProvider i18n={i18n}>
       <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -307,5 +351,7 @@ export default function RootLayout() {
         </GestureHandlerRootView>
       </SafeAreaProvider>
     </I18nextProvider>
+      </RootErrorBoundary>
+    </WebErrorOverlay>
   );
 }
