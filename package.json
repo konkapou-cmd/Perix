@@ -13,7 +13,7 @@
     "typecheck:hotel": "tsc --noEmit -p tsconfig.hotel.json",
     "lint:hotel": "eslint app/service/[id].tsx components/business/ServiceBookingModal.tsx components/business/ServiceModal.tsx components/business/HotelAvailabilityModal.tsx components/business/SlotManagerModal.tsx components/business/BookingListModal.tsx components/business/UserBookingListModal.tsx components/shared/DatePickerModal.tsx components/ShareContent.tsx lib/config/serviceModules.ts lib/config/serviceCategoryMatrix.ts lib/fieldRegistry.ts lib/booking/dateRange.ts lib/navigation/entityRoutes.ts hooks/useLayoutPreferences.ts",
     "postinstall": "node scripts/patch-reanimated.js",
-    "vercel-build": "node scripts/patch-reanimated.js && expo export --platform web"
+    "vercel-build": "node scripts/patch-reanimated.js && expo export --platform web --clear"
   },
   "dependencies": {
     "@babel/runtime": "^7.20.6",
