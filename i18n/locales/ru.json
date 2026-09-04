@@ -369,6 +369,8 @@
     "password": "Пароль",
     "confirmPassword": "Подтвердите пароль",
     "newHere": "Впервые здесь?",
+    "forgotPassword": "Забыли пароль?",
+    "securedBy": "БЕЗОПАСНЫЙ ВХОД ЧЕРЕЗ",
     "alreadyHaveAccount": "Уже есть аккаунт?",
     "continueWithGoogle": "Продолжить с Google",
     "signInFailed": "Ошибка входа",

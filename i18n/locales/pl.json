@@ -369,6 +369,8 @@
     "password": "Hasło",
     "confirmPassword": "Potwierdź hasło",
     "newHere": "Nowy tutaj?",
+    "forgotPassword": "Zapomniałeś hasła?",
+    "securedBy": "BEZPIECZNE LOGOWANIE PRZEZ",
     "alreadyHaveAccount": "Masz już konto?",
     "continueWithGoogle": "Kontynuuj z Google",
     "signInFailed": "Logowanie nie powiodło się",

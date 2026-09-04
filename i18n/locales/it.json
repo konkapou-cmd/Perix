@@ -369,6 +369,8 @@
     "password": "Password",
     "confirmPassword": "Conferma Password",
     "newHere": "Nuovo qui?",
+    "forgotPassword": "Password dimenticata?",
+    "securedBy": "ACCESSO PROTETTO DA",
     "alreadyHaveAccount": "Hai già un account?",
     "continueWithGoogle": "Continua con Google",
     "signInFailed": "Accesso fallito",

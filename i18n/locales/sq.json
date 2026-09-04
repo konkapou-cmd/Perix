@@ -368,6 +368,8 @@
     "password": "Fjalëkalimi",
     "confirmPassword": "Konfirmo Fjalëkalimin",
     "newHere": "I ri këtu?",
+    "forgotPassword": "Harruat fjalëkalimin?",
+    "securedBy": "HYRJE E SIGURT NGA",
     "alreadyHaveAccount": "Ke tashmë llogari?",
     "continueWithGoogle": "Vazhdo me Google",
     "signInFailed": "Hyrja dështoi",

@@ -461,6 +461,8 @@
     "password": "Κωδικός",
     "confirmPassword": "Επιβεβαίωση κωδικού",
     "newHere": "Νέος εδώ;",
+    "forgotPassword": "Ξεχάσατε τον κωδικό;",
+    "securedBy": "ΑΣΦΑΛΗΣ ΣΥΝΔΕΣΗ ΑΠΟ",
     "alreadyHaveAccount": "Έχετε ήδη λογαριασμό;",
     "continueWithGoogle": "Συνέχεια με Google",
     "signInFailed": "Η σύνδεση απέτυχε",
@@ -612,6 +614,10 @@
     "food": "Πληροφορίες Φαγητού",
     "health": "Υγεία & Φροντίδα",
     "included": "Περιλαμβάνεται"
+  },
+  "brand": {
+    "title": "Perix",
+    "subtitle": "Η αγαπημένη σου πόλη στα χέρια σου!"
   },
 "profile": {
     "title": "Προφίλ",

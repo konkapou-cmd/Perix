@@ -369,6 +369,8 @@
     "password": "Lozinka",
     "confirmPassword": "Potvrdi lozinku",
     "newHere": "Novi ste ovde?",
+    "forgotPassword": "Zaboravili ste lozinku?",
+    "securedBy": "SIGURNA PRIJAVA OD",
     "alreadyHaveAccount": "Već imate nalog?",
     "continueWithGoogle": "Nastavi sa Google-om",
     "signInFailed": "Prijava nije uspela",

@@ -148,7 +148,7 @@ export default function LoginScreen() {
 
           <View style={styles.securedByContainer}>
             <Ionicons name="shield-checkmark" size={14} color="#10b981" />
-            <Text style={styles.securedByText}>LOG IN SECURED BY</Text>
+            <Text style={styles.securedByText}>{t("auth.securedBy", "LOG IN SECURED BY")}</Text>
             <Text style={styles.securedByBrand}>PERIX</Text>
           </View>
 

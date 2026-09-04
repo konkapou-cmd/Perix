@@ -439,6 +439,8 @@
     "password": "Passwort",
     "confirmPassword": "Passwort bestätigen",
     "newHere": "Neu hier?",
+    "forgotPassword": "Passwort vergessen?",
+    "securedBy": "SICHERE ANMELDUNG DURCH",
     "alreadyHaveAccount": "Bereits ein Konto?",
     "continueWithGoogle": "Mit Google fortfahren",
     "signInFailed": "Anmeldung fehlgeschlagen",
@@ -583,7 +585,11 @@
     "homesNearby": "Unterkünfte in der Nähe",
     "personalizeHome": "Passe deinen Home-Feed an"
   },
-  "profile": {
+    "brand": {
+    "title": "Perix",
+    "subtitle": "Deine Lieblingsstadt in deinen Händen!"
+  },
+"profile": {
     "title": "Profil",
     "perixUser": "Perix-Nutzer",
     "completeNow": "Jetzt vervollständigen",

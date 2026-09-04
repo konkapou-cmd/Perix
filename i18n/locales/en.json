@@ -415,7 +415,11 @@
     "updatingCover": "Updating cover photo...",
     "creatingStory": "Creating story..."
   },
-  "profile": {
+    "brand": {
+    "title": "Perix",
+    "subtitle": "Your favorite city in your hands!"
+  },
+"profile": {
     "title": "Profile",
     "perixUser": "Perix User",
     "completeNow": "Complete Now",
@@ -577,6 +581,8 @@
     "password": "Password",
     "confirmPassword": "Confirm Password",
     "newHere": "New here?",
+    "forgotPassword": "Forgot password?",
+    "securedBy": "LOG IN SECURED BY",
     "alreadyHaveAccount": "Already have an account?",
     "continueWithGoogle": "Continue with Google",
     "signInFailed": "Sign in failed",
