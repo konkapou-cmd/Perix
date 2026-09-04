@@ -78,6 +78,14 @@ Use the session token in the `Authorization: Bearer <token>` header.
     openapi_url="/api/openapi.json",
 )
 
+# Honor X-Forwarded-Proto so redirects keep the https scheme behind proxies
+@app.middleware("http")
+async def https_scheme_middleware(request: Request, call_next):
+    if request.headers.get("x-forwarded-proto", "http") == "https":
+        request.scope["scheme"] = "https"
+    return await call_next(request)
+
+
 # Rate limiting middleware
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
