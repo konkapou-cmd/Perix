@@ -50,7 +50,8 @@ function WebErrorOverlay({ children }: { children: React.ReactNode }) {
     if (Platform.OS !== "web") return;
     const onErr = (ev: any) => {
       const msg = ev?.message || ev?.reason?.message || (typeof ev?.reason === "string" ? ev.reason : "") || "Unknown error";
-      setError((prev) => prev || String(msg));
+      const stack = ev?.error?.stack || ev?.reason?.stack || "";
+      setError((prev) => prev || String(msg) + (stack ? "\n\n" + stack.split("\n").slice(0, 10).join("\n") : ""));
     };
     (window as any).addEventListener("error", onErr);
     (window as any).addEventListener("unhandledrejection", onErr);
@@ -63,7 +64,7 @@ function WebErrorOverlay({ children }: { children: React.ReactNode }) {
   return (
     <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center" }}>
       <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 16, marginBottom: 8 }}>App Error</Text>
-      <Text selectable style={{ color: "#111", fontSize: 13 }}>{error}</Text>
+      <Text selectable style={{ color: "#111", fontSize: 12 }}>{error}</Text>
     </View>
   );
 }
