@@ -17,8 +17,12 @@ export function applyDefaultFontFamily(fontFamily: string): void {
       const element = original.call(this, ...args);
       if (!React.isValidElement(element)) return element;
       const props: any = element.props || {};
+      const existing = props.style;
+      const merged = Array.isArray(existing)
+        ? Object.assign({}, ...existing, { fontFamily })
+        : { ...(existing || {}), fontFamily };
       return React.cloneElement(element, {
-        style: [{ fontFamily }, props.style],
+        style: merged,
       } as any);
     };
   };
