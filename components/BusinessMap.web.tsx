@@ -130,6 +130,7 @@ export default function BusinessMap({
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const [mapReady, setMapReady] = useState(false);
+  const mapReadyRef = useRef(false);
   const [mapError, setMapError] = useState(false);
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
@@ -307,16 +308,23 @@ export default function BusinessMap({
         });
 
         mapRef.current = map;
+        mapReadyRef.current = true;
         setMapReady(true);
         console.log("[WebMap] initialized zoom=" + map.getZoom());
       })
       .catch((e) => { console.error("[WebMap] init failed", e); setMapError(true); });
-    return () => { mapRef.current = null; };
-  }, [centerLat, centerLng, disabled, mapReady, mapError]);
+    return () => {
+      mapRef.current = null;
+      mapReadyRef.current = false;
+    };
+  }, [centerLat, centerLng, disabled]);
 
   // Sync markers (app-style circular pins + count clusters, Brave-safe: no data-URI icons)
   useEffect(() => {
-    if (!mapRef.current || !mapReady) return;
+    if (!mapRef.current || !mapReadyRef.current) {
+      console.log("[WebMap] markers skipped (mapRef=" + !!mapRef.current + " ready=" + mapReadyRef.current + ")");
+      return;
+    }
     const google = (window as any).google;
     markersRef.current.forEach((m: any) => m.setMap(null));
     markersRef.current = [];
@@ -420,7 +428,7 @@ export default function BusinessMap({
 
   // Fly to location
   useEffect(() => {
-    if (!mapRef.current || !mapReady || !location) return;
+    if (!mapRef.current || !mapReadyRef.current || !location) return;
     const key = `${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
     if (key === prevLocationRef.current) return;
     prevLocationRef.current = key;
@@ -429,7 +437,7 @@ export default function BusinessMap({
 
   // Fly to explicitly focused region (e.g. search selection / recenter)
   useEffect(() => {
-    if (!mapRef.current || !mapReady || !focusToken || !focusRegion) return;
+    if (!mapRef.current || !mapReadyRef.current || !focusToken || !focusRegion) return;
     mapRef.current.panTo({ lat: focusRegion.latitude, lng: focusRegion.longitude });
     mapRef.current.setZoom(14);
   }, [focusToken, mapReady]);
