@@ -295,10 +295,11 @@ export default function BusinessMap({
 
         mapRef.current = map;
         setMapReady(true);
+        console.log("[WebMap] initialized zoom=" + map.getZoom());
       })
-      .catch(() => setMapError(true));
+      .catch((e) => { console.error("[WebMap] init failed", e); setMapError(true); });
     return () => { mapRef.current = null; };
-  }, [centerLat, centerLng]);
+  }, [centerLat, centerLng, disabled, mapReady, mapError]);
 
   // Sync markers (app-style circular pins + count clusters, Brave-safe: no data-URI icons)
   useEffect(() => {
@@ -308,6 +309,8 @@ export default function BusinessMap({
     markersRef.current = [];
 
     const zoomScale = Math.max(0.8, Math.min(1.7, zoomLevel / 12));
+
+    console.log("[WebMap] markers: groups=" + groupedMarkers.length + " zoomScale=" + zoomScale.toFixed(2));
 
     groupedMarkers.forEach((group) => {
       const isGroup = group.count > 1;
