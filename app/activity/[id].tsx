@@ -287,7 +287,7 @@ export default function ActivityDetailPage() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 30}
       >
         <ScrollView
-          style={[styles.flex1, Platform.OS === "web" ? { width: "100%", maxWidth: 914, alignSelf: "center" } as any : undefined]}
+          style={[styles.flex1, Platform.OS === "web" ? { width: "100%", maxWidth: 1280, alignSelf: "center" } as any : undefined]}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >

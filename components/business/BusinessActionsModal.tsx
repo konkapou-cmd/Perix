@@ -131,6 +131,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingBottom: Platform.OS === "ios" ? 34 : 34,
     maxHeight: SCREEN_HEIGHT * 0.75,
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, alignSelf: "center" },
+    }),
   },
   handle: {
     width: 36,

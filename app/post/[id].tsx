@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundPage,
-    ...Platform.select({ web: { width: "100%", maxWidth: 914, alignSelf: "center" } as any, default: {} }),
+    ...Platform.select({ web: { width: "100%", maxWidth: 1280, alignSelf: "center" } as any, default: {} }),
   },
   loadingContainer: {
     flex: 1,

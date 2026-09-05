@@ -191,7 +191,7 @@ export default function JobDetailPage() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 30}
       >
         <ScrollView
-          style={styles.flex1}
+          style={[styles.flex1, styles.pageLimit]}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
@@ -365,6 +365,11 @@ export default function JobDetailPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.backgroundPage, overflow: "hidden" },
   flex1: { flex: 1 },
+  pageLimit: {
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, marginHorizontal: "auto" },
+    }),
+  },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.backgroundPage },
   content: { paddingBottom: 60 },
   plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.std },

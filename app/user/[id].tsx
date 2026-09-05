@@ -291,7 +291,7 @@ export default function UserProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 44 : 0}
       >
-      <View style={{ flex: 1, ...Platform.select({ web: { width: "100%", maxWidth: 914, alignSelf: "center" } as any, default: {} }) }}>
+      <View style={{ flex: 1, ...Platform.select({ web: { width: "100%", maxWidth: 1280, alignSelf: "center" } as any, default: {} }) }}>
         <UserProfilePremium
           user={profile.user}
           displayName={profile.user.name || ""}

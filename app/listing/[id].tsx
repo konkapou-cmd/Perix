@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -140,7 +140,7 @@ export default function ListingDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.pageLimit} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <View style={styles.heroWrap}>
           <ContentHero
             coverImageUrl={listing.cover_image_url}
@@ -357,6 +357,11 @@ export default function ListingDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.backgroundPage },
+  pageLimit: {
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, marginHorizontal: "auto" },
+    }),
+  },
   header: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: SPACING.std, paddingTop: SPACING.small, paddingBottom: SPACING.small,

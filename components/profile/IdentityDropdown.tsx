@@ -198,6 +198,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 24,
     maxHeight: "80%",
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, alignSelf: "center" },
+    }),
   },
   modalHeader: {
     flexDirection: "row",

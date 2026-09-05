@@ -53,6 +53,9 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: COLORS.background,
+    ...Platform.select({
+      web: { maxWidth: 1280, width: "100%", marginHorizontal: "auto" },
+    }),
   },
   kav: {
     flex: 1,
