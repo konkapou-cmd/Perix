@@ -605,7 +605,7 @@ export default function BusinessMap({
 }
 
 const s = StyleSheet.create({
-  wrap: { marginHorizontal: 16, borderRadius: 12, backgroundColor: "#EAF3FB", overflow: "hidden", borderWidth: 1, borderColor: "#59ABE3" },
+  wrap: { marginHorizontal: 16, borderRadius: 12, backgroundColor: "#ffffff", overflow: "hidden" },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   sheet: { backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24, maxHeight: "60%", overflow: "hidden" },
   sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: "#d1d5db", alignSelf: "center", marginTop: 10 },

@@ -217,10 +217,10 @@ const styles = StyleSheet.create({
     padding: SPACING.std,
     gap: SPACING.std,
   },
-  // Photo column (1/3 of card)
+  // Photo column
   photoWrap: {
-    width: "31%",
-    height: Platform.OS === "web" ? 124 : 104,
+    width: Platform.OS === "web" ? "38%" : "31%",
+    height: Platform.OS === "web" ? 140 : 104,
     borderRadius: BORDER_RADIUS.md,
     overflow: "hidden",
     backgroundColor: COLORS.backgroundPage,

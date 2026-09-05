@@ -310,6 +310,11 @@ export default function ServicesScreen() {
                     {item.address}
                   </Text>
                 </View>
+                {(item as any).description ? (
+                  <Text style={styles.serviceDesc} numberOfLines={2}>
+                    {(item as any).description}
+                  </Text>
+                ) : null}
                 <View style={styles.serviceBadges}>
                   {item.root_category && (
                     <View style={styles.serviceTypeBadge}>
@@ -438,17 +443,18 @@ const styles = StyleSheet.create({
       web: { width: "100%", maxWidth: 1280, marginHorizontal: "auto" },
     }),
   },
-  mapContainer: { borderRadius: 12, overflow: "hidden", backgroundColor: "#EAF3FB" },
+  mapContainer: { borderRadius: 12, overflow: "hidden", backgroundColor: "#ffffff" },
   mapPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   mapPlaceholderText: { fontSize: 16, fontWeight: "600", color: "#264348", marginTop: 8 },
   mapPlaceholderSubtext: { fontSize: 13, color: "#264348", marginTop: 4 },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", paddingHorizontal: 16, marginBottom: 8 },
-  serviceCard: { flexDirection: "row", alignItems: "stretch", backgroundColor: "#fff", padding: 12, borderRadius: 12, marginBottom: 10, gap: 12 },
-  serviceImage: { width: "31%", height: 104, borderRadius: 12 },
+  serviceCard: { flexDirection: "row", alignItems: "stretch", backgroundColor: "#fff", padding: 14, borderRadius: 12, marginBottom: 10, gap: 12 },
+  serviceImage: { width: "38%", height: 136, borderRadius: 12 },
   serviceImagePlaceholder: { backgroundColor: "#EDF4FB", alignItems: "center", justifyContent: "center" },
   serviceInfo: { flex: 1, justifyContent: "center" },
-  serviceTitle: { fontSize: 15, fontWeight: "600", color: "#264348" },
+  serviceTitle: { fontSize: 16, fontWeight: "600", color: "#264348" },
   serviceBusiness: { fontSize: 13, color: "#59ABE3", marginTop: 2 },
+  serviceDesc: { fontSize: 12, color: "#6b7280", marginTop: 4, lineHeight: 16 },
   serviceMeta: { flexDirection: "row", alignItems: "center", marginTop: 4, gap: 4 },
   serviceLocation: { fontSize: 12, color: "#264348", flex: 1 },
   serviceBadges: { flexDirection: "row", alignItems: "center", marginTop: 4, gap: 4, flexWrap: "wrap" },

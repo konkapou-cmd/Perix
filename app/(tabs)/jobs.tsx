@@ -349,6 +349,11 @@ export default function JobsScreen() {
                     {item.location}
                   </Text>
                 </View>
+                {item.description ? (
+                  <Text style={styles.jobDesc} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                ) : null}
                 <View style={styles.jobBadges}>
                   {item.job_type && (
                     <View style={styles.jobTypeBadge}>
@@ -520,7 +525,7 @@ const styles = StyleSheet.create({
   mapContainer: {
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#EAF3FB",
+    backgroundColor: "#ffffff",
   },
   mapPlaceholder: {
     flex: 1,
@@ -560,14 +565,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
     backgroundColor: "#fff",
-    padding: 12,
+    padding: 14,
     borderRadius: 12,
     marginBottom: 10,
     gap: 12,
   },
   jobImage: {
-    width: "31%",
-    height: 104,
+    width: "38%",
+    height: 136,
     borderRadius: 12,
   },
   jobImagePlaceholder: {
@@ -580,7 +585,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   jobTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
     color: "#264348",
   },
@@ -588,6 +593,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#59ABE3",
     marginTop: 2,
+  },
+  jobDesc: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 4,
+    lineHeight: 16,
   },
   jobMeta: {
     flexDirection: "row",

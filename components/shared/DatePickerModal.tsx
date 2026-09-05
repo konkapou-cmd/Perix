@@ -294,7 +294,13 @@ export default function DatePickerModal({
 }
 
 const fullStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundPage,
+    ...Platform.select({
+      web: { maxWidth: 1280, width: "100%", marginHorizontal: "auto" },
+    }),
+  },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 20, paddingVertical: 16,
@@ -341,6 +347,9 @@ const sheetStyles = StyleSheet.create({
     borderTopRightRadius: BORDER_RADIUS.xl,
     maxHeight: "70%",
     paddingBottom: 20,
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, alignSelf: "center" },
+    }),
   },
   header: {
     flexDirection: "row", justifyContent: "flex-end",

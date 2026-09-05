@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: '#EAF3FB',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#59ABE3',
   },
