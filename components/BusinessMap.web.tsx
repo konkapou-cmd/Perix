@@ -138,6 +138,7 @@ export default function BusinessMap({
   const centerLng = location?.longitude ?? initialRegion?.longitude ?? 13.405;
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const lastBoundsRef = useRef<string>("");
+  const prevCenterRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLocationRef = useRef<string>("");
   const router = useRouter();
@@ -248,12 +249,14 @@ export default function BusinessMap({
   const [zoomLevel, setZoomLevel] = useState(14);
   const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
 
-  // Init map
+  // Init map — runs once per map div lifetime (disabled toggles or unmount)
   useEffect(() => {
-    if (!mapDivRef.current || mapReady || mapError) return;
+    if (!mapDivRef.current || mapError) return;
+    if (mapRef.current) return; // map already alive for this div
+    let cancelled = false;
     loadGoogleScript()
       .then(() => {
-        if (!mapDivRef.current) return;
+        if (cancelled || !mapDivRef.current) return;
         const google = (window as any).google;
         const map = new google.maps.Map(mapDivRef.current, {
           center: { lat: centerLat, lng: centerLng },
@@ -307,6 +310,7 @@ export default function BusinessMap({
           setZoomLevel(map.getZoom() || 14);
         });
 
+        if (cancelled) return;
         mapRef.current = map;
         mapReadyRef.current = true;
         setMapReady(true);
@@ -314,10 +318,11 @@ export default function BusinessMap({
       })
       .catch((e) => { console.error("[WebMap] init failed", e); setMapError(true); });
     return () => {
+      cancelled = true;
       mapRef.current = null;
       mapReadyRef.current = false;
     };
-  }, [centerLat, centerLng, disabled]);
+  }, [disabled, mapError]);
 
   // Sync markers (app-style circular pins + count clusters, Brave-safe: no data-URI icons)
   useEffect(() => {
@@ -434,6 +439,16 @@ export default function BusinessMap({
     prevLocationRef.current = key;
     mapRef.current.panTo({ lat: location.latitude, lng: location.longitude });
   }, [location, mapReady]);
+
+  // Pan when the initialRegion-based center changes (e.g. home map bounds updates)
+  useEffect(() => {
+    if (!mapRef.current || !mapReadyRef.current) return;
+    if (location) return;
+    const key = `${centerLat.toFixed(4)},${centerLng.toFixed(4)}`;
+    if (key === prevCenterRef.current) return;
+    prevCenterRef.current = key;
+    mapRef.current.panTo({ lat: centerLat, lng: centerLng });
+  }, [centerLat, centerLng, location, mapReady]);
 
   // Fly to explicitly focused region (e.g. search selection / recenter)
   useEffect(() => {
