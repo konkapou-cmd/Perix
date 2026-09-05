@@ -56,7 +56,9 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
   const [viewerIndex, setViewerIndex] = useState(0);
 
   const { width: screenWidth } = useWindowDimensions();
-  const innerWidth = screenWidth - SECTION_PAD * 2;
+  const [containerWidth, setContainerWidth] = useState(0);
+  const effectiveWidth = containerWidth > 0 ? containerWidth : Math.min(screenWidth, 1280);
+  const innerWidth = effectiveWidth - SECTION_PAD * 2;
   const itemSize = (innerWidth - ITEM_GAP * (NUM_COLS - 1)) / NUM_COLS;
 
   const isWeb = Platform.OS === "web";
@@ -131,7 +133,7 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}>
       {allMedia.length === 0 ? (
         <EmptyState
           icon="images-outline"

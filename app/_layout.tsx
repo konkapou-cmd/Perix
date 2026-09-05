@@ -23,6 +23,7 @@ import { useDeepLinkHandler } from "../hooks/useDeepLinkHandler";
 import i18n from "../i18n";
 import { applyDefaultFontFamily } from "../lib/defaultFont";
 import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_600SemiBold, Quicksand_700Bold } from "@expo-google-fonts/quicksand";
+import GlobalWebChrome from "../components/GlobalWebChrome";
 
 applyDefaultFontFamily("Quicksand_400Regular");
 
@@ -339,10 +340,12 @@ export default function RootLayout() {
                     <BackButtonHandler />
                     <DeepLinkHandler />
                     <PushNotificationManager />
-                    <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
-                      <Stack.Screen name="call" options={{ gestureEnabled: false }} />
-                      <Stack.Screen name="incoming-call" options={{ gestureEnabled: false }} />
-                    </Stack>
+                    <GlobalWebChrome>
+                      <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+                        <Stack.Screen name="call" options={{ gestureEnabled: false }} />
+                        <Stack.Screen name="incoming-call" options={{ gestureEnabled: false }} />
+                      </Stack>
+                    </GlobalWebChrome>
                   </NotificationProvider>
                 </SocketProvider>
               </BadgeProvider>

@@ -216,7 +216,13 @@ export default function UserBookingListModal({ visible, sessionToken, onClose }:
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, alignSelf: "center" },
+    }),
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

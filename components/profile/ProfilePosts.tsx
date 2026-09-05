@@ -423,121 +423,56 @@ pendingMentionIds = [],
 
   return (
     <View style={styles.container}>
-      {isWeb && showComposer && createPostComposer}
-
-      {isWeb ? (
-        posts.length === 0 ? (
-          <EmptyState icon="newspaper-outline" message={t("profile.noPosts", "No posts yet")} />
-        ) : (
-          <View style={styles.postGrid}>
-            {postsData.map((post) => (
-              <Pressable
-                key={post.post_id}
-                style={styles.gridCard}
-                onPress={() => router.push(`/post/${post.post_id}` as any)}
-              >
-                {post.video_url || post.image_url ? (
-                  <View style={styles.gridMedia}>
-                    {post.video_url ? (
-                      <AdaptiveVideo
-                        uri={post.video_url}
-                        autoPlay
-                        style={{ width: "100%" }}
-                        ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
-                        maxHeight={1200}
-                        borderRadius={0}
-                        videoStatus={post.video_status}
-                        muxThumbnailUrl={post.mux_thumbnail_url || undefined}
-                        coverPhoto={post.mux_thumbnail_url || undefined}
-                        showMuteButton
-                      />
-                    ) : (
-                      <AdaptiveImage
-                        uri={post.image_url || ""}
-                        style={{ width: "100%" }}
-                        ratio={post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 1}
-                        maxHeight={1200}
-                        borderRadius={0}
-                      />
-                    )}
-                    <View style={styles.gridOverlay}>
-                      <Ionicons name="heart" size={14} color="#fff" />
-                      <Text style={styles.gridOverlayText}>{post.likes_count || 0}</Text>
-                      {post.comments_count ? (
-                        <>
-                          <Ionicons name="chatbubble" size={12} color="#fff" style={{ marginLeft: 8 }} />
-                          <Text style={styles.gridOverlayText}>{post.comments_count}</Text>
-                        </>
-                      ) : null}
-                    </View>
-                  </View>
-                ) : (
-                  <View style={[styles.gridMedia, styles.gridTextCard]}>
-                    <Text style={styles.gridTextPreview} numberOfLines={6}>
-                      {post.text || ""}
-                    </Text>
-                    <View style={styles.gridOverlay}>
-                      <Ionicons name="heart" size={14} color="#fff" />
-                      <Text style={styles.gridOverlayText}>{post.likes_count || 0}</Text>
-                    </View>
-                  </View>
-                )}
-              </Pressable>
-            ))}
-          </View>
-        )
-      ) : (
-        <FlatList
-          data={postsData}
-          nestedScrollEnabled={true}
-          keyExtractor={(post) => post.post_id}
-          renderItem={({ item: post }) => (
-            <PostCard
-              context="profile"
-              post={post}
-              isSaved={savedPostIds.has(post.post_id)}
-              isActive={isScreenFocused && post.post_id === visiblePostId && !editingPost}
-              canEdit={!!isOwnPost(post)}
-              canDelete={!!isOwnPost(post)}
-              sessionToken={sessionToken}
-              onLike={() => handleLikePost(post)}
-              onComment={() => handleComment(post)}
-              onSave={() => handleSave(post)}
-              onEdit={() => handleEditPress(post)}
-              onDelete={() => handleDeletePost(post)}
-              taggedUsers={post.tagged_user_ids?.map(id => ({ id, name: getFriendName(id) })) || []}
-              taggedBusinesses={post.tagged_business_ids?.map(id => ({ id, name: getBizName(id) })) || []}
-            />
-          )}
-          ListHeaderComponent={
-            <>
-              {listHeaderComponent}
-              {showComposer && !readOnly && createPostComposer}
-            </>
-          }
-          ListEmptyComponent={
-            postsData.length === 0 ? (
-              listEmptyComponent ?? (
-                posts.length === 0 ? (
-                  <EmptyState icon="newspaper-outline" message={t("profile.noPosts", "No posts yet")} />
-                ) : null
-              )
-            ) : null
-          }
-          refreshControl={
-            refreshing !== undefined && onRefresh ? (
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
-            ) : undefined
-          }
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 100 }}
-          initialNumToRender={3}
-          maxToRenderPerBatch={5}
-          windowSize={5}
-        />
-      )}
+      <FlatList
+        data={postsData}
+        nestedScrollEnabled={true}
+        keyExtractor={(post) => post.post_id}
+        renderItem={({ item: post }) => (
+          <PostCard
+            context="profile"
+            post={post}
+            isSaved={savedPostIds.has(post.post_id)}
+            isActive={isScreenFocused && post.post_id === visiblePostId && !editingPost}
+            canEdit={!!isOwnPost(post)}
+            canDelete={!!isOwnPost(post)}
+            sessionToken={sessionToken}
+            onLike={() => handleLikePost(post)}
+            onComment={() => handleComment(post)}
+            onSave={() => handleSave(post)}
+            onEdit={() => handleEditPress(post)}
+            onDelete={() => handleDeletePost(post)}
+            taggedUsers={post.tagged_user_ids?.map(id => ({ id, name: getFriendName(id) })) || []}
+            taggedBusinesses={post.tagged_business_ids?.map(id => ({ id, name: getBizName(id) })) || []}
+          />
+        )}
+        ListHeaderComponent={
+          <>
+            {listHeaderComponent}
+            {showComposer && (!readOnly || isWeb) && createPostComposer}
+          </>
+        }
+        ListEmptyComponent={
+          postsData.length === 0 ? (
+            listEmptyComponent ?? (
+              posts.length === 0 ? (
+                <EmptyState icon="newspaper-outline" message={t("profile.noPosts", "No posts yet")} />
+              ) : null
+            )
+          ) : null
+        }
+        refreshControl={
+          refreshing !== undefined && onRefresh ? (
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
+          ) : undefined
+        }
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 100 }}
+        initialNumToRender={3}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+      />
 
       <Modal
         visible={!!editingPost}

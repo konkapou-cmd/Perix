@@ -1,22 +1,12 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, Pressable, StyleSheet, Platform, Alert } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useTranslation } from "react-i18next";
+import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { useBadge } from "../../context/BadgeContext";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
-import TopNavbar from "../../components/TopNavbar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { COLORS, BORDER_RADIUS } from "../../lib/designTokens";
-import { useRouter } from "expo-router";
+import { COLORS } from "../../lib/designTokens";
 import { useAuth } from "../../context/AuthContext";
-import { useState, useEffect, useRef } from "react";
-import BusinessActionsModal, { BusinessAction } from "../../components/business/BusinessActionsModal";
-import CreationSheet, { CreationAction } from "../../components/user/CreationSheet";
-import ListingModal from "../../components/user/ListingModal";
-import type { ListingType } from "../../lib/api/listings";
-import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
-import { getProductPermissions, getManageListings } from "../../lib/api/listings";
+import { useCreateFlow } from "../../context/CreateFlowContext";
 
 function TabBarBackground() {
   return (
@@ -70,110 +60,15 @@ function CreateTabIcon({ color, size, filled }: { color: string; size: number; f
 }
 
 export default function TabsLayout() {
-  const { t } = useTranslation();
   const { isDesktop } = useResponsiveLayout();
   const showTopNavbar = isDesktop && Platform.OS === "web";
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { activeIdentity } = useAuth();
-  const { sessionToken } = useAuth();
-  const [showBizActions, setShowBizActions] = useState(false);
-  const [showCreateSheet, setShowCreateSheet] = useState(false);
-  const [listingType, setListingType] = useState<ListingType | null>(null);
+  const { openCreateSheet, openBizActions } = useCreateFlow();
   const isBusiness = activeIdentity?.type === "business";
-
-  const [bizActionsLoading, setBizActionsLoading] = useState(false);
-  const [bizActionsProductsEnabled, setBizActionsProductsEnabled] = useState(false);
-  const [bizActionsListingsCount, setBizActionsListingsCount] = useState(0);
-  const bizActionsRequestRef = useRef(0);
-
-  useEffect(() => {
-    if (!showBizActions || !activeIdentity?.id || !sessionToken) return;
-    const requestId = ++bizActionsRequestRef.current;
-    setBizActionsLoading(true);
-    Promise.allSettled([
-      getProductPermissions(activeIdentity.id),
-      getManageListings(sessionToken, "business", activeIdentity.id),
-    ]).then(([permsResult, listingsResult]) => {
-      if (requestId !== bizActionsRequestRef.current) return;
-      if (permsResult.status === "fulfilled") {
-        setBizActionsProductsEnabled(permsResult.value.enabled);
-      } else {
-        setBizActionsProductsEnabled(false);
-      }
-      if (listingsResult.status === "fulfilled") {
-        setBizActionsListingsCount(
-          listingsResult.value.filter(l => l.listing_type === "product").length,
-        );
-      } else {
-        setBizActionsListingsCount(0);
-      }
-      setBizActionsLoading(false);
-    });
-  }, [showBizActions, activeIdentity?.id, sessionToken]);
-
-  const handleBizAction = (action: BusinessAction) => {
-    switch (action) {
-      case "create-product":
-        router.replace({ pathname: "/(tabs)/profile", params: { openProduct: "1" } });
-        break;
-      case "create-service":
-        router.replace({ pathname: "/(tabs)/profile", params: { openService: "1" } });
-        break;
-      case "create-event":
-        router.replace({ pathname: "/(tabs)/profile", params: { openEvent: "1" } });
-        break;
-      case "create-job":
-        router.replace({ pathname: "/(tabs)/profile", params: { openJob: "1" } });
-        break;
-      case "manage-products":
-        router.replace({ pathname: "/(tabs)/profile", params: { section: "items" } });
-        break;
-      case "manage-services":
-        router.replace({ pathname: "/(tabs)/profile", params: { section: "services" } });
-        break;
-      case "manage-events":
-        router.replace({ pathname: "/(tabs)/profile", params: { section: "events" } });
-        break;
-      case "manage-jobs":
-        router.replace({ pathname: "/(tabs)/profile", params: { section: "jobs" } });
-        break;
-      case "manage-bookings":
-        router.replace({ pathname: "/(tabs)/profile", params: { openBookings: "1" } });
-        break;
-      case "manage-media":
-        router.replace({ pathname: "/(tabs)/profile", params: { section: "media" } });
-        break;
-    }
-  };
-
-  const handleCreateAction = (action: CreationAction) => {
-    switch (action) {
-      case "camera":
-        router.push("/camera");
-        break;
-      case "activity":
-        router.replace({ pathname: "/(tabs)/profile", params: { openActivity: "1" } as any });
-        break;
-      case "home_rental":
-      case "product":
-        if (!sessionToken) {
-          router.push("/login" as any);
-          return;
-        }
-        setListingType(action as ListingType);
-        break;
-    }
-  };
 
   return (
     <View style={styles.container}>
-      {showTopNavbar && (
-        <TopNavbar
-          onCreatePress={() => (isBusiness ? setShowBizActions(true) : setShowCreateSheet(true))}
-        />
-      )}
-
       <View style={[
         styles.mainContent,
         showTopNavbar && styles.desktopContent
@@ -246,7 +141,7 @@ export default function TabsLayout() {
               tabBarItemStyle: !isBusiness ? { display: "none" } : undefined,
               tabBarButton: isBusiness
                 ? (props: any) => (
-                    <Pressable {...props} onPress={() => setShowBizActions(true)} />
+                    <Pressable {...props} onPress={() => openBizActions()} />
                   )
                 : undefined,
               tabBarIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
@@ -261,7 +156,7 @@ export default function TabsLayout() {
               tabBarItemStyle: isBusiness ? { display: "none" } : undefined,
               tabBarButton: !isBusiness
                 ? (props: any) => (
-                    <Pressable {...props} onPress={() => setShowCreateSheet(true)} />
+                    <Pressable {...props} onPress={() => openCreateSheet()} />
                   )
                 : undefined,
               tabBarIcon: ({ color, size, focused }) => (
@@ -272,39 +167,6 @@ export default function TabsLayout() {
           />
         </Tabs>
       </View>
-
-      <BusinessActionsModal
-        visible={showBizActions}
-        loading={bizActionsLoading}
-        businessProductsEnabled={bizActionsProductsEnabled}
-        listingsCount={bizActionsListingsCount}
-        onClose={() => setShowBizActions(false)}
-        onAction={handleBizAction}
-      />
-      <CreationSheet
-        visible={showCreateSheet}
-        onClose={() => setShowCreateSheet(false)}
-        onAction={handleCreateAction}
-      />
-      <ListingModal
-        visible={listingType !== null}
-        listingType={listingType ?? "product"}
-        sessionToken={sessionToken ?? ""}
-        onClose={() => setListingType(null)}
-        onSave={() => setListingType(null)}
-        onCreated={(listingId) => {
-          setListingType(null);
-          Alert.alert(
-            t("common.success", "Erfolgreich"),
-            t("marketplace.itemCreated", "Dein Eintrag wurde veröffentlicht."),
-            [
-              { text: t("marketplace.viewListing", "Ansehen"), onPress: () => pushEntityRoute(router, entityRoutes.listing(listingId), () => showInvalidEntityAlert(t)) },
-              { text: t("marketplace.myListings", "Meine Einträge"), onPress: () => router.push("/my-listings" as any) },
-              { text: t("common.ok", "OK"), onPress: () => {} },
-            ],
-          );
-        }}
-      />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Pressable, FlatList, Image } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Pressable, FlatList, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -351,7 +351,7 @@ export default function MarketplaceItemsPage() {
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <FlatList
-        style={{ flex: 1 }}
+        style={styles.pageLimit}
         data={visibleListings}
         renderItem={renderCard}
         keyExtractor={(item) => item.listing_id}
@@ -378,6 +378,12 @@ export default function MarketplaceItemsPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.backgroundPage },
+  pageLimit: {
+    flex: 1,
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, marginHorizontal: "auto" },
+    }),
+  },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { paddingBottom: SPACING.section, paddingHorizontal: SPACING.std },
   card: {

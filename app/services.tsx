@@ -196,6 +196,7 @@ export default function ServicesScreen() {
           data={filteredServices}
           keyExtractor={(item) => item.service_id}
           nestedScrollEnabled
+          style={styles.pageLimit}
           ListHeaderComponent={
             <>
               <View style={styles.searchContainer}>
@@ -429,6 +430,11 @@ export default function ServicesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#ffffff" },
+  pageLimit: {
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, marginHorizontal: "auto" },
+    }),
+  },
   mapContainer: { borderRadius: 12, overflow: "hidden", backgroundColor: "#EAF3FB" },
   mapPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   mapPlaceholderText: { fontSize: 16, fontWeight: "600", color: "#264348", marginTop: 8 },

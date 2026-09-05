@@ -15,6 +15,7 @@ type ContentGalleryProps = {
 
 export default function ContentGallery({ mediaItems, title }: ContentGalleryProps) {
   const { width: screenWidth } = useWindowDimensions();
+  const [sectionWidth, setSectionWidth] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
 
@@ -22,7 +23,8 @@ export default function ContentGallery({ mediaItems, title }: ContentGalleryProp
 
   const itemGap = 8;
   const sectionPad = 16;
-  const innerWidth = screenWidth - sectionPad * 2;
+  const effectiveWidth = sectionWidth > 0 ? sectionWidth : Math.min(screenWidth, 1280);
+  const innerWidth = effectiveWidth - sectionPad * 2;
   const itemWidth = (innerWidth - itemGap * (NUM_COLS - 1)) / NUM_COLS;
   const itemHeight = itemWidth;
 
@@ -34,7 +36,7 @@ export default function ContentGallery({ mediaItems, title }: ContentGalleryProp
   };
 
   return (
-    <View style={styles.section}>
+    <View style={styles.section} onLayout={(e) => setSectionWidth(e.nativeEvent.layout.width)}>
       {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
       <View style={[styles.grid, { gap: itemGap }]}>
         {mediaItems.map((item, idx) => (
