@@ -300,7 +300,7 @@ export default function BusinessMap({
     return () => { mapRef.current = null; };
   }, [centerLat, centerLng]);
 
-  // Sync markers (app-style circular pins + count clusters)
+  // Sync markers (app-style circular pins + count clusters, Brave-safe: no data-URI icons)
   useEffect(() => {
     if (!mapRef.current || !mapReady) return;
     const google = (window as any).google;
@@ -314,50 +314,91 @@ export default function BusinessMap({
       const baseSize = (isGroup
         ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40)
         : 20) * zoomScale;
-      const size = Math.round(baseSize);
-      const innerSize = isGroup ? 0 : Math.max(5, Math.round(7 * zoomScale));
-      const fontSize = Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale);
+      const scale = baseSize / 20;
+      const innerDotSize = Math.max(3.5, 7 * zoomScale);
 
-      let svg = "";
       if (isGroup) {
-        const dots = group.memberColors
-          .map((c, i) => {
-            const dx = 50 + (i - (Math.min(group.memberColors.length, 4) - 1) / 2) * 18;
-            return `<circle cx="${dx}" cy="${82}" r="4" fill="${c}"/>`;
-          })
-          .join("");
-        svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="46" fill="${group.pinColor}" stroke="#fff" stroke-width="4"/>
-          <text x="50" y="54" font-family="Arial, sans-serif" font-size="${fontSize * 3.4}" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">${group.count}</text>
-          ${dots}
-        </svg>`;
-      } else {
-        svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="46" fill="${group.pinColor}" stroke="#fff" stroke-width="4"/>
-          ${group.pinInnerColor ? `<circle cx="50" cy="50" r="22" fill="${group.pinInnerColor}"/>` : ""}
-        </svg>`;
+        const marker = new google.maps.Marker({
+          position: { lat: group.latitude, lng: group.longitude },
+          map: mapRef.current,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale,
+            fillColor: group.pinColor,
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+          },
+          label: {
+            text: String(group.count),
+            color: "#ffffff",
+            fontSize: String(Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale)) + "px",
+            fontWeight: "700",
+            fontFamily: "Arial, sans-serif",
+          },
+        });
+        marker.addListener("click", () => setSelectedGroup(group.items));
+        markersRef.current.push(marker);
+
+        // Member color dots around the cluster (non-interactive)
+        group.memberColors.slice(0, 4).forEach((c, i) => {
+          const dot = new google.maps.Marker({
+            position: {
+              lat: group.latitude + (i % 2 === 0 ? 1 : -1) * (0.00012 + 0.00006 * Math.floor(i / 2)),
+              lng: group.longitude + (i % 2 === 0 ? -1 : 1) * (0.00012 + 0.00006 * Math.floor(i / 2)),
+            },
+            map: mapRef.current,
+            clickable: false,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 0.25 * zoomScale,
+              fillColor: c,
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 1,
+            },
+          });
+          markersRef.current.push(dot);
+        });
+        return;
       }
 
+      // Single pin: colored circle + optional inner dot (separate non-interactive marker)
       const marker = new google.maps.Marker({
         position: { lat: group.latitude, lng: group.longitude },
         map: mapRef.current,
         title: group.items[0].title,
         icon: {
-          url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
-          scaledSize: new google.maps.Size(size, size),
-          anchor: new google.maps.Point(size / 2, size / 2),
+          path: google.maps.SymbolPath.CIRCLE,
+          scale,
+          fillColor: group.pinColor,
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2,
         },
       });
       marker.addListener("click", () => {
-        if (isGroup) {
-          setSelectedGroup(group.items);
-          return;
-        }
         const biz = businesses.find((b) => b.business_id === group.items[0].id);
         if (biz) setSelectedBusiness(biz);
         onMarkerPress?.(group.items[0].id);
       });
       markersRef.current.push(marker);
+
+      if (group.pinInnerColor) {
+        const inner = new google.maps.Marker({
+          position: { lat: group.latitude, lng: group.longitude },
+          map: mapRef.current,
+          clickable: false,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: innerDotSize / 20,
+            fillColor: group.pinInnerColor,
+            fillOpacity: 1,
+            strokeWeight: 0,
+          },
+        });
+        markersRef.current.push(inner);
+      }
     });
   }, [groupedMarkers, mapReady, businesses, zoomLevel]);
 
