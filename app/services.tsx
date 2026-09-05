@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -50,6 +50,8 @@ export default function ServicesScreen() {
   const { sessionToken } = useAuth();
   const router = useRouter();
   const { mapBounds, setMapBounds } = useMapBounds();
+  const mapBoundsRef = useRef(mapBounds);
+  mapBoundsRef.current = mapBounds;
 
   const [loading, setLoading] = useState(true);
   const [services, setServices] = useState<Service[]>([]);
@@ -111,7 +113,7 @@ export default function ServicesScreen() {
     if (sessionToken) {
       loadServices();
     }
-  }, [sessionToken, location, rootCategory, subcategory, mapBounds]);
+  }, [sessionToken, location, rootCategory, subcategory]);
 
   const loadCategories = async () => {
     try {
@@ -145,11 +147,12 @@ export default function ServicesScreen() {
 
   const loadServices = async () => {
     if (!sessionToken) return;
+    const bounds = mapBoundsRef.current;
     setLoading(true);
     try {
-      const centerLat = location?.latitude ?? mapBounds?.centerLat;
-      const centerLng = location?.longitude ?? mapBounds?.centerLng;
-      const data = await getNearbyServices(sessionToken, mapBounds ?? undefined, {
+      const centerLat = location?.latitude ?? bounds?.centerLat;
+      const centerLng = location?.longitude ?? bounds?.centerLng;
+      const data = await getNearbyServices(sessionToken, bounds ?? undefined, {
         latitude: centerLat,
         longitude: centerLng,
       });
@@ -174,7 +177,7 @@ export default function ServicesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {loading ? (
+      {loading && services.length === 0 ? (
         <View style={{ backgroundColor: COLORS.backgroundPage }}>
           <SkeletonBox width="100%" height={180} borderRadius={16} style={{ marginHorizontal: 16, marginTop: 16 }} />
           <SkeletonBox width={120} height={18} style={{ marginTop: 16, marginHorizontal: 16 }} />

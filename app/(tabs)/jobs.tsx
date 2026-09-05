@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -49,6 +49,8 @@ export default function JobsScreen() {
   const { sessionToken } = useAuth();
   const router = useRouter();
   const { mapBounds, setMapBounds } = useMapBounds();
+  const mapBoundsRef = useRef(mapBounds);
+  mapBoundsRef.current = mapBounds;
 
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -116,7 +118,7 @@ export default function JobsScreen() {
     if (sessionToken) {
       loadJobs();
     }
-  }, [sessionToken, location, rootCategory, subcategory, mapBounds]);
+  }, [sessionToken, location, rootCategory, subcategory]);
 
   const loadCategories = async () => {
     try {
@@ -150,11 +152,12 @@ export default function JobsScreen() {
 
   const loadJobs = async () => {
     if (!sessionToken) return;
+    const bounds = mapBoundsRef.current;
     setLoading(true);
     try {
-      const centerLat = location?.latitude ?? mapBounds?.centerLat;
-      const centerLng = location?.longitude ?? mapBounds?.centerLng;
-      const data = await getJobs(sessionToken, mapBounds ?? undefined, {
+      const centerLat = location?.latitude ?? bounds?.centerLat;
+      const centerLng = location?.longitude ?? bounds?.centerLng;
+      const data = await getJobs(sessionToken, bounds ?? undefined, {
         rootCategory: rootCategory || undefined,
         subcategory: subcategory || undefined,
         latitude: centerLat,
@@ -186,11 +189,12 @@ export default function JobsScreen() {
     if (!sessionToken || loadingMore || jobs.length >= jobsTotal) return;
     setLoadingMore(true);
     try {
-      const data = await getJobs(sessionToken, mapBounds ?? undefined, {
+      const bounds = mapBoundsRef.current;
+      const data = await getJobs(sessionToken, bounds ?? undefined, {
         rootCategory: rootCategory || undefined,
         subcategory: subcategory || undefined,
-        latitude: location?.latitude ?? mapBounds?.centerLat,
-        longitude: location?.longitude ?? mapBounds?.centerLng,
+        latitude: location?.latitude ?? bounds?.centerLat,
+        longitude: location?.longitude ?? bounds?.centerLng,
       }, jobsOffset, 20);
       const moreJobs: Job[] = Array.isArray(data) ? data : (data.jobs || []);
       setJobs(prev => [...(prev || []), ...moreJobs]);
@@ -207,7 +211,7 @@ export default function JobsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {loading ? (
+      {loading && jobs.length === 0 ? (
         <View style={{ backgroundColor: COLORS.backgroundPage }}>
           <SkeletonBox width="100%" height={180} borderRadius={16} style={{ marginHorizontal: 16, marginTop: 16 }} />
           <SkeletonBox width={120} height={18} style={{ marginTop: 16, marginHorizontal: 16 }} />
