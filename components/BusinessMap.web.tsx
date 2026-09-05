@@ -324,14 +324,18 @@ export default function BusinessMap({
     };
   }, [disabled, mapError]);
 
-  // Sync markers (app-style circular pins + count clusters, Brave-safe: no data-URI icons)
+  // Sync markers — DOM-based pins (OverlayView) for pixel-perfect app-style rendering
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) {
       console.log("[WebMap] markers skipped (mapRef=" + !!mapRef.current + " ready=" + mapReadyRef.current + ")");
       return;
     }
     const google = (window as any).google;
-    markersRef.current.forEach((m: any) => m.setMap(null));
+
+    // remove previous overlays
+    markersRef.current.forEach((ov: any) => {
+      try { ov.setMap(null); ov.remove && ov.remove(); } catch (e) {}
+    });
     markersRef.current = [];
 
     const zoomScale = Math.max(0.8, Math.min(1.7, zoomLevel / 12));
@@ -342,92 +346,106 @@ export default function BusinessMap({
       const isGroup = group.count > 1;
       const baseSize = (isGroup
         ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40)
-        : 20) * zoomScale;
-      const scale = baseSize / 20;
-      const innerDotSize = Math.max(3.5, 7 * zoomScale);
+        : 22) * zoomScale;
+      const sizePx = Math.round(baseSize);
+      const innerSize = Math.round(Math.max(6, 8 * zoomScale));
+      const fontSize = Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale);
+      const pinColor = group.pinColor || "#264348";
+
+      // Container div (positioned by OverlayView)
+      const container = document.createElement("div");
+      container.style.position = "absolute";
+      container.style.cursor = "pointer";
+      container.style.userSelect = "none";
+
+      const pin = document.createElement("div");
+      pin.style.width = sizePx + "px";
+      pin.style.height = sizePx + "px";
+      pin.style.borderRadius = "50%";
+      pin.style.backgroundColor = pinColor;
+      pin.style.border = "2px solid #ffffff";
+      pin.style.boxShadow = "0 1px 4px rgba(0,0,0,0.35)";
+      pin.style.display = "flex";
+      pin.style.alignItems = "center";
+      pin.style.justifyContent = "center";
+      pin.style.position = "relative";
+      pin.style.transform = "translate(-50%, -50%)";
+      pin.style.boxSizing = "border-box";
+      container.appendChild(pin);
 
       if (isGroup) {
-        const marker = new google.maps.Marker({
-          position: { lat: group.latitude, lng: group.longitude },
-          map: mapRef.current,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale,
-            fillColor: group.pinColor,
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 2,
-          },
-          label: {
-            text: String(group.count),
-            color: "#ffffff",
-            fontSize: String(Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale)) + "px",
-            fontWeight: "700",
-            fontFamily: "Arial, sans-serif",
-          },
-        });
-        marker.addListener("click", () => setSelectedGroup(group.items));
-        markersRef.current.push(marker);
+        const countText = document.createElement("div");
+        countText.textContent = String(group.count);
+        countText.style.color = "#ffffff";
+        countText.style.fontWeight = "700";
+        countText.style.fontFamily = "Arial, sans-serif";
+        countText.style.fontSize = fontSize + "px";
+        countText.style.lineHeight = "1";
+        pin.appendChild(countText);
 
-        // Member color dots around the cluster (non-interactive)
         group.memberColors.slice(0, 4).forEach((c, i) => {
-          const dot = new google.maps.Marker({
-            position: {
-              lat: group.latitude + (i % 2 === 0 ? 1 : -1) * (0.00012 + 0.00006 * Math.floor(i / 2)),
-              lng: group.longitude + (i % 2 === 0 ? -1 : 1) * (0.00012 + 0.00006 * Math.floor(i / 2)),
-            },
-            map: mapRef.current,
-            clickable: false,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 0.25 * zoomScale,
-              fillColor: c,
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeWeight: 1,
-            },
-          });
-          markersRef.current.push(dot);
+          const dot = document.createElement("div");
+          const dotSize = Math.round(Math.max(4, 5 * zoomScale));
+          dot.style.position = "absolute";
+          dot.style.width = dotSize + "px";
+          dot.style.height = dotSize + "px";
+          dot.style.borderRadius = "50%";
+          dot.style.backgroundColor = c;
+          dot.style.border = "1px solid #fff";
+          const angle = (i / Math.min(group.memberColors.length, 4)) * Math.PI * 2;
+          const r = sizePx / 2 + 3;
+          dot.style.left = sizePx / 2 + Math.cos(angle) * r - dotSize / 2 + "px";
+          dot.style.top = sizePx / 2 + Math.sin(angle) * r - dotSize / 2 + "px";
+          pin.appendChild(dot);
         });
-        return;
+      } else if (group.pinInnerColor) {
+        const inner = document.createElement("div");
+        inner.style.width = innerSize + "px";
+        inner.style.height = innerSize + "px";
+        inner.style.borderRadius = "50%";
+        inner.style.backgroundColor = group.pinInnerColor;
+        pin.appendChild(inner);
       }
 
-      // Single pin: colored circle + optional inner dot (separate non-interactive marker)
-      const marker = new google.maps.Marker({
-        position: { lat: group.latitude, lng: group.longitude },
-        map: mapRef.current,
-        title: group.items[0].title,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale,
-          fillColor: group.pinColor,
-          fillOpacity: 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 2,
-        },
-      });
-      marker.addListener("click", () => {
+      class PinOverlay extends google.maps.OverlayView {
+        div: HTMLDivElement;
+        pos: { lat: number; lng: number };
+        constructor(div: HTMLDivElement, pos: { lat: number; lng: number }) {
+          super();
+          this.div = div;
+          this.pos = pos;
+        }
+        onAdd(this: any) {
+          this.getPanes().overlayMouseTarget.appendChild(this.div);
+        }
+        draw(this: any) {
+          const overlayProjection = this.getProjection();
+          const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
+          if (point) {
+            this.div.style.left = point.x + "px";
+            this.div.style.top = point.y + "px";
+          }
+        }
+        onRemove(this: any) {
+          if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
+        }
+      }
+
+      const overlay = new PinOverlay(container, { lat: group.latitude, lng: group.longitude });
+      overlay.setMap(mapRef.current);
+
+      container.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (isGroup) {
+          setSelectedGroup(group.items);
+          return;
+        }
         const biz = businesses.find((b) => b.business_id === group.items[0].id);
         if (biz) setSelectedBusiness(biz);
         onMarkerPress?.(group.items[0].id);
       });
-      markersRef.current.push(marker);
 
-      if (group.pinInnerColor) {
-        const inner = new google.maps.Marker({
-          position: { lat: group.latitude, lng: group.longitude },
-          map: mapRef.current,
-          clickable: false,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: innerDotSize / 20,
-            fillColor: group.pinInnerColor,
-            fillOpacity: 1,
-            strokeWeight: 0,
-          },
-        });
-        markersRef.current.push(inner);
-      }
+      markersRef.current.push(overlay);
     });
   }, [groupedMarkers, mapReady, businesses, zoomLevel]);
 
