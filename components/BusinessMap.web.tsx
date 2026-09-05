@@ -73,16 +73,29 @@ let googleScriptLoaded = false;
 let googleScriptPromise: Promise<void> | null = null;
 
 function loadGoogleScript() {
-  if (googleScriptLoaded) return Promise.resolve();
+  if (googleScriptLoaded && (window as any).google?.maps?.Map) return Promise.resolve();
   if (googleScriptPromise) return googleScriptPromise;
   googleScriptPromise = new Promise<void>((resolve, reject) => {
-    if ((window as any).google?.maps) { googleScriptLoaded = true; resolve(); return; }
+    if ((window as any).google?.maps?.Map) { googleScriptLoaded = true; resolve(); return; }
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleKey}&loading=async`;
+    // Classic (non-async) loader: everything loads in one script, so
+    // `google.maps.Map` is available on onload — avoids the async bootstrap
+    // chunks that Brave/ad-blockers intercept (causing "Map is not a constructor").
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleKey}`;
     script.async = true;
-    script.defer = true;
-    script.onload = () => { googleScriptLoaded = true; resolve(); };
-    script.onerror = () => reject(new Error("Google Maps script load failed"));
+    script.onload = () => {
+      if (!(window as any).google?.maps?.Map) {
+        reject(new Error("Google Maps API not available"));
+        googleScriptPromise = null;
+        return;
+      }
+      googleScriptLoaded = true;
+      resolve();
+    };
+    script.onerror = () => {
+      googleScriptPromise = null;
+      reject(new Error("Google Maps script load failed"));
+    };
     document.head.appendChild(script);
   });
   return googleScriptPromise;
