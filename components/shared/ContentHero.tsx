@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   heroContainer: {
     width: "100%",
     aspectRatio: 16 / 9,
-    maxWidth: Platform.OS === "web" ? 914 : undefined,
+    maxWidth: Platform.OS === "web" ? 1280 : undefined,
     alignSelf: "center",
     borderRadius: BORDER_RADIUS.xxl,
     overflow: "hidden",

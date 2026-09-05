@@ -88,9 +88,11 @@ export default function UnifiedMediaGallery({
   const [coverEditorVisible, setCoverEditorVisible] = useState(false);
 
   const { width: screenWidth } = useWindowDimensions();
+  const [containerWidth, setContainerWidth] = useState(0);
   const itemGap = SPACING.gap;
   const NUM_COLS = 3;
-  const itemSize = (screenWidth - SPACING.page * 2 - itemGap * (NUM_COLS - 1)) / NUM_COLS;
+  const effectiveWidth = containerWidth > 0 ? containerWidth : Math.min(screenWidth, 1280);
+  const itemSize = (effectiveWidth - itemGap * (NUM_COLS - 1)) / NUM_COLS;
 
   const galleryLimits = mediaContext === "cover"
     ? MEDIA_LIMITS.coverGallery
@@ -339,7 +341,7 @@ export default function UnifiedMediaGallery({
   };
 
   return (
-    <View>
+    <View onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}>
       {label && <Text style={s.label}>{label}</Text>}
 
       <Pressable style={s.heroContainer} onPress={media.length === 0 && isCreator ? addImages : undefined}>

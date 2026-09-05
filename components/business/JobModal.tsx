@@ -150,15 +150,6 @@ export default function JobModal({
   return (
     <>
     <FormScreen title={modalTitle} onClose={onClose} visible={visible} titleColor="#264348">
-      <UnifiedMediaGallery
-              media={media}
-              onChange={handleMediaChange}
-              sessionToken={sessionToken}
-              label={t("jobs.coverImage", "Cover Image")}
-              accentColor="#264348"
-              lightBackground
-            />
-
             <Text style={s.label}><Text style={s.required}>* </Text>{t("jobs.jobTitle", "Job Title")}</Text>
             <TextInput
               style={s.input}
@@ -246,6 +237,15 @@ export default function JobModal({
                 </Pressable>
               ))}
             </View>
+
+      <UnifiedMediaGallery
+        media={media}
+        onChange={handleMediaChange}
+        sessionToken={sessionToken}
+        label={t("jobs.coverImage", "Cover Image")}
+        accentColor="#264348"
+        lightBackground
+      />
 
       <FormBottomBar
         onCancel={onClose}
