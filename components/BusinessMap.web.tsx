@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { StyleSheet, Text, View, Platform, Pressable, Modal, Image as RNImage, Linking, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Business, EventItem, ActivityItem, ArtistSearchResult, Rental, Job, Service } from "../lib/api";
@@ -16,6 +16,7 @@ type MapMarker = {
   title?: string;
   description?: string;
   pinColor?: string;
+  pinInnerColor?: string;
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product";
 };
 
@@ -203,6 +204,36 @@ export default function BusinessMap({
     ...(extraMarkers ?? []),
   ];
 
+  const groupedMarkers = useMemo(() => {
+    const groups = new Map<string, MapMarker[]>();
+    allMarkers.forEach((m) => {
+      const key = `${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(m);
+    });
+    return Array.from(groups.entries()).map(([key, items]) => {
+      const uniqueColors: string[] = [];
+      items.forEach((i) => {
+        if (i.pinColor && !uniqueColors.includes(i.pinColor)) uniqueColors.push(i.pinColor);
+        if (i.pinInnerColor && !uniqueColors.includes(i.pinInnerColor)) uniqueColors.push(i.pinInnerColor);
+      });
+      return {
+        key,
+        items,
+        latitude: items[0].latitude,
+        longitude: items[0].longitude,
+        count: items.length,
+        pinColor: items.length === 1 ? items[0].pinColor ?? COLORS.pinClosed : "#264348",
+        pinInnerColor: items.length === 1 ? items[0].pinInnerColor : undefined,
+        memberColors: items.length > 1 ? uniqueColors.slice(0, 4) : [],
+        type: items[0].type,
+      };
+    });
+  }, [allMarkers]);
+
+  const [zoomLevel, setZoomLevel] = useState(14);
+  const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
+
   // Init map
   useEffect(() => {
     if (!mapDivRef.current || mapReady || mapError) return;
@@ -258,6 +289,10 @@ export default function BusinessMap({
           onMapPress?.(e.latLng.lat(), e.latLng.lng());
         });
 
+        map.addListener("zoom_changed", () => {
+          setZoomLevel(map.getZoom() || 14);
+        });
+
         mapRef.current = map;
         setMapReady(true);
       })
@@ -265,37 +300,66 @@ export default function BusinessMap({
     return () => { mapRef.current = null; };
   }, [centerLat, centerLng]);
 
-  // Sync markers
+  // Sync markers (app-style circular pins + count clusters)
   useEffect(() => {
     if (!mapRef.current || !mapReady) return;
     const google = (window as any).google;
     markersRef.current.forEach((m: any) => m.setMap(null));
     markersRef.current = [];
-    allMarkers.forEach((data) => {
-      const pinColor = data.pinColor ?? COLORS.success;
+
+    const zoomScale = Math.max(0.8, Math.min(1.7, zoomLevel / 12));
+
+    groupedMarkers.forEach((group) => {
+      const isGroup = group.count > 1;
+      const baseSize = (isGroup
+        ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40)
+        : 20) * zoomScale;
+      const size = Math.round(baseSize);
+      const innerSize = isGroup ? 0 : Math.max(5, Math.round(7 * zoomScale));
+      const fontSize = Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale);
+
+      let svg = "";
+      if (isGroup) {
+        const dots = group.memberColors
+          .map((c, i) => {
+            const dx = 50 + (i - (Math.min(group.memberColors.length, 4) - 1) / 2) * 18;
+            return `<circle cx="${dx}" cy="${82}" r="4" fill="${c}"/>`;
+          })
+          .join("");
+        svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="${group.pinColor}" stroke="#fff" stroke-width="4"/>
+          <text x="50" y="54" font-family="Arial, sans-serif" font-size="${fontSize * 3.4}" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">${group.count}</text>
+          ${dots}
+        </svg>`;
+      } else {
+        svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="${group.pinColor}" stroke="#fff" stroke-width="4"/>
+          ${group.pinInnerColor ? `<circle cx="50" cy="50" r="22" fill="${group.pinInnerColor}"/>` : ""}
+        </svg>`;
+      }
+
       const marker = new google.maps.Marker({
-        position: { lat: data.latitude, lng: data.longitude },
+        position: { lat: group.latitude, lng: group.longitude },
         map: mapRef.current,
-        title: data.title,
+        title: group.items[0].title,
         icon: {
-          path: "M12 0C7.03 0 3 4.03 3 9c0 6.4 9 15 9 15s9-8.6 9-15C21 4.03 16.97 0 12 0zM12 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8z",
-          fillColor: pinColor,
-          fillOpacity: 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 1.6,
-          scale: 1.6,
-          anchor: new google.maps.Point(12, 24),
-          fillRule: "evenodd",
+          url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+          scaledSize: new google.maps.Size(size, size),
+          anchor: new google.maps.Point(size / 2, size / 2),
         },
       });
       marker.addListener("click", () => {
-        const biz = businesses.find((b) => b.business_id === data.id);
+        if (isGroup) {
+          setSelectedGroup(group.items);
+          return;
+        }
+        const biz = businesses.find((b) => b.business_id === group.items[0].id);
         if (biz) setSelectedBusiness(biz);
-        onMarkerPress?.(data.id);
+        onMarkerPress?.(group.items[0].id);
       });
       markersRef.current.push(marker);
     });
-  }, [allMarkers, mapReady, businesses]);
+  }, [groupedMarkers, mapReady, businesses, zoomLevel]);
 
   // Fly to location
   useEffect(() => {
@@ -375,6 +439,31 @@ export default function BusinessMap({
         style={{ flex: 1, borderRadius: 12 }}
       />
 
+      <Modal visible={!!selectedGroup} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
+        <Pressable style={s.sheetOverlay} onPress={() => setSelectedGroup(null)}>
+          <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={s.sheetHandle} />
+            <Text style={s.sheetTitle}>{t("map.itemsAtLocation", "{{count}} items at this location", { count: selectedGroup ? selectedGroup.length : 0 })}</Text>
+            <View style={s.sheetList}>
+              {(selectedGroup || []).map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={s.sheetItem}
+                  onPress={() => { setSelectedGroup(null); onMarkerPress?.(item.id); }}
+                >
+                  <View style={[s.sheetDot, { backgroundColor: item.pinColor || COLORS.pinClosed }]} />
+                  <View style={s.sheetItemInfo}>
+                    <Text style={s.sheetItemName} numberOfLines={1}>{item.title}</Text>
+                    <Text style={s.sheetItemType} numberOfLines={1}>{t(`map.types.${item.type || "item"}`, item.type || "item")}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.textGray} />
+                </Pressable>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <Modal visible={!!selectedBusiness} transparent animationType="fade" onRequestClose={() => setSelectedBusiness(null)}>
         <Pressable style={s.modalOverlay} onPress={() => setSelectedBusiness(null)}>
           <Pressable style={s.card} onPress={(e) => e.stopPropagation()}>
@@ -418,7 +507,17 @@ export default function BusinessMap({
 }
 
 const s = StyleSheet.create({
-  wrap: { marginHorizontal: 16, borderRadius: 16, backgroundColor: "#fff", overflow: "hidden" },
+  wrap: { marginHorizontal: 16, borderRadius: 12, backgroundColor: "#EAF3FB", overflow: "hidden", borderWidth: 1, borderColor: "#59ABE3" },
+  sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  sheet: { backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24, maxHeight: "60%", overflow: "hidden" },
+  sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: "#d1d5db", alignSelf: "center", marginTop: 10 },
+  sheetTitle: { fontSize: 16, fontWeight: "700", color: "#264348", paddingHorizontal: 20, marginTop: 14, marginBottom: 8 },
+  sheetList: { maxHeight: 360 },
+  sheetItem: { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 20, gap: 12 },
+  sheetDot: { width: 14, height: 14, borderRadius: 7 },
+  sheetItemInfo: { flex: 1 },
+  sheetItemName: { fontSize: 15, fontWeight: "600", color: "#264348" },
+  sheetItemType: { fontSize: 12, color: "rgba(38,67,72,0.65)", marginTop: 1 },
   disabledOverlay: { flex: 1, backgroundColor: COLORS.borderGray, justifyContent: "center", alignItems: "center", gap: 12 },
   disabledText: { fontSize: 15, color: COLORS.textGray, fontWeight: "500" },
   loading: { ...StyleSheet.absoluteFillObject as any, justifyContent: "center", alignItems: "center", backgroundColor: "#f3f4f6", zIndex: 10 },
