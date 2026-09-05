@@ -19,7 +19,7 @@ import { useAuth } from "../context/AuthContext";
 import { useBadge } from "../context/BadgeContext";
 import { COLORS } from "../lib/designTokens";
 
-export default function TopNavbar() {
+export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
@@ -86,18 +86,18 @@ export default function TopNavbar() {
 
         {/* Right: Actions */}
         <View style={styles.rightSection}>
-          {/* Create Button */}
+          {/* Create Button — mirrors the app's bottom-bar create tab */}
           <Pressable
             style={[
               styles.createButton,
               hoveredItem === "create" && styles.createButtonHover,
             ]}
-            onPress={() => router.push("/camera")}
+            onPress={onCreatePress}
             onHoverIn={() => setHoveredItem("create")}
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-create"
           >
-            <Ionicons name="add" size={18} color={COLORS.background} />
+            <Ionicons name="sparkles" size={18} color={COLORS.background} />
             <Text style={styles.createButtonText}>Create</Text>
           </Pressable>
 

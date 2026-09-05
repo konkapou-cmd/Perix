@@ -168,7 +168,11 @@ export default function TabsLayout() {
 
   return (
     <View style={styles.container}>
-      {showTopNavbar && <TopNavbar />}
+      {showTopNavbar && (
+        <TopNavbar
+          onCreatePress={() => (isBusiness ? setShowBizActions(true) : setShowCreateSheet(true))}
+        />
+      )}
 
       <View style={[
         styles.mainContent,
