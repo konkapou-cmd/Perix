@@ -34,6 +34,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useMapBounds } from "../../context/MapBoundsContext";
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
+import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import {
   Business,
   createBusiness,
@@ -78,6 +79,7 @@ interface DateFilter {
 
 export default function LocatorScreen() {
   const { t } = useTranslation();
+  const { isDesktop } = useResponsiveLayout();
   const { sessionToken, user } = useAuth();
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
   const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
@@ -676,7 +678,7 @@ export default function LocatorScreen() {
       {/* Search Bar */}
       <View style={styles.searchBarSection}>
         <View style={styles.searchInputContainer}>
-          {Platform.OS !== "web" && (
+          {!isDesktop && (
             <Pressable onPress={() => setSidebarOpen(true)} style={{ paddingRight: 4 }}>
               <Ionicons name="menu" size={20} color="#264348" />
             </Pressable>
@@ -699,17 +701,17 @@ export default function LocatorScreen() {
 
       {/* Sidebar + Content */}
       <View style={styles.sidebarLayout}>
-        {Platform.OS === "web" || sidebarOpen ? (
+        {isDesktop || sidebarOpen ? (
           <LocatorSidebar
             categories={categoryTree}
             selectedRoot={selectedRoot}
             selectedSubcategory={selectedSubcategory}
             onSelectRoot={(slug) => { setSelectedRoot(slug); setSelectedSubcategory("All"); }}
             onSelectSubcategory={setSelectedSubcategory}
-            onClose={Platform.OS !== "web" ? () => setSidebarOpen(false) : undefined}
+            onClose={!isDesktop ? () => setSidebarOpen(false) : undefined}
           />
         ) : null}
-        {Platform.OS !== "web" && sidebarOpen && (
+        {!isDesktop && sidebarOpen && (
           <Pressable style={styles.sidebarOverlay} onPress={() => setSidebarOpen(false)} />
         )}
 
