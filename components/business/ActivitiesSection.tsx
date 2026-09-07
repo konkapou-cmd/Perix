@@ -75,11 +75,11 @@ export default function ActivitiesSection({
                 >
                   <View style={s.cardMedia}>
                     {activity.cover_image_url ? (
-                      <FocalImage uri={activity.cover_image_url} aspectRatio={16 / 9} focalPoint={(activity as any).cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
+                      <FocalImage uri={activity.cover_image_url} focalPoint={(activity as any).cover_focal_point} borderRadius={0} showLoader={false} style={{ width: "100%", height: "100%" }} />
                     ) : hasVideo ? (
                       <AdaptiveVideo uri={activity.video_url || ""} autoPlay style={{ width: "100%", height: "100%" }} isLooping initialMuted />
                     ) : imageUrl ? (
-                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={(activity as any).cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
+                      <FocalImage uri={imageUrl} focalPoint={(activity as any).cover_focal_point} borderRadius={0} showLoader={false} style={{ width: "100%", height: "100%" }} />
                     ) : (
                       <View style={[s.imagePlaceholder, { backgroundColor: `${theme.color}30` }]}>
                         <Text style={s.themeEmoji}>{theme.emoji}</Text>

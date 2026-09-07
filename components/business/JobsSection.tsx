@@ -86,11 +86,11 @@ export default function JobsSection({
                 >
                   <View style={s.cardMedia}>
                     {job.cover_image ? (
-                      <FocalImage uri={job.cover_image} aspectRatio={16 / 9} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
+                      <FocalImage uri={job.cover_image} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} style={{ width: "100%", height: "100%" }} />
                     ) : hasVideo ? (
                       <AdaptiveVideo uri={job.video_url || ""} autoPlay style={{ width: "100%", height: "100%" }} isLooping initialMuted />
                     ) : imageUrl ? (
-                      <FocalImage uri={imageUrl} aspectRatio={16 / 9} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} style={StyleSheet.absoluteFill as any} />
+                      <FocalImage uri={imageUrl} focalPoint={job.cover_focal_point} borderRadius={0} showLoader={false} style={{ width: "100%", height: "100%" }} />
                     ) : (
                       <View style={[s.imagePlaceholder, { backgroundColor: `${primaryColor}30` }]}>
                         <Ionicons name={jobTypeIcon(job.job_type) as any} size={36} color={primaryColor} />
