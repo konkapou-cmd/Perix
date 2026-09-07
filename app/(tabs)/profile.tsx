@@ -50,8 +50,7 @@ import {
   UploadProgress,
   MAX_VIDEO_SIZE_BYTES,
   deleteBusiness,
-  deleteUserAccount,
-  User,
+  deleteUserAccount,  User,
   checkAdminStatus,
   updateGalleryCaption,
   GalleryItem,
@@ -87,6 +86,7 @@ import {
   getUserPublicProfile,
   ActivityItem,
 } from "../../lib/api";
+import { getMuxAssetStatus } from "../../lib/api/mux";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/mediaLimits";
 import { validateMedia } from "../../lib/media/mediaValidation";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
@@ -2603,11 +2603,27 @@ currentUserId={businessDetail?.business?.business_id}
                             mux_asset_id: muxResult.mux_asset_id,
                             mux_playback_id: muxResult.mux_playback_id,
                             mux_thumbnail_url: muxResult.mux_thumbnail_url,
-                            video_status: muxResult.mux_playback_id ? "ready" : "processing",
+                            video_status: videoUrl ? "ready" : "processing",
                           });
                         }
-                        if (!muxResult.mux_playback_id && muxResult.mux_upload_id) upHandle.setProcessing();
-                        else upHandle.finish();
+                        if (!videoUrl && muxResult.mux_asset_id) {
+                          upHandle.setProcessing();
+                          for (let attempt = 0; attempt < 30; attempt++) {
+                            await new Promise((r) => setTimeout(r, 3000));
+                            try {
+                              const status = await getMuxAssetStatus(sessionToken, muxResult.mux_asset_id);
+                              if (status.status === "ready" && status.playback_url) {
+                                await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
+                                  media_url: status.playback_url,
+                                  video_status: "ready",
+                                });
+                                break;
+                              }
+                              if (status.status === "errored") break;
+                            } catch (pollErr) {}
+                          }
+                        }
+                        upHandle.finish();
                         Alert.alert(t("cityAd.adPublished", "Your city ad has been published!"));
                       } catch (e) {
                         upHandle.fail();
@@ -2644,11 +2660,27 @@ currentUserId={businessDetail?.business?.business_id}
                           mux_asset_id: muxResult.mux_asset_id,
                           mux_playback_id: muxResult.mux_playback_id,
                           mux_thumbnail_url: muxResult.mux_thumbnail_url,
-                          video_status: muxResult.mux_playback_id ? "ready" : "processing",
+                          video_status: videoUrl ? "ready" : "processing",
                         });
                       }
-                      if (!muxResult.mux_playback_id && muxResult.mux_upload_id) nativeUpHandle.setProcessing();
-                      else nativeUpHandle.finish();
+                      if (!videoUrl && muxResult.mux_asset_id) {
+                        nativeUpHandle.setProcessing();
+                        for (let attempt = 0; attempt < 30; attempt++) {
+                          await new Promise((r) => setTimeout(r, 3000));
+                          try {
+                            const status = await getMuxAssetStatus(sessionToken, muxResult.mux_asset_id);
+                            if (status.status === "ready" && status.playback_url) {
+                              await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
+                                media_url: status.playback_url,
+                                video_status: "ready",
+                              });
+                              break;
+                            }
+                            if (status.status === "errored") break;
+                          } catch (pollErr) {}
+                        }
+                      }
+                      nativeUpHandle.finish();
                       Alert.alert(t("cityAd.adPublished", "Your city ad has been published!"));
                     } catch (e) {
                       nativeUpHandle.fail();

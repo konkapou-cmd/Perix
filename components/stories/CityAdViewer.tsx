@@ -94,8 +94,10 @@ export function CityAdViewer({
     };
   }, [currentStory?.story_id, goNext]);
 
-  // Video player
-  const player = useVideoPlayer(lowLatencyPlaybackUrl(currentStory?.media_url || ""), (p) => {
+  // Video player — falls back to the Mux playback id when media_url is still empty
+  const cityAdVideoUrl = currentStory?.media_url
+    || (currentStory?.mux_playback_id ? `https://stream.mux.com/${currentStory.mux_playback_id}.m3u8` : "");
+  const player = useVideoPlayer(lowLatencyPlaybackUrl(cityAdVideoUrl), (p) => {
     p.loop = false;
     p.muted = false;
     p.play();
@@ -120,10 +122,10 @@ export function CityAdViewer({
   useEffect(() => {
     const prev = prevStatusRef.current;
     prevStatusRef.current = status;
-    if (prev !== undefined && prev !== "idle" && status === "idle" && currentStory?.media_url) {
+    if (prev !== undefined && prev !== "idle" && status === "idle" && cityAdVideoUrl) {
       goNext();
     }
-  }, [currentStory?.media_url, status, goNext]);
+  }, [cityAdVideoUrl, status, goNext]);
 
   return (
     <View style={styles.container}>
@@ -152,7 +154,7 @@ export function CityAdViewer({
 
       {/* Video player */}
       <View style={styles.videoContainer}>
-        {currentStory?.media_type === "video" && currentStory?.media_url && currentStory?.video_status !== "processing" && currentStory?.video_status !== "uploading" ? (
+        {currentStory?.media_type === "video" && cityAdVideoUrl && currentStory?.video_status !== "processing" && currentStory?.video_status !== "uploading" ? (
           videoReady ? (
             <VideoView
               player={player}
@@ -169,7 +171,7 @@ export function CityAdViewer({
               </View>
             </View>
           )
-        ) : currentStory?.media_type === "video" && currentStory?.media_url ? (
+        ) : currentStory?.media_type === "video" && cityAdVideoUrl ? (
           <View style={styles.loadingContainer}>
             {thumb ? <Image source={{ uri: thumb }} style={styles.media} resizeMode="contain" /> : null}
             <View style={styles.loadingOverlay}>
@@ -177,8 +179,8 @@ export function CityAdViewer({
               <Text style={styles.loadingText}>Processing…</Text>
             </View>
           </View>
-        ) : currentStory?.media_url ? (
-          <Image source={{ uri: currentStory.media_url }} style={styles.media} resizeMode="contain" />
+        ) : cityAdVideoUrl ? (
+          <Image source={{ uri: cityAdVideoUrl }} style={styles.media} resizeMode="contain" />
         ) : (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#fff" />
