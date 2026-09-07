@@ -353,6 +353,10 @@ async def startup_db():
     await migrate_service_status()
     # Start background cleanup scheduler (runs every 6 hours)
     asyncio.create_task(start_cleanup_scheduler(interval_hours=6))
+
+    # Start Mux asset resolver so processing videos become playable automatically
+    from utils.mux_resolver import start_mux_resolver
+    start_mux_resolver()
     
     # Start the reminder scheduler (runs every minute)
     scheduler.add_job(
