@@ -107,11 +107,14 @@ export function CityAdViewer({
   // Show the Mux thumbnail as a poster while the HLS stream buffers
   // (status goes idle -> loading -> readyToPlay), so opening an ad feels instant.
   const [videoReady, setVideoReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
   useEffect(() => {
     setVideoReady(false);
+    setVideoFailed(false);
   }, [currentStory?.story_id]);
   useEffect(() => {
     if (status === "readyToPlay") setVideoReady(true);
+    if (status === "error") setVideoFailed(true);
   }, [status]);
 
   const thumb = currentStory?.mux_thumbnail_url
@@ -163,6 +166,12 @@ export function CityAdViewer({
               nativeControls={false}
               surfaceType="textureView"
             />
+          ) : videoFailed ? (
+            thumb ? <Image source={{ uri: thumb }} style={styles.media} resizeMode="contain" /> : (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#fff" />
+              </View>
+            )
           ) : (
             <View style={styles.loadingContainer}>
               {thumb ? <Image source={{ uri: thumb }} style={styles.media} resizeMode="contain" /> : null}

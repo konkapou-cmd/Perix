@@ -281,7 +281,9 @@ export default function UnifiedMediaGallery({
         // Video is still processing
         uploadHandle.setProcessing(t("upload.videoProcessingShort", "Processing video"));
         const processingItem: MediaItem = {
-          uri: muxResult.mux_upload_id,
+          uri: muxResult.mux_playback_id
+            ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8`
+            : muxResult.mux_upload_id,
           type: "video",
           processingStatus: "processing",
           muxAssetId: muxResult.mux_asset_id || null,

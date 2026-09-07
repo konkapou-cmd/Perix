@@ -72,7 +72,8 @@ function VideoPlayerCore({
 }
 
 function isMuxProcessingPlaceholder(url: string): boolean {
-  return !!url && url.startsWith("mux://");
+  // Not a playable source yet (upload id placeholder, mux:// refs, etc.)
+  return !!url && !/^(https?|blob|data):/i.test(url);
 }
 
 function getMuxThumbnail(uri: string): string | null {
