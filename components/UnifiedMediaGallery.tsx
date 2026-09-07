@@ -10,6 +10,7 @@ import GalleryUploadSlot from "./GalleryUploadSlot";
 import MediaThumbnail from "./ui/MediaThumbnail";
 import { uploadMedia, uploadVideoMux, UploadProgress } from "../lib/api";
 import { getMuxAssetStatus, confirmMuxUpload } from "../lib/api/mux";
+import { useUploads } from "../context/UploadContext";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../lib/constants/mediaLimits";
 
@@ -82,6 +83,7 @@ export default function UnifiedMediaGallery({
   lightBackground = false,
 }: Props) {
   const { t } = useTranslation();
+  const { track: trackUpload } = useUploads();
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [itemProgress, setItemProgress] = useState<Record<number, UploadProgress>>({});
   const [menuIndex, setMenuIndex] = useState<number | null>(null);
@@ -179,7 +181,7 @@ export default function UnifiedMediaGallery({
     );
   };
 
-  const pollMuxProcessing = async (assetId: string | null, uploadId: string, temporaryId: string, token: string) => {
+  const pollMuxProcessing = async (assetId: string | null, uploadId: string, temporaryId: string, token: string, handle?: { finish: () => void; fail: () => void }) => {
     let resolvedAssetId = assetId;
     if (!resolvedAssetId && uploadId) {
       for (let attempt = 0; attempt < 12; attempt++) {
@@ -195,6 +197,7 @@ export default function UnifiedMediaGallery({
                 : item,
             );
             commitMedia(updated);
+            handle?.finish();
             return;
           }
           if (confirm.asset_id) {
@@ -207,6 +210,7 @@ export default function UnifiedMediaGallery({
 
     if (!resolvedAssetId) {
       markFailed(temporaryId);
+      handle?.fail();
       return;
     }
 
@@ -224,11 +228,13 @@ export default function UnifiedMediaGallery({
               : item,
           );
           commitMedia(updated);
+          handle?.finish();
           return;
         }
       } catch {}
     }
     markFailed(temporaryId);
+    handle?.fail();
   };
 
   const addVideo = async () => {
@@ -261,16 +267,19 @@ export default function UnifiedMediaGallery({
     }
 
     const idx = media.length;
+    const uploadHandle = trackUpload(t("upload.videoUploading", "Uploading video"));
     try {
       setUploadingIndex(idx);
       setItemProgress((prev) => ({ ...prev, [idx]: { phase: "preparing", progress: 0 } }));
       const muxResult = await uploadVideoMux(sessionToken, asset.uri, undefined, (p) => {
         setItemProgress((prev) => ({ ...prev, [idx]: p }));
+        uploadHandle.update(p.progress ?? 0);
       });
       const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
 
       if (muxResult.mux_upload_id && !videoUrl) {
         // Video is still processing
+        uploadHandle.setProcessing(t("upload.videoProcessingShort", "Processing video"));
         const processingItem: MediaItem = {
           uri: muxResult.mux_upload_id,
           type: "video",
@@ -286,7 +295,7 @@ export default function UnifiedMediaGallery({
           t("upload.videoProcessingTitle", "Video wird verarbeitet"),
           t("upload.videoProcessingMsg", "Dein Video wird verarbeitet. Du kannst es speichern sobald es fertig ist."),
         );
-        pollMuxProcessing(muxResult.mux_asset_id || null, muxResult.mux_upload_id, processingItem.temporaryId!, sessionToken);
+        pollMuxProcessing(muxResult.mux_asset_id || null, muxResult.mux_upload_id, processingItem.temporaryId!, sessionToken, uploadHandle);
         return;
       }
 
@@ -302,10 +311,12 @@ export default function UnifiedMediaGallery({
         setItemProgress((prev) => ({ ...prev, [idx]: { phase: "complete", progress: 100 } }));
         const combined = Array.from(new Set([...media, ...newItems]));
         onChange(combined.slice(0, maxItemsResolved));
+        uploadHandle.finish();
       } else {
         throw new Error("Video upload completed but no playable URL was returned");
       }
     } catch (e: any) {
+      uploadHandle.fail();
       setItemProgress((prev) => ({ ...prev, [idx]: { phase: "preparing", progress: 0 } }));
       Alert.alert(
         t("upload.failedTitle") || "Upload fehlgeschlagen",

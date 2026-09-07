@@ -24,6 +24,7 @@ import i18n from "../i18n";
 import { applyDefaultFontFamily } from "../lib/defaultFont";
 import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_600SemiBold, Quicksand_700Bold } from "@expo-google-fonts/quicksand";
 import GlobalWebChrome from "../components/GlobalWebChrome";
+import { UploadProvider } from "../context/UploadContext";
 
 applyDefaultFontFamily("Quicksand_400Regular");
 
@@ -340,12 +341,14 @@ export default function RootLayout() {
                     <BackButtonHandler />
                     <DeepLinkHandler />
                     <PushNotificationManager />
-                    <GlobalWebChrome>
-                      <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
-                        <Stack.Screen name="call" options={{ gestureEnabled: false }} />
-                        <Stack.Screen name="incoming-call" options={{ gestureEnabled: false }} />
-                      </Stack>
-                    </GlobalWebChrome>
+                    <UploadProvider>
+                      <GlobalWebChrome>
+                        <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+                          <Stack.Screen name="call" options={{ gestureEnabled: false }} />
+                          <Stack.Screen name="incoming-call" options={{ gestureEnabled: false }} />
+                        </Stack>
+                      </GlobalWebChrome>
+                    </UploadProvider>
                   </NotificationProvider>
                 </SocketProvider>
               </BadgeProvider>

@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { CreateFlowContext } from "../context/CreateFlowContext";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import TopNavbar from "./TopNavbar";
+import UploadProgressBar from "./UploadProgressBar";
 import BusinessActionsModal, { BusinessAction } from "./business/BusinessActionsModal";
 import CreationSheet, { CreationAction } from "./user/CreationSheet";
 import ListingModal from "./user/ListingModal";
@@ -128,6 +129,8 @@ export default function GlobalWebChrome({ children }: { children: React.ReactNod
           />
         )}
         <View style={{ flex: 1 }}>{children}</View>
+
+        <UploadProgressBar />
 
         <BusinessActionsModal
           visible={showBizActions}

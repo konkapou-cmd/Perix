@@ -105,6 +105,7 @@ import { JobModal } from "../../components/business";
 import { ServiceModal, DEFAULT_SERVICE_FORM, ServiceBookingModal, SlotManagerModal, BookingListModal, UserBookingListModal, HotelAvailabilityModal } from "../../components/business";
 import ActivityModal from "../../components/business/ActivityModal";
 import { useMapBounds } from "../../context/MapBoundsContext";
+import { useUploads } from "../../context/UploadContext";
 import OpeningHoursModal, { DayHours, defaultDayHours } from "../../components/business/OpeningHoursModal";
 import ListingModal from "../../components/user/ListingModal";
 import { getBusinessSellerListings, getManageListings, Listing, updateListing, deleteListing, getProductPermissions } from "../../lib/api/listings";
@@ -256,6 +257,7 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const { user, logout, sessionToken, activeIdentity, setActiveIdentity, refreshUser } = useAuth();
   const { clearMapBounds } = useMapBounds();
+  const { track: trackUpload } = useUploads();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ openEvent?: string; openJob?: string; openService?: string; openBookings?: string; openProduct?: string; openActivity?: string; section?: string; createBusiness?: string }>();
   const googleKey =
@@ -2578,6 +2580,7 @@ currentUserId={businessDetail?.business?.business_id}
                       const file = await pickWebVideo();
                       if (!file) return;
                       const uri = URL.createObjectURL(file);
+                      const upHandle = trackUpload(t("cityAd.uploading", "Uploading city ad"));
                       try {
                         const story = await createStory(sessionToken, {
                           media_url: undefined,
@@ -2589,7 +2592,9 @@ currentUserId={businessDetail?.business?.business_id}
                           video_status: "uploading",
                           client_request_id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
                         });
-                        const muxResult = await uploadVideoMux(sessionToken, uri, `story:${story.story_id}`);
+                        const muxResult = await uploadVideoMux(sessionToken, uri, `story:${story.story_id}`, (p) => {
+                          upHandle.update(p.progress ?? 0);
+                        });
                         const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
                         if (videoUrl || muxResult.mux_upload_id) {
                           await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
@@ -2601,8 +2606,11 @@ currentUserId={businessDetail?.business?.business_id}
                             video_status: muxResult.mux_playback_id ? "ready" : "processing",
                           });
                         }
+                        if (!muxResult.mux_playback_id && muxResult.mux_upload_id) upHandle.setProcessing();
+                        else upHandle.finish();
                         Alert.alert(t("cityAd.adPublished", "Your city ad has been published!"));
                       } catch (e) {
+                        upHandle.fail();
                         console.error("City ad creation failed:", e);
                         Alert.alert(t("common.error"), "Failed to create city ad");
                       }
@@ -2613,6 +2621,7 @@ currentUserId={businessDetail?.business?.business_id}
                       quality: MEDIA_LIMITS.video.pickerQuality,
                     });
                     if (result.canceled || !result.assets?.[0]?.uri) return;
+                    const nativeUpHandle = trackUpload(t("cityAd.uploading", "Uploading city ad"));
                     try {
                       const story = await createStory(sessionToken, {
                         media_url: undefined,
@@ -2624,7 +2633,9 @@ currentUserId={businessDetail?.business?.business_id}
                         video_status: "uploading",
                         client_request_id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
                       });
-                      const muxResult = await uploadVideoMux(sessionToken, result.assets[0].uri, `story:${story.story_id}`);
+                      const muxResult = await uploadVideoMux(sessionToken, result.assets[0].uri, `story:${story.story_id}`, (p) => {
+                        nativeUpHandle.update(p.progress ?? 0);
+                      });
                       const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
                       if (videoUrl || muxResult.mux_upload_id) {
                         await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
@@ -2636,8 +2647,11 @@ currentUserId={businessDetail?.business?.business_id}
                           video_status: muxResult.mux_playback_id ? "ready" : "processing",
                         });
                       }
+                      if (!muxResult.mux_playback_id && muxResult.mux_upload_id) nativeUpHandle.setProcessing();
+                      else nativeUpHandle.finish();
                       Alert.alert(t("cityAd.adPublished", "Your city ad has been published!"));
                     } catch (e) {
+                      nativeUpHandle.fail();
                       console.error("City ad creation failed:", e);
                       Alert.alert(t("common.error"), "Failed to create city ad");
                     }
