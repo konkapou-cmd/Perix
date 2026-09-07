@@ -211,7 +211,8 @@ export default function CameraScreen() {
       const asset = result.assets[0];
       const type = asset.type === "video" ? "video" : "image";
       const ratio = asset.width && asset.height && asset.height > 0 ? String(asset.width / asset.height) : undefined;
-      router.push({
+      const navigate = Platform.OS === "web" ? router.replace : router.push;
+      navigate({
         pathname: "/media-editor",
         params: { uri: encodeURIComponent(asset.uri), type, mode: mode, ratio },
       });
@@ -235,13 +236,13 @@ export default function CameraScreen() {
           reader.onerror = () => reject(new Error("read failed"));
           reader.readAsDataURL(file);
         });
-        router.push({
+        router.replace({
           pathname: "/media-editor",
           params: { uri: encodeURIComponent(dataUrl), type: "image", mode },
         });
       } else {
         const url = URL.createObjectURL(file);
-        router.push({
+        router.replace({
           pathname: "/media-editor",
           params: { uri: encodeURIComponent(url), type: "video", mode },
         });
