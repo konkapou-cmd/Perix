@@ -374,62 +374,50 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
       <View style={styles.actionRow}>
         {!readOnly && (
-          <>
-            <View style={styles.primaryActions}>
+          <View style={styles.primaryActions}>
+            <ProfileActionButton
+              icon="create-outline"
+              label={t("common.edit", "Profil bearbeiten")}
+              variant="flat"
+              onPress={onEditProfile}
+              color="#1F4788"
+            />
+            {onShare && (
               <ProfileActionButton
-                icon="create-outline"
-                label={t("common.edit", "Profil bearbeiten")}
+                icon="share-social-outline"
+                label={t("common.share", "Teilen")}
                 variant="flat"
-                onPress={onEditProfile}
+                onPress={onShare}
                 color="#1F4788"
               />
-              {onShare && (
-                <ProfileActionButton
-                  icon="share-social-outline"
-                  label={t("common.share", "Teilen")}
-                  variant="flat"
-                  onPress={onShare}
-                  color="#1F4788"
-                />
-              )}
-              {onViewPublic && (
-                <ProfileActionButton
-                  icon="open-outline"
-                  label={t("profile.viewProfile", "Profil")}
-                  variant="flat"
-                  onPress={onViewPublic}
-                  color="#1F4788"
-                />
-              )}
-            </View>
-            <View style={styles.secondaryRow}>
-              {onPlan && (
-                <ProfileActionButton
-                  icon="star-outline"
-                  variant="secondaryIcon"
-                  onPress={onPlan}
-                />
-              )}
+            )}
+            {onViewPublic && (
               <ProfileActionButton
-                icon="bookmark-outline"
-                variant="secondaryIcon"
-                onPress={() => router.push("/saved" as any)}
+                icon="open-outline"
+                label={t("profile.viewProfile", "Profil")}
+                variant="flat"
+                onPress={onViewPublic}
+                color="#1F4788"
               />
+            )}
+            {onPlan && (
               <ProfileActionButton
-                icon="settings-outline"
+                icon="star-outline"
                 variant="secondaryIcon"
-                onPress={onSettings || (() => router.push("/settings"))}
+                onPress={onPlan}
               />
-              {showLogout && onLogout && (
-                <ProfileActionButton
-                  icon="log-out-outline"
-                  label={t("common.logout", "Abmelden")}
-                  variant="dangerIcon"
-                  onPress={onLogout}
-                />
-              )}
-            </View>
-          </>
+            )}
+            <ProfileActionButton
+              icon="bookmark-outline"
+              variant="secondaryIcon"
+              onPress={() => router.push("/saved" as any)}
+            />
+            <ProfileActionButton
+              icon="settings-outline"
+              variant="secondaryIcon"
+              onPress={onSettings || (() => router.push("/settings"))}
+            />
+          </View>
         )}
         {readOnly && (
           <>
