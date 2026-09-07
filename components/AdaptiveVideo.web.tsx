@@ -137,11 +137,19 @@ export default function AdaptiveVideoWeb({
         });
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           retryCountRef.current = 0;
+          if (autoPlay) {
+            try { el.play().catch(() => {}); } catch (e) {}
+          }
         });
         hls.loadSource(videoUri);
         hls.attachMedia(el);
       } else {
         el.src = videoUri;
+      }
+      if (autoPlay) {
+        setTimeout(() => {
+          try { el.play().catch(() => {}); } catch (e) {}
+        }, 0);
       }
     } catch (e) {
       console.error("AdaptiveVideo.web attach failed:", e);
