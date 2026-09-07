@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -10,6 +11,8 @@ import {
 } from "react-native";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
+// Resolves to AdaptiveVideo.web.tsx on web, AdaptiveVideo.tsx on native
+import AdaptiveVideoWeb from "../AdaptiveVideo";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
@@ -97,7 +100,7 @@ export function CityAdViewer({
   // Video player — falls back to the Mux playback id when media_url is still empty
   const cityAdVideoUrl = currentStory?.media_url
     || (currentStory?.mux_playback_id ? `https://stream.mux.com/${currentStory.mux_playback_id}.m3u8` : "");
-  const player = useVideoPlayer(lowLatencyPlaybackUrl(cityAdVideoUrl), (p) => {
+  const player = useVideoPlayer(Platform.OS === "web" ? null : lowLatencyPlaybackUrl(cityAdVideoUrl), (p) => {
     p.loop = false;
     p.muted = false;
     p.play();
@@ -158,7 +161,17 @@ export function CityAdViewer({
       {/* Video player */}
       <View style={styles.videoContainer}>
         {currentStory?.media_type === "video" && cityAdVideoUrl && currentStory?.video_status !== "processing" && currentStory?.video_status !== "uploading" ? (
-          videoReady ? (
+          Platform.OS === "web" ? (
+            <AdaptiveVideoWeb
+              uri={cityAdVideoUrl}
+              autoPlay
+              resizeMode="contain"
+              videoStatus={currentStory?.video_status}
+              muxThumbnailUrl={thumb}
+              showMuteButton={false}
+              style={{ width: "100%", height: "100%" }}
+            />
+          ) : videoReady ? (
             <VideoView
               player={player}
               style={styles.video}

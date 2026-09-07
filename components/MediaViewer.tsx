@@ -3,6 +3,7 @@ import {
   Dimensions,
   Image as RNImage,
   Modal,
+  Platform,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -13,6 +14,8 @@ import {
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../lib/designTokens";
+// Resolves to AdaptiveVideo.web.tsx on web, AdaptiveVideo.tsx on native
+import AdaptiveVideoWeb from "./AdaptiveVideo";
 import {
   Gesture,
   GestureDetector,
@@ -95,7 +98,26 @@ function ImageItem({ item }: { item: MediaItem }) {
 
 // ─── Lazy player — only mounts after modal first opens ───
 
+function WebMediaPlayer({ item }: { item: MediaItem }) {
+  return (
+    <View style={[styles.videoContainer, { position: "relative" }]}>
+      <AdaptiveVideoWeb
+        uri={item.uri}
+        autoPlay
+        isLooping
+        resizeMode="contain"
+        videoStatus={item.videoStatus}
+        muxThumbnailUrl={item.muxThumbnailUrl}
+        style={{ width: "100%", height: "100%" }}
+      />
+    </View>
+  );
+}
+
 function MediaPlayer({ item }: { item: MediaItem }) {
+  if (Platform.OS === "web") {
+    return <WebMediaPlayer item={item} />;
+  }
   const isProcessing = item.videoStatus === "processing" || item.uri?.startsWith("mux://");
   const player = useVideoPlayer(isProcessing ? null : item.uri, (p) => {
     p.loop = true;
