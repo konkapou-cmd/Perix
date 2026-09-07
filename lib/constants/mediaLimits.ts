@@ -35,7 +35,7 @@ export const MEDIA_LIMITS = {
   cityAd: {
     maxFileSizeMb: 300,
     maxFileSizeBytes: 300 * BYTES_PER_MB,
-    maxDurationSeconds: 60,
+    maxDurationSeconds: 180,
     imageDisplayMs: 5000,
     videoFallbackMs: 15000,
     errorFallbackMs: 3000,

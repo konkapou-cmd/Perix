@@ -503,7 +503,8 @@ export default function ProfileScreen() {
     const shouldOpenActivity = params.openActivity === "1";
     if (shouldOpenActivity) {
       router.setParams({ openActivity: undefined } as any);
-      setUserInitialTab("activities");
+      setActivityEditing(null);
+      setActivityModalVisible(true);
       return;
     }
 
