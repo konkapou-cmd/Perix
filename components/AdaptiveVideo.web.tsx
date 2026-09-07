@@ -74,7 +74,10 @@ export default function AdaptiveVideoWeb({
 }: AdaptiveVideoWebProps) {
   const { t } = useTranslation();
   const videoUri = uri || source?.uri || "";
-  const isProcessing = videoStatus === "processing" || videoStatus === "uploading" || isProcessingUrl(videoUri);
+  // Only treat as processing when there is no playable URL yet.
+  // A real http(s)/blob/data URL is playable (hls.js retries while Mux finishes),
+  // so an outdated "processing" status must not block playback.
+  const isProcessing = isProcessingUrl(videoUri);
   const validRatio = typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0 ? ratio : null;
 
   const videoRef = useRef<HTMLVideoElement | null>(null);

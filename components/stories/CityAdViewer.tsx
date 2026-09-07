@@ -160,19 +160,18 @@ export function CityAdViewer({
 
       {/* Video player */}
       <View style={styles.videoContainer}>
-        {currentStory?.media_type === "video" && cityAdVideoUrl && currentStory?.video_status !== "processing" && currentStory?.video_status !== "uploading" ? (
-          Platform.OS === "web" ? (
-            <AdaptiveVideoWeb
-              uri={cityAdVideoUrl}
-              autoPlay
-              initialMuted
-              resizeMode="contain"
-              videoStatus={currentStory?.video_status}
-              muxThumbnailUrl={thumb}
-              showMuteButton={false}
-              style={{ width: "100%", height: "100%" }}
-            />
-          ) : videoReady ? (
+        {Platform.OS === "web" && currentStory?.media_type === "video" && cityAdVideoUrl ? (
+          <AdaptiveVideoWeb
+            uri={cityAdVideoUrl}
+            autoPlay
+            initialMuted
+            resizeMode="contain"
+            muxThumbnailUrl={thumb}
+            showMuteButton={false}
+            style={{ width: "100%", height: "100%" }}
+          />
+        ) : currentStory?.media_type === "video" && cityAdVideoUrl && currentStory?.video_status !== "processing" && currentStory?.video_status !== "uploading" ? (
+          videoReady ? (
             <VideoView
               player={player}
               style={styles.video}
