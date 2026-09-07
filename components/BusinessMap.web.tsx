@@ -134,6 +134,7 @@ export default function BusinessMap({
   const [mapError, setMapError] = useState(false);
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
+  const [enableError, setEnableError] = useState(false);
   const centerLat = location?.latitude ?? initialRegion?.latitude ?? 52.52;
   const centerLng = location?.longitude ?? initialRegion?.longitude ?? 13.405;
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
@@ -480,37 +481,31 @@ export default function BusinessMap({
       <View style={[s.wrap, { height }]}>
         <Pressable
           style={s.disabledOverlay}
-          onPress={async () => {
+          onPress={() => {
             if (!onMapPress || enablingRef.current) return;
             enablingRef.current = true;
             setEnabling(true);
-            try {
-              const granted = await new Promise<boolean>((resolve) => {
-                if (!navigator?.geolocation) {
-                  resolve(false);
-                  return;
-                }
-                navigator.geolocation.getCurrentPosition(
-                  () => resolve(true),
-                  () => resolve(false),
-                  { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
-                );
-              });
-              if (granted) {
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => {
-                    onMapPress(pos.coords.latitude, pos.coords.longitude);
-                  },
-                  () => {},
-                  { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
-                );
-              }
-            } catch (e) {
-              console.error("Web geolocation failed:", e);
-            } finally {
+            setEnableError(false);
+            if (!navigator?.geolocation) {
+              setEnableError(true);
               enablingRef.current = false;
               setEnabling(false);
+              return;
             }
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                onMapPress(pos.coords.latitude, pos.coords.longitude);
+                enablingRef.current = false;
+                setEnabling(false);
+              },
+              (err) => {
+                console.warn("Web geolocation denied:", err?.code, err?.message);
+                setEnableError(true);
+                enablingRef.current = false;
+                setEnabling(false);
+              },
+              { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+            );
           }}
         >
           {enabling ? (
@@ -519,6 +514,11 @@ export default function BusinessMap({
             <Ionicons name="location" size={40} color={COLORS.pinClosed} />
           )}
           <Text style={s.disabledText}>{enabling ? "…" : disabledHint}</Text>
+          {enableError && (
+            <Text style={s.errorText}>
+              {t("common.locationBlocked", "Location blocked by your browser. Allow location access for this site and try again.")}
+            </Text>
+          )}
         </Pressable>
       </View>
     );
