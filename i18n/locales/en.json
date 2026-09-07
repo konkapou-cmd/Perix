@@ -413,7 +413,9 @@
     "editingGallery": "Editing gallery...",
     "updatingAvatar": "Updating profile photo...",
     "updatingCover": "Updating cover photo...",
-    "creatingStory": "Creating story..."
+    "creatingStory": "Creating story...",
+    "videoUploading": "Uploading video",
+    "videoProcessingShort": "Processing video"
   },
     "brand": {
     "title": "Perix",
@@ -1477,7 +1479,8 @@
     "adPublished": "Your city ad has been published!",
     "createAd": "Create City Ad",
     "maxDuration": "City Ads must be under 3 minutes",
-    "uploadingAd": "Uploading your ad..."
+    "uploadingAd": "Uploading your ad...",
+    "uploading": "Uploading city ad"
   },
   "calls": {
     "calling": "Calling...",

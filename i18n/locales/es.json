@@ -346,7 +346,9 @@
     "chunks": "Parte {{current}} de {{total}}",
     "pleaseWait": "Por favor espera, no cierres la app",
     "failed": "Subida fallida",
-    "retry": "Por favor, inténtalo de nuevo"
+    "retry": "Por favor, inténtalo de nuevo",
+    "videoUploading": "Subiendo vídeo",
+    "videoProcessingShort": "Procesando vídeo"
   },
   "modules": {
     "events": "Eventos",
@@ -1471,7 +1473,8 @@
     "adPublished": "¡Tu anuncio de ciudad ha sido publicado!",
     "createAd": "Crear anuncio de ciudad",
     "maxDuration": "Los anuncios de ciudad deben durar menos de 3 minutos",
-    "uploadingAd": "Subiendo tu anuncio..."
+    "uploadingAd": "Subiendo tu anuncio...",
+    "uploading": "Subiendo anuncio de ciudad"
   },
   "subscription": {
     "title": "Gestionar Suscripción",

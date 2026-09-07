@@ -346,7 +346,9 @@
     "chunks": "Deo {{current}} od {{total}}",
     "pleaseWait": "Molimo sačekajte, ne zatvarajte aplikaciju",
     "failed": "Otpremanje nije uspelo",
-    "retry": "Molimo pokušajte ponovo"
+    "retry": "Molimo pokušajte ponovo",
+    "videoUploading": "Przesyłanie wideo",
+    "videoProcessingShort": "Przetwarzanie wideo"
   },
   "modules": {
     "events": "Događaji",
@@ -1511,7 +1513,8 @@
     "adPublished": "Twoje ogłoszenie miejskie zostało opublikowane!",
     "createAd": "Utwórz ogłoszenie miejskie",
     "maxDuration": "Ogłoszenia miejskie muszą trwać poniżej 3 minut",
-    "uploadingAd": "Przesyłanie ogłoszenia..."
+    "uploadingAd": "Przesyłanie ogłoszenia...",
+    "uploading": "Przesyłanie reklamy"
   },
   "subscription": {
     "title": "Zarządzaj subskrypcją",

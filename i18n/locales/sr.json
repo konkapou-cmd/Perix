@@ -346,7 +346,9 @@
     "chunks": "Deo {{current}} od {{total}}",
     "pleaseWait": "Molimo sačekajte, ne zatvarajte aplikaciju",
     "failed": "Otpremanje nije uspelo",
-    "retry": "Molimo pokušajte ponovo"
+    "retry": "Molimo pokušajte ponovo",
+    "videoUploading": "Otpremanje videa",
+    "videoProcessingShort": "Obrada videa"
   },
   "modules": {
     "events": "Događaji",
@@ -1498,7 +1500,8 @@
     "adPublished": "Vaš gradski oglas je objavljen!",
     "createAd": "Kreiraj gradski oglas",
     "maxDuration": "Gradski oglasi moraju biti kraći od 3 minuta",
-    "uploadingAd": "Otpremanje vašeg oglasa..."
+    "uploadingAd": "Otpremanje vašeg oglasa...",
+    "uploading": "Otpremanje reklame"
   },
   "subscription": {
     "title": "Upravljaj pretplatom",

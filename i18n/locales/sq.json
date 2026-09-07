@@ -345,7 +345,9 @@
     "chunks": "Pjesa {{current}} nga {{total}}",
     "pleaseWait": "Ju lutem prisni, mos e mbyllni aplikacionin",
     "failed": "Ngarkimi dështoi",
-    "retry": "Ju lutem provoni përsëri"
+    "retry": "Ju lutem provoni përsëri",
+    "videoUploading": "Po ngarkohet video",
+    "videoProcessingShort": "Përpunimi i videos"
   },
   "modules": {
     "events": "Evente",
@@ -1410,7 +1412,8 @@
     "adPublished": "Reklama juaj e qytetit u publikua!",
     "createAd": "Krijo reklamë qyteti",
     "maxDuration": "Reklamat e qytetit duhet të jenë nën 3 minuta",
-    "uploadingAd": "Po ngarkohet reklama juaj..."
+    "uploadingAd": "Po ngarkohet reklama juaj...",
+    "uploading": "Ngarkimi i reklamës"
   },
   "subscription": {
     "title": "Menaxho Abonimin",

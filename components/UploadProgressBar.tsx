@@ -1,10 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useUploads } from "../context/UploadContext";
 import { COLORS } from "../lib/designTokens";
 
 export default function UploadProgressBar() {
+  const { t } = useTranslation();
   const { tasks, dismiss } = useUploads();
   const visible = tasks.filter((t) => t.status === "uploading" || t.status === "processing");
 
@@ -29,7 +31,7 @@ export default function UploadProgressBar() {
             )}
             <Text style={styles.title} numberOfLines={1}>
               {task.status === "processing"
-                ? "Processing video"
+                ? t("upload.videoProcessingShort", "Processing video")
                 : `${task.label} ${task.progress}%`}
             </Text>
           </View>

@@ -416,7 +416,9 @@
     "imagesFailed": "Bilder konnten nicht hochgeladen werden",
     "imagesSucceeded": "erfolgreich",
     "videoTooLongTitle": "Video zu lang",
-    "videoTooLongMsg": "Das Video ist zu lang. Bitte kürze es auf maximal 30 Sekunden."
+    "videoTooLongMsg": "Das Video ist zu lang. Bitte kürze es auf maximal 30 Sekunden.",
+    "videoUploading": "Video wird hochgeladen",
+    "videoProcessingShort": "Video wird verarbeitet"
   },
   "modules": {
     "events": "Veranstaltungen",
@@ -1608,7 +1610,8 @@
     "adPublished": "Deine Stadt-Anzeige wurde veröffentlicht!",
     "createAd": "Stadt-Anzeige erstellen",
     "maxDuration": "Stadt-Anzeigen müssen unter 3 Minuten sein",
-    "uploadingAd": "Lade deine Anzeige hoch..."
+    "uploadingAd": "Lade deine Anzeige hoch...",
+    "uploading": "Stadt-Werbung wird hochgeladen"
   },
   "subscription": {
     "title": "Abonnement verwalten",
