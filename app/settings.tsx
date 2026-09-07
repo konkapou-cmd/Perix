@@ -23,6 +23,8 @@ import { useRouter } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LanguagePicker } from "../components/LanguagePicker";
 import { getNotificationPreferences, updateNotificationPreferences, NotificationPrefs as NotificationPrefsAPI } from "../lib/api/notifications";
+import { getMyBusinesses, updateBusiness } from "../lib/api/businesses";
+import OpeningHoursModal from "../components/business/OpeningHoursModal";
 import { deleteUserAccount } from "../lib/api/social";
 import { COLORS } from "../lib/designTokens";
 
@@ -56,10 +58,14 @@ const DEFAULT_PREFS: NotificationPrefs = {
 export default function SettingsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { logout, sessionToken, user } = useAuth();
+  const { logout, sessionToken, user, activeIdentity } = useAuth();
 
   const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
   const [loadingPrefs, setLoadingPrefs] = useState(true);
+  const [callAvailability, setCallAvailability] = useState<string>("opening_hours");
+  const [callHours, setCallHours] = useState<Record<string, any>>({});
+  const [callHoursModalVisible, setCallHoursModalVisible] = useState(false);
+  const [savingCallSettings, setSavingCallSettings] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -71,7 +77,40 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     loadPrefs();
+    loadCallSettings();
   }, []);
+
+  const loadCallSettings = async () => {
+    if (activeIdentity?.type !== "business" || !sessionToken) return;
+    try {
+      const list = await getMyBusinesses(sessionToken);
+      const business: any = list[0];
+      if (business) {
+        setCallAvailability(business.call_availability || "opening_hours");
+        setCallHours(business.call_hours || {});
+      }
+    } catch (e) {
+      console.log("Failed to load call settings:", e);
+    }
+  };
+
+  const saveCallSettings = async (availability: string, hours?: Record<string, any>) => {
+    if (!sessionToken || activeIdentity?.type !== "business" || savingCallSettings) return;
+    const nextAvailability = availability;
+    const nextHours = hours ?? callHours;
+    setCallAvailability(nextAvailability);
+    if (hours) setCallHours(hours);
+    setSavingCallSettings(true);
+    try {
+      await updateBusiness(sessionToken, String(activeIdentity.id), {
+        call_availability: nextAvailability,
+        call_hours: nextAvailability === "custom" ? nextHours : undefined,
+      } as any);
+    } catch (e) {
+      console.log("Failed to save call settings:", e);
+    }
+    setSavingCallSettings(false);
+  };
 
   const loadPrefs = async () => {
     try {
@@ -474,6 +513,65 @@ export default function SettingsScreen() {
           />
         </View>
 
+        {activeIdentity?.type === "business" && (
+          <>
+            <SectionHeader title={t("settings.businessCalls", "Business calls")} />
+            <View style={styles.section}>
+              <View style={styles.quietHoursSection}>
+                <View style={styles.quietHoursHeader}>
+                  <View style={styles.quietHoursIcon}>
+                    <Ionicons name="call" size={16} color="#59ABE3" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.quietHoursLabel}>{t("settings.callAvailability", "Call availability")}</Text>
+                    <Text style={styles.quietHoursDesc}>{t("settings.callAvailabilityDesc", "When customers can call your business")}</Text>
+                  </View>
+                </View>
+                <View style={styles.quietHoursModes}>
+                  {[
+                    { key: "always", label: t("settings.callsAlways", "Always") },
+                    { key: "opening_hours", label: t("settings.callsOpeningHours", "Opening hours") },
+                    { key: "custom", label: t("settings.callsCustom", "Selected hours") },
+                  ].map((m) => {
+                    const isActive = callAvailability === m.key;
+                    return (
+                      <Pressable
+                        key={m.key}
+                        style={[
+                          styles.quietHoursModeBtn,
+                          isActive && styles.quietHoursModeBtnActive,
+                        ]}
+                        onPress={() => saveCallSettings(m.key)}
+                      >
+                        <Text
+                          style={[
+                            styles.quietHoursModeText,
+                            isActive && styles.quietHoursModeTextActive,
+                          ]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >{m.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {callAvailability === "custom" && (
+                  <Pressable
+                    style={styles.editCallHoursBtn}
+                    onPress={() => setCallHoursModalVisible(true)}
+                  >
+                    <Ionicons name="time-outline" size={15} color="#59ABE3" />
+                    <Text style={styles.editCallHoursText}>
+                      {t("settings.editCallHours", "Edit call hours")}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          </>
+        )}
+
         <SectionHeader title={t("settings.general") || "General"} />
         <View style={styles.section}>
           <SettingRow
@@ -575,6 +673,19 @@ export default function SettingsScreen() {
         visible={showLanguagePicker}
         onClose={() => setShowLanguagePicker(false)}
       />
+
+      {activeIdentity?.type === "business" && (
+        <OpeningHoursModal
+          visible={callHoursModalVisible}
+          onClose={() => setCallHoursModalVisible(false)}
+          openingHours={callHours}
+          onHoursChange={setCallHours}
+          onSave={() => {
+            saveCallSettings("custom", callHours);
+            setCallHoursModalVisible(false);
+          }}
+        />
+      )}
 
       <Modal visible={showPasswordModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -826,6 +937,24 @@ const styles = StyleSheet.create({
   quietHoursModeText: { fontSize: 13, fontWeight: "600", color: "#264348", textAlign: "center" },
   quietHoursModeTextActive: { color: "#fff" },
   quietHoursTimeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 },
+  editCallHoursBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(89,171,227,0.4)",
+    backgroundColor: "rgba(89,171,227,0.08)",
+  },
+  editCallHoursText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1F4788",
+  },
   quietHoursTimeBtn: {
     flex: 1,
     flexDirection: "row",
