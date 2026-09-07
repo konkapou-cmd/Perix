@@ -1372,7 +1372,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sidebarOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: SIDEBAR_WIDTH,
     backgroundColor: "rgba(0,0,0,0.3)",
     zIndex: 99,
     // @ts-ignore
