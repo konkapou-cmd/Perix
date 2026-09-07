@@ -62,6 +62,8 @@ class BusinessUpdate(BaseModel):
     subcategory: Optional[str] = None
     subcategories: Optional[List[str]] = None
     hidden_fan_posts: Optional[List[str]] = None
+    call_availability: Optional[str] = None  # "always" | "opening_hours" | "custom"
+    call_hours: Optional[Dict[str, Any]] = None
 
 
 class BusinessResponse(BaseModel):
@@ -97,6 +99,8 @@ class BusinessResponse(BaseModel):
     friends: List[dict] = []
     friends_count: int = 0
     theme: Optional[ThemeSettings] = None  # Profile theme customization
+    call_availability: Optional[str] = "opening_hours"  # "always" | "opening_hours" | "custom"
+    call_hours: Optional[Dict[str, Any]] = None
 
 
 class BusinessSummary(BaseModel):

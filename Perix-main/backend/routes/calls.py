@@ -221,7 +221,7 @@ async def initiate_call(
     recipient_user_id = None
     recipient_name = None
     
-    # Handle business calls - only during opening hours
+    # Handle business calls - availability per business settings
     if request.to_business_id:
         business = await db.businesses.find_one(
             {"business_id": request.to_business_id},
@@ -230,12 +230,22 @@ async def initiate_call(
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
         
-        # Check if business is open
-        if not is_business_open(business.get("opening_hours", {})):
-            raise HTTPException(
-                status_code=400, 
-                detail="Business is currently closed. Please call during working hours."
-            )
+        availability = business.get("call_availability") or "opening_hours"
+        if availability == "always":
+            pass
+        elif availability == "custom":
+            if not is_business_open(business.get("call_hours") or {}):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Business is currently not available for calls. Please try during the selected call hours."
+                )
+        else:
+            # opening_hours (default)
+            if not is_business_open(business.get("opening_hours", {})):
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Business is currently closed. Please call during working hours."
+                )
         
         recipient_user_id = business["owner_id"]
         recipient_name = business["name"]

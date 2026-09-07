@@ -62,6 +62,8 @@ def build_business_response(business_doc: Dict) -> BusinessResponse:
         "friends": business_doc.get("friends", []),
         "friends_count": len(business_doc.get("friends", [])),
         "theme": business_doc.get("theme"),
+        "call_availability": business_doc.get("call_availability", "opening_hours"),
+        "call_hours": business_doc.get("call_hours"),
     }
     for key, value in defaults.items():
         business_doc.setdefault(key, value)
