@@ -7,7 +7,14 @@ export default function CreateScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/camera");
+    const timer = setTimeout(() => {
+      try {
+        router.replace("/camera");
+      } catch (error) {
+        console.warn("Create tab redirect failed:", error);
+      }
+    }, 50);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

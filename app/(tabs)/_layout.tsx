@@ -140,9 +140,10 @@ export default function TabsLayout() {
             options={{
               tabBarItemStyle: !isBusiness ? { display: "none" } : undefined,
               tabBarButton: isBusiness
-                ? (props: any) => (
-                    <Pressable {...props} onPress={() => openBizActions()} />
-                  )
+                ? (props: any) => {
+                    const { onPress: _onPress, href: _href, ...rest } = props;
+                    return <Pressable {...rest} onPress={() => openBizActions()} />;
+                  }
                 : undefined,
               tabBarIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
                 <JobsTabIcon color={color} size={size} filled={focused} />
@@ -155,9 +156,10 @@ export default function TabsLayout() {
             options={{
               tabBarItemStyle: isBusiness ? { display: "none" } : undefined,
               tabBarButton: !isBusiness
-                ? (props: any) => (
-                    <Pressable {...props} onPress={() => openCreateSheet()} />
-                  )
+                ? (props: any) => {
+                    const { onPress: _onPress, href: _href, ...rest } = props;
+                    return <Pressable {...rest} onPress={() => openCreateSheet()} />;
+                  }
                 : undefined,
               tabBarIcon: ({ color, size, focused }) => (
                 <CreateTabIcon color={color} size={size} filled={focused} />
