@@ -46,6 +46,7 @@ export default function CameraScreen() {
 
   // Request permissions on mount
   useEffect(() => {
+    if (Platform.OS === "web") return;
     (async () => {
       if (!cameraPermission?.granted) {
         await requestCameraPermission();
@@ -217,6 +218,90 @@ export default function CameraScreen() {
     }
   };
 
+  // Web: use the browser-native capture UI (avoids camera streaming issues on mobile Chrome)
+  const webPhotoInputRef = useRef<any>(null);
+  const webVideoInputRef = useRef<any>(null);
+
+  const handleWebFile = (type: "image" | "video") => async (event: any) => {
+    const input = event?.target || event?.currentTarget;
+    const file = input?.files?.[0];
+    if (input) input.value = "";
+    if (!file) return;
+    try {
+      if (type === "image") {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(new Error("read failed"));
+          reader.readAsDataURL(file);
+        });
+        router.push({
+          pathname: "/media-editor",
+          params: { uri: encodeURIComponent(dataUrl), type: "image", mode },
+        });
+      } else {
+        const url = URL.createObjectURL(file);
+        router.push({
+          pathname: "/media-editor",
+          params: { uri: encodeURIComponent(url), type: "video", mode },
+        });
+      }
+    } catch (error) {
+      console.error("Web capture failed:", error);
+      Alert.alert(t("common.error"), t("camera.photoError") || "Failed to capture media");
+    }
+  };
+
+  if (Platform.OS === "web") {
+    return (
+      <SafeAreaView style={styles.webContainer}>
+        <View style={styles.webHeader}>
+          <Pressable style={styles.webBack} onPress={() => router.back()}>
+            <Ionicons name="close" size={28} color="#264348" />
+          </Pressable>
+          <Text style={styles.webTitle}>{t("camera.title") || "Camera"}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.webBody}>
+          <Pressable
+            style={styles.webBigBtn}
+            onPress={() => webPhotoInputRef.current?.click()}
+          >
+            <Ionicons name="camera" size={48} color="#59ABE3" />
+            <Text style={styles.webBigText}>{t("camera.takePhoto") || "Take photo"}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.webBigBtn}
+            onPress={() => webVideoInputRef.current?.click()}
+          >
+            <Ionicons name="videocam" size={48} color="#59ABE3" />
+            <Text style={styles.webBigText}>{t("camera.recordVideo") || "Record video"}</Text>
+          </Pressable>
+          <Pressable style={styles.webSmallBtn} onPress={openGallery}>
+            <Ionicons name="images-outline" size={20} color="#264348" />
+            <Text style={styles.webSmallText}>{t("camera.gallery") || "Choose from gallery"}</Text>
+          </Pressable>
+        </View>
+        {React.createElement("input", {
+          ref: webPhotoInputRef,
+          type: "file",
+          accept: "image/*",
+          capture: "environment",
+          style: { display: "none" },
+          onChange: handleWebFile("image"),
+        })}
+        {React.createElement("input", {
+          ref: webVideoInputRef,
+          type: "file",
+          accept: "video/*",
+          capture: "environment",
+          style: { display: "none" },
+          onChange: handleWebFile("video"),
+        })}
+      </SafeAreaView>
+    );
+  }
+
   // Permissions check
   if (!cameraPermission?.granted || !micPermission?.granted) {
     return (
@@ -356,6 +441,73 @@ export default function CameraScreen() {
 }
 
 const styles = StyleSheet.create({
+  webContainer: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundPage,
+  },
+  webHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
+  },
+  webBack: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  webTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#264348",
+  },
+  webBody: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+    padding: 24,
+  },
+  webBigBtn: {
+    width: "100%",
+    maxWidth: 420,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    paddingVertical: 22,
+    borderRadius: 16,
+    backgroundColor: COLORS.background,
+    borderWidth: 1.5,
+    borderColor: "rgba(89,171,227,0.4)",
+  },
+  webBigText: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#264348",
+  },
+  webSmallBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.25)",
+    backgroundColor: COLORS.background,
+  },
+  webSmallText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#264348",
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.primaryDark,
