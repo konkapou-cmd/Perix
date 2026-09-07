@@ -80,9 +80,12 @@ export default function AdaptiveVideoWeb({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const playedRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isPlaying, setIsPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
 
   const coverUrl = coverPhoto || muxThumbnailUrl || getMuxThumbnail(videoUri);
@@ -101,17 +104,42 @@ export default function AdaptiveVideoWeb({
 
   const attachSource = (el: HTMLVideoElement) => {
     if (!videoUri || isProcessing) return;
+    if (hlsRef.current) {
+      try { hlsRef.current.destroy(); } catch (e) {}
+      hlsRef.current = null;
+    }
     try {
       if (videoUri.includes(".m3u8") && Hls.isSupported()) {
-        const hls = new Hls({ maxBufferLength: 30 });
+        const hls = new Hls({ maxBufferLength: 30, enableWorker: true });
         hlsRef.current = hls;
+        hls.on(Hls.Events.ERROR, (_evt, data) => {
+          if (!data || !data.fatal) return;
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            // Manifest may still be publishing on Mux — retry with backoff
+            retryCountRef.current += 1;
+            if (retryCountRef.current > 12) {
+              setFailed(true);
+              return;
+            }
+            if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+            retryTimerRef.current = setTimeout(() => {
+              try { hls.startLoad(); } catch (e) {}
+            }, 3000);
+            return;
+          }
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            try { hls.recoverMediaError(); } catch (e) {
+              setFailed(true);
+            }
+            return;
+          }
+          setFailed(true);
+        });
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          retryCountRef.current = 0;
+        });
         hls.loadSource(videoUri);
         hls.attachMedia(el);
-        hls.on(Hls.Events.ERROR, (_evt, data) => {
-          if (data && data.fatal) {
-            setFailed(true);
-          }
-        });
       } else {
         el.src = videoUri;
       }
@@ -119,6 +147,30 @@ export default function AdaptiveVideoWeb({
       console.error("AdaptiveVideo.web attach failed:", e);
       setFailed(true);
     }
+  };
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (el && !isProcessing && !failed) {
+      attachSource(el);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUri, retryKey, isProcessing]);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (hlsRef.current) {
+        try { hlsRef.current.destroy(); } catch (e) {}
+        hlsRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleRetry = () => {
+    retryCountRef.current = 0;
+    setFailed(false);
+    setRetryKey((k) => k + 1);
   };
 
   useEffect(() => {
@@ -163,7 +215,6 @@ export default function AdaptiveVideoWeb({
   const videoProps: any = {
     ref: (el: HTMLVideoElement | null) => {
       videoRef.current = el;
-      if (el) attachSource(el);
     },
     playsInline: true,
     muted: isMuted,
@@ -199,6 +250,10 @@ export default function AdaptiveVideoWeb({
           )}
           <View style={styles.dim}>
             <Text style={styles.errText}>{t("common.videoCannotLoad", "Video kann nicht geladen werden")}</Text>
+            <Pressable style={styles.retryBtn} onPress={handleRetry}>
+              <Ionicons name="refresh" size={16} color="#fff" />
+              <Text style={styles.retryText}>{t("common.retry", "Wiederholen")}</Text>
+            </Pressable>
           </View>
         </View>
       ) : isProcessing ? (
@@ -253,6 +308,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     marginTop: 4,
+  },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  retryText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
   },
   muteBtn: {
     position: "absolute",
