@@ -321,6 +321,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundPage,
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, marginHorizontal: "auto" },
+    }),
   },
   flex1: {
     flex: 1,
