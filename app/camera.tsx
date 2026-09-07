@@ -260,7 +260,7 @@ export default function CameraScreen() {
           <Pressable style={styles.webBack} onPress={() => router.back()}>
             <Ionicons name="close" size={28} color="#264348" />
           </Pressable>
-          <Text style={styles.webTitle}>{t("camera.title") || "Camera"}</Text>
+          <Text style={styles.webTitle}>{t("camera.title", "Camera")}</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.webBody}>
@@ -269,18 +269,18 @@ export default function CameraScreen() {
             onPress={() => webPhotoInputRef.current?.click()}
           >
             <Ionicons name="camera" size={48} color="#59ABE3" />
-            <Text style={styles.webBigText}>{t("camera.takePhoto") || "Take photo"}</Text>
+            <Text style={styles.webBigText}>{t("camera.takePhoto", "Take photo")}</Text>
           </Pressable>
           <Pressable
             style={styles.webBigBtn}
             onPress={() => webVideoInputRef.current?.click()}
           >
             <Ionicons name="videocam" size={48} color="#59ABE3" />
-            <Text style={styles.webBigText}>{t("camera.recordVideo") || "Record video"}</Text>
+            <Text style={styles.webBigText}>{t("camera.recordVideo", "Record video")}</Text>
           </Pressable>
           <Pressable style={styles.webSmallBtn} onPress={openGallery}>
             <Ionicons name="images-outline" size={20} color="#264348" />
-            <Text style={styles.webSmallText}>{t("camera.gallery") || "Choose from gallery"}</Text>
+            <Text style={styles.webSmallText}>{t("camera.gallery", "Choose from gallery")}</Text>
           </Pressable>
         </View>
         {React.createElement("input", {

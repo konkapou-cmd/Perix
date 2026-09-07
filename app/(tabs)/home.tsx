@@ -1519,7 +1519,13 @@ export default function HomeScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context="video" mode="blocking" />
+      <UploadProgressSheet
+        visible={showUploadProgress}
+        progress={uploadProgress}
+        context="video"
+        mode="blocking"
+        onDismiss={() => { setShowUploadProgress(false); setUploadProgress(null); }}
+      />
 
       <ShareContent visible={shareModalVisible} onClose={() => setShareModalVisible(false)} contentType="post" contentId={shareContentId} title={shareContentTitle} description="" />
 

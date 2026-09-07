@@ -1587,7 +1587,11 @@
     "tapToCapture": "Prek për të kapur, mbaj për video",
     "tapToRecord": "Prek për regjistrim (maks 30s)",
     "tapToStop": "Prek për të ndaluar regjistrimin",
-    "photoError": "Dështoi marrja e fotos"
+    "photoError": "Dështoi marrja e fotos",
+    "title": "Kamera",
+    "takePhoto": "Bëj foto",
+    "recordVideo": "Regjistro video",
+    "gallery": "Zgjidh nga galeria"
   },
   "story": {
     "react": "Reago",

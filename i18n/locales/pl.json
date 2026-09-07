@@ -1691,7 +1691,11 @@
     "tapToCapture": "Dodirnite za snimanje, držite za video",
     "tapToRecord": "Dodirnite za snimanje (maks 30s)",
     "tapToStop": "Dodirnite za zaustavljanje snimanja",
-    "photoError": "Fotografisanje nije uspelo"
+    "photoError": "Fotografisanje nije uspelo",
+    "title": "Aparat",
+    "takePhoto": "Zrób zdjęcie",
+    "recordVideo": "Nagraj wideo",
+    "gallery": "Wybierz z galerii"
   },
   "story": {
     "react": "Reaguj",

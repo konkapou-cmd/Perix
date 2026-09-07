@@ -53,14 +53,12 @@ export const UploadProgressSheet: React.FC<Props> = ({
   const autoDismissTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (mode !== "inline") return;
-    if (progress?.phase === "complete") {
-      if (autoDismissTimer.current) clearTimeout(autoDismissTimer.current);
-      autoDismissTimer.current = setTimeout(() => {
-        onDismiss?.();
-        autoDismissTimer.current = null;
-      }, 1500);
-    }
+    if (progress?.phase !== "complete") return;
+    if (autoDismissTimer.current) clearTimeout(autoDismissTimer.current);
+    autoDismissTimer.current = setTimeout(() => {
+      onDismiss?.();
+      autoDismissTimer.current = null;
+    }, 1500);
     return () => {
       if (autoDismissTimer.current) {
         clearTimeout(autoDismissTimer.current);
@@ -174,6 +172,10 @@ export const UploadProgressSheet: React.FC<Props> = ({
         </View>
       </Animated.View>
     );
+  }
+
+  if (mode === "blocking" && isComplete && !onDismiss) {
+    return null;
   }
 
   return (

@@ -1648,7 +1648,11 @@
     "tapToCapture": "Toca para capturar, mantén para video",
     "tapToRecord": "Toca para grabar (máx. 30s)",
     "tapToStop": "Toca para detener la grabación",
-    "photoError": "Error al tomar la foto"
+    "photoError": "Error al tomar la foto",
+    "title": "Cámara",
+    "takePhoto": "Tomar foto",
+    "recordVideo": "Grabar vídeo",
+    "gallery": "Elegir de la galería"
   },
   "story": {
     "react": "Reaccionar",

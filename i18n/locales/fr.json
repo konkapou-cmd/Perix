@@ -1682,7 +1682,11 @@
     "tapToCapture": "Appuyez pour capturer, maintenez pour vidéo",
     "tapToRecord": "Appuyez pour enregistrer (max 30s)",
     "tapToStop": "Appuyez pour arrêter l'enregistrement",
-    "photoError": "Échec de la prise de photo"
+    "photoError": "Échec de la prise de photo",
+    "title": "Appareil photo",
+    "takePhoto": "Prendre une photo",
+    "recordVideo": "Enregistrer une vidéo",
+    "gallery": "Choisir dans la galerie"
   },
   "story": {
     "react": "Réagir",

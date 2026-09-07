@@ -1690,7 +1690,11 @@
     "tapToCapture": "Tap to capture, hold for video",
     "tapToRecord": "Tap to record (max 30s)",
     "tapToStop": "Tap to stop recording",
-    "photoError": "Failed to take photo"
+    "photoError": "Failed to take photo",
+    "title": "Camera",
+    "takePhoto": "Take photo",
+    "recordVideo": "Record video",
+    "gallery": "Choose from gallery"
   },
   "story": {
     "react": "React",

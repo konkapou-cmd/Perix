@@ -1785,7 +1785,11 @@
     "tapToCapture": "Tippen zum Aufnehmen, halten für Video",
     "tapToRecord": "Tippen zum Aufnehmen (max. 30s)",
     "tapToStop": "Tippen zum Beenden der Aufnahme",
-    "photoError": "Foto konnte nicht aufgenommen werden"
+    "photoError": "Foto konnte nicht aufgenommen werden",
+    "title": "Kamera",
+    "takePhoto": "Foto aufnehmen",
+    "recordVideo": "Video aufnehmen",
+    "gallery": "Aus Galerie wählen"
   },
   "privacy": {
     "title": "Datenschutzrichtlinie",

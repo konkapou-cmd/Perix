@@ -1653,7 +1653,11 @@
     "tapToCapture": "Tocca per scattare, tieni premuto per video",
     "tapToRecord": "Tocca per registrare (max 30s)",
     "tapToStop": "Tocca per interrompere la registrazione",
-    "photoError": "Impossibile scattare la foto"
+    "photoError": "Impossibile scattare la foto",
+    "title": "Fotocamera",
+    "takePhoto": "Scatta foto",
+    "recordVideo": "Registra video",
+    "gallery": "Scegli dalla galleria"
   },
   "story": {
     "react": "Reagisci",

@@ -1678,7 +1678,11 @@
     "tapToCapture": "Dodirnite za snimanje, držite za video",
     "tapToRecord": "Dodirnite za snimanje (maks 30s)",
     "tapToStop": "Dodirnite za zaustavljanje snimanja",
-    "photoError": "Fotografisanje nije uspelo"
+    "photoError": "Fotografisanje nije uspelo",
+    "title": "Kamera",
+    "takePhoto": "Uslikaj fotografiju",
+    "recordVideo": "Snimi video",
+    "gallery": "Izaberi iz galerije"
   },
   "call": {
     "startGroupCall": "Započni grupni poziv",
