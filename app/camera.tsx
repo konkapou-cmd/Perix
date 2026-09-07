@@ -219,40 +219,7 @@ export default function CameraScreen() {
     }
   };
 
-  // Web: use the browser-native capture UI (avoids camera streaming issues on mobile Chrome)
-  const webPhotoInputRef = useRef<any>(null);
-  const webVideoInputRef = useRef<any>(null);
-
-  const handleWebFile = (type: "image" | "video") => async (event: any) => {
-    const input = event?.target || event?.currentTarget;
-    const file = input?.files?.[0];
-    if (input) input.value = "";
-    if (!file) return;
-    try {
-      if (type === "image") {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || ""));
-          reader.onerror = () => reject(new Error("read failed"));
-          reader.readAsDataURL(file);
-        });
-        router.replace({
-          pathname: "/media-editor",
-          params: { uri: encodeURIComponent(dataUrl), type: "image", mode },
-        });
-      } else {
-        const url = URL.createObjectURL(file);
-        router.replace({
-          pathname: "/media-editor",
-          params: { uri: encodeURIComponent(url), type: "video", mode },
-        });
-      }
-    } catch (error) {
-      console.error("Web capture failed:", error);
-      Alert.alert(t("common.error"), t("camera.photoError") || "Failed to capture media");
-    }
-  };
-
+  // Web: live camera stream (getUserMedia) with photo/video capture + gallery option
   const [streaming, setStreaming] = useState(false);
   const [recordingStream, setRecordingStream] = useState(false);
   const webVideoRef = useRef<any>(null);
@@ -295,17 +262,21 @@ export default function CameraScreen() {
       }
       streamRef.current = stream;
       setStreaming(true);
-      setTimeout(() => {
-        if (webVideoRef.current) {
-          webVideoRef.current.srcObject = stream;
-          webVideoRef.current.play().catch(() => {});
-        }
-      }, 0);
     } catch (e) {
       console.error("getUserMedia failed:", e);
       Alert.alert(t("common.error"), t("camera.permissionRequired") || "Camera Permission Required");
     }
   };
+
+  useEffect(() => {
+    if (!streaming || !streamRef.current || !webVideoRef.current) return;
+    try {
+      webVideoRef.current.srcObject = streamRef.current;
+      webVideoRef.current.play().catch(() => {});
+    } catch (e) {
+      console.error("Attach stream failed:", e);
+    }
+  }, [streaming]);
 
   const captureStreamPhoto = () => {
     const video = webVideoRef.current;
@@ -368,11 +339,19 @@ export default function CameraScreen() {
         {streaming ? (
           <View style={styles.webStreamWrap}>
             {React.createElement("video", {
-              ref: webVideoRef,
+              ref: (el: any) => {
+                webVideoRef.current = el;
+                if (el && streamRef.current) {
+                  try {
+                    el.srcObject = streamRef.current;
+                    el.play().catch(() => {});
+                  } catch (e) {}
+                }
+              },
               playsInline: true,
               muted: true,
               autoPlay: true,
-              style: { width: "100%", flex: 1, backgroundColor: "#000" },
+              style: { width: "100%", height: "100%", objectFit: "cover", backgroundColor: "#000" },
             })}
             <View style={styles.webStreamControls}>
               <Pressable style={styles.webCaptureBtn} onPress={captureStreamPhoto}>
@@ -398,42 +377,12 @@ export default function CameraScreen() {
             <Ionicons name="camera" size={48} color="#59ABE3" />
             <Text style={styles.webBigText}>{t("camera.openCamera", "Open camera")}</Text>
           </Pressable>
-          <Pressable
-            style={styles.webBigBtn}
-            onPress={() => webPhotoInputRef.current?.click()}
-          >
-            <Ionicons name="image" size={48} color="#59ABE3" />
-            <Text style={styles.webBigText}>{t("camera.takePhoto", "Take photo")}</Text>
-          </Pressable>
-          <Pressable
-            style={styles.webBigBtn}
-            onPress={() => webVideoInputRef.current?.click()}
-          >
-            <Ionicons name="videocam" size={48} color="#59ABE3" />
-            <Text style={styles.webBigText}>{t("camera.recordVideo", "Record video")}</Text>
-          </Pressable>
           <Pressable style={styles.webSmallBtn} onPress={openGallery}>
             <Ionicons name="images-outline" size={20} color="#264348" />
             <Text style={styles.webSmallText}>{t("camera.gallery", "Choose from gallery")}</Text>
           </Pressable>
         </View>
         )}
-        {React.createElement("input", {
-          ref: webPhotoInputRef,
-          type: "file",
-          accept: "image/*",
-          capture: "environment",
-          style: { display: "none" },
-          onChange: handleWebFile("image"),
-        })}
-        {React.createElement("input", {
-          ref: webVideoInputRef,
-          type: "file",
-          accept: "video/*",
-          capture: "environment",
-          style: { display: "none" },
-          onChange: handleWebFile("video"),
-        })}
       </SafeAreaView>
     );
   }
