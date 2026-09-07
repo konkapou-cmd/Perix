@@ -17,6 +17,8 @@ import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
 import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
+import { useAuth } from "../context/AuthContext";
+import { createPost, uploadMedia, uploadVideoMux } from "../lib/api";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -25,6 +27,7 @@ type CameraViewMode = "picture" | "video";
 export default function CameraScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { sessionToken, activeIdentity } = useAuth();
   const { mode, returnTo } = useLocalSearchParams<{ mode?: string; returnTo?: string }>();
 
   const maxDurationSeconds = mode === "cover"
@@ -222,20 +225,32 @@ export default function CameraScreen() {
   // Web: live camera stream (getUserMedia) with photo/video capture + gallery option
   const [streaming, setStreaming] = useState(false);
   const [recordingStream, setRecordingStream] = useState(false);
+  const [webFacing, setWebFacing] = useState<"user" | "environment">("environment");
+  const [pendingMedia, setPendingMedia] = useState<{ uri: string; type: "image" | "video"; ratio?: number } | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
   const webVideoRef = useRef<any>(null);
   const streamRef = useRef<any>(null);
   const recorderRef = useRef<any>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const webMaxDuration = MEDIA_LIMITS.camera.generalMaxDurationSeconds;
 
   useEffect(() => {
     return () => {
       try {
         streamRef.current?.getTracks?.().forEach((t: any) => t.stop());
       } catch (e) {}
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      if (autoStopRef.current) clearTimeout(autoStopRef.current);
     };
   }, []);
 
   const stopStream = () => {
+    if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    if (autoStopRef.current) clearTimeout(autoStopRef.current);
     try {
       if (recorderRef.current && recorderRef.current.state === "recording") {
         recorderRef.current.stop();
@@ -248,12 +263,14 @@ export default function CameraScreen() {
     recorderRef.current = null;
     setStreaming(false);
     setRecordingStream(false);
+    setRecordSeconds(0);
   };
 
-  const startStream = async () => {
+  const startStream = async (facingMode?: "user" | "environment") => {
+    const nextFacing = facingMode ?? webFacing;
     try {
       const stream = await (navigator as any)?.mediaDevices?.getUserMedia?.({
-        video: { facingMode: "user" },
+        video: { facingMode: nextFacing },
         audio: false,
       });
       if (!stream) {
@@ -261,11 +278,18 @@ export default function CameraScreen() {
         return;
       }
       streamRef.current = stream;
+      setWebFacing(nextFacing);
       setStreaming(true);
     } catch (e) {
       console.error("getUserMedia failed:", e);
       Alert.alert(t("common.error"), t("camera.permissionRequired") || "Camera Permission Required");
     }
+  };
+
+  const switchFacing = () => {
+    const next: "user" | "environment" = webFacing === "environment" ? "user" : "environment";
+    stopStream();
+    startStream(next);
   };
 
   useEffect(() => {
@@ -286,11 +310,9 @@ export default function CameraScreen() {
     canvas.height = video.videoHeight;
     canvas.getContext("2d")?.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    const ratio = video.videoHeight > 0 ? video.videoWidth / video.videoHeight : undefined;
     stopStream();
-    router.replace({
-      pathname: "/media-editor",
-      params: { uri: encodeURIComponent(dataUrl), type: "image", mode },
-    });
+    setPendingMedia({ uri: dataUrl, type: "image", ratio });
   };
 
   const toggleStreamRecording = () => {
@@ -309,20 +331,77 @@ export default function CameraScreen() {
         if (e.data && e.data.size) chunks.push(e.data);
       };
       recorder.onstop = () => {
+        if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+        if (autoStopRef.current) clearTimeout(autoStopRef.current);
         const blob = new Blob(chunks, { type: "video/webm" });
         const url = URL.createObjectURL(blob);
+        const video = webVideoRef.current;
+        const ratio = video && video.videoHeight ? video.videoWidth / video.videoHeight : undefined;
         stopStream();
-        router.replace({
-          pathname: "/media-editor",
-          params: { uri: encodeURIComponent(url), type: "video", mode },
-        });
+        setPendingMedia({ uri: url, type: "video", ratio });
       };
       recorderRef.current = recorder;
       recorder.start();
       setRecordingStream(true);
+      setRecordSeconds(0);
+      recordTimerRef.current = setInterval(() => {
+        setRecordSeconds((prev) => prev + 1);
+      }, 1000);
+      autoStopRef.current = setTimeout(() => {
+        try {
+          if (recorderRef.current && recorderRef.current.state === "recording") {
+            recorderRef.current.stop();
+          }
+        } catch (e) {}
+      }, webMaxDuration * 1000);
     } catch (e) {
       console.error("MediaRecorder failed:", e);
       Alert.alert(t("common.error"), t("camera.photoError") || "Failed to record video");
+    }
+  };
+
+  const publishPending = async () => {
+    if (!sessionToken || !pendingMedia || publishing) return;
+    setPublishing(true);
+    try {
+      const actor = activeIdentity ? { type: activeIdentity.type, id: activeIdentity.id } : undefined;
+      const businessId = activeIdentity?.type === "business" ? activeIdentity.id : undefined;
+      const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const caption = t("home.sharedAnUpdate", "Shared an update");
+      if (pendingMedia.type === "image") {
+        const imageUrl = await uploadMedia(sessionToken, pendingMedia.uri, "image");
+        await createPost(sessionToken, caption, null, null, businessId, actor, pendingMedia.ratio ?? null, [], null, null, imageUrl, null, null, null, null, undefined, undefined, requestId);
+      } else {
+        const muxResult = await uploadVideoMux(sessionToken, pendingMedia.uri);
+        const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+        await createPost(
+          sessionToken,
+          caption,
+          null,
+          null,
+          businessId,
+          actor,
+          pendingMedia.ratio ?? null,
+          [],
+          null,
+          null,
+          null,
+          videoUrl,
+          null,
+          null,
+          muxResult.mux_upload_id || null,
+          muxResult.mux_playback_id || null,
+          muxResult.video_status || (videoUrl ? "ready" : "processing"),
+          requestId,
+        );
+      }
+      setPendingMedia(null);
+      router.replace("/(tabs)/home" as any);
+    } catch (error: any) {
+      console.error("[camera] publish failed:", error?.message);
+      Alert.alert(t("common.error"), error?.message || t("editor.publishFailed", "Failed to publish"));
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -336,7 +415,35 @@ export default function CameraScreen() {
           <Text style={styles.webTitle}>{t("camera.title", "Camera")}</Text>
           <View style={{ width: 40 }} />
         </View>
-        {streaming ? (
+        {pendingMedia ? (
+          <View style={styles.webBody}>
+            {pendingMedia.type === "video"
+              ? React.createElement("video", {
+                  src: pendingMedia.uri,
+                  controls: true,
+                  playsInline: true,
+                  style: { width: "100%", maxHeight: 440, borderRadius: 16, backgroundColor: "#000" },
+                })
+              : React.createElement("img", {
+                  src: pendingMedia.uri,
+                  style: { width: "100%", maxHeight: 440, borderRadius: 16, objectFit: "contain", backgroundColor: "#000" },
+                })}
+            <Pressable
+              style={[styles.webPublishBtn, publishing && { opacity: 0.6 }]}
+              onPress={publishPending}
+              disabled={publishing}
+            >
+              <Ionicons name="paper-plane" size={20} color="#fff" />
+              <Text style={styles.webPublishText}>
+                {publishing ? (t("upload.uploading", "Uploading...")) : (t("editor.publishAsPost", "Als Beitrag veröffentlichen"))}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.webSmallBtn} onPress={() => setPendingMedia(null)} disabled={publishing}>
+              <Ionicons name="refresh" size={20} color="#264348" />
+              <Text style={styles.webSmallText}>{t("camera.retake", "Neu aufnehmen")}</Text>
+            </Pressable>
+          </View>
+        ) : streaming ? (
           <View style={styles.webStreamWrap}>
             {React.createElement("video", {
               ref: (el: any) => {
@@ -353,7 +460,16 @@ export default function CameraScreen() {
               autoPlay: true,
               style: { width: "100%", height: "100%", objectFit: "cover", backgroundColor: "#000" },
             })}
+            {recordingStream && (
+              <View style={styles.webRecordBadge}>
+                <View style={styles.webRecordDot} />
+                <Text style={styles.webRecordText}>{recordSeconds}s / {webMaxDuration}s</Text>
+              </View>
+            )}
             <View style={styles.webStreamControls}>
+              <Pressable style={styles.webCaptureBtn} onPress={switchFacing}>
+                <Ionicons name="camera-reverse" size={24} color="#fff" />
+              </Pressable>
               <Pressable style={styles.webCaptureBtn} onPress={captureStreamPhoto}>
                 <Ionicons name="camera" size={26} color="#fff" />
               </Pressable>
@@ -372,7 +488,7 @@ export default function CameraScreen() {
         <View style={styles.webBody}>
           <Pressable
             style={styles.webBigBtn}
-            onPress={startStream}
+            onPress={() => startStream()}
           >
             <Ionicons name="camera" size={48} color="#59ABE3" />
             <Text style={styles.webBigText}>{t("camera.openCamera", "Open camera")}</Text>
@@ -622,6 +738,47 @@ const styles = StyleSheet.create({
   },
   webCaptureBtnClose: {
     backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  webPublishBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    width: "100%",
+    maxWidth: 420,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: "#59ABE3",
+  },
+  webPublishText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  webRecordBadge: {
+    position: "absolute",
+    top: 16,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  webRecordDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#ef4444",
+  },
+  webRecordText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#fff",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   container: {
     flex: 1,
