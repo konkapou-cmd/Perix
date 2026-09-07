@@ -1657,7 +1657,8 @@
     "title": "Fotocamera",
     "takePhoto": "Scatta foto",
     "recordVideo": "Registra video",
-    "gallery": "Scegli dalla galleria"
+    "gallery": "Scegli dalla galleria",
+    "openCamera": "Apri fotocamera"
   },
   "story": {
     "react": "Reagisci",

@@ -1694,7 +1694,8 @@
     "title": "Camera",
     "takePhoto": "Take photo",
     "recordVideo": "Record video",
-    "gallery": "Choose from gallery"
+    "gallery": "Choose from gallery",
+    "openCamera": "Open camera"
   },
   "story": {
     "react": "React",

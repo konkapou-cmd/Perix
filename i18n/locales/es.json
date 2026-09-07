@@ -1652,7 +1652,8 @@
     "title": "Cámara",
     "takePhoto": "Tomar foto",
     "recordVideo": "Grabar vídeo",
-    "gallery": "Elegir de la galería"
+    "gallery": "Elegir de la galería",
+    "openCamera": "Abrir cámara"
   },
   "story": {
     "react": "Reaccionar",

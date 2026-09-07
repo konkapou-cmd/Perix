@@ -1686,7 +1686,8 @@
     "title": "Appareil photo",
     "takePhoto": "Prendre une photo",
     "recordVideo": "Enregistrer une vidéo",
-    "gallery": "Choisir dans la galerie"
+    "gallery": "Choisir dans la galerie",
+    "openCamera": "Ouvrir la caméra"
   },
   "story": {
     "react": "Réagir",

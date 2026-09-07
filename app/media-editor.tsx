@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { createPost, uploadMedia, uploadImageToCloudinary, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL } from "../lib/api";
+import { createPost, uploadMedia, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL } from "../lib/api";
 import UploadProgressSheet from "../components/UploadProgressSheet";
 import * as FileSystem from "expo-file-system/legacy";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
@@ -230,8 +230,6 @@ export default function MediaEditor() {
         setUploadProgress({ phase: "preparing", progress: 0 });
         const imageUrl = decodedUri.startsWith("http")
           ? decodedUri
-          : decodedUri.startsWith("data:")
-          ? await uploadImageToCloudinary(sessionToken, decodedUri)
           : await uploadMedia(sessionToken, decodedUri, "image", (p) => setUploadProgress(p));
         setShowUploadProgress(false);
         console.log("[media-editor] creating post with image:", { imageUrl });

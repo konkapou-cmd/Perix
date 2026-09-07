@@ -1789,7 +1789,8 @@
     "title": "Kamera",
     "takePhoto": "Foto aufnehmen",
     "recordVideo": "Video aufnehmen",
-    "gallery": "Aus Galerie wählen"
+    "gallery": "Aus Galerie wählen",
+    "openCamera": "Kamera öffnen"
   },
   "privacy": {
     "title": "Datenschutzrichtlinie",

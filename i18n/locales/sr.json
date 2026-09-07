@@ -1682,7 +1682,8 @@
     "title": "Kamera",
     "takePhoto": "Uslikaj fotografiju",
     "recordVideo": "Snimi video",
-    "gallery": "Izaberi iz galerije"
+    "gallery": "Izaberi iz galerije",
+    "openCamera": "Otvori kameru"
   },
   "call": {
     "startGroupCall": "Započni grupni poziv",

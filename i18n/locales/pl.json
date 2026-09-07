@@ -1695,7 +1695,8 @@
     "title": "Aparat",
     "takePhoto": "Zrób zdjęcie",
     "recordVideo": "Nagraj wideo",
-    "gallery": "Wybierz z galerii"
+    "gallery": "Wybierz z galerii",
+    "openCamera": "Otwórz aparat"
   },
   "story": {
     "react": "Reaguj",

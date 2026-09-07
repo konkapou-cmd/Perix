@@ -1591,7 +1591,8 @@
     "title": "Kamera",
     "takePhoto": "Bëj foto",
     "recordVideo": "Regjistro video",
-    "gallery": "Zgjidh nga galeria"
+    "gallery": "Zgjidh nga galeria",
+    "openCamera": "Hap kamerën"
   },
   "story": {
     "react": "Reago",

@@ -253,22 +253,156 @@ export default function CameraScreen() {
     }
   };
 
+  const [streaming, setStreaming] = useState(false);
+  const [recordingStream, setRecordingStream] = useState(false);
+  const webVideoRef = useRef<any>(null);
+  const streamRef = useRef<any>(null);
+  const recorderRef = useRef<any>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        streamRef.current?.getTracks?.().forEach((t: any) => t.stop());
+      } catch (e) {}
+    };
+  }, []);
+
+  const stopStream = () => {
+    try {
+      if (recorderRef.current && recorderRef.current.state === "recording") {
+        recorderRef.current.stop();
+      }
+    } catch (e) {}
+    try {
+      streamRef.current?.getTracks?.().forEach((t: any) => t.stop());
+    } catch (e) {}
+    streamRef.current = null;
+    recorderRef.current = null;
+    setStreaming(false);
+    setRecordingStream(false);
+  };
+
+  const startStream = async () => {
+    try {
+      const stream = await (navigator as any)?.mediaDevices?.getUserMedia?.({
+        video: { facingMode: "user" },
+        audio: false,
+      });
+      if (!stream) {
+        Alert.alert(t("common.error"), t("camera.permissionRequired") || "Camera Permission Required");
+        return;
+      }
+      streamRef.current = stream;
+      setStreaming(true);
+      setTimeout(() => {
+        if (webVideoRef.current) {
+          webVideoRef.current.srcObject = stream;
+          webVideoRef.current.play().catch(() => {});
+        }
+      }, 0);
+    } catch (e) {
+      console.error("getUserMedia failed:", e);
+      Alert.alert(t("common.error"), t("camera.permissionRequired") || "Camera Permission Required");
+    }
+  };
+
+  const captureStreamPhoto = () => {
+    const video = webVideoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")?.drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    stopStream();
+    router.replace({
+      pathname: "/media-editor",
+      params: { uri: encodeURIComponent(dataUrl), type: "image", mode },
+    });
+  };
+
+  const toggleStreamRecording = () => {
+    const stream = streamRef.current;
+    if (!stream) return;
+    if (recordingStream) {
+      recorderRef.current?.stop();
+      setRecordingStream(false);
+      return;
+    }
+    const chunks: Blob[] = [];
+    chunksRef.current = chunks;
+    try {
+      const recorder = new (window as any).MediaRecorder(stream, { mimeType: "video/webm" });
+      recorder.ondataavailable = (e: any) => {
+        if (e.data && e.data.size) chunks.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        stopStream();
+        router.replace({
+          pathname: "/media-editor",
+          params: { uri: encodeURIComponent(url), type: "video", mode },
+        });
+      };
+      recorderRef.current = recorder;
+      recorder.start();
+      setRecordingStream(true);
+    } catch (e) {
+      console.error("MediaRecorder failed:", e);
+      Alert.alert(t("common.error"), t("camera.photoError") || "Failed to record video");
+    }
+  };
+
   if (Platform.OS === "web") {
     return (
       <SafeAreaView style={styles.webContainer}>
         <View style={styles.webHeader}>
-          <Pressable style={styles.webBack} onPress={() => router.back()}>
+          <Pressable style={styles.webBack} onPress={() => { stopStream(); router.back(); }}>
             <Ionicons name="close" size={28} color="#264348" />
           </Pressable>
           <Text style={styles.webTitle}>{t("camera.title", "Camera")}</Text>
           <View style={{ width: 40 }} />
         </View>
+        {streaming ? (
+          <View style={styles.webStreamWrap}>
+            {React.createElement("video", {
+              ref: webVideoRef,
+              playsInline: true,
+              muted: true,
+              autoPlay: true,
+              style: { width: "100%", flex: 1, backgroundColor: "#000" },
+            })}
+            <View style={styles.webStreamControls}>
+              <Pressable style={styles.webCaptureBtn} onPress={captureStreamPhoto}>
+                <Ionicons name="camera" size={26} color="#fff" />
+              </Pressable>
+              <Pressable
+                style={[styles.webCaptureBtn, recordingStream && styles.webCaptureBtnActive]}
+                onPress={toggleStreamRecording}
+              >
+                <Ionicons name={recordingStream ? "stop" : "videocam"} size={26} color="#fff" />
+              </Pressable>
+              <Pressable style={[styles.webCaptureBtn, styles.webCaptureBtnClose]} onPress={stopStream}>
+                <Ionicons name="close" size={26} color="#fff" />
+              </Pressable>
+            </View>
+          </View>
+        ) : (
         <View style={styles.webBody}>
+          <Pressable
+            style={styles.webBigBtn}
+            onPress={startStream}
+          >
+            <Ionicons name="camera" size={48} color="#59ABE3" />
+            <Text style={styles.webBigText}>{t("camera.openCamera", "Open camera")}</Text>
+          </Pressable>
           <Pressable
             style={styles.webBigBtn}
             onPress={() => webPhotoInputRef.current?.click()}
           >
-            <Ionicons name="camera" size={48} color="#59ABE3" />
+            <Ionicons name="image" size={48} color="#59ABE3" />
             <Text style={styles.webBigText}>{t("camera.takePhoto", "Take photo")}</Text>
           </Pressable>
           <Pressable
@@ -283,6 +417,7 @@ export default function CameraScreen() {
             <Text style={styles.webSmallText}>{t("camera.gallery", "Choose from gallery")}</Text>
           </Pressable>
         </View>
+        )}
         {React.createElement("input", {
           ref: webPhotoInputRef,
           type: "file",
@@ -508,6 +643,36 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#264348",
+  },
+  webStreamWrap: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  webStreamControls: {
+    position: "absolute",
+    bottom: 28,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 28,
+    alignItems: "center",
+  },
+  webCaptureBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  webCaptureBtnActive: {
+    backgroundColor: "#ef4444",
+  },
+  webCaptureBtnClose: {
+    backgroundColor: "rgba(0,0,0,0.45)",
   },
   container: {
     flex: 1,
