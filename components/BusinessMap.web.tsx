@@ -142,6 +142,8 @@ export default function BusinessMap({
   const prevCenterRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLocationRef = useRef<string>("");
+  const businessesRef = useRef(businesses);
+  businessesRef.current = businesses;
   const router = useRouter();
 
   const generatedMarkers: MapMarker[] = [
@@ -220,6 +222,13 @@ export default function BusinessMap({
     ...(extraMarkers ?? []),
   ];
 
+  // Stable content signature — arrays are recreated every render, so depend on contents instead
+  const markersVersion = useMemo(() => {
+    const parts: string[] = [];
+    allMarkers.forEach((m) => parts.push(`${m.id}|${m.latitude}|${m.longitude}|${m.pinColor || ""}|${m.pinInnerColor || ""}`));
+    return parts.join(";");
+  }, [allMarkers]);
+
   const groupedMarkers = useMemo(() => {
     const groups = new Map<string, MapMarker[]>();
     allMarkers.forEach((m) => {
@@ -245,7 +254,8 @@ export default function BusinessMap({
         type: items[0].type,
       };
     });
-  }, [allMarkers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markersVersion]);
 
   const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
 
@@ -482,7 +492,7 @@ export default function BusinessMap({
           setSelectedGroup(group.items);
           return;
         }
-        const biz = businesses.find((b) => b.business_id === group.items[0].id);
+        const biz = businessesRef.current.find((b) => b.business_id === group.items[0].id);
         if (biz) setSelectedBusiness(biz);
         onMarkerPress?.(group.items[0].id);
       });
@@ -490,7 +500,7 @@ export default function BusinessMap({
       const record = markersRef.current[markersRef.current.length - 1];
       if (record) record.overlay = overlay;
     });
-  }, [groupedMarkers, mapReady, businesses]);
+  }, [groupedMarkers, mapReady]);
 
   // Fly to location
   useEffect(() => {
