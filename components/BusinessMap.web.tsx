@@ -511,6 +511,73 @@ export default function BusinessMap({
     mapRef.current.panTo({ lat: location.latitude, lng: location.longitude });
   }, [location, mapReady]);
 
+  // User location dot — glued to the map
+  const userLocationOverlayRef = useRef<any>(null);
+  const userLocKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReadyRef.current) return;
+    const key = showUserLocation && location
+      ? `${location.latitude.toFixed(6)}_${location.longitude.toFixed(6)}`
+      : null;
+    if (key === userLocKeyRef.current) return;
+    userLocKeyRef.current = key;
+    if (userLocationOverlayRef.current) {
+      try { userLocationOverlayRef.current.setMap(null); } catch (e) {}
+      userLocationOverlayRef.current = null;
+    }
+    if (!key || !location) return;
+    const google = (window as any).google;
+
+    const container = document.createElement("div");
+    container.style.position = "absolute";
+    container.style.pointerEvents = "none";
+
+    const dot = document.createElement("div");
+    dot.style.width = "16px";
+    dot.style.height = "16px";
+    dot.style.borderRadius = "50%";
+    dot.style.backgroundColor = "#59ABE3";
+    dot.style.border = "3px solid #ffffff";
+    dot.style.boxShadow = "0 1px 5px rgba(0,0,0,0.4)";
+    dot.style.transform = "translate(-50%, -50%)";
+    dot.style.boxSizing = "border-box";
+    container.appendChild(dot);
+
+    class UserOverlay extends google.maps.OverlayView {
+      div: HTMLDivElement;
+      pos: { lat: number; lng: number };
+      constructor(div: HTMLDivElement, pos: { lat: number; lng: number }) {
+        super();
+        this.div = div;
+        this.pos = pos;
+      }
+      onAdd(this: any) {
+        this.getPanes().overlayMouseTarget.appendChild(this.div);
+      }
+      draw(this: any) {
+        const overlayProjection = this.getProjection();
+        const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
+        if (point) {
+          this.div.style.left = point.x + "px";
+          this.div.style.top = point.y + "px";
+        }
+      }
+      onRemove(this: any) {
+        if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
+      }
+    }
+
+    const overlay = new UserOverlay(container, { lat: location.latitude, lng: location.longitude });
+    overlay.setMap(map);
+    userLocationOverlayRef.current = overlay;
+    return () => {
+      try { overlay.setMap(null); } catch (e) {}
+      if (userLocationOverlayRef.current === overlay) userLocationOverlayRef.current = null;
+    };
+  }, [location, showUserLocation, mapReady]);
+
   // Pan when the initialRegion-based center changes (e.g. home map bounds updates)
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return;
