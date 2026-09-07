@@ -252,7 +252,7 @@ export default function AdaptiveVideoWeb({
       {failed ? (
         <View style={styles.center}>
           {coverUrl ? (
-            <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
           ) : (
             <Ionicons name="alert-circle-outline" size={32} color="#999" />
           )}
@@ -266,7 +266,7 @@ export default function AdaptiveVideoWeb({
         </View>
       ) : isProcessing ? (
         <View style={styles.center}>
-          {coverUrl ? <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+          {coverUrl ? <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" /> : null}
           <View style={styles.dim}>
             <ActivityIndicator size="large" color="#fff" />
             <Text style={styles.errText}>{t("common.processingVideo", "Video wird verarbeitet...")}</Text>

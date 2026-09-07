@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   playIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
   processingOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", gap: 8 },
   processingText: { color: COLORS.textLight, fontSize: 14, fontWeight: "600" },
-  sideTapZone: { position: "absolute", top: 0, bottom: 0, width: "33%", justifyContent: "center", alignItems: "center", zIndex: 10 },
+  sideTapZone: { position: "absolute", top: 0, bottom: 130, width: "33%", justifyContent: "center", alignItems: "center", zIndex: 10 },
   sideTapZoneLeft: { left: 0 },
   sideTapZoneRight: { right: 0 },
   sideArrowHint: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "center", alignItems: "center" },
