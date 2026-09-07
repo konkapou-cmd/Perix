@@ -391,7 +391,7 @@ export default function CameraScreen() {
           null,
           muxResult.mux_upload_id || null,
           muxResult.mux_playback_id || null,
-          muxResult.video_status || (videoUrl ? "ready" : "processing"),
+          muxResult.video_status || (muxResult.url ? "ready" : "processing"),
           requestId,
         );
       }

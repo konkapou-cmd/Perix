@@ -255,8 +255,8 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold,
   },
   videoContainer: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    width: "100%",
+    height: "100%",
   },
   video: {
     width: "100%",
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 80,
     bottom: 80,
-    width: SCREEN_WIDTH / 3,
+    width: "33%",
     zIndex: 5,
   },
   tapRight: {
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 80,
     bottom: 80,
-    width: SCREEN_WIDTH / 3,
+    width: "33%",
     zIndex: 5,
   },
 });
