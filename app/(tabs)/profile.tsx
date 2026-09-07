@@ -2554,6 +2554,60 @@ currentUserId={businessDetail?.business?.business_id}
                   onEditTags={TAGGING_ENABLED ? editTagModal : undefined}
                   onUploadCityAd={async () => {
                     if (!sessionToken) return;
+                    if (Platform.OS === "web") {
+                      const pickWebVideo = (): Promise<any> =>
+                        new Promise((resolve) => {
+                          const input = (globalThis as any).document?.createElement("input");
+                          if (!input) return resolve(null);
+                          input.type = "file";
+                          input.accept = "video/mp4,video/quicktime,video/x-m4v,video/*";
+                          input.style.display = "none";
+                          (globalThis as any).document.body.appendChild(input);
+                          const cleanup = () => { try { (globalThis as any).document.body.removeChild(input); } catch {} };
+                          input.addEventListener("change", () => {
+                            const file = input.files?.[0] ?? null;
+                            cleanup();
+                            resolve(file);
+                          });
+                          input.addEventListener("cancel", () => {
+                            cleanup();
+                            resolve(null);
+                          });
+                          input.click();
+                        });
+                      const file = await pickWebVideo();
+                      if (!file) return;
+                      const uri = URL.createObjectURL(file);
+                      try {
+                        const story = await createStory(sessionToken, {
+                          media_url: undefined,
+                          media_type: "video",
+                          actor_type: "business",
+                          actor_id: activeIdentity?.id,
+                          latitude: businessDetail?.business.latitude,
+                          longitude: businessDetail?.business.longitude,
+                          video_status: "uploading",
+                          client_request_id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+                        });
+                        const muxResult = await uploadVideoMux(sessionToken, uri, `story:${story.story_id}`);
+                        const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
+                        if (videoUrl || muxResult.mux_upload_id) {
+                          await apiRequest(`/stories/${story.story_id}`, "PATCH", sessionToken, {
+                            media_url: videoUrl || undefined,
+                            mux_upload_id: muxResult.mux_upload_id,
+                            mux_asset_id: muxResult.mux_asset_id,
+                            mux_playback_id: muxResult.mux_playback_id,
+                            mux_thumbnail_url: muxResult.mux_thumbnail_url,
+                            video_status: muxResult.mux_playback_id ? "ready" : "processing",
+                          });
+                        }
+                        Alert.alert(t("cityAd.adPublished", "Your city ad has been published!"));
+                      } catch (e) {
+                        console.error("City ad creation failed:", e);
+                        Alert.alert(t("common.error"), "Failed to create city ad");
+                      }
+                      return;
+                    }
                     const result = await ImagePicker.launchImageLibraryAsync({
                       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
                       quality: MEDIA_LIMITS.video.pickerQuality,
