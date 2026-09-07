@@ -148,6 +148,7 @@ export default function HomeScreen() {
   const [savedListingIds, setSavedListingIds] = useState<Set<string>>(new Set());
   const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
   const viewportRequestRef = useRef(0);
+  const lastViewportKeyRef = useRef("");
 
   useEffect(() => {
     if (!sessionToken) return;
@@ -166,8 +167,9 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!mapBounds) return;
-    setViewportProducts([]);
-    setViewportHomes([]);
+    const key = `${mapBounds.minLat.toFixed(3)}_${mapBounds.maxLat.toFixed(3)}_${mapBounds.minLng.toFixed(3)}_${mapBounds.maxLng.toFixed(3)}`;
+    if (key === lastViewportKeyRef.current) return;
+    lastViewportKeyRef.current = key;
     const bounds = { minLat: mapBounds.minLat, maxLat: mapBounds.maxLat, minLng: mapBounds.minLng, maxLng: mapBounds.maxLng };
     const requestId = ++viewportRequestRef.current;
     Promise.all([
@@ -181,8 +183,6 @@ export default function HomeScreen() {
       })
       .catch(() => {
         if (requestId !== viewportRequestRef.current) return;
-        setViewportProducts([]);
-        setViewportHomes([]);
       });
   }, [mapBounds]);
 

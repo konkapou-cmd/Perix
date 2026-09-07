@@ -234,25 +234,15 @@ export default function LocatorScreen() {
      };
    };
 
-   const visibleBusinesses = useMemo(() => {
-     let result = businesses;
-     // Filter by map bounds
-     if (mapBounds) {
-       result = result.filter(b => {
-         if (b.latitude == null || b.longitude == null) return true;
-         return b.latitude >= mapBounds.minLat && 
-                b.latitude <= mapBounds.maxLat && 
-                b.longitude >= mapBounds.minLng && 
-                b.longitude <= mapBounds.maxLng;
-       });
-     }
-     // Filter by search query
-     if (businessSearchQuery.trim()) {
-       const query = businessSearchQuery.toLowerCase();
-       result = result.filter(b => b.name.toLowerCase().includes(query));
-     }
-     return result;
-   }, [businesses, mapBounds, businessSearchQuery]);
+  const visibleBusinesses = useMemo(() => {
+    let result = businesses;
+    // Filter by search query
+    if (businessSearchQuery.trim()) {
+      const query = businessSearchQuery.toLowerCase();
+      result = result.filter(b => b.name.toLowerCase().includes(query));
+    }
+    return result;
+  }, [businesses, businessSearchQuery]);
 
   const visibleHotels = useMemo(() => {
     return visibleBusinesses.filter(b => b.root_category === "local-hotels");
@@ -260,16 +250,6 @@ export default function LocatorScreen() {
 
    const visibleEvents = useMemo(() => {
      let result = events;
-     // Filter by map bounds
-     if (mapBounds) {
-       result = result.filter(e => {
-         if (e.latitude == null || e.longitude == null) return true;
-         return e.latitude >= mapBounds.minLat && 
-                e.latitude <= mapBounds.maxLat && 
-                e.longitude >= mapBounds.minLng && 
-                e.longitude <= mapBounds.maxLng;
-       });
-     }
      // Filter by upcoming (default this week)
      const effectiveDateFilter = dateFilter.startDate || dateFilter.endDate ? dateFilter : getThisWeekRange();
      result = result.filter(e => {
@@ -286,20 +266,10 @@ export default function LocatorScreen() {
        result = result.filter(e => e.title.toLowerCase().includes(query));
      }
      return result;
-   }, [events, mapBounds, dateFilter, eventThemeFilter, eventSearchQuery]);
+   }, [events, dateFilter, eventThemeFilter, eventSearchQuery]);
 
    const visibleActivities = useMemo(() => {
      let result = activities;
-     // Filter by map bounds
-     if (mapBounds) {
-       result = result.filter(a => {
-         if (a.latitude == null || a.longitude == null) return true;
-         return a.latitude >= mapBounds.minLat && 
-                a.latitude <= mapBounds.maxLat && 
-                a.longitude >= mapBounds.minLng && 
-                a.longitude <= mapBounds.maxLng;
-       });
-     }
      // Filter by upcoming (default this week)
      const effectiveDateFilter = dateFilter.startDate || dateFilter.endDate ? dateFilter : getThisWeekRange();
      result = result.filter(a => {
@@ -319,7 +289,7 @@ export default function LocatorScreen() {
        result = result.filter(a => a.title.toLowerCase().includes(query));
      }
      return result;
-   }, [activities, mapBounds, dateFilter, activityCategoryFilter, activitySearchQuery]);
+   }, [activities, dateFilter, activityCategoryFilter, activitySearchQuery]);
   
   const googleKey =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
@@ -378,7 +348,7 @@ export default function LocatorScreen() {
     setCategoryTree(data);
   }, [sessionToken]);
 
-  const loadBusinesses = useCallback(async (centerLat: number, centerLng: number, bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, openNow?: boolean) => {
+  const loadBusinesses = useCallback(async (centerLat: number, centerLng: number, bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, openNow?: boolean, loadId?: number) => {
     if (!sessionToken) return;
     const data = await getNearbyBusinesses(
       sessionToken,
@@ -388,38 +358,43 @@ export default function LocatorScreen() {
       selectedSubcategory !== "All" ? selectedSubcategory : undefined,
       bounds,
     );
+    if (loadId !== undefined && loadIdRef.current !== loadId) return;
     const filterOpen = openNow ?? businessAvailabilityFilter === "open_now";
     setBusinesses(filterOpen ? data.filter(isBusinessOpen) : data);
   }, [sessionToken, selectedRoot, selectedSubcategory, businessAvailabilityFilter]);
 
-  const loadEvents = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+  const loadEvents = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, loadId?: number) => {
     if (!sessionToken) return;
     const data = await getEvents(sessionToken, undefined, undefined, bounds, {
       startAfter: dateFilter.startDate || undefined,
       startBefore: dateFilter.endDate || undefined,
       theme: eventThemeFilter || undefined,
     });
+    if (loadId !== undefined && loadIdRef.current !== loadId) return;
     setEvents(data);
   }, [sessionToken, dateFilter, eventThemeFilter]);
 
-  const loadActivities = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+  const loadActivities = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, loadId?: number) => {
     if (!sessionToken) return;
     const data = await getActivities(sessionToken, bounds, {
       date: dateFilter.startDate || undefined,
       category: activityCategoryFilter || undefined,
     });
+    if (loadId !== undefined && loadIdRef.current !== loadId) return;
     setActivities(data);
   }, [sessionToken, dateFilter, activityCategoryFilter]);
 
-  const loadRentals = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, subcategoryFilter?: string | null) => {
+  const loadRentals = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, subcategoryFilter?: string | null, loadId?: number) => {
     if (!sessionToken) return;
     const data = await getRentals(sessionToken, bounds, { subcategory: subcategoryFilter || undefined });
+    if (loadId !== undefined && loadIdRef.current !== loadId) return;
     setRentals(data.rentals);
   }, [sessionToken]);
 
-  const loadJobs = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+  const loadJobs = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, loadId?: number) => {
     if (!sessionToken) return;
     const data = await getJobs(sessionToken, bounds);
+    if (loadId !== undefined && loadIdRef.current !== loadId) return;
     setJobs(data.jobs);
   }, [sessionToken]);
 
@@ -438,27 +413,29 @@ export default function LocatorScreen() {
   }, [setGlobalMapBounds, sessionToken, radiusKm]);
 
   const requestIdRef = useRef(0);
+  const loadIdRef = useRef(0);
 
   useEffect(() => {
     if (!mapBounds || !sessionToken) return;
     const currentRequestId = ++requestIdRef.current;
+    const loadId = ++loadIdRef.current;
     const timer = setTimeout(() => {
       if (currentRequestId !== requestIdRef.current) return;
-      loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
+      loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds, undefined, loadId);
       if (activeTab === "businesses" && selectedRoot === "rental-real-estate") {
-        loadRentals(mapBounds, rentalTypeFilter);
+        loadRentals(mapBounds, rentalTypeFilter, loadId);
       }
       if (activeTab === "rentals") {
-        loadRentals(mapBounds, rentalTypeFilter);
+        loadRentals(mapBounds, rentalTypeFilter, loadId);
       }
       if (activeTab === "jobs") {
-        loadJobs(mapBounds);
+        loadJobs(mapBounds, loadId);
       }
       if (activeTab === "events") {
-        loadEvents(mapBounds);
+        loadEvents(mapBounds, loadId);
       }
       if (activeTab === "activities") {
-        loadActivities(mapBounds);
+        loadActivities(mapBounds, loadId);
       }
     }, 300);
     return () => clearTimeout(timer);
