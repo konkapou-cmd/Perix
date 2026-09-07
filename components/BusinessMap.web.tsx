@@ -134,7 +134,7 @@ export default function BusinessMap({
   const [mapError, setMapError] = useState(false);
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
-  const [enableError, setEnableError] = useState(false);
+  const [enableError, setEnableError] = useState<string | null>(null);
   const centerLat = location?.latitude ?? initialRegion?.latitude ?? 52.52;
   const centerLng = location?.longitude ?? initialRegion?.longitude ?? 13.405;
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
@@ -485,9 +485,13 @@ export default function BusinessMap({
             if (!onMapPress || enablingRef.current) return;
             enablingRef.current = true;
             setEnabling(true);
-            setEnableError(false);
+            setEnableError(null);
             if (!navigator?.geolocation) {
-              setEnableError(true);
+              setEnableError(
+                (window as any)?.isSecureContext === false
+                  ? t("common.locationHttps", "Location requires HTTPS. Open https://app.perixapp.com and try again.")
+                  : t("common.locationUnavailable", "Location is not available in this browser. Check browser settings and try again."),
+              );
               enablingRef.current = false;
               setEnabling(false);
               return;
@@ -499,8 +503,16 @@ export default function BusinessMap({
                 setEnabling(false);
               },
               (err) => {
-                console.warn("Web geolocation denied:", err?.code, err?.message);
-                setEnableError(true);
+                console.warn("Web geolocation error:", err?.code, err?.message);
+                if (err?.code === 1) {
+                  setEnableError(
+                    t("common.locationDenied", "Location is blocked for this site. Tap the lock icon in the address bar, open Site settings and allow Location access."),
+                  );
+                } else {
+                  setEnableError(
+                    t("common.locationUnavailable", "Couldn't get your location. Make sure location/GPS is turned on and try again."),
+                  );
+                }
                 enablingRef.current = false;
                 setEnabling(false);
               },
@@ -514,11 +526,9 @@ export default function BusinessMap({
             <Ionicons name="location" size={40} color={COLORS.pinClosed} />
           )}
           <Text style={s.disabledText}>{enabling ? "…" : disabledHint}</Text>
-          {enableError && (
-            <Text style={s.errorText}>
-              {t("common.locationBlocked", "Location blocked by your browser. Allow location access for this site and try again.")}
-            </Text>
-          )}
+          {enableError ? (
+            <Text style={s.errorText}>{enableError}</Text>
+          ) : null}
         </Pressable>
       </View>
     );
