@@ -104,6 +104,7 @@ function WebMediaPlayer({ item }: { item: MediaItem }) {
       <AdaptiveVideoWeb
         uri={item.uri}
         autoPlay
+        initialMuted
         isLooping
         resizeMode="contain"
         videoStatus={item.videoStatus}
@@ -227,15 +228,15 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.95)", justifyContent: "center", alignItems: "center" },
   closeArea: { position: "absolute", top: 50, right: 16, zIndex: 20 },
   closeButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.15)", justifyContent: "center", alignItems: "center" },
-  mediaArea: { flex: 1, width: SCREEN_WIDTH, justifyContent: "center", alignItems: "center" },
-  imageContainer: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT, justifyContent: "center", alignItems: "center" },
-  fullscreenImage: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT, resizeMode: "contain" },
-  videoContainer: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: "transparent", justifyContent: "center", alignItems: "center" },
+  mediaArea: { flex: 1, width: "100%", justifyContent: "center", alignItems: "center" },
+  imageContainer: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center" },
+  fullscreenImage: { width: "100%", height: "100%", resizeMode: "contain" },
+  videoContainer: { width: "100%", height: "100%", backgroundColor: "transparent", justifyContent: "center", alignItems: "center" },
   playIconOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center" },
   playIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
   processingOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", gap: 8 },
   processingText: { color: COLORS.textLight, fontSize: 14, fontWeight: "600" },
-  sideTapZone: { position: "absolute", top: 0, bottom: 0, width: SCREEN_WIDTH / 3, justifyContent: "center", alignItems: "center", zIndex: 10 },
+  sideTapZone: { position: "absolute", top: 0, bottom: 0, width: "33%", justifyContent: "center", alignItems: "center", zIndex: 10 },
   sideTapZoneLeft: { left: 0 },
   sideTapZoneRight: { right: 0 },
   sideArrowHint: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "center", alignItems: "center" },

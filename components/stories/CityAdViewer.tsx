@@ -165,6 +165,7 @@ export function CityAdViewer({
             <AdaptiveVideoWeb
               uri={cityAdVideoUrl}
               autoPlay
+              initialMuted
               resizeMode="contain"
               videoStatus={currentStory?.video_status}
               muxThumbnailUrl={thumb}
