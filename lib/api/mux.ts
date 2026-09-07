@@ -67,6 +67,51 @@ export const getMuxAssetStatus = async (
   return apiRequest<MuxAssetStatus>(`/mux/asset/${assetId}`, "GET", token, undefined, MUX_REQUEST_TIMEOUT_MS);
 };
 
+const uploadToMuxDirectWeb = async (
+  uploadUrl: string,
+  videoUri: string,
+  onProgress?: (progress: { phase: string; progress: number }) => void
+): Promise<void> => {
+  onProgress?.({ phase: "preparing", progress: 10 });
+
+  let blob: Blob;
+  if (videoUri.startsWith("data:")) {
+    const match = videoUri.match(/^data:(.*?);base64,(.*)$/s);
+    if (!match) throw new Error("Unsupported data URI for video upload");
+    const mime = match[1] || "video/mp4";
+    const binary = atob(match[2]);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    blob = new Blob([bytes], { type: mime });
+  } else {
+    const response = await fetch(videoUri);
+    if (!response.ok) throw new Error("Could not read video file");
+    blob = await response.blob();
+  }
+
+  onProgress?.({ phase: "uploading", progress: 15 });
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", blob.type || "video/mp4");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const pct = 15 + Math.round((e.loaded / e.total) * 70);
+        onProgress?.({ phase: "uploading", progress: Math.min(pct, 85) });
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Mux upload failed with status ${xhr.status}`));
+    };
+    xhr.onerror = () => reject(new Error("Mux upload network error"));
+    xhr.send(blob);
+  });
+
+  onProgress?.({ phase: "processing", progress: 85 });
+};
+
 const uploadToMuxDirect = async (
   uploadUrl: string,
   videoUri: string,
@@ -187,7 +232,11 @@ export const uploadVideoToMux = async (
 
   onProgress?.({ phase: "uploading", progress: 10 });
 
-  await uploadToMuxDirect(upload_url, videoUri, onProgress);
+  if (Platform.OS === "web") {
+    await uploadToMuxDirectWeb(upload_url, videoUri, onProgress);
+  } else {
+    await uploadToMuxDirect(upload_url, videoUri, onProgress);
+  }
 
   onProgress?.({ phase: "processing", progress: 85 });
 

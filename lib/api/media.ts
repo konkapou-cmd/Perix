@@ -85,10 +85,23 @@ export const uploadMedia = async (
     }
 
     onProgress?.({ phase: "uploading", progress: 20 });
-    const response = await fetch(uri);
-    const blob = await response.blob();
+    let blob: Blob;
+    let uploadFilename = filename;
+    if (uri.startsWith("data:")) {
+      const match = uri.match(/^data:(.*?);base64,(.*)$/s);
+      const mime = (match && match[1]) || mimeType;
+      const ext = mime.includes("png") ? "png" : mime.includes("gif") ? "gif" : "jpg";
+      uploadFilename = `upload.${ext}`;
+      const binary = atob(match ? match[2] : "");
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      blob = new Blob([bytes], { type: mime });
+    } else {
+      const response = await fetch(uri);
+      blob = await response.blob();
+    }
     const formData = new FormData();
-    formData.append("file", blob, filename);
+    formData.append("file", blob, uploadFilename);
     formData.append("resource_type", resourceType);
     onProgress?.({ phase: "uploading", progress: 50 });
     const uploadResponse = await fetch(`${API_BASE}/media/upload`, {

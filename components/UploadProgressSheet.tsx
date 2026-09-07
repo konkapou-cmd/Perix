@@ -150,7 +150,7 @@ export const UploadProgressSheet: React.FC<Props> = ({
                 <Ionicons name="checkmark" size={14} color="#fff" />
               </View>
             ) : (
-              <Ionicons name={icon} size={16} color={COLORS.gold} />
+              <Ionicons name={icon} size={16} color="#59ABE3" />
             )}
           </View>
           <View style={inlineS.textContainer}>
@@ -186,7 +186,7 @@ export const UploadProgressSheet: React.FC<Props> = ({
                 <Ionicons name="checkmark" size={28} color="#fff" />
               </View>
             ) : (
-              <Ionicons name={icon} size={28} color={COLORS.gold} />
+              <Ionicons name={icon} size={28} color="#59ABE3" />
             )}
           </View>
 
@@ -231,19 +231,21 @@ const blockingS = StyleSheet.create({
     alignItems: "center",
   },
   card: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.page,
     width: "80%",
     maxWidth: 320,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.12)",
     ...SHADOWS.strong,
   },
   iconCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "rgba(89,171,227,0.12)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.compact,
@@ -259,21 +261,21 @@ const blockingS = StyleSheet.create({
   phaseText: {
     fontSize: FONT_SIZES.body,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: "#fff",
+    color: COLORS.textPrimary,
     marginBottom: SPACING.small,
     textAlign: "center",
   },
   progressBarBg: {
     width: "100%",
     height: 8,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: "rgba(38,67,72,0.1)",
     borderRadius: 4,
     overflow: "hidden",
     marginBottom: SPACING.small,
   },
   progressBar: {
     height: "100%",
-    backgroundColor: COLORS.gold,
+    backgroundColor: "#59ABE3",
     borderRadius: 4,
   },
   progressBarDone: {
@@ -282,7 +284,7 @@ const blockingS = StyleSheet.create({
   percentText: {
     fontSize: FONT_SIZES.bodySmall,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.gold,
+    color: "#1F4788",
     marginBottom: SPACING.small,
   },
   hintText: {
@@ -354,7 +356,7 @@ const inlineS = StyleSheet.create({
   },
   progressBar: {
     height: "100%",
-    backgroundColor: COLORS.gold,
+    backgroundColor: "#59ABE3",
     borderRadius: 2,
   },
   progressBarDone: {
@@ -363,7 +365,7 @@ const inlineS = StyleSheet.create({
   percent: {
     fontSize: FONT_SIZES.small,
     fontWeight: FONT_WEIGHTS.semibold as any,
-    color: COLORS.gold,
+    color: "#1F4788",
     minWidth: 36,
     textAlign: "right",
   },
