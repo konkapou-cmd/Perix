@@ -190,14 +190,14 @@ const [followLoading, setFollowLoading] = useState(false);
     if (!id) return;
     router.push({
       pathname: "/messages/[id]",
-      params: { id: id, name: businessDetail?.business.name },
+      params: { id: id, name: businessDetail?.business.name, entityType: "business" },
     });
   };
 
   const handleOpenChat = () => {
     router.push({
       pathname: "/messages/[id]",
-      params: { id: id, name: businessDetail?.business.name },
+      params: { id: id, name: businessDetail?.business.name, entityType: "business" },
     });
   };
 
