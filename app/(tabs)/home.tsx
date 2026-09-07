@@ -867,6 +867,7 @@ export default function HomeScreen() {
             services={shuffledServices}
             products={viewportProducts}
             ownerHomes={viewportHomes}
+            userLocation={userLocation}
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
             }}
