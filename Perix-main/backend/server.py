@@ -144,8 +144,9 @@ if WEB_DIST.exists():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def web_spa_fallback(full_path: str):
-        # SPA fallback: serve index.html for any non-API GET request
-        return FileResponse(WEB_DIST / "index.html")
+        # SPA fallback: serve index.html for any non-API GET request.
+        # Never cache it so clients always pick up the newest bundle.
+        return FileResponse(WEB_DIST / "index.html", headers={"Cache-Control": "no-store, no-cache, must-revalidate"})
 
 
 @app.get("/api/ping-deploy")
