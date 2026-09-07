@@ -510,8 +510,6 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   borderColor = PROFILE_COLORS.BORDER,
   themeStyles,
 }) => {
-  const useScroll = tabs.length > 6;
-
   const tabButtons = tabs.map((tab) => {
     const active = tab.key === activeTab;
     return (
@@ -520,7 +518,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
         onPress={() => onTabChange(tab.key)}
         style={[
           iconStyles.tab,
-          !useScroll && iconStyles.tabFlex,
+          iconStyles.tabFlex,
           active && { backgroundColor: primaryColor + "18" },
         ]}
       >
@@ -538,14 +536,6 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
     );
   });
 
-  if (useScroll) {
-    return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={iconStyles.tabBar}>
-        {tabButtons}
-      </ScrollView>
-    );
-  }
-
   return (
     <View style={iconStyles.tabBarEven}>
       {tabButtons}
@@ -554,13 +544,6 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
 };
 
 const iconStyles = StyleSheet.create({
-  tabBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
   tabBarEven: {
     flexDirection: "row",
     alignItems: "center",
@@ -569,7 +552,6 @@ const iconStyles = StyleSheet.create({
     paddingVertical: 8,
   },
   tab: {
-    width: 44,
     height: 44,
     borderRadius: 12,
     alignItems: "center",
@@ -578,7 +560,8 @@ const iconStyles = StyleSheet.create({
   },
   tabFlex: {
     flex: 1,
-    maxWidth: 56,
+    minWidth: 36,
+    maxWidth: 64,
   },
   badge: {
     position: "absolute",
