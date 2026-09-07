@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends, Query
 from routes.dependencies import get_current_user
 from models.user import UserPublic
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse, FileResponse
+from starlette.responses import JSONResponse, FileResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -85,6 +85,16 @@ Use the session token in the `Authorization: Bearer <token>` header.
 async def https_scheme_middleware(request: Request, call_next):
     if request.headers.get("x-forwarded-proto", "http") == "https":
         request.scope["scheme"] = "https"
+    return await call_next(request)
+
+
+# Force HTTPS for browser requests (geolocation, cameras etc. require a secure context)
+@app.middleware("http")
+async def force_https_middleware(request: Request, call_next):
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme or "http")
+    host = (request.headers.get("host") or "").split(":")[0]
+    if proto == "http" and request.method in ("GET", "HEAD") and host not in ("localhost", "127.0.0.1"):
+        return RedirectResponse(url=str(request.url.replace(scheme="https")), status_code=308)
     return await call_next(request)
 
 
