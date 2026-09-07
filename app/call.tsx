@@ -690,11 +690,11 @@ export default function CallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a2e",
+    backgroundColor: "#264348",
   },
   videoBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#0f0f1a",
+    backgroundColor: "#1F4788",
   },
   localVideo: {
     position: "absolute",
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
   },
   remoteVideoPlaceholder: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#1a1a2e",
+    backgroundColor: "#264348",
   },
   userInfo: {
     flex: 1,
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   controlButtonActive: {
-    backgroundColor: "rgba(76, 111, 255, 0.8)",
+    backgroundColor: "#59ABE3",
   },
   controlLabel: {
     fontSize: 10,

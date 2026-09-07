@@ -68,7 +68,7 @@ export default function CallAnswerScreen() {
 const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a2e",
+    backgroundColor: "#264348",
     justifyContent: "center",
     alignItems: "center",
   },

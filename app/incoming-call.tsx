@@ -240,11 +240,11 @@ export default function IncomingCallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a2e",
+    backgroundColor: "#264348",
   },
   backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#1a1a2e",
+    backgroundColor: "#264348",
     opacity: 0.95,
   },
   callerInfo: {
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: "rgba(76, 111, 255, 0.2)",
+    backgroundColor: "rgba(89, 171, 227, 0.25)",
     top: -20,
     left: -20,
   },
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: "rgba(76, 111, 255, 0.1)",
+    backgroundColor: "rgba(89, 171, 227, 0.12)",
     top: -40,
     left: -40,
   },
