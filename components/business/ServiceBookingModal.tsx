@@ -626,7 +626,13 @@ export default function ServiceBookingModal({
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, marginHorizontal: "auto" },
+    }),
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
