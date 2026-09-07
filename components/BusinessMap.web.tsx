@@ -247,7 +247,6 @@ export default function BusinessMap({
     });
   }, [allMarkers]);
 
-  const [zoomLevel, setZoomLevel] = useState(14);
   const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
 
   // Init map — runs once per map div lifetime (disabled toggles or unmount)
@@ -308,7 +307,11 @@ export default function BusinessMap({
         });
 
         map.addListener("zoom_changed", () => {
-          setZoomLevel(map.getZoom() || 14);
+          const zoom = map.getZoom() || 14;
+          const scale = Math.max(0.8, Math.min(1.7, zoom / 12));
+          markersRef.current.forEach((rec: any) => {
+            try { rec?.resize?.(scale); } catch (e) {}
+          });
         });
 
         if (cancelled) return;
@@ -334,23 +337,25 @@ export default function BusinessMap({
     const google = (window as any).google;
 
     // remove previous overlays
-    markersRef.current.forEach((ov: any) => {
-      try { ov.setMap(null); ov.remove && ov.remove(); } catch (e) {}
+    markersRef.current.forEach((rec: any) => {
+      try { rec?.overlay?.setMap(null); } catch (e) {}
     });
     markersRef.current = [];
 
-    const zoomScale = Math.max(0.8, Math.min(1.7, zoomLevel / 12));
+    const initialZoom = mapRef.current?.getZoom?.() || 14;
+    const zoomScale = Math.max(0.8, Math.min(1.7, initialZoom / 12));
 
     console.log("[WebMap] markers: groups=" + groupedMarkers.length + " zoomScale=" + zoomScale.toFixed(2));
 
     groupedMarkers.forEach((group) => {
       const isGroup = group.count > 1;
-      const baseSize = (isGroup
+      const baseSize = isGroup
         ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40)
-        : 22) * zoomScale;
-      const sizePx = Math.round(baseSize);
+        : 22;
+      const baseFont = group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12;
+      const sizePx = Math.round(baseSize * zoomScale);
       const innerSize = Math.round(Math.max(6, 8 * zoomScale));
-      const fontSize = Math.min(17, (group.count >= 100 ? 9 : group.count >= 10 ? 10.5 : 12) * zoomScale);
+      const fontSize = Math.min(17, baseFont * zoomScale);
       const pinColor = group.pinColor || "#264348";
 
       // Container div (positioned by OverlayView)
@@ -384,6 +389,7 @@ export default function BusinessMap({
         countText.style.lineHeight = "1";
         pin.appendChild(countText);
 
+        const dots: HTMLDivElement[] = [];
         group.memberColors.slice(0, 4).forEach((c, i) => {
           const dot = document.createElement("div");
           const dotSize = Math.round(Math.max(4, 5 * zoomScale));
@@ -398,7 +404,25 @@ export default function BusinessMap({
           dot.style.left = sizePx / 2 + Math.cos(angle) * r - dotSize / 2 + "px";
           dot.style.top = sizePx / 2 + Math.sin(angle) * r - dotSize / 2 + "px";
           pin.appendChild(dot);
+          dots.push(dot);
         });
+
+        const resize = (scale: number) => {
+          const px = Math.round(baseSize * scale);
+          pin.style.width = px + "px";
+          pin.style.height = px + "px";
+          countText.style.fontSize = Math.min(17, baseFont * scale) + "px";
+          dots.forEach((dot, i) => {
+            const dotSize = Math.round(Math.max(4, 5 * scale));
+            dot.style.width = dotSize + "px";
+            dot.style.height = dotSize + "px";
+            const angle = (i / Math.min(group.memberColors.length, 4)) * Math.PI * 2;
+            const r = px / 2 + 3;
+            dot.style.left = px / 2 + Math.cos(angle) * r - dotSize / 2 + "px";
+            dot.style.top = px / 2 + Math.sin(angle) * r - dotSize / 2 + "px";
+          });
+        };
+        markersRef.current.push({ overlay: null as any, resize });
       } else if (group.pinInnerColor) {
         const inner = document.createElement("div");
         inner.style.width = innerSize + "px";
@@ -406,6 +430,23 @@ export default function BusinessMap({
         inner.style.borderRadius = "50%";
         inner.style.backgroundColor = group.pinInnerColor;
         pin.appendChild(inner);
+
+        const resize = (scale: number) => {
+          const px = Math.round(baseSize * scale);
+          pin.style.width = px + "px";
+          pin.style.height = px + "px";
+          const ins = Math.round(Math.max(6, 8 * scale));
+          inner.style.width = ins + "px";
+          inner.style.height = ins + "px";
+        };
+        markersRef.current.push({ overlay: null as any, resize });
+      } else {
+        const resize = (scale: number) => {
+          const px = Math.round(baseSize * scale);
+          pin.style.width = px + "px";
+          pin.style.height = px + "px";
+        };
+        markersRef.current.push({ overlay: null as any, resize });
       }
 
       class PinOverlay extends google.maps.OverlayView {
@@ -446,9 +487,10 @@ export default function BusinessMap({
         onMarkerPress?.(group.items[0].id);
       });
 
-      markersRef.current.push(overlay);
+      const record = markersRef.current[markersRef.current.length - 1];
+      if (record) record.overlay = overlay;
     });
-  }, [groupedMarkers, mapReady, businesses, zoomLevel]);
+  }, [groupedMarkers, mapReady, businesses]);
 
   // Fly to location
   useEffect(() => {
