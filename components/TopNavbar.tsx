@@ -24,7 +24,7 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const { unreadMessageCount, activityCount } = useBadge();
+  const { unreadMessageCount } = useBadge();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -117,27 +117,6 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
                   {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-
-          {/* Notifications */}
-          <Pressable
-            style={[
-              styles.iconButton,
-              hoveredItem === "notifications" && styles.iconButtonHover,
-            ]}
-            onPress={() => router.push("/(tabs)/messages" as any)}
-            onHoverIn={() => setHoveredItem("notifications")}
-            onHoverOut={() => setHoveredItem(null)}
-            data-testid="navbar-notifications"
-          >
-            <Ionicons name="notifications-outline" size={22} color={COLORS.textSecondary} />
-            {activityCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {activityCount > 9 ? "9+" : activityCount}
                 </Text>
               </View>
             )}
