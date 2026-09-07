@@ -604,13 +604,15 @@ export default function ChatScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{name || t("messages.chat")}</Text>
         </View>
-        {id !== user?.user_id && convEntityType === "user" && (
+        {id !== user?.user_id && (convEntityType === "user" || convEntityType === "business") && (
           <View style={styles.headerActions}>
             <Pressable
               style={styles.headerIcon}
               onPress={() => router.push({
                 pathname: "/call",
-                params: { userId: id, userName: name, callType: "voice", mode: "outgoing" }
+                params: convEntityType === "business"
+                  ? { businessId: id, userName: name, callType: "voice", mode: "outgoing" }
+                  : { userId: id, userName: name, callType: "voice", mode: "outgoing" }
               })}
             >
               <Ionicons name="call-outline" size={20} color="#264348" />
@@ -619,7 +621,9 @@ export default function ChatScreen() {
               style={styles.headerIcon}
               onPress={() => router.push({
                 pathname: "/call",
-                params: { userId: id, userName: name, callType: "video", mode: "outgoing" }
+                params: convEntityType === "business"
+                  ? { businessId: id, userName: name, callType: "video", mode: "outgoing" }
+                  : { userId: id, userName: name, callType: "video", mode: "outgoing" }
               })}
             >
               <Ionicons name="videocam-outline" size={20} color="#264348" />

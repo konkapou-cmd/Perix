@@ -37,6 +37,7 @@ export default function CallScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     userId?: string;
+    businessId?: string;
     userName?: string;
     userPhoto?: string;
     callType?: string;
@@ -300,8 +301,13 @@ export default function CallScreen() {
       }
 
       try {
-        if (callMode === "outgoing" && params.userId) {
-          const response = await initiateCall(sessionToken, params.userId, callType);
+        if (callMode === "outgoing" && (params.userId || params.businessId)) {
+          const response = await initiateCall(
+            sessionToken,
+            params.userId || undefined,
+            callType,
+            params.businessId || undefined,
+          );
           setCallData(response);
           callIdRef.current = response.call_id;
 
@@ -355,7 +361,7 @@ export default function CallScreen() {
     };
 
     initCall();
-  }, [sessionToken, callMode, params.userId, params.callId, callType, t]);
+  }, [sessionToken, callMode, params.userId, params.businessId, params.callId, callType, t]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
