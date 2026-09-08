@@ -53,7 +53,7 @@ async def mux_hls_proxy(path: str, request: Request):
         }
         content_type = upstream.headers.get("content-type", "")
 
-        if content_type and any(p in content_type for p in PLAYLIST_CT):
+        if content_type and "mpegurl" in content_type.lower():
             body = b"".join([chunk async for chunk in upstream.aiter_bytes()])
             base = f"{request.base_url.scheme}://{request.base_url.netloc}/api/mux-hls"
 
