@@ -176,6 +176,18 @@ if WEB_DIST.exists():
     async def web_favicon():
         return FileResponse(WEB_DIST / "favicon.ico")
 
+    @app.get("/test-player.html", include_in_schema=False)
+    async def web_test_player():
+        if (WEB_DIST / "test-player.html").exists():
+            return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "test page not built"}, status_code=404)
+
+    @app.get("/test-player", include_in_schema=False)
+    async def web_test_player_short():
+        if (WEB_DIST / "test-player.html").exists():
+            return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "test page not built"}, status_code=404)
+
     @app.get("/{full_path:path}", include_in_schema=False)
     async def web_spa_fallback(full_path: str):
         # SPA fallback: serve index.html for any non-API GET request.
