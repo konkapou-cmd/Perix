@@ -1,12 +1,35 @@
-import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import AdaptiveVideo from "../components/AdaptiveVideo";
+import { useAuth } from "../context/AuthContext";
+import { getStories } from "../lib/api/stories";
 
 const TEST_URL = "https://stream.mux.com/cIhnxNkoh5h6ZNWx9inLPAJ5RetNM01UyJdRpvxEkf900.m3u8";
 
 export default function DebugVideoScreen() {
   const [log, setLog] = useState<string>("idle");
   const [key, setKey] = useState(0);
+  const [storyInfo, setStoryInfo] = useState<string>("");
+  const { sessionToken } = useAuth();
+
+  useEffect(() => {
+    if (!sessionToken) return;
+    getStories(sessionToken)
+      .then((groups) => {
+        const lines: string[] = [];
+        (groups || []).slice(0, 5).forEach((g: any, gi: number) => {
+          (g.stories || []).forEach((s: any) => {
+            lines.push(
+              `g${gi} ${g.actor_id} | type=${s.media_type} status=${s.video_status} ` +
+              `media_url=${s.media_url ? s.media_url.slice(0, 70) : "NULL"} ` +
+              `mux_pid=${s.mux_playback_id || "NULL"} asset=${s.mux_asset_id || "NULL"}`
+            );
+          });
+        });
+        setStoryInfo(lines.join("\n") || "no story groups returned");
+      })
+      .catch((e: any) => setStoryInfo("ERR: " + (e?.message || JSON.stringify(e))));
+  }, [sessionToken]);
 
   return (
     <View style={styles.wrap}>
@@ -33,6 +56,9 @@ export default function DebugVideoScreen() {
       >
         <Text style={styles.btnText}>Retry</Text>
       </Pressable>
+      <ScrollView style={{ marginTop: 16, maxHeight: 220 }}>
+        <Text style={styles.storyInfo}>{storyInfo || "loading stories..."}</Text>
+      </ScrollView>
     </View>
   );
 }
@@ -51,4 +77,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   btnText: { color: "#fff", fontWeight: "700" },
+  storyInfo: { fontSize: 12, color: "#264348", lineHeight: 18, fontFamily: "monospace" },
 });
