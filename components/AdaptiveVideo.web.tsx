@@ -85,6 +85,7 @@ export default function AdaptiveVideoWeb({
   const hlsRef = useRef<Hls | null>(null);
   const playedRef = useRef(false);
   const retryCountRef = useRef(0);
+  const mediaErrorCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -150,6 +151,11 @@ export default function AdaptiveVideoWeb({
             return;
           }
           if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            mediaErrorCountRef.current += 1;
+            if (mediaErrorCountRef.current > 5) {
+              setFailed(true);
+              return;
+            }
             try { hls.recoverMediaError(); } catch (e) {
               setFailed(true);
             }
@@ -159,6 +165,7 @@ export default function AdaptiveVideoWeb({
         });
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           retryCountRef.current = 0;
+          mediaErrorCountRef.current = 0;
           if (autoPlay) {
             try { el.play().catch(() => {}); } catch (e) {}
           }
@@ -260,7 +267,11 @@ export default function AdaptiveVideoWeb({
     onPlay: handlePlayEvent,
     onPlaying: handlePlayEvent,
     onPause: () => setIsPlaying(false),
-    onError: () => setFailed(true),
+    onError: () => {
+      // Only fail for the native (non-hls) path — hls.js handles its own
+      // errors and reports fatal ones explicitly.
+      if (!hlsRef.current) setFailed(true);
+    },
     onLoadedMetadata: (e: any) => {
       const el = e?.target as HTMLVideoElement | null;
       if (el && el.videoWidth && el.videoHeight) {
