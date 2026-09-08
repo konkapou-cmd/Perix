@@ -126,8 +126,10 @@ export default function AdaptiveVideoWeb({
     const playableUri = proxyBase
       ? videoUri.replace(/^https:\/\/stream\.mux\.com\//, `${proxyBase}/`)
       : videoUri;
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
     try {
-      if (playableUri.includes(".m3u8") && Hls.isSupported()) {
+      if (playableUri.includes(".m3u8") && Hls.isSupported() && !isSafari) {
         // enableWorker:false — blob workers can be blocked by strict
         // tracking prevention (Edge), which stalls fragment loading.
         const hls = new Hls({ maxBufferLength: 30, enableWorker: false });

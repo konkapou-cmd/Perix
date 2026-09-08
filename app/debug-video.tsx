@@ -11,6 +11,11 @@ export default function DebugVideoScreen() {
   const [key, setKey] = useState(0);
   const [storyInfo, setStoryInfo] = useState<string>("");
   const { sessionToken } = useAuth();
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent : "unknown";
+
+  useEffect(() => {
+    setStoryInfo((s) => `browser=${ua}\n${s || ""}`);
+  }, [ua]);
 
   useEffect(() => {
     if (!sessionToken) return;
@@ -57,6 +62,7 @@ export default function DebugVideoScreen() {
         <Text style={styles.btnText}>Retry</Text>
       </Pressable>
       <ScrollView style={{ marginTop: 16, maxHeight: 220 }}>
+        <Text style={styles.storyInfo}>browser: {ua}</Text>
         <Text style={styles.storyInfo}>{storyInfo || "loading stories..."}</Text>
       </ScrollView>
     </View>
