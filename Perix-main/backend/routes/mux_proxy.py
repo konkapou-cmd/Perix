@@ -16,9 +16,14 @@ async def mux_hls_proxy(path: str, request: Request):
     qs = request.url.query
     target = f"https://stream.mux.com/{path}" + (f"?{qs}" if qs else "")
     fwd_headers = {
-        k: v for k, v in request.headers.items()
-        if k.lower() not in ("host", "origin", "referer", "cookie", "connection")
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "Accept": request.headers.get("accept", "*/*"),
+        "Accept-Encoding": "identity",
+        # Mux playback restrictions check the Referer — send our app origin
+        "Referer": "https://app.perixapp.com/",
     }
+    if request.headers.get("range"):
+        fwd_headers["Range"] = request.headers["range"]
     async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
         upstream = await client.send(
             client.build_request(request.method, target, headers=fwd_headers),
