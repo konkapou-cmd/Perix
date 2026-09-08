@@ -18,6 +18,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Hls from "hls.js";
+import { API_BASE } from "../lib/api/core";
 
 type AdaptiveVideoWebProps = {
   uri?: string;
@@ -112,10 +113,10 @@ export default function AdaptiveVideoWeb({
       hlsRef.current = null;
     }
     // Strict tracking prevention (Edge/Safari ITP) blocks third-party
-    // stream.mux.com — play through our own origin instead.
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const playableUri = origin
-      ? videoUri.replace(/^https:\/\/stream\.mux\.com\//, `${origin}/mux-hls/`)
+    // stream.mux.com — play through our own API origin instead.
+    const proxyBase = API_BASE || (typeof window !== "undefined" ? `${window.location.origin}/mux-hls` : "");
+    const playableUri = proxyBase
+      ? videoUri.replace(/^https:\/\/stream\.mux\.com\//, `${proxyBase}/mux-hls/`)
       : videoUri;
     try {
       if (playableUri.includes(".m3u8") && Hls.isSupported()) {
