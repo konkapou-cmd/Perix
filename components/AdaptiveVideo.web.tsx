@@ -111,8 +111,14 @@ export default function AdaptiveVideoWeb({
       try { hlsRef.current.destroy(); } catch (e) {}
       hlsRef.current = null;
     }
+    // Strict tracking prevention (Edge/Safari ITP) blocks third-party
+    // stream.mux.com — play through our own origin instead.
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const playableUri = origin
+      ? videoUri.replace(/^https:\/\/stream\.mux\.com\//, `${origin}/mux-hls/`)
+      : videoUri;
     try {
-      if (videoUri.includes(".m3u8") && Hls.isSupported()) {
+      if (playableUri.includes(".m3u8") && Hls.isSupported()) {
         const hls = new Hls({ maxBufferLength: 30, enableWorker: true });
         hlsRef.current = hls;
         hls.on(Hls.Events.ERROR, (_evt, data) => {
@@ -144,10 +150,10 @@ export default function AdaptiveVideoWeb({
             try { el.play().catch(() => {}); } catch (e) {}
           }
         });
-        hls.loadSource(videoUri);
+        hls.loadSource(playableUri);
         hls.attachMedia(el);
       } else {
-        el.src = videoUri;
+        el.src = playableUri;
       }
       if (autoPlay) {
         setTimeout(() => {
