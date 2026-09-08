@@ -13,7 +13,8 @@ from fastapi import FastAPI, Request, HTTPException, Depends, Query
 from routes.dependencies import get_current_user
 from models.user import UserPublic
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse, FileResponse, RedirectResponse
+from starlette.responses import JSONResponse, FileResponse, RedirectResponse, StreamingResponse
+import httpx
 from starlette.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -134,6 +135,39 @@ app.include_router(api_router)
 
 # --- Web app static hosting (SPA) ---
 WEB_DIST = Path(__file__).parent / "webdist"
+
+
+@app.api_route("/mux-hls/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
+async def mux_hls_proxy(path: str, request: Request):
+    """First-party proxy for Mux HLS streams.
+
+    Browsers with strict tracking prevention (Edge, Safari ITP) block
+    third-party storage/requests to stream.mux.com, which breaks video
+    playback. Serving the stream from our own origin avoids that.
+    """
+    qs = request.url.query
+    target = f"https://stream.mux.com/{path}" + (f"?{qs}" if qs else "")
+    fwd_headers = {
+        k: v for k, v in request.headers.items()
+        if k.lower() not in ("host", "origin", "referer", "cookie", "connection")
+    }
+    async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+        upstream = await client.send(
+            client.build_request(request.method, target, headers=fwd_headers),
+            stream=True,
+        )
+        resp_headers = {
+            k: v for k, v in upstream.headers.items()
+            if k.lower() not in ("transfer-encoding", "connection", "content-encoding", "content-length")
+        }
+        return StreamingResponse(
+            upstream.aiter_bytes(),
+            status_code=upstream.status_code,
+            headers=resp_headers,
+            media_type=upstream.headers.get("content-type"),
+        )
+
+
 if WEB_DIST.exists():
     app.mount("/_expo", StaticFiles(directory=WEB_DIST / "_expo"), name="web-expo")
     app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="web-assets")
