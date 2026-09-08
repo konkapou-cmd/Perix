@@ -90,7 +90,9 @@ export default function AdaptiveVideoWeb({
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isPlaying, setIsPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [useGifFallback, setUseGifFallback] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const gifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
 
   const coverUrl = coverPhoto || muxThumbnailUrl || getMuxThumbnail(videoUri);
@@ -100,12 +102,29 @@ export default function AdaptiveVideoWeb({
   useEffect(() => {
     playedRef.current = false;
     setFailed(false);
+    setUseGifFallback(false);
     setNaturalAspect(null);
+    if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
     if (hlsRef.current) {
       try { hlsRef.current.destroy(); } catch (e) {}
       hlsRef.current = null;
     }
   }, [videoUri]);
+
+  useEffect(() => {
+    if (isProcessing || !videoUri || !coverUrl) return;
+    if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
+    gifTimerRef.current = setTimeout(() => {
+      const el = videoRef.current;
+      const hasFrames = !!el && el.videoWidth > 0 && el.videoHeight > 0 && !el.paused;
+      if (!hasFrames && !failed) {
+        setUseGifFallback(true);
+      }
+    }, 8000);
+    return () => {
+      if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
+    };
+  }, [videoUri, isProcessing, failed, coverUrl]);
 
   const attachSource = (el: HTMLVideoElement) => {
     if (!videoUri || isProcessing) return;
@@ -235,8 +254,13 @@ export default function AdaptiveVideoWeb({
   const handleRetry = () => {
     retryCountRef.current = 0;
     setFailed(false);
+    setUseGifFallback(false);
     setRetryKey((k) => k + 1);
   };
+
+  const gifUrl = coverUrl
+    ? coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=1280")
+    : null;
 
   useEffect(() => {
     if (isPlaying) return;
@@ -310,7 +334,18 @@ export default function AdaptiveVideoWeb({
 
   return (
     <View style={[styles.container, { aspectRatio, maxHeight, borderRadius }, style]}>
-      {failed ? (
+      {useGifFallback && gifUrl && !failed ? (
+        <View style={styles.center}>
+          <RNImage source={{ uri: gifUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
+          <View style={styles.dim}>
+            <Text style={styles.errText}>{t("common.videoGifPreview", "Vorschau (ohne Ton)")}</Text>
+            <Pressable style={styles.retryBtn} onPress={handleRetry}>
+              <Ionicons name="play" size={16} color="#fff" />
+              <Text style={styles.retryText}>{t("common.retryVideo", "Video laden")}</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : failed ? (
         <View style={styles.center}>
           {coverUrl ? (
             <RNImage
