@@ -1,7 +1,9 @@
 /**
  * AdaptiveVideo — Web implementation.
- * Uses the native <video> element with hls.js for Mux HLS streams
- * (expo-video's web player can't play .m3u8 in Chrome).
+ * Uses the official Mux Player (@mux/mux-player) for Mux videos — the same
+ * battle-tested player used by major sites, stable across Chrome/Brave/Edge/Safari.
+ * Falls back to a plain <video> for non-Mux URLs and to an animated GIF
+ * preview if playback cannot start (strict autoplay policies).
  */
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -17,8 +19,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import Hls from "hls.js";
-import { API_BASE } from "../lib/api/core";
+import MuxPlayer from "@mux/mux-player-react";
 
 type AdaptiveVideoWebProps = {
   uri?: string;
@@ -35,6 +36,7 @@ type AdaptiveVideoWebProps = {
   videoStatus?: string | null;
   muxThumbnailUrl?: string | null;
   coverPhoto?: string | null;
+  muxPlaybackId?: string | null;
   maxHeight?: number;
   borderRadius?: number;
   onPress?: () => void;
@@ -47,6 +49,11 @@ const DEFAULT_MAX_HEIGHT = SCREEN_HEIGHT * 0.75;
 function getMuxThumbnail(uri: string): string | null {
   const match = uri.match(/stream\.mux\.com\/([a-zA-Z0-9]+)/);
   return match ? `https://image.mux.com/${match[1]}/thumbnail.jpg` : null;
+}
+
+function extractPlaybackId(uri: string): string | null {
+  const match = uri.match(/stream\.mux\.com\/([a-zA-Z0-9]+)/);
+  return match ? match[1] : null;
 }
 
 function isProcessingUrl(url: string): boolean {
@@ -68,6 +75,7 @@ export default function AdaptiveVideoWeb({
   videoStatus,
   muxThumbnailUrl,
   coverPhoto,
+  muxPlaybackId: muxPlaybackIdProp,
   maxHeight = DEFAULT_MAX_HEIGHT,
   borderRadius = 0,
   onPress,
@@ -75,27 +83,23 @@ export default function AdaptiveVideoWeb({
 }: AdaptiveVideoWebProps) {
   const { t } = useTranslation();
   const videoUri = uri || source?.uri || "";
-  // Only treat as processing when there is no playable URL yet.
-  // A real http(s)/blob/data URL is playable (hls.js retries while Mux finishes),
-  // so an outdated "processing" status must not block playback.
   const isProcessing = isProcessingUrl(videoUri);
+  const playbackId = muxPlaybackIdProp || extractPlaybackId(videoUri);
+
   const validRatio = typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0 ? ratio : null;
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const playerRef = useRef<any>(null);
+  const nativeVideoRef = useRef<HTMLVideoElement | null>(null);
   const playedRef = useRef(false);
-  const retryCountRef = useRef(0);
-  const mediaErrorCountRef = useRef(0);
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isPlaying, setIsPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
   const [useGifFallback, setUseGifFallback] = useState(false);
-  const [retryKey, setRetryKey] = useState(0);
-  const gifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
+  const gifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const coverUrl = coverPhoto || muxThumbnailUrl || getMuxThumbnail(videoUri);
+  const gifUrl = coverUrl ? coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=1280") : null;
   const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
   const aspectRatio = styleHasHeight ? undefined : validRatio || naturalAspect || 4 / 5;
 
@@ -104,193 +108,66 @@ export default function AdaptiveVideoWeb({
     setFailed(false);
     setUseGifFallback(false);
     setNaturalAspect(null);
+    setIsPlaying(false);
     if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
-    if (hlsRef.current) {
-      try { hlsRef.current.destroy(); } catch (e) {}
-      hlsRef.current = null;
-    }
   }, [videoUri]);
 
   useEffect(() => {
-    if (isProcessing || !videoUri || !coverUrl) return;
+    if (isProcessing || !videoUri || !coverUrl || playbackId === null) return;
     if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
     gifTimerRef.current = setTimeout(() => {
-      const el = videoRef.current;
-      const hasFrames = !!el && el.videoWidth > 0 && el.videoHeight > 0 && !el.paused;
-      if (!hasFrames && !failed) {
+      if (!playedRef.current && !failed) {
         setUseGifFallback(true);
       }
     }, 8000);
     return () => {
       if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
     };
-  }, [videoUri, isProcessing, failed, coverUrl]);
+  }, [videoUri, isProcessing, failed, coverUrl, playbackId]);
 
-  const attachSource = (el: HTMLVideoElement) => {
-    if (!videoUri || isProcessing) return;
-    if (hlsRef.current) {
-      try { hlsRef.current.destroy(); } catch (e) {}
-      hlsRef.current = null;
-    }
-    // Strict tracking prevention (Edge/Safari ITP) blocks third-party
-    // stream.mux.com — play through our own origin instead (first-party).
-    // Both hosting setups serve this path:
-    //   * Railway app host: backend handles /api/mux-hls directly
-    //   * Vercel: vercel.json proxies /api/mux-hls to the API backend
-    const proxyBase =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/api/mux-hls`
-        : API_BASE
-          ? `${API_BASE}/mux-hls`
-          : "";
-    const playableUri = proxyBase
-      ? videoUri.replace(/^https:\/\/stream\.mux\.com\//, `${proxyBase}/`)
-      : videoUri;
-    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  useEffect(() => {
     try {
-      if (playableUri.includes(".m3u8") && Hls.isSupported() && !isSafari) {
-        // enableWorker:false — blob workers can be blocked by strict
-        // tracking prevention (Edge), which stalls fragment loading.
-        const hls = new Hls({ maxBufferLength: 30, enableWorker: false });
-        hlsRef.current = hls;
-        hls.on(Hls.Events.ERROR, (_evt, data) => {
-          if (!data || !data.fatal) return;
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            // Manifest may still be publishing on Mux — retry with backoff
-            retryCountRef.current += 1;
-            if (retryCountRef.current > 12) {
-              setFailed(true);
-              return;
-            }
-            if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-            retryTimerRef.current = setTimeout(() => {
-              try { hls.startLoad(); } catch (e) {}
-            }, 3000);
-            return;
-          }
-          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            mediaErrorCountRef.current += 1;
-            if (mediaErrorCountRef.current > 5) {
-              setFailed(true);
-              return;
-            }
-            try { hls.recoverMediaError(); } catch (e) {
-              setFailed(true);
-            }
-            return;
-          }
-          setFailed(true);
-        });
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          retryCountRef.current = 0;
-          mediaErrorCountRef.current = 0;
-          if (autoPlay) {
-            try { el.play().catch(() => {}); } catch (e) {}
-          }
-        });
-        hls.on(Hls.Events.ERROR, (_evt2, data2) => {
-          if ((window as any).__PERIX_VIDEO_DEBUG && data2 && !data2.fatal) {
-            console.log("[vdebug] hls non-fatal", data2.type, data2.details);
-          }
-        });
-        hls.on(Hls.Events.FRAG_BUFFERED, (_evt3, data3) => {
-          if ((window as any).__PERIX_VIDEO_DEBUG) {
-            console.log("[vdebug] frag buffered", (data3 as any)?.type, (data3 as any)?.frag?.sn);
-          }
-        });
-        if ((window as any).__PERIX_VIDEO_DEBUG) {
-          const iv = setInterval(() => {
-            const ve = videoRef.current;
-            if (!ve) return;
-            console.log("[vdebug] el", {
-              readyState: ve.readyState,
-              networkState: ve.networkState,
-              currentTime: ve.currentTime,
-              videoW: ve.videoWidth,
-              videoH: ve.videoHeight,
-              paused: ve.paused,
-              ended: ve.ended,
-              error: ve.error ? ve.error.code : null,
-              buffered: ve.buffered.length ? `${ve.buffered.start(0)}-${ve.buffered.end(ve.buffered.length - 1)}` : "none",
-            });
-          }, 2000);
-          (window as any).__PERIX_VIDEO_DEBUG_IV = iv;
-        }
-        hls.loadSource(playableUri);
-        hls.attachMedia(el);
-      } else {
-        el.src = playableUri;
-      }
-      if (autoPlay) {
-        setTimeout(() => {
-          try { el.play().catch(() => {}); } catch (e) {}
-        }, 0);
-      }
-    } catch (e) {
-      console.error("AdaptiveVideo.web attach failed:", e);
-      setFailed(true);
-    }
-  };
-
-  useEffect(() => {
-    const el = videoRef.current;
-    if (el && !isProcessing && !failed) {
-      attachSource(el);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoUri, retryKey, isProcessing]);
-
-  useEffect(() => {
-    return () => {
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-      if (hlsRef.current) {
-        try { hlsRef.current.destroy(); } catch (e) {}
-        hlsRef.current = null;
-      }
-    };
-  }, []);
-
-  const handleRetry = () => {
-    retryCountRef.current = 0;
-    setFailed(false);
-    setUseGifFallback(false);
-    setRetryKey((k) => k + 1);
-  };
-
-  const gifUrl = coverUrl
-    ? coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=1280")
-    : null;
-
-  useEffect(() => {
-    if (isPlaying) return;
-    if (autoPlay && !isProcessing && !failed && videoUri) {
-      try { videoRef.current?.play().catch(() => {}); } catch (e) {}
-    }
-  }, [autoPlay, isProcessing, failed, videoUri, isPlaying]);
+      if (playerRef.current) playerRef.current.muted = isMuted;
+      if (nativeVideoRef.current) nativeVideoRef.current.muted = isMuted;
+    } catch (e) {}
+  }, [isMuted]);
 
   const handlePlayEvent = () => {
     setIsPlaying(true);
     if (!playedRef.current) {
       playedRef.current = true;
+      setUseGifFallback(false);
       onPlay?.();
     }
   };
 
   const togglePlay = () => {
-    const el = videoRef.current;
+    const el = playerRef.current || nativeVideoRef.current;
     if (!el) return;
-    if (el.paused) {
-      el.play().catch(() => {});
-    } else {
-      el.pause();
-    }
+    try {
+      if (el.paused) {
+        el.play().catch(() => {});
+      } else {
+        el.pause();
+      }
+    } catch (e) {}
   };
 
   const toggleMute = () => {
     const next = !isMuted;
     setIsMuted(next);
     onMuteChange?.(next);
+  };
+
+  const playWithGesture = () => {
+    setUseGifFallback(false);
+    const el = playerRef.current || nativeVideoRef.current;
+    if (el) {
+      try {
+        el.muted = isMuted;
+        el.play().catch(() => {});
+      } catch (e) {}
+    }
   };
 
   const handlePress = () => {
@@ -301,35 +178,24 @@ export default function AdaptiveVideoWeb({
     togglePlay();
   };
 
-  const videoProps: any = {
-    ref: (el: HTMLVideoElement | null) => {
-      videoRef.current = el;
-    },
-    playsInline: true,
-    muted: isMuted,
-    autoPlay,
-    loop: isLooping,
-    controls: useNativeControls,
-    style: {
-      width: "100%",
-      height: "100%",
-      objectFit: resizeMode as any,
-      backgroundColor: "#000",
-    },
-    onPlay: handlePlayEvent,
-    onPlaying: handlePlayEvent,
-    onPause: () => setIsPlaying(false),
-    onError: () => {
-      // Only fail for the native (non-hls) path — hls.js handles its own
-      // errors and reports fatal ones explicitly.
-      if (!hlsRef.current) setFailed(true);
-    },
-    onLoadedMetadata: (e: any) => {
-      const el = e?.target as HTMLVideoElement | null;
-      if (el && el.videoWidth && el.videoHeight) {
-        setNaturalAspect(el.videoWidth / el.videoHeight);
-      }
-    },
+  const attachPlayerRef = (el: any) => {
+    if (el && playerRef.current !== el) {
+      playerRef.current = el;
+      el.addEventListener("playing", handlePlayEvent);
+      el.addEventListener("pause", () => setIsPlaying(false));
+      el.addEventListener("ended", () => setIsPlaying(false));
+      el.addEventListener("error", () => {
+        if (!playbackId) setFailed(true);
+      });
+    }
+  };
+
+  const muxStyle: any = {
+    width: "100%",
+    height: "100%",
+    display: useGifFallback ? "none" : "block",
+    "--media-object-fit": resizeMode,
+    backgroundColor: "#000",
   };
 
   return (
@@ -339,26 +205,22 @@ export default function AdaptiveVideoWeb({
           <RNImage source={{ uri: gifUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
           <View style={styles.dim}>
             <Text style={styles.errText}>{t("common.videoGifPreview", "Vorschau (ohne Ton)")}</Text>
-            <Pressable style={styles.retryBtn} onPress={handleRetry}>
+            <Pressable style={styles.retryBtn} onPress={playWithGesture}>
               <Ionicons name="play" size={16} color="#fff" />
-              <Text style={styles.retryText}>{t("common.retryVideo", "Video laden")}</Text>
+              <Text style={styles.retryText}>{t("common.playVideo", "Video abspielen")}</Text>
             </Pressable>
           </View>
         </View>
       ) : failed ? (
         <View style={styles.center}>
-          {coverUrl ? (
-            <RNImage
-              source={{ uri: coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=640") }}
-              style={StyleSheet.absoluteFill}
-              resizeMode="contain"
-            />
+          {gifUrl ? (
+            <RNImage source={{ uri: gifUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
           ) : (
             <Ionicons name="alert-circle-outline" size={32} color="#999" />
           )}
           <View style={styles.dim}>
             <Text style={styles.errText}>{t("common.videoCannotLoad", "Video kann nicht geladen werden")}</Text>
-            <Pressable style={styles.retryBtn} onPress={handleRetry}>
+            <Pressable style={styles.retryBtn} onPress={playWithGesture}>
               <Ionicons name="refresh" size={16} color="#fff" />
               <Text style={styles.retryText}>{t("common.retry", "Wiederholen")}</Text>
             </Pressable>
@@ -374,14 +236,64 @@ export default function AdaptiveVideoWeb({
         </View>
       ) : (
         <>
-          {coverUrl && !isPlaying && (
+          {coverUrl && !isPlaying && !useGifFallback ? (
             <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-          )}
-          {videoUri ? React.createElement("video", videoProps) : null}
-          {!useNativeControls && (
+          ) : null}
+          {videoUri && playbackId ? (
+            <MuxPlayer
+              ref={attachPlayerRef}
+              playbackId={playbackId}
+              muted={isMuted}
+              loop={isLooping}
+              autoPlay={autoPlay}
+              playsInline
+              streamType="on-demand"
+              style={muxStyle}
+            />
+          ) : videoUri ? (
+            React.createElement("video", {
+              ref: (el: HTMLVideoElement | null) => {
+                nativeVideoRef.current = el;
+                if (el) {
+                  el.muted = isMuted;
+                  el.playsInline = true;
+                  el.loop = isLooping;
+                  el.controls = useNativeControls;
+                  try {
+                    el.src = videoUri;
+                  } catch (e) {}
+                  if (autoPlay) el.play().catch(() => {});
+                  el.onplay = handlePlayEvent;
+                  el.onplaying = handlePlayEvent;
+                  el.onpause = () => setIsPlaying(false);
+                  el.onerror = () => setFailed(true);
+                  el.onloadedmetadata = () => {
+                    if (el.videoWidth && el.videoHeight) {
+                      setNaturalAspect(el.videoWidth / el.videoHeight);
+                    }
+                  };
+                }
+              },
+              playsInline: true,
+              autoPlay,
+              style: {
+                width: "100%",
+                height: "100%",
+                objectFit: resizeMode as any,
+                backgroundColor: "#000",
+                opacity: useGifFallback ? 0 : 1,
+              },
+            })
+          ) : null}
+          {!useNativeControls && !useGifFallback && (
             <Pressable onPress={handlePress} style={StyleSheet.absoluteFill} />
           )}
-          {showMuteButton && !useNativeControls && (
+          {!isPlaying && !failed && !useGifFallback && (
+            <Pressable style={styles.playBigBtn} onPress={handlePress}>
+              <Ionicons name="play" size={34} color="#fff" />
+            </Pressable>
+          )}
+          {showMuteButton && !useNativeControls && !useGifFallback && (
             <Pressable style={styles.muteBtn} onPress={toggleMute}>
               <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
             </Pressable>
@@ -442,5 +354,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 8,
     zIndex: 10,
+  },
+  playBigBtn: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginTop: -34,
+    marginLeft: -34,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 11,
   },
 });
