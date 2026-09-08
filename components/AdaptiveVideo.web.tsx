@@ -128,7 +128,9 @@ export default function AdaptiveVideoWeb({
       : videoUri;
     try {
       if (playableUri.includes(".m3u8") && Hls.isSupported()) {
-        const hls = new Hls({ maxBufferLength: 30, enableWorker: true });
+        // enableWorker:false — blob workers can be blocked by strict
+        // tracking prevention (Edge), which stalls fragment loading.
+        const hls = new Hls({ maxBufferLength: 30, enableWorker: false });
         hlsRef.current = hls;
         hls.on(Hls.Events.ERROR, (_evt, data) => {
           if (!data || !data.fatal) return;
