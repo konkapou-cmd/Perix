@@ -3,6 +3,7 @@
   "buildCommand": "node scripts/patch-reanimated.js && EXPO_NO_MINIFY=1 npx expo export --platform web --clear",
   "outputDirectory": "dist",
   "routes": [
+    { "src": "/api/mux-hls/(.*)", "dest": "https://backend-production-1968.up.railway.app/api/mux-hls/$1" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
