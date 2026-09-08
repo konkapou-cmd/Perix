@@ -170,6 +170,34 @@ export default function AdaptiveVideoWeb({
             try { el.play().catch(() => {}); } catch (e) {}
           }
         });
+        hls.on(Hls.Events.ERROR, (_evt2, data2) => {
+          if ((window as any).__PERIX_VIDEO_DEBUG && data2 && !data2.fatal) {
+            console.log("[vdebug] hls non-fatal", data2.type, data2.details);
+          }
+        });
+        hls.on(Hls.Events.FRAG_BUFFERED, (_evt3, data3) => {
+          if ((window as any).__PERIX_VIDEO_DEBUG) {
+            console.log("[vdebug] frag buffered", (data3 as any)?.type, (data3 as any)?.frag?.sn);
+          }
+        });
+        if ((window as any).__PERIX_VIDEO_DEBUG) {
+          const iv = setInterval(() => {
+            const ve = videoRef.current;
+            if (!ve) return;
+            console.log("[vdebug] el", {
+              readyState: ve.readyState,
+              networkState: ve.networkState,
+              currentTime: ve.currentTime,
+              videoW: ve.videoWidth,
+              videoH: ve.videoHeight,
+              paused: ve.paused,
+              ended: ve.ended,
+              error: ve.error ? ve.error.code : null,
+              buffered: ve.buffered.length ? `${ve.buffered.start(0)}-${ve.buffered.end(ve.buffered.length - 1)}` : "none",
+            });
+          }, 2000);
+          (window as any).__PERIX_VIDEO_DEBUG_IV = iv;
+        }
         hls.loadSource(playableUri);
         hls.attachMedia(el);
       } else {

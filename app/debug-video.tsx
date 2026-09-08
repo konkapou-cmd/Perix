@@ -14,6 +14,17 @@ export default function DebugVideoScreen() {
   const ua = typeof navigator !== "undefined" ? navigator.userAgent : "unknown";
 
   useEffect(() => {
+    (window as any).__PERIX_VIDEO_DEBUG = true;
+    return () => {
+      (window as any).__PERIX_VIDEO_DEBUG = false;
+      if ((window as any).__PERIX_VIDEO_DEBUG_IV) {
+        clearInterval((window as any).__PERIX_VIDEO_DEBUG_IV);
+        (window as any).__PERIX_VIDEO_DEBUG_IV = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     setStoryInfo((s) => `browser=${ua}\n${s || ""}`);
   }, [ua]);
 
