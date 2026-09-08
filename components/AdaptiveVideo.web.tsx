@@ -296,11 +296,13 @@ export default function AdaptiveVideoWeb({
         </View>
       ) : (
         <>
-          {coverUrl && (
+          {coverUrl && !isPlaying && (
             <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           )}
           {videoUri ? React.createElement("video", videoProps) : null}
-          <Pressable onPress={handlePress} style={StyleSheet.absoluteFill} />
+          {!useNativeControls && (
+            <Pressable onPress={handlePress} style={StyleSheet.absoluteFill} />
+          )}
           {showMuteButton && !useNativeControls && (
             <Pressable style={styles.muteBtn} onPress={toggleMute}>
               <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
