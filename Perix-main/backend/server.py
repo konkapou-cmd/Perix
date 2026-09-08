@@ -182,6 +182,12 @@ if WEB_DIST.exists():
             return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
         return JSONResponse({"detail": "test page not built"}, status_code=404)
 
+    @app.get("/api/test-player.html", include_in_schema=False)
+    async def api_test_player():
+        if (WEB_DIST / "test-player.html").exists():
+            return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "test page not built"}, status_code=404)
+
     @app.get("/test-player", include_in_schema=False)
     async def web_test_player_short():
         if (WEB_DIST / "test-player.html").exists():
