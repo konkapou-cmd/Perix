@@ -113,13 +113,14 @@ export default function AdaptiveVideoWeb({
       hlsRef.current = null;
     }
     // Strict tracking prevention (Edge/Safari ITP) blocks third-party
-    // stream.mux.com — play through our own origin instead (first-party).
-    const proxyBase =
-      typeof window !== "undefined"
+    // stream.mux.com — play through our own API origin instead (first-party).
+    // Prefer API_BASE (works on any frontend host incl. Vercel); fall back
+    // to the page origin when API_BASE is not set.
+    const proxyBase = API_BASE
+      ? `${API_BASE}/mux-hls`
+      : typeof window !== "undefined"
         ? `${window.location.origin}/api/mux-hls`
-        : API_BASE
-          ? `${API_BASE}/mux-hls`
-          : "";
+        : "";
     const playableUri = proxyBase
       ? videoUri.replace(/^https:\/\/stream\.mux\.com\//, `${proxyBase}/`)
       : videoUri;
