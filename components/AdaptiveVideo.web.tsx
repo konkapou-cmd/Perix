@@ -19,7 +19,25 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import MuxPlayer from "@mux/mux-player-react";
+
+const MuxPlayerLazy = React.lazy(() => import("@mux/mux-player-react"));
+
+class MuxPlayerBoundary extends React.Component<
+  { children: React.ReactNode; onFail?: () => void },
+  { crashed: boolean }
+> {
+  state = { crashed: false };
+  static getDerivedStateFromError() {
+    return { crashed: true };
+  }
+  componentDidCatch() {
+    this.props.onFail?.();
+  }
+  render() {
+    if (this.state.crashed) return null;
+    return this.props.children;
+  }
+}
 
 type AdaptiveVideoWebProps = {
   uri?: string;
@@ -102,6 +120,10 @@ export default function AdaptiveVideoWeb({
   const gifUrl = coverUrl ? coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=1280") : null;
   const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
   const aspectRatio = styleHasHeight ? undefined : validRatio || naturalAspect || 4 / 5;
+
+  // First-party HLS source — Brave/Edge block third-party stream.mux.com.
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const proxiedSrc = playbackId ? `${origin}/api/mux-hls/${playbackId}.m3u8` : "";
 
   useEffect(() => {
     playedRef.current = false;
@@ -239,17 +261,21 @@ export default function AdaptiveVideoWeb({
           {coverUrl && !isPlaying && !useGifFallback ? (
             <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : null}
-          {videoUri && playbackId ? (
-            <MuxPlayer
-              ref={attachPlayerRef}
-              playbackId={playbackId}
-              muted={isMuted}
-              loop={isLooping}
-              autoPlay={autoPlay}
-              playsInline
-              streamType="on-demand"
-              style={muxStyle}
-            />
+          {videoUri && playbackId && proxiedSrc ? (
+            <MuxPlayerBoundary onFail={() => setFailed(true)}>
+              <React.Suspense fallback={null}>
+                <MuxPlayerLazy
+                  ref={attachPlayerRef}
+                  src={proxiedSrc}
+                  muted={isMuted}
+                  loop={isLooping}
+                  autoPlay={autoPlay}
+                  playsInline
+                  streamType="on-demand"
+                  style={muxStyle}
+                />
+              </React.Suspense>
+            </MuxPlayerBoundary>
           ) : videoUri ? (
             React.createElement("video", {
               ref: (el: HTMLVideoElement | null) => {
