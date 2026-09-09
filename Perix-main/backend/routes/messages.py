@@ -570,6 +570,7 @@ async def delete_conversation(
 ):
     """
     Delete all messages in a conversation with an entity (user/business/artist).
+    Media attached to the messages (Cloudinary images, Mux videos) is destroyed too.
     """
     if entity_type == "business":
         query = {
@@ -592,9 +593,35 @@ async def delete_conversation(
                 {"from_user_id": entity_id, "to_user_id": current_user.user_id},
             ]
         }
-    
+
+    # Destroy media attached to the conversation's messages before removing them
+    docs = await db.messages.find(query, {"_id": 0}).to_list(500)
+    mux_api = None
+    for message in docs:
+        media_url = message.get("media_url")
+        media_type = message.get("media_type")
+        mux_asset_id = message.get("mux_asset_id")
+        image_url = message.get("image_url")
+        try:
+            if image_url or (media_url and media_type == "image" and "cloudinary" in str(media_url)):
+                from utils.cloudinary_utils import destroy_cloudinary_asset
+                await destroy_cloudinary_asset(image_url or media_url, "image")
+            elif media_url and "cloudinary" in str(media_url):
+                from utils.cloudinary_utils import destroy_cloudinary_asset
+                await destroy_cloudinary_asset(media_url, "video")
+        except Exception as e:
+            logger.warning(f"Cloudinary destroy failed during conversation delete: {e}")
+        if mux_asset_id:
+            try:
+                if mux_api is None:
+                    from routes.mux import _get_mux_assets_api
+                    mux_api = _get_mux_assets_api()
+                await asyncio.to_thread(mux_api.delete_asset, mux_asset_id, _request_timeout=20)
+            except Exception as e:
+                logger.warning(f"Mux asset delete failed during conversation delete: {e}")
+
     result = await db.messages.delete_many(query)
-    
+
     return {"message": "Conversation deleted", "deleted_count": result.deleted_count}
 
 
