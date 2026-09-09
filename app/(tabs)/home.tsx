@@ -676,6 +676,10 @@ export default function HomeScreen() {
     setEditModal(false);
   };
 
+  const isOwnPost = (post: Post): boolean =>
+    !!(user && post.user_id === user.user_id) ||
+    !!(activeIdentity && post.actor_id === activeIdentity.id);
+
   const handlePostTextChange = async (value: string) => {
     setPostText(value);
     if (!sessionToken) return;
@@ -795,6 +799,14 @@ export default function HomeScreen() {
             isSaved={savedPostIds.has(item.post_id)}
             onLike={() => handleToggleLike(item)}
             onComment={() => openComments(item)}
+            canEdit={isOwnPost(item)}
+            canDelete={isOwnPost(item)}
+            onEdit={() => {
+              setEditPost(item);
+              setEditText(item.text || "");
+              setEditModal(true);
+            }}
+            onDelete={() => handleDeletePost(item)}
             onSave={async () => {
               if (!sessionToken) return;
               try {
