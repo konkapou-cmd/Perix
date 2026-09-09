@@ -1546,7 +1546,7 @@ export default function HomeScreen() {
       <Modal visible={storyViewerOpen} animationType="fade" transparent statusBarTranslucent onRequestClose={() => setStoryViewerOpen(false)}>
         <View style={{ flex: 1, backgroundColor: "#000" }}>
           {storyGroups.length > 0 ? (
-            <CityAdViewer groups={storyGroups} initialGroupIndex={storyViewerIndex} onClose={() => setStoryViewerOpen(false)} />
+            <CityAdViewer groups={storyGroups} initialGroupIndex={storyViewerIndex} onClose={() => setStoryViewerOpen(false)} onAdDeleted={refreshFeed} />
           ) : (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
               <ActivityIndicator size="large" color="#fff" />

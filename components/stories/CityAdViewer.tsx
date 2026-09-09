@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Image,
   Platform,
@@ -18,6 +19,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { GroupedStory, viewStory, markStorySeen } from "../../lib/api";
+import { deleteStory } from "../../lib/api/stories";
+import { useTranslation } from "react-i18next";
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from "../../lib/designTokens";
 import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 import { muxThumbnailUrl, lowLatencyPlaybackUrl } from "../../lib/media/mediaResolver";
@@ -31,18 +34,53 @@ export function CityAdViewer({
   groups,
   initialGroupIndex = 0,
   onClose,
+  onAdDeleted,
 }: {
   groups: GroupedStory[];
   initialGroupIndex?: number;
   onClose: () => void;
+  onAdDeleted?: () => void;
 }) {
-  const { sessionToken, user } = useAuth();
+  const { sessionToken, user, activeIdentity } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex);
   const [storyIndex, setStoryIndex] = useState(0);
+  const [deletingAd, setDeletingAd] = useState(false);
+
+  const handleDeleteAd = () => {
+    if (!sessionToken || !currentStory) return;
+    Alert.alert(
+      t("cityAd.deleteTitle", "Delete Ad"),
+      t("cityAd.deleteConfirm", "Remove this city ad?"),
+      [
+        { text: t("common.cancel", "Cancel"), style: "cancel" },
+        {
+          text: t("common.delete", "Delete"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setDeletingAd(true);
+              await deleteStory(sessionToken, currentStory.story_id);
+              onAdDeleted?.();
+              onClose();
+            } catch (e) {
+              console.warn("Delete city ad failed:", e);
+            } finally {
+              setDeletingAd(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const currentGroup = groups[groupIndex];
   const currentStory = currentGroup?.stories?.[storyIndex];
+  const isOwnBusinessAd =
+    activeIdentity?.type === "business" &&
+    currentGroup?.actor_type === "business" &&
+    currentGroup?.actor_id === activeIdentity.id;
   const isVideo = currentStory?.media_type === "video";
   const storyStartTimeRef = useRef(Date.now());
 
@@ -142,6 +180,13 @@ export function CityAdViewer({
         <Ionicons name="close" size={28} color="#fff" />
       </Pressable>
 
+      {/* Delete button — only for the business that owns this ad */}
+      {isOwnBusinessAd && (
+        <Pressable style={styles.deleteBtn} onPress={handleDeleteAd} disabled={deletingAd}>
+          <Ionicons name={deletingAd ? "hourglass-outline" : "trash-outline"} size={20} color="#fff" />
+        </Pressable>
+      )}
+
       {/* Business name header */}
       <Pressable
         style={styles.header}
@@ -238,6 +283,16 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  deleteBtn: {
+    position: "absolute",
+    top: 50,
+    right: 16,
+    zIndex: 30,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(239,68,68,0.75)",
     alignItems: "center",
     justifyContent: "center",
   },
