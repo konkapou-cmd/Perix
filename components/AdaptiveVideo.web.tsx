@@ -106,7 +106,6 @@ export default function AdaptiveVideoWeb({
 
   const vwNow = typeof window !== "undefined" ? window.innerWidth : 400;
   const vhNow = typeof window !== "undefined" ? window.innerHeight : 800;
-
   // Smart fit for full-screen contexts: cover only when the video and screen
   // orientations match; contain otherwise (unknown → contain, never zoom).
   let effectiveFit: "cover" | "contain" = resizeMode;
@@ -137,6 +136,12 @@ export default function AdaptiveVideoWeb({
     }, 250);
     return () => clearInterval(id);
   }, [videoUri, naturalAspect]);
+
+  // When the video is letterboxed in a full-screen box (portrait video on a
+  // landscape screen, or vice versa), fill the empty space with a blurred,
+  // darkened copy of the cover so the screen never looks "broken".
+  const showBlurBackdrop =
+    fitPolicy === "auto" && effectiveFit === "contain" && styleHasHeight && !!coverUrl;
 
   // Re-evaluate the smart fit when the screen rotates or is resized.
   const [, forceFitTick] = useState(0);
@@ -341,6 +346,22 @@ export default function AdaptiveVideoWeb({
         </View>
       ) : (
         <>
+          {showBlurBackdrop && coverUrl
+            ? React.createElement("img", {
+                src: coverUrl,
+                style: {
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  filter: "blur(26px) brightness(0.55)",
+                  transform: "scale(1.2)",
+                  pointerEvents: "none",
+                },
+              })
+            : null}
           {coverUrl && !hasStarted && !useGifFallback ? (
             <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
           ) : null}
