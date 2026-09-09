@@ -112,7 +112,7 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-messages"
           >
-            <Ionicons name="chatbubble-outline" size={22} color={COLORS.primary} />
+            <Ionicons name="chatbubble-outline" size={22} color="#59ABE3" />
             {unreadMessageCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
@@ -133,7 +133,7 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-camera"
           >
-            <Ionicons name="camera-outline" size={22} color={COLORS.primary} />
+            <Ionicons name="camera-outline" size={22} color="#59ABE3" />
           </Pressable>
 
           {/* User Menu */}
@@ -147,7 +147,7 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-user"
           >
-            <Ionicons name="menu" size={16} color={COLORS.primary} />
+            <Ionicons name="menu" size={16} color="#59ABE3" />
             {user?.profile_photo ? (
               <Image
                 source={{ uri: user.profile_photo }}
@@ -155,7 +155,7 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
               />
             ) : (
               <View style={styles.userAvatarPlaceholder}>
-                <Ionicons name="person" size={16} color={COLORS.primary} />
+                <Ionicons name="person" size={16} color="#59ABE3" />
               </View>
             )}
           </Pressable>
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     }),
   },
   navLinkActive: {
-    backgroundColor: COLORS.divider,
+    backgroundColor: "#59ABE3",
   },
   navLinkHover: {
     backgroundColor: COLORS.surfaceSoft,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     color: "#264348",
   },
   navLinkTextActive: {
-    color: "#264348",
+    color: "#fff",
     fontWeight: "600",
   },
   activeIndicator: {
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -12 }],
     width: 24,
     height: 2,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
     borderRadius: 1,
   },
   rightSection: {
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 24,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     }),
   },
   createButtonHover: {
-    backgroundColor: COLORS.primaryHover,
+    backgroundColor: "#7ABDE9",
     transform: [{ scale: 1.02 }],
   },
   createButtonText: {
