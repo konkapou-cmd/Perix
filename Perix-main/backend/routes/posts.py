@@ -16,12 +16,9 @@ from utils.helpers import generate_id, now_utc
 from utils.cloudinary_utils import upload_to_cloudinary
 from utils.push_notifications import send_activity_notification
 from routes.dependencies import get_current_user, resolve_actor, build_user_public, like_matches_actor, get_blocked_user_ids
-from datetime import timedelta
+
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
-
-# Post expiry duration (2 weeks)
-POST_EXPIRY_DAYS = 14
 
 
 async def get_business_info_for_post(post_doc: dict) -> Optional[BusinessPostInfo]:
@@ -96,7 +93,7 @@ async def create_post(
 ):
     actor = await resolve_actor(payload.actor_type, payload.actor_id, current_user)
     created_at = now_utc()
-    expires_at = created_at + timedelta(days=POST_EXPIRY_DAYS)
+    # Posts never expire automatically (2-week rule removed).
 
     # Idempotency: a retried request (e.g. after a network timeout) must not create a duplicate post
     if payload.client_request_id:
@@ -129,7 +126,7 @@ async def create_post(
         "youtube_link": payload.youtube_link,
         "soundcloud_url": payload.soundcloud_url,
         "created_at": created_at,
-        "expires_at": expires_at,
+        "expires_at": None,  # no automatic expiry (2-week rule removed)
         "likes": [],
         "comments": [],
         "client_request_id": payload.client_request_id,
@@ -259,6 +256,7 @@ async def list_posts(
             {
                 "$or": [
                     {"expires_at": {"$gt": current_time}},
+                    {"expires_at": None},
                     {"expires_at": {"$exists": False}}  # Include posts without expiry (legacy)
                 ]
             },
@@ -541,6 +539,7 @@ async def delete_post(
     actor_id = post.get("actor_id") or post.get("user_id")
     image_url = post.get("image_url")
     video_url = post.get("video_url")
+    mux_asset_id = post.get("mux_asset_id")
 
     if actor_type == "user" and actor_id:
         updates = {}
@@ -566,7 +565,24 @@ async def delete_post(
                 {"$pull": {"gallery_videos": video_url}}
             )
 
+    # Delete the media files themselves
+    if image_url:
+        try:
+            from utils.cloudinary_utils import destroy_cloudinary_asset
+            await destroy_cloudinary_asset(image_url, "image")
+        except Exception as e:
+            logger.warning(f"Cloudinary destroy failed: {e}")
+    if mux_asset_id:
+        try:
+            from routes.mux import _get_mux_assets_api
+            api = _get_mux_assets_api()
+            await asyncio.to_thread(api.delete_asset, mux_asset_id, _request_timeout=20)
+            logger.info(f"[Mux] Deleted asset {mux_asset_id} for post {post_id}")
+        except Exception as e:
+            logger.warning(f"Mux asset delete failed: {e}")
+
     await db.posts.delete_one({"post_id": post_id})
+    await db.home_posts.delete_many({"post_id": post_id})
     return {"status": "deleted"}
 
 

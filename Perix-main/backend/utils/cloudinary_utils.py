@@ -168,3 +168,24 @@ def get_optimized_url(url: str, resource_type: str = "image", width: int = None)
     
     return url
 
+
+async def destroy_cloudinary_asset(url: str, resource_type: str = "image"):
+    """Destroy a Cloudinary asset (used when deleting posts/media)."""
+    import re
+
+    try:
+        if not url or "cloudinary.com" not in url:
+            return
+        after = url.split("/upload/")[-1] if "/upload/" in url else url
+        after = re.sub(r"^v\d+/", "", after)
+        public_id = after.split("?")[0]
+        if "." in public_id.split("/")[-1]:
+            public_id = public_id.rsplit(".", 1)[0]
+        if not public_id:
+            return
+        await asyncio.to_thread(cloudinary.uploader.destroy, public_id, resource_type=resource_type)
+        import logging
+        logging.getLogger(__name__).info(f"[Cloudinary] destroyed {public_id}")
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Cloudinary destroy failed: {e}")

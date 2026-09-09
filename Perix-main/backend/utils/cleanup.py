@@ -1,7 +1,7 @@
 """
 Automatic cleanup utilities for old data.
 - Activities/Events: Deleted after 1 day past their end time
-- Posts: Deleted after 2 weeks
+- Posts: NEVER auto-deleted (2-week rule removed per product decision)
 """
 import asyncio
 import logging
@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 # Cleanup intervals
 EVENT_CLEANUP_DAYS = 1  # Events older than 1 day after end_time
-POST_CLEANUP_DAYS = 14  # Posts older than 2 weeks
 
 
 async def cleanup_old_events():
@@ -54,17 +53,8 @@ async def cleanup_old_activities():
 
 
 async def cleanup_old_posts():
-    """Delete posts older than 2 weeks."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=POST_CLEANUP_DAYS)
-    
-    result = await db.posts.delete_many({
-        "created_at": {"$lt": cutoff}
-    })
-    
-    if result.deleted_count > 0:
-        logger.info(f"Cleaned up {result.deleted_count} old posts")
-    
-    return result.deleted_count
+    """Posts are no longer auto-deleted (2-week rule removed)."""
+    return 0
 
 
 async def run_cleanup():
@@ -126,14 +116,13 @@ async def setup_ttl_indexes():
             background=True
         )
         
-        # For posts - TTL based on expires_at field (2 weeks from creation)
-        await db.posts.create_index(
-            "auto_expire_at",
-            expireAfterSeconds=0,
-            sparse=True,
-            background=True
-        )
-        
+        # For posts - no TTL expiration (2-week rule removed).
+        # Drop the legacy index if it exists so old posts never expire.
+        try:
+            await db.posts.drop_index("auto_expire_at_1")
+        except Exception:
+            pass
+
         logger.info("TTL indexes created/verified")
     except Exception as e:
         logger.warning(f"Could not create TTL indexes: {e}")
