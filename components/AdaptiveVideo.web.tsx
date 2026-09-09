@@ -1,9 +1,8 @@
 /**
  * AdaptiveVideo — Web implementation.
- * Uses the official Mux Player (@mux/mux-player) for Mux videos — the same
- * battle-tested player used by major sites, stable across Chrome/Brave/Edge/Safari.
- * Falls back to a plain <video> for non-Mux URLs and to an animated GIF
- * preview if playback cannot start (strict autoplay policies).
+ * Plain <video> + hls.js, managed imperatively (no custom elements, no React
+ * churn). Plays Mux HLS directly — verified working in the target browsers.
+ * Falls back to an animated GIF preview if playback cannot start.
  */
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -19,27 +18,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-
-// Mux Player is loaded via CDN <script> instead of bundling it.
-// Bundling it collides with other custom-element libraries (expo) and throws
-// "Cannot set property observedAttributes ... which has only a getter".
-let muxPlayerScriptPromise: Promise<void> | null = null;
-function ensureMuxPlayerScript(): Promise<void> {
-  if (typeof window === "undefined") return Promise.resolve();
-  if (window.customElements && (window as any).customElements.get("mux-player")) {
-    return Promise.resolve();
-  }
-  if (muxPlayerScriptPromise) return muxPlayerScriptPromise;
-  muxPlayerScriptPromise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/@mux/mux-player@3.13.2";
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("mux-player script failed"));
-    document.head.appendChild(script);
-  });
-  return muxPlayerScriptPromise;
-}
+import Hls from "hls.js";
 
 type AdaptiveVideoWebProps = {
   uri?: string;
@@ -95,7 +74,6 @@ export default function AdaptiveVideoWeb({
   videoStatus,
   muxThumbnailUrl,
   coverPhoto,
-  muxPlaybackId: muxPlaybackIdProp,
   maxHeight = DEFAULT_MAX_HEIGHT,
   borderRadius = 0,
   onPress,
@@ -104,39 +82,26 @@ export default function AdaptiveVideoWeb({
   const { t } = useTranslation();
   const videoUri = uri || source?.uri || "";
   const isProcessing = isProcessingUrl(videoUri);
-  const playbackId = muxPlaybackIdProp || extractPlaybackId(videoUri);
+  const playbackId = extractPlaybackId(videoUri);
 
   const validRatio = typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0 ? ratio : null;
 
-  const playerRef = useRef<any>(null);
-  const nativeVideoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const playedRef = useRef(false);
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isPlaying, setIsPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
   const [useGifFallback, setUseGifFallback] = useState(false);
-  const [playerReady, setPlayerReady] = useState(false);
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
   const gifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    ensureMuxPlayerScript()
-      .then(() => { if (!cancelled) setPlayerReady(true); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
 
   const coverUrl = coverPhoto || muxThumbnailUrl || getMuxThumbnail(videoUri);
   const gifUrl = coverUrl ? coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=1280") : null;
   const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
   const aspectRatio = styleHasHeight ? undefined : validRatio || naturalAspect || 4 / 5;
 
-  // Play directly from Mux — verified working in the user's browser
-  // (the server-side proxy corrupts binary segments; the direct CDN
-  // stream plays fine even in Brave/Edge).
-  const directSrc = playbackId ? `https://stream.mux.com/${playbackId}.m3u8` : "";
-
+  // (Re)attach source whenever the URI changes — fully imperative, no per-render props
   useEffect(() => {
     playedRef.current = false;
     setFailed(false);
@@ -144,25 +109,61 @@ export default function AdaptiveVideoWeb({
     setNaturalAspect(null);
     setIsPlaying(false);
     if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
-  }, [videoUri]);
+    if (hlsRef.current) {
+      try { hlsRef.current.destroy(); } catch (e) {}
+      hlsRef.current = null;
+    }
 
+    const el = videoRef.current;
+    if (!el || !videoUri || isProcessing) return;
+
+    if (videoUri.includes(".m3u8") && Hls.isSupported()) {
+      const hls = new Hls({ maxBufferLength: 30, enableWorker: false });
+      hlsRef.current = hls;
+      hls.on(Hls.Events.ERROR, (_evt, data) => {
+        if (!data || !data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          try { hls.startLoad(); } catch (e) {}
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          try { hls.recoverMediaError(); } catch (e) {
+            setFailed(true);
+          }
+          return;
+        }
+        setFailed(true);
+      });
+      hls.loadSource(videoUri);
+      hls.attachMedia(el);
+    } else {
+      try { el.src = videoUri; } catch (e) {}
+    }
+
+    if (autoPlay) {
+      const t = setTimeout(() => {
+        try { el.play().catch(() => {}); } catch (e) {}
+      }, 100);
+      return () => clearTimeout(t);
+    }
+  }, [videoUri, isProcessing]);
+
+  // GIF fallback when nothing has played within 8s
   useEffect(() => {
-    if (isProcessing || !videoUri || !coverUrl || playbackId === null) return;
+    if (isProcessing || !videoUri || !gifUrl) return;
     if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
     gifTimerRef.current = setTimeout(() => {
-      if (!playedRef.current && !failed) {
-        setUseGifFallback(true);
-      }
+      if (!playedRef.current && !failed) setUseGifFallback(true);
     }, 8000);
     return () => {
       if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
     };
-  }, [videoUri, isProcessing, failed, coverUrl, playbackId]);
+  }, [videoUri, isProcessing, failed, gifUrl]);
 
+  // Keep muted property in sync
   useEffect(() => {
     try {
-      if (playerRef.current) playerRef.current.muted = isMuted;
-      if (nativeVideoRef.current) nativeVideoRef.current.muted = isMuted;
+      if (videoRef.current) videoRef.current.muted = isMuted;
     } catch (e) {}
   }, [isMuted]);
 
@@ -176,14 +177,11 @@ export default function AdaptiveVideoWeb({
   };
 
   const togglePlay = () => {
-    const el = playerRef.current || nativeVideoRef.current;
+    const el = videoRef.current;
     if (!el) return;
     try {
-      if (el.paused) {
-        el.play().catch(() => {});
-      } else {
-        el.pause();
-      }
+      if (el.paused) el.play().catch(() => {});
+      else el.pause();
     } catch (e) {}
   };
 
@@ -195,7 +193,7 @@ export default function AdaptiveVideoWeb({
 
   const playWithGesture = () => {
     setUseGifFallback(false);
-    const el = playerRef.current || nativeVideoRef.current;
+    const el = videoRef.current;
     if (el) {
       try {
         el.muted = isMuted;
@@ -212,30 +210,34 @@ export default function AdaptiveVideoWeb({
     togglePlay();
   };
 
-  const attachPlayerRef = (el: any) => {
-    if (el && playerRef.current !== el) {
-      playerRef.current = el;
-      el.addEventListener("playing", (e: any) => {
-        console.log("[mux-player] PLAYING event", { playbackId, muted: isMuted, autoplay: autoPlay });
-        handlePlayEvent();
-      });
-      el.addEventListener("pause", () => setIsPlaying(false));
-      el.addEventListener("ended", () => setIsPlaying(false));
-      el.addEventListener("loadstart", () => {
-        console.log("[mux-player] loadstart src=", directSrc);
-      });
-      el.addEventListener("error", (e: any) => {
-        console.log("[mux-player] error:", e?.detail?.message || e?.message || "unknown", { playbackId, src: directSrc });
-      });
-    }
-  };
-
-  const muxStyle: any = {
-    width: "100%",
-    height: "100%",
-    display: useGifFallback ? "none" : "block",
-    "--media-object-fit": resizeMode,
-    backgroundColor: "#000",
+  const videoProps: any = {
+    ref: (el: HTMLVideoElement | null) => {
+      videoRef.current = el;
+    },
+    playsInline: true,
+    muted: isMuted,
+    autoPlay,
+    loop: isLooping,
+    controls: useNativeControls,
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: resizeMode as any,
+      backgroundColor: "#000",
+      opacity: useGifFallback ? 0 : 1,
+    },
+    onPlay: handlePlayEvent,
+    onPlaying: handlePlayEvent,
+    onPause: () => setIsPlaying(false),
+    onError: () => {
+      if (!hlsRef.current) setFailed(true);
+    },
+    onLoadedMetadata: (e: any) => {
+      const v = e?.target as HTMLVideoElement | null;
+      if (v && v.videoWidth && v.videoHeight) {
+        setNaturalAspect(v.videoWidth / v.videoHeight);
+      }
+    },
   };
 
   return (
@@ -279,57 +281,11 @@ export default function AdaptiveVideoWeb({
           {coverUrl && !isPlaying && !useGifFallback ? (
             <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : null}
-          {videoUri && playbackId && directSrc && playerReady ? (
-            React.createElement("mux-player", {
-              ref: attachPlayerRef,
-              src: directSrc,
-              muted: isMuted ? "" : null,
-              loop: isLooping ? "" : null,
-              autoplay: autoPlay ? "" : null,
-              playsinline: "",
-              "stream-type": "on-demand",
-              "disable-tracking": "",
-              style: muxStyle,
-            })
-          ) : videoUri ? (
-            React.createElement("video", {
-              ref: (el: HTMLVideoElement | null) => {
-                nativeVideoRef.current = el;
-                if (el) {
-                  el.muted = isMuted;
-                  el.playsInline = true;
-                  el.loop = isLooping;
-                  el.controls = useNativeControls;
-                  try {
-                    el.src = videoUri;
-                  } catch (e) {}
-                  if (autoPlay) el.play().catch(() => {});
-                  el.onplay = handlePlayEvent;
-                  el.onplaying = handlePlayEvent;
-                  el.onpause = () => setIsPlaying(false);
-                  el.onerror = () => setFailed(true);
-                  el.onloadedmetadata = () => {
-                    if (el.videoWidth && el.videoHeight) {
-                      setNaturalAspect(el.videoWidth / el.videoHeight);
-                    }
-                  };
-                }
-              },
-              playsInline: true,
-              autoPlay,
-              style: {
-                width: "100%",
-                height: "100%",
-                objectFit: resizeMode as any,
-                backgroundColor: "#000",
-                opacity: useGifFallback ? 0 : 1,
-              },
-            })
-          ) : null}
-          {!useNativeControls && !useGifFallback && !(playbackId && playerReady) && (
+          {videoUri ? React.createElement("video", videoProps) : null}
+          {!useNativeControls && !useGifFallback && (
             <Pressable onPress={handlePress} style={StyleSheet.absoluteFill} />
           )}
-          {!isPlaying && !failed && !useGifFallback && !(playbackId && playerReady) && (
+          {!isPlaying && !failed && !useGifFallback && (
             <Pressable style={styles.playBigBtn} onPress={handlePress}>
               <Ionicons name="play" size={34} color="#fff" />
             </Pressable>
