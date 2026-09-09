@@ -58,6 +58,10 @@ export const deleteMessage = async (token: string, messageId: string): Promise<{
   return apiRequest<{ message: string; message_id: string }>(`/messages/${messageId}`, "DELETE", token);
 };
 
+export const deleteGroupMessage = async (token: string, messageId: string): Promise<{ message: string; message_id: string }> => {
+  return apiRequest<{ message: string; message_id: string }>(`/messages/group/${messageId}`, "DELETE", token);
+};
+
 export const editMessage = async (token: string, messageId: string, text: string): Promise<Message> => {
   return apiRequest<Message>(`/messages/${messageId}`, "PUT", token, { text });
 };

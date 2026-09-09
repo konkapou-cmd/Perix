@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../../context/AuthContext";
 import { useNotifications } from "../../../context/NotificationContext";
 import { useSocket, useSocketEvent } from "../../../context/SocketContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Conversation,
   ExtendedConversation,
@@ -76,6 +77,20 @@ export default function MessagesScreen() {
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
   const [friendRequestsExpanded, setFriendRequestsExpanded] = useState(true);
   const [requestActionLoading, setRequestActionLoading] = useState<string | null>(null);
+  const [hiddenGroupChats, setHiddenGroupChats] = useState<Set<string>>(new Set());
+
+  const GROUP_HIDE_KEY = "hidden_group_chats";
+
+  useEffect(() => {
+    AsyncStorage.getItem(GROUP_HIDE_KEY)
+      .then((v) => {
+        if (!v) return;
+        try {
+          setHiddenGroupChats(new Set(JSON.parse(v)));
+        } catch (e) {}
+      })
+      .catch(() => {});
+  }, []);
 
   const formatChatTime = (dateStr: string | undefined | null): string => {
     if (!dateStr) return "";
@@ -106,6 +121,7 @@ export default function MessagesScreen() {
 
   const filteredGroupConversations = allConversations.filter(c => {
     if (c.type === "direct") return false;
+    if (hiddenGroupChats.has(c.conversation_id || "")) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return c.name?.toLowerCase().includes(q) || c.last_message?.toLowerCase().includes(q);
@@ -253,6 +269,27 @@ export default function MessagesScreen() {
     entityType?: string;
   }) => {
     if (!sessionToken || !item.id) return;
+
+    if (item.type !== "direct") {
+      // Group chat (activity/event): remove it from the list for this user
+      const ok = await confirmAction({
+        title: t("messages.deleteConversationTitle") || "Delete conversation?",
+        message: `${item.name} — ${t("messages.deleteConversationConfirm") || "All messages in this conversation will be permanently deleted."}`,
+        confirmText: t("common.delete"),
+        cancelText: t("common.cancel"),
+        destructive: true,
+      });
+      if (!ok) return;
+      const next = new Set(hiddenGroupChats);
+      next.add(item.id);
+      setHiddenGroupChats(next);
+      try {
+        await AsyncStorage.setItem(GROUP_HIDE_KEY, JSON.stringify([...next]));
+      } catch (e) {}
+      await loadConversations();
+      return;
+    }
+
     const ok = await confirmAction({
       title: t("messages.deleteConversationTitle") || "Delete conversation?",
       message: `${item.name} — ${t("messages.deleteConversationConfirm") || "All messages in this conversation will be permanently deleted."}`,
@@ -545,6 +582,18 @@ export default function MessagesScreen() {
                   }}
                 >
                   <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+                </Pressable>
+              )}
+              {item.type !== "direct" && (
+                <Pressable
+                  style={styles.deleteConvBtn}
+                  hitSlop={8}
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    handleDeleteConversation(item);
+                  }}
+                >
+                  <Ionicons name="close-circle-outline" size={18} color={COLORS.danger} />
                 </Pressable>
               )}
             </Pressable>

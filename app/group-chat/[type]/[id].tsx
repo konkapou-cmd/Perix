@@ -33,6 +33,9 @@ import {
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../../lib/designTokens";
 import { MEDIA_LIMITS } from "../../../lib/constants/mediaLimits";
 import { HeaderBackButton } from "../../../components/shared/HeaderBackButton";
+import { confirmAction } from "../../../lib/confirm";
+import { deleteGroupMessage } from "../../../lib/api/messages";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type ChatType = "activity" | "event";
 
@@ -167,6 +170,45 @@ export default function GroupChatScreen() {
     setUploadingMedia(false);
   };
 
+  const handleDeleteChat = async () => {
+    const ok = await confirmAction({
+      title: t("messages.deleteConversationTitle") || "Delete conversation?",
+      message: `${title} — ${t("messages.deleteConversationConfirm") || "All messages in this conversation will be permanently deleted."}`,
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const stored = await AsyncStorage.getItem("hidden_group_chats");
+      let list: string[] = [];
+      try { list = stored ? JSON.parse(stored) : []; } catch (e) {}
+      if (id && !list.includes(id)) {
+        list.push(id);
+        await AsyncStorage.setItem("hidden_group_chats", JSON.stringify(list));
+      }
+    } catch (e) {}
+    router.back();
+  };
+
+  const handleDeleteMediaMessage = async (messageId: string) => {
+    if (!sessionToken) return;
+    const ok = await confirmAction({
+      title: t("messages.deletePhotoTitle") || "Delete photo?",
+      message: t("messages.deletePhotoConfirm") || "This will delete the photo from the chat.",
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteGroupMessage(sessionToken, messageId);
+      setMessages((prev) => prev.filter((m) => m.message_id !== messageId));
+    } catch (e) {
+      console.warn("deleteGroupMessage failed:", e);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -193,6 +235,9 @@ export default function GroupChatScreen() {
           }}
         >
           <Ionicons name="open-outline" size={18} color={COLORS.textPrimary} />
+        </Pressable>
+        <Pressable style={styles.headerIcon} hitSlop={8} onPress={handleDeleteChat}>
+          <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
         </Pressable>
       </View>
 
@@ -241,6 +286,18 @@ export default function GroupChatScreen() {
                       <Text style={styles.chatMediaTime}>
                         {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </Text>
+                    )}
+                    {isMe && (
+                      <Pressable
+                        style={styles.deleteMediaBtn}
+                        hitSlop={8}
+                        onPress={(e) => {
+                          e?.stopPropagation?.();
+                          handleDeleteMediaMessage(msg.message_id);
+                        }}
+                      >
+                        <Ionicons name="trash-outline" size={14} color="rgba(255,255,255,0.9)" />
+                      </Pressable>
                     )}
                   </Pressable>
                 )}
@@ -431,6 +488,17 @@ const styles = StyleSheet.create({
     width: 200,
     height: 150,
     borderRadius: BORDER_RADIUS.md,
+  },
+  deleteMediaBtn: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(239,68,68,0.8)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   chatMediaTime: {
     position: "absolute",
