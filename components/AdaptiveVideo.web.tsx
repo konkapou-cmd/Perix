@@ -288,6 +288,7 @@ export default function AdaptiveVideoWeb({
               autoplay: autoPlay ? "" : null,
               playsinline: "",
               "stream-type": "on-demand",
+              "disable-tracking": "",
               style: muxStyle,
             })
           ) : videoUri ? (
