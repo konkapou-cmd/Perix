@@ -685,6 +685,29 @@ export default function ChatScreen() {
                         {message.text}
                       </Text>
                     )}
+                    {isMine && hasMedia && (
+                      <Pressable
+                        style={styles.deleteMediaBtn}
+                        hitSlop={10}
+                        onPress={(e) => {
+                          e?.stopPropagation?.();
+                          Alert.alert(
+                            t("messages.deletePhotoTitle") || "Delete photo?",
+                            t("messages.deletePhotoConfirm") || "This will delete the photo from the chat.",
+                            [
+                              { text: t("common.cancel"), style: "cancel" },
+                              {
+                                text: t("common.delete"),
+                                style: "destructive",
+                                onPress: () => handleDeleteMessage(message.message_id),
+                              },
+                            ],
+                          );
+                        }}
+                      >
+                        <Ionicons name="trash-outline" size={15} color="rgba(255,255,255,0.9)" />
+                      </Pressable>
+                    )}
                     <View style={styles.messageFooter}>
                       <Text style={[styles.messageTime, isMine && styles.myTimeText]}>
                         {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -916,6 +939,19 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     marginBottom: SPACING.small,
     overflow: "hidden",
+    position: "relative",
+  },
+  deleteMediaBtn: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5,
   },
   myBubble: {
     backgroundColor: "#59ABE3",
