@@ -24,6 +24,7 @@ type AdaptiveVideoProps = {
   onPress?: () => void;
   useNativeControls?: boolean;
   fitPolicy?: "auto" | "cover" | "contain";
+  onEnded?: () => void;
 };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");

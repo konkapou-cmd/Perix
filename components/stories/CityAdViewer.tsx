@@ -228,6 +228,7 @@ export function CityAdViewer({
             resizeMode="cover"
             muxThumbnailUrl={thumb}
             showMuteButton={false}
+            onEnded={onClose}
             style={{ width: "100%", height: "100%" }}
           />
         ) : currentStory?.media_type === "video" && cityAdVideoUrl && currentStory?.video_status !== "processing" && currentStory?.video_status !== "uploading" ? (

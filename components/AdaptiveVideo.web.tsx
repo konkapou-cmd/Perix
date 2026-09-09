@@ -41,6 +41,7 @@ type AdaptiveVideoWebProps = {
   onPress?: () => void;
   useNativeControls?: boolean;
   fitPolicy?: "auto" | "cover" | "contain";
+  onEnded?: () => void;
 };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -80,6 +81,7 @@ export default function AdaptiveVideoWeb({
   onPress,
   useNativeControls = false,
   fitPolicy,
+  onEnded,
 }: AdaptiveVideoWebProps) {
   const { t } = useTranslation();
   const videoUri = uri || source?.uri || "";
@@ -103,6 +105,12 @@ export default function AdaptiveVideoWeb({
   const gifUrl = coverUrl ? coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=1280") : null;
   const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
   const aspectRatio = styleHasHeight ? undefined : validRatio || naturalAspect || 4 / 5;
+
+  // Failure states (GIF fallback / error UI) are only allowed BEFORE the first
+  // frame played — once the video has played, it must never be swapped out for
+  // a static fallback mid-view (freeze + layout jump at end of stream).
+  const showFailure = failed && !playedRef.current;
+  const showGif = useGifFallback && !playedRef.current;
 
   const vwNow = typeof window !== "undefined" ? window.innerWidth : 400;
   const vhNow = typeof window !== "undefined" ? window.innerHeight : 800;
@@ -292,7 +300,7 @@ export default function AdaptiveVideoWeb({
     autoPlay,
     loop: isLooping,
     controls: useNativeControls,
-    style: styleHasHeight
+        style: styleHasHeight
       ? {
           position: "absolute",
           top: 0,
@@ -301,14 +309,14 @@ export default function AdaptiveVideoWeb({
           bottom: 0,
           objectFit: effectiveFit as any,
           backgroundColor: "#000",
-          opacity: useGifFallback ? 0 : 1,
+          opacity: showGif ? 0 : 1,
         }
       : {
           width: "100%",
           height: "100%",
           objectFit: effectiveFit as any,
           backgroundColor: "#000",
-          opacity: useGifFallback ? 0 : 1,
+          opacity: showGif ? 0 : 1,
         },
     onPlay: handlePlayEvent,
     onPlaying: handlePlayEvent,
@@ -322,11 +330,15 @@ export default function AdaptiveVideoWeb({
         setNaturalAspect(v.videoWidth / v.videoHeight);
       }
     },
+    onEnded: () => {
+      setIsPlaying(false);
+      if (onEnded) onEnded();
+    },
   };
 
   return (
     <View style={[styles.container, { aspectRatio: styleHasHeight ? undefined : aspectRatio, maxHeight: styleHasHeight ? undefined : maxHeight, borderRadius }, style]}>
-      {useGifFallback && gifUrl && !failed ? (
+      {showGif && gifUrl && !showFailure ? (
         <View style={styles.center}>
           <RNImage source={{ uri: gifUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
           <View style={styles.dim}>
@@ -337,7 +349,7 @@ export default function AdaptiveVideoWeb({
             </Pressable>
           </View>
         </View>
-      ) : failed ? (
+      ) : showFailure ? (
         <View style={styles.center}>
           {gifUrl ? (
             <RNImage source={{ uri: gifUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
@@ -378,19 +390,19 @@ export default function AdaptiveVideoWeb({
                 },
               })
             : null}
-          {coverUrl && !hasStarted && !useGifFallback ? (
+          {coverUrl && !hasStarted && !showGif ? (
             <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
           ) : null}
           {videoUri ? React.createElement("video", videoProps) : null}
-          {!useNativeControls && !useGifFallback && (
+          {!useNativeControls && !showGif && (
             <Pressable onPress={handlePress} style={StyleSheet.absoluteFill} />
           )}
-          {!hasStarted && !failed && !useGifFallback && (
+          {!hasStarted && !showFailure && !showGif && (
             <Pressable style={styles.playBigBtn} onPress={handlePress}>
               <Ionicons name="play" size={34} color="#fff" />
             </Pressable>
           )}
-          {showMuteButton && !useNativeControls && !useGifFallback && (
+          {showMuteButton && !useNativeControls && !showGif && (
             <Pressable style={styles.muteBtn} onPress={toggleMute}>
               <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
             </Pressable>
