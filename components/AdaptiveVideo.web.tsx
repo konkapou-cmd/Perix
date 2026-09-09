@@ -104,12 +104,13 @@ export default function AdaptiveVideoWeb({
   const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
   const aspectRatio = styleHasHeight ? undefined : validRatio || naturalAspect || 4 / 5;
 
+  const vwNow = typeof window !== "undefined" ? window.innerWidth : 400;
+  const vhNow = typeof window !== "undefined" ? window.innerHeight : 800;
+
   // Smart fit for full-screen contexts: cover only when the video and screen
   // orientations match; contain otherwise (unknown → contain, never zoom).
   let effectiveFit: "cover" | "contain" = resizeMode;
   if (fitPolicy === "auto") {
-    const vwNow = typeof window !== "undefined" ? window.innerWidth : 400;
-    const vhNow = typeof window !== "undefined" ? window.innerHeight : 800;
     const screenPortrait = vhNow > vwNow;
     if (naturalAspect && naturalAspect > 0) {
       const videoPortrait = naturalAspect < 1;
@@ -357,6 +358,13 @@ export default function AdaptiveVideoWeb({
               <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
             </Pressable>
           )}
+          {fitPolicy === "auto" && (
+            <View style={styles.debugBadge} pointerEvents="none">
+              <Text style={styles.debugText}>
+                {`fit:${effectiveFit} ar:${naturalAspect ? naturalAspect.toFixed(2) : "?"} win:${vwNow}x${vhNow}`}
+              </Text>
+            </View>
+          )}
         </>
       )}
     </View>
@@ -428,5 +436,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 11,
+  },
+  debugBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    zIndex: 20,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  debugText: {
+    color: "#7CFC00",
+    fontSize: 10,
+    fontWeight: "700",
   },
 });
