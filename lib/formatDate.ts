@@ -1,11 +1,14 @@
 export function formatDate(dateStr: string): string {
   try {
-    const parts = dateStr.split("T")[0].split("-");
-    if (parts.length !== 3) return dateStr;
-    const [y, m, d] = parts;
-    return `${d.padStart(2, "0")}.${m.padStart(2, "0")}.${y}`;
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${day}.${m}.${y}`;
   } catch {
-    return dateStr.split("T")[0];
+    return typeof dateStr === "string" ? dateStr.split("T")[0] : "";
   }
 }
 
