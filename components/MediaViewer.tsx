@@ -107,7 +107,8 @@ function WebMediaPlayer({ item }: { item: MediaItem }) {
         uri={item.uri}
         autoPlay
         isLooping
-        resizeMode={vw > vh ? "contain" : "cover"}
+        fitPolicy="auto"
+        resizeMode="cover"
         videoStatus={item.videoStatus}
         muxThumbnailUrl={item.muxThumbnailUrl}
         style={{ width: "100%", height: "100%" }}

@@ -40,6 +40,7 @@ type AdaptiveVideoWebProps = {
   borderRadius?: number;
   onPress?: () => void;
   useNativeControls?: boolean;
+  fitPolicy?: "auto" | "cover" | "contain";
 };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -78,6 +79,7 @@ export default function AdaptiveVideoWeb({
   borderRadius = 0,
   onPress,
   useNativeControls = false,
+  fitPolicy,
 }: AdaptiveVideoWebProps) {
   const { t } = useTranslation();
   const videoUri = uri || source?.uri || "";
@@ -101,6 +103,17 @@ export default function AdaptiveVideoWeb({
   const gifUrl = coverUrl ? coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=1280") : null;
   const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
   const aspectRatio = styleHasHeight ? undefined : validRatio || naturalAspect || 4 / 5;
+
+  // Smart fit for full-screen contexts: cover when the video and screen
+  // orientations match, contain otherwise (no awkward zooming).
+  let effectiveFit: "cover" | "contain" = resizeMode;
+  if (fitPolicy === "auto" && naturalAspect && naturalAspect > 0) {
+    const vwNow = typeof window !== "undefined" ? window.innerWidth : 400;
+    const vhNow = typeof window !== "undefined" ? window.innerHeight : 800;
+    const screenPortrait = vhNow > vwNow;
+    const videoPortrait = naturalAspect < 1;
+    effectiveFit = screenPortrait === videoPortrait ? "cover" : "contain";
+  }
 
   // (Re)attach source whenever the URI changes — fully imperative, no per-render props
   useEffect(() => {
@@ -229,14 +242,14 @@ export default function AdaptiveVideoWeb({
           left: 0,
           right: 0,
           bottom: 0,
-          objectFit: resizeMode as any,
+          objectFit: effectiveFit as any,
           backgroundColor: "#000",
           opacity: useGifFallback ? 0 : 1,
         }
       : {
           width: "100%",
           height: "100%",
-          objectFit: resizeMode as any,
+          objectFit: effectiveFit as any,
           backgroundColor: "#000",
           opacity: useGifFallback ? 0 : 1,
         },

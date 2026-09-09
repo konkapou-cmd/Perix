@@ -64,8 +64,9 @@ export function CityAdViewer({
               await deleteStory(sessionToken, currentStory.story_id);
               onAdDeleted?.();
               onClose();
-            } catch (e) {
-              console.warn("Delete city ad failed:", e);
+            } catch (e: any) {
+              console.warn("Delete city ad failed:", e?.message || e);
+              Alert.alert(t("common.error"), t("cityAd.deleteFailed", "Failed to delete"));
             } finally {
               setDeletingAd(false);
             }
@@ -81,6 +82,13 @@ export function CityAdViewer({
     activeIdentity?.type === "business" &&
     currentGroup?.actor_type === "business" &&
     currentGroup?.actor_id === activeIdentity.id;
+
+  console.log("[CityAd] viewer", {
+    isOwnBusinessAd,
+    activeId: activeIdentity?.id,
+    groupActorId: currentGroup?.actor_id,
+    hasStory: !!currentStory,
+  });
   const isVideo = currentStory?.media_type === "video";
   const storyStartTimeRef = useRef(Date.now());
 
@@ -215,7 +223,8 @@ export function CityAdViewer({
           <AdaptiveVideoWeb
             uri={cityAdVideoUrl}
             autoPlay
-            resizeMode={vw > vh ? "contain" : "cover"}
+            fitPolicy="auto"
+            resizeMode="cover"
             muxThumbnailUrl={thumb}
             showMuteButton={false}
             style={{ width: "100%", height: "100%" }}

@@ -23,6 +23,7 @@ type AdaptiveVideoProps = {
   borderRadius?: number;
   onPress?: () => void;
   useNativeControls?: boolean;
+  fitPolicy?: "auto" | "cover" | "contain";
 };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -100,6 +101,7 @@ export default function AdaptiveVideo({
   borderRadius = 0,
   onPress,
   useNativeControls = false,
+  fitPolicy,
 }: AdaptiveVideoProps) {
   const { t } = useTranslation();
   const videoUri = uri || source?.uri || "";
