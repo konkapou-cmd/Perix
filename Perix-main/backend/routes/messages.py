@@ -3,6 +3,9 @@ from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from typing import List, Dict, Optional
 from pydantic import EmailStr, BaseModel
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 
 from database import db
@@ -611,9 +614,27 @@ async def delete_message(
     # Only the sender can delete the message
     if message["from_user_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Can only delete your own messages")
-    
+
+    # Delete media files together with the message
+    image_url = message.get("image_url")
+    video_url = message.get("video_url")
+    mux_asset_id = message.get("mux_asset_id")
+    if image_url:
+        try:
+            from utils.cloudinary_utils import destroy_cloudinary_asset
+            await destroy_cloudinary_asset(image_url, "image")
+        except Exception as e:
+            logger.warning(f"Cloudinary destroy failed: {e}")
+    if mux_asset_id:
+        try:
+            from routes.mux import _get_mux_assets_api
+            api = _get_mux_assets_api()
+            await asyncio.to_thread(api.delete_asset, mux_asset_id, _request_timeout=20)
+        except Exception as e:
+            logger.warning(f"Mux asset delete failed: {e}")
+
     await db.messages.delete_one({"message_id": message_id})
-    
+
     return {"message": "Message deleted", "message_id": message_id}
 
 

@@ -1,4 +1,8 @@
 """Events routes."""
+import logging
+
+logger = logging.getLogger(__name__)
+
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional, Dict, Any
 from datetime import timedelta
@@ -192,29 +196,35 @@ async def list_events(
         query["artist_id"] = artist_id
     if theme:
         query["theme"] = theme
-    
+
     # Add date filtering
+    start_time_conditions = []
+    # Events without a start time are incomplete — they stay editable by the
+    # owner but are never shown publicly.
+    if not business_id and not artist_id:
+        start_time_conditions.append({"start_time": {"$nin": [None, ""]}})
+
     if start_after:
         from datetime import datetime
         try:
             start_date = datetime.fromisoformat(start_after.replace("Z", "+00:00"))
-            query["start_time"] = {"$gte": start_date}
+            start_time_conditions.append({"start_time": {"$gte": start_date}})
         except ValueError:
             pass
     elif not start_after and not start_before:
         # Default: only show future events
-        query["start_time"] = {"$gte": now_utc()}
-    
+        start_time_conditions.append({"start_time": {"$gte": now_utc()}})
+
     if start_before:
         from datetime import datetime
         try:
             end_date = datetime.fromisoformat(start_before.replace("Z", "+00:00"))
-            if "start_time" in query:
-                query["start_time"]["$lte"] = end_date
-            else:
-                query["start_time"] = {"$lte": end_date}
+            start_time_conditions.append({"start_time": {"$lte": end_date}})
         except ValueError:
             pass
+
+    if start_time_conditions:
+        query["$and"] = start_time_conditions
     
     use_bounds = any([min_lat, max_lat, min_lng, max_lng])
     
@@ -381,6 +391,9 @@ async def get_event_public(event_id: str):
     """Public event endpoint - no authentication required"""
     event = await db.events.find_one({"event_id": event_id, "is_hidden": {"$ne": True}}, {"_id": 0})
     if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not event.get("start_time"):
+        # Incomplete event (no time) — never public until the owner completes it
         raise HTTPException(status_code=404, detail="Event not found")
     
     business = None
@@ -583,7 +596,32 @@ async def delete_event(
     
     if not authorized:
         raise HTTPException(status_code=403, detail="Not authorized")
-    
+
+    # Delete media files together with the event
+    cover = event.get("cover_image_url") or event.get("image_url")
+    video_url = event.get("video_url")
+    mux_asset_id = event.get("mux_asset_id")
+    gallery_images = event.get("gallery_images") or []
+    if cover:
+        try:
+            from utils.cloudinary_utils import destroy_cloudinary_asset
+            await destroy_cloudinary_asset(cover, "image")
+        except Exception as e:
+            logger.warning(f"Cloudinary destroy failed: {e}")
+    for img in gallery_images:
+        try:
+            from utils.cloudinary_utils import destroy_cloudinary_asset
+            await destroy_cloudinary_asset(img, "image")
+        except Exception as e:
+            logger.warning(f"Cloudinary destroy failed: {e}")
+    if mux_asset_id:
+        try:
+            from routes.mux import _get_mux_assets_api
+            api = _get_mux_assets_api()
+            await asyncio.to_thread(api.delete_asset, mux_asset_id, _request_timeout=20)
+        except Exception as e:
+            logger.warning(f"Mux asset delete failed: {e}")
+
     await db.events.delete_one({"event_id": event_id})
     return {"status": "deleted"}
 

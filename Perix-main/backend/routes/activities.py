@@ -1,4 +1,8 @@
 """Activities routes."""
+import logging
+
+logger = logging.getLogger(__name__)
+
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional, Dict, Any
 import asyncio
@@ -275,6 +279,32 @@ async def delete_activity(
         raise HTTPException(status_code=404, detail="Activity not found")
     if activity["creator_id"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Delete media files together with the activity
+    cover = activity.get("cover_image_url")
+    video_url = activity.get("video_url")
+    mux_asset_id = activity.get("mux_asset_id")
+    gallery_images = activity.get("gallery_images") or []
+    if cover:
+        try:
+            from utils.cloudinary_utils import destroy_cloudinary_asset
+            await destroy_cloudinary_asset(cover, "image")
+        except Exception as e:
+            logger.warning(f"Cloudinary destroy failed: {e}")
+    for img in gallery_images:
+        try:
+            from utils.cloudinary_utils import destroy_cloudinary_asset
+            await destroy_cloudinary_asset(img, "image")
+        except Exception as e:
+            logger.warning(f"Cloudinary destroy failed: {e}")
+    if mux_asset_id:
+        try:
+            from routes.mux import _get_mux_assets_api
+            api = _get_mux_assets_api()
+            await asyncio.to_thread(api.delete_asset, mux_asset_id, _request_timeout=20)
+        except Exception as e:
+            logger.warning(f"Mux asset delete failed: {e}")
+
     await db.activities.delete_one({"activity_id": activity_id})
     return {"status": "deleted"}
 
@@ -305,13 +335,25 @@ async def list_activities(
     
     # Show activities where user is creator, invited, or public activities
     base_query: Dict[str, Any] = {
-        "$or": [
-            {"creator_id": current_user.user_id},
-            {"invites.user_id": current_user.user_id},
-            {"invites.email": current_user.email},
-            {"is_private": {"$ne": True}},
-        ],
         "is_hidden": {"$ne": True},
+        "$and": [
+            {
+                "$or": [
+                    {"creator_id": current_user.user_id},
+                    {"invites.user_id": current_user.user_id},
+                    {"invites.email": current_user.email},
+                    {"is_private": {"$ne": True}},
+                ],
+            },
+            # Activities without a declared time stay editable by the creator
+            # but are never shown publicly.
+            {
+                "$or": [
+                    {"time": {"$nin": [None, ""]}},
+                    {"creator_id": current_user.user_id},
+                ],
+            },
+        ],
     }
     
     # Add date filtering if provided
@@ -369,6 +411,12 @@ async def get_activity_detail(
     activity = await db.activities.find_one({"activity_id": activity_id, "is_hidden": {"$ne": True}}, {"_id": 0})
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Activities without a declared time stay editable by the creator but
+    # are never shown publicly.
+    if not activity.get("time"):
+        if activity.get("creator_id") != current_user.user_id:
+            raise HTTPException(status_code=404, detail="Activity not found")
     
     # Check access for private activities
     if activity.get("is_private"):
