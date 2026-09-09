@@ -20,23 +20,25 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
-const MuxPlayerLazy = React.lazy(() => import("@mux/mux-player-react"));
-
-class MuxPlayerBoundary extends React.Component<
-  { children: React.ReactNode; onFail?: () => void },
-  { crashed: boolean }
-> {
-  state = { crashed: false };
-  static getDerivedStateFromError() {
-    return { crashed: true };
+// Mux Player is loaded via CDN <script> instead of bundling it.
+// Bundling it collides with other custom-element libraries (expo) and throws
+// "Cannot set property observedAttributes ... which has only a getter".
+let muxPlayerScriptPromise: Promise<void> | null = null;
+function ensureMuxPlayerScript(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.customElements && (window as any).customElements.get("mux-player")) {
+    return Promise.resolve();
   }
-  componentDidCatch() {
-    this.props.onFail?.();
-  }
-  render() {
-    if (this.state.crashed) return null;
-    return this.props.children;
-  }
+  if (muxPlayerScriptPromise) return muxPlayerScriptPromise;
+  muxPlayerScriptPromise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/@mux/mux-player@3.13.2";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("mux-player script failed"));
+    document.head.appendChild(script);
+  });
+  return muxPlayerScriptPromise;
 }
 
 type AdaptiveVideoWebProps = {
@@ -113,8 +115,17 @@ export default function AdaptiveVideoWeb({
   const [isPlaying, setIsPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
   const [useGifFallback, setUseGifFallback] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
   const gifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    ensureMuxPlayerScript()
+      .then(() => { if (!cancelled) setPlayerReady(true); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const coverUrl = coverPhoto || muxThumbnailUrl || getMuxThumbnail(videoUri);
   const gifUrl = coverUrl ? coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=1280") : null;
@@ -261,21 +272,17 @@ export default function AdaptiveVideoWeb({
           {coverUrl && !isPlaying && !useGifFallback ? (
             <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : null}
-          {videoUri && playbackId && proxiedSrc ? (
-            <MuxPlayerBoundary onFail={() => setFailed(true)}>
-              <React.Suspense fallback={null}>
-                <MuxPlayerLazy
-                  ref={attachPlayerRef}
-                  src={proxiedSrc}
-                  muted={isMuted}
-                  loop={isLooping}
-                  autoPlay={autoPlay}
-                  playsInline
-                  streamType="on-demand"
-                  style={muxStyle}
-                />
-              </React.Suspense>
-            </MuxPlayerBoundary>
+          {videoUri && playbackId && proxiedSrc && playerReady ? (
+            React.createElement("mux-player", {
+              ref: attachPlayerRef,
+              src: proxiedSrc,
+              muted: isMuted ? "" : null,
+              loop: isLooping ? "" : null,
+              autoplay: autoPlay ? "" : null,
+              playsinline: "",
+              "stream-type": "on-demand",
+              style: muxStyle,
+            })
           ) : videoUri ? (
             React.createElement("video", {
               ref: (el: HTMLVideoElement | null) => {
