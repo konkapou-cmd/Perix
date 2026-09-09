@@ -940,14 +940,25 @@ export default function ProfileScreen() {
     if (!sessionToken) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      base64: true,
       quality: MEDIA_LIMITS.image.pickerQuality,
     });
-    if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
-      const uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      const updated = await updateProfileMedia(sessionToken, { cover_photo: uri, cover_focal_point: { x: 0.5, y: 0.5 } } as any);
+    if (result.canceled || !result.assets || result.assets.length === 0 || !result.assets[0].uri) return;
+    try {
+      setShowUploadProgress(true);
+      setUploadProgress({ phase: "uploading", progress: 30 });
+      const imageUrl = await uploadMedia(sessionToken, result.assets[0].uri, "image", (progress) => {
+        setUploadProgress({ phase: "uploading", progress: 30 + progress.progress * 0.6 });
+      });
+      setUploadProgress({ phase: "processing", progress: 95 });
+      const updated = await updateProfileMedia(sessionToken, { cover_photo: imageUrl, cover_focal_point: { x: 0.5, y: 0.5 } } as any);
       setCoverPhoto(updated.cover_photo || null);
       refreshUser();
+      setShowUploadProgress(false);
+      setUploadProgress(null);
+    } catch (e) {
+      setShowUploadProgress(false);
+      setUploadProgress(null);
+      Alert.alert(t("common.error"), t("profile.updateFailed"));
     }
   };
 

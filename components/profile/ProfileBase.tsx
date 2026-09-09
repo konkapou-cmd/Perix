@@ -7,6 +7,7 @@ import {
   Image,
   Pressable,
   Dimensions,
+  Platform,
   TextStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -75,6 +76,7 @@ interface ProfileHeaderProps {
   readOnly?: boolean;
   onEditCover?: () => void;
   onRepositionCover?: () => void;
+  onCoverPress?: () => void;
   onEditAvatar?: () => void;
   onShare?: () => void;
   onSettings?: () => void;
@@ -215,6 +217,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   readOnly = false,
   onEditCover,
   onRepositionCover,
+  onCoverPress,
   onEditAvatar,
   onShare,
   onSettings,
@@ -256,7 +259,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <View style={[styles.headerContainer, { backgroundColor: bgColor }]}>
       <Pressable
         style={styles.coverContainer}
-        onPress={!readOnly ? onEditCover : undefined}
+        onPress={
+          readOnly
+            ? onCoverPress
+            : coverUri || coverVideoUri
+            ? onRepositionCover
+            : onEditCover
+        }
       >
         {coverVideoUri ? (
           <AdaptiveVideo
@@ -278,7 +287,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         {!readOnly && (
           <Pressable
             style={[styles.coverEditBadge, { backgroundColor: primaryColor }]}
-            onPress={coverUri || coverVideoUri ? onRepositionCover : onEditCover}
+            onPress={onEditCover}
           >
             <Ionicons name="camera" size={14} color="#fff" />
           </Pressable>
@@ -578,6 +587,9 @@ const styles = StyleSheet.create({
     aspectRatio: PROFILE.COVER_ASPECT_RATIO,
     position: "relative",
     overflow: "hidden",
+    ...Platform.select({
+      web: { cursor: "pointer" as any },
+    }),
   },
   coverImage: {
     width: "100%",

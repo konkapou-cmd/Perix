@@ -39,6 +39,7 @@ import { useThemeStyles } from "../../hooks/useThemeStyles";
 import FriendsCarousel from "../FriendsCarousel";
 import { FriendsSection } from "../shared/FriendsSection";
 import CoverPositionEditor from "../CoverPositionEditor";
+import ImageZoomModal from "../ImageZoomModal";
 
 import { FriendshipStatus, FriendProfile } from "../../lib/api";
 
@@ -209,6 +210,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab as ProfileTab || "posts");
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
+  const [showCoverViewer, setShowCoverViewer] = useState(false);
   const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const tabsYRef = useRef(0);
@@ -315,6 +317,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         readOnly={readOnly}
         onEditCover={handleUpdateCoverPhoto}
         onRepositionCover={() => setShowCoverReposition(true)}
+        onCoverPress={() => setShowCoverViewer(true)}
         onEditAvatar={handleUpdateProfilePhoto}
         onShare={onShare || handleShare}
         onViewPublic={handleViewPublic}
@@ -367,6 +370,13 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         themeStyles={themeStyles}
       />
       </View>
+      {user.cover_photo ? (
+        <ImageZoomModal
+          visible={showCoverViewer}
+          mediaArray={[{ uri: user.cover_photo, type: "image", id: "cover" }]}
+          onClose={() => setShowCoverViewer(false)}
+        />
+      ) : null}
     </>
   );
 

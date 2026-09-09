@@ -30,6 +30,7 @@ import {
   markMessagesRead, 
   editMessage, 
   deleteMessage, 
+  deleteConversation,
   Message,
   setTypingStatus,
   getTypingStatus,
@@ -589,6 +590,24 @@ export default function ChatScreen() {
     }
   };
 
+  const handleDeleteConversation = async () => {
+    if (!sessionToken || !id) return;
+    const ok = await confirmAction({
+      title: t("messages.deleteConversationTitle") || "Delete conversation?",
+      message: t("messages.deleteConversationConfirm") || "All messages in this conversation will be permanently deleted.",
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteConversation(sessionToken, id, convEntityType);
+      router.back();
+    } catch (e) {
+      console.warn("deleteConversation failed:", e);
+    }
+  };
+
   const handleEditMessage = async () => {
     if (!sessionToken || !selectedMessage || !editText.trim()) return;
     try {
@@ -643,6 +662,11 @@ export default function ChatScreen() {
               <Ionicons name="videocam-outline" size={20} color="#264348" />
             </Pressable>
           </View>
+        )}
+        {id !== user?.user_id && (
+          <Pressable style={styles.headerIcon} hitSlop={8} onPress={handleDeleteConversation}>
+            <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+          </Pressable>
         )}
       </View>
 
