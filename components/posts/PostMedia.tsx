@@ -18,17 +18,42 @@ interface PostMediaProps {
 }
 
 export default function PostMedia({ post, autoPlay, muted, showMuteButton, onMuteChange, onPress }: PostMediaProps) {
-  const ratio = post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 4 / 5;
+  const knownRatio = post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : null;
+  const ratio = knownRatio ?? 4 / 5;
   const naturalHeight = ratio > 0 ? CONTAINER_WIDTH / ratio : CONTAINER_WIDTH;
   const frameHeight = Math.min(naturalHeight, MAX_MEDIA_HEIGHT);
 
   if (post.video_url) {
+    // When the real ratio is known, lock the frame to it. Otherwise let the
+    // player measure the video's actual aspect (vertical videos stay vertical).
+    if (knownRatio) {
+      return (
+        <View style={[styles.wrapper, { height: frameHeight }]}>
+          <AdaptiveVideo
+            uri={post.video_url}
+            style={{ width: "100%", height: frameHeight }}
+            ratio={knownRatio}
+            autoPlay={autoPlay}
+            isLooping
+            initialMuted={muted}
+            showMuteButton={showMuteButton}
+            onMuteChange={onMuteChange}
+            resizeMode="cover"
+            coverPhoto={post.mux_thumbnail_url || undefined}
+            maxHeight={frameHeight}
+            borderRadius={0}
+            videoStatus={post.video_status}
+            muxThumbnailUrl={post.mux_thumbnail_url || undefined}
+            onPress={onPress}
+          />
+        </View>
+      );
+    }
     return (
-      <View style={[styles.wrapper, { height: frameHeight }]}>
+      <View style={styles.wrapper}>
         <AdaptiveVideo
           uri={post.video_url}
-          style={{ width: "100%", height: frameHeight }}
-          ratio={ratio}
+          style={{ width: "100%" }}
           autoPlay={autoPlay}
           isLooping
           initialMuted={muted}
@@ -36,7 +61,7 @@ export default function PostMedia({ post, autoPlay, muted, showMuteButton, onMut
           onMuteChange={onMuteChange}
           resizeMode="cover"
           coverPhoto={post.mux_thumbnail_url || undefined}
-          maxHeight={frameHeight}
+          maxHeight={MAX_MEDIA_HEIGHT}
           borderRadius={0}
           videoStatus={post.video_status}
           muxThumbnailUrl={post.mux_thumbnail_url || undefined}
