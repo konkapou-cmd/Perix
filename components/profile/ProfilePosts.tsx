@@ -28,6 +28,7 @@ import { Post, togglePostLike as apiTogglePostLike, toggleSaved } from "../../li
 import EmptyState from "../ui/EmptyState";
 import { PROFILE, PROFILE_COLORS } from "./ProfileDesign";
 import { ThemeStyles } from "../../hooks/useThemeStyles";
+import { confirmAction } from "../../lib/confirm";
 
 interface ProfilePostsProps {
   posts: Post[];
@@ -270,19 +271,15 @@ pendingMentionIds = [],
     }
   };
 
-  const handleDeletePost = (post: Post) => {
-    Alert.alert(
-      t("profile.deletePost") || "Delete Post",
-      t("profile.confirmDeletePost") || "Are you sure you want to delete this post?",
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("common.delete"),
-          style: "destructive",
-          onPress: () => onDeletePost?.(post),
-        },
-      ]
-    );
+  const handleDeletePost = async (post: Post) => {
+    const ok = await confirmAction({
+      title: t("profile.deletePost") || "Delete Post",
+      message: t("profile.confirmDeletePost") || "Are you sure you want to delete this post?",
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (ok) onDeletePost?.(post);
   };
 
   const handleComment = (post: Post) => {

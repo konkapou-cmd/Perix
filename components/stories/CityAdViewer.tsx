@@ -24,6 +24,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from "../../lib/designTokens";
 import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 import { muxThumbnailUrl, lowLatencyPlaybackUrl } from "../../lib/media/mediaResolver";
+import { confirmAction } from "../../lib/confirm";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const { width: vw, height: vh } = Dimensions.get("window");
@@ -48,32 +49,27 @@ export function CityAdViewer({
   const [storyIndex, setStoryIndex] = useState(0);
   const [deletingAd, setDeletingAd] = useState(false);
 
-  const handleDeleteAd = () => {
+  const handleDeleteAd = async () => {
     if (!sessionToken || !currentStory) return;
-    Alert.alert(
-      t("cityAd.deleteTitle", "Delete Ad"),
-      t("cityAd.deleteConfirm", "Remove this city ad?"),
-      [
-        { text: t("common.cancel", "Cancel"), style: "cancel" },
-        {
-          text: t("common.delete", "Delete"),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setDeletingAd(true);
-              await deleteStory(sessionToken, currentStory.story_id);
-              onAdDeleted?.();
-              onClose();
-            } catch (e: any) {
-              console.warn("Delete city ad failed:", e?.message || e);
-              Alert.alert(t("common.error"), t("cityAd.deleteFailed", "Failed to delete"));
-            } finally {
-              setDeletingAd(false);
-            }
-          },
-        },
-      ],
-    );
+    const ok = await confirmAction({
+      title: t("cityAd.deleteTitle", "Delete Ad"),
+      message: t("cityAd.deleteConfirm", "Remove this city ad?"),
+      confirmText: t("common.delete", "Delete"),
+      cancelText: t("common.cancel", "Cancel"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      setDeletingAd(true);
+      await deleteStory(sessionToken, currentStory.story_id);
+      onAdDeleted?.();
+      onClose();
+    } catch (e: any) {
+      console.warn("Delete city ad failed:", e?.message || e);
+      Alert.alert(t("common.error"), t("cityAd.deleteFailed", "Failed to delete"));
+    } finally {
+      setDeletingAd(false);
+    }
   };
 
   const currentGroup = groups[groupIndex];

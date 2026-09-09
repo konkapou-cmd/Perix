@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { deleteStory } from "../../lib/api/stories";
 import { muxThumbnailUrl, muxAnimatedGifUrl } from "../../lib/media/mediaResolver";
 import { useAuth } from "../../context/AuthContext";
+import { confirmAction } from "../../lib/confirm";
 
 const CARD_WIDTH = Platform.OS === "web" ? 180 : 145;
 const CARD_IMAGE_HEIGHT = Platform.OS === "web" ? 135 : 110;
@@ -129,21 +130,19 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
                   style={styles.deleteBtn}
                   onPress={(e) => {
                     e.stopPropagation?.();
-                    Alert.alert(
-                      t("cityAd.deleteTitle", "Delete Ad"),
-                      t("cityAd.deleteConfirm", "Remove this city ad?"),
-                      [
-                        { text: t("common.cancel", "Cancel"), style: "cancel" },
-                        { text: t("common.delete", "Delete"), style: "destructive",
-                          onPress: async () => {
-                            if (firstStory) {
-                              try { await deleteStory(sessionToken, firstStory.story_id); onAdDeleted?.(); }
-                              catch { Alert.alert(t("common.error"), t("cityAd.deleteFailed", "Failed to delete")); }
-                            }
-                          }
-                        },
-                      ]
-                    );
+                    confirmAction({
+                      title: t("cityAd.deleteTitle", "Delete Ad"),
+                      message: t("cityAd.deleteConfirm", "Remove this city ad?"),
+                      confirmText: t("common.delete", "Delete"),
+                      cancelText: t("common.cancel", "Cancel"),
+                      destructive: true,
+                    }).then((ok) => {
+                      if (ok && firstStory) {
+                        deleteStory(sessionToken!, firstStory.story_id)
+                          .then(() => onAdDeleted?.())
+                          .catch(() => Alert.alert(t("common.error"), t("cityAd.deleteFailed", "Failed to delete")));
+                      }
+                    });
                   }}
                   hitSlop={8}
                 >
