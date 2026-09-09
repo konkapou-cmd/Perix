@@ -104,7 +104,6 @@ function WebMediaPlayer({ item }: { item: MediaItem }) {
       <AdaptiveVideoWeb
         uri={item.uri}
         autoPlay
-        initialMuted
         isLooping
         resizeMode="cover"
         videoStatus={item.videoStatus}
