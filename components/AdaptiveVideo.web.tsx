@@ -107,13 +107,16 @@ export default function AdaptiveVideoWeb({
   const vwNow = typeof window !== "undefined" ? window.innerWidth : 400;
   const vhNow = typeof window !== "undefined" ? window.innerHeight : 800;
   // Smart fit for full-screen contexts: cover only when the video and screen
-  // orientations match; contain otherwise (unknown → contain, never zoom).
+  // orientations match AND their shapes are close (no visible cropping);
+  // contain otherwise (unknown → contain, never zoom).
   let effectiveFit: "cover" | "contain" = resizeMode;
   if (fitPolicy === "auto") {
     const screenPortrait = vhNow > vwNow;
     if (naturalAspect && naturalAspect > 0) {
       const videoPortrait = naturalAspect < 1;
-      effectiveFit = screenPortrait === videoPortrait ? "cover" : "contain";
+      const screenAspect = vwNow / Math.max(vhNow, 1);
+      const diff = Math.abs(screenAspect - naturalAspect) / Math.min(screenAspect, naturalAspect);
+      effectiveFit = screenPortrait === videoPortrait && diff <= 0.12 ? "cover" : "contain";
     } else {
       effectiveFit = "contain";
     }
@@ -136,6 +139,19 @@ export default function AdaptiveVideoWeb({
     }, 250);
     return () => clearInterval(id);
   }, [videoUri, naturalAspect]);
+
+  // Debug: report the rendered box + intrinsic video size for the badge.
+  const [debugBox, setDebugBox] = useState<{ bw: number; bh: number; iw: number; ih: number } | null>(null);
+  useEffect(() => {
+    if (fitPolicy !== "auto") return;
+    const id = setInterval(() => {
+      const v = videoRef.current;
+      if (v) {
+        setDebugBox({ bw: v.clientWidth, bh: v.clientHeight, iw: v.videoWidth, ih: v.videoHeight });
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [fitPolicy]);
 
   // When the video is letterboxed in a full-screen box (portrait video on a
   // landscape screen, or vice versa), fill the empty space with a blurred,
@@ -384,6 +400,11 @@ export default function AdaptiveVideoWeb({
               <Text style={styles.debugText}>
                 {`fit:${effectiveFit} ar:${naturalAspect ? naturalAspect.toFixed(2) : "?"} win:${vwNow}x${vhNow}`}
               </Text>
+              {debugBox ? (
+                <Text style={styles.debugText}>
+                  {`box:${debugBox.bw}x${debugBox.bh} vid:${debugBox.iw}x${debugBox.ih}`}
+                </Text>
+              ) : null}
             </View>
           )}
         </>
