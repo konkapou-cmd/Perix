@@ -255,7 +255,7 @@ export default function AdaptiveVideoWeb({
   };
 
   return (
-    <View style={[styles.container, { aspectRatio, maxHeight, borderRadius }, style]}>
+    <View style={[styles.container, { aspectRatio: styleHasHeight ? undefined : aspectRatio, maxHeight: styleHasHeight ? undefined : maxHeight, borderRadius }, style]}>
       {useGifFallback && gifUrl && !failed ? (
         <View style={styles.center}>
           <RNImage source={{ uri: gifUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
