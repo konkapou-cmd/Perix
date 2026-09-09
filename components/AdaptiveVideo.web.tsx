@@ -215,7 +215,10 @@ export default function AdaptiveVideoWeb({
   const attachPlayerRef = (el: any) => {
     if (el && playerRef.current !== el) {
       playerRef.current = el;
-      el.addEventListener("playing", handlePlayEvent);
+      el.addEventListener("playing", (e: any) => {
+        console.log("[mux-player] PLAYING event", { playbackId, muted: isMuted, autoplay: autoPlay });
+        handlePlayEvent();
+      });
       el.addEventListener("pause", () => setIsPlaying(false));
       el.addEventListener("ended", () => setIsPlaying(false));
       el.addEventListener("loadstart", () => {
