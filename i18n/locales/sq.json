@@ -915,6 +915,12 @@
     "taggedArtists": "Artistë të etiketuar"
   },
   "messages": {
+    "deletePhotoTitle": "Fshi foton?",
+    "deletePhotoConfirm": "Kjo do ta fshijë foton nga biseda.",
+    "deleteConversationTitle": "Fshi bisedën?",
+    "deleteConversationConfirm": "Të gjitha mesazhet e kësaj bisede do të fshihen përgjithmonë.",
+    "deleteMessageTitle": "Fshi mesazhin?",
+    "deleteMessageConfirm": "Ky mesazh do të fshihet përgjithmonë.",
     "title": "Mesazhe",
     "noMessages": "Nuk ka mesazhe akoma",
     "startConversation": "Fillo një bisedë",

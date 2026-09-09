@@ -954,6 +954,12 @@
     "taggedArtists": "Oznaczeni artyści"
   },
   "messages": {
+    "deletePhotoTitle": "Usunąć zdjęcie?",
+    "deletePhotoConfirm": "Zdjęcie zostanie usunięte z czatu.",
+    "deleteConversationTitle": "Usunąć rozmowę?",
+    "deleteConversationConfirm": "Wszystkie wiadomości w tej rozmowie zostaną trwale usunięte.",
+    "deleteMessageTitle": "Usunąć wiadomość?",
+    "deleteMessageConfirm": "Wiadomość zostanie trwale usunięta.",
     "title": "Poruke",
     "noMessages": "Još nema poruka",
     "startConversation": "Započnite razgovor",

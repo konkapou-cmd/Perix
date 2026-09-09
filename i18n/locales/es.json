@@ -937,6 +937,12 @@
     "taggedArtists": "Artistas etiquetados"
   },
   "messages": {
+    "deletePhotoTitle": "¿Eliminar foto?",
+    "deletePhotoConfirm": "La foto se eliminará del chat.",
+    "deleteConversationTitle": "¿Eliminar conversación?",
+    "deleteConversationConfirm": "Todos los mensajes de esta conversación se eliminarán permanentemente.",
+    "deleteMessageTitle": "¿Eliminar mensaje?",
+    "deleteMessageConfirm": "El mensaje se eliminará permanentemente.",
     "title": "Mensajes",
     "noMessages": "No hay mensajes todavía",
     "startConversation": "Iniciar una conversación",

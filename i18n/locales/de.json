@@ -1061,6 +1061,12 @@
     "taggedArtists": "Markierte Künstler"
   },
   "messages": {
+    "deletePhotoTitle": "Foto löschen?",
+    "deletePhotoConfirm": "Dadurch wird das Foto aus dem Chat gelöscht.",
+    "deleteConversationTitle": "Unterhaltung löschen?",
+    "deleteConversationConfirm": "Alle Nachrichten in dieser Unterhaltung werden endgültig gelöscht.",
+    "deleteMessageTitle": "Nachricht löschen?",
+    "deleteMessageConfirm": "Diese Nachricht wird endgültig gelöscht.",
     "title": "Nachrichten",
     "noMessages": "Noch keine Nachrichten",
     "startConversation": "Gespräch beginnen",

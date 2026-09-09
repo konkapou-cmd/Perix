@@ -949,6 +949,12 @@
     "taggedArtists": "Označeni umetnici"
   },
   "messages": {
+    "deletePhotoTitle": "Obrišite fotografiju?",
+    "deletePhotoConfirm": "Fotografija će biti obrisana iz razgovora.",
+    "deleteConversationTitle": "Obrišite razgovor?",
+    "deleteConversationConfirm": "Sve poruke u ovom razgovoru biće trajno obrisane.",
+    "deleteMessageTitle": "Obrišite poruku?",
+    "deleteMessageConfirm": "Poruka će biti trajno obrisana.",
     "title": "Poruke",
     "noMessages": "Još nema poruka",
     "startConversation": "Započnite razgovor",

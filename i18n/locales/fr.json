@@ -954,6 +954,12 @@
     "taggedArtists": "Artistes tagués"
   },
   "messages": {
+    "deletePhotoTitle": "Supprimer la photo ?",
+    "deletePhotoConfirm": "La photo sera supprimée de la discussion.",
+    "deleteConversationTitle": "Supprimer la conversation ?",
+    "deleteConversationConfirm": "Tous les messages de cette conversation seront définitivement supprimés.",
+    "deleteMessageTitle": "Supprimer le message ?",
+    "deleteMessageConfirm": "Ce message sera définitivement supprimé.",
     "title": "Messages",
     "noMessages": "Pas encore de messages",
     "startConversation": "Démarrer une conversation",

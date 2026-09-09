@@ -1013,6 +1013,12 @@
     "taggedArtists": "Tagged artists"
   },
   "messages": {
+    "deletePhotoTitle": "Delete photo?",
+    "deletePhotoConfirm": "This will delete the photo from the chat.",
+    "deleteConversationTitle": "Delete conversation?",
+    "deleteConversationConfirm": "All messages in this conversation will be permanently deleted.",
+    "deleteMessageTitle": "Delete message?",
+    "deleteMessageConfirm": "This will permanently delete the message.",
     "title": "Messages",
     "noMessages": "No messages yet",
     "startConversation": "Start a conversation",

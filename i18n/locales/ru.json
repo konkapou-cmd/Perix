@@ -937,6 +937,12 @@
     "taggedArtists": "Отмеченные артисты"
   },
   "messages": {
+    "deletePhotoTitle": "Удалить фото?",
+    "deletePhotoConfirm": "Фото будет удалено из чата.",
+    "deleteConversationTitle": "Удалить беседу?",
+    "deleteConversationConfirm": "Все сообщения этой беседы будут удалены навсегда.",
+    "deleteMessageTitle": "Удалить сообщение?",
+    "deleteMessageConfirm": "Сообщение будет удалено навсегда.",
     "title": "Сообщения",
     "noMessages": "Пока нет сообщений",
     "startConversation": "Начать разговор",

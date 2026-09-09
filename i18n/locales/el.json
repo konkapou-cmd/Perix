@@ -1094,6 +1094,12 @@
     "taggedArtists": "Επισημασμένοι καλλιτέχνες"
   },
   "messages": {
+    "deletePhotoTitle": "Διαγραφή φωτογραφίας;",
+    "deletePhotoConfirm": "Η φωτογραφία θα διαγραφεί από τη συνομιλία.",
+    "deleteConversationTitle": "Διαγραφή συνομιλίας;",
+    "deleteConversationConfirm": "Όλα τα μηνύματα αυτής της συνομιλίας θα διαγραφούν οριστικά.",
+    "deleteMessageTitle": "Διαγραφή μηνύματος;",
+    "deleteMessageConfirm": "Το μήνυμα θα διαγραφεί οριστικά.",
     "title": "Μηνύματα",
     "noMessages": "Δεν υπάρχουν μηνύματα",
     "startConversation": "Ξεκινήστε συνομιλία",
