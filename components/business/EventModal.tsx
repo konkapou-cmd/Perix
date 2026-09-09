@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Alert,
   Image,
@@ -158,6 +158,7 @@ export default function EventModal({
   const { t, i18n } = useTranslation();
   const [artistQuery, setArtistQuery] = useState("");
   const [showArtistSuggestions, setShowArtistSuggestions] = useState(false);
+  const webTimeInputRef = useRef<any>(null);
 
   const taggedArtists = (availableArtists || []).filter(a =>
     (eventForm.tagged_artist_ids || []).includes(a.artist_id)
@@ -321,12 +322,37 @@ export default function EventModal({
             </View>
             <View style={s.halfWidth}>
               <Text style={s.label}><Text style={s.required}>* </Text>{t("events.time") || "Time"}</Text>
-              <Pressable style={s.selector} onPress={() => onShowTimePicker(true)}>
+              <Pressable
+                style={s.selector}
+                onPress={() => {
+                  if (Platform.OS === "web") {
+                    webTimeInputRef.current?.click();
+                  } else {
+                    onShowTimePicker(true);
+                  }
+                }}
+              >
                 <Text style={s.selectorTextSelected}>{formatTime(eventTime)}</Text>
                 <Ionicons name="time-outline" size={18} color="#264348" />
               </Pressable>
             </View>
           </View>
+
+          {Platform.OS === "web" && (
+            React.createElement("input", {
+              ref: webTimeInputRef,
+              type: "time",
+              style: { display: "none" },
+              onChange: (e: any) => {
+                const v = e?.target?.value;
+                if (!v) return;
+                const [h, m] = v.split(":").map((x: string) => parseInt(x, 10));
+                const d = new Date(eventTime);
+                d.setHours(h || 0, m || 0, 0, 0);
+                onTimeChange(null, d);
+              },
+            })
+          )}
 
           {showEventDatePicker && (
             <View>

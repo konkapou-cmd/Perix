@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Alert,
   Modal,
@@ -174,6 +174,7 @@ export default function ActivityModal({
   }, [visible]);
 
   const [showCalendar, setShowCalendar] = useState(false);
+  const webTimeInputRef = React.useRef<any>(null);
 
   const pad = (n: number) => n.toString().padStart(2, "0");
   const formatDateShort = (dateStr: string) => {
@@ -288,12 +289,39 @@ export default function ActivityModal({
             </View>
             <View style={s.halfWidth}>
               <Text style={s.label}><Text style={s.required}>* </Text>{t("activities.time")}</Text>
-              <Pressable style={s.selector} onPress={() => onShowTimePicker(true)}>
-                <Text style={s.selectorTextSelected}>{formatTime(activityTime)}</Text>
+              <Pressable
+                style={s.selector}
+                onPress={() => {
+                  if (Platform.OS === "web") {
+                    webTimeInputRef.current?.click();
+                  } else {
+                    onShowTimePicker(true);
+                  }
+                }}
+              >
+                <Text style={s.selectorTextSelected}>
+                  {activityForm.time ? activityForm.time : formatTime(activityTime)}
+                </Text>
                 <Ionicons name="time-outline" size={18} color="#264348" />
               </Pressable>
             </View>
           </View>
+
+          {Platform.OS === "web" && (
+            React.createElement("input", {
+              ref: webTimeInputRef,
+              type: "time",
+              style: { display: "none" },
+              onChange: (e: any) => {
+                const v = e?.target?.value;
+                if (!v) return;
+                const [h, m] = v.split(":").map((x: string) => parseInt(x, 10));
+                const d = new Date(activityTime);
+                d.setHours(h || 0, m || 0, 0, 0);
+                onTimeChange(null, d);
+              },
+            })
+          )}
 
           <DatePickerModal
             visible={showCalendar}
