@@ -137,6 +137,19 @@ export default function AdaptiveVideoWeb({
     return () => clearInterval(id);
   }, [videoUri, naturalAspect]);
 
+  // Re-evaluate the smart fit when the screen rotates or is resized.
+  const [, forceFitTick] = useState(0);
+  useEffect(() => {
+    if (fitPolicy !== "auto") return;
+    const onResize = () => forceFitTick((n) => n + 1);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
+  }, [fitPolicy]);
+
   // (Re)attach source whenever the URI changes — fully imperative, no per-render props
   useEffect(() => {
     playedRef.current = false;

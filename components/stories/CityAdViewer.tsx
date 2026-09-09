@@ -80,7 +80,7 @@ export function CityAdViewer({
   const currentStory = currentGroup?.stories?.[storyIndex];
   const isOwnBusinessAd =
     activeIdentity?.type === "business" &&
-    currentGroup?.actor_type === "business" &&
+    !!currentGroup?.actor_id &&
     currentGroup?.actor_id === activeIdentity.id;
 
   console.log("[CityAd] viewer", {
@@ -204,7 +204,7 @@ export function CityAdViewer({
       <Pressable
         style={styles.header}
         onPress={() => {
-          if (currentGroup?.actor_type === "business" && currentGroup?.actor_id) {
+          if (currentGroup?.actor_id) {
             player.pause();
             router.push(`/business/${currentGroup.actor_id}`);
           }
@@ -213,7 +213,7 @@ export function CityAdViewer({
         <Text style={styles.businessName}>
           {currentGroup?.author_name || "Business"}
         </Text>
-        {currentGroup?.actor_type === "business" && (
+        {!!currentGroup?.actor_id && (
           <Ionicons name="chevron-forward" size={14} color={COLORS.primary} style={{ marginLeft: 4 }} />
         )}
       </Pressable>
