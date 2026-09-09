@@ -217,8 +217,11 @@ export default function AdaptiveVideoWeb({
       el.addEventListener("playing", handlePlayEvent);
       el.addEventListener("pause", () => setIsPlaying(false));
       el.addEventListener("ended", () => setIsPlaying(false));
-      el.addEventListener("error", () => {
-        if (!playbackId) setFailed(true);
+      el.addEventListener("loadstart", () => {
+        console.log("[mux-player] loadstart src=", proxiedSrc);
+      });
+      el.addEventListener("error", (e: any) => {
+        console.log("[mux-player] error:", e?.detail?.message || e?.message || "unknown", { playbackId, src: proxiedSrc });
       });
     }
   };
@@ -318,10 +321,10 @@ export default function AdaptiveVideoWeb({
               },
             })
           ) : null}
-          {!useNativeControls && !useGifFallback && (
+          {!useNativeControls && !useGifFallback && !(playbackId && playerReady) && (
             <Pressable onPress={handlePress} style={StyleSheet.absoluteFill} />
           )}
-          {!isPlaying && !failed && !useGifFallback && (
+          {!isPlaying && !failed && !useGifFallback && !(playbackId && playerReady) && (
             <Pressable style={styles.playBigBtn} onPress={handlePress}>
               <Ionicons name="play" size={34} color="#fff" />
             </Pressable>
