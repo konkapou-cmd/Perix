@@ -19,6 +19,7 @@ import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib
 import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
 import { useAuth } from "../context/AuthContext";
 import { createPost, uploadMedia, uploadVideoMux } from "../lib/api";
+import AdaptiveVideo from "../components/AdaptiveVideo";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -238,6 +239,21 @@ export default function CameraScreen() {
 
   const webMaxDuration = MEDIA_LIMITS.camera.generalMaxDurationSeconds;
 
+  // The live-preview <video> element is created ONCE and never re-rendered —
+  // re-rendering it (e.g. on the 1-second recording timer) re-attached the
+  // stream and caused the camera feed to flicker every second.
+  const streamVideoEl = React.useMemo(
+    () =>
+      React.createElement("video", {
+        ref: webVideoRef,
+        playsInline: true,
+        muted: true,
+        autoPlay: true,
+        style: { width: "100%", height: "100%", objectFit: "cover", backgroundColor: "#000" },
+      }),
+    []
+  );
+
   useEffect(() => {
     return () => {
       try {
@@ -418,12 +434,16 @@ export default function CameraScreen() {
         {pendingMedia ? (
           <View style={styles.webBody}>
             {pendingMedia.type === "video"
-              ? React.createElement("video", {
-                  src: pendingMedia.uri,
-                  controls: true,
-                  playsInline: true,
-                  style: { width: "100%", maxHeight: 440, borderRadius: 16, backgroundColor: "#000" },
-                })
+              ? (
+                <AdaptiveVideo
+                  uri={pendingMedia.uri}
+                  autoPlay
+                  isLooping={false}
+                  showMuteButton
+                  fitPolicy="auto"
+                  style={{ width: "100%", height: 360, borderRadius: 16 }}
+                />
+              )
               : React.createElement("img", {
                   src: pendingMedia.uri,
                   style: { width: "100%", maxHeight: 440, borderRadius: 16, objectFit: "contain", backgroundColor: "#000" },
@@ -445,21 +465,7 @@ export default function CameraScreen() {
           </View>
         ) : streaming ? (
           <View style={styles.webStreamWrap}>
-            {React.createElement("video", {
-              ref: (el: any) => {
-                webVideoRef.current = el;
-                if (el && streamRef.current) {
-                  try {
-                    el.srcObject = streamRef.current;
-                    el.play().catch(() => {});
-                  } catch (e) {}
-                }
-              },
-              playsInline: true,
-              muted: true,
-              autoPlay: true,
-              style: { width: "100%", height: "100%", objectFit: "cover", backgroundColor: "#000" },
-            })}
+            {streamVideoEl}
             {recordingStream && (
               <View style={styles.webRecordBadge}>
                 <View style={styles.webRecordDot} />
