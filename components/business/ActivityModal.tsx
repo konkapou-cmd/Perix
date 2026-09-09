@@ -289,39 +289,38 @@ export default function ActivityModal({
             </View>
             <View style={s.halfWidth}>
               <Text style={s.label}><Text style={s.required}>* </Text>{t("activities.time")}</Text>
-              <Pressable
-                style={s.selector}
-                onPress={() => {
-                  if (Platform.OS === "web") {
-                    webTimeInputRef.current?.click();
-                  } else {
-                    onShowTimePicker(true);
-                  }
-                }}
-              >
+              <View style={[s.selector, { position: "relative" }]}>
                 <Text style={s.selectorTextSelected}>
                   {activityForm.time ? activityForm.time : formatTime(activityTime)}
                 </Text>
                 <Ionicons name="time-outline" size={18} color="#264348" />
-              </Pressable>
+                {Platform.OS === "web" && (
+                  React.createElement("input", {
+                    ref: webTimeInputRef,
+                    type: "time",
+                    value: activityForm.time || "",
+                    style: {
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      opacity: 0,
+                      cursor: "pointer",
+                    },
+                    onChange: (e: any) => {
+                      const v = e?.target?.value;
+                      if (!v) return;
+                      const [h, m] = v.split(":").map((x: string) => parseInt(x, 10));
+                      const d = new Date(activityTime);
+                      d.setHours(h || 0, m || 0, 0, 0);
+                      onTimeChange(null, d);
+                    },
+                  })
+                )}
+              </View>
             </View>
           </View>
-
-          {Platform.OS === "web" && (
-            React.createElement("input", {
-              ref: webTimeInputRef,
-              type: "time",
-              style: { display: "none" },
-              onChange: (e: any) => {
-                const v = e?.target?.value;
-                if (!v) return;
-                const [h, m] = v.split(":").map((x: string) => parseInt(x, 10));
-                const d = new Date(activityTime);
-                d.setHours(h || 0, m || 0, 0, 0);
-                onTimeChange(null, d);
-              },
-            })
-          )}
 
           <DatePickerModal
             visible={showCalendar}
