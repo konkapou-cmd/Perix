@@ -280,7 +280,10 @@ export function CityAdViewer({
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
+    // position: fixed on web — inside an RN Modal the ancestor height chain
+    // collapses, so absolute + inset 0 falls back to the video's intrinsic
+    // size (video rendered at 1072x1920 overflowing the screen).
+    position: Platform.OS === "web" ? "fixed" : "absolute",
     top: 0,
     left: 0,
     right: 0,

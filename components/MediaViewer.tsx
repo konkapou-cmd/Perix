@@ -227,7 +227,15 @@ export default function MediaViewer({ visible, media, initialIndex = 0, onClose 
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.95)", justifyContent: "center", alignItems: "center" },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+    ...(Platform.OS === "web"
+      ? { position: "fixed" as const, top: 0, left: 0, right: 0, bottom: 0 }
+      : {}),
+  },
   closeArea: { position: "absolute", top: 50, right: 16, zIndex: 20 },
   closeButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.15)", justifyContent: "center", alignItems: "center" },
   mediaArea: { flex: 1, width: "100%", justifyContent: "center", alignItems: "center" },
