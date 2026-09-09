@@ -104,16 +104,38 @@ export default function AdaptiveVideoWeb({
   const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
   const aspectRatio = styleHasHeight ? undefined : validRatio || naturalAspect || 4 / 5;
 
-  // Smart fit for full-screen contexts: cover when the video and screen
-  // orientations match, contain otherwise (no awkward zooming).
+  // Smart fit for full-screen contexts: cover only when the video and screen
+  // orientations match; contain otherwise (unknown → contain, never zoom).
   let effectiveFit: "cover" | "contain" = resizeMode;
-  if (fitPolicy === "auto" && naturalAspect && naturalAspect > 0) {
+  if (fitPolicy === "auto") {
     const vwNow = typeof window !== "undefined" ? window.innerWidth : 400;
     const vhNow = typeof window !== "undefined" ? window.innerHeight : 800;
     const screenPortrait = vhNow > vwNow;
-    const videoPortrait = naturalAspect < 1;
-    effectiveFit = screenPortrait === videoPortrait ? "cover" : "contain";
+    if (naturalAspect && naturalAspect > 0) {
+      const videoPortrait = naturalAspect < 1;
+      effectiveFit = screenPortrait === videoPortrait ? "cover" : "contain";
+    } else {
+      effectiveFit = "contain";
+    }
   }
+
+  // Keep measuring the real video aspect until metadata is available
+  // (MSE/hls sometimes reports 0 on the first loadedmetadata).
+  useEffect(() => {
+    if (!videoUri || naturalAspect) return;
+    let tries = 0;
+    const id = setInterval(() => {
+      tries += 1;
+      const v = videoRef.current;
+      if (v && v.videoWidth && v.videoHeight) {
+        setNaturalAspect(v.videoWidth / v.videoHeight);
+        clearInterval(id);
+      } else if (tries > 20) {
+        clearInterval(id);
+      }
+    }, 250);
+    return () => clearInterval(id);
+  }, [videoUri, naturalAspect]);
 
   // (Re)attach source whenever the URI changes — fully imperative, no per-render props
   useEffect(() => {
