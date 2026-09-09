@@ -777,6 +777,8 @@ export default function HomeScreen() {
       <LocationSearchOverlay
         visible={showLocationSearch}
         sessionToken={sessionToken}
+        nearLat={mapBounds?.centerLat ?? null}
+        nearLng={mapBounds?.centerLng ?? null}
         onClose={() => setShowLocationSearch(false)}
         onSelectPlace={(lat, lng, name) => {
           const d = 0.09;

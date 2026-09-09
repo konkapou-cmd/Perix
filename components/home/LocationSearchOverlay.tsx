@@ -16,11 +16,13 @@ interface PlaceSuggestion {
 interface LocationSearchOverlayProps {
   visible: boolean;
   sessionToken?: string | null;
+  nearLat?: number | null;
+  nearLng?: number | null;
   onClose: () => void;
   onSelectPlace: (lat: number, lng: number, name: string) => void;
 }
 
-export function LocationSearchOverlay({ visible, sessionToken, onClose, onSelectPlace }: LocationSearchOverlayProps) {
+export function LocationSearchOverlay({ visible, sessionToken, nearLat, nearLng, onClose, onSelectPlace }: LocationSearchOverlayProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -28,14 +30,18 @@ export function LocationSearchOverlay({ visible, sessionToken, onClose, onSelect
 
   const searchPlaces = async (text: string) => {
     setQuery(text);
-    if (text.length < 3 || !sessionToken) {
+    if (text.length < 2 || !sessionToken) {
       setSuggestions([]);
       return;
     }
     setLoading(true);
     try {
+      let url = `/places/autocomplete?input=${encodeURIComponent(text)}`;
+      if (nearLat != null && nearLng != null) {
+        url += `&near_lat=${nearLat}&near_lng=${nearLng}`;
+      }
       const data = await apiRequest<{ predictions: PlaceSuggestion[] }>(
-        `/places/autocomplete?input=${encodeURIComponent(text)}`, "GET", sessionToken
+        url, "GET", sessionToken
       );
       setSuggestions(data.predictions || []);
     } catch (error) {
