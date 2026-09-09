@@ -91,6 +91,7 @@ export default function AdaptiveVideoWeb({
   const playedRef = useRef(false);
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [failed, setFailed] = useState(false);
   const [useGifFallback, setUseGifFallback] = useState(false);
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
@@ -104,6 +105,7 @@ export default function AdaptiveVideoWeb({
   // (Re)attach source whenever the URI changes — fully imperative, no per-render props
   useEffect(() => {
     playedRef.current = false;
+    setHasStarted(false);
     setFailed(false);
     setUseGifFallback(false);
     setNaturalAspect(null);
@@ -171,6 +173,7 @@ export default function AdaptiveVideoWeb({
     setIsPlaying(true);
     if (!playedRef.current) {
       playedRef.current = true;
+      setHasStarted(true);
       setUseGifFallback(false);
       onPlay?.();
     }
@@ -289,14 +292,14 @@ export default function AdaptiveVideoWeb({
         </View>
       ) : (
         <>
-          {coverUrl && !isPlaying && !useGifFallback ? (
-            <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          {coverUrl && !hasStarted && !useGifFallback ? (
+            <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
           ) : null}
           {videoUri ? React.createElement("video", videoProps) : null}
           {!useNativeControls && !useGifFallback && (
             <Pressable onPress={handlePress} style={StyleSheet.absoluteFill} />
           )}
-          {!isPlaying && !failed && !useGifFallback && (
+          {!hasStarted && !failed && !useGifFallback && (
             <Pressable style={styles.playBigBtn} onPress={handlePress}>
               <Ionicons name="play" size={34} color="#fff" />
             </Pressable>
