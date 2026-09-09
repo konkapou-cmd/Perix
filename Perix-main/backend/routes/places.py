@@ -34,37 +34,51 @@ async def places_autocomplete(
     try:
         params: dict = {
             "q": input,
-            "format": "json",
-            "limit": 8,
+            "format": "jsonv2",
+            "limit": 10,
             "addressdetails": 1,
             "accept-language": "en",
+            "dedupe": 1,
         }
         if near_lat is not None and near_lng is not None:
-            vb_lat_delta = 0.5
-            vb_lng_delta = 0.5
+            vb_lat_delta = 0.6
+            vb_lng_delta = 0.6
             params["lat"] = near_lat
             params["lon"] = near_lng
             params["viewbox"] = f"{near_lng - vb_lng_delta},{near_lat + vb_lat_delta},{near_lng + vb_lng_delta},{near_lat - vb_lat_delta}"
 
-        async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(
-                NOMINATIM_URL,
-                params=params,
-                headers=HEADERS,
-            )
-            results = resp.json()
-            predictions = []
-            for r in results:
-                address = r.get("address", {})
-                predictions.append({
-                    "place_id": r.get("place_id", r.get("osm_id", "")),
-                    "description": r.get("display_name", ""),
-                    "lat": float(r["lat"]) if r.get("lat") else None,
-                    "lon": float(r["lon"]) if r.get("lon") else None,
-                    "lng": float(r["lon"]) if r.get("lon") else None,
-                    "public_location_label": _extract_public_label(address),
-                })
-            return {"predictions": predictions}
+        results = None
+        last_err = None
+        for attempt in range(2):
+            try:
+                async with httpx.AsyncClient(timeout=15) as client:
+                    resp = await client.get(
+                        NOMINATIM_URL,
+                        params=params,
+                        headers=HEADERS,
+                    )
+                    resp.raise_for_status()
+                    results = resp.json()
+                    break
+            except Exception as e:
+                last_err = e
+
+        if results is None:
+            logger.warning(f"Places autocomplete failed after retries: {last_err}")
+            return {"predictions": []}
+
+        predictions = []
+        for r in results:
+            address = r.get("address", {})
+            predictions.append({
+                "place_id": r.get("place_id", r.get("osm_id", "")),
+                "description": r.get("display_name", ""),
+                "lat": float(r["lat"]) if r.get("lat") else None,
+                "lon": float(r["lon"]) if r.get("lon") else None,
+                "lng": float(r["lon"]) if r.get("lon") else None,
+                "public_location_label": _extract_public_label(address),
+            })
+        return {"predictions": predictions}
     except Exception as e:
         logger.warning(f"Places autocomplete failed: {e}")
         return {"predictions": []}
