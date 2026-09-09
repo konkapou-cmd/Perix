@@ -187,6 +187,7 @@ export function CityAdViewer({
 
   return (
     <View style={styles.container}>
+      <View style={styles.content}>
       {/* Close button */}
       <Pressable style={styles.closeBtn} onPress={onClose}>
         <Ionicons name="close" size={28} color="#fff" />
@@ -272,6 +273,7 @@ export function CityAdViewer({
       {/* Tap zones for navigation */}
       <Pressable style={styles.tapLeft} onPress={goPrev} />
       <Pressable style={styles.tapRight} onPress={goNext} />
+      </View>
     </View>
   );
 }
@@ -284,8 +286,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: "#000",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+  },
+  content: {
+    width: "100%",
+    height: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
   },
   closeBtn: {
     position: "absolute",
