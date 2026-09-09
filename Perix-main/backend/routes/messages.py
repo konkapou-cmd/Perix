@@ -625,6 +625,46 @@ async def delete_conversation(
     return {"message": "Conversation deleted", "deleted_count": result.deleted_count}
 
 
+@router.delete("/group/{message_id}")
+async def delete_group_message(
+    message_id: str,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """
+    Delete a single message from an activity/event group chat.
+    Only the sender can delete their own message. Media is destroyed too.
+    """
+    for collection in (db.activity_messages, db.event_messages):
+        message = await collection.find_one({"message_id": message_id})
+        if not message:
+            continue
+        sender_id = message.get("user_id") or message.get("from_user_id")
+        if sender_id != current_user.user_id:
+            raise HTTPException(status_code=403, detail="Can only delete your own messages")
+
+        media_url = message.get("media_url")
+        media_type = message.get("media_type")
+        mux_asset_id = message.get("mux_asset_id")
+        if media_url and "cloudinary" in str(media_url):
+            try:
+                from utils.cloudinary_utils import destroy_cloudinary_asset
+                await destroy_cloudinary_asset(media_url, "image" if media_type == "image" else "video")
+            except Exception as e:
+                logger.warning(f"Cloudinary destroy failed: {e}")
+        if mux_asset_id:
+            try:
+                from routes.mux import _get_mux_assets_api
+                api = _get_mux_assets_api()
+                await asyncio.to_thread(api.delete_asset, mux_asset_id, _request_timeout=20)
+            except Exception as e:
+                logger.warning(f"Mux asset delete failed: {e}")
+
+        await collection.delete_one({"message_id": message_id})
+        return {"message": "Message deleted", "message_id": message_id}
+
+    raise HTTPException(status_code=404, detail="Message not found")
+
+
 @router.delete("/{message_id}")
 async def delete_message(
     message_id: str,
