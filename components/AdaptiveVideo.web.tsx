@@ -132,9 +132,10 @@ export default function AdaptiveVideoWeb({
   const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
   const aspectRatio = styleHasHeight ? undefined : validRatio || naturalAspect || 4 / 5;
 
-  // First-party HLS source — Brave/Edge block third-party stream.mux.com.
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const proxiedSrc = playbackId ? `${origin}/api/mux-hls/${playbackId}.m3u8` : "";
+  // Play directly from Mux — verified working in the user's browser
+  // (the server-side proxy corrupts binary segments; the direct CDN
+  // stream plays fine even in Brave/Edge).
+  const directSrc = playbackId ? `https://stream.mux.com/${playbackId}.m3u8` : "";
 
   useEffect(() => {
     playedRef.current = false;
@@ -218,10 +219,10 @@ export default function AdaptiveVideoWeb({
       el.addEventListener("pause", () => setIsPlaying(false));
       el.addEventListener("ended", () => setIsPlaying(false));
       el.addEventListener("loadstart", () => {
-        console.log("[mux-player] loadstart src=", proxiedSrc);
+        console.log("[mux-player] loadstart src=", directSrc);
       });
       el.addEventListener("error", (e: any) => {
-        console.log("[mux-player] error:", e?.detail?.message || e?.message || "unknown", { playbackId, src: proxiedSrc });
+        console.log("[mux-player] error:", e?.detail?.message || e?.message || "unknown", { playbackId, src: directSrc });
       });
     }
   };
@@ -275,10 +276,10 @@ export default function AdaptiveVideoWeb({
           {coverUrl && !isPlaying && !useGifFallback ? (
             <RNImage source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : null}
-          {videoUri && playbackId && proxiedSrc && playerReady ? (
+          {videoUri && playbackId && directSrc && playerReady ? (
             React.createElement("mux-player", {
               ref: attachPlayerRef,
-              src: proxiedSrc,
+              src: directSrc,
               muted: isMuted ? "" : null,
               loop: isLooping ? "" : null,
               autoplay: autoPlay ? "" : null,
