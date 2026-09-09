@@ -219,13 +219,24 @@ export default function AdaptiveVideoWeb({
     autoPlay,
     loop: isLooping,
     controls: useNativeControls,
-    style: {
-      width: "100%",
-      height: "100%",
-      objectFit: resizeMode as any,
-      backgroundColor: "#000",
-      opacity: useGifFallback ? 0 : 1,
-    },
+    style: styleHasHeight
+      ? {
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          objectFit: resizeMode as any,
+          backgroundColor: "#000",
+          opacity: useGifFallback ? 0 : 1,
+        }
+      : {
+          width: "100%",
+          height: "100%",
+          objectFit: resizeMode as any,
+          backgroundColor: "#000",
+          opacity: useGifFallback ? 0 : 1,
+        },
     onPlay: handlePlayEvent,
     onPlaying: handlePlayEvent,
     onPause: () => setIsPlaying(false),

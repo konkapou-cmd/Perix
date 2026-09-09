@@ -127,15 +127,18 @@ export function CityAdViewer({
     }
   }, [storyIndex, groupIndex, groups]);
 
-  // Auto-advance timer
+  // Auto-advance timer — videos close the viewer when finished
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     const advanceMs = isVideo ? MEDIA_LIMITS.cityAd.maxDurationSeconds * 1000 : MEDIA_LIMITS.cityAd.imageDisplayMs;
-    timerRef.current = setTimeout(goNext, advanceMs);
+    timerRef.current = setTimeout(() => {
+      if (isVideo) onClose();
+      else goNext();
+    }, advanceMs);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [currentStory?.story_id, goNext]);
+  }, [currentStory?.story_id, goNext, isVideo, onClose]);
 
   // Video player — falls back to the Mux playback id when media_url is still empty
   const cityAdVideoUrl = currentStory?.media_url
@@ -169,9 +172,10 @@ export function CityAdViewer({
     const prev = prevStatusRef.current;
     prevStatusRef.current = status;
     if (prev !== undefined && prev !== "idle" && status === "idle" && cityAdVideoUrl) {
-      goNext();
+      // Video finished — close the viewer
+      onClose();
     }
-  }, [cityAdVideoUrl, status, goNext]);
+  }, [cityAdVideoUrl, status, onClose]);
 
   return (
     <View style={styles.container}>
