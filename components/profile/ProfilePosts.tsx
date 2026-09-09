@@ -495,19 +495,6 @@ pendingMentionIds = [],
               placeholderTextColor={textSecondaryColor}
             />
             <View style={styles.editModalActions}>
-              {onDeletePost && editingPost && (
-                <Pressable
-                  style={[styles.editModalBtn, { backgroundColor: "#fecaca" }]}
-                  onPress={() => {
-                    const post = editingPost;
-                    setEditingPost(null);
-                    setEditText("");
-                    onDeletePost(post);
-                  }}
-                >
-                  <Text style={[styles.editModalBtnText, { color: "#b91c1c" }]}>{t("common.delete")}</Text>
-                </Pressable>
-              )}
               <Pressable
                 style={[styles.editModalBtn, { backgroundColor: "#e5e7eb" }]}
                 onPress={() => setEditingPost(null)}
