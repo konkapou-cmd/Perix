@@ -6,6 +6,7 @@ import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../
 import { useTranslation } from "react-i18next";
 import { deleteStory } from "../../lib/api/stories";
 import { muxThumbnailUrl, muxAnimatedGifUrl } from "../../lib/media/mediaResolver";
+import { useAuth } from "../../context/AuthContext";
 
 const CARD_WIDTH = Platform.OS === "web" ? 180 : 145;
 const CARD_IMAGE_HEIGHT = Platform.OS === "web" ? 135 : 110;
@@ -53,6 +54,7 @@ function AdVideoPreview({ story }: { story: Story }) {
 
 export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPress, onAdDeleted, sessionToken, activeIdentity }: CityAdCirclesProps) {
   const { t } = useTranslation();
+  const { myBusinesses } = useAuth();
   const isBusiness = activeIdentity?.type === "business";
 
   if (!user) return null;
@@ -92,7 +94,8 @@ export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPres
 
         {/* City Ad cards */}
         {storyGroups.map((group, idx) => {
-          const isOwn = activeIdentity?.type === "business" && group.actor_id === activeIdentity.id;
+          const isOwn = (activeIdentity?.type === "business" && group.actor_id === activeIdentity.id) ||
+            (!!group.actor_id && myBusinesses.some((b) => b.business_id === group.actor_id));
           const firstStory = group.stories[0];
           return (
           <Pressable

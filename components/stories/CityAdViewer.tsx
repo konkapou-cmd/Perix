@@ -41,7 +41,7 @@ export function CityAdViewer({
   onClose: () => void;
   onAdDeleted?: () => void;
 }) {
-  const { sessionToken, user, activeIdentity } = useAuth();
+  const { sessionToken, user, activeIdentity, myBusinesses } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex);
@@ -79,9 +79,9 @@ export function CityAdViewer({
   const currentGroup = groups[groupIndex];
   const currentStory = currentGroup?.stories?.[storyIndex];
   const isOwnBusinessAd =
-    activeIdentity?.type === "business" &&
     !!currentGroup?.actor_id &&
-    currentGroup?.actor_id === activeIdentity.id;
+    ((activeIdentity?.type === "business" && currentGroup?.actor_id === activeIdentity.id) ||
+      myBusinesses.some((b) => b.business_id === currentGroup?.actor_id));
 
   console.log("[CityAd] viewer", {
     isOwnBusinessAd,

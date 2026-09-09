@@ -4,10 +4,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import {
   User,
+  Business,
   loginUser,
   registerUser,
   getMe,
   logoutUser,
+  getMyBusinesses,
 } from "../lib/api";
 
 type AuthContextValue = {
@@ -30,6 +32,8 @@ type AuthContextValue = {
     name: string;
     avatar?: string | null;
   } | null) => Promise<void>;
+  myBusinesses: Business[];
+  refreshMyBusinesses: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -41,6 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [activeIdentity, setActiveIdentityState] = useState<
     AuthContextValue["activeIdentity"]
   >(null);
+  const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
 
   const persistSession = async (token: string) => {
     setSessionToken(token);
@@ -84,6 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         setUser(profile);
         setSessionToken(storedToken);
+        setMyBusinesses((userBusinesses as Business[]) || []);
 
         if (storedIdentity) {
           const parsedIdentity = JSON.parse(storedIdentity);
@@ -128,6 +134,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const response = await loginUser(email, password);
     setUser(response.user);
     await persistSession(response.session_token);
+    try {
+      const businesses = await getMyBusinesses(response.session_token);
+      setMyBusinesses(businesses || []);
+    } catch {
+      setMyBusinesses([]);
+    }
     const isBiz = response.user.role === "business" && response.business;
     await persistIdentity({
       type: isBiz ? "business" : "user",
@@ -141,6 +153,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const response = await registerUser(firstName, lastName, email, password, city, role, rootCategory, subcategory, businessName, latitude, longitude);
     setUser(response.user);
     await persistSession(response.session_token);
+    try {
+      const businesses = await getMyBusinesses(response.session_token);
+      setMyBusinesses(businesses || []);
+    } catch {
+      setMyBusinesses([]);
+    }
     const isBiz = response.user.role === "business" && response.business;
     await persistIdentity({
       type: isBiz ? "business" : "user",
@@ -172,6 +190,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const refreshMyBusinesses = async () => {
+    if (!sessionToken) return;
+    try {
+      const businesses = await getMyBusinesses(sessionToken);
+      setMyBusinesses(businesses || []);
+    } catch (error) {
+      // Silent
+    }
+  };
+
   const value = useMemo(
     () => ({
       user,
@@ -183,8 +211,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       refreshUser,
       activeIdentity,
       setActiveIdentity: persistIdentity,
+      myBusinesses,
+      refreshMyBusinesses,
     }),
-    [user, sessionToken, loading, activeIdentity]
+    [user, sessionToken, loading, activeIdentity, myBusinesses]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
