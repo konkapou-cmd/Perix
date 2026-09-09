@@ -100,7 +100,6 @@ export default function AdaptiveVideoWeb({
   const [useGifFallback, setUseGifFallback] = useState(false);
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
   const gifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const coverUrl = coverPhoto || muxThumbnailUrl || getMuxThumbnail(videoUri);
   const gifUrl = coverUrl ? coverUrl.replace(/\/thumbnail\.jpg.*$/, "/animated.gif?width=1280") : null;
   const styleHasHeight = !!(style && typeof style === "object" && "height" in style);
@@ -112,23 +111,36 @@ export default function AdaptiveVideoWeb({
   const showFailure = failed && !playedRef.current;
   const showGif = useGifFallback && !playedRef.current;
 
-  const vwNow = typeof window !== "undefined" ? window.innerWidth : 400;
-  const vhNow = typeof window !== "undefined" ? window.innerHeight : 800;
-  // Smart fit for full-screen contexts: cover only when the video and screen
-  // orientations match AND their shapes are close (no visible cropping);
-  // contain otherwise (unknown → contain, never zoom).
+  // Per the Mux responsive rules: the player fills its container and keeps the
+  // video's own shape — a horizontal video adjusts horizontally, a vertical
+  // one vertically. No window-based cropping logic at all.
   let effectiveFit: "cover" | "contain" = resizeMode;
-  if (fitPolicy === "auto") {
-    const screenPortrait = vhNow > vwNow;
-    if (naturalAspect && naturalAspect > 0) {
-      const videoPortrait = naturalAspect < 1;
-      const screenAspect = vwNow / Math.max(vhNow, 1);
-      const diff = Math.abs(screenAspect - naturalAspect) / Math.min(screenAspect, naturalAspect);
-      effectiveFit = screenPortrait === videoPortrait && diff <= 0.12 ? "cover" : "contain";
-    } else {
-      effectiveFit = "contain";
+  if (fitPolicy === "auto") effectiveFit = "contain";
+
+  // Measure the real container box (not the window) so the video is sized
+  // against OUR layout limits — immune to any collapsed ancestor height.
+  const containerRef = useRef<any>(null);
+  const [boxSize, setBoxSize] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    if (!styleHasHeight) return;
+    const el = containerRef.current as HTMLDivElement | null;
+    if (!el) return;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) setBoxSize({ w: r.width, h: r.height });
+    };
+    measure();
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(measure);
+      ro.observe(el);
     }
-  }
+    window.addEventListener("resize", measure);
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [styleHasHeight]);
 
   // Keep measuring the real video aspect until metadata is available
   // (MSE/hls sometimes reports 0 on the first loadedmetadata).
@@ -148,37 +160,11 @@ export default function AdaptiveVideoWeb({
     return () => clearInterval(id);
   }, [videoUri, naturalAspect]);
 
-  // Debug: report the rendered box + intrinsic video size for the badge.
-  const [debugBox, setDebugBox] = useState<{ bw: number; bh: number; iw: number; ih: number } | null>(null);
-  useEffect(() => {
-    if (fitPolicy !== "auto") return;
-    const id = setInterval(() => {
-      const v = videoRef.current;
-      if (v) {
-        setDebugBox({ bw: v.clientWidth, bh: v.clientHeight, iw: v.videoWidth, ih: v.videoHeight });
-      }
-    }, 500);
-    return () => clearInterval(id);
-  }, [fitPolicy]);
-
   // When the video is letterboxed in a full-screen box (portrait video on a
   // landscape screen, or vice versa), fill the empty space with a blurred,
   // darkened copy of the cover so the screen never looks "broken".
   const showBlurBackdrop =
-    fitPolicy === "auto" && effectiveFit === "contain" && styleHasHeight && !!coverUrl;
-
-  // Re-evaluate the smart fit when the screen rotates or is resized.
-  const [, forceFitTick] = useState(0);
-  useEffect(() => {
-    if (fitPolicy !== "auto") return;
-    const onResize = () => forceFitTick((n) => n + 1);
-    window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
-    };
-  }, [fitPolicy]);
+    styleHasHeight && !!coverUrl && (fitPolicy === "auto" || effectiveFit === "contain");
 
   // (Re)attach source whenever the URI changes — fully imperative, no per-render props
   useEffect(() => {
@@ -300,13 +286,13 @@ export default function AdaptiveVideoWeb({
     autoPlay,
     loop: isLooping,
     controls: useNativeControls,
-        style: styleHasHeight
+    style: styleHasHeight
       ? {
           position: "absolute",
           top: 0,
           left: 0,
-          right: 0,
-          bottom: 0,
+          width: boxSize ? boxSize.w : "100%",
+          height: boxSize ? boxSize.h : "100%",
           objectFit: effectiveFit as any,
           backgroundColor: "#000",
           opacity: showGif ? 0 : 1,
@@ -337,7 +323,10 @@ export default function AdaptiveVideoWeb({
   };
 
   return (
-    <View style={[styles.container, { aspectRatio: styleHasHeight ? undefined : aspectRatio, maxHeight: styleHasHeight ? undefined : maxHeight, borderRadius }, style]}>
+    <View
+      ref={containerRef}
+      style={[styles.container, { aspectRatio: styleHasHeight ? undefined : aspectRatio, maxHeight: styleHasHeight ? undefined : maxHeight, borderRadius }, style]}
+    >
       {showGif && gifUrl && !showFailure ? (
         <View style={styles.center}>
           <RNImage source={{ uri: gifUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" />
@@ -406,18 +395,6 @@ export default function AdaptiveVideoWeb({
             <Pressable style={styles.muteBtn} onPress={toggleMute}>
               <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={20} color="#fff" />
             </Pressable>
-          )}
-          {fitPolicy === "auto" && (
-            <View style={styles.debugBadge} pointerEvents="none">
-              <Text style={styles.debugText}>
-                {`fit:${effectiveFit} ar:${naturalAspect ? naturalAspect.toFixed(2) : "?"} win:${vwNow}x${vhNow}`}
-              </Text>
-              {debugBox ? (
-                <Text style={styles.debugText}>
-                  {`box:${debugBox.bw}x${debugBox.bh} vid:${debugBox.iw}x${debugBox.ih}`}
-                </Text>
-              ) : null}
-            </View>
           )}
         </>
       )}
@@ -490,20 +467,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 11,
-  },
-  debugBadge: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    zIndex: 20,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  debugText: {
-    color: "#7CFC00",
-    fontSize: 10,
-    fontWeight: "700",
   },
 });
