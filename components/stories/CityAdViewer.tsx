@@ -165,7 +165,7 @@ export function CityAdViewer({
             uri={cityAdVideoUrl}
             autoPlay
             initialMuted
-            resizeMode="contain"
+            resizeMode="cover"
             muxThumbnailUrl={thumb}
             showMuteButton={false}
             style={{ width: "100%", height: "100%" }}
