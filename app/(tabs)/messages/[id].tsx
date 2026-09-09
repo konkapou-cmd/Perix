@@ -38,6 +38,7 @@ import {
   uploadVideoToMux,
 } from "../../../lib/api";
 import AdaptiveVideo from "../../../components/AdaptiveVideo";
+import { confirmAction } from "../../../lib/confirm";
 
 import {
   COLORS,
@@ -539,6 +540,19 @@ export default function ChatScreen() {
     // Only allow editing/deleting own messages
     if (message.from_user_id !== user?.user_id) return;
     setSelectedMessage(message);
+    if (Platform.OS === "web") {
+      confirmAction({
+        title: t("messages.deleteMessageTitle") || "Delete message?",
+        message: t("messages.deleteMessageConfirm") || "This will permanently delete the message.",
+        confirmText: t("common.delete"),
+        cancelText: t("common.cancel"),
+        destructive: true,
+      }).then((ok) => {
+        if (ok) handleDeleteMessage(message.message_id);
+        else setSelectedMessage(null);
+      });
+      return;
+    }
     Alert.alert(
       t("messages.messageOptions"),
       t("messages.whatToDo"),
@@ -691,18 +705,15 @@ export default function ChatScreen() {
                         hitSlop={10}
                         onPress={(e) => {
                           e?.stopPropagation?.();
-                          Alert.alert(
-                            t("messages.deletePhotoTitle") || "Delete photo?",
-                            t("messages.deletePhotoConfirm") || "This will delete the photo from the chat.",
-                            [
-                              { text: t("common.cancel"), style: "cancel" },
-                              {
-                                text: t("common.delete"),
-                                style: "destructive",
-                                onPress: () => handleDeleteMessage(message.message_id),
-                              },
-                            ],
-                          );
+                          confirmAction({
+                            title: t("messages.deletePhotoTitle") || "Delete photo?",
+                            message: t("messages.deletePhotoConfirm") || "This will delete the photo from the chat.",
+                            confirmText: t("common.delete"),
+                            cancelText: t("common.cancel"),
+                            destructive: true,
+                          }).then((ok) => {
+                            if (ok) handleDeleteMessage(message.message_id);
+                          });
                         }}
                       >
                         <Ionicons name="trash-outline" size={15} color="rgba(255,255,255,0.9)" />

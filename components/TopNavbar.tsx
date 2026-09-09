@@ -41,16 +41,16 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
   return (
     <View style={styles.navbar}>
       <View style={styles.container}>
-        {/* Left: Logo */}
+        {/* Left: Logo — matches the app home brand (blue Perıx + sun) */}
         <Pressable 
           style={styles.logoSection}
           onPress={() => router.navigate("/(tabs)/home" as any)}
           data-testid="navbar-logo"
         >
-          <View style={styles.logoIcon}>
-            <Ionicons name="location" size={20} color={COLORS.background} />
+          <View style={styles.brandWrap}>
+            <Text style={styles.logoText}>Perıx</Text>
+            <Ionicons name="sunny" size={9} color="#FFC93C" style={styles.brandSun} />
           </View>
-          <Text style={styles.logoText}>Perix</Text>
         </Pressable>
 
         {/* Center: Navigation Links */}
@@ -98,7 +98,7 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
             data-testid="navbar-create"
           >
             <Ionicons name="sparkles" size={18} color={COLORS.background} />
-            <Text style={styles.createButtonText}>Create</Text>
+            <Text style={styles.createButtonText}>{t("common.create", "Create")}</Text>
           </Pressable>
 
           {/* Messages */}
@@ -112,7 +112,7 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-messages"
           >
-            <Ionicons name="chatbubble-outline" size={22} color={COLORS.textSecondary} />
+            <Ionicons name="chatbubble-outline" size={22} color={COLORS.primary} />
             {unreadMessageCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
@@ -147,7 +147,7 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
             onHoverOut={() => setHoveredItem(null)}
             data-testid="navbar-user"
           >
-            <Ionicons name="menu" size={16} color={COLORS.textSecondary} />
+            <Ionicons name="menu" size={16} color={COLORS.primary} />
             {user?.profile_photo ? (
               <Image
                 source={{ uri: user.profile_photo }}
@@ -155,7 +155,7 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
               />
             ) : (
               <View style={styles.userAvatarPlaceholder}>
-                <Ionicons name="person" size={16} color={COLORS.textMuted} />
+                <Ionicons name="person" size={16} color={COLORS.primary} />
               </View>
             )}
           </Pressable>
@@ -196,19 +196,21 @@ const styles = StyleSheet.create({
       web: { cursor: "pointer" as any },
     }),
   },
-  logoIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: COLORS.primaryDark,
-    alignItems: "center",
-    justifyContent: "center",
+  brandWrap: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  brandSun: {
+    position: "absolute",
+    right: 9,
+    top: 0,
   },
   logoText: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: COLORS.primaryDark,
-    letterSpacing: -0.3,
+    fontSize: 22,
+    fontWeight: "800",
+    color: COLORS.primary,
+    letterSpacing: -0.5,
   },
   navLinks: {
     flexDirection: "row",
@@ -236,10 +238,10 @@ const styles = StyleSheet.create({
   navLinkText: {
     fontSize: 15,
     fontWeight: "500",
-    color: COLORS.textMuted,
+    color: "#264348",
   },
   navLinkTextActive: {
-    color: COLORS.textPrimary,
+    color: "#264348",
     fontWeight: "600",
   },
   activeIndicator: {
@@ -249,7 +251,7 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -12 }],
     width: 24,
     height: 2,
-    backgroundColor: COLORS.primaryDark,
+    backgroundColor: COLORS.primary,
     borderRadius: 1,
   },
   rightSection: {

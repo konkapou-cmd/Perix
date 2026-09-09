@@ -35,7 +35,9 @@ import {
   FriendRequest,
   Message,
   markGroupRead,
+  deleteConversation,
 } from "../../../lib/api";
+import { confirmAction } from "../../../lib/confirm";
 import NotificationBar from "../../../components/NotificationBar";
 import { SkeletonBox, Avatar } from "../../../components/shared";
 import EmptyState from "../../../components/ui/EmptyState";
@@ -241,6 +243,31 @@ export default function MessagesScreen() {
       setErrorMessage(messageText);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleDeleteConversation = async (item: {
+    id: string;
+    type: string;
+    name: string;
+    entityType?: string;
+  }) => {
+    if (!sessionToken || !item.id) return;
+    const ok = await confirmAction({
+      title: t("messages.deleteConversationTitle") || "Delete conversation?",
+      message: `${item.name} — ${t("messages.deleteConversationConfirm") || "All messages in this conversation will be permanently deleted."}`,
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const entityType =
+        item.entityType === "business" || item.entityType === "artist" ? item.entityType : "user";
+      await deleteConversation(sessionToken, item.id, entityType as "user" | "business" | "artist");
+      await loadConversations();
+    } catch (e) {
+      console.warn("deleteConversation failed:", e);
     }
   };
 
@@ -507,6 +534,18 @@ export default function MessagesScreen() {
                 <View style={styles.unreadBadge}>
                   <Text style={styles.unreadText}>{item.unreadCount}</Text>
                 </View>
+              )}
+              {item.type === "direct" && (
+                <Pressable
+                  style={styles.deleteConvBtn}
+                  hitSlop={8}
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    handleDeleteConversation(item);
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+                </Pressable>
               )}
             </Pressable>
           ));
@@ -892,6 +931,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: SPACING.small,
+  },
+  deleteConvBtn: {
+    marginLeft: SPACING.small,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(239,68,68,0.08)",
   },
   unreadText: {
     color: "#fff",
