@@ -44,6 +44,8 @@ type MediaViewerProps = {
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
+const vw = SCREEN_WIDTH;
+const vh = SCREEN_HEIGHT;
 
 function ImageItem({ item }: { item: MediaItem }) {
   const scale = useSharedValue(1);
@@ -105,7 +107,7 @@ function WebMediaPlayer({ item }: { item: MediaItem }) {
         uri={item.uri}
         autoPlay
         isLooping
-        resizeMode="cover"
+        resizeMode={vw > vh ? "contain" : "cover"}
         videoStatus={item.videoStatus}
         muxThumbnailUrl={item.muxThumbnailUrl}
         style={{ width: "100%", height: "100%" }}

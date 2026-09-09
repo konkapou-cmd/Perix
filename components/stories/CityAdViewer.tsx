@@ -8,6 +8,7 @@ import {
   Text,
   View,
   ActivityIndicator,
+  useWindowDimensions,
 } from "react-native";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -22,6 +23,7 @@ import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 import { muxThumbnailUrl, lowLatencyPlaybackUrl } from "../../lib/media/mediaResolver";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const { width: vw, height: vh } = Dimensions.get("window");
 const IMAGE_DURATION_MS = MEDIA_LIMITS.cityAd.imageDisplayMs;
 const MAX_VIDEO_DURATION_MS = MEDIA_LIMITS.cityAd.maxDurationSeconds * 1000;
 
@@ -164,7 +166,7 @@ export function CityAdViewer({
           <AdaptiveVideoWeb
             uri={cityAdVideoUrl}
             autoPlay
-            resizeMode="cover"
+            resizeMode={vw > vh ? "contain" : "cover"}
             muxThumbnailUrl={thumb}
             showMuteButton={false}
             style={{ width: "100%", height: "100%" }}

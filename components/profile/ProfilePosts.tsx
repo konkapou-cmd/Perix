@@ -364,26 +364,6 @@ pendingMentionIds = [],
           </ScrollView>
         </View>
       )}
-      {(postText.trim() || postImage || postVideoPreview) && (
-        <View style={styles.createPostMediaRow}>
-          {postImage && (
-            <View style={styles.mediaPreviewWrapper}>
-              <Image source={{ uri: postImage }} style={styles.mediaPreview} />
-              <Pressable style={styles.removeMediaBtn} onPress={onDiscardMedia}>
-                <Ionicons name="close-circle" size={22} color="#ef4444" />
-              </Pressable>
-            </View>
-          )}
-          {postVideoPreview && (
-            <View style={styles.mediaPreviewWrapper}>
-              <Image source={{ uri: postVideoPreview }} style={styles.mediaPreview} />
-              <Pressable style={styles.removeMediaBtn} onPress={onDiscardMedia}>
-                <Ionicons name="close-circle" size={22} color="#ef4444" />
-              </Pressable>
-            </View>
-          )}
-        </View>
-      )}
       <View style={styles.createPostActions}>
         <Pressable style={styles.createPostAction} onPress={pickPostImage}>
           <Ionicons name="image" size={22} color="#1F4788" />
@@ -418,6 +398,26 @@ pendingMentionIds = [],
           </Pressable>
         )}
       </View>
+      {(postText.trim() || postImage || postVideoPreview) && (
+        <View style={styles.createPostMediaRow}>
+          {postImage && (
+            <View style={styles.mediaPreviewWrapper}>
+              <Image source={{ uri: postImage }} style={styles.mediaPreview} />
+              <Pressable style={styles.removeMediaBtn} onPress={onDiscardMedia}>
+                <Ionicons name="close-circle" size={22} color="#ef4444" />
+              </Pressable>
+            </View>
+          )}
+          {postVideoPreview && (
+            <View style={styles.mediaPreviewWrapper}>
+              <Image source={{ uri: postVideoPreview }} style={styles.mediaPreview} />
+              <Pressable style={styles.removeMediaBtn} onPress={onDiscardMedia}>
+                <Ionicons name="close-circle" size={22} color="#ef4444" />
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   ) : null;
 
@@ -426,6 +426,7 @@ pendingMentionIds = [],
       <FlatList
         data={postsData}
         nestedScrollEnabled={true}
+        style={{ flexGrow: 1 }}
         keyExtractor={(post) => post.post_id}
         renderItem={({ item: post }) => (
           <PostCard
@@ -494,6 +495,19 @@ pendingMentionIds = [],
               placeholderTextColor={textSecondaryColor}
             />
             <View style={styles.editModalActions}>
+              {onDeletePost && editingPost && (
+                <Pressable
+                  style={[styles.editModalBtn, { backgroundColor: "#fecaca" }]}
+                  onPress={() => {
+                    const post = editingPost;
+                    setEditingPost(null);
+                    setEditText("");
+                    onDeletePost(post);
+                  }}
+                >
+                  <Text style={[styles.editModalBtnText, { color: "#b91c1c" }]}>{t("common.delete")}</Text>
+                </Pressable>
+              )}
               <Pressable
                 style={[styles.editModalBtn, { backgroundColor: "#e5e7eb" }]}
                 onPress={() => setEditingPost(null)}
@@ -516,7 +530,7 @@ pendingMentionIds = [],
 
 const styles: Record<string, any> = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
   },
   createPost: {
     marginHorizontal: 4,
@@ -731,6 +745,7 @@ const styles: Record<string, any> = StyleSheet.create({
   },
   editModalContent: {
     width: "100%",
+    maxWidth: Platform.OS === "web" ? 1280 : undefined,
     borderRadius: 16,
     padding: 20,
   },
