@@ -343,6 +343,20 @@ async def _update_content_video_url(
         await db.stories.update_one({"story_id": story_id}, {"$set": update})
         logger.info(f"[Mux] Updated story {story_id} with playback URL")
 
+    elif content_ref.startswith("service:"):
+        service_id = content_ref[8:]
+        update = {
+            "video_url": playback_url,
+            "video_status": "ready",
+            "mux_asset_id": mux_asset_id,
+            "mux_playback_id": mux_playback_id,
+            "mux_thumbnail_url": thumbnail_url,
+        }
+        if duration:
+            update["video_duration"] = duration
+        await db.services.update_one({"service_id": service_id}, {"$set": update})
+        logger.info(f"[Mux] Updated service {service_id} with playback URL")
+
     elif content_ref.startswith("gallery:user:"):
         user_id = content_ref[14:]
         await db.users.update_one(

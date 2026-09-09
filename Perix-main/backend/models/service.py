@@ -41,6 +41,9 @@ class ServiceCreate(BaseModel):
     gallery_videos: List[str] = []
     video_url: Optional[str] = None
     mux_thumbnail_url: Optional[str] = None
+    mux_asset_id: Optional[str] = None
+    mux_playback_id: Optional[str] = None
+    video_duration: Optional[float] = None
     video_status: Optional[str] = None
     # Per-category fields
     instructor: Optional[str] = None
@@ -132,6 +135,9 @@ class ServiceUpdate(BaseModel):
     gallery_videos: Optional[List[str]] = None
     video_url: Optional[str] = None
     mux_thumbnail_url: Optional[str] = None
+    mux_asset_id: Optional[str] = None
+    mux_playback_id: Optional[str] = None
+    video_duration: Optional[float] = None
     video_status: Optional[str] = None
     is_active: Optional[bool] = None
     instructor: Optional[str] = None
@@ -227,6 +233,9 @@ class ServiceResponse(BaseModel):
     gallery_videos: List[str] = []
     video_url: Optional[str] = None
     mux_thumbnail_url: Optional[str] = None
+    mux_asset_id: Optional[str] = None
+    mux_playback_id: Optional[str] = None
+    video_duration: Optional[float] = None
     video_status: Optional[str] = None
     cover_focal_point: Optional[FocalPoint] = None
     is_active: bool = True
