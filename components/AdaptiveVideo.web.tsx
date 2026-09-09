@@ -317,6 +317,7 @@ const styles = StyleSheet.create({
     width: "100%",
     overflow: "hidden",
     backgroundColor: "#000",
+    position: "relative",
   },
   center: {
     flex: 1,
