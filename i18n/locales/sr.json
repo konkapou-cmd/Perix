@@ -659,6 +659,9 @@
     "type_rental": "Izdavanje"
   },
   "business": {
+    "pickOnMap": "Izaberite lokaciju na mapi",
+    "createAnyway": "Ipak kreiraj",
+    "setAddressFirst": "Vaše preduzeće još nema lokaciju. Možete je dodati kasnije iz profila preduzeća (Izaberite lokaciju na mapi). Kreirati ipak?",
     "seeMyBookings": "Pogledaj moje rezervacije",
     "dashboard": "Kontrolna tabla biznisa",
     "profileManagement": "Upravljanje profilom",
@@ -848,6 +851,7 @@
     "searchPlaceholder": "Pretraži grad ili lokaciju..."
   },
   "events": {
+    "publishedMessage": "Vaš događaj je objavljen.",
     "inviteFriends": "Pozovi prijatelje",
     "enterInvitationCode": "Unesite kod pozivnice",
     "join": "Pridruži se",
@@ -949,6 +953,7 @@
     "taggedArtists": "Označeni umetnici"
   },
   "messages": {
+    "tapToStop": "Dodirnite mikrofon za zaustavljanje",
     "deletePhotoTitle": "Obrišite fotografiju?",
     "deletePhotoConfirm": "Fotografija će biti obrisana iz razgovora.",
     "deleteConversationTitle": "Obrišite razgovor?",
@@ -1002,6 +1007,7 @@
     "noConversations": "Još nema razgovora"
   },
   "activities": {
+    "publishedMessage": "Vaša aktivnost je objavljena.",
     "enterInvitationCode": "Unesite kod pozivnice",
     "join": "Pridruži se",
     "haveCode": "Imate kod pozivnice?",
@@ -1131,6 +1137,7 @@
     "spotsRemaining": "Ostalo je još {{count}} mesta!"
   },
   "jobs": {
+    "publishedMessage": "Vaš posao je objavljen.",
     "title": "Dostupni poslovi",
     "create": "Kreiraj posao",
     "jobTitlePlaceholder": "npr. Viši softverski inženjer",
@@ -2115,6 +2122,7 @@
     "justNow": "upravo sada"
   },
   "services": {
+    "publishedMessage": "Vaša usluga je objavljena.",
     "noServices": "Нема доступних услуга у овом тренутку",
     "addMenuItem": "Додај ставку у мени",
     "add": "Додај услугу",

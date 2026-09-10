@@ -660,6 +660,9 @@
     "type_rental": "Alquiler"
   },
   "business": {
+    "pickOnMap": "Elegir ubicación en el mapa",
+    "createAnyway": "Crear de todos modos",
+    "setAddressFirst": "Tu negocio aún no tiene ubicación. Puedes añadirla más tarde desde el perfil del negocio (Elegir ubicación en el mapa). ¿Crear de todos modos?",
     "seeMyBookings": "Ver mis reservas",
     "dashboard": "Panel de Negocio",
     "profileManagement": "Gestión del perfil",
@@ -849,6 +852,7 @@
     "searchPlaceholder": "Buscar ciudad o ubicación..."
   },
   "events": {
+    "publishedMessage": "Tu evento ha sido publicado.",
     "inviteFriends": "Invitar Amigos",
     "enterInvitationCode": "Ingrese el código de invitación",
     "join": "Unirse",
@@ -937,6 +941,7 @@
     "taggedArtists": "Artistas etiquetados"
   },
   "messages": {
+    "tapToStop": "Toca el micrófono para detener",
     "deletePhotoTitle": "¿Eliminar foto?",
     "deletePhotoConfirm": "La foto se eliminará del chat.",
     "deleteConversationTitle": "¿Eliminar conversación?",
@@ -990,6 +995,7 @@
     "noConversations": "Sin conversaciones todavía"
   },
   "activities": {
+    "publishedMessage": "Tu actividad ha sido publicada.",
     "enterInvitationCode": "Ingrese el código de invitación",
     "join": "Unirse",
     "haveCode": "¿Tienes un código de invitación?",
@@ -1107,6 +1113,7 @@
     "yourResponse": "Tu respuesta"
   },
   "jobs": {
+    "publishedMessage": "Tu empleo ha sido publicado.",
     "title": "Empleos Disponibles",
     "create": "Crear empleo",
     "jobTitlePlaceholder": "p. ej. Ingeniero de software senior",
@@ -2085,6 +2092,7 @@
     "justNow": "justo ahora"
   },
   "services": {
+    "publishedMessage": "Tu servicio ha sido publicado.",
     "noServices": "Aún no hay servicios disponibles",
     "addMenuItem": "Agregar elemento al menú",
     "add": "Agregar servicio",

@@ -659,6 +659,9 @@
     "type_rental": "Wynajem"
   },
   "business": {
+    "pickOnMap": "Wybierz lokalizację na mapie",
+    "createAnyway": "Utwórz mimo to",
+    "setAddressFirst": "Twoja firma nie ma jeszcze lokalizacji. Możesz ją dodać później w profilu firmy (Wybierz lokalizację na mapie). Utworzyć mimo to?",
     "seeMyBookings": "Zobacz moje rezerwacje",
     "dashboard": "Kontrolna tabla biznisa",
     "profileManagement": "Upravljanje profilom",
@@ -848,6 +851,7 @@
     "searchPlaceholder": "Szukaj miasta lub lokalizacji..."
   },
   "events": {
+    "publishedMessage": "Twoje wydarzenie zostało opublikowane.",
     "inviteFriends": "Pozovi prijatelje",
     "enterInvitationCode": "Wprowadź kod zaproszenia",
     "join": "Dołącz",
@@ -954,6 +958,7 @@
     "taggedArtists": "Oznaczeni artyści"
   },
   "messages": {
+    "tapToStop": "Dotknij mikrofonu, aby zatrzymać",
     "deletePhotoTitle": "Usunąć zdjęcie?",
     "deletePhotoConfirm": "Zdjęcie zostanie usunięte z czatu.",
     "deleteConversationTitle": "Usunąć rozmowę?",
@@ -1007,6 +1012,7 @@
     "noConversations": "Brak rozmów"
   },
   "activities": {
+    "publishedMessage": "Twoja aktywność została opublikowana.",
     "enterInvitationCode": "Wprowadź kod zaproszenia",
     "join": "Dołącz",
     "haveCode": "Masz kod zaproszenia?",
@@ -1136,6 +1142,7 @@
     "spotsRemaining": "Zostało tylko {{count}} miejsc!"
   },
   "jobs": {
+    "publishedMessage": "Twoja oferta pracy została opublikowana.",
     "title": "Dostupni poslovi",
     "create": "Utwórz ofertę pracy",
     "jobTitlePlaceholder": "np. Starszy inżynier oprogramowania",
@@ -2128,6 +2135,7 @@
     "justNow": "przed chwilą"
   },
   "services": {
+    "publishedMessage": "Twoja usługa została opublikowana.",
     "noServices": "Brak dostępnych usług w tej chwili",
     "addMenuItem": "Dodaj element do menu",
     "add": "Dodaj usługę",

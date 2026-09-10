@@ -742,6 +742,9 @@
     "type_business": "Business"
   },
   "business": {
+    "pickOnMap": "Pick location on map",
+    "createAnyway": "Create anyway",
+    "setAddressFirst": "Your business has no location yet. You can add it later from your business profile (Pick location on map). Create the business anyway?",
     "seeMyBookings": "See my bookings",
     "dashboard": "Business Dashboard",
     "profileManagement": "Profile management",
@@ -925,6 +928,7 @@
     "searchPlaceholder": "Search city or location..."
   },
   "events": {
+    "publishedMessage": "Your event has been published.",
     "inviteFriends": "Invite Friends",
     "enterInvitationCode": "Enter invitation code",
     "join": "Join",
@@ -1013,6 +1017,7 @@
     "taggedArtists": "Tagged artists"
   },
   "messages": {
+    "tapToStop": "Tap mic to stop",
     "deletePhotoTitle": "Delete photo?",
     "deletePhotoConfirm": "This will delete the photo from the chat.",
     "deleteConversationTitle": "Delete conversation?",
@@ -1066,6 +1071,7 @@
     "noConversations": "No conversations yet"
   },
   "activities": {
+    "publishedMessage": "Your activity has been published.",
     "enterInvitationCode": "Enter invitation code",
     "join": "Join",
     "haveCode": "Have an invitation code?",
@@ -1185,6 +1191,7 @@
     "yourResponse": "Your response"
   },
   "jobs": {
+    "publishedMessage": "Your job has been published.",
     "title": "Available Jobs",
     "create": "Create Job",
     "jobTitlePlaceholder": "e.g. Senior Software Engineer",
@@ -2154,6 +2161,7 @@
     "children": "children"
   },
   "services": {
+    "publishedMessage": "Your service has been published.",
     "noServices": "No services available yet",
     "descriptionPlaceholder": "Describe your listing...",
     "addressPlaceholder": "Search address...",
@@ -2681,6 +2689,7 @@
     "contactContent": "For questions about these Terms, contact us at:\n\n• Within the app via Settings → Help & Support\n• By email at support@perix.app"
   },
   "marketplace": {
+    "publishedMessage": "Your listing has been published.",
     "title": "Marketplace",
     "delivery": "Delivery",
     "contactRenter": "Contact the renter",

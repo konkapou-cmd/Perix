@@ -782,6 +782,9 @@
     "type_business": "Επιχείρηση"
   },
   "business": {
+    "pickOnMap": "Επιλογή τοποθεσίας στον χάρτη",
+    "createAnyway": "Δημιουργία ούτως ή άλλως",
+    "setAddressFirst": "Η επιχείρησή σου δεν έχει τοποθεσία ακόμα. Μπορείς να την προσθέσεις αργότερα από το προφίλ της επιχείρησης (Επιλογή τοποθεσίας στον χάρτη). Να δημιουργηθεί ούτως ή άλλως;",
     "seeMyBookings": "Δείτε τις κρατήσεις σας",
     "dashboard": "Πίνακας ελέγχου επιχείρησης",
     "profileManagement": "Διαχείριση προφίλ",
@@ -986,6 +989,7 @@
     "searchPlaceholder": "Αναζήτηση πόλης ή τοποθεσίας..."
   },
   "events": {
+    "publishedMessage": "Η εκδήλωσή σου δημοσιεύτηκε.",
     "createEvent": "Δημιουργία εκδήλωσης",
     "editEvent": "Επεξεργασία εκδήλωσης",
     "eventTitle": "Τίτλος εκδήλωσης",
@@ -1094,6 +1098,7 @@
     "taggedArtists": "Επισημασμένοι καλλιτέχνες"
   },
   "messages": {
+    "tapToStop": "Πάτα το μικρόφωνο για διακοπή",
     "deletePhotoTitle": "Διαγραφή φωτογραφίας;",
     "deletePhotoConfirm": "Η φωτογραφία θα διαγραφεί από τη συνομιλία.",
     "deleteConversationTitle": "Διαγραφή συνομιλίας;",
@@ -1147,6 +1152,7 @@
     "noConversations": "Δεν υπάρχουν συνομιλίες ακόμα"
   },
   "activities": {
+    "publishedMessage": "Η δραστηριότητά σου δημοσιεύτηκε.",
     "title": "Δραστηριότητες",
     "noActivities": "Δεν βρέθηκαν δραστηριότητες",
     "createActivity": "Δημιουργία δραστηριότητας",
@@ -1307,6 +1313,7 @@
     }
   },
   "jobs": {
+    "publishedMessage": "Η αγγελία εργασίας δημοσιεύτηκε.",
     "title": "Διαθέσιμες Θέσεις Εργασίας",
     "create": "Δημιουργία θέσης εργασίας",
     "jobTitlePlaceholder": "π.χ. Senior Software Engineer",
@@ -2262,6 +2269,7 @@
     "justNow": "μόλις τώρα"
   },
   "services": {
+    "publishedMessage": "Η υπηρεσία σου δημοσιεύτηκε.",
     "noServices": "Δεν υπάρχουν διαθέσιμες υπηρεσίες ακόμα",
     "descriptionPlaceholder": "Περιγράψτε την καταχώρησή σας...",
     "addressPlaceholder": "Αναζήτηση διεύθυνσης...",
@@ -2707,6 +2715,7 @@
     "contactContent": "Email support@perix.app"
   },
   "marketplace": {
+    "publishedMessage": "Η αγγελία σου δημοσιεύτηκε.",
     "title": "Αγορά",
     "delivery": "Παράδοση",
     "contactRenter": "Επικοινωνία με τον ενοικιαστή",

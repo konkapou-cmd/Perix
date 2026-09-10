@@ -751,6 +751,9 @@
     "type_business": "Geschäft"
   },
   "business": {
+    "pickOnMap": "Standort auf der Karte wählen",
+    "createAnyway": "Trotzdem erstellen",
+    "setAddressFirst": "Dein Business hat noch keinen Standort. Du kannst ihn später im Business-Profil hinzufügen (Standort auf der Karte wählen). Trotzdem erstellen?",
     "seeMyBookings": "Meine Buchungen ansehen",
     "dashboard": "Geschäfts-Dashboard",
     "profileManagement": "Profilverwaltung",
@@ -954,6 +957,7 @@
     "searchPlaceholder": "Stadt oder Ort suchen..."
   },
   "events": {
+    "publishedMessage": "Deine Veranstaltung wurde veröffentlicht.",
     "createEvent": "Veranstaltung erstellen",
     "editEvent": "Veranstaltung bearbeiten",
     "eventTitle": "Veranstaltungstitel",
@@ -1061,6 +1065,7 @@
     "taggedArtists": "Markierte Künstler"
   },
   "messages": {
+    "tapToStop": "Tippe auf das Mikrofon, um zu stoppen",
     "deletePhotoTitle": "Foto löschen?",
     "deletePhotoConfirm": "Dadurch wird das Foto aus dem Chat gelöscht.",
     "deleteConversationTitle": "Unterhaltung löschen?",
@@ -1115,6 +1120,7 @@
     "noConversations": "Noch keine Gespräche"
   },
   "activities": {
+    "publishedMessage": "Deine Aktivität wurde veröffentlicht.",
     "title": "Aktivitäten",
     "all": "Alle",
     "activities": "Aktivitäten",
@@ -1277,6 +1283,7 @@
     }
   },
   "jobs": {
+    "publishedMessage": "Dein Job wurde veröffentlicht.",
     "title": "Verfügbare Jobs",
     "create": "Job erstellen",
     "jobTitlePlaceholder": "z.B. Senior Software Engineer",
@@ -2249,6 +2256,7 @@
     "children": "Kinder"
   },
   "services": {
+    "publishedMessage": "Dein Dienst wurde veröffentlicht.",
     "noServices": "Noch keine Dienste verfügbar",
     "descriptionPlaceholder": "Beschreibung...",
     "addressPlaceholder": "Adresse suchen...",
@@ -2785,6 +2793,7 @@
     "service": "Dienstleistung"
   },
   "marketplace": {
+    "publishedMessage": "Dein Eintrag wurde veröffentlicht.",
     "title": "Marktplatz",
     "delivery": "Lieferung",
     "contactRenter": "Kontakt mit dem Vermieter",

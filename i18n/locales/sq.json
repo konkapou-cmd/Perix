@@ -659,6 +659,9 @@
     "type_rental": "Qiria"
   },
   "business": {
+    "pickOnMap": "Zgjidh vendndodhjen në hartë",
+    "createAnyway": "Krijo gjithsesi",
+    "setAddressFirst": "Biznesi juaj nuk ka ende vendndodhje. Mund ta shtoni më vonë nga profili i biznesit (Zgjidh vendndodhjen në hartë). Të krijohet gjithsesi?",
     "seeMyBookings": "Shiko rezervimet e mia",
     "dashboard": "Paneli i Biznesit",
     "profileManagement": "Menaxhimi i profilit",
@@ -827,6 +830,7 @@
     "searchPlaceholder": "Kërko qytet ose vendndodhje..."
   },
   "events": {
+    "publishedMessage": "Eventi juaj u publikua.",
     "inviteFriends": "Fto Miqtë",
     "enterInvitationCode": "Vendos kodin e ftesës",
     "join": "Bashkohu",
@@ -915,6 +919,7 @@
     "taggedArtists": "Artistë të etiketuar"
   },
   "messages": {
+    "tapToStop": "Prek mikrofonin për të ndaluar",
     "deletePhotoTitle": "Fshi foton?",
     "deletePhotoConfirm": "Kjo do ta fshijë foton nga biseda.",
     "deleteConversationTitle": "Fshi bisedën?",
@@ -968,6 +973,7 @@
     "noConversations": "Nuk ka biseda akoma"
   },
   "activities": {
+    "publishedMessage": "Aktiviteti juaj u publikua.",
     "enterInvitationCode": "Vendos kodin e ftesës",
     "join": "Bashkohu",
     "haveCode": "Keni kod ftese?",
@@ -1085,6 +1091,7 @@
     "yourResponse": "Përgjigjja juaj"
   },
   "jobs": {
+    "publishedMessage": "Puna juaj u publikua.",
     "title": "Punë të Disponueshme",
     "create": "Krijo punë",
     "jobTitlePlaceholder": "p.sh. Inxhinier softueri i lartë",
@@ -2024,6 +2031,7 @@
     "cacheClearFailed": "Gabim në pastrimin e cache"
   },
   "services": {
+    "publishedMessage": "Shërbimi juaj u publikua.",
     "noServices": "Asnjë shërbim i disponueshëm për momentin",
     "addMenuItem": "Shto element në menu",
     "add": "Shto shërbim",

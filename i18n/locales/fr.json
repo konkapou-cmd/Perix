@@ -660,6 +660,9 @@
     "type_rental": "Location"
   },
   "business": {
+    "pickOnMap": "Choisir l'emplacement sur la carte",
+    "createAnyway": "Créer quand même",
+    "setAddressFirst": "Votre entreprise n'a pas encore d'emplacement. Vous pourrez l'ajouter plus tard depuis le profil de l'entreprise (Choisir l'emplacement sur la carte). Créer quand même ?",
     "seeMyBookings": "Voir mes réservations",
     "dashboard": "Tableau de Bord Commerce",
     "profileManagement": "Gestion du profil",
@@ -849,6 +852,7 @@
     "searchPlaceholder": "Rechercher une ville ou un lieu..."
   },
   "events": {
+    "publishedMessage": "Votre événement a été publié.",
     "inviteFriends": "Inviter des Amis",
     "enterInvitationCode": "Entrez le code d'invitation",
     "join": "Rejoindre",
@@ -954,6 +958,7 @@
     "taggedArtists": "Artistes tagués"
   },
   "messages": {
+    "tapToStop": "Touchez le micro pour arrêter",
     "deletePhotoTitle": "Supprimer la photo ?",
     "deletePhotoConfirm": "La photo sera supprimée de la discussion.",
     "deleteConversationTitle": "Supprimer la conversation ?",
@@ -1007,6 +1012,7 @@
     "noConversations": "Pas encore de conversations"
   },
   "activities": {
+    "publishedMessage": "Votre activité a été publiée.",
     "title": "Activités",
     "all": "Toutes",
     "activities": "Activités",
@@ -1136,6 +1142,7 @@
     "spotsRemaining": "Plus que {{count}} places !"
   },
   "jobs": {
+    "publishedMessage": "Votre offre d'emploi a été publiée.",
     "title": "Emplois Disponibles",
     "create": "Créer une offre",
     "jobTitlePlaceholder": "p. ex. Ingénieur logiciel senior",
@@ -2119,6 +2126,7 @@
     "justNow": "à l'instant"
   },
   "services": {
+    "publishedMessage": "Votre service a été publié.",
     "noServices": "Aucun service disponible pour le moment",
     "addMenuItem": "Ajouter un élément au menu",
     "add": "Ajouter un service",
