@@ -41,16 +41,18 @@ async def upload_media(
     current_user: UserPublic = Depends(get_current_user),
 ):
     """
-    Upload media (image only) to Cloudinary.
+    Upload media (image/audio) to Cloudinary.
     Videos must be uploaded via Mux.
     """
     upload_type = media_type or resource_type or "image"
     
-    if upload_type in ("video", "audio"):
+    if upload_type == "video":
         raise HTTPException(
             status_code=400,
             detail="Video uploads are not supported via this endpoint. Please use Mux for video uploads."
         )
+    
+    cloudinary_resource = "audio" if upload_type == "audio" else "image"
     
     try:
         content = await file.read()
@@ -65,22 +67,22 @@ async def upload_media(
                 detail=f"File too large. Maximum size is 350MB, got {file_size / (1024*1024):.1f}MB"
             )
         
-        content_type = file.content_type or "image/jpeg"
+        content_type = file.content_type or ("audio/m4a" if upload_type == "audio" else "image/jpeg")
         
-        logger.info(f"Uploading image ({file_size / (1024*1024):.1f}MB) to Cloudinary")
+        logger.info(f"Uploading {cloudinary_resource} ({file_size / (1024*1024):.1f}MB) to Cloudinary")
         
         if file_size > CHUNKED_THRESHOLD:
             logger.info(f"Using chunked upload for large file ({file_size / (1024*1024):.1f}MB)")
-            url = await upload_large_bytes(content, resource_type="image")
+            url = await upload_large_bytes(content, resource_type=cloudinary_resource)
         else:
             data_uri = f"data:{content_type};base64,{base64.b64encode(content).decode('utf-8')}"
-            url = await upload_to_cloudinary(data_uri, resource_type="image")
+            url = await upload_to_cloudinary(data_uri, resource_type=cloudinary_resource)
         
         if not url:
             raise HTTPException(status_code=500, detail="Upload returned empty URL")
             
         logger.info(f"Upload successful: {url[:50]}...")
-        return {"url": url, "media_type": "image", "size_mb": round(file_size / (1024*1024), 2)}
+        return {"url": url, "media_type": cloudinary_resource, "size_mb": round(file_size / (1024*1024), 2)}
         
     except HTTPException:
         raise

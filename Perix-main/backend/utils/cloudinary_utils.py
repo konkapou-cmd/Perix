@@ -31,8 +31,8 @@ async def upload_to_cloudinary(data, resource_type: str = "image", filename: str
     if not CLOUDINARY_URL:
         raise HTTPException(status_code=500, detail="Cloudinary not configured")
     
-    if resource_type != "image":
-        raise HTTPException(status_code=400, detail="Cloudinary is for photos only. Use Mux for videos.")
+    if resource_type not in ("image", "audio"):
+        raise HTTPException(status_code=400, detail="Cloudinary supports images and audio only. Use Mux for videos.")
     
     # Prepare the data for upload
     upload_data = data
@@ -51,17 +51,18 @@ async def upload_to_cloudinary(data, resource_type: str = "image", filename: str
             "folder": "perix",
         }
         
-        # Image optimizations:
-        # - Auto format (webp/avif when supported)
-        # - Auto quality (reduces size while maintaining visual quality)
-        # - Max dimension 1920px (covers most screens)
-        upload_options.update({
-            "transformation": [
-                {"width": 1920, "crop": "limit"},  # Max 1920px width
-                {"quality": "auto:good"},          # Auto quality optimization
-                {"fetch_format": "auto"},          # Auto format (webp/avif)
-            ]
-        })
+        if resource_type == "image":
+            # Image optimizations:
+            # - Auto format (webp/avif when supported)
+            # - Auto quality (reduces size while maintaining visual quality)
+            # - Max dimension 1920px (covers most screens)
+            upload_options.update({
+                "transformation": [
+                    {"width": 1920, "crop": "limit"},  # Max 1920px width
+                    {"quality": "auto:good"},          # Auto quality optimization
+                    {"fetch_format": "auto"},          # Auto format (webp/avif)
+                ]
+            })
         
         result = await asyncio.to_thread(
             cloudinary.uploader.upload,
@@ -86,8 +87,8 @@ async def upload_large_file(file_path: str, resource_type: str = "image", filena
     if not CLOUDINARY_URL:
         raise HTTPException(status_code=500, detail="Cloudinary not configured")
     
-    if resource_type != "image":
-        raise HTTPException(status_code=400, detail="Cloudinary is for photos only. Use Mux for videos.")
+    if resource_type not in ("image", "audio"):
+        raise HTTPException(status_code=400, detail="Cloudinary supports images and audio only. Use Mux for videos.")
     
     try:
         upload_options = {
@@ -121,7 +122,7 @@ async def upload_large_bytes(data: bytes, resource_type: str = "image", filename
         filename: Optional public_id
     """
     # Write to temp file
-    ext = ".mp4" if resource_type == "video" else ".bin"
+    ext = ".mp4" if resource_type == "video" else (".m4a" if resource_type == "audio" else ".bin")
     with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
         tmp.write(data)
         tmp_path = tmp.name
