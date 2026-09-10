@@ -114,8 +114,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommen
   const handleDeleteComment = async (comment: PostComment) => {
     if (!sessionToken) return;
     const ok = await confirmAction({
-      title: t('comments.deleteTitle') || 'Delete comment?',
-      message: t('comments.deleteConfirm') || 'This will permanently delete your comment.',
+      title: t('comments.deleteTitle', 'Delete comment?'),
+      message: t('comments.deleteConfirm', 'This will permanently delete your comment.'),
       confirmText: t('common.delete'),
       cancelText: t('common.cancel'),
       destructive: true,

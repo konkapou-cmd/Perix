@@ -1253,8 +1253,8 @@ const handleUpdateSlug = async (newSlug: string) => {
   const handleDeleteGalleryItem = async (type: "image" | "video", index: number) => {
     if (!sessionToken) return;
     const ok = await confirmAction({
-      title: t("profile.deleteItem") || "Delete item?",
-      message: t("profile.deleteConfirm") || "Are you sure you want to delete this?",
+      title: t("profile.deleteItem", "Delete item?"),
+      message: t("profile.deleteConfirm", "Are you sure you want to delete this?"),
       confirmText: t("common.delete"),
       cancelText: t("common.cancel"),
       destructive: true,
@@ -1894,8 +1894,8 @@ const handleUpdateSlug = async (newSlug: string) => {
     if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
     const imageToRemove = bizGalleryImages[index];
     const ok = await confirmAction({
-      title: t("profile.deleteItem") || "Delete image?",
-      message: t("profile.deleteConfirm") || "Are you sure you want to delete this image?",
+      title: t("profile.deleteItem", "Delete image?"),
+      message: t("profile.deleteConfirm", "Are you sure you want to delete this image?"),
       confirmText: t("common.delete"),
       cancelText: t("common.cancel"),
       destructive: true,
@@ -1913,8 +1913,8 @@ const handleUpdateSlug = async (newSlug: string) => {
     if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
     const videoToRemove = bizGalleryVideos[index];
     const ok = await confirmAction({
-      title: t("profile.deleteItem") || "Delete video?",
-      message: t("profile.deleteConfirm") || "Are you sure you want to delete this video?",
+      title: t("profile.deleteItem", "Delete video?"),
+      message: t("profile.deleteConfirm", "Are you sure you want to delete this video?"),
       confirmText: t("common.delete"),
       cancelText: t("common.cancel"),
       destructive: true,

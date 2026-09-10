@@ -170,9 +170,9 @@ export default function UserProfileScreen() {
         setFriendRequestId(null);
       } else if (friendStatus === "friends") {
         const ok = await confirmAction({
-          title: t("profile.removeFriend") || "Remove friend?",
+          title: t("profile.removeFriend", "Remove friend?"),
           message: `Remove ${profile?.user.name} from friends?`,
-          confirmText: t("profile.removeFriend") || "Remove",
+          confirmText: t("profile.removeFriend", "Remove"),
           cancelText: t("common.cancel"),
           destructive: true,
         });

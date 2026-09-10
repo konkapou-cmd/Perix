@@ -507,7 +507,7 @@ export default function GroupChatScreen() {
         {isRecording && (
           <View style={styles.uploadingBar}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#ef4444" }} />
-            <Text style={styles.uploadingText}>{recordDuration}s — {t("messages.tapToStop") || "Tap mic to stop"}</Text>
+            <Text style={styles.uploadingText}>{recordDuration}s — {t("messages.tapToStop", "Tap mic to stop")}</Text>
           </View>
         )}
 
@@ -787,7 +787,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.compact,
     fontSize: FONT_SIZES.body,
     color: COLORS.textPrimary,
-    maxHeight: 80,
+    minHeight: 42,
+    maxHeight: 160,
   },
   mediaButton: {
     width: 36,

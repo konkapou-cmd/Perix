@@ -131,8 +131,8 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
 
   const handleDelete = async (item: MediaItem, index: number) => {
     const ok = await confirmAction({
-      title: t("profile.deleteItem") || "Delete item?",
-      message: t("profile.deleteConfirm") || "Are you sure you want to delete this?",
+      title: t("profile.deleteItem", "Delete item?"),
+      message: t("profile.deleteConfirm", "Are you sure you want to delete this?"),
       confirmText: t("common.delete"),
       cancelText: t("common.cancel"),
       destructive: true,

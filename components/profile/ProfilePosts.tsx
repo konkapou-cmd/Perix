@@ -273,8 +273,8 @@ pendingMentionIds = [],
 
   const handleDeletePost = async (post: Post) => {
     const ok = await confirmAction({
-      title: t("profile.deletePost") || "Delete Post",
-      message: t("profile.confirmDeletePost") || "Are you sure you want to delete this post?",
+      title: t("profile.deletePost", "Delete Post"),
+      message: t("profile.confirmDeletePost", "Are you sure you want to delete this post?"),
       confirmText: t("common.delete"),
       cancelText: t("common.cancel"),
       destructive: true,

@@ -1021,7 +1021,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.small,
     fontSize: FONT_SIZES.bodySmall,
     color: "#264348",
-    maxHeight: 80,
+    minHeight: 44,
+    maxHeight: 160,
   },
   sendButton: {
     width: 44,
