@@ -9,8 +9,8 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import LocationPickerMap from "./LocationPickerMap.native";
-import LocationPickerMapWeb from "./LocationPickerMap.web";
+// Resolves to LocationPickerMap.web.tsx on web and LocationPickerMap.native.tsx on native
+import LocationPickerMap from "./LocationPickerMap";
 
 type Props = {
   visible: boolean;
@@ -46,8 +46,6 @@ export default function LocationPickerModal({
     onClose();
   };
 
-  const MapComponent = Platform.OS === "web" ? LocationPickerMapWeb : LocationPickerMap;
-
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container}>
@@ -67,7 +65,7 @@ export default function LocationPickerModal({
           </Pressable>
         </View>
 
-        <MapComponent
+        <LocationPickerMap
           location={selected}
           onLocationChange={(loc) => setSelected(loc)}
         />

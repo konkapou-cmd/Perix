@@ -28,6 +28,7 @@ import { translateCategory } from "../../lib/categoryTranslation";
 import { SkeletonBox } from "../../components/shared";
 import { COLORS } from "../../lib/designTokens";
 import { confirmAction } from "../../lib/confirm";
+import LocationPickerModal from "../../components/LocationPickerModal";
 import {
   Business,
   CategoryGroup,
@@ -296,6 +297,7 @@ export default function ProfileScreen() {
 
   // -- BUSINESS EDIT MODAL STATE --
   const [bizEditModalVisible, setBizEditModalVisible] = useState(false);
+  const [bizLocationPickerVisible, setBizLocationPickerVisible] = useState(false);
   const [bizEditForm, setBizEditForm] = useState({ name: "", description: "", phone: "", website: "", email: "", tags: "", address: "", latitude: null as number | null, longitude: null as number | null, opening_hours: null as DayHours | null, root_category: "", subcategory: "" });
   const [bizLogoNew, setBizLogoNew] = useState<string | null>(null);
   const [bizCoverNew, setBizCoverNew] = useState<string | null>(null);
@@ -3135,6 +3137,24 @@ currentUserId={businessDetail?.business?.business_id}
                 📍 {bizEditForm.latitude?.toFixed(4)}, {bizEditForm.longitude?.toFixed(4)}
               </Text>
             ) : null}
+            <Pressable
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                backgroundColor: "#eef2ff",
+                borderRadius: 10,
+                paddingVertical: 10,
+                marginBottom: 12,
+              }}
+              onPress={() => setBizLocationPickerVisible(true)}
+            >
+              <Ionicons name="map-outline" size={18} color="#02169E" />
+              <Text style={{ color: "#02169E", fontWeight: "600", fontSize: 14 }}>
+                {t("business.pickOnMap", "Pick location on map")}
+              </Text>
+            </Pressable>
             
             <Text style={styles.inputLabel}>{t("business.openingHours", "Opening Hours")}</Text>
             {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((dayKey) => {
@@ -3289,6 +3309,26 @@ currentUserId={businessDetail?.business?.business_id}
           )}
         </SafeAreaView>
       </Modal>
+
+      <LocationPickerModal
+        visible={bizLocationPickerVisible}
+        onClose={() => setBizLocationPickerVisible(false)}
+        initialLocation={
+          bizEditForm.latitude && bizEditForm.longitude
+            ? { latitude: bizEditForm.latitude, longitude: bizEditForm.longitude }
+            : businessDetail?.business.latitude && businessDetail?.business.longitude
+            ? { latitude: businessDetail.business.latitude, longitude: businessDetail.business.longitude }
+            : null
+        }
+        onSelect={(loc) => {
+          setBizEditForm((prev) => ({
+            ...prev,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            address: loc.address || prev.address || `${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}`,
+          }));
+        }}
+      />
 
       <Modal visible={showCategoryPicker} animationType="slide" onRequestClose={() => setShowCategoryPicker(false)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["top"]}>

@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View, TextInput, Pressable, ActivityIndicator, FlatList } from "react-native";
+import { StyleSheet, Text, View, TextInput, Pressable, ActivityIndicator } from "react-native";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../lib/designTokens";
-import { useState, useCallback } from "react";
 import Constants from "expo-constants";
 import { openInMaps } from "../lib/utils/openMapUrl";
 
@@ -25,6 +25,116 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [searching, setSearching] = useState(false);
   const [showPredictions, setShowPredictions] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+
+  const mapDivRef = useRef<any>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const geocoderRef = useRef<any>(null);
+
+  const reverseGeocode = useCallback((lat: number, lng: number) => {
+    const google = (window as any).google;
+    setLatInput(String(lat));
+    setLonInput(String(lng));
+    if (!google?.maps?.Geocoder) {
+      onLocationChange({ latitude: lat, longitude: lng });
+      return;
+    }
+    if (!geocoderRef.current) geocoderRef.current = new google.maps.Geocoder();
+    geocoderRef.current.geocode({ location: { lat, lng } }, (results: any[], status: string) => {
+      const address = status === "OK" && results?.[0] ? results[0].formatted_address : undefined;
+      onLocationChange({ latitude: lat, longitude: lng, address });
+      if (address) setSearchQuery(address);
+    });
+  }, [onLocationChange]);
+
+  const placeMarker = useCallback((lat: number, lng: number) => {
+    const google = (window as any).google;
+    if (google?.maps && mapRef.current) {
+      if (!markerRef.current) {
+        markerRef.current = new google.maps.Marker({
+          map: mapRef.current,
+          position: { lat, lng },
+          draggable: true,
+        });
+        markerRef.current.addListener("dragend", (e: any) => {
+          if (!e?.latLng) return;
+          const lat = e.latLng.lat();
+          const lng = e.latLng.lng();
+          mapRef.current?.panTo({ lat, lng });
+          reverseGeocode(lat, lng);
+        });
+      } else {
+        markerRef.current.setPosition({ lat, lng });
+      }
+      mapRef.current.panTo({ lat, lng });
+    }
+    reverseGeocode(lat, lng);
+  }, [reverseGeocode]);
+
+  const initMap = useCallback(() => {
+    if (!mapDivRef.current) return;
+    const google = (window as any).google;
+    if (!google?.maps) {
+      setMapError("Map failed to load");
+      return;
+    }
+    const initial = location
+      ? { lat: location.latitude, lng: location.longitude }
+      : { lat: 52.52, lng: 13.405 };
+    const map = new google.maps.Map(mapDivRef.current, {
+      center: initial,
+      zoom: 13,
+      streetViewControl: false,
+      fullscreenControl: false,
+      mapTypeControl: false,
+    });
+    mapRef.current = map;
+    map.addListener("click", (e: any) => {
+      if (!e?.latLng) return;
+      placeMarker(e.latLng.lat(), e.latLng.lng());
+    });
+    if (location) {
+      placeMarker(location.latitude, location.longitude);
+    } else if (navigator?.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          try {
+            map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            map.setZoom(13);
+          } catch (e) {}
+        },
+        () => {},
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
+      );
+    }
+  }, [location?.latitude, location?.longitude]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const google = (window as any).google;
+    if (google?.maps) {
+      initMap();
+      return;
+    }
+    const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (existing) {
+      const wait = setInterval(() => {
+        if ((window as any).google?.maps) {
+          clearInterval(wait);
+          initMap();
+        }
+      }, 300);
+      return () => clearInterval(wait);
+    }
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
+    script.async = true;
+    script.onload = () => initMap();
+    script.onerror = () => setMapError("Map failed to load");
+    document.head.appendChild(script);
+    return () => {};
+  }, [initMap]);
 
   const searchPlaces = useCallback(async (query: string) => {
     if (query.length < 3) {
@@ -35,9 +145,8 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
 
     setSearching(true);
     try {
-      // Use a CORS proxy for web since Google Places API doesn't support CORS
       const corsProxy = "https://corsproxy.io/?";
-      const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&types=address`;
+      const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&types=geocode`;
       
       const response = await fetch(corsProxy + encodeURIComponent(apiUrl));
       const data = await response.json();
@@ -47,7 +156,6 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
       }
     } catch (error) {
       console.error("Places search error:", error);
-      // Fallback to using Nominatim (OpenStreetMap) which supports CORS
       try {
         const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10&addressdetails=1`;
         const response = await fetch(nominatimUrl, {
@@ -55,13 +163,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
         });
         const data = await response.json();
         if (data && data.length > 0) {
-          const addressResults = data.filter((item: any) => {
-            const addr = item.address || {};
-            const isBusiness = addr.amenity || addr.shop || addr.building;
-            if (isBusiness) return false;
-            return !!(addr.road || addr.street || addr.footway || addr.house_number || addr.city || addr.town || addr.village || addr.postcode);
-          });
-          const nominatimPredictions = addressResults.slice(0, 5).map((item: any, index: number) => ({
+          const nominatimPredictions = data.slice(0, 5).map((item: any, index: number) => ({
             place_id: `nominatim_${index}_${item.place_id}`,
             description: item.display_name,
             lat: item.lat,
@@ -82,13 +184,10 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
     setSearchQuery(description);
     setSearching(true);
     
-    // If lat/lon provided directly (from Nominatim)
     if (lat && lon) {
       const latitude = parseFloat(lat);
       const longitude = parseFloat(lon);
-      setLatInput(lat);
-      setLonInput(lon);
-      onLocationChange({ latitude, longitude, address: description });
+      placeMarker(latitude, longitude);
       setSearching(false);
       return;
     }
@@ -101,26 +200,20 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
       const data = await response.json();
       
       if (data.result?.geometry?.location) {
-        const { lat: latitude, lng: longitude } = data.result.geometry.location;
-        setLatInput(latitude.toString());
-        setLonInput(longitude.toString());
-        onLocationChange({ 
-          latitude, 
-          longitude,
-          address: data.result.formatted_address || description
-        });
+        const { lat, lng } = data.result.geometry.location;
+        placeMarker(lat, lng);
       }
     } catch (error) {
       console.error("Place details error:", error);
     }
     setSearching(false);
-  }, [onLocationChange]);
+  }, [placeMarker]);
 
   const handleApply = () => {
     const lat = parseFloat(latInput);
     const lon = parseFloat(lonInput);
     if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-      onLocationChange({ latitude: lat, longitude: lon });
+      placeMarker(lat, lon);
     }
   };
 
@@ -134,8 +227,31 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.hint}>Search for an address or enter coordinates manually</Text>
-      
+      <Text style={styles.hint}>Tap the map to set your exact location (no street name needed)</Text>
+
+      {/* Interactive Map */}
+      <View style={styles.mapContainer}>
+        {mapError ? (
+          <View style={styles.mapFallback}>
+            <Ionicons name="alert-circle-outline" size={28} color="#9ca3af" />
+            <Text style={styles.mapFallbackText}>{mapError}</Text>
+          </View>
+        ) : (
+          React.createElement("div", {
+            ref: mapDivRef,
+            style: { width: "100%", height: "100%" },
+          })
+        )}
+        {location && (
+          <View style={styles.mapBadge}>
+            <Ionicons name="location" size={14} color="#fff" />
+            <Text style={styles.mapBadgeText}>
+              {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
+            </Text>
+          </View>
+        )}
+      </View>
+
       {/* Search Input */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputWrapper}>
@@ -164,7 +280,6 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
           )}
         </View>
         
-        {/* Predictions List */}
         {showPredictions && predictions.length > 0 && (
           <View style={styles.predictionsContainer}>
             {predictions.map((item: any) => (
@@ -242,6 +357,43 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginBottom: 12,
     textAlign: "center",
+  },
+  mapContainer: {
+    height: 240,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 12,
+    position: "relative",
+    backgroundColor: "#e5e7eb",
+  },
+  mapFallback: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  mapFallbackText: {
+    fontSize: 13,
+    color: "#6b7280",
+  },
+  mapBadge: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  mapBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
   },
   searchContainer: {
     marginBottom: 12,
