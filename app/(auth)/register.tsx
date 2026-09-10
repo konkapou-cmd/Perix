@@ -115,6 +115,7 @@ export default function RegisterScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <View style={styles.innerContainer}>
           {/* Language Selector */}
           <Pressable
             style={styles.languageSelector}
@@ -128,8 +129,10 @@ export default function RegisterScreen() {
 
           <View style={styles.formCard}>
             <View style={styles.brandWrap}>
-              <Text style={styles.brandTitle}>Perıx</Text>
-              <Ionicons name="sunny" size={12} color="#FFC93C" style={styles.brandSun} />
+              <View style={styles.brandInner}>
+                <Text style={styles.brandTitle}>Perıx</Text>
+                <Ionicons name="sunny" size={14} color="#FFC93C" style={styles.brandSun} />
+              </View>
             </View>
             <Text style={styles.sectionTitle}>{t("auth.createAccount")}</Text>
             <Text style={styles.subtitle}>{t("brand.subtitle")}</Text>
@@ -178,7 +181,7 @@ export default function RegisterScreen() {
                       ? categories.find((c) => c.slug === rootCategory)?.name || rootCategory
                       : t("auth.selectCategory", "Select Category")}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                  <Ionicons name="chevron-down" size={16} color="#264348" />
                 </Pressable>
                 <Pressable
                   style={styles.inputRow}
@@ -200,7 +203,7 @@ export default function RegisterScreen() {
                         })()
                       : t("auth.selectSubcategory", "Select Subcategory")}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                  <Ionicons name="chevron-down" size={16} color="#264348" />
                 </Pressable>
               </>
             )}
@@ -302,6 +305,7 @@ export default function RegisterScreen() {
                 {t("auth.signIn")}
               </Link>
             </Text>
+          </View>
           </View>
         </ScrollView>
 
@@ -445,6 +449,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     justifyContent: "center",
   },
+  innerContainer: {
+    width: "100%",
+    ...Platform.select({
+      web: {
+        maxWidth: 440,
+        marginHorizontal: "auto",
+      },
+      default: {},
+    }),
+  },
   formCard: {
     backgroundColor: "#ffffff",
     borderRadius: 18,
@@ -455,15 +469,17 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   brandWrap: {
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  brandInner: {
     position: "relative",
     flexDirection: "row",
     alignItems: "flex-start",
-    justifyContent: "center",
-    marginBottom: 8,
   },
   brandSun: {
     position: "absolute",
-    right: 40,
+    right: 15,
     top: 0,
   },
   brandTitle: {
