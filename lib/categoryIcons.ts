@@ -21,6 +21,7 @@ export const CATEGORY_ICONS: Record<string, IconName> = {
   pets: "paw",
   travel: "airplane",
   rentals: "home",
+  "local-hotels": "bed",
   // Subcategory-level slugs
   "sports-fitness-wellness": "fitness",
   "fashion-accessories": "shirt",
@@ -75,6 +76,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   "rental-real-estate": "#4CAF50",
   realestate: "#4CAF50",
   hotels: "#5BC0EB", // light blue
+  "local-hotels": "#5BC0EB",
   travel: "#5BC0EB",
   technology: "#4169E1",
   music: "#7B2CBF",

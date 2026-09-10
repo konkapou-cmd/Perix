@@ -541,9 +541,11 @@ export default function MessagesScreen() {
                   router.push({ pathname: `/messages/${item.id}`, params: { name: item.name, entityType: item.entityType || "user" } } as any);
                 } else if (item.type === "activity") {
                   if (sessionToken) markGroupRead(sessionToken, item.id, "activity").catch(() => {});
+                  refreshUnreadCount();
                   router.push(`/group-chat/activity/${item.id}` as any);
                 } else if (item.type === "event") {
                   if (sessionToken) markGroupRead(sessionToken, item.id, "event").catch(() => {});
+                  refreshUnreadCount();
                   router.push(`/group-chat/event/${item.id}` as any);
                 }
               }}
