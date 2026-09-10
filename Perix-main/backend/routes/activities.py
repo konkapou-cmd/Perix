@@ -18,7 +18,7 @@ from models.activity import (
 )
 from models.message import MessageResponse, ChatMessageResponse, ChatMessageCreate
 from utils.helpers import generate_id, now_utc
-from routes.dependencies import get_current_user, build_user_public
+from routes.dependencies import get_current_user, get_current_user_optional, build_user_public
 from routes.ws import ws_broadcast_channel_message, ws_broadcast_notification
 
 router = APIRouter(prefix="/activities", tags=["Activities"])
@@ -60,14 +60,15 @@ async def get_tagged_business_info(business_id: str) -> TaggedBusinessInfo | Non
     return None
 
 
-async def build_activity_response(activity_doc: dict, current_user: UserPublic) -> ActivityResponse:
+async def build_activity_response(activity_doc: dict, current_user: Optional[UserPublic]) -> ActivityResponse:
     invites = [ActivityInvite(**invite) for invite in activity_doc.get("invites", [])]
-    is_creator = activity_doc["creator_id"] == current_user.user_id
-    my_status = "creator" if is_creator else "pending"
-    for invite in invites:
-        if invite.user_id == current_user.user_id or invite.email == current_user.email:
-            my_status = invite.status
-            break
+    is_creator = bool(current_user and activity_doc["creator_id"] == current_user.user_id)
+    my_status = "creator" if is_creator else ("pending" if current_user else "none")
+    if current_user:
+        for invite in invites:
+            if invite.user_id == current_user.user_id or invite.email == current_user.email:
+                my_status = invite.status
+                break
     
     tagged_business = await get_tagged_business_info(activity_doc.get("tagged_business_id"))
     
@@ -311,7 +312,7 @@ async def delete_activity(
 
 @router.get("", response_model=List[ActivityResponse])
 async def list_activities(
-    current_user: UserPublic = Depends(get_current_user),
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
     radius_km: Optional[float] = 50,
@@ -334,27 +335,34 @@ async def list_activities(
         return True
     
     # Show activities where user is creator, invited, or public activities
-    base_query: Dict[str, Any] = {
-        "is_hidden": {"$ne": True},
-        "$and": [
-            {
-                "$or": [
-                    {"creator_id": current_user.user_id},
-                    {"invites.user_id": current_user.user_id},
-                    {"invites.email": current_user.email},
-                    {"is_private": {"$ne": True}},
-                ],
-            },
-            # Activities without a declared time stay editable by the creator
-            # but are never shown publicly.
-            {
-                "$or": [
-                    {"time": {"$nin": [None, ""]}},
-                    {"creator_id": current_user.user_id},
-                ],
-            },
-        ],
-    }
+    if current_user:
+        base_query: Dict[str, Any] = {
+            "is_hidden": {"$ne": True},
+            "$and": [
+                {
+                    "$or": [
+                        {"creator_id": current_user.user_id},
+                        {"invites.user_id": current_user.user_id},
+                        {"invites.email": current_user.email},
+                        {"is_private": {"$ne": True}},
+                    ],
+                },
+                # Activities without a declared time stay editable by the creator
+                # but are never shown publicly.
+                {
+                    "$or": [
+                        {"time": {"$nin": [None, ""]}},
+                        {"creator_id": current_user.user_id},
+                    ],
+                },
+            ],
+        }
+    else:
+        base_query: Dict[str, Any] = {
+            "is_hidden": {"$ne": True},
+            "is_private": {"$ne": True},
+            "time": {"$nin": [None, ""]},
+        }
     
     # Add date filtering if provided
     if date:

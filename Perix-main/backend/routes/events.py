@@ -12,7 +12,7 @@ from models.user import UserPublic
 from models.event import EventCreate, EventResponse, EventUpdate, EventPublicResponse, EventAttendRequest, EVENT_THEMES
 from models.message import ChatMessageCreate, ChatMessageResponse
 from utils.helpers import generate_id, now_utc
-from routes.dependencies import get_current_user, build_user_public
+from routes.dependencies import get_current_user, get_current_user_optional, build_user_public
 from routes.businesses import is_subscription_active
 from routes.ws import ws_broadcast_channel_message
 
@@ -164,7 +164,7 @@ async def list_events(
     max_lng: Optional[float] = None,
     start_after: Optional[str] = None,  # ISO date string
     start_before: Optional[str] = None,  # ISO date string
-    current_user: UserPublic = Depends(get_current_user),
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     from math import radians, cos, sin, asin, sqrt
     
@@ -298,7 +298,7 @@ async def list_events(
                 created_at=event["created_at"],
                 theme=event.get("theme"),
                 themes=event.get("themes") or ([event.get("theme")] if event.get("theme") else []),
-                is_creator=event.get("creator_id") == current_user.user_id,
+                is_creator=bool(current_user and event.get("creator_id") == current_user.user_id),
                 is_private=event.get("is_private", False),
                 profile_theme=business.get("theme") if business else None,
                 gallery_images=event.get("gallery_images", []),

@@ -12,7 +12,7 @@ from models.story import (
 )
 from utils.helpers import generate_id, now_utc
 from models.user import UserPublic
-from routes.dependencies import get_current_user, resolve_actor, build_user_public
+from routes.dependencies import get_current_user, get_current_user_optional, resolve_actor, build_user_public
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/stories", tags=["Stories"])
@@ -210,7 +210,7 @@ async def get_stories(
     max_lat: Optional[float] = Query(None),
     min_lng: Optional[float] = Query(None),
     max_lng: Optional[float] = Query(None),
-    current_user: UserPublic = Depends(get_current_user),
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     now = now_utc()
     cutoff = (now - timedelta(hours=STORY_EXPIRY_HOURS)).isoformat()
@@ -237,7 +237,7 @@ async def get_stories(
 
     actor_map = await _batch_fetch_actor_info(stories)
     story_ids = [s["story_id"] for s in stories if "story_id" in s]
-    stats = await _batch_fetch_story_stats(story_ids, current_user.user_id)
+    stats = await _batch_fetch_story_stats(story_ids, current_user.user_id if current_user else "")
 
     grouped: dict = {}
     for s in stories:
@@ -255,10 +255,11 @@ async def get_stories(
     result = []
     for actor_id, group in grouped.items():
         seen_ids = set()
-        for sv in await db.story_views.find(
-            {"user_id": current_user.user_id, "story_id": {"$in": [s.story_id for s in group["stories"]]}}
-        ).to_list(length=100):
-            seen_ids.add(sv.get("story_id"))
+        if current_user:
+            for sv in await db.story_views.find(
+                {"user_id": current_user.user_id, "story_id": {"$in": [s.story_id for s in group["stories"]]}}
+            ).to_list(length=100):
+                seen_ids.add(sv.get("story_id"))
         has_unseen = any(s.story_id not in seen_ids for s in group["stories"])
 
         first = group["stories"][0] if group["stories"] else None
@@ -272,7 +273,7 @@ async def get_stories(
             has_unseen=has_unseen,
         ))
 
-    own_id = current_user.user_id
+    own_id = current_user.user_id if current_user else None
     unseen_groups = [g for g in result if g.has_unseen]
     seen_groups = [g for g in result if not g.has_unseen]
     random.shuffle(unseen_groups)

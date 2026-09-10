@@ -12,7 +12,7 @@ from models.feed import HomeFeedResponse
 from models.artist import ArtistResponse
 from models.post import BusinessPostInfo
 from utils.helpers import now_utc
-from routes.dependencies import get_current_user, build_user_public, get_blocked_user_ids
+from routes.dependencies import get_current_user_optional, build_user_public, get_blocked_user_ids
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ async def get_home_feed(
     activity_date: Optional[str] = None,
     offset: Optional[int] = 0,
     friends_only: bool = False,
-    current_user: UserPublic = Depends(get_current_user),
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     """Get the home feed with posts, stories, events, and businesses."""
     use_geo = latitude is not None and longitude is not None
@@ -54,7 +54,7 @@ async def get_home_feed(
     current_time = now_utc()
     
     # Get blocked users for current user
-    blocked_user_ids = await get_blocked_user_ids(current_user.user_id)
+    blocked_user_ids = await get_blocked_user_ids(current_user.user_id) if current_user else []
     
     # Get hidden users (globally hidden via reports or admin action)
     now_ts = time.time()
@@ -88,7 +88,7 @@ async def get_home_feed(
     # Friends-only filter: show posts from friends and followed businesses/artists
     if friends_only:
         friend_ids = set()
-        for friend_entry in current_user.friends or []:
+        for friend_entry in (current_user.friends if current_user else []) or []:
             if isinstance(friend_entry, dict):
                 friend_ids.add(friend_entry.get("entity_id", ""))
             elif isinstance(friend_entry, str):
@@ -365,7 +365,19 @@ async def get_home_feed(
         if not author_doc:
             author_doc = await db.businesses.find_one({"business_id": post.get("actor_id")}, {"_id": 0}) if post.get("actor_type") == "business" else None
         
-        author = build_user_public(author_doc) if author_doc else current_user
+        if author_doc:
+            author = build_user_public(author_doc)
+        elif current_user:
+            author = current_user
+        else:
+            author = UserPublic(
+                user_id=post["user_id"],
+                email=f"{post['user_id']}@anonymous.perix",
+                name=post.get("actor_name") or "Perix User",
+                picture=post.get("actor_avatar"),
+                profile_photo=post.get("actor_avatar"),
+                created_at=now_utc(),
+            )
         
         post_resp = PostResponse(
             post_id=post["post_id"],
@@ -436,7 +448,7 @@ async def get_home_feed(
             }
 
         attendees = event.get("attendees", [])
-        is_attending = current_user.user_id in attendees if attendees else False
+        is_attending = (current_user is not None and current_user.user_id in attendees) if attendees else False
 
         event_resp = EventResponse(
             event_id=event["event_id"],
@@ -546,9 +558,9 @@ async def get_home_feed(
                 invites.append(inv)
 
         my_status = "none"
-        if activity.get("creator_id") == current_user.user_id:
+        if current_user and activity.get("creator_id") == current_user.user_id:
             my_status = "creator"
-        else:
+        elif current_user:
             for inv in raw_invites:
                 if isinstance(inv, dict) and inv.get("user_id") == current_user.user_id:
                     my_status = inv.get("status", "none")
@@ -581,7 +593,7 @@ async def get_home_feed(
             invites=invites,
             created_at=activity.get("created_at", now_utc()),
             my_status=my_status,
-            is_creator=activity.get("creator_id") == current_user.user_id,
+            is_creator=bool(current_user and activity.get("creator_id") == current_user.user_id),
             is_private=activity.get("is_private", False),
             invitation_code=activity.get("invitation_code"),
             password=activity.get("password"),

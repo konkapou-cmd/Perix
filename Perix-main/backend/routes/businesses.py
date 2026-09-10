@@ -19,7 +19,7 @@ from routes.jobs import job_response
 from models.service import ServiceResponse
 from routes.rentals import service_to_rental, RENTAL_SERVICE_TYPES
 from utils.helpers import generate_id, now_utc, parse_datetime, normalize_datetime
-from routes.dependencies import get_current_user, build_user_public
+from routes.dependencies import get_current_user, get_current_user_optional, build_user_public
 
 
 router = APIRouter(prefix="/businesses", tags=["Businesses"])
@@ -291,7 +291,7 @@ async def list_businesses(
     limit: int = 50,
     root_category: Optional[str] = None,
     subcategory: Optional[str] = None,
-    current_user: UserPublic = Depends(get_current_user),
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     query: Dict[str, Any] = {
         "is_hidden": {"$ne": True},
@@ -318,7 +318,7 @@ async def get_nearby_businesses(
     max_lat: Optional[float] = None,
     min_lng: Optional[float] = None,
     max_lng: Optional[float] = None,
-    current_user: UserPublic = Depends(get_current_user),
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     """Get businesses near a location using geospatial query or within map bounds."""
     

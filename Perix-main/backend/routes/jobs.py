@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import uuid
 
 from database import db
-from routes.dependencies import get_current_user, UserPublic
+from routes.dependencies import get_current_user, get_current_user_optional, UserPublic
 from routes.uploads import upload_to_cloudinary
 from routes.ws import ws_broadcast_notification
 from models.focal_point import FocalPoint
@@ -212,7 +212,7 @@ async def get_jobs(
     max_lng: Optional[float] = None,
     root_category: Optional[str] = None,
     subcategory: Optional[str] = None,
-    current_user: UserPublic = Depends(get_current_user)
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional)
 ):
     """Get all active jobs, optionally filtered by location and category"""
     now = datetime.now(timezone.utc).isoformat()

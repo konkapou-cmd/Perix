@@ -10,7 +10,7 @@ import cloudinary.uploader
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from database import db
-from routes.dependencies import get_current_user, UserPublic
+from routes.dependencies import get_current_user, get_current_user_optional, UserPublic
 from routes.listings import public_listing_location
 from routes.ws import ws_broadcast_new_message, ws_broadcast_conversation_update
 from utils.helpers import generate_id, now_utc
@@ -129,7 +129,7 @@ async def get_rentals(
     property_type: Optional[str] = None,
     skip: int = 0,
     limit: int = 20,
-    current_user: UserPublic = Depends(get_current_user),
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     svc_query: dict = {"is_active": True, "status": "published", "is_hidden": {"$ne": True}, "type": {"$in": list(RENTAL_SERVICE_TYPES)}}
     if root_category:
