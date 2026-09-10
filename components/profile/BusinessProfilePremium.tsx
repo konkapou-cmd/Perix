@@ -271,7 +271,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState("posts");
   const [privateActiveTab, setPrivateActiveTab] = useState("posts");
   const [showCoverReposition, setShowCoverReposition] = useState(false);
-  const [showCoverViewer, setShowCoverViewer] = useState(false);
+  const [coverViewer, setCoverViewer] = useState<{ items: { uri: string; type: "image"; id: string }[]; index: number } | null>(null);
   const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
 
   useEffect(() => {
@@ -510,7 +510,20 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         coverVideoUri={(!detail.business.cover_image && (detail.business as any).video_url) ? (detail.business as any).video_url : undefined}
         coverFocalPoint={detail.business.cover_focal_point}
         onRepositionCover={() => setShowCoverReposition(true)}
-        onCoverPress={() => setShowCoverViewer(true)}
+        onCoverPress={() => {
+          const viewerLogo = detail.business.logo_image as string | undefined;
+          const items: { uri: string; type: "image"; id: string }[] = [];
+          if (detail.business.cover_image) items.push({ uri: detail.business.cover_image, type: "image", id: "cover" });
+          if (viewerLogo) items.push({ uri: viewerLogo, type: "image", id: "avatar" });
+          if (items.length) setCoverViewer({ items, index: 0 });
+        }}
+        onAvatarPress={() => {
+          const viewerLogo = detail.business.logo_image as string | undefined;
+          const items: { uri: string; type: "image"; id: string }[] = [];
+          if (detail.business.cover_image) items.push({ uri: detail.business.cover_image, type: "image", id: "cover" });
+          if (viewerLogo) items.push({ uri: viewerLogo, type: "image", id: "avatar" });
+          if (items.length) setCoverViewer({ items, index: viewerLogo ? items.length - 1 : 0 });
+        }}
         avatarUri={detail.business.logo_image}
         avatarInitial={detail.business.name?.charAt(0)?.toUpperCase() || "B"}
         name={detail.business.name}
@@ -587,11 +600,12 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           flush
         />
       )}
-      {detail.business.cover_image ? (
+      {coverViewer ? (
         <ImageZoomModal
-          visible={showCoverViewer}
-          mediaArray={[{ uri: detail.business.cover_image, type: "image", id: "cover" }]}
-          onClose={() => setShowCoverViewer(false)}
+          visible={!!coverViewer}
+          mediaArray={coverViewer.items}
+          initialIndex={coverViewer.index}
+          onClose={() => setCoverViewer(null)}
         />
       ) : null}
     </>

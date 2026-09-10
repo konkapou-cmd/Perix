@@ -13,9 +13,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
-import { getPostComments, addPostComment, toggleCommentLike } from '../lib/api/posts';
+import { getPostComments, addPostComment, toggleCommentLike, updatePostComment, deletePostComment } from '../lib/api/posts';
 import { PostComment } from '../lib/api/core';
 import { formatRelativeDate } from '../lib/formatDate';
+import { confirmAction } from '../lib/confirm';
 
 interface CommentSectionProps {
   postId: string;
@@ -23,7 +24,7 @@ interface CommentSectionProps {
 }
 
 export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommentAdded }) => {
-  const { sessionToken, activeIdentity } = useAuth();
+  const { sessionToken, activeIdentity, user } = useAuth();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const router = useRouter();
@@ -32,6 +33,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommen
   const [totalComments, setTotalComments] = useState<number>(0);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
   const commentLimit = 5;
 
   const loadComments = async () => {
@@ -92,8 +95,42 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommen
     }
   };
 
-  const handleLikeComment = async (commentId: string) => {
+  const handleSaveEdit = async () => {
+    if (!sessionToken || !editingCommentId || !editText.trim()) return;
+    const commentId = editingCommentId;
+    const text = editText.trim();
+    setEditingCommentId(null);
+    setEditText('');
+    setComments(prev => prev.map(c =>
+      c.comment_id === commentId ? { ...c, text, edited: true } : c
+    ));
+    try {
+      await updatePostComment(sessionToken, postId, commentId, text);
+    } catch (error) {
+      console.error('Failed to edit comment:', error);
+    }
+  };
+
+  const handleDeleteComment = async (comment: PostComment) => {
     if (!sessionToken) return;
+    const ok = await confirmAction({
+      title: t('comments.deleteTitle') || 'Delete comment?',
+      message: t('comments.deleteConfirm') || 'This will permanently delete your comment.',
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await deletePostComment(sessionToken, postId, comment.comment_id);
+      setComments(prev => prev.filter(c => c.comment_id !== comment.comment_id));
+      setTotalComments(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+    }
+  };
+
+  const handleLikeComment = async (commentId: string) => {    if (!sessionToken) return;
 
     setComments(prev => prev.map(c =>
       c.comment_id === commentId
@@ -170,6 +207,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommen
           ) : (
             comments.map((comment) => {
               const avatar = getAvatar(comment);
+              const isOwnComment = user?.user_id && comment.user_id === user.user_id;
+              const isEditing = editingCommentId === comment.comment_id;
               return (
                 <View key={comment.comment_id} style={styles.commentRow}>
                   <Pressable style={styles.avatarContainer} onPress={() => navigateToProfile(comment)}>
@@ -188,7 +227,40 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommen
                         {formatRelativeDate(comment.created_at)}
                       </Text>
                     </View>
-                    <Text style={styles.commentText}>{comment.text}</Text>
+                    {isEditing ? (
+                      <View style={styles.editRow}>
+                        <TextInput
+                          style={styles.editInput}
+                          value={editText}
+                          onChangeText={setEditText}
+                          autoFocus
+                          multiline
+                        />
+                        <Pressable onPress={handleSaveEdit} disabled={!editText.trim()} hitSlop={6}>
+                          <Ionicons name="checkmark-circle" size={22} color={editText.trim() ? '#059669' : '#d1d5db'} />
+                        </Pressable>
+                        <Pressable onPress={() => { setEditingCommentId(null); setEditText(''); }} hitSlop={6}>
+                          <Ionicons name="close-circle" size={22} color="#9ca3af" />
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <>
+                        <Text style={styles.commentText}>{comment.text}</Text>
+                        {isOwnComment && (
+                          <View style={styles.commentActions}>
+                            <Pressable
+                              onPress={() => { setEditingCommentId(comment.comment_id); setEditText(comment.text); }}
+                              hitSlop={8}
+                            >
+                              <Ionicons name="create-outline" size={16} color="#6b7280" />
+                            </Pressable>
+                            <Pressable onPress={() => handleDeleteComment(comment)} hitSlop={8}>
+                              <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                            </Pressable>
+                          </View>
+                        )}
+                      </>
+                    )}
                   </View>
                   <View style={styles.commentLikeContainer}>
                     <Pressable
@@ -327,6 +399,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     lineHeight: 20,
+  },
+  commentActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginTop: 6,
+  },
+  editRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editInput: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#111827',
   },
   commentLikeContainer: {
     alignItems: 'center',

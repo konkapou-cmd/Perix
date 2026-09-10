@@ -132,7 +132,7 @@ const processTextWithMentions = (
 ): string => {
   if (!text) return "";
   
-  let processedText = text;
+  let processedText = text.replace(/@@/g, "@");
   const allTags = [
     ...(taggedUsers || []).map(u => ({ id: u.id, name: u.name })),
     ...(taggedBusinesses || []).map(b => ({ id: b.id, name: b.name }))

@@ -210,7 +210,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab as ProfileTab || "posts");
   const [copied, setCopied] = useState(false);
   const [showCoverReposition, setShowCoverReposition] = useState(false);
-  const [showCoverViewer, setShowCoverViewer] = useState(false);
+  const [coverViewer, setCoverViewer] = useState<{ items: { uri: string; type: "image"; id: string }[]; index: number } | null>(null);
   const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const tabsYRef = useRef(0);
@@ -317,7 +317,20 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         readOnly={readOnly}
         onEditCover={handleUpdateCoverPhoto}
         onRepositionCover={() => setShowCoverReposition(true)}
-        onCoverPress={() => setShowCoverViewer(true)}
+        onCoverPress={() => {
+          const viewerAvatar = (user.profile_photo || user.picture) as string | undefined;
+          const items: { uri: string; type: "image"; id: string }[] = [];
+          if (user.cover_photo) items.push({ uri: user.cover_photo, type: "image", id: "cover" });
+          if (viewerAvatar) items.push({ uri: viewerAvatar, type: "image", id: "avatar" });
+          if (items.length) setCoverViewer({ items, index: 0 });
+        }}
+        onAvatarPress={() => {
+          const viewerAvatar = (user.profile_photo || user.picture) as string | undefined;
+          const items: { uri: string; type: "image"; id: string }[] = [];
+          if (user.cover_photo) items.push({ uri: user.cover_photo, type: "image", id: "cover" });
+          if (viewerAvatar) items.push({ uri: viewerAvatar, type: "image", id: "avatar" });
+          if (items.length) setCoverViewer({ items, index: viewerAvatar ? items.length - 1 : 0 });
+        }}
         onEditAvatar={handleUpdateProfilePhoto}
         onShare={onShare || handleShare}
         onViewPublic={handleViewPublic}
@@ -370,11 +383,12 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         themeStyles={themeStyles}
       />
       </View>
-      {user.cover_photo ? (
+      {coverViewer ? (
         <ImageZoomModal
-          visible={showCoverViewer}
-          mediaArray={[{ uri: user.cover_photo, type: "image", id: "cover" }]}
-          onClose={() => setShowCoverViewer(false)}
+          visible={!!coverViewer}
+          mediaArray={coverViewer.items}
+          initialIndex={coverViewer.index}
+          onClose={() => setCoverViewer(null)}
         />
       ) : null}
     </>

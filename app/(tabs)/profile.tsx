@@ -27,6 +27,7 @@ import { useAuth } from "../../context/AuthContext";
 import { translateCategory } from "../../lib/categoryTranslation";
 import { SkeletonBox } from "../../components/shared";
 import { COLORS } from "../../lib/designTokens";
+import { confirmAction } from "../../lib/confirm";
 import {
   Business,
   CategoryGroup,
@@ -1249,25 +1250,28 @@ const handleUpdateSlug = async (newSlug: string) => {
 
   const handleDeleteGalleryItem = async (type: "image" | "video", index: number) => {
     if (!sessionToken) return;
-    Alert.alert(t("profile.deleteItem"), t("profile.deleteConfirm"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("common.delete"),
-        style: "destructive",
-        onPress: async () => {
-          if (type === "image") {
-            const updated = await updateProfileGallery(sessionToken, { remove_images: [galleryImages[index]] });
-            setGalleryImages(updated.gallery_images || []);
-            setGalleryItems(updated.gallery_items || []);
-          } else {
-            const updated = await updateProfileGallery(sessionToken, { remove_videos: [galleryVideos[index]] });
-            setGalleryVideos(updated.gallery_videos || []);
-            setVideoItems(updated.video_items || []);
-          }
-          refreshUser();
-        }
+    const ok = await confirmAction({
+      title: t("profile.deleteItem") || "Delete item?",
+      message: t("profile.deleteConfirm") || "Are you sure you want to delete this?",
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      if (type === "image") {
+        const updated = await updateProfileGallery(sessionToken, { remove_images: [galleryImages[index]] });
+        setGalleryImages(updated.gallery_images || []);
+        setGalleryItems(updated.gallery_items || []);
+      } else {
+        const updated = await updateProfileGallery(sessionToken, { remove_videos: [galleryVideos[index]] });
+        setGalleryVideos(updated.gallery_videos || []);
+        setVideoItems(updated.video_items || []);
       }
-    ]);
+      refreshUser();
+    } catch (e) {
+      console.warn("handleDeleteGalleryItem failed:", e);
+    }
   };
 
 
@@ -1887,6 +1891,14 @@ const handleUpdateSlug = async (newSlug: string) => {
   const handleDeleteBusinessGalleryImage = async (index: number) => {
     if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
     const imageToRemove = bizGalleryImages[index];
+    const ok = await confirmAction({
+      title: t("profile.deleteItem") || "Delete image?",
+      message: t("profile.deleteConfirm") || "Are you sure you want to delete this image?",
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await updateBusinessGallery(sessionToken, activeIdentity.id, { remove_images: [imageToRemove] });
       setBizGalleryImages(prev => prev.filter((_, i) => i !== index));
@@ -1898,6 +1910,14 @@ const handleUpdateSlug = async (newSlug: string) => {
   const handleDeleteBusinessGalleryVideo = async (index: number) => {
     if (!sessionToken || !activeIdentity || activeIdentity.type !== "business") return;
     const videoToRemove = bizGalleryVideos[index];
+    const ok = await confirmAction({
+      title: t("profile.deleteItem") || "Delete video?",
+      message: t("profile.deleteConfirm") || "Are you sure you want to delete this video?",
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await updateBusinessGallery(sessionToken, activeIdentity.id, { remove_videos: [videoToRemove] });
       setBizGalleryVideos(prev => prev.filter((_, i) => i !== index));
@@ -2248,11 +2268,12 @@ try {
   };
 
   const openTagModal = () => {
-    // Insert @ for inline tagging
-    setPostText(postText + "@");
+    // Insert @ for inline tagging (avoid double @)
+    const newText = postText.endsWith("@") ? postText : `${postText}@`;
+    setPostText(newText);
     setShowMentionSuggestions(true);
     setMentionQuery("");
-    setMentionCursorPosition(postText.length + 1);
+    setMentionCursorPosition(newText.length);
   };
 
   const editTagModal = (userIds: string[], businessIds: string[]) => {
@@ -2308,11 +2329,12 @@ try {
   };
 
   const selectMention = (item: { id: string; name: string; type: 'user' | 'business' }) => {
-    // Build new text with @id replaced by @name format
+    // Build new text with @id replaced by @name format (never "@@name")
     const text = postText;
     const before = text.slice(0, mentionCursorPosition);
     const after = text.slice(mentionCursorPosition + mentionQuery.length + 1); // +1 to include the @
-    const newText = `${before}@${item.name}${after}`;
+    const base = before.endsWith("@") ? before.slice(0, -1) : before;
+    const newText = `${base}@${item.name}${after}`.replace(/@@/g, "@");
     setPostText(newText);
     setShowMentionSuggestions(false);
     setMentionQuery("");

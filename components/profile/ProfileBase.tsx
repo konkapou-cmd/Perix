@@ -78,6 +78,7 @@ interface ProfileHeaderProps {
   onRepositionCover?: () => void;
   onCoverPress?: () => void;
   onEditAvatar?: () => void;
+  onAvatarPress?: () => void;
   onShare?: () => void;
   onSettings?: () => void;
   onEditProfile?: () => void;
@@ -219,6 +220,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onRepositionCover,
   onCoverPress,
   onEditAvatar,
+  onAvatarPress,
   onShare,
   onSettings,
   onEditProfile,
@@ -297,7 +299,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <View style={styles.avatarRow}>
         <Pressable
           style={styles.avatarWrapper}
-          onPress={!readOnly ? onEditAvatar : undefined}
+          onPress={readOnly ? onAvatarPress : onEditAvatar}
         >
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={styles.avatarImage} />

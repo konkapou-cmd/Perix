@@ -23,6 +23,7 @@ import { useAuth } from "../../context/AuthContext";
 import { getUserSellerListings, Listing } from "../../lib/api/listings";
 
 import { UserProfilePremium } from "../../components/profile/UserProfilePremium";
+import { confirmAction } from "../../lib/confirm";
 
 export default function UserProfileScreen() {
   const { t } = useTranslation();
@@ -160,26 +161,21 @@ export default function UserProfileScreen() {
         setFriendStatus("none");
         setFriendRequestId(null);
       } else if (friendStatus === "friends") {
-        Alert.alert(
-          t("profile.removeFriend"),
-          `Remove ${profile?.user.name} from friends?`,
-          [
-            { text: t("common.cancel"), style: "cancel" },
-            {
-              text: t("profile.removeFriend"),
-              style: "destructive",
-              onPress: async () => {
-                try {
-                  await toggleFriend(sessionToken, "user", id);
-                  setFriendStatus("none");
-                  setFriendRequestId(null);
-                } catch (error) {
-                  console.error("Failed to remove friend:", error);
-                }
-              },
-            },
-          ]
-        );
+        const ok = await confirmAction({
+          title: t("profile.removeFriend") || "Remove friend?",
+          message: `Remove ${profile?.user.name} from friends?`,
+          confirmText: t("profile.removeFriend") || "Remove",
+          cancelText: t("common.cancel"),
+          destructive: true,
+        });
+        if (!ok) return;
+        try {
+          await toggleFriend(sessionToken, "user", id);
+          setFriendStatus("none");
+          setFriendRequestId(null);
+        } catch (error) {
+          console.error("Failed to remove friend:", error);
+        }
       } else if (friendStatus === "request_received") {
         if (friendRequestId) {
           await acceptFriendRequest(sessionToken, friendRequestId);
