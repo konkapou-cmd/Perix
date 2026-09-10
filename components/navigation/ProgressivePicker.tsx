@@ -19,6 +19,7 @@ export type ProgressivePickerOption<T extends string = string> = {
   key: T;
   label: string;
   icon?: IconName;
+  iconColor?: string;
   count?: number;
   disabled?: boolean;
   color?: string;
@@ -152,7 +153,7 @@ export default function ProgressivePicker<T extends string = string>({
                       <Ionicons
                         name={opt.icon}
                         size={20}
-                        color={opt.key === validValue ? optColor : (opt.color ?? mutedColor)}
+                        color={opt.iconColor ?? (opt.key === validValue ? optColor : (opt.color ?? mutedColor))}
                         style={styles.modalOptionIcon}
                       />
                     )}

@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { CategoryGroup } from "../../lib/api";
-import { CATEGORY_ICONS, subcategoryIcon } from "../../lib/categoryIcons";
+import { CATEGORY_ICONS, subcategoryIcon, CATEGORY_COLORS, subcategoryColor } from "../../lib/categoryIcons";
 
 type Props = {
   categories: CategoryGroup[];
@@ -128,7 +128,7 @@ export default function LocatorSidebar({
                   <Ionicons
                     name={(CATEGORY_ICONS[cat.slug] || "folder-outline") as any}
                     size={16}
-                    color={isExpanded ? "#59ABE3" : "#264348"}
+                    color={isExpanded ? "#59ABE3" : (CATEGORY_COLORS[cat.slug] || "#264348")}
                   />
                 </View>
                 <Text
@@ -167,7 +167,7 @@ export default function LocatorSidebar({
                               <Ionicons
                                 name={subcategoryIcon(sub.slug) as any}
                                 size={14}
-                                color={isSubActive ? "#59ABE3" : "#264348"}
+                                color={isSubActive ? "#59ABE3" : (subcategoryColor(sub.slug, cat.slug) || "#264348")}
                                 style={styles.subIcon}
                               />
                               <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
@@ -193,7 +193,7 @@ export default function LocatorSidebar({
                           <Ionicons
                             name={subcategoryIcon(sub.slug) as any}
                             size={14}
-                            color={isSubActive ? "#59ABE3" : "#264348"}
+                            color={isSubActive ? "#59ABE3" : (subcategoryColor(sub.slug, cat.slug) || "#264348")}
                             style={styles.subIcon}
                           />
                           <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>

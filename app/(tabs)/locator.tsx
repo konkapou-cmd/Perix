@@ -57,7 +57,7 @@ import {
 import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
 import { translateCategory, translateJobType } from "../../lib/categoryTranslation";
-import { CATEGORY_ICONS, subcategoryIcon } from "../../lib/categoryIcons";
+import { CATEGORY_ICONS, subcategoryIcon, CATEGORY_COLORS, subcategoryColor } from "../../lib/categoryIcons";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
 import { formatDate } from "../../lib/formatDate";
 import { isBusinessOpen } from "../../lib/openingHours";
@@ -772,7 +772,7 @@ export default function LocatorScreen() {
             value={selectedRoot === "All" ? "All" : selectedRoot}
             options={[
               { key: "All", label: t("common.all", "Alle Kategorien") },
-              ...categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t), icon: (CATEGORY_ICONS[cat.slug] || "grid") as any })),
+              ...categoryTree.map((cat) => ({ key: cat.slug, label: translateCategory(cat.slug, t), icon: (CATEGORY_ICONS[cat.slug] || "grid") as any, iconColor: CATEGORY_COLORS[cat.slug] })),
             ]}
             onChange={(key) => { setSelectedRoot(key); setSelectedSubcategory("All"); }}
             primaryColor={pickerAccent}
@@ -786,7 +786,7 @@ export default function LocatorScreen() {
               value={selectedSubcategory === "All" ? "All" : selectedSubcategory}
               options={[
                 { key: "All", label: t("common.allSubcategories", "Alle Unterkategorien") },
-                ...businessSubcategories.map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t), icon: (subcategoryIcon(sub.slug) || "grid") as any })),
+                ...businessSubcategories.map((sub: any) => ({ key: sub.slug, label: translateCategory(sub.slug, t), icon: (subcategoryIcon(sub.slug) || "grid") as any, iconColor: subcategoryColor(sub.slug, selectedRoot) })),
               ]}
               onChange={(key) => setSelectedSubcategory(key === "All" ? "All" : key)}
               primaryColor={pickerAccent}

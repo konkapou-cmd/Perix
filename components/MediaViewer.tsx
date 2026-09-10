@@ -111,7 +111,6 @@ function WebMediaPlayer({ item }: { item: MediaItem }) {
         resizeMode="cover"
         videoStatus={item.videoStatus}
         muxThumbnailUrl={item.muxThumbnailUrl}
-        showGifFallback
         style={{ width: "100%", height: "100%" }}
       />
     </View>

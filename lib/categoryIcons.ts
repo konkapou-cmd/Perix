@@ -43,6 +43,68 @@ export const CATEGORY_ICONS: Record<string, IconName> = {
 export const categoryIcon = (slug: string): IconName =>
   CATEGORY_ICONS[slug] || "grid";
 
+// Per-category icon colors (icons only — text stays neutral).
+export const CATEGORY_COLORS: Record<string, string> = {
+  // Root categories
+  "sports-fitness-wellness": "#8BC34A", // light green
+  sports: "#8BC34A",
+  fitness: "#8BC34A",
+  "fashion-accessories": "#E8C15A", // vanilla
+  fashion: "#E8C15A",
+  "beauty-care": "#FF69B4", // rose
+  beauty: "#FF69B4",
+  "entertainment-events": "#FF8C42", // orange
+  entertainment: "#FF8C42",
+  "nightlife-social": "#7B2CBF", // purple
+  nightlife: "#7B2CBF",
+  "food-dining": "#FFC93C", // yellow
+  food: "#FFC93C",
+  drinks: "#FFC93C",
+  "education-creativity": "#34A853", // light green (different from sport)
+  education: "#34A853",
+  arts: "#34A853",
+  "professional-services": "#4169E1", // royal blue
+  professional: "#4169E1",
+  "shopping-retail": "#E91E8C", // fuchsia
+  shopping: "#E91E8C",
+  automotive: "#E53935", // red
+  healthcare: "#2F7D32", // darker green
+  health: "#2F7D32",
+  pets: "#8D6E63", // brown
+  rentals: "#4CAF50", // green like rentals
+  "rental-real-estate": "#4CAF50",
+  realestate: "#4CAF50",
+  hotels: "#5BC0EB", // light blue
+  travel: "#5BC0EB",
+  technology: "#4169E1",
+  music: "#7B2CBF",
+  community: "#4169E1",
+};
+
+// Subcategory color overrides (more specific than the root color).
+const SUBCATEGORY_COLOR_OVERRIDES: Record<string, string> = {
+  barbershops: "#5BC0EB", // light blue
+  seafood: "#56B4E9", // fish -> light blue
+  fish: "#56B4E9",
+  vegan: "#2ECC71", // green
+  vegetarian: "#2ECC71",
+  pizza: "#E53935", // red
+  italian: "#E53935",
+  burger: "#C67B3D", // burger colors
+  bakeries: "#8D6E63", // brown bread
+  "coffee-shops": "#8D6E63",
+  cafes: "#8D6E63",
+};
+
+export const categoryColor = (slug: string): string | undefined =>
+  CATEGORY_COLORS[slug];
+
+export const subcategoryColor = (
+  slug: string,
+  rootSlug?: string
+): string | undefined =>
+  SUBCATEGORY_COLOR_OVERRIDES[slug] ?? CATEGORY_COLORS[slug] ?? (rootSlug ? CATEGORY_COLORS[rootSlug] : undefined);
+
 const SUBICON_EXACT: Record<string, IconName> = {
   // Sports, Fitness & Wellness
   gyms: "barbell",
