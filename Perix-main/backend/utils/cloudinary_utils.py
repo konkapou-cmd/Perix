@@ -31,8 +31,8 @@ async def upload_to_cloudinary(data, resource_type: str = "image", filename: str
     if not CLOUDINARY_URL:
         raise HTTPException(status_code=500, detail="Cloudinary not configured")
     
-    if resource_type not in ("image", "audio"):
-        raise HTTPException(status_code=400, detail="Cloudinary supports images and audio only. Use Mux for videos.")
+    if resource_type not in ("image", "video"):
+        raise HTTPException(status_code=400, detail="Cloudinary supports images and videos only.")
     
     # Prepare the data for upload
     upload_data = data
@@ -87,8 +87,8 @@ async def upload_large_file(file_path: str, resource_type: str = "image", filena
     if not CLOUDINARY_URL:
         raise HTTPException(status_code=500, detail="Cloudinary not configured")
     
-    if resource_type not in ("image", "audio"):
-        raise HTTPException(status_code=400, detail="Cloudinary supports images and audio only. Use Mux for videos.")
+    if resource_type not in ("image", "video"):
+        raise HTTPException(status_code=400, detail="Cloudinary supports images and videos only.")
     
     try:
         upload_options = {

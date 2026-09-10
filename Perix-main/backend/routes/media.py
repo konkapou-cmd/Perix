@@ -52,7 +52,9 @@ async def upload_media(
             detail="Video uploads are not supported via this endpoint. Please use Mux for video uploads."
         )
     
-    cloudinary_resource = "audio" if upload_type == "audio" else "image"
+    # Cloudinary deprecated the "audio" resource type — audio files must be
+    # uploaded as "video" (accepts webm/m4a/mp3 and returns streamable URLs).
+    cloudinary_resource = "video" if upload_type == "audio" else "image"
     
     try:
         content = await file.read()
