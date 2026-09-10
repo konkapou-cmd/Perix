@@ -26,27 +26,39 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
   const [searching, setSearching] = useState(false);
   const [showPredictions, setShowPredictions] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   const mapDivRef = useRef<any>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const geocoderRef = useRef<any>(null);
 
+  // Keep latest callbacks available to the one-time map listeners
+  const onLocationChangeRef = useRef(onLocationChange);
+  onLocationChangeRef.current = onLocationChange;
+
+  // First-seen location used only for the initial map center / marker
+  const initialLocRef = useRef<{ lat: number; lng: number } | null>(
+    location?.latitude && location?.longitude
+      ? { lat: location.latitude, lng: location.longitude }
+      : null
+  );
+
   const reverseGeocode = useCallback((lat: number, lng: number) => {
     const google = (window as any).google;
     setLatInput(String(lat));
     setLonInput(String(lng));
     if (!google?.maps?.Geocoder) {
-      onLocationChange({ latitude: lat, longitude: lng });
+      onLocationChangeRef.current({ latitude: lat, longitude: lng });
       return;
     }
     if (!geocoderRef.current) geocoderRef.current = new google.maps.Geocoder();
     geocoderRef.current.geocode({ location: { lat, lng } }, (results: any[], status: string) => {
       const address = status === "OK" && results?.[0] ? results[0].formatted_address : undefined;
-      onLocationChange({ latitude: lat, longitude: lng, address });
+      onLocationChangeRef.current({ latitude: lat, longitude: lng, address });
       if (address) setSearchQuery(address);
     });
-  }, [onLocationChange]);
+  }, []);
 
   const placeMarker = useCallback((lat: number, lng: number) => {
     const google = (window as any).google;
@@ -56,62 +68,69 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
           map: mapRef.current,
           position: { lat, lng },
           draggable: true,
+          animation: google.maps.Animation?.DROP,
         });
         markerRef.current.addListener("dragend", (e: any) => {
           if (!e?.latLng) return;
-          const lat = e.latLng.lat();
-          const lng = e.latLng.lng();
-          mapRef.current?.panTo({ lat, lng });
-          reverseGeocode(lat, lng);
+          const mLat = e.latLng.lat();
+          const mLng = e.latLng.lng();
+          try { mapRef.current?.panTo({ lat: mLat, lng: mLng }); } catch (err) {}
+          reverseGeocodeRef.current(mLat, mLng);
         });
       } else {
         markerRef.current.setPosition({ lat, lng });
       }
-      mapRef.current.panTo({ lat, lng });
+      try { mapRef.current.panTo({ lat, lng }); } catch (err) {}
     }
-    reverseGeocode(lat, lng);
-  }, [reverseGeocode]);
+    reverseGeocodeRef.current(lat, lng);
+  }, []);
 
-  const initMap = useCallback(() => {
-    if (!mapDivRef.current) return;
-    const google = (window as any).google;
-    if (!google?.maps) {
-      setMapError("Map failed to load");
-      return;
-    }
-    const initial = location
-      ? { lat: location.latitude, lng: location.longitude }
-      : { lat: 52.52, lng: 13.405 };
-    const map = new google.maps.Map(mapDivRef.current, {
-      center: initial,
-      zoom: 13,
-      streetViewControl: false,
-      fullscreenControl: false,
-      mapTypeControl: false,
-    });
-    mapRef.current = map;
-    map.addListener("click", (e: any) => {
-      if (!e?.latLng) return;
-      placeMarker(e.latLng.lat(), e.latLng.lng());
-    });
-    if (location) {
-      placeMarker(location.latitude, location.longitude);
-    } else if (navigator?.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          try {
-            map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-            map.setZoom(13);
-          } catch (e) {}
-        },
-        () => {},
-        { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
-      );
-    }
-  }, [location?.latitude, location?.longitude]);
+  const reverseGeocodeRef = useRef(reverseGeocode);
+  reverseGeocodeRef.current = reverseGeocode;
+  const placeMarkerRef = useRef(placeMarker);
+  placeMarkerRef.current = placeMarker;
 
+  // Load the Google Maps script (if needed) and create the map ONCE.
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    const initMap = () => {
+      if (!mapDivRef.current) return;
+      const google = (window as any).google;
+      if (!google?.maps) {
+        setMapError("Map failed to load");
+        return;
+      }
+      const initial = initialLocRef.current || { lat: 52.52, lng: 13.405 };
+      const map = new google.maps.Map(mapDivRef.current, {
+        center: initial,
+        zoom: 13,
+        streetViewControl: false,
+        fullscreenControl: false,
+        mapTypeControl: false,
+      });
+      mapRef.current = map;
+      setMapReady(true);
+      map.addListener("click", (e: any) => {
+        if (!e?.latLng) return;
+        placeMarkerRef.current(e.latLng.lat(), e.latLng.lng());
+      });
+      if (initialLocRef.current) {
+        placeMarkerRef.current(initialLocRef.current.lat, initialLocRef.current.lng);
+      } else if (navigator?.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            try {
+              map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+              map.setZoom(13);
+            } catch (err) {}
+          },
+          () => {},
+          { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
+        );
+      }
+    };
+
     const google = (window as any).google;
     if (google?.maps) {
       initMap();
@@ -134,7 +153,21 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
     script.onerror = () => setMapError("Map failed to load");
     document.head.appendChild(script);
     return () => {};
-  }, [initMap]);
+  }, []);
+
+  // Keep the existing marker in sync when the parent location changes
+  // (e.g. address search result or coordinates applied).
+  useEffect(() => {
+    if (!mapReady || !location?.latitude || !location?.longitude) return;
+    const google = (window as any).google;
+    if (!google?.maps || !mapRef.current) return;
+    if (!markerRef.current) {
+      placeMarkerRef.current(location.latitude, location.longitude);
+    } else {
+      markerRef.current.setPosition({ lat: location.latitude, lng: location.longitude });
+      try { mapRef.current.panTo({ lat: location.latitude, lng: location.longitude }); } catch (err) {}
+    }
+  }, [location?.latitude, location?.longitude, mapReady]);
 
   const searchPlaces = useCallback(async (query: string) => {
     if (query.length < 3) {
@@ -187,7 +220,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
     if (lat && lon) {
       const latitude = parseFloat(lat);
       const longitude = parseFloat(lon);
-      placeMarker(latitude, longitude);
+      placeMarkerRef.current(latitude, longitude);
       setSearching(false);
       return;
     }
@@ -201,19 +234,20 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
       
       if (data.result?.geometry?.location) {
         const { lat, lng } = data.result.geometry.location;
-        placeMarker(lat, lng);
+        placeMarkerRef.current(lat, lng);
+        if (data.result.formatted_address) setSearchQuery(data.result.formatted_address);
       }
     } catch (error) {
       console.error("Place details error:", error);
     }
     setSearching(false);
-  }, [placeMarker]);
+  }, []);
 
   const handleApply = () => {
     const lat = parseFloat(latInput);
     const lon = parseFloat(lonInput);
     if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-      placeMarker(lat, lon);
+      placeMarkerRef.current(lat, lon);
     }
   };
 
@@ -243,9 +277,9 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
           })
         )}
         {location && (
-          <View style={styles.mapBadge}>
+          <View style={styles.mapBadge} pointerEvents="none">
             <Ionicons name="location" size={14} color="#fff" />
-            <Text style={styles.mapBadgeText}>
+            <Text style={styles.mapBadgeText} numberOfLines={1}>
               {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
             </Text>
           </View>

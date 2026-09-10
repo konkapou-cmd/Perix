@@ -6,7 +6,7 @@ import {
   Pressable,
   StyleSheet,
   SafeAreaView,
-  Platform,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 // Resolves to LocationPickerMap.web.tsx on web and LocationPickerMap.native.tsx on native
@@ -65,10 +65,12 @@ export default function LocationPickerModal({
           </Pressable>
         </View>
 
-        <LocationPickerMap
-          location={selected}
-          onLocationChange={(loc) => setSelected(loc)}
-        />
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <LocationPickerMap
+            location={selected}
+            onLocationChange={(loc) => setSelected(loc)}
+          />
+        </ScrollView>
       </SafeAreaView>
     </Modal>
   );
@@ -78,6 +80,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
   },
   header: {
     flexDirection: "row",
