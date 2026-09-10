@@ -20,6 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../../context/AuthContext";
 import { useNotifications } from "../../../context/NotificationContext";
+import { useBadge } from "../../../context/BadgeContext";
 import { useSocket, useSocketEvent } from "../../../context/SocketContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -56,6 +57,7 @@ export default function MessagesScreen() {
   const { t } = useTranslation();
   const { sessionToken } = useAuth();
   const { showLocalNotification } = useNotifications();
+  const { refreshUnreadCount } = useBadge();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -191,6 +193,7 @@ export default function MessagesScreen() {
     try {
       await acceptFriendRequest(sessionToken, requestId);
       await loadFriendRequests();
+      refreshUnreadCount();
     } catch (error) {
       console.error("Failed to accept request:", error);
     } finally {
@@ -204,6 +207,7 @@ export default function MessagesScreen() {
     try {
       await declineFriendRequest(sessionToken, requestId);
       await loadFriendRequests();
+      refreshUnreadCount();
     } catch (error) {
       console.error("Failed to decline request:", error);
     } finally {
@@ -227,6 +231,14 @@ export default function MessagesScreen() {
   useSocketEvent("new_message", useCallback(() => {
     loadConversations();
   }, [loadConversations]));
+
+  useSocketEvent("notification", useCallback((data: any) => {
+    const type = data?.notification?.type;
+    if (type === "friend_request" || type === "friend") {
+      loadFriendRequests();
+      refreshUnreadCount();
+    }
+  }, [loadFriendRequests, refreshUnreadCount]));
 
   useEffect(() => {
     if (!sessionToken) return;

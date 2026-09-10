@@ -25,6 +25,7 @@ type AdaptiveVideoProps = {
   useNativeControls?: boolean;
   fitPolicy?: "auto" | "cover" | "contain";
   onEnded?: () => void;
+  showGifFallback?: boolean;
 };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");

@@ -42,6 +42,7 @@ type AdaptiveVideoWebProps = {
   useNativeControls?: boolean;
   fitPolicy?: "auto" | "cover" | "contain";
   onEnded?: () => void;
+  showGifFallback?: boolean;
 };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -82,6 +83,7 @@ export default function AdaptiveVideoWeb({
   useNativeControls = false,
   fitPolicy,
   onEnded,
+  showGifFallback = false,
 }: AdaptiveVideoWebProps) {
   const { t } = useTranslation();
   const videoUri = uri || source?.uri || "";
@@ -109,7 +111,7 @@ export default function AdaptiveVideoWeb({
   // frame played — once the video has played, it must never be swapped out for
   // a static fallback mid-view (freeze + layout jump at end of stream).
   const showFailure = failed && !playedRef.current;
-  const showGif = useGifFallback && !playedRef.current;
+  const showGif = useGifFallback && !playedRef.current && showGifFallback;
 
   // Per the Mux responsive rules: the player fills its container and keeps the
   // video's own shape — a horizontal video adjusts horizontally, a vertical
@@ -214,9 +216,9 @@ export default function AdaptiveVideoWeb({
     }
   }, [videoUri, isProcessing]);
 
-  // GIF fallback when nothing has played within 8s
+  // GIF fallback when nothing has played within 8s (only when enabled)
   useEffect(() => {
-    if (isProcessing || !videoUri || !gifUrl) return;
+    if (!showGifFallback || isProcessing || !videoUri || !gifUrl) return;
     if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
     gifTimerRef.current = setTimeout(() => {
       if (!playedRef.current && !failed) setUseGifFallback(true);
@@ -224,7 +226,24 @@ export default function AdaptiveVideoWeb({
     return () => {
       if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
     };
-  }, [videoUri, isProcessing, failed, gifUrl]);
+  }, [videoUri, isProcessing, failed, gifUrl, showGifFallback]);
+
+  // Keep retrying autoplay (muted) until the first frame plays — busy pages
+  // with many videos sometimes delay the first play() attempt.
+  useEffect(() => {
+    if (!autoPlay || !videoUri || isProcessing) return;
+    let tries = 0;
+    const id = setInterval(() => {
+      tries += 1;
+      const el = videoRef.current;
+      if (playedRef.current || !el || tries > 8) {
+        clearInterval(id);
+        return;
+      }
+      try { el.play().catch(() => {}); } catch (e) {}
+    }, 1500);
+    return () => clearInterval(id);
+  }, [autoPlay, videoUri, isProcessing]);
 
   // Keep muted property in sync
   useEffect(() => {

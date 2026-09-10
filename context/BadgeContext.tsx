@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { useSocketEvent } from "./SocketContext";
-import { getUnreadMessageCount, getActivityFeed } from "../lib/api";
+import { getUnreadMessageCount, getActivityFeed, getPendingRequestCount } from "../lib/api";
 
 type BadgeContextType = {
   unreadMessageCount: number;
   activityCount: number;
+  friendRequestCount: number;
   totalBadgeCount: number;
   refreshUnreadCount: () => Promise<void>;
   decrementUnreadCount: (count?: number) => void;
@@ -15,6 +16,7 @@ type BadgeContextType = {
 const BadgeContext = createContext<BadgeContextType>({
   unreadMessageCount: 0,
   activityCount: 0,
+  friendRequestCount: 0,
   totalBadgeCount: 0,
   refreshUnreadCount: async () => {},
   decrementUnreadCount: () => {},
@@ -27,21 +29,25 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
   const { sessionToken, user } = useAuth();
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [activityCount, setActivityCount] = useState(0);
+  const [friendRequestCount, setFriendRequestCount] = useState(0);
 
   const refreshUnreadCount = useCallback(async () => {
     if (!sessionToken) {
       setUnreadMessageCount(0);
       setActivityCount(0);
+      setFriendRequestCount(0);
       return;
     }
     try {
-      // Fetch both message count and activity count
-      const [messageResult, activityResult] = await Promise.all([
+      // Fetch message count, activity count and pending friend requests
+      const [messageResult, activityResult, requestResult] = await Promise.all([
         getUnreadMessageCount(sessionToken),
-        getActivityFeed(sessionToken, 10)
+        getActivityFeed(sessionToken, 10),
+        getPendingRequestCount(sessionToken).catch(() => ({ pending_count: 0 })),
       ]);
       setUnreadMessageCount(messageResult.unread_count);
       setActivityCount(activityResult.unread_count);
+      setFriendRequestCount(requestResult.pending_count || 0);
     } catch (error) {
       console.error("[Badge] Failed to fetch counts:", error);
     }
@@ -55,8 +61,8 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
     setActivityCount(0);
   }, []);
 
-  // Total badge count combines messages and activities
-  const totalBadgeCount = unreadMessageCount + activityCount;
+  // Total badge count combines messages, activities and friend requests
+  const totalBadgeCount = unreadMessageCount + activityCount + friendRequestCount;
 
   // Fetch unread count when user logs in
   useEffect(() => {
@@ -64,6 +70,7 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
       refreshUnreadCount();
     } else {
       setUnreadMessageCount(0);
+      setFriendRequestCount(0);
     }
   }, [sessionToken, user, refreshUnreadCount]);
 
@@ -76,6 +83,13 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
 
   useSocketEvent("new_message", useCallback(() => {
     refreshUnreadCount();
+  }, [refreshUnreadCount]));
+
+  useSocketEvent("notification", useCallback((data: any) => {
+    const type = data?.notification?.type;
+    if (type === "friend_request" || type === "friend") {
+      refreshUnreadCount();
+    }
   }, [refreshUnreadCount]));
 
   useEffect(() => {
@@ -93,6 +107,7 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
       value={{
         unreadMessageCount,
         activityCount,
+        friendRequestCount,
         totalBadgeCount,
         refreshUnreadCount,
         decrementUnreadCount,
