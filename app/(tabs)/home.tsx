@@ -701,6 +701,7 @@ export default function HomeScreen() {
   };
 
   const handleSelectTag = (user: User) => {
+    if (!user || !user.user_id) return;
     const updated = postText.replace(/@([\w\d_-]*)$/, `@${user.name} `);
     setPostText(updated);
     setTagResults([]);

@@ -343,15 +343,12 @@ export default function LocatorScreen() {
   };
 
   const loadCategories = useCallback(async () => {
-    if (!sessionToken) return;
-    const data = await getCategoryTree(sessionToken);
+    const data = await getCategoryTree(sessionToken ?? "");
     setCategoryTree(data);
   }, [sessionToken]);
 
   const loadBusinesses = useCallback(async (centerLat: number, centerLng: number, bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, openNow?: boolean, loadId?: number) => {
-    if (!sessionToken) return;
-    const data = await getNearbyBusinesses(
-      sessionToken,
+    const data = await getNearbyBusinesses(sessionToken ?? "",
       centerLat,
       centerLng,
       selectedRoot !== "All" ? selectedRoot : undefined,
@@ -364,8 +361,7 @@ export default function LocatorScreen() {
   }, [sessionToken, selectedRoot, selectedSubcategory, businessAvailabilityFilter]);
 
   const loadEvents = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, loadId?: number) => {
-    if (!sessionToken) return;
-    const data = await getEvents(sessionToken, undefined, undefined, bounds, {
+    const data = await getEvents(sessionToken ?? "", undefined, undefined, bounds, {
       startAfter: dateFilter.startDate || undefined,
       startBefore: dateFilter.endDate || undefined,
       theme: eventThemeFilter || undefined,
@@ -375,8 +371,7 @@ export default function LocatorScreen() {
   }, [sessionToken, dateFilter, eventThemeFilter]);
 
   const loadActivities = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, loadId?: number) => {
-    if (!sessionToken) return;
-    const data = await getActivities(sessionToken, bounds, {
+    const data = await getActivities(sessionToken ?? "", bounds, {
       date: dateFilter.startDate || undefined,
       category: activityCategoryFilter || undefined,
     });
@@ -385,15 +380,13 @@ export default function LocatorScreen() {
   }, [sessionToken, dateFilter, activityCategoryFilter]);
 
   const loadRentals = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, subcategoryFilter?: string | null, loadId?: number) => {
-    if (!sessionToken) return;
-    const data = await getRentals(sessionToken, bounds, { subcategory: subcategoryFilter || undefined });
+    const data = await getRentals(sessionToken ?? "", bounds, { subcategory: subcategoryFilter || undefined });
     if (loadId !== undefined && loadIdRef.current !== loadId) return;
     setRentals(data.rentals);
   }, [sessionToken]);
 
   const loadJobs = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, loadId?: number) => {
-    if (!sessionToken) return;
-    const data = await getJobs(sessionToken, bounds);
+    const data = await getJobs(sessionToken ?? "", bounds);
     if (loadId !== undefined && loadIdRef.current !== loadId) return;
     setJobs(data.jobs);
   }, [sessionToken]);
@@ -416,7 +409,7 @@ export default function LocatorScreen() {
   const loadIdRef = useRef(0);
 
   useEffect(() => {
-    if (!mapBounds || !sessionToken) return;
+    if (!mapBounds) return;
     const currentRequestId = ++requestIdRef.current;
     const loadId = ++loadIdRef.current;
     const timer = setTimeout(() => {
@@ -444,10 +437,9 @@ export default function LocatorScreen() {
 
 
   useEffect(() => {
-    if (!sessionToken) return;
     setLoading(true);
     loadCategories().finally(() => setLoading(false));
-  }, [loadCategories, sessionToken]);
+  }, [loadCategories]);
 
   // Reverse geocode location name from coordinates
   useEffect(() => {
@@ -469,7 +461,7 @@ export default function LocatorScreen() {
   }, [contextLocation]);
 
   useEffect(() => {
-    if (!sessionToken || !mapBounds) return;
+    if (!mapBounds) return;
     // Immediately reload when the availability filter changes (both directions)
     loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
     // While "Open now" is active, keep refreshing periodically since open state changes over time
@@ -478,7 +470,7 @@ export default function LocatorScreen() {
       loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
     }, 60000);
     return () => clearInterval(interval);
-  }, [businessAvailabilityFilter, sessionToken, mapBounds, loadBusinesses]);
+  }, [businessAvailabilityFilter, mapBounds, loadBusinesses]);
 
   // Don't auto-request location on mount - wait for user to tap the map
   // Location will only be set when user explicitly taps the disabled map overlay

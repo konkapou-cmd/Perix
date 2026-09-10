@@ -98,7 +98,6 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
 
   const loadData = useCallback(async () => {
     const { sessionToken, mapBounds, userLocation, user } = paramsRef.current;
-    if (!sessionToken) return;
     const bounds = computeBounds(mapBounds, user, userLocation);
     if (!bounds) {
       setLoading(false);
@@ -121,18 +120,18 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
     setFeedError(false);
 
     try {
-      const feedPromise = getHomeFeed(sessionToken, undefined, undefined, {
+      const feedPromise = getHomeFeed(sessionToken ?? "", undefined, undefined, {
         minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng,
       }, undefined, (paramsRef.current as any).friendsOnly);
-      const eventsPromise = getEvents(sessionToken, undefined, undefined, bounds);
-      const activitiesPromise = getActivities(sessionToken, bounds);
+      const eventsPromise = getEvents(sessionToken ?? "", undefined, undefined, bounds);
+      const activitiesPromise = getActivities(sessionToken ?? "", bounds);
       const bizCat = (favoriteCategories && favoriteCategories.length > 0) ? favoriteCategories[0] : undefined;
-      const businessesPromise = getNearbyBusinesses(sessionToken, userLat, userLng, bizCat, undefined, bounds);
-      const hotelsPromise = getNearbyHotels(sessionToken, bounds);
-      const jobsPromise = getJobs(sessionToken, bounds, { latitude: userLat, longitude: userLng });
-      const rentalsPromise = getRentals(sessionToken, bounds, { latitude: userLat, longitude: userLng });
-      const servicesPromise = getNearbyServices(sessionToken, bounds, { latitude: userLat, longitude: userLng });
-      const storiesPromise = getStories(sessionToken, { minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng });
+      const businessesPromise = getNearbyBusinesses(sessionToken ?? "", userLat, userLng, bizCat, undefined, bounds);
+      const hotelsPromise = getNearbyHotels(sessionToken ?? "", bounds);
+      const jobsPromise = getJobs(sessionToken ?? "", bounds, { latitude: userLat, longitude: userLng });
+      const rentalsPromise = getRentals(sessionToken ?? "", bounds, { latitude: userLat, longitude: userLng });
+      const servicesPromise = getNearbyServices(sessionToken ?? "", bounds, { latitude: userLat, longitude: userLng });
+      const storiesPromise = getStories(sessionToken ?? "", { minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng });
 
       const results = await Promise.allSettled([
         feedPromise, eventsPromise, activitiesPromise, businessesPromise, hotelsPromise, jobsPromise, rentalsPromise, servicesPromise, storiesPromise,
@@ -153,7 +152,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         const fd = feedResult.value;
         const feedPosts = fd.posts || [];
         setPosts(feedPosts);
-        if (feedPosts.length > 0) {
+        if (sessionToken && feedPosts.length > 0) {
           const pIds = feedPosts.map((p: Post) => p.post_id);
           batchCheckSaved(sessionToken, "post", pIds).then((r: { saved_ids: string[] }) => setSavedPostIds(new Set(r.saved_ids))).catch(() => {});
         }
@@ -166,7 +165,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         const evts = (eventsResult.value as any) || [];
         setEvents(Array.isArray(evts) ? evts : evts.events || []);
         const evtList = Array.isArray(evts) ? evts : evts.events || [];
-        if (evtList.length > 0) {
+        if (sessionToken && evtList.length > 0) {
           const evIds = evtList.map((e: EventItem) => e.event_id);
           batchCheckSaved(sessionToken, "event", evIds).then((r: { saved_ids: string[] }) => setSavedEventIds(new Set(r.saved_ids))).catch(() => {});
         }
@@ -178,7 +177,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         const acts = (activitiesResult.value as any) || [];
         setActivities(Array.isArray(acts) ? acts : acts.activities || []);
         const actList = Array.isArray(acts) ? acts : acts.activities || [];
-        if (actList.length > 0) {
+        if (sessionToken && actList.length > 0) {
           const actIds = actList.map((a: ActivityItem) => a.activity_id);
           batchCheckSaved(sessionToken, "activity", actIds).then((r: { saved_ids: string[] }) => setSavedActivityIds(new Set(r.saved_ids))).catch(() => {});
         }
@@ -190,7 +189,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         const biz = (bizResult.value as any) || [];
         setBusinesses(Array.isArray(biz) ? biz : biz.businesses || []);
         const bizList = Array.isArray(biz) ? biz : biz.businesses || [];
-        if (bizList.length > 0) {
+        if (sessionToken && bizList.length > 0) {
           batchCheckSaved(sessionToken, "business", bizList.map((b: Business) => b.business_id)).then((r: { saved_ids: string[] }) => setSavedBusinessIds(new Set(r.saved_ids))).catch(() => {});
         }
       } else {
@@ -201,7 +200,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         const h = (hotelsResult.value as any) || [];
         const hotelList = Array.isArray(h) ? h : h.businesses || [];
         setHotels(hotelList);
-        if (hotelList.length > 0) {
+        if (sessionToken && hotelList.length > 0) {
           batchCheckSaved(sessionToken, "business", hotelList.map((b: Business) => b.business_id)).then((r: { saved_ids: string[] }) => setSavedHotelIds(new Set(r.saved_ids))).catch(() => {});
         }
       } else {
@@ -212,7 +211,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         const jr = jobsResult.value;
         const jobList: Job[] = Array.isArray(jr) ? jr : (jr.jobs || []);
         setJobs(jobList);
-        if (jobList.length > 0) {
+        if (sessionToken && jobList.length > 0) {
           batchCheckSaved(sessionToken, "job", jobList.map((j: Job) => j.job_id)).then((r: { saved_ids: string[] }) => setSavedJobIds(new Set(r.saved_ids))).catch(() => {});
         }
       } else {
@@ -223,7 +222,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         const rv = rentalsResult.value;
         const rentalList: Rental[] = Array.isArray(rv) ? rv : (rv.rentals || []);
         setRentals(rentalList);
-        if (rentalList.length > 0) {
+        if (sessionToken && rentalList.length > 0) {
           batchCheckSaved(sessionToken, "rental", rentalList.map((r: Rental) => r.rental_id)).then((res: { saved_ids: string[] }) => setSavedRentalIds(new Set(res.saved_ids))).catch(() => {});
         }
       } else {
@@ -234,7 +233,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
         const sv = servicesResult.value as any;
         const serviceList: Service[] = Array.isArray(sv) ? sv : (sv.services || []);
         setServices(serviceList);
-        if (serviceList.length > 0) {
+        if (sessionToken && serviceList.length > 0) {
           batchCheckSaved(sessionToken, "service", serviceList.map((s: Service) => s.service_id)).then((r: { saved_ids: string[] }) => setSavedServiceIds(new Set(r.saved_ids))).catch(() => {});
         }
       } else {
@@ -258,11 +257,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
   }, []);
 
   useEffect(() => {
-    if (sessionToken) {
-      loadData();
-    } else {
-      setLoading(false);
-    }
+    loadData();
   }, [sessionToken, refreshKey]);
 
   return {

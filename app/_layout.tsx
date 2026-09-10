@@ -83,13 +83,25 @@ function AuthGuard() {
 
   useEffect(() => {
     if (loading) return;
-    const inAuthGroup = segments[0] === "(auth)";
-    if (!user && !inAuthGroup) {
-      router.replace("/login");
-    } else if (user && inAuthGroup) {
-      router.replace("/(tabs)/home");
+    const segs = (segments as string[]) || [];
+    const inAuthGroup = segs[0] === "(auth)";
+    if (user) {
+      if (inAuthGroup) {
+        router.replace("/(tabs)/home");
+      }
+      return;
     }
-  }, [user, loading]);
+    // Guest browsing: allow the auth group, email verification/reset pages,
+    // and the public home + locator tabs. Everything else requires login.
+    const publicTopLevel = ["verify-email", "reset-password", "forgot-password", "privacy-policy", "terms-of-service", "share"];
+    const isTopLevelPublic = segs.length > 0 && publicTopLevel.includes(segs[0]);
+    const isPublicTab =
+      segs[0] === "(tabs)" &&
+      (segs.length < 2 || segs[1] === "home" || segs[1] === "locator");
+    const allowed = inAuthGroup || isTopLevelPublic || isPublicTab || segs.length === 0;
+    if (!allowed) {
+      router.replace("/login");
+    }  }, [user, loading]);
 
   return null;
 }
