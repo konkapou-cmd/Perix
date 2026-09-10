@@ -1,5 +1,7 @@
 """Places search proxy using OpenStreetMap Nominatim."""
+import asyncio
 import logging
+import time
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
 
@@ -14,6 +16,11 @@ HEADERS = {
     "User-Agent": "PerixApp/2.0 (perix.app)",
     "Accept": "application/json",
 }
+
+# Nominatim usage policy: max 1 request per second. Throttle all outgoing
+# requests so bursts of keystrokes don't get rate-limited (429/403).
+_nominatim_lock = asyncio.Lock()
+_last_nominatim_request = 0.0
 
 
 def _extract_public_label(address: dict) -> Optional[str]:
@@ -31,6 +38,7 @@ async def places_autocomplete(
     near_lng: Optional[float] = Query(None),
     current_user: UserPublic = Depends(get_current_user),
 ):
+    global _last_nominatim_request
     try:
         params: dict = {
             "q": input,
@@ -47,21 +55,36 @@ async def places_autocomplete(
             params["lon"] = near_lng
             params["viewbox"] = f"{near_lng - vb_lng_delta},{near_lat + vb_lat_delta},{near_lng + vb_lng_delta},{near_lat - vb_lat_delta}"
 
-        results = None
-        last_err = None
-        for attempt in range(2):
-            try:
-                async with httpx.AsyncClient(timeout=15) as client:
-                    resp = await client.get(
-                        NOMINATIM_URL,
-                        params=params,
-                        headers=HEADERS,
-                    )
-                    resp.raise_for_status()
-                    results = resp.json()
-                    break
-            except Exception as e:
-                last_err = e
+        async with _nominatim_lock:
+            now = time.monotonic()
+            wait = 1.1 - (now - _last_nominatim_request)
+            if wait > 0:
+                await asyncio.sleep(wait)
+
+            results = None
+            last_err = None
+            for attempt in range(3):
+                try:
+                    async with httpx.AsyncClient(timeout=15) as client:
+                        resp = await client.get(
+                            NOMINATIM_URL,
+                            params=params,
+                            headers=HEADERS,
+                        )
+                        if resp.status_code in (429, 403):
+                            # Rate limited — back off and retry
+                            last_err = f"Nominatim rate limit ({resp.status_code})"
+                            await asyncio.sleep(1.2 * (attempt + 1))
+                            continue
+                        resp.raise_for_status()
+                        results = resp.json()
+                        break
+                except Exception as e:
+                    last_err = e
+                    if attempt < 2:
+                        await asyncio.sleep(0.5 * (attempt + 1))
+
+            _last_nominatim_request = time.monotonic()
 
         if results is None:
             logger.warning(f"Places autocomplete failed after retries: {last_err}")
