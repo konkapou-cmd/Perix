@@ -615,28 +615,40 @@ export default function BusinessMap({
               setEnabling(false);
               return;
             }
-            navigator.geolocation.getCurrentPosition(
-              (pos) => {
-                onMapPress(pos.coords.latitude, pos.coords.longitude);
-                enablingRef.current = false;
-                setEnabling(false);
-              },
-              (err) => {
-                console.warn("Web geolocation error:", err?.code, err?.message);
-                if (err?.code === 1) {
-                  setEnableError(
-                    t("common.locationDenied", "Location is blocked for this site. Tap the lock icon in the address bar, open Site settings and allow Location access."),
-                  );
-                } else {
+            let attempts = 0;
+            const request = () => {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  onMapPress(pos.coords.latitude, pos.coords.longitude);
+                  enablingRef.current = false;
+                  setEnabling(false);
+                },
+                (err) => {
+                  console.warn("Web geolocation error:", err?.code, err?.message);
+                  if (err?.code === 1) {
+                    setEnableError(
+                      t("common.locationDenied", "Location is blocked for this site. Tap the lock icon in the address bar, open Site settings and allow Location access."),
+                    );
+                    enablingRef.current = false;
+                    setEnabling(false);
+                    return;
+                  }
+                  // Timeout/unavailable: retry once with balanced accuracy (faster on iOS)
+                  if (attempts === 0) {
+                    attempts += 1;
+                    request();
+                    return;
+                  }
                   setEnableError(
                     t("common.locationUnavailable", "Couldn't get your location. Make sure location/GPS is turned on and try again."),
                   );
-                }
-                enablingRef.current = false;
-                setEnabling(false);
-              },
-              { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
-            );
+                  enablingRef.current = false;
+                  setEnabling(false);
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+              );
+            };
+            request();
           }}
         >
           {enabling ? (

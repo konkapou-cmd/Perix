@@ -740,6 +740,17 @@ export default function LocatorScreen() {
           onMapPress={contextLocation ? undefined : ((lat?: number, lng?: number) => {
             if (typeof lat === "number" && typeof lng === "number") {
               setManualLocation(lat, lng);
+              // Update the map bounds immediately so the nearby lists load
+              // right away instead of waiting for a slow region-change event
+              const d = 0.05;
+              setGlobalMapBounds({
+                minLat: lat - d,
+                maxLat: lat + d,
+                minLng: lng - d,
+                maxLng: lng + d,
+                centerLat: lat,
+                centerLng: lng,
+              });
             }
           }) as any}
         />
