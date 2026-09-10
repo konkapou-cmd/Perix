@@ -69,8 +69,19 @@ async def register_user(payload: RegisterInput, response: Response):
         "longitude": payload.longitude,
         "friends": [],
         "role": payload.role,
+        "email_verified": False,
+        "email_verification_token": secrets.token_urlsafe(32),
     }
     await db.users.insert_one(user_doc)
+
+    # Send verification email (fire and forget — registration is not blocked)
+    try:
+        from utils.email_utils import send_verification_email
+        asyncio.create_task(
+            send_verification_email(payload.email, user_doc["email_verification_token"])
+        )
+    except Exception as e:
+        print(f"Failed to send verification email: {e}")
 
     business = None
     if payload.role == "business":
@@ -283,24 +294,70 @@ async def change_password(
     return {"status": "password_changed"}
 
 
-@router.post("/forgot-password", summary="Request a password reset token")
+@router.post("/forgot-password", summary="Request a password reset email")
 async def forgot_password(payload: ForgotPasswordInput):
-    user_doc = await db.users.find_one({"email": payload.email})
+    email = payload.email.strip().lower()
+    user_doc = await db.users.find_one({"email": email})
+    generic = {"status": "reset_email_sent", "message": "If the email exists, a reset link has been sent."}
     if not user_doc:
-        raise HTTPException(status_code=404, detail="No account found with this email")
+        # Do not leak whether the email exists
+        return generic
     from services.entity_ownership import can_receive_email
     if not can_receive_email(user_doc):
-        raise HTTPException(status_code=404, detail="No account found with this email")
+        return generic
+    if not user_doc.get("email_verified", True):
+        return {
+            "status": "email_not_verified",
+            "message": "Please verify your email address before resetting your password. Check your inbox for the verification link.",
+        }
+
     token = secrets.token_urlsafe(32)
     now = datetime.utcnow()
     await db.password_reset_tokens.insert_one({
         "token": token,
-        "email": payload.email,
+        "email": email,
         "created_at": now,
         "expires_at": now + timedelta(hours=1),
         "used": False,
     })
-    return {"status": "reset_token_created", "reset_token": token, "message": "Token expires in 1 hour"}
+
+    from utils.email_utils import send_password_reset_email, email_configured
+    sent = await send_password_reset_email(email, token)
+    if sent:
+        return generic
+    if not email_configured():
+        # Development fallback: no email provider configured
+        return {"status": "reset_token_created", "reset_token": token, "message": "Email not configured — use this token for development."}
+    return {"status": "reset_email_failed", "message": "Failed to send the reset email. Please try again later."}
+
+
+@router.get("/verify-email", summary="Verify a user's email address")
+async def verify_email(token: str):
+    user_doc = await db.users.find_one({"email_verification_token": token})
+    if not user_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+    await db.users.update_one(
+        {"user_id": user_doc["user_id"]},
+        {"$set": {"email_verified": True, "email_verification_token": None}},
+    )
+    return {"status": "verified", "email": user_doc.get("email")}
+
+
+@router.post("/resend-verification", summary="Resend the email verification link")
+async def resend_verification(current_user: UserPublic = Depends(get_current_user)):
+    user_doc = await db.users.find_one({"user_id": current_user.user_id})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user_doc.get("email_verified"):
+        return {"status": "already_verified"}
+    token = user_doc.get("email_verification_token") or secrets.token_urlsafe(32)
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": {"email_verification_token": token}},
+    )
+    from utils.email_utils import send_verification_email, email_configured
+    sent = await send_verification_email(current_user.email, token)
+    return {"status": "sent" if sent else "email_not_configured"}
 
 
 @router.post("/reset-password", summary="Reset password using a token")

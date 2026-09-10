@@ -53,6 +53,7 @@ class UserPublic(BaseModel):
     theme: Optional[ThemeSettings] = None  # Profile theme customization
     is_admin: bool = False  # Admin flag
     role: str = "user"  # "user" | "business"
+    email_verified: bool = True  # Legacy accounts default to verified
 
 
 class RegisterInput(BaseModel):

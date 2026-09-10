@@ -44,6 +44,7 @@ def build_user_public(user_doc: Dict) -> UserPublic:
         "role": user_doc.get("role", "user"),
         "latitude": user_doc.get("latitude"),
         "longitude": user_doc.get("longitude"),
+        "email_verified": user_doc.get("email_verified", True),
     }
     return UserPublic(**safe_doc)
 
