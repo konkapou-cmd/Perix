@@ -92,8 +92,8 @@ export const createBusiness = async (
     gallery_images?: string[];
     gallery_videos?: string[];
     tags?: string[];
-    latitude: number;
-    longitude: number;
+    latitude?: number | null;
+    longitude?: number | null;
   }
 ): Promise<Business> => {
   return apiRequest<Business>("/businesses", "POST", token, payload);

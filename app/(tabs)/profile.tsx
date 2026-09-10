@@ -257,7 +257,7 @@ const FALLBACK_CATEGORY_TREE: CategoryGroup[] = [
 export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { user, logout, sessionToken, activeIdentity, setActiveIdentity, refreshUser } = useAuth();
+  const { user, logout, sessionToken, activeIdentity, setActiveIdentity, refreshUser, refreshMyBusinesses } = useAuth();
   const { clearMapBounds } = useMapBounds();
   const { track: trackUpload } = useUploads();
   const insets = useSafeAreaInsets();
@@ -2195,36 +2195,35 @@ try {
   // ---------------------------------------------------------------------------
   // DELETE HANDLERS
   // ---------------------------------------------------------------------------
-  const doDeleteBusiness = (businessId: string) => {
-    Alert.alert(t('profile.deleteBusiness'), t('profile.deleteBusinessConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-           if (!sessionToken) return;
-           await deleteBusiness(sessionToken, businessId);
-           setBusinesses(businesses.filter(b => b.business_id !== businessId));
-           setActiveIdentity(identities.find(i => i.type === 'user') || identities[0]);
-           refreshUser();
-        }
-      }
-    ]);
+  const doDeleteBusiness = async (businessId: string) => {
+    const ok = await confirmAction({
+      title: t('profile.deleteBusiness') || "Delete business?",
+      message: t('profile.deleteBusinessConfirm') || "This will permanently delete your business profile and all its content.",
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
+      destructive: true,
+    });
+    if (!ok) return;
+    if (!sessionToken) return;
+    await deleteBusiness(sessionToken, businessId);
+    setBusinesses(businesses.filter(b => b.business_id !== businessId));
+    setActiveIdentity(identities.find(i => i.type === 'user') || identities[0]);
+    refreshUser();
+    refreshMyBusinesses();
   }
 
-  const doDeleteUserAccount = () => {
-    Alert.alert(t('profile.deleteAccount'), t('profile.deleteAccountConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-           if (!sessionToken) return;
-           await deleteUserAccount(sessionToken);
-           logout();
-        }
-      }
-    ]);
+  const doDeleteUserAccount = async () => {
+    const ok = await confirmAction({
+      title: t('profile.deleteAccount') || "Delete account?",
+      message: t('profile.deleteAccountConfirm') || "This will permanently delete your account.",
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
+      destructive: true,
+    });
+    if (!ok) return;
+    if (!sessionToken) return;
+    await deleteUserAccount(sessionToken);
+    logout();
   }
 
 
@@ -2233,15 +2232,18 @@ try {
     if (creatingBusinessRef.current) return;
     const hasAddress = user.location && user.location !== "Not set" && user.latitude && user.longitude;
     if (!hasAddress) {
-      Alert.alert(
-        t("common.info", "Info"),
-        t("business.setAddressFirst", "Please set your location/address in your profile settings before creating a business. This is required for your business to appear publicly."),
-        [
-          { text: t("common.cancel", "Cancel"), style: "cancel" },
-          { text: t("profile.editProfile", "Edit Profile"), onPress: () => { setShowCategoryPicker(false); setUserEditModalVisible(true); } },
-        ],
-      );
-      return;
+      const ok = await confirmAction({
+        title: t("common.info", "Info"),
+        message: t("business.setAddressFirst", "Your business has no location yet. You can add it later from your business profile (Pick location on map). Create the business anyway?"),
+        confirmText: t("business.createAnyway", "Create anyway"),
+        cancelText: t("profile.editProfile", "Edit Profile"),
+        destructive: false,
+      });
+      if (!ok) {
+        setShowCategoryPicker(false);
+        setUserEditModalVisible(true);
+        return;
+      }
     }
     creatingBusinessRef.current = true;
     try {
@@ -2249,21 +2251,28 @@ try {
         name: user.name + " Business",
         description: "",
         address: "",
-        latitude: null as any,
-        longitude: null as any,
+        ...(hasAddress && user.latitude != null && user.longitude != null
+          ? { latitude: user.latitude, longitude: user.longitude }
+          : {}),
         root_category: pickerRoot,
         subcategory: pickerSubs[0],
         subcategories: pickerSubs,
       });
       setBusinesses(prev => [...prev, created]);
       setActiveIdentity({ type: "business", id: created.business_id, name: created.name, avatar: created.logo_image });
+      refreshMyBusinesses();
       setShowCategoryPicker(false);
       setPickerRoot("");
       setPickerSub("");
       setPickerSubs([]);
       refreshUser();
     } catch (e: any) {
-      Alert.alert(t("common.error", "Error"), e.message || t("business.failedCreate", "Failed to create business profile"));
+      const msg = e?.message || t("business.failedCreate", "Failed to create business profile");
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(msg);
+      } else {
+        Alert.alert(t("common.error", "Error"), msg);
+      }
     } finally {
       creatingBusinessRef.current = false;
     }
@@ -3067,8 +3076,9 @@ currentUserId={businessDetail?.business?.business_id}
 
 
       {/* Business Edit Profile Modal */}
-      <Modal visible={bizEditModalVisible} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={bizEditModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setBizEditModalVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>
+          <View style={[styles.modalShell, Platform.OS === "web" && styles.modalShellWeb]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t("business.editInfo", "Edit Business")}</Text>
             <Pressable onPress={() => setBizEditModalVisible(false)}>
@@ -3239,22 +3249,18 @@ currentUserId={businessDetail?.business?.business_id}
                     onPress={() => {
                       const currentRoot = businessDetail?.business?.root_category;
                       if (currentRoot && category.slug !== currentRoot) {
-                        Alert.alert(
-                          t("business.categoryChangeTitle", "Change business category?"),
-                          t("business.categoryChangeMessage", "Changing your category will permanently delete all services, jobs, events, bookings and media of this business."),
-                          [
-                            { text: t("common.cancel", "Cancel"), style: "cancel" },
-                            {
-                              text: t("common.confirm", "Confirm"),
-                              style: "destructive",
-                              onPress: () => {
-                                setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
-                                setBizSubcategories([]);
-                                setBizCategoryModalVisible(false);
-                              },
-                            },
-                          ],
-                        );
+                        confirmAction({
+                          title: t("business.categoryChangeTitle", "Change business category?"),
+                          message: t("business.categoryChangeMessage", "Changing your category will permanently delete all services, jobs, events, bookings and media of this business."),
+                          confirmText: t("common.confirm", "Confirm"),
+                          cancelText: t("common.cancel", "Cancel"),
+                          destructive: true,
+                        }).then((ok) => {
+                          if (!ok) return;
+                          setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
+                          setBizSubcategories([]);
+                          setBizCategoryModalVisible(false);
+                        });
                         return;
                       }
                       setBizEditForm(prev => ({ ...prev, root_category: category.slug, subcategory: "" }));
@@ -3307,6 +3313,7 @@ currentUserId={businessDetail?.business?.business_id}
               </View>
             </View>
           )}
+          </View>
         </SafeAreaView>
       </Modal>
 
@@ -3595,6 +3602,21 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  modalShell: {
+    flex: 1,
+  },
+  modalShellWeb: {
+    flex: 1,
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
+    marginVertical: 24,
+    borderRadius: 20,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+    boxShadow: "0 8px 40px rgba(0,0,0,0.3)",
+    maxHeight: "calc(100vh - 48px)" as any,
   },
   pickerOverlay: {
     position: "absolute",
