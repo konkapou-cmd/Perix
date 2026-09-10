@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -27,29 +27,46 @@ export function LocationSearchOverlay({ visible, sessionToken, nearLat, nearLng,
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
+
+  // Cancel pending work when the modal closes
+  useEffect(() => {
+    if (!visible) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      requestIdRef.current += 1;
+      setLoading(false);
+    }
+  }, [visible]);
 
   const searchPlaces = async (text: string) => {
     setQuery(text);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (text.length < 2 || !sessionToken) {
       setSuggestions([]);
+      setLoading(false);
       return;
     }
     setLoading(true);
-    try {
-      let url = `/places/autocomplete?input=${encodeURIComponent(text)}`;
-      if (nearLat != null && nearLng != null) {
-        url += `&near_lat=${nearLat}&near_lng=${nearLng}`;
+    const requestId = ++requestIdRef.current;
+    debounceRef.current = setTimeout(async () => {
+      try {
+        let url = `/places/autocomplete?input=${encodeURIComponent(text)}`;
+        if (nearLat != null && nearLng != null) {
+          url += `&near_lat=${nearLat}&near_lng=${nearLng}`;
+        }
+        const data = await apiRequest<{ predictions: PlaceSuggestion[] }>(
+          url, "GET", sessionToken
+        );
+        if (requestId !== requestIdRef.current) return; // stale response
+        setSuggestions(data.predictions || []);
+      } catch (error) {
+        console.warn("[LocationSearch] failed:", error);
+        if (requestId === requestIdRef.current) setSuggestions([]);
+      } finally {
+        if (requestId === requestIdRef.current) setLoading(false);
       }
-      const data = await apiRequest<{ predictions: PlaceSuggestion[] }>(
-        url, "GET", sessionToken
-      );
-      setSuggestions(data.predictions || []);
-    } catch (error) {
-      console.warn("[LocationSearch] failed:", error);
-      setSuggestions([]);
-    } finally {
-      setLoading(false);
-    }
+    }, 450);
   };
 
   const handleSelect = (place: PlaceSuggestion) => {
