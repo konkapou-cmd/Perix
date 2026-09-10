@@ -195,7 +195,8 @@ export default function UserProfileScreen() {
       }
     } catch (error) {
       console.error("Friend action failed:", error);
-      notify(t("common.error") || "Error", "Failed to send friend request. Please try again.");
+      const detail = error instanceof Error ? error.message : "";
+      notify(t("common.error") || "Error", detail || "Failed to send friend request. Please try again.");
     } finally {
       setFriendActionLoading(false);
     }
