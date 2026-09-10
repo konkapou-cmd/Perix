@@ -431,6 +431,8 @@
     "menu": "Speisekarte"
   },
   "auth": {
+    "accountCreated": "Konto erstellt!",
+    "verifyEmailSent": "Wir haben eine Bestätigungs-E-Mail an deine Adresse gesendet. Bitte bestätige deine E-Mail, um die Passwort-Wiederherstellung zu aktivieren.",
     "welcome": "Willkommen zurück",
     "signInTitle": "Anmelden",
     "createAccount": "Konto erstellen",

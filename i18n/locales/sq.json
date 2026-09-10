@@ -360,6 +360,8 @@
     "menu": "Menu"
   },
   "auth": {
+    "accountCreated": "Llogaria u krijua!",
+    "verifyEmailSent": "Dërguam një email verifikimi në inbox-in tuaj. Verifikoni email-in për të aktivizuar rikuperimin e fjalëkalimit.",
     "welcome": "Mirëseerdhët përsëri",
     "signInTitle": "Hyni",
     "createAccount": "Krijo llogari",

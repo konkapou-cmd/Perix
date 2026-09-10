@@ -24,6 +24,8 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [token, setToken] = useState("");
+  const [sent, setSent] = useState(false);
+  const [sentMessage, setSentMessage] = useState("");
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
@@ -34,12 +36,40 @@ export default function ForgotPasswordScreen() {
     setError("");
     try {
       const result = await forgotPassword(email.trim());
-      setToken(result.reset_token);
+      if (result.reset_token) {
+        // Development fallback (no email provider configured)
+        setToken(result.reset_token);
+      } else {
+        setSent(true);
+        setSentMessage(result.message || t("auth.resetEmailSent", "Wenn die E-Mail existiert, wurde ein Link gesendet."));
+      }
     } catch (e: any) {
       setError(e?.message || t("auth.forgotError", "Fehler beim Senden der E-Mail"));
     }
     setLoading(false);
   };
+
+  if (sent) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <View style={styles.card}>
+            <Ionicons name="mail-unread" size={64} color={COLORS.success} style={{ marginBottom: 20 }} />
+            <Text style={styles.title}>{t("auth.resetEmailSentTitle", "Check your email")}</Text>
+            <Text style={styles.desc}>{sentMessage}</Text>
+            <Pressable
+              style={styles.primaryButton}
+              onPress={() => router.replace("/login")}
+            >
+              <Text style={styles.primaryButtonText}>
+                {t("auth.backToLogin", "Back to Login")}
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   if (token) {
     return (

@@ -361,6 +361,8 @@
     "menu": "Meni"
   },
   "auth": {
+    "accountCreated": "Konto utworzone!",
+    "verifyEmailSent": "Wysłaliśmy e-mail weryfikacyjny na Twoją skrzynkę. Zweryfikuj swój e-mail, aby aktywować odzyskiwanie hasła.",
     "welcome": "Witaj ponownie",
     "signInTitle": "Zaloguj się",
     "createAccount": "Utwórz konto",

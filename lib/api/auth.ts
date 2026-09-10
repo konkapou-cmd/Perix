@@ -40,10 +40,18 @@ export const logoutUser = async (token: string): Promise<void> => {
   await apiRequest("/auth/logout", "POST", token);
 };
 
-export const forgotPassword = async (email: string): Promise<{ reset_token: string }> => {
+export const forgotPassword = async (email: string): Promise<{ status: string; message?: string; reset_token?: string }> => {
   return apiRequest("/auth/forgot-password", "POST", null, { email });
 };
 
 export const resetPassword = async (token: string, new_password: string): Promise<{ status: string }> => {
   return apiRequest("/auth/reset-password", "POST", null, { token, new_password });
+};
+
+export const verifyEmail = async (token: string): Promise<{ status: string; email?: string }> => {
+  return apiRequest(`/auth/verify-email?token=${encodeURIComponent(token)}`, "GET", null);
+};
+
+export const resendVerificationEmail = async (sessionToken: string): Promise<{ status: string }> => {
+  return apiRequest("/auth/resend-verification", "POST", sessionToken);
 };

@@ -94,6 +94,13 @@ export default function RegisterScreen() {
         cityLat,
         cityLng
       );
+      const title = t("auth.accountCreated", "Account created!");
+      const message = t("auth.verifyEmailSent", "We sent a verification email to your inbox. Please verify your email to enable password recovery.");
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(`${title}\n\n${message}`);
+      } else {
+        Alert.alert(title, message);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : t("auth.checkCredentials");
       console.error("[Register] Failed:", message, error);

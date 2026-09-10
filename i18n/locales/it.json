@@ -361,6 +361,8 @@
     "menu": "Menu"
   },
   "auth": {
+    "accountCreated": "Account creato!",
+    "verifyEmailSent": "Abbiamo inviato un'email di verifica alla tua casella di posta. Verifica la tua email per attivare il recupero della password.",
     "welcome": "Bentornato",
     "signInTitle": "Accedi",
     "createAccount": "Crea account",

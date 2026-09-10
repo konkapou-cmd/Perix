@@ -361,6 +361,8 @@
     "menu": "Meni"
   },
   "auth": {
+    "accountCreated": "Nalog je kreiran!",
+    "verifyEmailSent": "Poslali smo verifikacioni email na vašu adresu. Verifikujte email da biste aktivirali oporavak lozinke.",
     "welcome": "Dobrodošli nazad",
     "signInTitle": "Prijavite se",
     "createAccount": "Kreiraj nalog",

@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS } from "../../lib/designTokens";
@@ -20,7 +20,8 @@ import { resetPassword } from "../../lib/api/auth";
 export default function ResetPasswordScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const [token, setToken] = useState("");
+  const params = useLocalSearchParams<{ token?: string }>();
+  const [token, setToken] = useState(params.token || "");
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

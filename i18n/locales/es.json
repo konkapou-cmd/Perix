@@ -361,6 +361,8 @@
     "menu": "Menú"
   },
   "auth": {
+    "accountCreated": "¡Cuenta creada!",
+    "verifyEmailSent": "Hemos enviado un correo de verificación a tu bandeja de entrada. Verifica tu correo para activar la recuperación de contraseña.",
     "welcome": "Bienvenido de nuevo",
     "signInTitle": "Iniciar sesión",
     "createAccount": "Crear cuenta",

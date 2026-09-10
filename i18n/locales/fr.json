@@ -361,6 +361,8 @@
     "menu": "Menu"
   },
   "auth": {
+    "accountCreated": "Compte créé !",
+    "verifyEmailSent": "Nous avons envoyé un e-mail de vérification dans votre boîte de réception. Vérifiez votre e-mail pour activer la récupération du mot de passe.",
     "welcome": "Bon retour",
     "signInTitle": "Se connecter",
     "createAccount": "Créer un compte",
