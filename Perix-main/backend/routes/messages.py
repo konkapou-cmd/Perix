@@ -318,8 +318,6 @@ async def mark_group_read(
         upsert=True,
     )
     return {"marked_read": True}
-
-
 @router.post("/mark-read/{entity_id}")
 async def mark_messages_read(
     entity_id: str,
@@ -347,6 +345,15 @@ async def mark_messages_read(
         query["from_user_id"] = entity_id
     
     result = await db.messages.update_many(query, {"$set": {"read": True, "read_at": now_utc()}})
+    # Push the fresh unread count so badges update immediately everywhere
+    try:
+        unread = await db.messages.count_documents({
+            "to_user_id": current_user.user_id,
+            "read": {"$ne": True},
+        })
+        await ws_broadcast_unread_count(current_user.user_id, unread)
+    except Exception:
+        pass
     return {"marked_read": result.modified_count}
 
 
