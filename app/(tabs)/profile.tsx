@@ -29,6 +29,7 @@ import { SkeletonBox } from "../../components/shared";
 import { COLORS } from "../../lib/designTokens";
 import { confirmAction } from "../../lib/confirm";
 import LocationPickerModal from "../../components/LocationPickerModal";
+import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import {
   Business,
   CategoryGroup,
@@ -759,6 +760,14 @@ export default function ProfileScreen() {
   const [eventSaving, setEventSaving] = useState(false);
   const eventSavingRef = useRef(false);
 
+  const announceSaved = (title: string, message: string) => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   const handleSaveEvent = async () => {
     if (!sessionToken || eventSavingRef.current) return;
     if (!(eventForm.title || "").trim()) {
@@ -772,6 +781,7 @@ export default function ProfileScreen() {
     const startISO = new Date(`${localDateStr}T${localTimeStr}`).toISOString();
     setEventSaving(true);
     try {
+      let savedEventId: string | null = null;
       if (eventEditing?.event_id) {
         console.log("[handleSaveEvent] Updating event:", eventEditing.event_id);
         await updateEvent(sessionToken, eventEditing.event_id, {
@@ -797,6 +807,7 @@ export default function ProfileScreen() {
           tagged_artist_ids: eventForm.tagged_artist_ids?.length ? eventForm.tagged_artist_ids : null,
           cover_focal_point: (eventForm as any).cover_focal_point || undefined,
         });
+        savedEventId = eventEditing.event_id;
       } else {
         const payload: any = {
           title: eventForm.title,
@@ -823,12 +834,15 @@ export default function ProfileScreen() {
         };
         if (activeIdentity?.type === "business") payload.business_id = activeIdentity.id;
         console.log("[handleSaveEvent] Creating event, payload:", JSON.stringify({ ...payload, image_urls: payload.image_urls?.length, gallery_images: payload.gallery_images?.length, gallery_videos: payload.gallery_videos?.length }));
-        await createEvent(sessionToken, payload);
+        const created = await createEvent(sessionToken, payload);
+        savedEventId = created.event_id;
       }
       setEventModalVisible(false);
       setEventEditing(null);
       setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: "", theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
       if (activeIdentity?.type === "business") loadBusinessProfile();
+      announceSaved(t("common.success") || "Success", t("events.publishedMessage", "Your event has been published."));
+      if (savedEventId) router.push(`/event/${savedEventId}` as any);
     } catch (e) {
       console.error("[handleSaveEvent] Error:", (e as Error)?.message, "Status:", (e as any)?.status, "eventEditing:", eventEditing?.event_id);
       Alert.alert(t("common.error") || "Error", (e as Error)?.message || t("events.saveFailed") || "Failed to save event");
@@ -847,6 +861,7 @@ export default function ProfileScreen() {
     }
     activitySavingRef.current = true;
     try {
+      let savedActivityId: string | null = null;
       if (activityEditing) {
         await updateActivity(sessionToken, activityEditing.activity_id, {
           title: activityForm.title,
@@ -866,8 +881,9 @@ export default function ProfileScreen() {
           gallery_images: activityForm.gallery_images,
           gallery_videos: activityForm.gallery_videos,
         });
+        savedActivityId = activityEditing.activity_id;
       } else {
-        await createActivity(sessionToken, {
+        const created = await createActivity(sessionToken, {
           title: activityForm.title,
           description: activityForm.description || undefined,
           date: activityForm.date,
@@ -885,11 +901,13 @@ export default function ProfileScreen() {
           gallery_images: activityForm.gallery_images,
           gallery_videos: activityForm.gallery_videos,
         });
+        savedActivityId = created.activity_id;
       }
       setActivityModalVisible(false);
       setActivityEditing(null);
       setActivityForm({ title: "", description: "", date: "", time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, max_attendees: 10, is_private: false, theme: "", password: "", gallery_images: [], gallery_videos: [], media_items: [] });
-      Alert.alert(t("common.success") || "Success", t("common.confirm") || "Activity saved successfully");
+      announceSaved(t("common.success") || "Success", t("activities.publishedMessage", "Your activity has been published."));
+      if (savedActivityId) router.push(`/activity/${savedActivityId}` as any);
     } catch (e: any) {
       const msg = (e as Error)?.message || "";
       if (msg === "Network request failed") {
@@ -1766,14 +1784,19 @@ const handleUpdateSlug = async (newSlug: string) => {
         setServiceSaving(false);
         return;
       }
+      let savedServiceId: string | null = null;
       if (editingServiceId) {
         await updateService(sessionToken, editingServiceId, payload);
+        savedServiceId = editingServiceId;
       } else {
-        await createService(sessionToken, payload);
+        const created = await createService(sessionToken, payload);
+        savedServiceId = created.service_id;
       }
       setServiceModalVisible(false);
       setEditingServiceId(null);
       setServiceForm(DEFAULT_SERVICE_FORM);
+      announceSaved(t("common.success") || "Success", t("services.publishedMessage", "Your service has been published."));
+      if (savedServiceId) router.push(`/service/${savedServiceId}` as any);
     } catch (e: any) {
       console.error("Failed to save service:", e);
       const msg = e?.detail || e?.message || "";
@@ -2086,7 +2109,8 @@ try {
           loadUserProfile();
         }
 
-        Alert.alert(t("common.success", "Success"), t("profile.postCreated", "Post created successfully!"));
+        announceSaved(t("common.success", "Success"), t("profile.postCreated", "Post created successfully!"));
+        if (newPost?.post_id) router.push(`/post/${newPost.post_id}` as any);
         setTagUserDraft("");
         setTagBusinessDraft("");
       } catch (error) {
@@ -2791,6 +2815,12 @@ currentUserId={businessDetail?.business?.business_id}
         allowedTaxonomy={activeIdentity?.type === "business" ? businessAllowedTaxonomy : null}
         onClose={() => { setListingModalVisible(false); setEditingListing(null); }}
         onSave={handleSaveListing}
+        onCreated={(listingId) => {
+          setListingModalVisible(false);
+          setEditingListing(null);
+          announceSaved(t("common.success") || "Success", t("marketplace.publishedMessage", "Your listing has been published."));
+          pushEntityRoute(router, entityRoutes.listing(listingId), () => showInvalidEntityAlert(t as any));
+        }}
       />
       <Modal visible={themedAlertVisible} transparent animationType="fade">
         <View style={styles.themedAlertOverlay}>
@@ -2921,14 +2951,19 @@ currentUserId={businessDetail?.business?.business_id}
                 status: jobForm.status || "published",
                 cover_focal_point: (jobForm as any).cover_focal_point || undefined,
               };
+              let savedJobId: string | null = null;
               if (editingJobId) {
                 await updateJob(sessionToken, editingJobId, jobData);
+                savedJobId = editingJobId;
               } else {
-                await createJob(sessionToken, jobData);
+                const created = await createJob(sessionToken, jobData);
+                savedJobId = created.job_id;
               }
               setJobModalVisible(false);
               setEditingJobId(null);
               setJobForm({ title: "", description: "", cover_image: "", image_urls: [], gallery_images: [], gallery_videos: [], media_items: [], video_url: "", job_type: "", requirements: "", salary_range: "", work_location: "", expires_at: "", status: "published" });
+              announceSaved(t("common.success") || "Success", t("jobs.publishedMessage", "Your job has been published."));
+              if (savedJobId) router.push(`/job/${savedJobId}` as any);
             } catch (error: any) {
               console.error("Failed to save job:", error);
               const msg = error?.detail || error?.message || "";

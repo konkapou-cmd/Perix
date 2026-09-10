@@ -552,6 +552,12 @@ export default function HomeScreen() {
       const newPost = await createPost(sessionToken, finalText.trim() || t("home.sharedAnUpdate"), imageUrl ? null : postImage, null, businessId, actor, postMediaRatio || undefined, taggedUserIds, taggedBusinessId, null, imageUrl, videoUrl, extractedYoutube, extractedSoundcloud, postVideoMuxUploadId);
       setLocalPosts((prev: Post[]) => [newPost, ...prev.filter(p => p.post_id !== newPost.post_id)]);
       setPostText(""); setPostImage(null); setPostVideo(null); setPostVideoMuxUploadId(null); setPostVideoPreview(null); setPostMediaRatio(null); setTaggedUserIds([]); setTagResults([]); setTaggedBusinessId(null); setTaggedBusiness(null); setYoutubeLink(null); setSoundcloudLink(null);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(t("common.success", "Success") + "\n\n" + t("profile.postCreated", "Post created successfully!"));
+      } else {
+        Alert.alert(t("common.success", "Success"), t("profile.postCreated", "Post created successfully!"));
+      }
+      if (newPost?.post_id) router.push(`/post/${newPost.post_id}` as any);
     } catch (e) {
       console.error("[Post] Create post failed:", e);
       Alert.alert(t("common.error"), t("home.postFailed") || "Failed to create post");
