@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   modalSheet: {
     width: "100%",
     minHeight: 120,
-    maxHeight: "70%",
+    maxHeight: "80%",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     overflow: "hidden",
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     width: "90%",
     maxWidth: 480,
     minHeight: 120,
-    maxHeight: "70%",
+    maxHeight: "80%",
     borderRadius: 16,
     marginBottom: 0,
   },
@@ -258,13 +258,13 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   modalList: {
-    flexGrow: 0,
+    flex: 1,
   },
   modalListContent: {
     paddingBottom: 8,
   },
   modalSafeArea: {
-    flexGrow: 0,
+    flex: 1,
   },
   modalOption: {
     flexDirection: "row",

@@ -1091,7 +1091,7 @@ export default function LocatorScreen() {
               <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
-          <ScrollView>
+          <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
             {categoryTarget === "filter" ? (
               <Pressable
                 style={styles.modalItem}
@@ -1137,7 +1137,7 @@ export default function LocatorScreen() {
               <Ionicons name="close" size={22} color={COLORS.textPrimary} />
             </Pressable>
           </View>
-          <ScrollView>
+          <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
             {subcategoryTarget === "filter" && selectedRoot !== "All" ? (
               <Pressable
                 style={styles.modalItem}

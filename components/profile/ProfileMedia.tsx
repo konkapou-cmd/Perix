@@ -15,6 +15,7 @@ import EmptyState from "../shared/EmptyState";
 import MediaThumbnail from "../ui/MediaThumbnail";
 import LazyMediaViewer, { MediaItem as MediaViewerItem } from "../LazyMediaViewer";
 import { Post } from "../../lib/api";
+import { confirmAction } from "../../lib/confirm";
 
 const NUM_COLS = 3;
 const ITEM_GAP = 8;
@@ -128,8 +129,15 @@ export const ProfileMedia: React.FC<ProfileMediaProps> = ({
     setViewerIndex(index);
   };
 
-  const handleDelete = (item: MediaItem, index: number) => {
-    onDeleteItem?.(item.source, item.type, item.uri);
+  const handleDelete = async (item: MediaItem, index: number) => {
+    const ok = await confirmAction({
+      title: t("profile.deleteItem") || "Delete item?",
+      message: t("profile.deleteConfirm") || "Are you sure you want to delete this?",
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (ok) onDeleteItem?.(item.source, item.type, item.uri);
   };
 
   return (
