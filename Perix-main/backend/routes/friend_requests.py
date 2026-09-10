@@ -14,9 +14,11 @@ router = APIRouter(prefix="/friend-requests", tags=["Friend Requests"])
 
 
 class FriendRequestCreate(BaseModel):
-    to_user_id: str
+    to_user_id: Optional[str] = None
     entity_type: str = "user"  # "user" | "business" | "artist"
     entity_id: Optional[str] = None  # Required when entity_type != "user"
+    from_entity_type: Optional[str] = None
+    from_entity_id: Optional[str] = None
 
 
 class FriendRequestResponse(BaseModel):
