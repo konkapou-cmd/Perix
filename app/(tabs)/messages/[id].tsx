@@ -15,13 +15,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
+import { useLocalSearchParams, usePathname, useRouter, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import { Audio } from "expo-av";
 import { useAuth } from "../../../context/AuthContext";
 import { useBadge } from "../../../context/BadgeContext";
+import { useResponsiveLayout } from "../../../hooks/useResponsiveLayout";
 import { useNotifications } from "../../../context/NotificationContext";
 import { useSocket, useSocketEvent } from "../../../context/SocketContext";
 import { 
@@ -167,6 +168,18 @@ export default function ChatScreen() {
   const { refreshUnreadCount } = useBadge();
   const { showLocalNotification } = useNotifications();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
+
+  // Hide the tab bar inside a conversation so it doesn't cover the composer
+  const navigation = useNavigation();
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const parent = navigation.getParent();
+    parent?.setOptions({ tabBarStyle: { display: "none" } } as any);
+    return () => {
+      parent?.setOptions({ tabBarStyle: undefined } as any);
+    };
+  }, [navigation]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -775,7 +788,10 @@ export default function ChatScreen() {
       )}
 
       {!isRecording && (
-        <View style={[styles.inputBar, { paddingBottom: insets.bottom || 8 }]}>
+        <View style={[
+          styles.inputBar,
+          { paddingBottom: Platform.OS === "web" ? (isDesktop ? 12 : 20) : insets.bottom || 8 },
+        ]}>
           <Pressable
             style={styles.mediaButton}
             onPress={() => handlePickMedia("image")}
