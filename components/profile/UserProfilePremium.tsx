@@ -318,18 +318,15 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         onEditCover={handleUpdateCoverPhoto}
         onRepositionCover={() => setShowCoverReposition(true)}
         onCoverPress={() => {
-          const viewerAvatar = (user.profile_photo || user.picture) as string | undefined;
-          const items: { uri: string; type: "image"; id: string }[] = [];
-          if (user.cover_photo) items.push({ uri: user.cover_photo, type: "image", id: "cover" });
-          if (viewerAvatar) items.push({ uri: viewerAvatar, type: "image", id: "avatar" });
-          if (items.length) setCoverViewer({ items, index: 0 });
+          if (user.cover_photo) {
+            setCoverViewer({ items: [{ uri: user.cover_photo, type: "image", id: "cover" }], index: 0 });
+          }
         }}
         onAvatarPress={() => {
           const viewerAvatar = (user.profile_photo || user.picture) as string | undefined;
-          const items: { uri: string; type: "image"; id: string }[] = [];
-          if (user.cover_photo) items.push({ uri: user.cover_photo, type: "image", id: "cover" });
-          if (viewerAvatar) items.push({ uri: viewerAvatar, type: "image", id: "avatar" });
-          if (items.length) setCoverViewer({ items, index: viewerAvatar ? items.length - 1 : 0 });
+          if (viewerAvatar) {
+            setCoverViewer({ items: [{ uri: viewerAvatar, type: "image", id: "avatar" }], index: 0 });
+          }
         }}
         onEditAvatar={handleUpdateProfilePhoto}
         onShare={onShare || handleShare}

@@ -145,6 +145,14 @@ export default function UserProfileScreen() {
     loadFriendStatus();
   }, [loadProfile, loadFriendStatus]);
 
+  const notify = (title: string, message: string) => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   const handleFriendPress = async () => {
     if (!sessionToken || !id) return;
     setFriendActionLoading(true);
@@ -153,7 +161,7 @@ export default function UserProfileScreen() {
         const result = await sendFriendRequest(sessionToken, "user", id);
         setFriendStatus("request_sent");
         if (result.request_id) setFriendRequestId(result.request_id);
-        Alert.alert(t("common.success") || "Success", `Friend request sent to ${profile?.user.name}`);
+        notify(t("common.success") || "Success", `Friend request sent to ${profile?.user.name}`);
       } else if (friendStatus === "request_sent") {
         if (friendRequestId) {
           await cancelFriendRequest(sessionToken, friendRequestId);
@@ -175,18 +183,19 @@ export default function UserProfileScreen() {
           setFriendRequestId(null);
         } catch (error) {
           console.error("Failed to remove friend:", error);
+          notify(t("common.error") || "Error", "Failed to remove friend. Please try again.");
         }
       } else if (friendStatus === "request_received") {
         if (friendRequestId) {
           await acceptFriendRequest(sessionToken, friendRequestId);
           setFriendStatus("friends");
           setFriendRequestId(null);
-          Alert.alert(t("common.success") || "Success", `You are now friends with ${profile?.user.name}`);
+          notify(t("common.success") || "Success", `You are now friends with ${profile?.user.name}`);
         }
       }
     } catch (error) {
       console.error("Friend action failed:", error);
-      Alert.alert(t("common.error") || "Error", "Failed to send friend request. Please try again.");
+      notify(t("common.error") || "Error", "Failed to send friend request. Please try again.");
     } finally {
       setFriendActionLoading(false);
     }

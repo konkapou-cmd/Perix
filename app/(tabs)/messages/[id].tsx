@@ -672,7 +672,7 @@ export default function ChatScreen() {
                       isMine ? styles.myBubble : styles.theirBubble,
                     ]}
                   >
-                    {hasMedia && (
+                    {hasMedia && message.media_type === "image" && (
                       <Image 
                         source={{ uri: message.media_url }} 
                         style={styles.messageImage}

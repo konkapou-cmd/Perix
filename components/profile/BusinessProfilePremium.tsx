@@ -511,18 +511,15 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         coverFocalPoint={detail.business.cover_focal_point}
         onRepositionCover={() => setShowCoverReposition(true)}
         onCoverPress={() => {
-          const viewerLogo = detail.business.logo_image as string | undefined;
-          const items: { uri: string; type: "image"; id: string }[] = [];
-          if (detail.business.cover_image) items.push({ uri: detail.business.cover_image, type: "image", id: "cover" });
-          if (viewerLogo) items.push({ uri: viewerLogo, type: "image", id: "avatar" });
-          if (items.length) setCoverViewer({ items, index: 0 });
+          if (detail.business.cover_image) {
+            setCoverViewer({ items: [{ uri: detail.business.cover_image, type: "image", id: "cover" }], index: 0 });
+          }
         }}
         onAvatarPress={() => {
           const viewerLogo = detail.business.logo_image as string | undefined;
-          const items: { uri: string; type: "image"; id: string }[] = [];
-          if (detail.business.cover_image) items.push({ uri: detail.business.cover_image, type: "image", id: "cover" });
-          if (viewerLogo) items.push({ uri: viewerLogo, type: "image", id: "avatar" });
-          if (items.length) setCoverViewer({ items, index: viewerLogo ? items.length - 1 : 0 });
+          if (viewerLogo) {
+            setCoverViewer({ items: [{ uri: viewerLogo, type: "image", id: "avatar" }], index: 0 });
+          }
         }}
         avatarUri={detail.business.logo_image}
         avatarInitial={detail.business.name?.charAt(0)?.toUpperCase() || "B"}

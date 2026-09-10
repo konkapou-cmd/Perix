@@ -148,6 +148,7 @@ export type ChatMessage = {
   text: string;
   created_at: string;
   media_url?: string | null;
+  media_type?: "image" | "video" | "audio" | null;
   author?: { name: string } | null;
 };
 
