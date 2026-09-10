@@ -112,7 +112,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           {/* Language Selector */}
@@ -121,12 +121,16 @@ export default function RegisterScreen() {
             onPress={() => setLanguageModalVisible(true)}
             data-testid="language-selector-register"
           >
-            <Ionicons name="globe-outline" size={18} color={COLORS.primaryDark} />
+            <Ionicons name="globe-outline" size={18} color="#59ABE3" />
             <Text style={styles.languageSelectorText}>{currentLanguage.nativeName}</Text>
-            <Ionicons name="chevron-down" size={16} color="#6b7280" />
+            <Ionicons name="chevron-down" size={16} color="#264348" />
           </Pressable>
 
           <View style={styles.formCard}>
+            <View style={styles.brandWrap}>
+              <Text style={styles.brandTitle}>Perıx</Text>
+              <Ionicons name="sunny" size={12} color="#FFC93C" style={styles.brandSun} />
+            </View>
             <Text style={styles.sectionTitle}>{t("auth.createAccount")}</Text>
             <Text style={styles.subtitle}>{t("brand.subtitle")}</Text>
 
@@ -137,7 +141,7 @@ export default function RegisterScreen() {
                 style={[styles.roleCard, role === "user" && styles.roleCardActive]}
                 onPress={() => setRole("user")}
               >
-                <Ionicons name="person" size={24} color={role === "user" ? "#fff" : "#000"} />
+                <Ionicons name="person" size={24} color={role === "user" ? "#fff" : "#264348"} />
                 <Text style={[styles.roleLabel, role === "user" && styles.roleLabelActive]}>
                   {t("auth.individual", "Individual")}
                 </Text>
@@ -146,7 +150,7 @@ export default function RegisterScreen() {
                 style={[styles.roleCard, role === "business" && styles.roleCardActive]}
                 onPress={() => setRole("business")}
               >
-                <Ionicons name="business" size={24} color={role === "business" ? "#fff" : "#000"} />
+                <Ionicons name="business" size={24} color={role === "business" ? "#fff" : "#264348"} />
                 <Text style={[styles.roleLabel, role === "business" && styles.roleLabelActive]}>
                   {t("auth.business", "Business")}
                 </Text>
@@ -156,7 +160,7 @@ export default function RegisterScreen() {
             {role === "business" && (
               <>
                 <View style={styles.inputRow}>
-                  <Ionicons name="business-outline" size={20} color="#6b7280" />
+                  <Ionicons name="business-outline" size={20} color="#264348" />
                   <TextInput
                     value={businessName}
                     onChangeText={setBusinessName}
@@ -168,7 +172,7 @@ export default function RegisterScreen() {
                   style={styles.inputRow}
                   onPress={() => { setPickerStep("root"); setSelectedRoot(null); setCategoryPickerVisible(true); }}
                 >
-                  <Ionicons name="grid-outline" size={20} color="#6b7280" />
+                  <Ionicons name="grid-outline" size={20} color="#264348" />
                   <Text style={[styles.input, !rootCategory && { color: "#9ca3af" }]} numberOfLines={1}>
                     {rootCategory
                       ? categories.find((c) => c.slug === rootCategory)?.name || rootCategory
@@ -185,7 +189,7 @@ export default function RegisterScreen() {
                     }
                   }}
                 >
-                  <Ionicons name="options-outline" size={20} color="#6b7280" />
+                  <Ionicons name="options-outline" size={20} color="#264348" />
                   <Text style={[styles.input, !subcategory && { color: "#9ca3af" }]} numberOfLines={1}>
                     {subcategory
                       ? (() => {
@@ -203,7 +207,7 @@ export default function RegisterScreen() {
 
             <View style={styles.nameRow}>
               <View style={[styles.inputRow, styles.nameInput]}>
-                <Ionicons name="person-outline" size={20} color="#6b7280" />
+                <Ionicons name="person-outline" size={20} color="#264348" />
                 <TextInput
                   value={firstName}
                   onChangeText={(value) => {
@@ -217,7 +221,7 @@ export default function RegisterScreen() {
                 />
               </View>
               <View style={[styles.inputRow, styles.nameInput]}>
-                <Ionicons name="person-outline" size={20} color="#6b7280" />
+                <Ionicons name="person-outline" size={20} color="#264348" />
                 <TextInput
                   value={lastName}
                   onChangeText={(value) => {
@@ -232,7 +236,7 @@ export default function RegisterScreen() {
               </View>
             </View>
             <View style={styles.inputRow}>
-              <Ionicons name="mail-outline" size={20} color="#6b7280" />
+              <Ionicons name="mail-outline" size={20} color="#264348" />
               <TextInput
                 value={email}
                 onChangeText={(value) => {
@@ -248,7 +252,7 @@ export default function RegisterScreen() {
               />
             </View>
             <View style={styles.inputRow}>
-              <Ionicons name="lock-closed-outline" size={20} color="#6b7280" />
+              <Ionicons name="lock-closed-outline" size={20} color="#264348" />
               <TextInput
                 value={password}
                 onChangeText={(value) => {
@@ -438,28 +442,48 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 24,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#ffffff",
     justifyContent: "center",
   },
   formCard: {
     backgroundColor: "#ffffff",
     borderRadius: 18,
     padding: 20,
-    shadowColor: COLORS.textPrimary,
+    shadowColor: "#264348",
     shadowOpacity: 0.08,
     shadowRadius: 18,
     elevation: 4,
   },
+  brandWrap: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  brandSun: {
+    position: "absolute",
+    right: 40,
+    top: 0,
+  },
+  brandTitle: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: "#096BFF",
+    letterSpacing: -0.8,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: COLORS.textPrimary,
+    color: "#264348",
+    textAlign: "center",
   },
   subtitle: {
     marginTop: 6,
     fontSize: 14,
-    color: "#6b7280",
+    color: "#264348",
     marginBottom: 18,
+    textAlign: "center",
   },
   nameRow: {
     flexDirection: "row",
@@ -484,11 +508,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.textPrimary,
+    color: "#264348",
     ...Platform.select({ web: { pointerEvents: "auto" } }),
   },
   primaryButton: {
-    backgroundColor: COLORS.primaryDark,
+    backgroundColor: "#59ABE3",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -506,10 +530,10 @@ const styles = StyleSheet.create({
   footerText: {
     textAlign: "center",
     marginTop: 16,
-    color: "#6b7280",
+    color: "#264348",
   },
   footerLink: {
-    color: COLORS.primaryDark,
+    color: "#59ABE3",
     fontWeight: "600",
   },
   errorText: {
@@ -524,12 +548,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#eef2ff",
+    backgroundColor: "rgba(89,171,227,0.12)",
     borderRadius: 20,
     marginBottom: 20,
   },
   languageSelectorText: {
-    color: COLORS.primaryDark,
+    color: "#59ABE3",
     fontWeight: "600",
     fontSize: 14,
   },
@@ -568,16 +592,16 @@ const styles = StyleSheet.create({
   },
   languageOptionText: {
     fontSize: 16,
-    color: "#374151",
+    color: "#264348",
   },
   languageOptionTextSelected: {
-    color: COLORS.primaryDark,
+    color: "#59ABE3",
     fontWeight: "600",
   },
   fieldLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
+    color: "#264348",
     marginBottom: 8,
     marginTop: 16,
   },
@@ -598,13 +622,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSoft,
   },
   roleCardActive: {
-    backgroundColor: COLORS.primaryDark,
-    borderColor: COLORS.primaryDark,
+    backgroundColor: "#59ABE3",
+    borderColor: "#59ABE3",
   },
   roleLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: COLORS.primaryDark,
+    color: "#264348",
   },
   roleLabelActive: {
     color: "#ffffff",
