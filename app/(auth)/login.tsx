@@ -63,7 +63,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           contentContainerStyle={styles.container}
@@ -76,24 +76,23 @@ export default function LoginScreen() {
               onPress={() => setLanguageModalVisible(true)}
               data-testid="language-selector"
             >
-              <Ionicons name="globe-outline" size={18} color={COLORS.primaryDark} />
+              <Ionicons name="globe-outline" size={18} color="#59ABE3" />
               <Text style={styles.languageSelectorText}>{currentLanguage.nativeName}</Text>
-              <Ionicons name="chevron-down" size={16} color="#6b7280" />
+              <Ionicons name="chevron-down" size={16} color="#264348" />
             </Pressable>
 
             <View style={styles.logoCard}>
-              <Image
-                source={require("../../assets/images/prx-adaptive-icon.png")}
-                style={styles.logo}
-              />
-              <Text style={styles.brandTitle}>{t("brand.title")}</Text>
+              <View style={styles.brandWrap}>
+                <Text style={styles.brandTitle}>Perıx</Text>
+                <Ionicons name="sunny" size={14} color="#FFC93C" style={styles.brandSun} />
+              </View>
               <Text style={styles.subtitle}>{t("brand.subtitle")}</Text>
             </View>
 
           <View style={styles.formCard}>
           <Text style={styles.sectionTitle}>{t("auth.signInTitle")}</Text>
           <View style={styles.inputRow}>
-            <Ionicons name="mail-outline" size={20} color="#6b7280" />
+            <Ionicons name="mail-outline" size={20} color="#264348" />
             <TextInput
               value={email}
               onChangeText={(value) => {
@@ -109,7 +108,7 @@ export default function LoginScreen() {
             />
           </View>
           <View style={styles.inputRow}>
-            <Ionicons name="lock-closed-outline" size={20} color="#6b7280" />
+            <Ionicons name="lock-closed-outline" size={20} color="#264348" />
             <TextInput
               value={password}
               onChangeText={(value) => {
@@ -194,7 +193,7 @@ export default function LoginScreen() {
                     {lang.nativeName}
                   </Text>
                   {i18n.language === lang.code && (
-                    <Ionicons name="checkmark" size={20} color={COLORS.primaryDark} />
+                    <Ionicons name="checkmark" size={20} color="#59ABE3" />
                   )}
                 </Pressable>
               ))}
@@ -211,7 +210,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingVertical: 24,
     paddingHorizontal: 24,
-    backgroundColor: COLORS.backgroundPage,
+    backgroundColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -228,21 +227,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 32,
   },
-  logo: {
-    width: 140,
-    height: 140,
+  brandWrap: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 8,
-    borderRadius: 70,
+  },
+  brandSun: {
+    position: "absolute",
+    right: 16,
+    top: 0,
   },
   brandTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
+    fontSize: 44,
+    fontWeight: "800",
+    color: "#096BFF",
+    letterSpacing: -1,
   },
   subtitle: {
     marginTop: 6,
     fontSize: 14,
-    color: "#6b7280",
+    color: "#264348",
   },
   formCard: {
     backgroundColor: "#ffffff",
@@ -256,7 +261,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: COLORS.textPrimary,
+    color: "#264348",
     marginBottom: 16,
   },
   inputRow: {
@@ -273,11 +278,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.textPrimary,
+    color: "#264348",
     ...Platform.select({ web: { pointerEvents: "auto" } }),
   },
   primaryButton: {
-    backgroundColor: COLORS.primaryDark,
+    backgroundColor: "#59ABE3",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -300,10 +305,10 @@ const styles = StyleSheet.create({
   footerText: {
     textAlign: "center",
     marginTop: 16,
-    color: "#6b7280",
+    color: "#264348",
   },
   footerLink: {
-    color: COLORS.primaryDark,
+    color: "#59ABE3",
     fontWeight: "600",
   },
   languageSelector: {
@@ -313,12 +318,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#eef2ff",
+    backgroundColor: "rgba(89,171,227,0.12)",
     borderRadius: 20,
     marginBottom: 20,
   },
   languageSelectorText: {
-    color: COLORS.primaryDark,
+    color: "#59ABE3",
     fontWeight: "600",
     fontSize: 14,
   },
@@ -357,10 +362,10 @@ const styles = StyleSheet.create({
   },
   languageOptionText: {
     fontSize: 16,
-    color: "#374151",
+    color: "#264348",
   },
   languageOptionTextSelected: {
-    color: COLORS.primaryDark,
+    color: "#59ABE3",
     fontWeight: "600",
   },
   securedByContainer: {
@@ -384,7 +389,7 @@ const styles = StyleSheet.create({
   },
   forgotLink: {
     textAlign: "center",
-    color: COLORS.primary,
+    color: "#59ABE3",
     fontSize: 14,
     fontWeight: "500",
     marginTop: 16,
