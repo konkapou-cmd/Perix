@@ -411,6 +411,10 @@ export default function EventDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
+          <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
+            <Text style={styles.backText}>{t("common.back")}</Text>
+          </Pressable>
           <ContentHero
             coverImageUrl={event.cover_image_url}
             videoUrl={event.video_url}
@@ -618,6 +622,19 @@ const styles = StyleSheet.create({
   errorText: { fontSize: FONT_SIZES.body, color: COLORS.textSecondary, marginTop: SPACING.compact, marginBottom: SPACING.section },
   backButton: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: BORDER_RADIUS.md },
   backButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "700" },
+  backButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignSelf: "flex-start",
+  },
+  backText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.primaryDark,
+  },
   description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
   taggedArtistsRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.gap, marginTop: SPACING.small },
   taggedArtistCard: {

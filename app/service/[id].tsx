@@ -297,6 +297,10 @@ export default function ServiceDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
+          <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
+            <Text style={styles.backText}>{t("common.back")}</Text>
+          </Pressable>
           <ContentHero
             coverImageUrl={service.cover_image_url}
             videoUrl={service.video_url}
@@ -515,6 +519,19 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 60 },
   backButton: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: BORDER_RADIUS.md, alignSelf: "center", marginTop: SPACING.section },
   backButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "700" },
+  backButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignSelf: "flex-start",
+  },
+  backText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.primaryDark,
+  },
   plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.std },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
   description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },

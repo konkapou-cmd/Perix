@@ -195,6 +195,10 @@ export default function JobDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
+          <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
+            <Text style={styles.backText}>{t("common.back")}</Text>
+          </Pressable>
           <ContentHero
             coverImageUrl={job.cover_image}
             videoUrl={job.video_url}
@@ -380,6 +384,14 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 16 },
   notFoundBack: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.small },
   backText: { fontSize: FONT_SIZES.body, color: JOBS_ACCENT, marginLeft: 4 },
+  backButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignSelf: "flex-start",
+  },
   businessRow: {
     flexDirection: "row", alignItems: "center", gap: SPACING.small,
     backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.card,

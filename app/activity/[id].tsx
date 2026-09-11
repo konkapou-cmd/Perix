@@ -291,6 +291,10 @@ export default function ActivityDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
+          <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
+            <Text style={styles.backText}>{t("common.back")}</Text>
+          </Pressable>
           <ContentHero
             coverImageUrl={activity.cover_image_url}
             videoUrl={activity.video_url}
@@ -477,6 +481,19 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
   backButton: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: BORDER_RADIUS.md },
   backButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "700" },
+  backButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignSelf: "flex-start",
+  },
+  backText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.primaryDark,
+  },
   descriptionText: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
   themedAlertOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: SPACING.section },
   themedAlertContainer: { backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.xl, padding: SPACING.page, width: "100%", maxWidth: 320, alignItems: "center" },

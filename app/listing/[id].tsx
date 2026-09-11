@@ -141,6 +141,10 @@ export default function ListingDetailScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView style={styles.pageLimit} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <Pressable style={styles.backRow} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color="#264348" />
+          <Text style={styles.backRowText}>{t("common.back")}</Text>
+        </Pressable>
         <View style={styles.heroWrap}>
           <ContentHero
             coverImageUrl={listing.cover_image_url}
@@ -369,6 +373,19 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: FONT_SIZES.body, fontWeight: "600", color: COLORS.textPrimary, flex: 1, marginLeft: SPACING.small },
   body: { paddingBottom: 60 },
+  backRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: 10,
+    alignSelf: "flex-start",
+  },
+  backRowText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#264348",
+  },
   heroWrap: { position: "relative" },
   plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.std },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
