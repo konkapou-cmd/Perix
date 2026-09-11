@@ -16,11 +16,13 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
+import { Audio } from "expo-av";
 import { ChatMessage } from "../../lib/api/core";
 import { uploadMedia } from "../../lib/api";
 import { MEDIA_LIMITS } from "../../lib/constants/mediaLimits";
 import { useAuth } from "../../context/AuthContext";
 import { COLORS, BORDER_RADIUS, SHADOWS, SPACING, FONT_SIZES, FONT_WEIGHTS } from "../../lib/designTokens";
+import AdaptiveVideo from "../AdaptiveVideo";
 
 type Props = {
   title: string;
@@ -40,6 +42,58 @@ type Props = {
   chatId?: string;
   flush?: boolean;
 };
+
+function ChatVoiceBubble({ uri, isMe, themeColor }: { uri: string; isMe: boolean; themeColor: string }) {
+  const soundRef = useRef<any>(null);
+  const [playing, setPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const playSound = async () => {
+    try {
+      if (playing && soundRef.current) {
+        await soundRef.current.stopAsync();
+        setPlaying(false);
+        setPosition(0);
+        return;
+      }
+      const { sound } = await Audio.Sound.createAsync({ uri });
+      soundRef.current = sound;
+      sound.setOnPlaybackStatusUpdate((status: any) => {
+        if (status.isLoaded) {
+          setDuration(status.durationMillis / 1000);
+          setPosition(status.positionMillis / 1000);
+          if (status.didJustFinish) {
+            setPlaying(false);
+            setPosition(0);
+          }
+        }
+      });
+      await sound.playAsync();
+      setPlaying(true);
+    } catch (e) {
+      console.warn("Voice playback failed:", e);
+    }
+  };
+
+  useEffect(() => {
+    return () => { soundRef.current?.unloadAsync(); };
+  }, []);
+
+  const fmtTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
+
+  return (
+    <Pressable
+      style={[styles.voiceBubble, isMe && { backgroundColor: themeColor }]}
+      onPress={playSound}
+    >
+      <Ionicons name={playing ? "pause" : "play"} size={16} color={isMe ? "#fff" : "#264348"} />
+      <Text style={[styles.voiceDuration, isMe && { color: "#fff" }]}>
+        {fmtTime(duration || position)}
+      </Text>
+    </Pressable>
+  );
+}
 
 export default function ChatSection({
   title,
@@ -191,7 +245,7 @@ export default function ChatSection({
                         </Text>
                       </Pressable>
                     )}
-                    {msg.media_url && (
+                    {msg.media_url && msg.media_type === "image" && (
                       <View style={styles.chatMediaContainer}>
                         <Image 
                           source={{ uri: msg.media_url }} 
@@ -200,6 +254,19 @@ export default function ChatSection({
                           onError={() => console.log("[ChatSection] Image load failed:", msg.media_url)}
                         />
                       </View>
+                    )}
+                    {msg.media_url && msg.media_type === "video" && (
+                      <View style={styles.chatMediaContainer}>
+                        <AdaptiveVideo
+                          uri={msg.media_url}
+                          style={styles.chatMediaImage}
+                          useNativeControls
+                          isLooping={false}
+                        />
+                      </View>
+                    )}
+                    {msg.media_url && msg.media_type === "audio" && (
+                      <ChatVoiceBubble uri={msg.media_url} isMe={isMe} themeColor={themeColor} />
                     )}
                     {msg.text && (
                       isMe ? (
@@ -511,5 +578,20 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     minWidth: 200,
     minHeight: 150,
+  },
+  voiceBubble: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#eef2f7",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: SPACING.tiny,
+  },
+  voiceDuration: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#264348",
   },
 });
