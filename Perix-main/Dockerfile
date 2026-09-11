@@ -11,5 +11,5 @@ COPY backend/ ./
 # Expose port
 EXPOSE 8000
 
-# Start command
-CMD uvicorn server:app --host 0.0.0.0 --port $PORT
+# Start command (shell form so $PORT expands; fallback to 8000)
+CMD uvicorn server:app --host 0.0.0.0 --port ${PORT:-8000}
