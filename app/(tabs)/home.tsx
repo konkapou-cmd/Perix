@@ -289,7 +289,7 @@ export default function HomeScreen() {
       const { getHomeFeed } = await import("../../lib/api");
       const moreFeedData = await getHomeFeed(sessionToken, undefined, undefined, {
         minLat: mapBounds.minLat, maxLat: mapBounds.maxLat, minLng: mapBounds.minLng, maxLng: mapBounds.maxLng,
-      }, posts.length);
+      }, posts.length, feedMode === "following", (homeLayout?.favoriteCategories?.length ?? 0) > 0 ? homeLayout.favoriteCategories : undefined);
       if (moreFeedData.posts.length === 0) {
         setHasMorePosts(false);
       } else {

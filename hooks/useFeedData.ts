@@ -122,7 +122,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
     try {
       const feedPromise = getHomeFeed(sessionToken ?? "", undefined, undefined, {
         minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng,
-      }, undefined, (paramsRef.current as any).friendsOnly);
+      }, undefined, (paramsRef.current as any).friendsOnly, (paramsRef.current as any).favoriteCategories);
       const eventsPromise = getEvents(sessionToken ?? "", undefined, undefined, bounds);
       const activitiesPromise = getActivities(sessionToken ?? "", bounds);
       const bizCat = (favoriteCategories && favoriteCategories.length > 0) ? favoriteCategories[0] : undefined;
