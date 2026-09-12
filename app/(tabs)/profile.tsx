@@ -24,7 +24,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
 import { useAuth } from "../../context/AuthContext";
-import { translateCategory } from "../../lib/categoryTranslation";
+import { translateCategory, sortCategoriesByLabel } from "../../lib/categoryTranslation";
 import { SkeletonBox } from "../../components/shared";
 import { COLORS } from "../../lib/designTokens";
 import { confirmAction } from "../../lib/confirm";
@@ -3287,7 +3287,7 @@ currentUserId={businessDetail?.business?.business_id}
                 </Pressable>
               </View>
               <ScrollView>
-                {categoryTree.map((category) => (
+                {sortCategoriesByLabel(categoryTree, t).map((category) => (
                   <Pressable
                     key={category.slug}
                     style={styles.modalItem}
@@ -3330,7 +3330,7 @@ currentUserId={businessDetail?.business?.business_id}
                 </Pressable>
               </View>
               <ScrollView>
-                {getSubcategories(categoryTree, bizEditForm.root_category).map((sub) => {
+                {sortCategoriesByLabel(getSubcategories(categoryTree, bizEditForm.root_category), t).map((sub) => {
                   const active = bizSubcategories.includes(sub.slug);
                   return (
                     <Pressable
@@ -3394,7 +3394,7 @@ currentUserId={businessDetail?.business?.business_id}
           <ScrollView contentContainerStyle={{ padding: 16 }} style={{ flex: 1 }}>
             <Text style={{ fontSize: 14, color: "#6b7280", marginBottom: 16 }}>{t("business.selectRootHint", "Select a business category")}</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-              {categoryTree.map((cat) => (
+              {sortCategoriesByLabel(categoryTree, t).map((cat) => (
                 <Pressable
                   key={cat.slug}
                   style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#f3f4f6", borderWidth: 1, borderColor: pickerRoot === cat.slug ? COLORS.textPrimary : "#e5e7eb" }}
@@ -3413,7 +3413,7 @@ currentUserId={businessDetail?.business?.business_id}
               <>
                 <Text style={{ fontSize: 14, color: "#6b7280", marginBottom: 12 }}>{t("business.selectSubHint", "Select one or more subcategories")}</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 20 }}>
-                  {getSubcategories(categoryTree, pickerRoot).map((sub) => {
+                  {sortCategoriesByLabel(getSubcategories(categoryTree, pickerRoot), t).map((sub) => {
                     const active = pickerSubs.includes(sub.slug);
                     return (
                     <Pressable

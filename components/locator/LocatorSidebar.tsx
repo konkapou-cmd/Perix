@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
 import { CategoryGroup } from "../../lib/api";
 import { CATEGORY_ICONS, subcategoryIcon, CATEGORY_COLORS, subcategoryColor } from "../../lib/categoryIcons";
+import { sortCategoriesByLabel } from "../../lib/categoryTranslation";
 
 type Props = {
   categories: CategoryGroup[];
@@ -103,7 +104,7 @@ export default function LocatorSidebar({
             {t("locator.allCategories", "All Categories")}
           </Text>
         </Pressable>
-        {categories.map((cat) => {
+        {sortCategoriesByLabel(categories, t).map((cat) => {
           const isExpanded = selectedRoot === cat.slug;
           const hasGroups = cat.groups && cat.groups.length > 0;
           const hasSubs = (cat.subcategories && cat.subcategories.length > 0) || hasGroups;
@@ -156,7 +157,7 @@ export default function LocatorSidebar({
                     <View key={group.slug}>
                       <Text style={styles.groupHeader}>{label(group.slug, group.name)}</Text>
                       <View style={styles.subList}>
-                        {group.subcategories.map((sub) => {
+                        {sortCategoriesByLabel(group.subcategories, t).map((sub) => {
                           const isSubActive = selectedSubcategory === sub.slug;
                           return (
                             <Pressable
@@ -182,7 +183,7 @@ export default function LocatorSidebar({
                 </View>
               ) : isExpanded && hasSubs ? (
                   <View style={styles.subList}>
-                    {allSubs.map((sub) => {
+                    {sortCategoriesByLabel(allSubs, t).map((sub) => {
                       const isSubActive = selectedSubcategory === sub.slug;
                       return (
                         <Pressable

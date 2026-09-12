@@ -21,6 +21,7 @@ import { LANGUAGES, setStoredLanguage } from "../../i18n";
 import { COLORS } from "../../lib/designTokens";
 import { apiRequest, CategoryGroup } from "../../lib/api";
 import CityAutocompleteInput from "../../components/CityAutocompleteInput";
+import { translateCategory, sortCategoriesByLabel } from "../../lib/categoryTranslation";
 
 export default function RegisterScreen() {
   const { t, i18n } = useTranslation();
@@ -178,7 +179,7 @@ export default function RegisterScreen() {
                   <Ionicons name="grid-outline" size={20} color="#264348" />
                   <Text style={[styles.input, !rootCategory && { color: "#9ca3af" }]} numberOfLines={1}>
                     {rootCategory
-                      ? categories.find((c) => c.slug === rootCategory)?.name || rootCategory
+                      ? translateCategory(rootCategory, t)
                       : t("auth.selectCategory", "Select Category")}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color="#264348" />
@@ -199,7 +200,7 @@ export default function RegisterScreen() {
                           const rc = categories.find((c) => c.slug === rootCategory);
                           if (!rc) return subcategory;
                           const subs = getSubsForRoot(rc);
-                          return subs.find((s) => s.slug === subcategory)?.name || subcategory;
+                          return translateCategory(subcategory, t);
                         })()
                       : t("auth.selectSubcategory", "Select Subcategory")}
                   </Text>
@@ -368,7 +369,7 @@ export default function RegisterScreen() {
               </Text>
               {pickerStep === "root" ? (
                 <ScrollView style={{ maxHeight: 400 }}>
-                  {categories.map((cat) => (
+                  {sortCategoriesByLabel(categories, t).map((cat) => (
                     <Pressable
                       key={cat.slug}
                       style={[
@@ -388,7 +389,7 @@ export default function RegisterScreen() {
                           rootCategory === cat.slug && styles.languageOptionTextSelected,
                         ]}
                       >
-                        {cat.name}
+                        {translateCategory(cat.slug, t)}
                       </Text>
                       {rootCategory === cat.slug && (
                         <Ionicons name="checkmark" size={20} color={COLORS.primaryDark} />
@@ -399,7 +400,7 @@ export default function RegisterScreen() {
                 </ScrollView>
               ) : (
                 <ScrollView style={{ maxHeight: 400 }}>
-                  {getSubsForRoot(selectedRoot!).map((sub) => (
+                  {sortCategoriesByLabel(getSubsForRoot(selectedRoot!), t).map((sub) => (
                     <Pressable
                       key={sub.slug}
                       style={[
@@ -417,7 +418,7 @@ export default function RegisterScreen() {
                           subcategory === sub.slug && styles.languageOptionTextSelected,
                         ]}
                       >
-                        {sub.name}
+                        {translateCategory(sub.slug, t)}
                       </Text>
                       {subcategory === sub.slug && (
                         <Ionicons name="checkmark" size={20} color={COLORS.primaryDark} />

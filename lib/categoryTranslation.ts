@@ -1,4 +1,5 @@
 import { TFunction } from "i18next";
+import i18n from "../i18n";
 
 /**
  * Translates a category or subcategory slug to the localized name.
@@ -85,4 +86,21 @@ export const optionLabel = (option: string | null | undefined, t: TFunction): st
   const key = `services.option.${option}`;
   const translated = t(key);
   return translated && translated !== key ? translated : pretty;
+};
+
+/**
+ * Sorts categories/subcategories alphabetically by their translated label,
+ * using the currently active language's collation.
+ */
+export const sortCategoriesByLabel = <T extends { slug: string }>(
+  items: T[],
+  t: TFunction
+): T[] => {
+  if (!items || items.length === 0) return items;
+  const lang = i18n.language || "en";
+  return [...items].sort((a, b) => {
+    const labelA = translateCategory(a.slug, t);
+    const labelB = translateCategory(b.slug, t);
+    return labelA.localeCompare(labelB, lang, { sensitivity: "base", numeric: true });
+  });
 };
