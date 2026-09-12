@@ -170,6 +170,26 @@ async def mux_hls_proxy(path: str, request: Request):
 
 if WEB_DIST.exists():
     app.mount("/_expo", StaticFiles(directory=WEB_DIST / "_expo"), name="web-expo")
+
+    # Font fallback: deploy pipelines sometimes strip node_modules paths from
+    # the web build. Serve the font files from a plain directory so icons and
+    # brand fonts always load. Routes must be declared BEFORE the /assets mount.
+    FONT_DIR = Path(__file__).parent / "static_fonts"
+
+    @app.get("/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/{filename}", include_in_schema=False)
+    async def icon_font_file(filename: str):
+        p = FONT_DIR / "icons" / filename
+        if p.exists():
+            return FileResponse(p, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+        raise HTTPException(status_code=404, detail="Font not found")
+
+    @app.get("/assets/node_modules/@expo-google-fonts/quicksand/{weight}/{filename}", include_in_schema=False)
+    async def quicksand_font_file(weight: str, filename: str):
+        p = FONT_DIR / "quicksand" / weight / filename
+        if p.exists():
+            return FileResponse(p, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+        raise HTTPException(status_code=404, detail="Font not found")
+
     app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="web-assets")
 
     @app.get("/favicon.ico", include_in_schema=False)
