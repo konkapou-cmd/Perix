@@ -180,14 +180,14 @@ if WEB_DIST.exists():
     async def icon_font_file(filename: str):
         p = FONT_DIR / "icons" / filename
         if p.exists():
-            return FileResponse(p, media_type="font/ttf", headers={"Cache-Control": "public, max-age=31536000, immutable"})
+            return FileResponse(p, media_type="font/ttf", headers={"Cache-Control": "public, max-age=3600"})
         raise HTTPException(status_code=404, detail="Font not found")
 
     @app.get("/assets/node_modules/@expo-google-fonts/quicksand/{weight}/{filename}", include_in_schema=False)
     async def quicksand_font_file(weight: str, filename: str):
         p = FONT_DIR / "quicksand" / weight / filename
         if p.exists():
-            return FileResponse(p, media_type="font/ttf", headers={"Cache-Control": "public, max-age=31536000, immutable"})
+            return FileResponse(p, media_type="font/ttf", headers={"Cache-Control": "public, max-age=3600"})
         raise HTTPException(status_code=404, detail="Font not found")
 
     app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="web-assets")
