@@ -70,8 +70,14 @@ function WebErrorOverlay({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (Platform.OS !== "web") return;
+    const isNonFatal = (msg: string) => {
+      // Font/icon-font asset loads can fail (e.g. during deploys) — treat as
+      // non-fatal: the app still works with system fonts.
+      return msg === "A network error occurred." || msg === "network error occurred";
+    };
     const onErr = (ev: any) => {
       const msg = ev?.message || ev?.reason?.message || (typeof ev?.reason === "string" ? ev.reason : "") || "Unknown error";
+      if (typeof msg === "string" && isNonFatal(msg)) return;
       const stack = ev?.error?.stack || ev?.reason?.stack || "";
       setError((prev) => prev || String(msg) + (stack ? "\n\n" + stack.split("\n").slice(0, 10).join("\n") : ""));
     };
