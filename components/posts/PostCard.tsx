@@ -14,6 +14,7 @@ import PostHeader from "./PostHeader";
 import PostMedia from "./PostMedia";
 import PostActions from "./PostActions";
 import PostCommentsRow from "./PostCommentsRow";
+import ReportModal from "../ReportModal";
 
 export interface PostCardProps {
   post: Post;
@@ -61,6 +62,7 @@ export function PostCard({
   const router = useRouter();
   const { t } = useTranslation();
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const skipCardNav = useRef(false);
 
   const displayName = post.actor_name || post.author?.name || "User";
@@ -158,6 +160,12 @@ export function PostCard({
     </>
   ) : undefined;
 
+  const reportSlot = !canEdit && !canDelete ? (
+    <Pressable onPress={() => preventCardNav(() => setReportOpen(true))} hitSlop={6}>
+      <Ionicons name="flag-outline" size={18} color="#9ca3af" />
+    </Pressable>
+  ) : null;
+
   return (
     <Pressable style={styles.card} onPress={handleCardPress}>
       <PostHeader
@@ -166,6 +174,7 @@ export function PostCard({
         formattedDate={formatDate(post.created_at)}
         onAuthorPress={handleAuthorPress}
         editSlot={editSlot}
+        reportSlot={reportSlot}
       />
 
       {post.text && (
@@ -211,6 +220,14 @@ export function PostCard({
         onComment={handleComment}
         onShare={handleShare}
         onSave={handleSave}
+      />
+
+      <ReportModal
+        visible={reportOpen}
+        targetType="post"
+        targetId={post.post_id}
+        sessionToken={sessionToken}
+        onClose={() => setReportOpen(false)}
       />
 
       <PostCommentsRow

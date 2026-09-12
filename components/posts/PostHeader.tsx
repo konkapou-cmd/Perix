@@ -10,9 +10,10 @@ interface PostHeaderProps {
   formattedDate: string;
   onAuthorPress?: () => void;
   editSlot?: React.ReactNode;
+  reportSlot?: React.ReactNode;
 }
 
-export default function PostHeader({ actorName, actorAvatar, formattedDate, onAuthorPress, editSlot }: PostHeaderProps) {
+export default function PostHeader({ actorName, actorAvatar, formattedDate, onAuthorPress, editSlot, reportSlot }: PostHeaderProps) {
   return (
     <View style={styles.container}>
       <Pressable
@@ -34,7 +35,10 @@ export default function PostHeader({ actorName, actorAvatar, formattedDate, onAu
           <Text style={styles.time}>{formattedDate}</Text>
         </View>
       </Pressable>
-      {editSlot && <View style={styles.editSlot}>{editSlot}</View>}
+      <View style={styles.editSlot}>
+        {reportSlot}
+        {editSlot}
+      </View>
     </View>
   );
 }
