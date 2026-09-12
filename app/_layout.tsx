@@ -28,6 +28,26 @@ import { UploadProvider } from "../context/UploadContext";
 
 applyDefaultFontFamily("Quicksand_400Regular");
 
+// Font gate: only load the Google fonts on native. On web, font loading is
+// skipped entirely (system fonts) so a missing/failing font asset can never
+// crash the web app (unhandled NetworkError from expo-font).
+function NativeFontGate({ children }: { children: React.ReactNode }) {
+  const [fontsLoaded] = useFonts({
+    Quicksand_400Regular,
+    Quicksand_500Medium,
+    Quicksand_600SemiBold,
+    Quicksand_700Bold,
+  });
+  if (!fontsLoaded) return null;
+  return <>{children}</>;
+}
+
+function WebFontGate({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
+const AppFontGate = Platform.OS === "web" ? WebFontGate : NativeFontGate;
+
 class RootErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: string | null }> {
   state = { error: null as string | null };
   static getDerivedStateFromError(e: any) {
@@ -315,14 +335,6 @@ function PushNotificationManager() {
 }
 
 export default function RootLayout() {
-  // Load app-wide fonts
-  const [fontsLoaded] = useFonts({
-    Quicksand_400Regular,
-    Quicksand_500Medium,
-    Quicksand_600SemiBold,
-    Quicksand_700Bold,
-  });
-
   // Initialize notification channels on app start
   useEffect(() => {
     try {
@@ -332,11 +344,8 @@ export default function RootLayout() {
     }
   }, []);
 
-  // On web, never block rendering on font loading — expo-font can hang there
-  // and would leave a white screen. Fall back to system fonts if needed.
-  if (!fontsLoaded && Platform.OS !== "web") return null;
-
   return (
+    <AppFontGate>
     <WebErrorOverlay>
       <RootErrorBoundary>
     <I18nextProvider i18n={i18n}>
@@ -372,5 +381,6 @@ export default function RootLayout() {
     </I18nextProvider>
       </RootErrorBoundary>
     </WebErrorOverlay>
+    </AppFontGate>
   );
 }
