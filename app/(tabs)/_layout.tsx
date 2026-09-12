@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { useBadge } from "../../context/BadgeContext";
@@ -63,9 +64,18 @@ export default function TabsLayout() {
   const { isDesktop } = useResponsiveLayout();
   const showTopNavbar = isDesktop && Platform.OS === "web";
   const insets = useSafeAreaInsets();
-  const { activeIdentity } = useAuth();
+  const { activeIdentity, sessionToken } = useAuth();
   const { openCreateSheet, openBizActions } = useCreateFlow();
+  const router = useRouter();
   const isBusiness = activeIdentity?.type === "business";
+
+  const requireLogin = (action: () => void) => {
+    if (!sessionToken) {
+      router.push("/login" as any);
+      return;
+    }
+    action();
+  };
 
   return (
     <View style={styles.container}>
@@ -120,6 +130,10 @@ export default function TabsLayout() {
           <Tabs.Screen
             name="profile"
             options={{
+              tabBarButton: (props: any) => {
+                const { onPress: _onPress, href: _href, ...rest } = props;
+                return <Pressable {...rest} onPress={() => requireLogin(() => router.navigate("/(tabs)/profile" as any))} />;
+              },
               tabBarIcon: ({ color, size, focused }) => (
                 <ProfileTabIcon color={color} size={size} filled={focused} />
               ),
@@ -129,6 +143,10 @@ export default function TabsLayout() {
           <Tabs.Screen
             name="messages"
             options={{
+              tabBarButton: (props: any) => {
+                const { onPress: _onPress, href: _href, ...rest } = props;
+                return <Pressable {...rest} onPress={() => requireLogin(() => router.navigate("/(tabs)/messages" as any))} />;
+              },
               tabBarIcon: ({ color, size, focused }) => (
                 <MessageTabIcon color={color} size={size} filled={focused} />
               ),
@@ -142,7 +160,7 @@ export default function TabsLayout() {
               tabBarButton: isBusiness
                 ? (props: any) => {
                     const { onPress: _onPress, href: _href, ...rest } = props;
-                    return <Pressable {...rest} onPress={() => openBizActions()} />;
+                    return <Pressable {...rest} onPress={() => requireLogin(openBizActions)} />;
                   }
                 : undefined,
               tabBarIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
@@ -158,7 +176,7 @@ export default function TabsLayout() {
               tabBarButton: !isBusiness
                 ? (props: any) => {
                     const { onPress: _onPress, href: _href, ...rest } = props;
-                    return <Pressable {...rest} onPress={() => openCreateSheet()} />;
+                    return <Pressable {...rest} onPress={() => requireLogin(openCreateSheet)} />;
                   }
                 : undefined,
               tabBarIcon: ({ color, size, focused }) => (

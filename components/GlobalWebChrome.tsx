@@ -125,7 +125,14 @@ export default function GlobalWebChrome({ children }: { children: React.ReactNod
       <View style={{ flex: 1 }}>
         {showTopNavbar && (
           <TopNavbar
-            onCreatePress={() => (isBusiness ? setShowBizActions(true) : setShowCreateSheet(true))}
+            onCreatePress={() => {
+              if (!sessionToken) {
+                router.push("/login" as any);
+                return;
+              }
+              if (isBusiness) setShowBizActions(true);
+              else setShowCreateSheet(true);
+            }}
           />
         )}
         <View style={{ flex: 1 }}>{children}</View>
