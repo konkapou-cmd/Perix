@@ -13,6 +13,11 @@ from services.date_range_utils import parse_price_to_cents, calculate_total_cent
 from utils.helpers import generate_id, now_utc
 
 
+def _d(offset: int) -> str:
+    """Future date relative to today — avoids time-bomb failures."""
+    return (date.today() + timedelta(days=offset)).isoformat()
+
+
 @pytest.fixture
 async def hotel_service(test_db):
     """Create a test hotel service with inventory=3, price=120/night."""
@@ -52,8 +57,8 @@ async def hotel_service(test_db):
 async def test_basic_stay_available(hotel_service):
     quote = await build_stay_quote(
         hotel_service,
-        check_in_text="2026-09-10",
-        check_out_text="2026-09-13",
+        check_in_text=_d(7),
+        check_out_text=_d(10),
         room_count=1,
         adults=1,
         children=0,
@@ -71,8 +76,8 @@ async def test_min_nights_rejected(hotel_service):
     with pytest.raises(Exception):
         await build_stay_quote(
             hotel_service,
-            check_in_text="2026-09-10",
-            check_out_text="2026-09-12",
+            check_in_text=_d(7),
+            check_out_text=_d(9),
             room_count=1, adults=1, children=0,
         )
 
@@ -83,8 +88,8 @@ async def test_max_nights_rejected(hotel_service):
     with pytest.raises(Exception):
         await build_stay_quote(
             hotel_service,
-            check_in_text="2026-09-10",
-            check_out_text="2026-09-17",
+            check_in_text=_d(7),
+            check_out_text=_d(14),
             room_count=1, adults=1, children=0,
         )
 
@@ -95,8 +100,8 @@ async def test_outside_window_rejected(hotel_service):
     with pytest.raises(Exception):
         await build_stay_quote(
             hotel_service,
-            check_in_text="2026-09-10",
-            check_out_text="2026-09-13",
+            check_in_text=_d(7),
+            check_out_text=_d(10),
             room_count=1, adults=1, children=0,
         )
 
@@ -106,8 +111,8 @@ async def test_too_many_rooms_rejected(hotel_service):
     with pytest.raises(Exception):
         await build_stay_quote(
             hotel_service,
-            check_in_text="2026-09-10",
-            check_out_text="2026-09-13",
+            check_in_text=_d(7),
+            check_out_text=_d(10),
             room_count=4, adults=1, children=0,
         )
 
@@ -116,8 +121,8 @@ async def test_too_many_rooms_rejected(hotel_service):
 async def test_pricing_server_calculated(hotel_service):
     quote = await build_stay_quote(
         hotel_service,
-        check_in_text="2026-09-10",
-        check_out_text="2026-09-13",
+        check_in_text=_d(7),
+        check_out_text=_d(10),
         room_count=2,
         adults=2,
         children=0,
@@ -136,8 +141,8 @@ async def test_full_capacity_fully_booked(hotel_service):
         "service_id": hotel_service["service_id"],
         "business_id": "test-biz-001",
         "client_id": "test-client",
-        "date": "2026-09-10",
-        "end_date": "2026-09-13",
+        "date": _d(7),
+        "end_date": _d(10),
         "room_count": 3,
         "adults": 2,
         "children": 0,
@@ -154,12 +159,12 @@ async def test_full_capacity_fully_booked(hotel_service):
     try:
         quote = await build_stay_quote(
             hotel_service,
-            check_in_text="2026-09-10",
-            check_out_text="2026-09-13",
+            check_in_text=_d(7),
+            check_out_text=_d(10),
             room_count=1, adults=1, children=0,
         )
         assert not quote["available"]
-        assert "2026-09-10" in quote["unavailable_dates"]
+        assert _d(7) in quote["unavailable_dates"]
     finally:
         await database.db.bookings.delete_one({"booking_id": booking_doc["booking_id"]})
 
@@ -172,8 +177,8 @@ async def test_stale_pending_does_not_consume(hotel_service):
         "service_id": hotel_service["service_id"],
         "business_id": "test-biz-001",
         "client_id": "test-client",
-        "date": "2026-09-10",
-        "end_date": "2026-09-13",
+        "date": _d(7),
+        "end_date": _d(10),
         "room_count": 3,
         "adults": 1,
         "children": 0,
@@ -186,8 +191,8 @@ async def test_stale_pending_does_not_consume(hotel_service):
     try:
         quote = await build_stay_quote(
             hotel_service,
-            check_in_text="2026-09-10",
-            check_out_text="2026-09-13",
+            check_in_text=_d(7),
+            check_out_text=_d(10),
             room_count=1, adults=1, children=0,
         )
         assert quote["available"]  # Expired, so available
@@ -201,8 +206,8 @@ async def test_request_id_idempotent(hotel_service):
     from models.service import BookingCreate
     payload = BookingCreate(
         service_id=hotel_service["service_id"],
-        date="2026-09-10",
-        end_date="2026-09-13",
+        date=_d(7),
+        end_date=_d(10),
         client_name="Test Guest",
         room_count=1,
         adults=1,
@@ -229,8 +234,8 @@ async def test_partial_block_allowed(hotel_service):
     block_doc = {
         "block_id": generate_id("blk"),
         "service_id": hotel_service["service_id"],
-        "start_date": "2026-09-10",
-        "end_date": "2026-09-13",
+        "start_date": _d(7),
+        "end_date": _d(10),
         "blocked_units": 1,
         "is_active": True,
         "created_at": now_utc(),
@@ -240,8 +245,8 @@ async def test_partial_block_allowed(hotel_service):
         # Book 1 room (inventory=3, blocked=1 → 2 available)
         quote = await build_stay_quote(
             hotel_service,
-            check_in_text="2026-09-10",
-            check_out_text="2026-09-13",
+            check_in_text=_d(7),
+            check_out_text=_d(10),
             room_count=2, adults=1, children=0,
         )
         assert quote["available"]  # 3 - 1 blocked = 2 available, requesting 2 -> OK

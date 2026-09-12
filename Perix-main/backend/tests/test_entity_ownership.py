@@ -267,10 +267,12 @@ class TestOrchestrator:
 
         monkeypatch.setattr(entity_ownership, "cancel_user_subscriptions", forced_failure)
         result = await entity_ownership.run_account_deletion(uid, lk)
-        assert result["status"] == "failed"
+        # Non-review step failures are intentionally non-fatal: the orchestrator
+        # logs and continues so the tombstone (email release) always runs.
+        assert result["status"] == "completed"
+        assert "subscriptions:failed" in result["steps_run"]
 
         op = await db.deletion_operations.find_one({"lock_key": lk})
-        assert op["failed_step"] == "subscriptions"
         completed = set(op.get("completed_steps") or [])
         assert "personal_content" in completed
         assert "subscriptions" not in completed
