@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { getListing, Listing } from "../../lib/api/listings";
 import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
+import ReportModal from "../../components/ReportModal";
 import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 import { ContentHero, ContentGallery, ContentMap } from "../../components/shared";
 import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
@@ -28,6 +29,7 @@ export default function ListingDetailScreen() {
   const { sessionToken, user } = useAuth();
 
   const [listing, setListing] = useState<Listing | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -141,10 +143,15 @@ export default function ListingDetailScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView style={styles.pageLimit} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        <Pressable style={styles.backRow} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#264348" />
-          <Text style={styles.backRowText}>{t("common.back")}</Text>
-        </Pressable>
+        <View style={styles.topRow}>
+          <Pressable style={styles.backRow} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color="#264348" />
+            <Text style={styles.backRowText}>{t("common.back")}</Text>
+          </Pressable>
+          <Pressable style={styles.reportBtn} hitSlop={8} onPress={() => setReportOpen(true)}>
+            <Ionicons name="flag-outline" size={18} color="#9ca3af" />
+          </Pressable>
+        </View>
         <View style={styles.heroWrap}>
           <ContentHero
             coverImageUrl={listing.cover_image_url}
@@ -349,6 +356,14 @@ export default function ListingDetailScreen() {
         />
       </ScrollView>
 
+      <ReportModal
+        visible={reportOpen}
+        targetType="listing"
+        targetId={listing?.listing_id || ""}
+        sessionToken={sessionToken}
+        onClose={() => setReportOpen(false)}
+      />
+
       <LazyMediaViewer
         visible={viewerOpen}
         media={viewerMedia}
@@ -373,6 +388,15 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: FONT_SIZES.body, fontWeight: "600", color: COLORS.textPrimary, flex: 1, marginLeft: SPACING.small },
   body: { paddingBottom: 60 },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: SPACING.std,
+  },
+  reportBtn: {
+    padding: 6,
+  },
   backRow: {
     flexDirection: "row",
     alignItems: "center",

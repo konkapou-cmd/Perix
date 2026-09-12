@@ -25,6 +25,7 @@ import { useNotifications } from "../../context/NotificationContext";
 import { useSocket, useSocketEvent } from "../../context/SocketContext";
 
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
+import ReportModal from "../../components/ReportModal";
 import { formatDate, formatTime } from "../../lib/formatDate";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
 import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
@@ -62,6 +63,7 @@ export default function ActivityDetailPage() {
   const router = useRouter();
   const { showLocalNotification } = useNotifications();
   const [activity, setActivity] = useState<ActivityItem | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [myStatus, setMyStatus] = useState<string>("pending");
   const [showShareModal, setShowShareModal] = useState(false);
@@ -291,10 +293,15 @@ export default function ActivityDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
-            <Text style={styles.backText}>{t("common.back")}</Text>
-          </Pressable>
+          <View style={styles.topRow}>
+            <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
+              <Text style={styles.backText}>{t("common.back")}</Text>
+            </Pressable>
+            <Pressable style={styles.reportBtn} hitSlop={8} onPress={() => setReportOpen(true)}>
+              <Ionicons name="flag-outline" size={18} color="#9ca3af" />
+            </Pressable>
+          </View>
           <ContentHero
             coverImageUrl={activity.cover_image_url}
             videoUrl={activity.video_url}
@@ -455,6 +462,13 @@ export default function ActivityDetailPage() {
             onWhatsApp={shareToWhatsApp}
           />
         </ScrollView>
+        <ReportModal
+          visible={reportOpen}
+          targetType="activity"
+          targetId={activity?.activity_id || ""}
+          sessionToken={sessionToken}
+          onClose={() => setReportOpen(false)}
+        />
         <ShareContent
           visible={showShareModal}
           onClose={() => setShowShareModal(false)}
@@ -488,6 +502,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     alignSelf: "flex-start",
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 16,
+  },
+  reportBtn: {
+    padding: 6,
   },
   backText: {
     fontSize: 15,

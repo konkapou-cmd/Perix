@@ -17,6 +17,7 @@ import { getPostComments, addPostComment, toggleCommentLike, updatePostComment, 
 import { PostComment } from '../lib/api/core';
 import { formatRelativeDate } from '../lib/formatDate';
 import { confirmAction } from '../lib/confirm';
+import ReportModal from './ReportModal';
 
 interface CommentSectionProps {
   postId: string;
@@ -35,6 +36,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommen
   const [loading, setLoading] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [reportComment, setReportComment] = useState<PostComment | null>(null);
   const commentLimit = 5;
 
   const loadComments = async () => {
@@ -276,6 +278,11 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommen
                     {comment.likes_count > 0 && (
                       <Text style={styles.likesCount}>{comment.likes_count}</Text>
                     )}
+                    {!isOwnComment && (
+                      <Pressable onPress={() => setReportComment(comment)} hitSlop={8}>
+                        <Ionicons name="flag-outline" size={16} color="#9ca3af" />
+                      </Pressable>
+                    )}
                   </View>
                 </View>
               );
@@ -320,6 +327,14 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, onCommen
           </View>
         </View>
       )}
+
+      <ReportModal
+        visible={!!reportComment}
+        targetType="comment"
+        targetId={reportComment?.comment_id || ""}
+        sessionToken={sessionToken}
+        onClose={() => setReportComment(null)}
+      />
     </View>
   );
 };

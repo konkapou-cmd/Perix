@@ -28,6 +28,7 @@ import ErrorState from "../../components/shared/ErrorState";
 import { BottomCTA } from "../../components/shared/BottomCTA";
 import { openInMaps } from "../../lib/utils/openMapUrl";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import ReportModal from "../../components/ReportModal";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 
 const JOBS_ACCENT = "#264348";
@@ -39,6 +40,7 @@ export default function JobDetailPage() {
   const { sessionToken, user } = useAuth();
   const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [applyModalVisible, setApplyModalVisible] = useState(false);
   const [applicationMessage, setApplicationMessage] = useState("");
@@ -195,10 +197,15 @@ export default function JobDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
-            <Text style={styles.backText}>{t("common.back")}</Text>
-          </Pressable>
+          <View style={styles.topRow}>
+            <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
+              <Text style={styles.backText}>{t("common.back")}</Text>
+            </Pressable>
+            <Pressable style={styles.reportBtn} hitSlop={8} onPress={() => setReportOpen(true)}>
+              <Ionicons name="flag-outline" size={18} color="#9ca3af" />
+            </Pressable>
+          </View>
           <ContentHero
             coverImageUrl={job.cover_image}
             videoUrl={job.video_url}
@@ -299,6 +306,14 @@ export default function JobDetailPage() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      <ReportModal
+        visible={reportOpen}
+        targetType="job"
+        targetId={job?.job_id || ""}
+        sessionToken={sessionToken}
+        onClose={() => setReportOpen(false)}
+      />
+
       <ShareContent
         visible={showShareModal}
         onClose={() => setShowShareModal(false)}
@@ -391,6 +406,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     alignSelf: "flex-start",
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 16,
+  },
+  reportBtn: {
+    padding: 6,
   },
   businessRow: {
     flexDirection: "row", alignItems: "center", gap: SPACING.small,

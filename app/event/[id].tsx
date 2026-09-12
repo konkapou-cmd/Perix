@@ -34,6 +34,7 @@ import { BottomCTA } from "../../components/shared/BottomCTA";
 import { openInMaps } from "../../lib/utils/openMapUrl";
 import { buildMediaItems } from "../../lib/api/mediaUtils";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import ReportModal from "../../components/ReportModal";
 import { formatEventDate, formatEventTime } from "../../lib/formatDate";
 import {
   ChatMessage,
@@ -65,6 +66,7 @@ export default function EventDetailPage() {
   const { connected, subscribe, unsubscribe } = useSocket();
   const router = useRouter();
   const [event, setEvent] = useState<EventItem | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -411,10 +413,15 @@ export default function EventDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
-            <Text style={styles.backText}>{t("common.back")}</Text>
-          </Pressable>
+          <View style={styles.topRow}>
+            <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
+              <Text style={styles.backText}>{t("common.back")}</Text>
+            </Pressable>
+            <Pressable style={styles.reportBtn} hitSlop={8} onPress={() => setReportOpen(true)}>
+              <Ionicons name="flag-outline" size={18} color="#9ca3af" />
+            </Pressable>
+          </View>
           <ContentHero
             coverImageUrl={event.cover_image_url}
             videoUrl={event.video_url}
@@ -583,6 +590,14 @@ export default function EventDetailPage() {
           />
         </ScrollView>
 
+        <ReportModal
+          visible={reportOpen}
+          targetType="event"
+          targetId={event?.event_id || ""}
+          sessionToken={sessionToken}
+          onClose={() => setReportOpen(false)}
+        />
+
         <Modal visible={passwordModalVisible} transparent animationType="fade">
           <View style={styles.passwordModalOverlay}>
             <View style={styles.passwordModalContent}>
@@ -629,6 +644,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     alignSelf: "flex-start",
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 16,
+  },
+  reportBtn: {
+    padding: 6,
   },
   backText: {
     fontSize: 15,

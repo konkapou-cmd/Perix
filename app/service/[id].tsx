@@ -11,6 +11,7 @@ import { getServiceDetail, sendServiceInquiry } from "../../lib/api/services";
 import { toggleSaved, checkSaved } from "../../lib/api/saved";
 import { Service } from "../../lib/api/core";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import ReportModal from "../../components/ReportModal";
 import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
 import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
@@ -40,6 +41,7 @@ export default function ServiceDetailPage() {
   const id = normalizeId(rawId);
 
   const [service, setService] = useState<Service | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
@@ -297,10 +299,15 @@ export default function ServiceDetailPage() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
-            <Text style={styles.backText}>{t("common.back")}</Text>
-          </Pressable>
+          <View style={styles.topRow}>
+            <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
+              <Text style={styles.backText}>{t("common.back")}</Text>
+            </Pressable>
+            <Pressable style={styles.reportBtn} hitSlop={8} onPress={() => setReportOpen(true)}>
+              <Ionicons name="flag-outline" size={18} color="#9ca3af" />
+            </Pressable>
+          </View>
           <ContentHero
             coverImageUrl={service.cover_image_url}
             videoUrl={service.video_url}
@@ -452,6 +459,14 @@ export default function ServiceDetailPage() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      <ReportModal
+        visible={reportOpen}
+        targetType="service"
+        targetId={service?.service_id || ""}
+        sessionToken={sessionToken}
+        onClose={() => setReportOpen(false)}
+      />
+
       <ShareContent
         visible={showShareModal}
         onClose={() => setShowShareModal(false)}
@@ -526,6 +541,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     alignSelf: "flex-start",
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 16,
+  },
+  reportBtn: {
+    padding: 6,
   },
   backText: {
     fontSize: 15,
