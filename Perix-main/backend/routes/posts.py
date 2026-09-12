@@ -145,6 +145,10 @@ async def create_post(
 
     await db.posts.insert_one(post_doc)
 
+    # Automatic moderation: hide the post + create a report when text violates
+    from utils.moderation import auto_moderate
+    await auto_moderate("posts", "post_id", post_doc["post_id"], "post", [post_doc.get("text") or ""])
+
     # Create a lightweight snapshot for the new HomePosts feed (Option B)
     home_post_doc = {
         "home_post_id": post_doc["post_id"],
@@ -484,6 +488,18 @@ async def add_post_comment(
     comments.append(comment_doc)
     post["comments"] = comments
     await db.posts.update_one({"post_id": post_id}, {"$set": {"comments": comments}})
+
+    # Automatic moderation of the comment text
+    from utils.moderation import moderate_text
+    from routes.reports import create_auto_report
+    matches = moderate_text(payload.text or "")
+    if matches:
+        # Mark just this comment as hidden
+        await db.posts.update_one(
+            {"post_id": post_id},
+            {"$set": {f"comments.{len(comments) - 1}.is_hidden": True}},
+        )
+        await create_auto_report("system", "comment", comment_doc["comment_id"], "Auto-flagged: " + ", ".join(sorted(set(matches))))
     # Send push notification to post author (if not self-comment)
     if actor["actor_id"] != post["user_id"]:
         asyncio.create_task(

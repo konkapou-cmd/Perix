@@ -182,6 +182,9 @@ async def create_activity(
         "cover_focal_point": payload.cover_focal_point.model_dump() if payload.cover_focal_point else {"x": 0.5, "y": 0.5},
     }
     await db.activities.insert_one(activity_doc)
+
+    from utils.moderation import auto_moderate
+    await auto_moderate("activities", "activity_id", activity_doc["activity_id"], "activity", [activity_doc.get("title") or "", activity_doc.get("description") or ""])
     
     if user_ids_to_notify:
         asyncio.create_task(

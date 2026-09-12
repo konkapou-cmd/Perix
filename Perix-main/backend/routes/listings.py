@@ -198,6 +198,10 @@ async def create_listing(
         "created_at": now_utc(),
     }
     await db.listings.insert_one(doc)
+
+    from utils.moderation import auto_moderate
+    await auto_moderate("listings", "listing_id", doc["listing_id"], "listing", [doc.get("title") or "", doc.get("description") or ""])
+
     try:
         return ListingResponse(**doc)
     except Exception:

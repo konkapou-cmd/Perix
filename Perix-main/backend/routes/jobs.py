@@ -198,6 +198,9 @@ async def create_job(
     }
     
     await db.jobs.insert_one(job)
+
+    from utils.moderation import auto_moderate
+    await auto_moderate("jobs", "job_id", job["job_id"], "job", [job.get("title") or "", job.get("description") or ""])
     return job_response(job, business)
 
 

@@ -271,6 +271,9 @@ async def create_service(payload: ServiceCreate, current_user: UserPublic = Depe
         await db.service_slots.delete_many({"service_id": doc["service_id"]})
         raise
 
+    from utils.moderation import auto_moderate
+    await auto_moderate("services", "service_id", doc["service_id"], "service", [doc.get("name") or "", doc.get("description") or ""])
+
     return ServiceResponse(**doc)
 
 

@@ -117,6 +117,9 @@ async def create_event(
         "attendees": [],
     }
     await db.events.insert_one(event_doc)
+
+    from utils.moderation import auto_moderate
+    await auto_moderate("events", "event_id", event_doc["event_id"], "event", [event_doc.get("title") or "", event_doc.get("description") or ""])
     
     tagged_artist_ids, tagged_artists = await build_tagged_artists(payload.tagged_artist_ids or [])
     
