@@ -383,7 +383,7 @@
     "gaming-activities": "Gaming & Activities",
     "hair": "Hair",
     "legal-financial": "Legal & Financial",
-    "local-hotels": "Local Hotels",
+    "local-hotels": "Hotels",
     "music-venues": "Music Venues",
     "nails-skin": "Nails & Skin",
     "real-estate": "Real Estate",
@@ -624,7 +624,7 @@
     "locator": "Locator"
   },
   "home": {
-    "hotels": "Local hotels",
+    "hotels": "Hotels",
     "noHotels": "No hotels nearby",
     "openNow": "Open now",
     "closed": "Closed",

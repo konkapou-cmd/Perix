@@ -1084,16 +1084,26 @@ export default function ProfileScreen() {
   };
 
   const pickBizImage = async (type: "logo" | "cover") => {
+    if (!sessionToken) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
       quality: MEDIA_LIMITS.image.pickerQuality,
-      base64: true,
     });
-    if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
-      const uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      if (type === "logo") setBizLogoNew(uri);
-      else setBizCoverNew(uri);
+    if (result.canceled || !result.assets || result.assets.length === 0 || !result.assets[0].uri) return;
+    try {
+      setShowUploadProgress(true);
+      setUploadProgress({ phase: "uploading", progress: 30 });
+      const imageUrl = await uploadMedia(sessionToken, result.assets[0].uri, "image", (progress) => {
+        setUploadProgress({ phase: "uploading", progress: 30 + progress.progress * 0.6 });
+      });
+      setUploadProgress({ phase: "processing", progress: 95 });
+      if (type === "logo") setBizLogoNew(imageUrl);
+      else setBizCoverNew(imageUrl);
+    } catch (e) {
+      console.warn("pickBizImage failed:", e);
+    } finally {
+      setShowUploadProgress(false);
+      setUploadProgress(null);
     }
   };
 

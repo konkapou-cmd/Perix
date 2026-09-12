@@ -1506,6 +1506,7 @@ export default function HomeScreen() {
 
       <Modal visible={editModal} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
+          <View style={[styles.modalShell, Platform.OS === "web" && styles.modalShellWeb]}>
           <View style={styles.modalHeader}><Text style={styles.modalTitle}>{t("home.editPost")}</Text><Pressable onPress={() => setEditModal(false)}><Ionicons name="close" size={22} color={COLORS.textPrimary} /></Pressable></View>
           <ScrollView contentContainerStyle={styles.modalBody}>
             <TextInput value={editText} onChangeText={setEditText} style={[styles.modalInput, styles.modalTextarea]} multiline />
@@ -1518,6 +1519,7 @@ export default function HomeScreen() {
             <Pressable style={styles.primaryButton} onPress={handleUpdatePost}><Text style={styles.primaryButtonText}>{t("home.saveChanges")}</Text></Pressable>
             {editPost ? (<Pressable style={[styles.secondaryButton, styles.deleteButton]} onPress={() => handleDeletePost(editPost)}><Text style={styles.deleteButtonText}>{t("home.deletePost")}</Text></Pressable>) : null}
           </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
 
@@ -1669,6 +1671,19 @@ const styles = StyleSheet.create({
   stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "transparent", alignItems: "center", justifyContent: "center" },
   identityDropWrap: { marginLeft: 4 },
   modalContainer: { flex: 1, backgroundColor: COLORS.background },
+  modalShell: { flex: 1 },
+  modalShellWeb: {
+    flex: 1,
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
+    marginVertical: 24,
+    borderRadius: 20,
+    overflow: "hidden",
+    backgroundColor: COLORS.background,
+    boxShadow: "0 8px 40px rgba(0,0,0,0.3)",
+    maxHeight: "calc(100vh - 48px)" as any,
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   modalTitle: { fontSize: 18, fontWeight: "600", color: COLORS.textPrimary },
   modalBody: { padding: 20 },

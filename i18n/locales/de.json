@@ -388,7 +388,7 @@
     "gaming-activities": "Gaming & Aktivitäten",
     "hair": "Haare",
     "legal-financial": "Recht & Finanzen",
-    "local-hotels": "Lokale Hotels",
+    "local-hotels": "Hotels",
     "music-venues": "Musik-Locations",
     "nails-skin": "Nägel & Haut",
     "real-estate": "Immobilien",
@@ -482,7 +482,7 @@
     "jobs": "Stellenangebote"
   },
   "home": {
-    "hotels": "Lokale Hotels",
+    "hotels": "Hotels",
     "noHotels": "Keine Hotels in der Nähe",
     "openNow": "Jetzt geöffnet",
     "closed": "Geschlossen",
