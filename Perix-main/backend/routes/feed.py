@@ -46,6 +46,7 @@ async def get_home_feed(
     activity_date: Optional[str] = None,
     offset: Optional[int] = 0,
     friends_only: bool = False,
+    categories: Optional[str] = None,
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     """Get the home feed with posts, stories, events, and businesses."""
@@ -69,6 +70,18 @@ async def get_home_feed(
     
     # Combine blocked and hidden user IDs
     excluded_user_ids = list(set(blocked_user_ids + hidden_user_ids))
+
+    # Category filter: when categories are selected, show ONLY posts from
+    # businesses that belong to those categories (own posts are excluded too).
+    allowed_category_biz_ids = None
+    if categories:
+        cat_list = [c.strip() for c in categories.split(",") if c.strip()]
+        if cat_list:
+            cat_biz_cursor = await db.businesses.find(
+                {"root_category": {"$in": cat_list}, "is_hidden": {"$ne": True}},
+                {"_id": 0, "business_id": 1},
+            ).to_list(500)
+            allowed_category_biz_ids = [b["business_id"] for b in cat_biz_cursor]
     
     # Get posts (latest 100)
     post_query = {
@@ -84,6 +97,19 @@ async def get_home_feed(
     }
     if excluded_user_ids:
         post_query["$and"].append({"user_id": {"$nin": excluded_user_ids}})
+
+    if allowed_category_biz_ids is not None:
+        if allowed_category_biz_ids:
+            post_query["$and"].append({
+                "$or": [
+                    {"actor_type": "business", "actor_id": {"$in": allowed_category_biz_ids}},
+                    {"tagged_business_ids": {"$in": allowed_category_biz_ids}},
+                ]
+            })
+        else:
+            # No businesses match the selected categories — no posts at all
+            posts = []
+            post_query = None
 
     # Friends-only filter: show posts from friends and followed businesses/artists
     if friends_only:
