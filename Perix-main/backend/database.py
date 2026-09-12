@@ -509,7 +509,7 @@ def build_category_tree() -> None:
             ],
         },
         {
-            "name": "🏨 Local Hotels",
+            "name": "🏨 Hotels",
             "slug": "local-hotels",
             "groups": [
                 {
