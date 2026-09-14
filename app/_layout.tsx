@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Stack, usePathname, useSegments, router } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { I18nextProvider } from "react-i18next";
-import { Platform, BackHandler, ToastAndroid, View, Text, LogBox } from "react-native";
+import { Platform, BackHandler, ToastAndroid, View, Text, Pressable, LogBox } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import "../lib/suppressExpoNotifError";
@@ -57,9 +57,20 @@ class RootErrorBoundary extends React.Component<{ children: React.ReactNode }, {
   render() {
     if (this.state.error) {
       return (
-        <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center" }}>
-          <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 16, marginBottom: 8 }}>App Error</Text>
-          <Text selectable style={{ color: "#111", fontSize: 12 }}>{this.state.error}</Text>
+        <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ fontSize: 40, marginBottom: 12 }}>😕</Text>
+          <Text style={{ color: "#1f2937", fontWeight: "700", fontSize: 18, marginBottom: 8, textAlign: "center" }}>
+            Something went wrong
+          </Text>
+          <Text style={{ color: "#6b7280", fontSize: 14, textAlign: "center", marginBottom: 20, maxWidth: 340 }}>
+            Your connection may have been interrupted. Tap below to try again — no need to restart the app.
+          </Text>
+          <Pressable
+            onPress={() => this.setState({ error: null })}
+            style={{ backgroundColor: "#59ABE3", borderRadius: 12, paddingHorizontal: 28, paddingVertical: 13 }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Try again</Text>
+          </Pressable>
         </View>
       );
     }
@@ -91,9 +102,20 @@ function WebErrorOverlay({ children }: { children: React.ReactNode }) {
   }, []);
   if (!error) return <>{children}</>;
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center" }}>
-      <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 16, marginBottom: 8 }}>App Error</Text>
-      <Text selectable style={{ color: "#111", fontSize: 12 }}>{error}</Text>
+    <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center", alignItems: "center" }}>
+      <Text style={{ fontSize: 40, marginBottom: 12 }}>😕</Text>
+      <Text style={{ color: "#1f2937", fontWeight: "700", fontSize: 18, marginBottom: 8, textAlign: "center" }}>
+        Something went wrong
+      </Text>
+      <Text style={{ color: "#6b7280", fontSize: 14, textAlign: "center", marginBottom: 20, maxWidth: 340 }}>
+        Your connection may have been interrupted. Tap below to reconnect.
+      </Text>
+      <Pressable
+        onPress={() => setError(null)}
+        style={{ backgroundColor: "#59ABE3", borderRadius: 12, paddingHorizontal: 28, paddingVertical: 13 }}
+      >
+        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Reconnect</Text>
+      </Pressable>
     </View>
   );
 }

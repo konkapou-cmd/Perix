@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -73,6 +74,7 @@ export default function MessagesScreen() {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [connectionIssue, setConnectionIssue] = useState(false);
   const lastUnreadMapRef = useRef<Record<string, number>>({});
 
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
@@ -130,39 +132,47 @@ export default function MessagesScreen() {
   });
 
   const loadConversations = useCallback(async () => {
-    if (!sessionToken) return;
-    const data = await getConversations(sessionToken);
-    
-    // Check for new unread messages and trigger notifications
-    const newUnreadMap: Record<string, number> = {};
-    data.forEach((conv: Conversation) => {
-      if (!conv.other_user) return;
-      newUnreadMap[conv.other_user.user_id] = conv.unread_count || 0;
-      
-      // If unread count increased, show notification
-      const prevCount = lastUnreadMapRef.current[conv.other_user.user_id] || 0;
-      if (conv.unread_count && conv.unread_count > prevCount && prevCount >= 0) {
-        // last_message can be a string or Message object
-        const messagePreview = typeof conv.last_message === 'string' 
-          ? conv.last_message.substring(0, 100)
-          : (conv.last_message as any)?.text?.substring(0, 100) || "";
-        showLocalNotification(
-          conv.other_user.display_name || conv.other_user.name || t("messages.newMessage"),
-          messagePreview || t("messages.newMessage"),
-          { type: "message", from_user_id: conv.other_user.user_id }
-        );
-      }
-    });
-    lastUnreadMapRef.current = newUnreadMap;
-    
-    setConversations(data);
-    
-    // Also load all conversations including group chats
+    if (!sessionToken) return false;
     try {
-      const allData = await getAllConversations(sessionToken);
-      setAllConversations(allData);
-    } catch (e) {
-      console.log("Failed to load all conversations:", e);
+      const data = await getConversations(sessionToken);
+      
+      // Check for new unread messages and trigger notifications
+      const newUnreadMap: Record<string, number> = {};
+      data.forEach((conv: Conversation) => {
+        if (!conv.other_user) return;
+        newUnreadMap[conv.other_user.user_id] = conv.unread_count || 0;
+        
+        // If unread count increased, show notification
+        const prevCount = lastUnreadMapRef.current[conv.other_user.user_id] || 0;
+        if (conv.unread_count && conv.unread_count > prevCount && prevCount >= 0) {
+          // last_message can be a string or Message object
+          const messagePreview = typeof conv.last_message === 'string' 
+            ? conv.last_message.substring(0, 100)
+            : (conv.last_message as any)?.text?.substring(0, 100) || "";
+          showLocalNotification(
+            conv.other_user.display_name || conv.other_user.name || t("messages.newMessage"),
+            messagePreview || t("messages.newMessage"),
+            { type: "message", from_user_id: conv.other_user.user_id }
+          );
+        }
+      });
+      lastUnreadMapRef.current = newUnreadMap;
+      
+      setConversations(data);
+      
+      // Also load all conversations including group chats
+      try {
+        const allData = await getAllConversations(sessionToken);
+        setAllConversations(allData);
+      } catch (e) {
+        console.log("Failed to load all conversations:", e);
+      }
+      return true;
+    } catch (error) {
+      // Never let a failed poll (e.g. tab was frozen and the network died)
+      // surface as an unhandled rejection and crash the screen.
+      console.warn("Failed to load conversations:", error);
+      return false;
     }
   }, [sessionToken, showLocalNotification, t]);
 
@@ -218,38 +228,74 @@ export default function MessagesScreen() {
   useEffect(() => {
     if (!sessionToken) return;
     setLoading(true);
-    Promise.all([loadConversations(), loadFriends(), loadFriendRequests()]).finally(() => setLoading(false));
+    Promise.allSettled([loadConversations(), loadFriends(), loadFriendRequests()]).finally(() => setLoading(false));
   }, [loadConversations, loadFriends, loadFriendRequests, sessionToken]);
 
   // Use WebSocket for real-time conversation updates, fallback to polling
   const { connected: wsConnected } = useSocket();
 
   useSocketEvent("conversation_update", useCallback(() => {
-    loadConversations();
+    void loadConversations();
   }, [loadConversations]));
 
   useSocketEvent("new_message", useCallback(() => {
-    loadConversations();
+    void loadConversations();
   }, [loadConversations]));
 
   useSocketEvent("notification", useCallback((data: any) => {
     const type = data?.notification?.type;
     if (type === "friend_request" || type === "friend") {
-      loadFriendRequests();
+      void loadFriendRequests();
       refreshUnreadCount();
     }
   }, [loadFriendRequests, refreshUnreadCount]));
 
+  // Polling with rejection-safe refresh: a single failed request must never
+  // crash the screen (e.g. after the mobile browser froze the tab).
   useEffect(() => {
     if (!sessionToken) return;
     if (!wsConnected) {
+      const safelyRefresh = async () => {
+        const results = await Promise.allSettled([
+          loadConversations(),
+          loadFriendRequests(),
+        ]);
+        const failed = results.some((r) => r.status === "rejected");
+        setConnectionIssue(failed);
+      };
       const interval = setInterval(() => {
-        loadConversations();
-        loadFriendRequests();
+        void safelyRefresh();
       }, 10000);
       return () => clearInterval(interval);
     }
+    setConnectionIssue(false);
   }, [sessionToken, wsConnected, loadConversations, loadFriendRequests]);
+
+  // Resume handling: when the tab/app comes back to the foreground after
+  // being frozen (mobile browsers suspend tabs), refresh immediately.
+  useEffect(() => {
+    const refresh = () => {
+      void loadConversations();
+      void loadFriendRequests();
+    };
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") refresh();
+      };
+      window.addEventListener("online", refresh);
+      window.addEventListener("pageshow", refresh);
+      document.addEventListener("visibilitychange", onVisibility);
+      return () => {
+        window.removeEventListener("online", refresh);
+        window.removeEventListener("pageshow", refresh);
+        document.removeEventListener("visibilitychange", onVisibility);
+      };
+    }
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh();
+    });
+    return () => sub.remove();
+  }, [loadConversations, loadFriendRequests]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -382,6 +428,15 @@ export default function MessagesScreen() {
         </View>
 
         <NotificationBar />
+
+        {connectionIssue && (
+          <View style={styles.connectionBanner}>
+            <Ionicons name="cloud-offline-outline" size={16} color="#b45309" />
+            <Text style={styles.connectionBannerText}>
+              {t("messages.reconnecting", "Reconnecting… Trying again automatically.")}
+            </Text>
+          </View>
+        )}
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -726,6 +781,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  connectionBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: SPACING.std,
+    marginBottom: SPACING.std,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#fef3c7",
+    borderRadius: BORDER_RADIUS.md,
+  },
+  connectionBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#b45309",
   },
   skeletonRow: {
     flexDirection: "row",

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
+import { AppState, Platform } from "react-native";
 import { useAuth } from "./AuthContext";
 import Constants from "expo-constants";
 
@@ -16,6 +17,7 @@ type SocketContextType = {
   send: (data: any) => void;
   subscribe: (channel: string) => void;
   unsubscribe: (channel: string) => void;
+  reconnect: () => void;
 };
 
 const SocketContext = createContext<SocketContextType>({
@@ -25,6 +27,7 @@ const SocketContext = createContext<SocketContextType>({
   send: () => {},
   subscribe: () => {},
   unsubscribe: () => {},
+  reconnect: () => {},
 });
 
 export const useSocket = () => useContext(SocketContext);
@@ -45,6 +48,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const watchdogIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastPongRef = useRef(0);
   const activeSubscriptionsRef = useRef<Set<string>>(new Set());
 
   const getWsUrl = useCallback(() => {
@@ -88,11 +93,26 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       ws.onopen = () => {
         setConnected(true);
         reconnectAttemptsRef.current = 0;
+        lastPongRef.current = Date.now();
         pingIntervalRef.current = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: "ping" }));
           }
         }, 30000);
+        // Pong watchdog: a frozen mobile tab can leave the socket looking
+        // OPEN while it is actually dead. If no pong arrives for 60s, force
+        // a close so the reconnect path kicks in.
+        watchdogIntervalRef.current = setInterval(() => {
+          const current = wsRef.current;
+          if (
+            current &&
+            current.readyState === WebSocket.OPEN &&
+            Date.now() - lastPongRef.current > 60000
+          ) {
+            console.warn("[WS] pong watchdog timeout — forcing reconnect");
+            try { current.close(); } catch {}
+          }
+        }, 15000);
         resubscribeAll();
       };
 
@@ -100,6 +120,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         try {
           const data = JSON.parse(event.data);
           const msgType = data.type;
+          if (msgType === "pong") {
+            lastPongRef.current = Date.now();
+            return;
+          }
           if (msgType) {
             notifyListeners(msgType, data);
           }
@@ -109,6 +133,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       ws.onclose = () => {
         setConnected(false);
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+        if (watchdogIntervalRef.current) clearInterval(watchdogIntervalRef.current);
         const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
         reconnectAttemptsRef.current += 1;
         reconnectTimerRef.current = setTimeout(() => {
@@ -129,6 +154,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+      if (watchdogIntervalRef.current) clearInterval(watchdogIntervalRef.current);
       if (wsRef.current) {
         wsRef.current.onclose = null;
         wsRef.current.close();
@@ -137,6 +163,53 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setConnected(false);
     };
   }, [sessionToken, user, connect]);
+
+  const reconnect = useCallback(() => {
+    reconnectAttemptsRef.current = 0;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    const ws = wsRef.current;
+    if (ws) {
+      ws.onclose = null;
+      try { ws.close(); } catch {}
+      wsRef.current = null;
+    }
+    if (sessionToken) connect();
+  }, [sessionToken, connect]);
+
+  // Resume handling: after a backgrounded/frozen tab or app comes back to
+  // the foreground, force a reconnect if the socket is stale or missing.
+  useEffect(() => {
+    const onResume = () => {
+      const ws = wsRef.current;
+      const stale =
+        !ws ||
+        ws.readyState !== WebSocket.OPEN ||
+        Date.now() - lastPongRef.current > 30000;
+      if (stale) {
+        reconnect();
+      }
+    };
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") onResume();
+      };
+      window.addEventListener("online", onResume);
+      window.addEventListener("pageshow", onResume);
+      document.addEventListener("visibilitychange", onVisibility);
+      return () => {
+        window.removeEventListener("online", onResume);
+        window.removeEventListener("pageshow", onResume);
+        document.removeEventListener("visibilitychange", onVisibility);
+      };
+    }
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") onResume();
+    });
+    return () => sub.remove();
+  }, [reconnect]);
 
   const on = useCallback((event: string, listener: WSListener) => {
     if (!listenersRef.current.has(event)) {
@@ -163,7 +236,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [sendRaw]);
 
   return (
-    <SocketContext.Provider value={{ connected, on, off, send: sendRaw, subscribe, unsubscribe }}>
+    <SocketContext.Provider value={{ connected, on, off, send: sendRaw, subscribe, unsubscribe, reconnect }}>
       {children}
     </SocketContext.Provider>
   );

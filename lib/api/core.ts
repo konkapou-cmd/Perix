@@ -449,48 +449,118 @@ export const parseResponse = async (response: Response) => {
   }
 };
 
+export class ApiRequestError extends Error {
+  status?: number;
+  retryable: boolean;
+  constructor(message: string, status?: number, retryable = false) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.retryable = retryable;
+  }
+}
+
+export const DEFAULT_TIMEOUT_MS = 15000;
+
+// Statuses where repeating a GET is safe and expected to help.
+const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+function waitForOnline(maxWaitMs: number): Promise<void> {
+  if (
+    typeof window === "undefined" ||
+    typeof navigator === "undefined" ||
+    navigator.onLine !== false
+  ) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener("online", finish);
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(finish, maxWaitMs);
+    window.addEventListener("online", finish);
+  });
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const apiRequest = async <T>(
   path: string,
   method: string,
   token?: string | null,
   body?: unknown,
-  timeoutMs?: number
+  timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<T> => {
   if (!BACKEND_URL || !API_BASE) {
-    throw new Error("Backend URL not configured");
+    throw new ApiRequestError("Backend URL not configured");
   }
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const controller = timeoutMs ? new AbortController() : undefined;
-  const timeoutId = timeoutMs ? setTimeout(() => controller!.abort(), timeoutMs) : undefined;
-  try {
-    const response = await fetch(`${API_BASE}${path}`, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: controller?.signal,
-    });
-    const data = await parseResponse(response);
-    if (!response.ok) {
-      let message = `Request failed: ${method} ${path} → ${response.status}`;
-      if (data?.detail) {
-        if (typeof data.detail === "string") message = data.detail;
-        else if (Array.isArray(data.detail)) message = data.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(", ");
-        else message = JSON.stringify(data.detail);
+
+  // Only safe, idempotent GET requests are retried automatically.
+  // POST/PUT/DELETE (payments, uploads, mutations) are never retried.
+  const safe = method.toUpperCase() === "GET";
+  const maxAttempts = safe ? 3 : 1;
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) {
+      // Exponential backoff: 500ms → 1s
+      await sleep(Math.min(500 * 2 ** (attempt - 1), 1000));
+    }
+    // When the browser reports offline (e.g. after tab suspension), wait for
+    // connectivity before firing the request.
+    await waitForOnline(10000);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(`${API_BASE}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+      const data = await parseResponse(response);
+      if (!response.ok) {
+        let message = `Request failed: ${method} ${path} → ${response.status}`;
+        if (data?.detail) {
+          if (typeof data.detail === "string") message = data.detail;
+          else if (Array.isArray(data.detail)) message = data.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(", ");
+          else message = JSON.stringify(data.detail);
+        }
+        throw new ApiRequestError(message, response.status, RETRYABLE_STATUSES.has(response.status));
       }
-      const err = new Error(message) as Error & { status?: number };
-      err.status = response.status;
-      throw err;
+      return data as T;
+    } catch (e: any) {
+      const timedOut = controller.signal.aborted && !(e instanceof ApiRequestError);
+      lastError = e;
+      const retryable =
+        safe &&
+        (timedOut ||
+          (e instanceof ApiRequestError && e.retryable) ||
+          !(e instanceof ApiRequestError));
+      if (attempt < maxAttempts - 1 && retryable) {
+        continue;
+      }
+      if (timedOut) {
+        throw new ApiRequestError(
+          `Request timed out after ${timeoutMs}ms: ${method} ${path}`,
+          undefined,
+          true
+        );
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return data as T;
-  } catch (e: any) {
-    if (controller?.signal.aborted) {
-      throw new Error(`Request timed out after ${timeoutMs}ms: ${method} ${path}`);
-    }
-    throw e;
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
   }
+  throw lastError ?? new ApiRequestError("Request failed");
 };
 
 export const CHUNK_SIZE = 5 * 1024 * 1024;

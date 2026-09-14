@@ -201,38 +201,44 @@ export default function ChatScreen() {
 
   const loadMessages = useCallback(async () => {
     if (!sessionToken || !id) return;
-    const data = await getMessagesWith(sessionToken, id, convEntityType);
-    
-    // Check for new messages from the other user
-    const isOtherParticipant = (msg: Message) => {
-      if (convEntityType === "business") return msg.to_business_id === id && msg.from_user_id !== user?.user_id;
-      if (convEntityType === "artist") return msg.to_artist_id === id && msg.from_user_id !== user?.user_id;
-      return msg.from_user_id === id;
-    };
-    const newMessagesFromOther = data.filter(isOtherParticipant);
-    
-    // If we have more messages from the other user than before, show notification
-    if (lastMessageCountRef.current > 0 && 
-        newMessagesFromOther.length > lastMessageCountRef.current) {
-      const latestMessage = newMessagesFromOther[newMessagesFromOther.length - 1];
-      if (latestMessage) {
-        showLocalNotification(
-          name || t("messages.newMessage"),
-          latestMessage.text?.substring(0, 100) || t("messages.newMessage"),
-          { type: "message", from_user_id: latestMessage.from_user_id }
-        );
-      }
-    }
-    lastMessageCountRef.current = newMessagesFromOther.length;
-    
-    setMessages(data);
-    
-    // Mark messages from this user as read
     try {
-      await markMessagesRead(sessionToken, id, convEntityType);
-      refreshUnreadCount();
-    } catch (e) {
-      console.log("[Chat] Failed to mark messages as read:", e);
+      const data = await getMessagesWith(sessionToken, id, convEntityType);
+      
+      // Check for new messages from the other user
+      const isOtherParticipant = (msg: Message) => {
+        if (convEntityType === "business") return msg.to_business_id === id && msg.from_user_id !== user?.user_id;
+        if (convEntityType === "artist") return msg.to_artist_id === id && msg.from_user_id !== user?.user_id;
+        return msg.from_user_id === id;
+      };
+      const newMessagesFromOther = data.filter(isOtherParticipant);
+      
+      // If we have more messages from the other user than before, show notification
+      if (lastMessageCountRef.current > 0 && 
+          newMessagesFromOther.length > lastMessageCountRef.current) {
+        const latestMessage = newMessagesFromOther[newMessagesFromOther.length - 1];
+        if (latestMessage) {
+          showLocalNotification(
+            name || t("messages.newMessage"),
+            latestMessage.text?.substring(0, 100) || t("messages.newMessage"),
+            { type: "message", from_user_id: latestMessage.from_user_id }
+          );
+        }
+      }
+      lastMessageCountRef.current = newMessagesFromOther.length;
+      
+      setMessages(data);
+      
+      // Mark messages from this user as read
+      try {
+        await markMessagesRead(sessionToken, id, convEntityType);
+        refreshUnreadCount();
+      } catch (e) {
+        console.log("[Chat] Failed to mark messages as read:", e);
+      }
+    } catch (error) {
+      // Polling calls this without a catch — swallow failures here so a
+      // frozen-tab network hiccup can never crash the chat screen.
+      console.warn("[Chat] Failed to load messages:", error);
     }
   }, [sessionToken, id, convEntityType, user, refreshUnreadCount, name, showLocalNotification, t]);
 
