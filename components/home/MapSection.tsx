@@ -2,13 +2,14 @@ import React, { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import * as Location from "expo-location";
+import { useTranslation } from "react-i18next";
+import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 import BusinessMap from "../../components/BusinessMap";
 import { MapBounds } from "../../context/MapBoundsContext";
 import { Business, EventItem, ActivityItem, Rental, Service } from "../../lib/api";
 import { Listing } from "../../lib/api/listings";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
-import { entityRoutes, pushEntityRoute, getRentalNavigationId } from "../../lib/navigation/entityRoutes";
+import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 
 interface MapSectionProps {
   mapBounds: MapBounds;
@@ -29,6 +30,7 @@ interface MapSectionProps {
 
 export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const allBusinesses = useMemo(() => {
     if (!hotels || hotels.length === 0) return businesses;
@@ -74,27 +76,23 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
     if (rental) {
       const navId = getRentalNavigationId(rental as any) as any;
       const route = (rental as any).source_type === "owner" ? entityRoutes.listing(navId) : entityRoutes.rental(navId);
-      pushEntityRoute(router, route, () => {});
+      pushEntityRoute(router, route, () => showInvalidEntityAlert(t));
       return;
     }
     const service = services.find(s => s.service_id === id);
-    if (service) { pushEntityRoute(router, entityRoutes.service(id), () => {}); return; }
+    if (service) { pushEntityRoute(router, entityRoutes.service(id), () => showInvalidEntityAlert(t)); return; }
     const job = jobs.find(j => j.job_id === id);
-    if (job) { pushEntityRoute(router, entityRoutes.job(id), () => {}); return; }
+    if (job) { pushEntityRoute(router, entityRoutes.job(id), () => showInvalidEntityAlert(t)); return; }
     const prod = (products || []).find(p => p.listing_id === id);
-    if (prod) { pushEntityRoute(router, entityRoutes.listing(id), () => {}); return; }
+    if (prod) { pushEntityRoute(router, entityRoutes.listing(id), () => showInvalidEntityAlert(t)); return; }
     const home = (ownerHomes || []).find(h => h.listing_id === id);
-    if (home) { pushEntityRoute(router, entityRoutes.listing(id), () => {}); return; }
+    if (home) { pushEntityRoute(router, entityRoutes.listing(id), () => showInvalidEntityAlert(t)); return; }
   };
 
   const handleRecenter = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-      const loc = await Location.getCurrentPositionAsync({});
-      onRecenter?.(loc.coords.latitude, loc.coords.longitude);
-    } catch (e) {
-      console.warn("Recenter failed:", e);
+    const loc = await getCurrentPositionWithPermission();
+    if (loc) {
+      onRecenter?.(loc.latitude, loc.longitude);
     }
   };
 

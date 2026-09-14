@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ensureLocationPermission } from "../lib/locationPermission";
 
 interface LocationData {
   latitude: number;
@@ -73,8 +74,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
       
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
+      const granted = await ensureLocationPermission();
+      if (!granted) {
         setError("Location permission denied");
         setLoading(false);
         return;

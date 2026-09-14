@@ -92,7 +92,7 @@ function ImageItem({ item }: { item: MediaItem }) {
   return (
     <GestureDetector gesture={composed}>
       <Animated.View style={[styles.imageContainer, animatedStyle]}>
-        <RNImage source={{ uri: item.uri }} style={styles.fullscreenImage} resizeMode="contain" />
+        <RNImage source={{ uri: item.uri }} style={styles.fullscreenImage as any} resizeMode="contain" />
       </Animated.View>
     </GestureDetector>
   );
@@ -233,14 +233,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...(Platform.OS === "web"
-      ? { position: "fixed" as const, top: 0, left: 0, right: 0, bottom: 0 }
+      ? ({ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 } as any)
       : {}),
   },
   closeArea: { position: "absolute", top: 50, right: 16, zIndex: 20 },
   closeButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.15)", justifyContent: "center", alignItems: "center" },
   mediaArea: { flex: 1, width: "100%", justifyContent: "center", alignItems: "center" },
   imageContainer: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center" },
-  fullscreenImage: { width: "100%", height: "100%", resizeMode: "contain" },
+  fullscreenImage: { width: "100%" as const, height: "100%" as const, resizeMode: "contain" as const },
   videoContainer: { width: "100%", height: "100%", backgroundColor: "transparent", justifyContent: "center", alignItems: "center" },
   playIconOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center" },
   playIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },

@@ -206,8 +206,13 @@ export function PostCard({
           autoPlay={activeVideo}
           muted={muted}
           showMuteButton={showMuteButton}
-          onMuteChange={onMuteChange}
-          onPress={() => setViewerOpen(true)}
+          onMuteChange={(next) => {
+            // Mute button sits inside the whole clickable card: swallow the
+            // card navigation so a mute tap never opens the post too.
+            skipCardNav.current = true;
+            onMuteChange?.(next);
+          }}
+          onPress={() => preventCardNav(() => setViewerOpen(true))}
         />
       ) : null}
 
