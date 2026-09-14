@@ -32,7 +32,7 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: "./assets/images/prx-logo.jpg",
+      foregroundImage: "./assets/images/prx-adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
     package: "com.perix.citysocial",
