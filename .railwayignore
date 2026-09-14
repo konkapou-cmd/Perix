@@ -1,0 +1,8 @@
+node_modules/
+*.apk
+android-sdkcmdline-tools.zip
+.metro-cache/
+.expo/
+nul
+com.facebook.react.devsupport.BundleDownloader
+__tests__/
