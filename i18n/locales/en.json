@@ -3037,6 +3037,12 @@
     "iosStep1": "Tap the Share button at the bottom of Safari",
     "iosStep2": "Choose \"Add to Home Screen\"",
     "iosStep3": "Tap \"Add\" and the Perix icon will appear on your home screen",
-    "gotIt": "Got it"
+    "gotIt": "Got it",
+    "openApp": "Open app",
+    "install": "Install",
+    "androidTitle": "Install the Perix web app",
+    "androidStep1": "Open the Chrome menu (⋮) at the top right",
+    "androidStep2": "Tap \"Install app\" or \"Add to Home screen\"",
+    "androidStep3": "Perix will appear on your home screen like a native app"
   }
 }

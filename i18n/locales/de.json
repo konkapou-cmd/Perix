@@ -3136,6 +3136,12 @@
     "iosStep1": "Tippe unten in Safari auf die Teilen-Schaltfläche",
     "iosStep2": "Wähle „Zum Home-Bildschirm“",
     "iosStep3": "Tippe auf „Hinzufügen“ und das Perix-Symbol erscheint auf deinem Startbildschirm",
-    "gotIt": "Verstanden"
+    "gotIt": "Verstanden",
+    "openApp": "App öffnen",
+    "install": "Installieren",
+    "androidTitle": "Perix Web-App installieren",
+    "androidStep1": "Öffne oben rechts das Chrome-Menü (⋮)",
+    "androidStep2": "Tippe auf „App installieren“ oder „Zum Startbildschirm hinzufügen“",
+    "androidStep3": "Perix erscheint wie eine native App auf deinem Startbildschirm"
   }
 }

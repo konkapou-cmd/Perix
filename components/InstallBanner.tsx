@@ -21,11 +21,25 @@ function isStandalone(): boolean {
   return false;
 }
 
+function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+}
+
+/**
+ * Every visit (new browser session) shows a prompt to open/install the Perix
+ * web app — with platform-specific guidance:
+ *  - iOS: "Add to Home Screen" steps (Share → Add to Home Screen).
+ *  - Android: native install prompt when Chrome offers it, otherwise the
+ *    Chrome-menu instructions.
+ * Dismissal is remembered only for the current session, so the next visit
+ * sees the prompt again.
+ */
 export default function InstallBanner() {
   const { t } = useTranslation();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [showIosModal, setShowIosModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [ios, setIos] = useState(false);
 
   useEffect(() => {
@@ -38,14 +52,12 @@ export default function InstallBanner() {
 
     if (isStandalone() || (storage && storage.getItem(DISMISS_KEY))) return;
 
-    const ua = navigator.userAgent || "";
-    const isIos = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
-    setIos(isIos);
+    setIos(isIOS());
 
-    if (isIos) {
-      const timer = setTimeout(() => setShowBanner(true), 2500);
-      return () => clearTimeout(timer);
-    }
+    // Show on every visit: immediately for Android/desktop, after a short
+    // delay on iOS (so the page renders first).
+    const timer = setTimeout(() => setShowBanner(true), isIOS() ? 1500 : 300);
+    setShowBanner(true);
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
@@ -59,6 +71,7 @@ export default function InstallBanner() {
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
     };
@@ -74,7 +87,10 @@ export default function InstallBanner() {
   };
 
   const install = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      setShowHelpModal(true);
+      return;
+    }
     try {
       await deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
@@ -84,7 +100,7 @@ export default function InstallBanner() {
         return;
       }
     } catch {}
-    dismiss();
+    setShowHelpModal(true);
   };
 
   return (
@@ -102,11 +118,12 @@ export default function InstallBanner() {
         </View>
         <Pressable
           style={styles.button}
-          onPress={ios ? () => setShowIosModal(true) : install}
+          onPress={install}
           testID="install-banner-action"
         >
+          <Ionicons name={deferredPrompt ? "download-outline" : "phone-portrait-outline"} size={16} color="#fff" />
           <Text style={styles.buttonText}>
-            {ios ? t("install.howTo", "How to install") : t("install.button", "Install")}
+            {deferredPrompt ? t("install.install", "Install") : t("install.openApp", "Open app")}
           </Text>
         </Pressable>
         <Pressable onPress={dismiss} style={styles.close} hitSlop={10} accessibilityLabel="Dismiss">
@@ -116,30 +133,59 @@ export default function InstallBanner() {
 
       <Modal
         transparent
-        visible={showIosModal}
+        visible={showHelpModal}
         animationType="fade"
-        onRequestClose={() => setShowIosModal(false)}
+        onRequestClose={() => setShowHelpModal(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t("install.iosTitle", "Add Perix to your Home Screen")}</Text>
-            <View style={styles.step}>
-              <Ionicons name="share-outline" size={22} color={BLUE} />
-              <Text style={styles.stepText}>
-                {t("install.iosStep1", "Tap the Share button at the bottom of Safari")}
-              </Text>
-            </View>
-            <View style={styles.step}>
-              <Ionicons name="add-circle-outline" size={22} color={BLUE} />
-              <Text style={styles.stepText}>{t("install.iosStep2", 'Choose "Add to Home Screen"')}</Text>
-            </View>
-            <View style={styles.step}>
-              <Ionicons name="checkmark-circle-outline" size={22} color={BLUE} />
-              <Text style={styles.stepText}>
-                {t("install.iosStep3", 'Tap "Add" and the Perix icon will appear on your home screen')}
-              </Text>
-            </View>
-            <Pressable style={styles.modalButton} onPress={() => setShowIosModal(false)}>
+            <Text style={styles.modalTitle}>
+              {ios
+                ? t("install.iosTitle", "Add Perix to your Home Screen")
+                : t("install.androidTitle", "Install the Perix web app")}
+            </Text>
+            {ios ? (
+              <>
+                <View style={styles.step}>
+                  <Ionicons name="share-outline" size={22} color={BLUE} />
+                  <Text style={styles.stepText}>
+                    {t("install.iosStep1", "Tap the Share button at the bottom of Safari")}
+                  </Text>
+                </View>
+                <View style={styles.step}>
+                  <Ionicons name="add-circle-outline" size={22} color={BLUE} />
+                  <Text style={styles.stepText}>{t("install.iosStep2", 'Choose "Add to Home Screen"')}</Text>
+                </View>
+                <View style={styles.step}>
+                  <Ionicons name="checkmark-circle-outline" size={22} color={BLUE} />
+                  <Text style={styles.stepText}>
+                    {t("install.iosStep3", 'Tap "Add" and open Perix from your home screen')}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.step}>
+                  <Ionicons name="ellipsis-vertical" size={22} color={BLUE} />
+                  <Text style={styles.stepText}>
+                    {t("install.androidStep1", 'Open the Chrome menu (⋮) at the top right')}
+                  </Text>
+                </View>
+                <View style={styles.step}>
+                  <Ionicons name="download-outline" size={22} color={BLUE} />
+                  <Text style={styles.stepText}>
+                    {t("install.androidStep2", 'Tap "Install app" or "Add to Home screen"')}
+                  </Text>
+                </View>
+                <View style={styles.step}>
+                  <Ionicons name="checkmark-circle-outline" size={22} color={BLUE} />
+                  <Text style={styles.stepText}>
+                    {t("install.androidStep3", "Perix will appear on your home screen like a native app")}
+                  </Text>
+                </View>
+              </>
+            )}
+            <Pressable style={styles.modalButton} onPress={() => setShowHelpModal(false)}>
               <Text style={styles.modalButtonText}>{t("install.gotIt", "Got it")}</Text>
             </Pressable>
           </View>
@@ -202,6 +248,9 @@ const styles = {
     marginTop: 2,
   },
   button: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
     backgroundColor: BLUE,
     borderRadius: 10,
     paddingHorizontal: 14,
