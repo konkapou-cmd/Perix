@@ -192,6 +192,16 @@ if WEB_DIST.exists():
 
     app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="web-assets")
 
+    if (WEB_DIST / "pwa").exists():
+        app.mount("/pwa", StaticFiles(directory=WEB_DIST / "pwa"), name="web-pwa")
+
+    @app.get("/manifest.json", include_in_schema=False)
+    async def web_manifest():
+        p = WEB_DIST / "manifest.json"
+        if p.exists():
+            return FileResponse(p, media_type="application/manifest+json", headers={"Cache-Control": "public, max-age=3600"})
+        raise HTTPException(status_code=404, detail="Manifest not found")
+
     @app.get("/favicon.ico", include_in_schema=False)
     async def web_favicon():
         return FileResponse(WEB_DIST / "favicon.ico")
