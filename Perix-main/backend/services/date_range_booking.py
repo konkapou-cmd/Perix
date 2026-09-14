@@ -382,16 +382,47 @@ async def create_date_range_booking(
 
         await db.bookings.insert_one(doc)
         from routes.push_web import notify_booking_web_push
+        from utils.push_notifications import send_activity_notification
+        from routes.ws import ws_broadcast_notification
 
         owner_doc = await db.businesses.find_one(
             {"business_id": business_id}, {"owner_id": 1}
         )
+        owner_user_id = (owner_doc or {}).get("owner_id")
+        service_name = service.get("name", "a service")
         await notify_booking_web_push(
             client_id=client_id,
-            owner_user_id=(owner_doc or {}).get("owner_id"),
-            service_name=service.get("name", "a service"),
+            owner_user_id=owner_user_id,
+            service_name=service_name,
             client_name=None,
         )
+        if owner_user_id and owner_user_id != client_id:
+            import asyncio
+
+            asyncio.create_task(
+                send_activity_notification(
+                    recipient_user_id=owner_user_id,
+                    actor_name="A guest",
+                    actor_id=client_id,
+                    actor_photo=None,
+                    activity_type="booking",
+                    message=f"A guest requested {service_name}",
+                    post_id=None,
+                )
+            )
+            asyncio.create_task(
+                ws_broadcast_notification(
+                    owner_user_id,
+                    {
+                        "type": "booking",
+                        "booking_id": doc["booking_id"],
+                        "client_id": client_id,
+                        "client_name": "A guest",
+                        "service_name": service_name,
+                        "message": f"A guest requested {service_name}",
+                    },
+                )
+            )
         return await enrich_booking(doc, service=service)
     finally:
         await release_service_booking_lock(service["service_id"], lock_token)

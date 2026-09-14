@@ -172,6 +172,7 @@ async def send_activity_notification(
         "comment": "💬 New Comment",
         "friend_request": "👋 Friend Request",
         "friend_accepted": "🎉 Friend Accepted",
+        "booking": "📅 New Booking Request",
     }
     
     title = title_map.get(activity_type, "New Activity")

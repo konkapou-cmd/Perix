@@ -425,16 +425,46 @@ async def create_booking(payload: BookingCreate, current_user: UserPublic = Depe
     booking = await enrich_booking(doc, service=service)
 
     from routes.push_web import notify_booking_web_push
+    from utils.push_notifications import send_activity_notification
+    from routes.ws import ws_broadcast_notification
 
     owner_doc = await db.businesses.find_one(
         {"business_id": business_id}, {"owner_id": 1}
     )
+    owner_user_id = (owner_doc or {}).get("owner_id")
+    service_name = service.get("name", "a service")
     await notify_booking_web_push(
         client_id=current_user.user_id,
-        owner_user_id=(owner_doc or {}).get("owner_id"),
-        service_name=service.get("name", "a service"),
+        owner_user_id=owner_user_id,
+        service_name=service_name,
         client_name=current_user.name,
     )
+    # Native push + realtime notification for the business owner
+    if owner_user_id and owner_user_id != current_user.user_id:
+        asyncio.create_task(
+            send_activity_notification(
+                recipient_user_id=owner_user_id,
+                actor_name=current_user.name,
+                actor_id=current_user.user_id,
+                actor_photo=current_user.profile_photo,
+                activity_type="booking",
+                message=f"{current_user.name} requested {service_name}",
+                post_id=None,
+            )
+        )
+        asyncio.create_task(
+            ws_broadcast_notification(
+                owner_user_id,
+                {
+                    "type": "booking",
+                    "booking_id": doc["booking_id"],
+                    "client_id": current_user.user_id,
+                    "client_name": current_user.name,
+                    "service_name": service_name,
+                    "message": f"{current_user.name} requested {service_name}",
+                },
+            )
+        )
     return BookingResponse(**booking)
 
 

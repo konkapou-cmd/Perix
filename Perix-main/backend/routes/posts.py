@@ -15,6 +15,7 @@ from models.post import (
 from utils.helpers import generate_id, now_utc
 from utils.cloudinary_utils import upload_to_cloudinary
 from utils.push_notifications import send_activity_notification
+from routes.push_web import notify_web_push
 from routes.dependencies import get_current_user, resolve_actor, build_user_public, like_matches_actor, get_blocked_user_ids
 
 
@@ -455,6 +456,14 @@ async def toggle_post_like(
                     post_id=post_id,
                 )
             )
+            asyncio.create_task(
+                notify_web_push(
+                    post["user_id"],
+                    "❤️ New Like",
+                    f"{actor['actor_name']} liked your post",
+                    data={"type": "like", "url": f"/post/{post_id}"},
+                )
+            )
     post["likes"] = likes
     await db.posts.update_one({"post_id": post_id}, {"$set": {"likes": likes}})
     author_doc = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0})
@@ -511,6 +520,14 @@ async def add_post_comment(
                 activity_type="comment",
                 message=f"{actor['actor_name']} commented: \"{payload.text[:50]}\"",
                 post_id=post_id,
+            )
+        )
+        asyncio.create_task(
+            notify_web_push(
+                post["user_id"],
+                "💬 New Comment",
+                f"{actor['actor_name']} commented: \"{payload.text[:50]}\"",
+                data={"type": "comment", "url": f"/post/{post_id}"},
             )
         )
     author_doc = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0})

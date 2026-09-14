@@ -153,6 +153,47 @@ async def get_activity_feed(
                         read=False
                     ))
     
+    # Pending booking requests for businesses owned by the current user
+    my_business_ids = [
+        b["business_id"]
+        async for b in db.businesses.find(
+            {"owner_id": current_user.user_id}, {"business_id": 1}
+        )
+    ]
+    if my_business_ids:
+        pending_bookings = await db.bookings.find(
+            {"business_id": {"$in": my_business_ids}, "status": "pending"},
+            {
+                "_id": 0,
+                "booking_id": 1,
+                "client_id": 1,
+                "client_name": 1,
+                "service_name": 1,
+                "created_at": 1,
+            },
+        ).sort("created_at", -1).limit(5).to_list(5)
+        for bk in pending_bookings:
+            bk_time = bk.get("created_at")
+            if bk_time is None:
+                bk_time_str = now.isoformat()
+            elif isinstance(bk_time, str):
+                bk_time_str = bk_time
+            else:
+                bk_time_str = bk_time.isoformat()
+            activities.append(ActivityItem(
+                activity_id=f"booking_{bk['booking_id']}",
+                type="booking",
+                message=f"{bk.get('client_name') or 'A guest'} requested {bk.get('service_name') or 'a booking'}",
+                actor_id=bk.get("client_id") or "",
+                actor_name=bk.get("client_name") or "A guest",
+                actor_avatar=None,
+                actor_type="user",
+                target_id=bk["booking_id"],
+                target_type="booking",
+                created_at=bk_time_str,
+                read=False,
+            ))
+
     # Get pending friend requests TO me (others wanting to connect with me)
     pending_requests = await db.friend_requests.find(
         {
