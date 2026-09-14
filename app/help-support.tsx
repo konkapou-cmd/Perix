@@ -32,7 +32,7 @@ export default function HelpSupportScreen() {
     },
     {
       q: t("help.deleteAccountQ") || "How do I delete my account?",
-      a: t("help.deleteAccountA") || "Go to Settings and tap 'Delete Account' in the Danger Zone section. You will be asked to confirm twice. This permanently removes all your data."
+      a: t("help.deleteAccountA") || "Go to Settings and tap 'Delete Account' in the Danger Zone section, or visit perixapp.com/account-deletion from any browser. You will be asked to confirm twice. This permanently removes all your data."
     },
     {
       q: t("help.businessQ") || "How do I create a business profile?",

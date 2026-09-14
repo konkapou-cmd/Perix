@@ -49,6 +49,11 @@ export default function PrivacyPolicyScreen() {
         "You have the right to:\n\n• Access your personal data\n• Correct inaccurate data\n• Request deletion of your data\n• Object to processing of your data\n• Request data portability\n• Withdraw consent at any time\n\nTo exercise these rights, contact us through the app or via email."
     },
     {
+      title: t("privacy.accountDeletion") || "Account Deletion",
+      content: t("privacy.accountDeletionContent") || 
+        "You can delete your account at any time from Settings → Delete Account, or without installing the app at perixapp.com/account-deletion.\n\nWhat is deleted immediately and permanently:\n\n• Your account profile, name, email, photos and all personal data\n• Your posts, comments, stories, events, activities and listings\n• Your likes, saves, friend connections, messages and conversations\n• Your search/notification data, sessions and push tokens\n• Hosted media (photos and videos) associated with your content\n\nWhat is removed from public view immediately, then permanently deleted within 30 days:\n\n• Business or artist profiles you operated and their content. These are kept briefly (up to 30 days) so pending bookings and transactions involving other people can be settled, then permanently deleted.\n\nWhat we retain and why:\n\n• Booking, subscription and payment records: retained as required by tax and financial law.\n• A technical identifier (no personal data): kept for up to 12 months for abuse and fraud prevention.\n• Reports about your account: retained for moderation purposes without your personal details."
+    },
+    {
       title: t("privacy.children") || "Children's Privacy",
       content: t("privacy.childrenContent") || 
         "Our service is not intended for children under 16. We do not knowingly collect personal information from children under 16. If we become aware that a child under 16 has provided us with personal information, we will take steps to delete such information."
