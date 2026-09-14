@@ -293,14 +293,6 @@ export default function MediaEditor() {
             )}
           </View>
 
-          {/* Video trim toggle */}
-          {isVideo && (
-            <Pressable style={styles.trimToggle} onPress={() => { setTrimMode(!trimMode); if (trimMode) { try { player.currentTime = trimStart; } catch (_) {} } }}>
-              <Ionicons name="cut" size={16} color={trimMode ? COLORS.primary : "#6b7280"} />
-              <Text style={[styles.trimToggleText, trimMode && { color: COLORS.primary }]}>{t("editor.trim", "Trim")}</Text>
-            </Pressable>
-          )}
-
           {/* Caption */}
           <View style={styles.captionSection}>
             <Text style={styles.captionLabel}>{t("editor.caption", "Caption")}</Text>

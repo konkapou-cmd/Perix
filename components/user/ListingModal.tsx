@@ -30,7 +30,7 @@ type Props = {
   allowedTaxonomy?: Record<string, "*" | string[]> | null;
   onClose: () => void;
   onSave: () => void;
-  onCreated?: (listingId: string) => void;
+  onCreated?: (listingId: string, effectiveStatus: ListingStatus) => void;
 };
 
 const HOME_TYPES = ["apartment", "house", "studio", "room"];
@@ -307,7 +307,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         await updateListing(sessionToken, editingListing!.listing_id, payload);
       } else {
         const created = await createListing(sessionToken, payload);
-        onCreated?.(created.listing_id);
+        onCreated?.(created.listing_id, effectiveStatus);
       }
 
       if (effectiveStatus !== status) {

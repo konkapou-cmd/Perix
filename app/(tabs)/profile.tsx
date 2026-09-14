@@ -112,7 +112,7 @@ import { useMapBounds } from "../../context/MapBoundsContext";
 import { useUploads } from "../../context/UploadContext";
 import OpeningHoursModal, { DayHours, defaultDayHours } from "../../components/business/OpeningHoursModal";
 import ListingModal from "../../components/user/ListingModal";
-import { getBusinessSellerListings, getManageListings, Listing, updateListing, deleteListing, getProductPermissions } from "../../lib/api/listings";
+import { getBusinessSellerListings, getManageListings, Listing, updateListing, deleteListing, getProductPermissions, ListingType } from "../../lib/api/listings";
 import SocialLinksModal from "../../components/SocialLinksModal";
 import PlacesAutocompleteInput from "../../components/PlacesAutocompleteInput";
 
@@ -1397,6 +1397,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const bizListingsRequestRef = useRef(0);
   const userListingsRequestRef = useRef(0);
   const [listingModalVisible, setListingModalVisible] = useState(false);
+const [newListingType, setNewListingType] = useState<ListingType>("product");
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [businessAllowedTaxonomy, setBusinessAllowedTaxonomy] = useState<Record<string, "*" | string[]> | null>(null);
 
@@ -2581,10 +2582,16 @@ postText={postText}
                    onViewFriends={() => router.push(`/friends/${user?.user_id}` as any)}
                    userListings={userListings}
                    userHomeListings={userHomeListings}
-                  onAddItem={() => {
-                    setEditingListing(null);
-                    setListingModalVisible(true);
-                  }}
+                   onAddItem={() => {
+                     setEditingListing(null);
+                     setNewListingType("product");
+                     setListingModalVisible(true);
+                   }}
+                   onAddHome={() => {
+                     setEditingListing(null);
+                     setNewListingType("home_rental");
+                     setListingModalVisible(true);
+                   }}
                   onEditItem={(listing) => {
                     setEditingListing(listing);
                     setListingModalVisible(true);
@@ -2873,6 +2880,7 @@ currentUserId={businessDetail?.business?.business_id}
                    onAddItem={() => {
                      if (businessPermsLoading || !businessProductsEnabled) return;
                      setEditingListing(null);
+                     setNewListingType("product");
                      setListingModalVisible(true);
                    }}
                   onEditItem={(listing) => {
@@ -2892,7 +2900,7 @@ currentUserId={businessDetail?.business?.business_id}
       <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={uploadContext} mode="inline" onDismiss={() => { setShowUploadProgress(false); setUploadProgress(null); }} />
       <ListingModal
         visible={listingModalVisible}
-        listingType={editingListing?.listing_type || "product"}
+        listingType={editingListing?.listing_type || newListingType}
         editingListing={editingListing}
         sessionToken={sessionToken || ""}
         businessId={activeIdentity?.type === "business" ? activeIdentity.id : null}
@@ -2910,10 +2918,14 @@ currentUserId={businessDetail?.business?.business_id}
         allowedTaxonomy={activeIdentity?.type === "business" ? businessAllowedTaxonomy : null}
         onClose={() => { setListingModalVisible(false); setEditingListing(null); }}
         onSave={handleSaveListing}
-        onCreated={(listingId) => {
+        onCreated={(listingId, effectiveStatus) => {
           setListingModalVisible(false);
           setEditingListing(null);
-          announceSaved(t("common.success") || "Success", t("marketplace.publishedMessage", "Your listing has been published."));
+          if (effectiveStatus === "published") {
+            announceSaved(t("common.success") || "Success", t("marketplace.publishedMessage", "Your listing has been published."));
+          } else {
+            announceSaved(t("common.savedAsDraft", "Als Entwurf gespeichert"), t("marketplace.draftSavedMessage", "Your listing was saved as a draft."));
+          }
           pushEntityRoute(router, entityRoutes.listing(listingId), () => showInvalidEntityAlert(t as any));
         }}
       />

@@ -127,6 +127,7 @@ interface UserProfilePremiumProps {
   userListings?: Listing[];
   userHomeListings?: Listing[];
   onAddItem?: () => void;
+  onAddHome?: () => void;
   onEditItem?: (listing: Listing) => void;
   onToggleMarketplace?: (listing: Listing) => void;
   onDeleteItem?: (listing: Listing) => void;
@@ -205,6 +206,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   userListings = [],
   userHomeListings = [],
   onAddItem,
+  onAddHome,
   onEditItem,
   onToggleMarketplace,
   onDeleteItem,
@@ -482,7 +484,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           listings={userHomeListings}
           isOwner={isOwnProfile ?? false}
           listingType="home_rental"
-          onAdd={isOwnProfile ? onAddItem! : (() => {})}
+          onAdd={isOwnProfile ? (onAddHome ?? onAddItem)! : (() => {})}
           onEdit={(l) => onEditItem?.(l)}
           onToggleMarketplace={(l) => onToggleMarketplace?.(l)}
           onDelete={(l) => onDeleteItem?.(l)}
