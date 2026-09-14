@@ -43,8 +43,6 @@ const config: ExpoConfig = {
       "ACCESS_COARSE_LOCATION",
       "READ_MEDIA_IMAGES",
       "READ_MEDIA_VIDEO",
-      "READ_EXTERNAL_STORAGE",
-      "WRITE_EXTERNAL_STORAGE",
       "CAMERA",
       "RECORD_AUDIO",
       "MODIFY_AUDIO_SETTINGS",
@@ -54,6 +52,14 @@ const config: ExpoConfig = {
       "FOREGROUND_SERVICE",
       "INTERNET",
       "ACCESS_NETWORK_STATE",
+    ],
+    // Strip permissions that libraries add to the merged manifest but the
+    // app never needs (Play pre-launch report flags these).
+    blockedPermissions: [
+      "SYSTEM_ALERT_WINDOW",
+      "WRITE_CONTACTS",
+      "READ_EXTERNAL_STORAGE",
+      "WRITE_EXTERNAL_STORAGE",
     ],
     config: {
       googleMaps: {
