@@ -57,6 +57,67 @@ async def cleanup_old_posts():
     return 0
 
 
+# Retention windows for account-deletion data (disclosed in the privacy policy)
+DEACTIVATED_CONTENT_RETENTION_DAYS = 30  # hidden business/artist content purge
+TOMBSTONE_RETENTION_DAYS = 365  # deleted-account technical records
+
+
+async def purge_deactivated_content():
+    """Permanently delete content that was deactivated by account deletion
+    after the disclosed retention window (30 days), and delete old account
+    tombstones after 12 months."""
+    now = datetime.now(timezone.utc)
+    content_cutoff = now - timedelta(days=DEACTIVATED_CONTENT_RETENTION_DAYS)
+    tombstone_cutoff = now - timedelta(days=TOMBSTONE_RETENTION_DAYS)
+
+    hidden_query = {"is_hidden": True, "owner_deleted_at": {"$lt": content_cutoff}}
+    status_query = {
+        "$or": [{"is_hidden": True}, {"status": "hidden"}],
+        "owner_deleted_at": {"$lt": content_cutoff},
+    }
+
+    collections = [
+        ("posts", "post_id", hidden_query),
+        ("stories", "story_id", hidden_query),
+        ("events", "event_id", hidden_query),
+        ("activities", "activity_id", hidden_query),
+        ("listings", "listing_id", status_query),
+        ("services", "service_id", status_query),
+        ("jobs", "job_id", status_query),
+    ]
+    purged = {}
+    for name, id_field, query in collections:
+        try:
+            r = await getattr(db, name).delete_many(query)
+            purged[name] = r.deleted_count
+        except Exception as e:
+            logger.warning(f"Purge {name} failed: {e}")
+
+    try:
+        r = await db.businesses.delete_many(hidden_query)
+        purged["businesses"] = r.deleted_count
+    except Exception as e:
+        logger.warning(f"Purge businesses failed: {e}")
+
+    try:
+        r = await db.artists.delete_many(hidden_query)
+        purged["artists"] = r.deleted_count
+    except Exception as e:
+        logger.warning(f"Purge artists failed: {e}")
+
+    try:
+        r = await db.users.delete_many(
+            {"is_deleted": True, "deleted_at": {"$lt": tombstone_cutoff}}
+        )
+        purged["tombstones"] = r.deleted_count
+    except Exception as e:
+        logger.warning(f"Purge tombstones failed: {e}")
+
+    if any(purged.values()):
+        logger.info(f"Retention purge complete: {purged}")
+    return purged
+
+
 async def run_cleanup():
     """Run all cleanup tasks."""
     logger.info("Starting automatic cleanup...")
@@ -64,6 +125,7 @@ async def run_cleanup():
     events_deleted = await cleanup_old_events()
     activities_deleted = await cleanup_old_activities()
     posts_deleted = await cleanup_old_posts()
+    purged = await purge_deactivated_content()
     
     total = events_deleted + activities_deleted + posts_deleted
     if total > 0:
@@ -74,7 +136,8 @@ async def run_cleanup():
     return {
         "events_deleted": events_deleted,
         "activities_deleted": activities_deleted,
-        "posts_deleted": posts_deleted
+        "posts_deleted": posts_deleted,
+        "retention_purged": purged,
     }
 
 

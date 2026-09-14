@@ -1,9 +1,13 @@
 """Entity ownership and account-deletion helpers.
 
-Public content is soft-deactivated, never hard-deleted.
+Personal content (posts, comments, stories, events, activities, listings,
+messages, likes, RSVPs) is hard-deleted on account deletion.
+Business/artist profiles are soft-deactivated on deletion (removed from public
+view immediately) and permanently purged by the periodic retention cleanup.
 Ephemeral data (tokens, sessions, saved_items) is removed.
 Operations are idempotent and support resumption.
 """
+import asyncio
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Set
 from dataclasses import dataclass, field
@@ -239,9 +243,9 @@ async def run_account_deletion(user_id: str, lock_key: str) -> dict:
             result["steps_run"].append(f"{name}:failed")
 
     try:
-        # Step 1: Personal content
+        # Step 1: Personal content — hard-deleted (never merely hidden)
         await _step("personal_content",
-                    lambda: deactivate_user_content(user_id, reason="owner_account_deleted"))
+                    lambda: delete_user_content(user_id))
 
         # Step 2: Subscriptions — check for manual review
         sub_result = {}
@@ -392,6 +396,7 @@ async def deactivate_user_content(
                 "is_hidden": True,
                 "status": "hidden",
                 "hidden_reason": reason,
+                "owner_deleted_at": now,
             },
         },
     )
@@ -413,6 +418,7 @@ async def deactivate_user_content(
                 "is_active": False,
                 "is_hidden": True,
                 "hidden_reason": reason,
+                "owner_deleted_at": now,
             },
         },
     )
@@ -467,6 +473,7 @@ async def deactivate_business_content(
                 "is_active": False,
                 "status": "hidden",
                 "hidden_reason": reason,
+                "owner_deleted_at": now,
             },
         },
     )
@@ -479,6 +486,7 @@ async def deactivate_business_content(
             "$set": {
                 "is_active": False,
                 "hidden_reason": reason,
+                "owner_deleted_at": now,
             },
         },
     )
@@ -491,6 +499,7 @@ async def deactivate_business_content(
             "$set": {
                 "is_hidden": True,
                 "hidden_reason": reason,
+                "owner_deleted_at": now,
             },
         },
     )
@@ -503,6 +512,7 @@ async def deactivate_business_content(
             "$set": {
                 "is_hidden": True,
                 "hidden_reason": reason,
+                "owner_deleted_at": now,
             },
         },
     )
@@ -515,6 +525,7 @@ async def deactivate_business_content(
             "$set": {
                 "is_hidden": True,
                 "hidden_reason": reason,
+                "owner_deleted_at": now,
             },
         },
     )
@@ -587,6 +598,177 @@ async def deactivate_artist_content(
         {"$set": {"status": "cancelled", "cancelled_reason": reason}},
     )
     result.record("booking_requests", r.modified_count)
+
+    return result
+
+
+# ─── Hard Deletion (personal content) ───
+
+
+async def _destroy_media_best_effort(urls: List[str]) -> None:
+    """Destroy Cloudinary-hosted media. Best effort: failures are logged, never fatal."""
+    from utils.cloudinary_utils import destroy_cloudinary_asset
+
+    for url in urls:
+        if not url or not isinstance(url, str):
+            continue
+        resource_type = "image"
+        if ".mp4" in url.lower() or "video" in url.lower():
+            resource_type = "video"
+        try:
+            await destroy_cloudinary_asset(url, resource_type=resource_type)
+        except Exception:
+            try:
+                await destroy_cloudinary_asset(url, resource_type="image" if resource_type == "video" else "video")
+            except Exception:
+                logger.debug(f"Media destroy skipped for {url[:120]}")
+
+
+async def delete_user_content(user_id: str) -> DeactivationResult:
+    """Hard-delete all personal content owned by a user. Idempotent.
+
+    Required for Google/Apple account-deletion compliance: the user's content
+    and personal data are removed, not merely hidden. Business/artist profiles
+    are deactivated separately and purged by the retention cleanup.
+    """
+    result = DeactivationResult(user_id=user_id, timestamp=_now_utc().isoformat())
+    media_urls: List[str] = []
+
+    # --- Posts owned by the user (any ownership variant) ---
+    post_ids: List[str] = []
+    cursor = db.posts.find(
+        {"$or": [
+            {"user_id": user_id},
+            {"author_id": user_id},
+            {"actor_type": "user", "actor_id": user_id},
+        ]},
+        {"post_id": 1, "image_url": 1, "video_url": 1},
+    )
+    async for p in cursor:
+        post_ids.append(p["post_id"])
+        for key in ("image_url", "video_url"):
+            if p.get(key):
+                media_urls.append(p[key])
+    if post_ids:
+        r = await db.posts.delete_many({"post_id": {"$in": post_ids}})
+        result.record("posts", r.deleted_count)
+        # Others' saved items pointing at the deleted posts
+        r = await db.saved_items.delete_many({"item_type": "post", "item_id": {"$in": post_ids}})
+        result.record("saved_items_others", r.deleted_count)
+
+    # --- Comments authored by the user (embedded in posts) ---
+    r = await db.posts.update_many(
+        {"comments.user_id": user_id},
+        {"$pull": {"comments": {"user_id": user_id}}},
+    )
+    result.record("comments", r.modified_count)
+
+    # --- Stories (incl. city ads) ---
+    story_ids: List[str] = []
+    cursor = db.stories.find({"user_id": user_id}, {"story_id": 1, "media_url": 1, "video_url": 1})
+    async for s in cursor:
+        story_ids.append(s["story_id"])
+        for key in ("media_url", "video_url"):
+            if s.get(key):
+                media_urls.append(s[key])
+    if story_ids:
+        r = await db.stories.delete_many({"story_id": {"$in": story_ids}})
+        result.record("stories", r.deleted_count)
+        await db.story_views.delete_many({"story_id": {"$in": story_ids}})
+        await db.story_reactions.delete_many({"story_id": {"$in": story_ids}})
+
+    # --- Story views/reactions by the user on other stories ---
+    r = await db.story_views.delete_many({"user_id": user_id})
+    result.record("story_views", r.deleted_count)
+    r = await db.story_reactions.delete_many({"user_id": user_id})
+    result.record("story_reactions", r.deleted_count)
+
+    # --- Events created by the user ---
+    ev_ids = [e["event_id"] async for e in db.events.find(
+        {"$or": [{"creator_id": user_id}, {"created_by": user_id}]}, {"event_id": 1})]
+    if ev_ids:
+        r = await db.events.delete_many({"event_id": {"$in": ev_ids}})
+        result.record("events", r.deleted_count)
+        await db.event_reminders.delete_many({"event_id": {"$in": ev_ids}})
+        await db.event_messages.delete_many({"event_id": {"$in": ev_ids}})
+        await db.saved_items.delete_many({"item_type": "event", "item_id": {"$in": ev_ids}})
+
+    # --- Remove user from attendance/reminders of remaining events ---
+    r = await db.events.update_many({}, {"$pull": {"attendees": user_id}})
+    result.record("event_attendance", r.modified_count)
+    await db.event_reminders.delete_many({"user_id": user_id})
+    await db.event_messages.delete_many({"sender_id": user_id})
+
+    # --- Activities created by the user ---
+    act_ids = [a["activity_id"] async for a in db.activities.find(
+        {"creator_id": user_id}, {"activity_id": 1})]
+    if act_ids:
+        r = await db.activities.delete_many({"activity_id": {"$in": act_ids}})
+        result.record("activities", r.deleted_count)
+        await db.saved_items.delete_many({"item_type": "activity", "item_id": {"$in": act_ids}})
+
+    # --- Remove user from attendance of remaining activities ---
+    r = await db.activities.update_many({}, {"$pull": {"attendees": user_id}})
+    result.record("activity_attendance", r.modified_count)
+
+    # --- Personal listings ---
+    r = await db.listings.delete_many(
+        {"owner_id": user_id,
+         "$or": [{"seller_type": "user"}, {"seller_type": {"$exists": False}}]})
+    result.record("listings_personal", r.deleted_count)
+
+    # --- Job applications submitted by the user ---
+    r = await db.job_applications.delete_many({"applicant_id": user_id})
+    result.record("job_applications", r.deleted_count)
+
+    # --- Likes on posts (scalar ids and actor dicts) ---
+    r = await db.posts.update_many({}, {"$pull": {"likes": user_id}})
+    result.record("likes_scalar", r.modified_count)
+    r = await db.posts.update_many({}, {"$pull": {"likes": {"actor_id": user_id}}})
+    result.record("likes_actor", r.modified_count)
+
+    # --- Conversations: 1:1 deleted wholesale; group chats drop the member ---
+    conv_ids: List[str] = []
+    async for c in db.conversations.find({"participants": user_id},
+                                         {"conversation_id": 1, "type": 1}):
+        if c.get("type") == "group":
+            await db.conversations.update_one(
+                {"conversation_id": c["conversation_id"]},
+                {"$pull": {"participants": user_id}})
+            r = await db.messages.delete_many(
+                {"conversation_id": c["conversation_id"], "from_user_id": user_id})
+            result.record("group_messages", r.deleted_count)
+        else:
+            conv_ids.append(c["conversation_id"])
+    if conv_ids:
+        r = await db.conversations.delete_many({"conversation_id": {"$in": conv_ids}})
+        result.record("conversations", r.deleted_count)
+        r = await db.messages.delete_many({"conversation_id": {"$in": conv_ids}})
+        result.record("messages", r.deleted_count)
+    # Any remaining direct messages authored by the user
+    r = await db.messages.delete_many({"from_user_id": user_id})
+    result.record("messages_sent", r.deleted_count)
+
+    # --- Reports filed by the user ---
+    r = await db.reports.delete_many({"reporter_id": user_id})
+    result.record("reports_by_user", r.deleted_count)
+
+    # --- Profile/gallery media on Cloudinary (best-effort, background) ---
+    user = await db.users.find_one(
+        {"user_id": user_id},
+        {"profile_photo": 1, "picture": 1, "cover_photo": 1,
+         "gallery_images": 1, "gallery_videos": 1},
+    )
+    if user:
+        for key in ("profile_photo", "picture", "cover_photo"):
+            if user.get(key):
+                media_urls.append(user[key])
+        for key in ("gallery_images", "gallery_videos"):
+            for url in user.get(key) or []:
+                if isinstance(url, str):
+                    media_urls.append(url)
+    if media_urls:
+        asyncio.ensure_future(_destroy_media_best_effort(list(set(media_urls))))
 
     return result
 

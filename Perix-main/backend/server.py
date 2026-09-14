@@ -133,6 +133,32 @@ app.add_middleware(
 # Include the main API router
 app.include_router(api_router)
 
+# --- Public account-deletion pages (Google Play / Apple requirement) ---
+# Must be declared before the SPA fallback below.
+from fastapi.responses import HTMLResponse
+from routes.account_deletion import (
+    deletion_request_page_html,
+    deletion_confirm_page_html,
+    resolve_deletion_token,
+)
+
+
+@app.get("/account-deletion", include_in_schema=False)
+async def account_deletion_page():
+    return HTMLResponse(deletion_request_page_html())
+
+
+@app.get("/account-deletion/confirm", include_in_schema=False)
+async def account_deletion_confirm_page(token: str = ""):
+    user = await resolve_deletion_token(token.strip())
+    if user is None:
+        return HTMLResponse(
+            deletion_confirm_page_html(
+                "", error="This deletion link is invalid or has expired. Please request a new one."
+            )
+        )
+    return HTMLResponse(deletion_confirm_page_html(token.strip(), user=user))
+
 # --- Web app static hosting (SPA) ---
 WEB_DIST = Path(__file__).parent / "webdist"
 

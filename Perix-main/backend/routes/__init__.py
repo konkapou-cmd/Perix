@@ -36,6 +36,7 @@ from routes.mux import router as mux_router
 from routes.mux_proxy import router as mux_proxy_router
 from routes.listings import router as listings_router
 from routes.reports import router as reports_router
+from routes.account_deletion import router as account_deletion_router
 
 # Create main API router
 api_router = APIRouter(prefix="/api")
@@ -76,6 +77,7 @@ api_router.include_router(mux_router)
 api_router.include_router(mux_proxy_router)
 api_router.include_router(listings_router)
 api_router.include_router(reports_router)
+api_router.include_router(account_deletion_router)
 
 
 @api_router.get("/")
