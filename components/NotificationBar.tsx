@@ -36,6 +36,8 @@ const getActivityIcon = (type: string): keyof typeof Ionicons.glyphMap => {
       return "calendar";
     case "post":
       return "document-text";
+    case "booking":
+      return "calendar-number";
     default:
       return "notifications";
   }
@@ -55,6 +57,8 @@ const getActivityColor = (type: string): string => {
       return "#FF6B6B";
     case "post":
       return "#FFD700";
+    case "booking":
+      return "#59ABE3";
     default:
       return "#6b7280";
   }
@@ -90,6 +94,8 @@ const getTranslatedMessage = (activity: ActivityItemType, t: any): string => {
       return t("notifications.invitedToEvent") || "invited you to an event";
     case "post":
       return t("notifications.newPost") || "shared a new post";
+    case "booking":
+      return t("notifications.bookingRequest") || "requested a booking";
     default:
       return activity.message || "";
   }
@@ -192,6 +198,10 @@ export default function NotificationBar({ onExpand }: NotificationBarProps) {
       } else {
         router.navigate("/(tabs)/home" as any);
       }
+    } else if (activity.type === "booking") {
+      // Booking request: opens the business booking list (owner) or the
+      // user's own bookings (client) via the profile screen param.
+      router.push({ pathname: "/(tabs)/profile", params: { openBookings: "1" } } as any);
     } else if (activity.type === "friend_request" && activity.actor_id) {
       router.push(activity.actor_type === 'business' ? `/business/${activity.actor_id}` : `/user/${activity.actor_id}`);
     } else if (activity.type === "friend" && activity.actor_id) {

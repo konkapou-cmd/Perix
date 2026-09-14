@@ -607,7 +607,11 @@ const syncEventEndTime = (d: Date, tm: Date) => {
     }
 
     if (shouldOpenBookings) {
-      setBookingListVisible(true);
+      if (activeIdentity?.type === "business") {
+        setBookingListVisible(true);
+      } else {
+        setUserBookingListVisible(true);
+      }
     }
   }, [
     params.openService,

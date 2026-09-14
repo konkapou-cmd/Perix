@@ -417,12 +417,8 @@ export default function MessagesScreen() {
               <Text style={styles.title}>{t("messages.title")}</Text>
             </View>
             <View style={styles.headerButtons}>
-              <Pressable 
-                style={styles.headerIconButtonOutline}
-                onPress={() => router.push("/call-history")}
-              >
-                <Ionicons name="call" size={18} color="#264348" />
-              </Pressable>
+              {/* Calls removed from the messages page — notifications stay in
+                  the activity bar below. */}
             </View>
           </View>
         </View>

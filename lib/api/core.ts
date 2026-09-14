@@ -823,7 +823,7 @@ export type BlockedUser = {
 
 export type ActivityItemType = {
   activity_id: string;
-  type: "like" | "comment" | "friend" | "friend_request" | "event" | "post";
+  type: "like" | "comment" | "friend" | "friend_request" | "event" | "post" | "booking";
   message: string;
   actor_id: string;
   actor_name: string;
