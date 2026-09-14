@@ -516,7 +516,7 @@ export default function EventDetailPage() {
                   <Pressable
                     key={artist.artist_id}
                     style={styles.taggedArtistCard}
-                    onPress={() => router.push(`/user/${artist.artist_id}` as any)}
+                    onPress={() => router.push(`/artist/${artist.artist_id}` as any)}
                   >
                     {artist.profile_photo ? (
                       <Image source={{ uri: artist.profile_photo }} style={styles.taggedArtistAvatar} />
@@ -578,11 +578,12 @@ export default function EventDetailPage() {
           />
 
           <BottomCTA
-            primaryLabel={isAttending ? t("events.attending", "Teilnehmend") : (t("events.rsvp") || "Zusagen")}
-            primaryIcon={isAttending ? "checkmark-circle" : "calendar-outline"}
+            primaryLabel={isPast ? (t("events.pastEvent") || "Event ended") : isAttending ? t("events.attending", "Teilnehmend") : (t("events.rsvp") || "Zusagen")}
+            primaryIcon={isPast ? "calendar-outline" : isAttending ? "checkmark-circle" : "calendar-outline"}
             accentColor={pageAccent}
-            useGradient
-            onPrimary={isPast ? () => {} : handleToggleAttendance}
+            useGradient={!isPast}
+            primaryDisabled={isPast}
+            onPrimary={handleToggleAttendance}
             saved={isSaved}
             onSave={handleToggleSave}
             onShare={() => setShowShareModal(true)}

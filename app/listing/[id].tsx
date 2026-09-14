@@ -85,7 +85,19 @@ export default function ListingDetailScreen() {
       Alert.alert(t("common.loginRequired", "Login Required"), t("common.loginToContact", "Please log in to contact the seller."));
       return;
     }
-    router.push({ pathname: `/messages/${listing.owner_id}` as any, params: { name: listing.business_name || listing.seller_name || t("marketplace.seller", "Anbieter"), entityType: "user" } as any });
+    // Business sellers open a business conversation; private sellers a user one.
+    const isBusinessSeller = listing.seller_type === "business";
+    const targetId = isBusinessSeller
+      ? listing.seller_id || listing.business_id || listing.owner_id
+      : listing.seller_id || listing.owner_id;
+    if (!targetId) return;
+    router.push({
+      pathname: `/messages/${targetId}` as any,
+      params: {
+        name: listing.business_name || listing.seller_name || t("marketplace.seller", "Anbieter"),
+        entityType: isBusinessSeller ? "business" : "user",
+      } as any,
+    });
   };
 
   if (!id) {
@@ -173,7 +185,16 @@ export default function ListingDetailScreen() {
               text: listing.business_name || listing.seller_name || "",
               icon: listing.seller_type === "business" ? "storefront-outline" : "person-outline",
               avatarUrl: listing.seller_avatar || undefined,
-              onPress: listing.seller_id ? () => router.push(`/user/${listing.seller_id}` as any) : undefined,
+              onPress: listing.seller_id
+                ? () => {
+                    const sellerId = listing.seller_id as string;
+                    if (listing.seller_type === "business") {
+                      router.push(`/business/${sellerId}` as any);
+                    } else {
+                      router.push(`/user/${sellerId}` as any);
+                    }
+                  }
+                : undefined,
             }}
             mediaItems={allMediaItems}
             onMediaPress={(idx) => {
@@ -236,7 +257,12 @@ export default function ListingDetailScreen() {
               accentColor={COLORS.success}
               onPress={() => {
                 const sid = listing.seller_id || listing.owner_id;
-                if (sid) router.push(`/user/${sid}` as any);
+                if (!sid) return;
+                if (listing.seller_type === "business") {
+                  router.push(`/business/${sid}` as any);
+                } else {
+                  router.push(`/user/${sid}` as any);
+                }
               }}
             />
           ) : null}

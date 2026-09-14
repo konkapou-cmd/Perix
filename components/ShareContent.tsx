@@ -26,7 +26,16 @@ const getWebUrl = () => {
   return BACKEND_URL.replace("/api", "").replace("api.", "app.");
 };
 
-export type ShareableContentType = "profile" | "event" | "activity" | "business" | "post" | "job" | "service";
+export type ShareableContentType =
+  | "profile"
+  | "event"
+  | "activity"
+  | "business"
+  | "post"
+  | "job"
+  | "service"
+  | "listing"
+  | "rental";
 
 interface ShareContentProps {
   visible: boolean;
@@ -92,6 +101,12 @@ export default function ShareContent({
         return `${baseUrl}/post/${contentId}`;
       case "job":
         return `${baseUrl}/job/${contentId}`;
+      case "service":
+        return `${baseUrl}/service/${contentId}`;
+      case "listing":
+        return `${baseUrl}/listing/${contentId}`;
+      case "rental":
+        return `${baseUrl}/rental/${contentId}`;
       default:
         return baseUrl;
     }
@@ -112,6 +127,12 @@ export default function ShareContent({
         return `perix://post/${contentId}`;
       case "job":
         return `perix://job/${contentId}`;
+      case "service":
+        return `perix://service/${contentId}`;
+      case "listing":
+        return `perix://listing/${contentId}`;
+      case "rental":
+        return `perix://rental/${contentId}`;
       default:
         return "perix://";
     }
@@ -147,6 +168,18 @@ export default function ShareContent({
       case "job":
         emoji = "💼";
         typeLabel = t("share.checkJob") || "Check out this job";
+        break;
+      case "service":
+        emoji = "🛎️";
+        typeLabel = t("share.checkService") || "Check out this service";
+        break;
+      case "listing":
+        emoji = "🛍️";
+        typeLabel = t("share.checkListing") || "Check out this listing";
+        break;
+      case "rental":
+        emoji = "🏠";
+        typeLabel = t("share.checkRental") || "Check out this rental";
         break;
     }
 

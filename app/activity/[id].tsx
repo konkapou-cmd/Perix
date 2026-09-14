@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useTranslation } from "react-i18next";
 import Constants from "expo-constants";
 import { useAuth } from "../../context/AuthContext";
@@ -220,7 +221,12 @@ export default function ActivityDetailPage() {
 
   const copyInvitationCode = async () => {
     if (!activity?.invitation_code) return;
-    await Share.share({ message: activity.invitation_code, title: t("activities.invitationCode") || "Code" });
+    try {
+      await Clipboard.setStringAsync(activity.invitation_code);
+      showThemedAlert(t("activities.codeCopied") || "Invitation code copied to clipboard");
+    } catch (_) {
+      showThemedAlert(t("common.pleaseTryAgain"));
+    }
   };
 
   const shareToWhatsApp = async () => {

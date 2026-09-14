@@ -30,6 +30,7 @@ import { BottomCTA } from "../../components/shared/BottomCTA";
 import { openInMaps } from "../../lib/utils/openMapUrl";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
 import ReportModal from "../../components/ReportModal";
+import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
 import { normalizeId } from "../../lib/navigation/entityRoutes";
 
 const JOBS_ACCENT = "#264348";
@@ -51,6 +52,9 @@ export default function JobDetailPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
 
   useEffect(() => {
     loadJob();
@@ -185,7 +189,6 @@ export default function JobDetailPage() {
     ...(job.gallery_images || []).map((uri: string) => ({ uri, type: "image" as const })),
     ...(job.gallery_videos || []).map((uri: string) => ({ uri, type: "video" as const })),
   ];
-
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
@@ -219,6 +222,11 @@ export default function JobDetailPage() {
             badges={job.job_type ? [{ icon: "briefcase", text: translateJobType(job.job_type, t), color: JOBS_ACCENT }] : []}
             subtitle={job.business_name ? { text: job.business_name, icon: "business-outline", onPress: job.business_id ? () => router.push(`/business/${job.business_id}`) : undefined } : undefined}
             mediaItems={mediaItems}
+            onMediaPress={(idx) => {
+              setViewerMedia(mediaItems as MediaItem[]);
+              setViewerIndex(idx);
+              setViewerOpen(true);
+            }}
           />
 
           <DetailFacts>
@@ -378,6 +386,13 @@ export default function JobDetailPage() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      <LazyMediaViewer
+        visible={viewerOpen}
+        media={viewerMedia}
+        initialIndex={viewerIndex}
+        onClose={() => setViewerOpen(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -14,6 +14,7 @@ type BottomCTAProps = {
   gradientColors?: [string, string];
   onPrimary: () => void;
   onSecondary?: () => void;
+  primaryDisabled?: boolean;
   saved?: boolean;
   onSave?: () => void;
   onShare?: () => void;
@@ -29,6 +30,7 @@ export const BottomCTA = ({
   gradientColors = ["#FF7A1A", "#FFC400"],
   onPrimary,
   onSecondary,
+  primaryDisabled = false,
   saved = false,
   onSave,
   onShare,
@@ -36,8 +38,13 @@ export const BottomCTA = ({
 }: BottomCTAProps) => (
   <View style={styles.container}>
     <Pressable
-      style={[styles.primaryBtn, !useGradient && { backgroundColor: accentColor }]}
-      onPress={onPrimary}
+      style={[
+        styles.primaryBtn,
+        !useGradient && { backgroundColor: accentColor },
+        primaryDisabled && styles.primaryBtnDisabled,
+      ]}
+      onPress={primaryDisabled ? undefined : onPrimary}
+      disabled={primaryDisabled}
     >
       {useGradient && (
         <LinearGradient
@@ -110,6 +117,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: SPACING.std,
     overflow: "hidden",
+  },
+  primaryBtnDisabled: {
+    backgroundColor: "#cbd5e1",
+    opacity: 0.7,
   },
   primaryText: {
     fontSize: FONT_SIZES.body,
