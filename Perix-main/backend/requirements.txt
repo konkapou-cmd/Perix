@@ -127,3 +127,5 @@ APScheduler==3.11.2
 mux-python==5.1.2
 ffmpeg-python==0.2.0
 imageio-ffmpeg==0.6.0
+
+pywebpush==2.0.0

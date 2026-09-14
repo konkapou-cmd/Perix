@@ -898,6 +898,28 @@ async def send_media_message(
     await ws_broadcast_conversation_update(to_user_id, {"conversation_id": conversation_id, "last_message": message_doc})
     await ws_broadcast_conversation_update(current_user.user_id, {"conversation_id": conversation_id, "last_message": message_doc})
     
+    # Web Push (PWA): notify recipient users while the app is closed.
+    from routes.push_web import notify_new_message_web_push
+
+    recipient_ids = [to_user_id]
+    if payload.to_business_id:
+        owner = await db.businesses.find_one(
+            {"business_id": payload.to_business_id}, {"owner_id": 1}
+        )
+        if owner and owner.get("owner_id"):
+            recipient_ids.append(owner["owner_id"])
+    if payload.to_artist_id:
+        artist = await db.artists.find_one(
+            {"artist_id": payload.to_artist_id}, {"owner_id": 1}
+        )
+        if artist and artist.get("owner_id"):
+            recipient_ids.append(artist["owner_id"])
+    await notify_new_message_web_push(
+        recipient_ids,
+        sender_name=current_user.name,
+        preview=preview,
+    )
+
     return MessageResponse(**message_doc)
 
 

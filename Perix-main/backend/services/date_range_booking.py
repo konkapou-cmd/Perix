@@ -381,6 +381,17 @@ async def create_date_range_booking(
         }
 
         await db.bookings.insert_one(doc)
+        from routes.push_web import notify_booking_web_push
+
+        owner_doc = await db.businesses.find_one(
+            {"business_id": business_id}, {"owner_id": 1}
+        )
+        await notify_booking_web_push(
+            client_id=client_id,
+            owner_user_id=(owner_doc or {}).get("owner_id"),
+            service_name=service.get("name", "a service"),
+            client_name=None,
+        )
         return await enrich_booking(doc, service=service)
     finally:
         await release_service_booking_lock(service["service_id"], lock_token)

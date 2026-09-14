@@ -228,6 +228,13 @@ if WEB_DIST.exists():
             return FileResponse(p, media_type="application/manifest+json", headers={"Cache-Control": "public, max-age=3600"})
         raise HTTPException(status_code=404, detail="Manifest not found")
 
+    @app.get("/sw.js", include_in_schema=False)
+    async def web_service_worker():
+        p = WEB_DIST / "sw.js"
+        if p.exists():
+            return FileResponse(p, media_type="application/javascript", headers={"Cache-Control": "no-cache"})
+        raise HTTPException(status_code=404, detail="Service worker not found")
+
     @app.get("/favicon.ico", include_in_schema=False)
     async def web_favicon():
         return FileResponse(WEB_DIST / "favicon.ico")
