@@ -1554,7 +1554,12 @@
     "noBlockedUsers": "Keine blockierten Benutzer",
     "userBlocked": "Sie haben diesen Benutzer blockiert",
     "userHiddenGlobally": "Das Konto dieses Benutzers wurde aufgrund von Meldungen ausgeblendet",
-    "reportMessage": "Warum meldest du dieses Profil?"
+    "reportMessage": "Warum meldest du dieses Profil?",
+    "block": "Blockieren",
+    "blockConfirm": "Diesen Nutzer blockieren?",
+    "blockMessage": "Er kann deine Inhalte nicht mehr sehen, dir keine Nachrichten senden oder mit dir interagieren.",
+    "blockSuccess": "Nutzer blockiert",
+    "unblockMessage": "Dieser Nutzer kann deine Inhalte wieder sehen und mit dir interagieren."
   },
   "stories": {
     "allTime": "Gesamter Zeitraum",

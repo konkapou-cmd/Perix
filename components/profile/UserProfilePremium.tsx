@@ -115,6 +115,9 @@ interface UserProfilePremiumProps {
   businesses?: any[];
   onShare?: () => void;
   onSavePress?: () => void;
+  onReportPress?: () => void;
+  onBlockPress?: () => void;
+  isBlocked?: boolean;
   isSaved?: boolean;
   savingItem?: boolean;
   onCreateStory?: () => void;
@@ -190,6 +193,9 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   onSavePress,
   isSaved = false,
   savingItem = false,
+  onReportPress,
+  onBlockPress,
+  isBlocked = false,
   refreshing,
   onRefresh,
   onCreateStory,
@@ -344,6 +350,9 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         onSavePress={readOnly ? onSavePress : undefined}
         isSaved={readOnly ? isSaved : undefined}
         savingItem={readOnly ? savingItem : undefined}
+        onReportPress={readOnly ? onReportPress : undefined}
+        onBlockPress={readOnly ? onBlockPress : undefined}
+        isBlocked={isBlocked}
         stats={[
           { label: t("profile.friends", "Friends"), count: friends.length, onPress: onViewFriends },
         ]}

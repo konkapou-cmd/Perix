@@ -463,6 +463,7 @@ const [followLoading, setFollowLoading] = useState(false);
           friendStatus={friendStatus}
           onFollowPress={handleFollowPress}
           onSavePress={handleToggleSave}
+          onReportPress={() => setReportModalVisible(true)}
           businessListings={businessListings}
           isSaved={isSaved}
           savingItem={savingItem}

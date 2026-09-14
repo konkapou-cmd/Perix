@@ -22,6 +22,7 @@ import { getPost, togglePostLike, addPostComment, Post, PostComment, toggleSaved
 import { COLORS, SPACING } from "../../lib/designTokens";
 import { HeaderBackButton } from "../../components/shared/HeaderBackButton";
 import { CommentSection } from "../../components/CommentSection";
+import ReportModal from "../../components/ReportModal";
 import PostContent from "../../components/PostContent";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
 import AdaptiveImage from "../../components/AdaptiveImage";
@@ -45,6 +46,7 @@ export default function PostDetail() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerMedia, setViewerMedia] = useState<MediaItem[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -141,6 +143,7 @@ export default function PostDetail() {
 
   const displayName = post.actor_name || post.author?.name || "User";
   const displayAvatar = post.actor_avatar || post.author?.profile_photo || post.author?.picture;
+  const isOwnPost = !!user && (post.user_id === user.user_id);
 
   const mediaRatio = post.media_ratio && Number.isFinite(post.media_ratio) && post.media_ratio > 0 ? post.media_ratio : 4 / 5;
   const naturalHeight = mediaRatio > 0 ? DETAIL_WIDTH / mediaRatio : DETAIL_WIDTH;
@@ -151,7 +154,13 @@ export default function PostDetail() {
       <View style={styles.header}>
         <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Post</Text>
-        <View style={{ width: 40 }} />
+        {sessionToken && !isOwnPost ? (
+          <Pressable onPress={() => setReportOpen(true)} hitSlop={8} style={{ width: 40, alignItems: "center" }}>
+            <Ionicons name="flag-outline" size={20} color={COLORS.primaryDark} />
+          </Pressable>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       <KeyboardAvoidingView
@@ -273,6 +282,14 @@ export default function PostDetail() {
         media={viewerMedia}
         initialIndex={viewerIndex}
         onClose={() => setViewerOpen(false)}
+      />
+
+      <ReportModal
+        visible={reportOpen}
+        targetType="post"
+        targetId={post.post_id}
+        sessionToken={sessionToken}
+        onClose={() => setReportOpen(false)}
       />
     </SafeAreaView>
   );

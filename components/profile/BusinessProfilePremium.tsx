@@ -130,6 +130,7 @@ interface BusinessProfilePremiumProps {
   onFollowPress?: () => void;
   onShare?: () => void;
   onSavePress?: () => void;
+  onReportPress?: () => void;
   isSaved?: boolean;
   savingItem?: boolean;
   avatarUri?: string | null;
@@ -231,6 +232,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   onFollowPress,
   onShare,
   onSavePress,
+  onReportPress,
   isSaved = false,
   savingItem = false,
   avatarUri,
@@ -552,6 +554,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         onSavePress={onSavePress}
         isSaved={isSaved}
         savingItem={savingItem}
+        onReportPress={readOnly ? onReportPress : undefined}
         friendStatus={friendStatus || "none"}
         stats={[
           { label: t("profile.friends", "Friends"), count: detail.business.friends_count ?? friends.length, onPress: onViewFriends },

@@ -98,6 +98,9 @@ interface ProfileHeaderProps {
   onSavePress?: () => void;
   isSaved?: boolean;
   savingItem?: boolean;
+  onReportPress?: () => void;
+  onBlockPress?: () => void;
+  isBlocked?: boolean;
   stats?: { label: string; count: number; onPress?: () => void }[];
   completenessItems?: { label: string; done: boolean }[];
   identityPicker?: React.ReactNode;
@@ -240,6 +243,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onSavePress,
   isSaved = false,
   savingItem = false,
+  onReportPress,
+  onBlockPress,
+  isBlocked = false,
   stats,
   completenessItems,
 }) => {
@@ -480,6 +486,20 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   variant="savedIcon"
                   onPress={onSavePress}
                   disabled={savingItem}
+                />
+              )}
+              {onReportPress && (
+                <ProfileActionButton
+                  icon="flag-outline"
+                  variant="secondaryIcon"
+                  onPress={onReportPress}
+                />
+              )}
+              {onBlockPress && (
+                <ProfileActionButton
+                  icon={isBlocked ? "ban" : "ban-outline"}
+                  variant="dangerIcon"
+                  onPress={onBlockPress}
                 />
               )}
             </View>

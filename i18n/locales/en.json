@@ -1459,7 +1459,12 @@
     "noBlockedUsers": "No blocked users",
     "userBlocked": "You have blocked this user",
     "userHiddenGlobally": "This user's account has been hidden due to reports",
-    "reportMessage": "Why are you reporting this profile?"
+    "reportMessage": "Why are you reporting this profile?",
+    "block": "Block",
+    "blockConfirm": "Block this user?",
+    "blockMessage": "They won't be able to see your content, message you or interact with you.",
+    "blockSuccess": "User blocked",
+    "unblockMessage": "This user will be able to see your content and interact with you again."
   },
   "stories": {
     "allTime": "All Time",

@@ -127,6 +127,10 @@ export const unblockUser = async (token: string, userId: string): Promise<{ succ
   return apiRequest(`/users/unblock/${userId}`, "POST", token);
 };
 
+export const blockUser = async (token: string, userId: string): Promise<{ success: boolean; message: string }> => {
+  return apiRequest(`/users/block/${userId}`, "POST", token);
+};
+
 export const reportUser = async (token: string, userId: string, reason: string): Promise<{ success: boolean; message: string; report_id: string }> => {
   return apiRequest("/users/report", "POST", token, { user_id: userId, reason });
 };

@@ -18,6 +18,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { UserPublicProfile, getUserPublicProfile, getPosts, reportUser, getFriendshipStatus, toggleFriend, sendFriendRequest, cancelFriendRequest, acceptFriendRequest, FriendshipStatus, toggleSaved, checkSaved, APP_URL, getUserActivities, ActivityItem, getUserFriends, FriendProfile } from "../../lib/api";
+import { blockUser, unblockUser, getBlockedUsers } from "../../lib/api/social";
 import { COLORS } from "../../lib/designTokens";
 import { useAuth } from "../../context/AuthContext";
 import { getUserSellerListings, Listing } from "../../lib/api/listings";
@@ -43,6 +44,10 @@ export default function UserProfileScreen() {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
+
+  // Block State
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
 
   // Friend Status State
   const [friendStatus, setFriendStatus] = useState<FriendshipStatus>("none");
@@ -140,9 +145,20 @@ export default function UserProfileScreen() {
     }
   }, [sessionToken, id]);
 
+  const loadBlockedState = useCallback(async () => {
+    if (!sessionToken || !id) return;
+    try {
+      const { blocked_users } = await getBlockedUsers(sessionToken);
+      setIsBlocked(blocked_users.some((u) => u.user_id === id));
+    } catch (error) {
+      console.log("Failed to load blocked state:", error);
+    }
+  }, [sessionToken, id]);
+
   useEffect(() => {
     loadProfile();
     loadFriendStatus();
+    loadBlockedState();
   }, [loadProfile, loadFriendStatus]);
 
   const notify = (title: string, message: string) => {
@@ -231,6 +247,44 @@ export default function UserProfileScreen() {
       Alert.alert(t("common.error"), error.message || t("common.error"));
     } finally {
       setReportLoading(false);
+    }
+  };
+
+  const handleBlockPress = async () => {
+    if (!sessionToken || !id) return;
+    if (blockLoading) return;
+    setBlockLoading(true);
+    try {
+      if (isBlocked) {
+        const ok = await confirmAction({
+          title: t("userProfile.unblockConfirm", "Unblock user?"),
+          message: t("userProfile.unblockMessage", "This user will be able to see your content and interact with you again."),
+          confirmText: t("userProfile.unblock", "Unblock"),
+          cancelText: t("common.cancel"),
+          destructive: false,
+        });
+        if (!ok) return;
+        await unblockUser(sessionToken, id);
+        setIsBlocked(false);
+        notify(t("common.success") || "Success", t("userProfile.unblockSuccess", "User unblocked successfully"));
+      } else {
+        const ok = await confirmAction({
+          title: t("userProfile.blockConfirm", "Block this user?"),
+          message: t("userProfile.blockMessage", "They won't be able to see your content, message you or interact with you."),
+          confirmText: t("userProfile.block", "Block"),
+          cancelText: t("common.cancel"),
+          destructive: true,
+        });
+        if (!ok) return;
+        await blockUser(sessionToken, id);
+        setIsBlocked(true);
+        notify(t("common.success") || "Success", t("userProfile.blockSuccess", "User blocked"));
+      }
+    } catch (error: any) {
+      console.error("Block action failed:", error);
+      notify(t("common.error") || "Error", error?.message || t("common.pleaseTryAgain"));
+    } finally {
+      setBlockLoading(false);
     }
   };
 
@@ -348,6 +402,9 @@ export default function UserProfileScreen() {
           onSavePress={handleToggleSave}
           isSaved={isSaved}
           savingItem={savingItem}
+          onReportPress={() => setReportModalVisible(true)}
+          onBlockPress={handleBlockPress}
+          isBlocked={isBlocked}
           onViewFriends={() => router.push(`/friends/${id}` as any)}
           slug={id}
           avatarUri={profile.user.profile_photo || profile.user.picture || null}
