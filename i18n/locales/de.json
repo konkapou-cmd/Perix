@@ -589,11 +589,11 @@
     "homesNearby": "Unterkünfte in der Nähe",
     "personalizeHome": "Passe deinen Home-Feed an"
   },
-    "brand": {
+  "brand": {
     "title": "Perix",
     "subtitle": "Deine Lieblingsstadt in deinen Händen!"
   },
-"profile": {
+  "profile": {
     "title": "Profil",
     "perixUser": "Perix-Nutzer",
     "completeNow": "Jetzt vervollständigen",
@@ -3121,5 +3121,16 @@
     "skippedConflicts": "{{count}} Zeitfenster, die mit beibehaltenen Buchungen kollidieren, wurden übersprungen",
     "skippedBlocked": "{{count}} Zeitfenster an blockierten Tagen wurden übersprungen",
     "dayBlocked": "Dieser Tag ist blockiert — er wurde übersprungen."
+  },
+  "install": {
+    "title": "Perix installieren",
+    "subtitle": "Füge Perix für das beste Erlebnis deinem Startbildschirm hinzu",
+    "button": "Installieren",
+    "howTo": "So installierst du",
+    "iosTitle": "Perix zum Home-Bildschirm hinzufügen",
+    "iosStep1": "Tippe unten in Safari auf die Teilen-Schaltfläche",
+    "iosStep2": "Wähle „Zum Home-Bildschirm“",
+    "iosStep3": "Tippe auf „Hinzufügen“ und das Perix-Symbol erscheint auf deinem Startbildschirm",
+    "gotIt": "Verstanden"
   }
 }

@@ -417,11 +417,11 @@
     "videoUploading": "Uploading video",
     "videoProcessingShort": "Processing video"
   },
-    "brand": {
+  "brand": {
     "title": "Perix",
     "subtitle": "Your favorite city in your hands!"
   },
-"profile": {
+  "profile": {
     "title": "Profile",
     "perixUser": "Perix User",
     "completeNow": "Complete Now",
@@ -3022,5 +3022,16 @@
     "skippedConflicts": "{{count}} slot(s) conflicting with kept bookings were skipped",
     "skippedBlocked": "{{count}} slot(s) on blocked days were skipped",
     "dayBlocked": "This day is blocked — it was skipped."
+  },
+  "install": {
+    "title": "Install Perix",
+    "subtitle": "Add Perix to your home screen for the best experience",
+    "button": "Install",
+    "howTo": "How to install",
+    "iosTitle": "Add Perix to your Home Screen",
+    "iosStep1": "Tap the Share button at the bottom of Safari",
+    "iosStep2": "Choose \"Add to Home Screen\"",
+    "iosStep3": "Tap \"Add\" and the Perix icon will appear on your home screen",
+    "gotIt": "Got it"
   }
 }

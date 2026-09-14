@@ -24,6 +24,7 @@ import i18n from "../i18n";
 import { applyDefaultFontFamily } from "../lib/defaultFont";
 import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_600SemiBold, Quicksand_700Bold } from "@expo-google-fonts/quicksand";
 import GlobalWebChrome from "../components/GlobalWebChrome";
+import InstallBanner from "../components/InstallBanner";
 import { UploadProvider } from "../context/UploadContext";
 
 applyDefaultFontFamily("Quicksand_400Regular");
@@ -375,6 +376,7 @@ export default function RootLayout() {
                           <Stack.Screen name="incoming-call" options={{ gestureEnabled: false }} />
                         </Stack>
                       </GlobalWebChrome>
+                      <InstallBanner />
                     </UploadProvider>
                   </NotificationProvider>
                 </SocketProvider>
