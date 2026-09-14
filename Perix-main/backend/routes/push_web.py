@@ -108,23 +108,106 @@ async def unsubscribe_web_push(
 
 
 def _send_webpush_sync(subscription: dict, payload: dict) -> bool:
-    try:
-        from pywebpush import webpush, WebPushException
+    """Send a Web Push message (RFC 8291 aes128gcm + VAPID ES256 JWT).
 
-        webpush(
-            subscription_info=subscription,
-            data=json.dumps(payload),
-            vapid_private_key=VAPID_PRIVATE_KEY,
-            vapid_claims=VAPID_CLAIMS,
-            timeout=15,
+    Implemented directly on httpx + cryptography to avoid heavyweight
+    third-party dependencies in the production image.
+    """
+    import base64
+    import hashlib
+    import hmac as _hmac
+    import time
+
+    import httpx
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    def b64u_decode(s: str) -> bytes:
+        return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+
+    def b64u_encode(b: bytes) -> str:
+        return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+
+    def _vapid_private_key():
+        d = b64u_decode(VAPID_PRIVATE_KEY)
+        pub = b64u_decode(VAPID_PUBLIC_KEY)  # 65-byte uncompressed point
+        der = (
+            b"\x30\x77\x02\x01\x01\x04\x20" + d
+            + b"\xa0\x0a\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07"
+            + b"\xa1\x44\x03\x42\x00" + pub
         )
+        return serialization.load_der_private_key(der, password=None)
+
+    def _vapid_jwt(aud: str) -> str:
+        private_key = _vapid_private_key()
+        header = {"typ": "JWT", "alg": "ES256"}
+        claims = {
+            "aud": aud,
+            "exp": int(time.time()) + 12 * 3600,
+            "sub": VAPID_CLAIMS.get("sub", "mailto:support@perixapp.com"),
+        }
+
+        def enc(obj: dict) -> str:
+            return b64u_encode(json.dumps(obj, separators=(",", ":")).encode())
+
+        signing_input = f"{enc(header)}.{enc(claims)}"
+        der_sig = private_key.sign(signing_input.encode(), ec.ECDSA(hashes.SHA256()))
+        r, s = decode_dss_signature(der_sig)
+        raw_sig = r.to_bytes(32, "big") + s.to_bytes(32, "big")
+        return f"{signing_input}.{b64u_encode(raw_sig)}"
+
+    def _expand(prk: bytes, info: bytes, length: int) -> bytes:
+        out = b""
+        t = b""
+        i = 1
+        while len(out) < length:
+            t = _hmac.new(prk, t + info + bytes([i]), hashlib.sha256).digest()
+            out += t
+            i += 1
+        return out[:length]
+
+    def _encrypt(subscription: dict, plaintext: bytes) -> bytes:
+        keys = subscription.get("keys", {}) or {}
+        ua_pub = b64u_decode(keys.get("p256dh", ""))
+        auth_secret = b64u_decode(keys.get("auth", ""))
+        salt = os.urandom(16)
+        local_private = ec.generate_private_key(ec.SECP256R1())
+        local_pub_nums = local_private.public_key().public_numbers()
+        local_pub_bytes = (
+            b"\x04"
+            + local_pub_nums.x.to_bytes(32, "big")
+            + local_pub_nums.y.to_bytes(32, "big")
+        )
+        peer_pub = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), ua_pub)
+        shared = local_private.exchange(ec.ECDH(), peer_pub)
+        prk = _hmac.new(auth_secret, shared, hashlib.sha256).digest()
+        cek = _expand(prk, b"Content-Encoding: aes128gcm\x00", 16)
+        nonce = _expand(prk, b"Content-Encoding: nonce\x00", 12)
+        header = b"\x00\x00\x00\x00" + bytes([65]) + local_pub_bytes
+        ciphertext = AESGCM(cek).encrypt(nonce, plaintext, header)
+        return header + ciphertext
+
+    endpoint = subscription.get("endpoint", "")
+    if not endpoint:
         return True
-    except WebPushException as e:
-        status = getattr(getattr(e, "response", None), "status_code", None)
-        if status in (404, 410):
+    try:
+        aud = endpoint.split("/")[2]
+        jwt = _vapid_jwt(aud)
+        body = _encrypt(subscription, json.dumps(payload).encode())
+        headers = {
+            "TTL": "86400",
+            "Content-Encoding": "aes128gcm",
+            "Content-Type": "application/octet-stream",
+            "Authorization": f"vapid t={jwt}, k={VAPID_PUBLIC_KEY}",
+        }
+        response = httpx.post(endpoint, content=body, headers=headers, timeout=15)
+        if response.status_code in (404, 410):
             return False  # subscription gone — caller removes it
-        logger.warning(f"WebPush send failed ({status}): {e}")
-        return True  # transient — keep subscription
+        if response.status_code >= 500:
+            logger.warning(f"WebPush send failed ({response.status_code})")
+        return True  # keep subscription for transient failures
     except Exception as e:
         logger.warning(f"WebPush send error: {e}")
         return True
