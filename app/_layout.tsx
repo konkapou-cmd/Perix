@@ -19,6 +19,7 @@ import {
   getPushToken 
 } from "../lib/notifications";
 import { registerPushToken } from "../lib/api";
+import { ensureWebPushSubscription } from "../lib/webPush";
 import { useDeepLinkHandler } from "../hooks/useDeepLinkHandler";
 import i18n from "../i18n";
 import { applyDefaultFontFamily } from "../lib/defaultFont";
@@ -221,6 +222,17 @@ function PushNotificationManager() {
     // Register push token when user is authenticated
     const registerToken = async () => {
       try {
+        // Web: register the PWA service worker + push subscription so the
+        // backend can deliver notifications and icon badges while the app
+        // is closed.
+        if (Platform.OS === "web") {
+          try {
+            await ensureWebPushSubscription(sessionToken);
+          } catch (e) {
+            console.log("[Push] Web push setup skipped/failed:", e);
+          }
+          return;
+        }
         const hasPermission = await requestNotificationPermissions();
         if (!hasPermission) {
           console.log("[Push] Permission denied");

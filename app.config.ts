@@ -130,6 +130,9 @@ const config: ExpoConfig = {
       process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "",
     EXPO_PUBLIC_AGORA_APP_ID:
       process.env.EXPO_PUBLIC_AGORA_APP_ID || "",
+    EXPO_PUBLIC_VAPID_PUBLIC_KEY:
+      process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ||
+      "BHiFoYBuhNN-oEo_gXWwAt4RClJrNVZUIzGvb36Nf52iuaHAwI0c7QyrKGvdkxKhgXY7imBnjXma-nreQtf4ZvE",
     eas: {
       projectId: "a551ab03-fb09-467e-8e04-cec4567ef0bd",
     },

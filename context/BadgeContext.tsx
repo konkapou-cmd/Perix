@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { Platform } from "react-native";
 import { useAuth } from "./AuthContext";
 import { useSocketEvent } from "./SocketContext";
 import { getUnreadMessageCount, getActivityFeed, getPendingRequestCount } from "../lib/api";
+import { fetchWebBadge, updateIconBadge, attachServiceWorkerBadgeHandler } from "../lib/webPush";
 
 type BadgeContextType = {
   unreadMessageCount: number;
@@ -101,6 +103,55 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
 
     return () => clearInterval(interval);
   }, [sessionToken, refreshUnreadCount]);
+
+  // ─── PWA icon badge (web only) ─────────────────────────────────────────
+  // Icon badge = unread messages + pending bookings (from the backend).
+  // Android launchers may show a dot instead of the exact number.
+  const [webBadgeCount, setWebBadgeCount] = useState(0);
+  const refreshWebBadge = useCallback(async () => {
+    if (Platform.OS !== "web" || !sessionToken) return;
+    const total = await fetchWebBadge(sessionToken);
+    setWebBadgeCount(total);
+  }, [sessionToken]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    attachServiceWorkerBadgeHandler((count) => {
+      if (typeof count === "number") {
+        setWebBadgeCount(count);
+      } else {
+        void refreshWebBadge();
+      }
+    });
+  }, [refreshWebBadge]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || !sessionToken) {
+      if (Platform.OS === "web") void updateIconBadge(0);
+      return;
+    }
+    refreshWebBadge();
+    const interval = setInterval(() => {
+      void refreshWebBadge();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [sessionToken, refreshWebBadge]);
+
+  // Keep the installed-app icon badge in sync with the backend count.
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    void updateIconBadge(webBadgeCount);
+  }, [webBadgeCount]);
+
+  // Re-sync when the tab becomes visible again (frozen tabs miss timers).
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refreshWebBadge();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshWebBadge]);
 
   return (
     <BadgeContext.Provider
