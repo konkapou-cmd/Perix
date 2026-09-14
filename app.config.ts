@@ -32,7 +32,7 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: "./assets/images/prx-adaptive-icon.png",
+      foregroundImage: "./assets/images/prx-logo-adaptive.png",
       backgroundColor: "#ffffff",
     },
     package: "com.perix.citysocial",
@@ -81,14 +81,14 @@ const config: ExpoConfig = {
   web: {
     bundler: "metro",
     output: "single",
-    favicon: "./assets/images/perix-logo.png",
+    favicon: "./assets/images/prx-logo.png",
   },
   plugins: [
     "expo-router",
     [
       "expo-splash-screen",
       {
-        image: "./assets/images/prx-logo.jpg",
+        image: "./assets/images/prx-logo.png",
         imageWidth: 180,
         resizeMode: "contain",
         backgroundColor: "#ffffff",
