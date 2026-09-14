@@ -55,6 +55,7 @@ export type Listing = {
   size_sqm?: number;
   furnished?: boolean;
   available_from?: string;
+  available_until?: string;
   lease_duration?: string;
   deposit?: string;
 };
@@ -91,6 +92,7 @@ export type ListingCreatePayload = {
   size_sqm?: number | null;
   furnished?: boolean | null;
   available_from?: string | null;
+  available_until?: string | null;
   lease_duration?: string | null;
   deposit?: string | null;
 };

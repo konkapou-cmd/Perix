@@ -90,6 +90,7 @@ import {
   ActivityItem,
 } from "../../lib/api";
 import { getMuxAssetStatus } from "../../lib/api/mux";
+import { getArtists } from "../../lib/api/artists";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/mediaLimits";
 import { validateMedia } from "../../lib/media/mediaValidation";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
@@ -348,11 +349,44 @@ export default function ProfileScreen() {
   const creatingBusinessRef = useRef(false);
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [eventEditing, setEventEditing] = useState<EventItem | null>(null);
-  const [eventForm, setEventForm] = useState<{title: string; description: string; start_time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; theme: string; themes: string[]; gallery_images: string[]; gallery_videos: string[]; media_items: any[]; is_private: boolean; password: string; tagged_artist_ids: string[]}>({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
+  const [eventForm, setEventForm] = useState<{title: string; description: string; start_time: string; end_time: string; location: string; latitude?: number | null; longitude?: number | null; cover_image_url?: string; image_urls: string[]; video_url?: string; theme: string; themes: string[]; gallery_images: string[]; gallery_videos: string[]; media_items: any[]; is_private: boolean; password: string; tagged_artist_ids: string[]}>({ title: "", description: "", start_time: "", end_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
   const [eventVideoPreview, setEventVideoPreview] = useState<string | null>(null);
   const [eventThemes, setEventThemes] = useState<{slug: string; label: string; color?: string; emoji?: string; gradient?: [string, string]}[]>([]);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [eventDate, setEventDate] = useState<Date>(new Date());
+const [eventEndDate, setEventEndDate] = useState<Date>(new Date());
+const [eventEndTime, setEventEndTime] = useState<Date>(() => {
+  const d = new Date();
+  d.setHours(d.getHours() + 2, 0, 0, 0);
+  return d;
+});
+const [showEventEndDatePicker, setShowEventEndDatePicker] = useState(false);
+const [showEventEndTimePicker, setShowEventEndTimePicker] = useState(false);
+const [availableArtists, setAvailableArtists] = useState<{ artist_id: string; name: string; profile_photo?: string | null }[]>([]);
+
+// Load artist suggestions when the event modal opens (search needs data).
+useEffect(() => {
+  if (eventModalVisible && sessionToken) {
+    getArtists(sessionToken)
+      .then((list) => {
+        setAvailableArtists(
+          (list || []).map((a: any) => ({
+            artist_id: a.artist_id,
+            name: a.name,
+            profile_photo: a.profile_photo || null,
+          })),
+        );
+      })
+      .catch(() => setAvailableArtists([]));
+  }
+}, [eventModalVisible, sessionToken]);
+
+const syncEventEndTime = (d: Date, tm: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const timeStr = `${pad(tm.getHours())}:${pad(tm.getMinutes())}:00`;
+  setEventForm((prev) => ({ ...prev, end_time: new Date(`${dateStr}T${timeStr}`).toISOString() }));
+};
   const [eventTime, setEventTime] = useState<Date>(new Date());
   const [showEventDatePicker, setShowEventDatePicker] = useState(false);
   const [showEventTimePicker, setShowEventTimePicker] = useState(false);
@@ -774,11 +808,30 @@ export default function ProfileScreen() {
       Alert.alert(t("common.error") || "Error", t("events.titleRequired") || "Title is required");
       return;
     }
+    const unresolvedMedia = ((eventForm as any).media_items || []).some(
+      (m: any) => m.processingStatus === "processing" || m.processingStatus === "failed",
+    );
+    if (unresolvedMedia) {
+      Alert.alert(
+        t("upload.processingVideoTitle", "Video wird verarbeitet"),
+        t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
+      );
+      return;
+    }
     eventSavingRef.current = true;
     const pad = (n: number) => n.toString().padStart(2, "0");
     const localDateStr = `${eventDate.getFullYear()}-${pad(eventDate.getMonth() + 1)}-${pad(eventDate.getDate())}`;
     const localTimeStr = `${pad(eventTime.getHours())}:${pad(eventTime.getMinutes())}:${pad(eventTime.getSeconds())}`;
     const startISO = new Date(`${localDateStr}T${localTimeStr}`).toISOString();
+    let endISO: string | undefined;
+    if ((eventForm as any).end_time) {
+      endISO = new Date((eventForm as any).end_time).toISOString();
+    }
+    if (endISO && endISO <= startISO) {
+      Alert.alert(t("common.error") || "Error", t("events.endAfterStart", "The end time must be after the start time."));
+      eventSavingRef.current = false;
+      return;
+    }
     setEventSaving(true);
     try {
       let savedEventId: string | null = null;
@@ -791,6 +844,7 @@ export default function ProfileScreen() {
           image_urls: eventForm.image_urls,
           video_url: eventForm.video_url || null,
           start_time: startISO,
+          end_time: endISO || null,
           location: eventForm.location || null,
           latitude: eventForm.latitude,
           longitude: eventForm.longitude,
@@ -816,6 +870,7 @@ export default function ProfileScreen() {
           image_urls: eventForm.image_urls,
           video_url: eventForm.video_url || null,
           start_time: startISO,
+          end_time: endISO || null,
           location: eventForm.location || null,
           latitude: eventForm.latitude,
           longitude: eventForm.longitude,
@@ -839,7 +894,7 @@ export default function ProfileScreen() {
       }
       setEventModalVisible(false);
       setEventEditing(null);
-      setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: "", theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
+      setEventForm({ title: "", description: "", start_time: "", end_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: "", theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] });
       if (activeIdentity?.type === "business") loadBusinessProfile();
       announceSaved(t("common.success") || "Success", t("events.publishedMessage", "Your event has been published."));
       if (savedEventId) router.push(`/event/${savedEventId}` as any);
@@ -857,6 +912,23 @@ export default function ProfileScreen() {
     if (!sessionToken || activitySavingRef.current) return;
     if (!activityForm.title.trim()) {
       Alert.alert(t("common.error") || "Error", t("activities.titleRequired") || "Title is required");
+      return;
+    }
+    if (!(activityForm.date || "").trim() || !(activityForm.time || "").trim()) {
+      Alert.alert(
+        t("common.error") || "Error",
+        t("activities.dateTimeRequired") || "Date and time are required before saving.",
+      );
+      return;
+    }
+    const unresolvedMedia = ((activityForm as any).media_items || []).some(
+      (m: any) => m.processingStatus === "processing" || m.processingStatus === "failed",
+    );
+    if (unresolvedMedia) {
+      Alert.alert(
+        t("upload.processingVideoTitle", "Video wird verarbeitet"),
+        t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
+      );
       return;
     }
     activitySavingRef.current = true;
@@ -880,6 +952,7 @@ export default function ProfileScreen() {
           theme: activityForm.theme || undefined,
           gallery_images: activityForm.gallery_images,
           gallery_videos: activityForm.gallery_videos,
+          cover_focal_point: (activityForm as any).cover_focal_point || undefined,
         });
         savedActivityId = activityEditing.activity_id;
       } else {
@@ -900,6 +973,7 @@ export default function ProfileScreen() {
           theme: activityForm.theme || undefined,
           gallery_images: activityForm.gallery_images,
           gallery_videos: activityForm.gallery_videos,
+          cover_focal_point: (activityForm as any).cover_focal_point || undefined,
         });
         savedActivityId = created.activity_id;
       }
@@ -1655,6 +1729,16 @@ const handleUpdateSlug = async (newSlug: string) => {
       Alert.alert(t("common.error", "Error"), t("services.nameRequired", "Service name is required"));
       return;
     }
+    const unresolvedMedia = ((serviceForm as any).media_items || []).some(
+      (m: any) => m.processingStatus === "processing" || m.processingStatus === "failed",
+    );
+    if (unresolvedMedia) {
+      Alert.alert(
+        t("upload.processingVideoTitle", "Video wird verarbeitet"),
+        t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
+      );
+      return;
+    }
     serviceSavingRef.current = true;
     setServiceSaving(true);
     try {
@@ -1767,6 +1851,7 @@ const handleUpdateSlug = async (newSlug: string) => {
         cancellation_policy: serviceForm.cancellation_policy || undefined,
         currency: serviceForm.currency || "EUR",
         status: serviceForm.status || undefined,
+        cover_focal_point: (serviceForm as any).cover_focal_point || undefined,
         sort_order: serviceForm.sort_order ? parseInt(serviceForm.sort_order, 10) : undefined,
       };
 
@@ -2882,28 +2967,36 @@ currentUserId={businessDetail?.business?.business_id}
         />
         <EventModal
           visible={eventModalVisible}
-          onClose={() => { setEventModalVisible(false); setEventEditing(null); setEventForm({ title: "", description: "", start_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] }); }}
+          onClose={() => { setEventModalVisible(false); setEventEditing(null); setEventForm({ title: "", description: "", start_time: "", end_time: "", location: "", latitude: null, longitude: null, cover_image_url: undefined, image_urls: [], video_url: undefined, theme: "", themes: [], gallery_images: [], gallery_videos: [], media_items: [], is_private: false, password: "", tagged_artist_ids: [] }); }}
           eventForm={eventForm}
               onFormChange={(f) => setEventForm(f as any)}
           eventEditing={eventEditing}
           eventThemes={eventThemes}
           eventDate={eventDate}
           eventTime={eventTime}
+          eventEndDate={eventEndDate}
+          eventEndTime={eventEndTime}
           showEventDatePicker={showEventDatePicker}
           showEventTimePicker={showEventTimePicker}
+          showEventEndDatePicker={showEventEndDatePicker}
+          showEventEndTimePicker={showEventEndTimePicker}
           showThemePicker={showThemePicker}
           onShowDatePicker={setShowEventDatePicker}
           onShowTimePicker={setShowEventTimePicker}
+          onShowEndDatePicker={setShowEventEndDatePicker}
+          onShowEndTimePicker={setShowEventEndTimePicker}
           onShowThemePicker={setShowThemePicker}
           onDateChange={(_, date) => { if (date) { setEventDate(date); setShowEventDatePicker(false); } }}
           onTimeChange={(_, time) => { if (time) { setEventTime(time); setShowEventTimePicker(false); } }}
+          onEndDateChange={(_, date) => { if (date) { setEventEndDate(date); setShowEventEndDatePicker(false); syncEventEndTime(date, eventEndTime); } }}
+          onEndTimeChange={(_, time) => { if (time) { setEventEndTime(time); setShowEventEndTimePicker(false); syncEventEndTime(eventEndDate, time); } }}
           onSave={handleSaveEvent}
           isSaving={eventSaving}
           sessionToken={sessionToken || undefined}
           nearLat={businessDetail?.business.latitude ?? user?.latitude ?? undefined}
           nearLng={businessDetail?.business.longitude ?? user?.longitude ?? undefined}
           businessAddress={businessDetail?.business.address ?? undefined}
-          availableArtists={[]}
+          availableArtists={availableArtists}
         />
         <ActivityModal
           visible={activityModalVisible}
@@ -2932,6 +3025,25 @@ currentUserId={businessDetail?.business?.business_id}
               onFormChange={(f) => setJobForm(f as any)}
           onSave={async () => {
             if (!sessionToken || !jobForm.title.trim()) return;
+            const unresolvedMedia = ((jobForm as any).media_items || []).some(
+              (m: any) => m.processingStatus === "processing" || m.processingStatus === "failed",
+            );
+            if (unresolvedMedia) {
+              Alert.alert(
+                t("upload.processingVideoTitle", "Video wird verarbeitet"),
+                t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
+              );
+              return;
+            }
+            if ((jobForm.status || "published") === "published" && jobForm.expires_at) {
+              const expiry = new Date(jobForm.expires_at);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              if (expiry < today) {
+                Alert.alert(t("common.error", "Error"), t("jobs.expiryInPast", "The expiry date cannot be in the past."));
+                return;
+              }
+            }
             const businessId = activeIdentity?.type === "business" ? activeIdentity.id : null;
             if (!businessId) {
               Alert.alert(t("common.error", "Error"), t("jobs.businessRequired", "Select a business before creating a job"));

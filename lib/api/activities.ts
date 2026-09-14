@@ -50,6 +50,7 @@ export const createActivity = async (
     gallery_images?: string[];
     gallery_videos?: string[];
     video_url?: string | null;
+    cover_focal_point?: { x: number; y: number } | null;
   }
 ): Promise<ActivityItem> => {
   return apiRequest<ActivityItem>("/activities", "POST", token, payload);
@@ -77,6 +78,7 @@ export const updateActivity = async (
     tagged_business_id?: string | null;
     gallery_images?: string[] | null;
     gallery_videos?: string[] | null;
+    cover_focal_point?: { x: number; y: number } | null;
   }
 ): Promise<ActivityItem> => {
   return apiRequest<ActivityItem>(`/activities/${activityId}`, "PUT", token, payload);

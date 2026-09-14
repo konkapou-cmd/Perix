@@ -76,7 +76,7 @@ function hasUnresolvedMedia(media: MediaItem[]): boolean {
   return media.some((m) => m.processingStatus === "processing" || m.processingStatus === "failed");
 }
 
-function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string | null } {
+function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string | null; cover_focal_point?: { x: number; y: number } } {
   const ready = media.filter((m) => !m.processingStatus || m.processingStatus === "ready");
   const images = ready.filter((m) => m.type === "image");
   const videos = ready.filter((m) => m.type === "video");
@@ -84,12 +84,14 @@ function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_ima
   const explicitCoverImage = images.find((m) => (m as any).isCoverImage);
   const coverImage = explicitCoverVideo ? null : explicitCoverImage ?? images[0] ?? null;
   const primaryVideo = explicitCoverVideo ?? videos[0];
+  const coverItem = explicitCoverVideo || explicitCoverImage || images[0] || videos[0];
   return {
     cover_image_url: coverImage === null ? null : coverImage?.uri,
     image_urls: images.map((m) => m.uri),
     gallery_images: images.filter((m) => m.uri !== coverImage?.uri && coverImage !== null).map((m) => m.uri),
     video_url: primaryVideo?.uri,
     gallery_videos: videos.filter((m) => m.uri !== primaryVideo?.uri).map((m) => m.uri),
+    cover_focal_point: coverItem?.focalPoint ?? { x: 0.5, y: 0.5 },
   };
 }
 
@@ -122,11 +124,13 @@ export default function ListingModal({ visible, listingType, editingListing, ses
   const [sizeSqm, setSizeSqm] = useState("");
   const [furnished, setFurnished] = useState(false);
   const [availableFrom, setAvailableFrom] = useState("");
+  const [availableUntil, setAvailableUntil] = useState("");
   const [leaseDuration, setLeaseDuration] = useState("");
   const [deposit, setDeposit] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState<"available_from" | "available_until">("available_from");
 
   const [listingCategory, setListingCategory] = useState("");
   const [listingSubcategory, setListingSubcategory] = useState("");
@@ -161,6 +165,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setSizeSqm(editingListing.size_sqm?.toString() || "");
       setFurnished(editingListing.furnished || false);
       setAvailableFrom(editingListing.available_from || "");
+      setAvailableUntil(editingListing.available_until || "");
       setLeaseDuration(editingListing.lease_duration || "");
       setDeposit(editingListing.deposit || "");
       const cat = normalizeCategory(editingListing.category || "");
@@ -177,7 +182,7 @@ export default function ListingModal({ visible, listingType, editingListing, ses
       setPublicLocationLabel(""); setLocationVisibility("approximate");
       setCondition(""); setBrand(""); setDelivery("");
       setPropertyType("apartment"); setBedrooms(""); setBathrooms("");
-      setSizeSqm(""); setFurnished(false); setAvailableFrom(""); setLeaseDuration(""); setDeposit("");
+      setSizeSqm(""); setFurnished(false); setAvailableFrom(""); setAvailableUntil(""); setLeaseDuration(""); setDeposit("");
       setListingCategory(""); setListingSubcategory(""); setListingAttributes({});
       setSellerType(businessId ? "business" : "user");
       setSellerBusinessId(businessId ?? null);
@@ -212,6 +217,11 @@ export default function ListingModal({ visible, listingType, editingListing, ses
           t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
         );
       }
+      return;
+    }
+
+    if (!isProduct && availableFrom && availableUntil && availableUntil < availableFrom) {
+      Alert.alert(t("common.error", "Error"), t("marketplace.invalidAvailabilityWindow", "The available-until date must be after the available-from date."));
       return;
     }
 
@@ -262,8 +272,10 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         size_sqm: !isProduct ? (sizeSqm.trim() ? parseInt(sizeSqm, 10) : null) : undefined,
         furnished: !isProduct ? furnished : undefined,
         available_from: !isProduct ? (availableFrom || null) : undefined,
+        available_until: !isProduct ? (availableUntil || null) : undefined,
         lease_duration: !isProduct ? (leaseDuration || null) : undefined,
         deposit: !isProduct ? (deposit || null) : undefined,
+        cover_focal_point: mediaFields.cover_focal_point,
       };
 
       if (!isEditing) {
@@ -475,9 +487,17 @@ export default function ListingModal({ visible, listingType, editingListing, ses
                 </Pressable>
 
                 <Text style={styles.label}>{t("services.availableFrom", "Available from")}</Text>
-                <Pressable style={styles.selector} onPress={() => setShowDatePicker(true)}>
+                <Pressable style={styles.selector} onPress={() => { setDatePickerTarget("available_from"); setShowDatePicker(true); }}>
                   <Text style={availableFrom ? styles.selectorTextSelected : styles.selectorText}>
                     {availableFrom ? formatDate(availableFrom) : t("services.selectDate", "Select date")}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+                </Pressable>
+
+                <Text style={styles.label}>{t("services.availableUntil", "Available until")}</Text>
+                <Pressable style={styles.selector} onPress={() => { setDatePickerTarget("available_until"); setShowDatePicker(true); }}>
+                  <Text style={availableUntil ? styles.selectorTextSelected : styles.selectorText}>
+                    {availableUntil ? formatDate(availableUntil) : t("services.selectDate", "Select date")}
                   </Text>
                   <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
                 </Pressable>
@@ -578,8 +598,18 @@ export default function ListingModal({ visible, listingType, editingListing, ses
         onClose={() => setShowDatePicker(false)}
         variant="sheet"
         horizontal
-        value={{ startDate: availableFrom, endDate: null }}
-        onApply={(v) => setAvailableFrom(v.startDate ?? "")}
+        value={{ startDate: datePickerTarget === "available_from" ? availableFrom : availableUntil, endDate: null }}
+        minDate={datePickerTarget === "available_until" && availableFrom ? availableFrom : undefined}
+        onApply={(v) => {
+          const next = v.startDate ?? "";
+          if (datePickerTarget === "available_from") {
+            setAvailableFrom(next);
+            if (availableUntil && next && availableUntil < next) setAvailableUntil("");
+          } else {
+            setAvailableUntil(next);
+          }
+          setShowDatePicker(false);
+        }}
         accentColor={COLORS.success}
       />
     </Modal>

@@ -208,7 +208,7 @@ const DEFAULT_FORM: ServiceForm = {
   max_nights: "30",
   cancellation_policy: "",
   currency: "EUR",
-  status: "draft",
+  status: "published",
   sort_order: "0",
   availability_slots: [],
 };
@@ -333,6 +333,7 @@ function mediaToForm(media: MediaItem[], base: ServiceForm): ServiceForm {
       ? videos.filter((u) => u !== coverVideoItem.uri)
       : videos.slice(1),
     cover_focal_point: coverItem?.focalPoint ?? { x: 0.5, y: 0.5 },
+    media_items: media as any,
   } as any;
 }
 
@@ -709,6 +710,30 @@ export default function ServiceModal({
                   <Ionicons name={mod.icon} size={16} color={form.type === mod.key ? "#fff" : COLORS.textSecondary} />
                   <Text style={[styles.chipText, form.type === mod.key && styles.chipTextSelected]}>
                     {moduleLabel(mod.key)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.label}>{t("common.status", "Status")}</Text>
+            <View style={styles.pickerRow}>
+              {([
+                { key: "published", label: t("services.published", "Published") },
+                { key: "draft", label: t("services.draft", "Draft") },
+                { key: "hidden", label: t("services.hidden", "Hidden") },
+              ] as const).map((opt) => (
+                <Pressable
+                  key={opt.key}
+                  style={[styles.chip, form.status === opt.key && styles.chipSelected]}
+                  onPress={() => updateField("status", opt.key)}
+                >
+                  <Ionicons
+                    name={opt.key === "published" ? "eye-outline" : opt.key === "hidden" ? "eye-off-outline" : "create-outline"}
+                    size={16}
+                    color={form.status === opt.key ? "#fff" : COLORS.textSecondary}
+                  />
+                  <Text style={[styles.chipText, form.status === opt.key && styles.chipTextSelected]}>
+                    {opt.label}
                   </Text>
                 </Pressable>
               ))}

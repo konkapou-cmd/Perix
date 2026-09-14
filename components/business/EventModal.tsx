@@ -25,6 +25,7 @@ type EventForm = {
   title: string;
   description: string;
   start_time: string;
+  end_time?: string;
   location: string;
   latitude?: number | null;
   longitude?: number | null;
@@ -38,6 +39,7 @@ type EventForm = {
   is_private: boolean;
   password: string;
   tagged_artist_ids: string[];
+  media_items?: any[];
 };
 
 type ArtistSuggestion = {
@@ -55,14 +57,22 @@ type Props = {
   eventThemes: { slug: string; label: string; color?: string; emoji?: string; gradient?: [string, string] }[];
   eventDate: Date;
   eventTime: Date;
+  eventEndDate: Date;
+  eventEndTime: Date;
   showEventDatePicker: boolean;
   showEventTimePicker: boolean;
+  showEventEndDatePicker: boolean;
+  showEventEndTimePicker: boolean;
   showThemePicker: boolean;
   onShowDatePicker: (show: boolean) => void;
   onShowTimePicker: (show: boolean) => void;
+  onShowEndDatePicker: (show: boolean) => void;
+  onShowEndTimePicker: (show: boolean) => void;
   onShowThemePicker: (show: boolean) => void;
   onDateChange: (event: any, date?: Date) => void;
   onTimeChange: (event: any, time?: Date) => void;
+  onEndDateChange: (event: any, date?: Date) => void;
+  onEndTimeChange: (event: any, time?: Date) => void;
   onSave: () => void;
   sessionToken?: string;
   nearLat?: number;
@@ -127,6 +137,7 @@ function mediaToForm(media: MediaItem[], base: EventForm): EventForm {
       ? videos.filter((u) => u !== coverVideoItem.uri)
       : videos.slice(1),
     cover_focal_point: coverItem?.focalPoint ?? { x: 0.5, y: 0.5 },
+    media_items: media as any,
   } as any;
 }
 
@@ -139,14 +150,22 @@ export default function EventModal({
   eventThemes,
   eventDate,
   eventTime,
+  eventEndDate,
+  eventEndTime,
   showEventDatePicker,
   showEventTimePicker,
+  showEventEndDatePicker,
+  showEventEndTimePicker,
   showThemePicker,
   onShowDatePicker,
   onShowTimePicker,
+  onShowEndDatePicker,
+  onShowEndTimePicker,
   onShowThemePicker,
   onDateChange,
   onTimeChange,
+  onEndDateChange,
+  onEndTimeChange,
   onSave,
   sessionToken,
   nearLat,
@@ -191,6 +210,7 @@ export default function EventModal({
         title: eventEditing.title,
         description: eventEditing.description || "",
         start_time: eventEditing.start_time || "",
+        end_time: (eventEditing as any).end_time || "",
         location: eventEditing.location || "",
         latitude: eventEditing.latitude ?? null,
         longitude: eventEditing.longitude ?? null,
@@ -372,6 +392,91 @@ export default function EventModal({
               )}
               <DateTimePicker value={eventTime} mode="time" display={Platform.OS === "ios" ? "spinner" : "default"} locale={getPickerLocaleTag(i18n.language)} onChange={onTimeChange} />
             </View>
+          )}
+
+          <View style={s.row}>
+            <View style={s.halfWidth}>
+              <Text style={s.label}>{t("events.endDate") || "End date"}</Text>
+              <Pressable style={s.selector} onPress={() => onShowEndDatePicker(true)}>
+                <Text style={s.selectorTextSelected}>{formatDate(eventEndDate)}</Text>
+                <Ionicons name="calendar-outline" size={18} color="#264348" />
+              </Pressable>
+            </View>
+            <View style={s.halfWidth}>
+              <Text style={s.label}>{t("events.endTime") || "End time"}</Text>
+              <View style={[s.selector, { position: "relative" }]}>
+                <Text style={s.selectorTextSelected}>{formatTime(eventEndTime)}</Text>
+                <Ionicons name="time-outline" size={18} color="#264348" />
+                {Platform.OS === "web" && (
+                  React.createElement("input", {
+                    type: "time",
+                    value: `${String(eventEndTime.getHours()).padStart(2, "0")}:${String(eventEndTime.getMinutes()).padStart(2, "0")}`,
+                    style: {
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      opacity: 0,
+                      cursor: "pointer",
+                    },
+                    onChange: (e: any) => {
+                      const v = e?.target?.value;
+                      if (!v) return;
+                      const [h, m] = v.split(":").map((x: string) => parseInt(x, 10));
+                      const d = new Date(eventEndTime);
+                      d.setHours(h || 0, m || 0, 0, 0);
+                      onEndTimeChange(null, d);
+                    },
+                  })
+                )}
+              </View>
+            </View>
+          </View>
+
+          {showEventEndDatePicker && (
+            <View>
+              {Platform.OS === "ios" && (
+                <Pressable style={s.pickerDoneBtn} onPress={() => onShowEndDatePicker(false)}>
+                  <Text style={s.pickerDoneText}>{t("common.done") || "Done"}</Text>
+                </Pressable>
+              )}
+              <DateTimePicker value={eventEndDate} mode="date" display={Platform.OS === "ios" ? "spinner" : "default"} locale={getPickerLocaleTag(i18n.language)} onChange={onEndDateChange} />
+            </View>
+          )}
+          {showEventEndTimePicker && (
+            <View>
+              {Platform.OS === "ios" && (
+                <Pressable style={s.pickerDoneBtn} onPress={() => onShowEndTimePicker(false)}>
+                  <Text style={s.pickerDoneText}>{t("common.done") || "Done"}</Text>
+                </Pressable>
+              )}
+              <DateTimePicker value={eventEndTime} mode="time" display={Platform.OS === "ios" ? "spinner" : "default"} locale={getPickerLocaleTag(i18n.language)} onChange={onEndTimeChange} />
+            </View>
+          )}
+
+          {/* Private event + password */}
+          <View style={s.privateRow}>
+            <View style={s.privateLabelContainer}>
+              <Text style={s.labelNoMargin}>{t("events.privateEvent", "Private event")}</Text>
+              <Text style={s.labelHint}>{t("events.privateHint", "Only people with the password can join.")}</Text>
+            </View>
+            <Pressable
+              style={[s.toggle, eventForm.is_private && s.toggleActive]}
+              onPress={() => onFormChange({ ...eventForm, is_private: !eventForm.is_private, password: eventForm.is_private ? "" : eventForm.password })}
+            >
+              <View style={[s.toggleKnob, eventForm.is_private && s.toggleKnobActive]} />
+            </Pressable>
+          </View>
+          {eventForm.is_private && (
+            <TextInput
+              style={s.input}
+              value={eventForm.password}
+              onChangeText={(text) => onFormChange({ ...eventForm, password: text })}
+              placeholder={t("events.passwordPlaceholder", "Event password")}
+              placeholderTextColor="rgba(38,67,72,0.45)"
+              secureTextEntry
+            />
           )}
 
           <Text style={s.label}>{t("events.location") || "Location"}</Text>

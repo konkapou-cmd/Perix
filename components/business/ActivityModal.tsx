@@ -115,6 +115,7 @@ function mediaToForm(media: MediaItem[], base: ActivityForm): ActivityForm {
       ? videos.filter((u) => u !== coverVideoItem.uri)
       : videos.slice(1),
     cover_focal_point: coverItem?.focalPoint ?? { x: 0.5, y: 0.5 },
+    media_items: media as any,
   } as any;
 }
 
@@ -366,6 +367,30 @@ export default function ActivityModal({
             accentColor="#FF9F1C"
             lightBackground
           />
+
+          {/* Private activity + password */}
+          <View style={s.privateRow}>
+            <View style={s.privateLabelContainer}>
+              <Text style={s.labelNoMargin}>{t("activities.privateActivity", "Private activity")}</Text>
+              <Text style={s.labelHint}>{t("activities.privateHint", "Only people with the code can join.")}</Text>
+            </View>
+            <Pressable
+              style={[s.toggle, activityForm.is_private && s.toggleActive]}
+              onPress={() => onFormChange({ ...activityForm, is_private: !activityForm.is_private, password: activityForm.is_private ? "" : activityForm.password })}
+            >
+              <View style={[s.toggleKnob, activityForm.is_private && s.toggleKnobActive]} />
+            </Pressable>
+          </View>
+          {activityForm.is_private && (
+            <TextInput
+              style={s.input}
+              value={activityForm.password}
+              onChangeText={(text) => onFormChange({ ...activityForm, password: text })}
+              placeholder={t("activities.passwordPlaceholder", "Invitation code / password")}
+              placeholderTextColor="rgba(38,67,72,0.45)"
+              secureTextEntry
+            />
+          )}
 
       <FormBottomBar
         onCancel={onClose}

@@ -93,6 +93,7 @@ function mediaToForm(media: MediaItem[], base: JobForm): JobForm {
       ? videos.filter((u) => u !== coverVideoItem.uri)
       : videos.slice(1),
     cover_focal_point: coverItem?.focalPoint ?? { x: 0.5, y: 0.5 },
+    media_items: media as any,
   } as any;
 }
 
@@ -136,13 +137,13 @@ export default function JobModal({
     return `${d}.${m}.${y}`;
   };
 
-  const handleFormChange = (key: keyof JobForm, value: any) => {
-    onFormChange({ ...jobForm, [key]: value });
-  };
-
   const media = formToMedia(jobForm);
   const formRef = useRef(jobForm);
   formRef.current = jobForm;
+  const handleFormChange = (key: keyof JobForm, value: any) => {
+    onFormChange({ ...formRef.current, [key]: value });
+  };
+
   const handleMediaChange = (newMedia: MediaItem[]) => {
     onFormChange(mediaToForm(newMedia, formRef.current));
   };
@@ -206,9 +207,7 @@ export default function JobModal({
               value={jobForm.work_location}
               onChangeText={(text) => handleFormChange("work_location", text)}
               onSelectPlace={(address, lat, lng) => {
-                handleFormChange("work_location", address);
-                handleFormChange("latitude", lat as any);
-                handleFormChange("longitude", lng as any);
+                onFormChange({ ...formRef.current, work_location: address, latitude: lat as any, longitude: lng as any });
               }}
               placeholder={businessAddress || t("jobs.locationPlaceholder", "z.B. Berlin, Deutschland oder Remote")}
               style={s.input}
