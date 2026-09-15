@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: SPACING.section,
-    bottom: 24,
+    bottom: 88,
     width: 56,
     height: 56,
     borderRadius: 28,

@@ -27,6 +27,8 @@ import { useTranslation } from "react-i18next";
 import AdaptiveVideo from "../../components/AdaptiveVideo";
 import AdaptiveImage from "../../components/AdaptiveImage";
 import { useAuth } from "../../context/AuthContext";
+import { useBadge } from "../../context/BadgeContext";
+import { CreateFlowContext } from "../../context/CreateFlowContext";
 import { useLocation } from "../../context/LocationContext";
 import { useMapBounds } from "../../context/MapBoundsContext";
 import useResponsiveLayout from "../../hooks/useResponsiveLayout";
@@ -106,6 +108,8 @@ function HomeSkeleton() {
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { user, sessionToken, activeIdentity, setActiveIdentity } = useAuth();
+  const { unreadMessageCount } = useBadge();
+  const { openCreateSheet, openBizActions } = React.useContext(CreateFlowContext);
   const { location: globalLocation, setManualLocation } = useLocation();
   const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
   const router = useRouter();
@@ -764,11 +768,18 @@ export default function HomeScreen() {
               {globalLocation?.name || t("location.searchPlaceholder", "Search city or location...")}
             </Text>
           </Pressable>
+          {isDesktop && Platform.OS === "web" && (
+            <>
+              <Pressable style={styles.homeNavLink} onPress={() => router.navigate("/(tabs)/home" as any)}>
+                <Text style={styles.homeNavLinkText}>{t("tabs.home") || "Home"}</Text>
+              </Pressable>
+              <Pressable style={styles.homeNavLink} onPress={() => router.push("/(tabs)/locator" as any)}>
+                <Text style={styles.homeNavLinkText}>{t("nav.explore") || "Explore"}</Text>
+              </Pressable>
+            </>
+          )}
         </View>
         <View style={styles.stickyHeaderRight}>
-          <Pressable style={styles.stickyHeaderIcon} onPress={() => setShowLayoutSettings(true)}>
-            <Ionicons name="options-outline" size={22} color="#264348" />
-          </Pressable>
           <View style={styles.identityDropWrap}>
             <IdentityDropdown
               businesses={myBusinesses}
@@ -778,6 +789,46 @@ export default function HomeScreen() {
               onCreateBusiness={() => router.push("/(tabs)/profile?createBusiness=1")}
             />
           </View>
+          {isDesktop && Platform.OS === "web" && (
+            <>
+              <Pressable style={styles.homeCreateBtn} onPress={() => {
+                if (!sessionToken) { router.push("/login" as any); return; }
+                if (activeIdentity?.type === "business") openBizActions();
+                else openCreateSheet();
+              }}>
+                <Ionicons name="sparkles" size={15} color="#fff" />
+                <Text style={styles.homeCreateBtnText}>{t("common.create", "Create")}</Text>
+              </Pressable>
+              <Pressable style={styles.stickyHeaderIcon} onPress={() => router.navigate("/(tabs)/messages" as any)}>
+                <Ionicons name="chatbubble-outline" size={22} color="#264348" />
+                {unreadMessageCount > 0 && (
+                  <View style={styles.homeMsgBadge}>
+                    <Text style={styles.homeMsgBadgeText}>
+                      {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+              <Pressable style={styles.stickyHeaderIcon} onPress={() => setShowLayoutSettings(true)}>
+                <Ionicons name="options-outline" size={22} color="#264348" />
+              </Pressable>
+              <Pressable style={styles.homeUserBtn} onPress={() => router.navigate("/(tabs)/profile" as any)}>
+                <Ionicons name="menu" size={16} color="#59ABE3" />
+                {user?.profile_photo ? (
+                  <Image source={{ uri: user.profile_photo }} style={styles.homeUserAvatar} />
+                ) : (
+                  <View style={styles.homeUserAvatarPlaceholder}>
+                    <Ionicons name="person" size={15} color="#59ABE3" />
+                  </View>
+                )}
+              </Pressable>
+            </>
+          )}
+          {!(isDesktop && Platform.OS === "web") && (
+            <Pressable style={styles.stickyHeaderIcon} onPress={() => setShowLayoutSettings(true)}>
+              <Ionicons name="options-outline" size={22} color="#264348" />
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -1667,8 +1718,17 @@ const styles = StyleSheet.create({
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
   locationSearchPill: { flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: "transparent" },
   locationSearchPillText: { fontSize: 12.5, color: "#264348" },
-  stickyHeaderRight: { flexDirection: "row", gap: 10, marginLeft: 10 },
+  homeNavLink: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
+  homeNavLinkText: { fontSize: 14, fontWeight: "700", color: "#264348" },
+  stickyHeaderRight: { flexDirection: "row", gap: 10, marginLeft: 10, alignItems: "center" },
   stickyHeaderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "transparent", alignItems: "center", justifyContent: "center" },
+  homeCreateBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#59ABE3", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8 },
+  homeCreateBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  homeMsgBadge: { position: "absolute", top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
+  homeMsgBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
+  homeUserBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#d7e2e8", borderRadius: 20, paddingHorizontal: 8, paddingVertical: 6 },
+  homeUserAvatar: { width: 24, height: 24, borderRadius: 12 },
+  homeUserAvatarPlaceholder: { width: 24, height: 24, borderRadius: 12, backgroundColor: "#eef4f8", alignItems: "center", justifyContent: "center" },
   identityDropWrap: { marginLeft: 4 },
   modalContainer: { flex: 1, backgroundColor: COLORS.background },
   modalShell: { flex: 1 },

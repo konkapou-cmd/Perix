@@ -110,7 +110,10 @@ export default function GlobalWebChrome({ children }: { children: React.ReactNod
     }
   };
 
-  const showTopNavbar = isDesktop && Platform.OS === "web" && segments[0] !== "(auth)";
+  // The home tab renders its own unified desktop navbar (brand + search +
+  // nav links + identity + actions), so the global one is hidden there.
+  const onHomeTab = segments[0] === "(tabs)" && (segments as string[])[1] === "home";
+  const showTopNavbar = isDesktop && Platform.OS === "web" && segments[0] !== "(auth)" && !onHomeTab;
 
   const createFlowValue = useMemo(
     () => ({

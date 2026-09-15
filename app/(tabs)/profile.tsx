@@ -237,9 +237,11 @@ const FALLBACK_CATEGORY_TREE: CategoryGroup[] = [
     ],
   },
   {
-    name: "🚗 Automotive", slug: "automotive",
+    name: "🚗 Vehicles", slug: "automotive",
     groups: [
-      { name: "Automotive", slug: "automotive", subcategories: ["car-dealers","car-rentals","repair-shops","car-washes"].map(s => sub(s)) },
+      { name: "Cars", slug: "cars", subcategories: ["car-dealers","used-cars","car-rentals","car-washes","repair-shops"].map(s => sub(s)) },
+      { name: "Motorcycles", slug: "motorcycles", subcategories: ["moto-dealers","moto-used","moto-rentals","moto-repair","moto-parts"].map(s => sub(s)) },
+      { name: "Shared Services", slug: "shared-services", subcategories: ["tire-shops","vehicle-washes","driving-schools","insurance-agencies","leasing-financing","roadside-assistance"].map(s => sub(s)) },
     ],
   },
   {

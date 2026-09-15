@@ -122,19 +122,8 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
             )}
           </Pressable>
 
-          {/* Create Post */}
-          <Pressable
-            style={[
-              styles.iconButton,
-              hoveredItem === "camera" && styles.iconButtonHover,
-            ]}
-            onPress={() => router.push("/camera" as any)}
-            onHoverIn={() => setHoveredItem("camera")}
-            onHoverOut={() => setHoveredItem(null)}
-            data-testid="navbar-camera"
-          >
-            <Ionicons name="camera-outline" size={22} color="#59ABE3" />
-          </Pressable>
+          {/* Create Post — removed from the desktop navbar; the home page
+              covers posting via the unified bar. */}
 
           {/* User Menu */}
           <Pressable
