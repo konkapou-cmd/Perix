@@ -3097,7 +3097,10 @@
       "rental": "Vermietung",
       "service": "Dienstleistung",
       "product": "Produkt"
-    }
+    },
+    "nextTo": "In der Nähe von",
+    "pickLocation": "Standort wählen",
+    "dragPinHint": "Ziehe den Pin an deinen genauen Standort"
   },
   "slotManager": {
     "selectTime": "Start- und Endzeit festlegen",

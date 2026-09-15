@@ -2998,7 +2998,10 @@
       "rental": "Rental",
       "service": "Service",
       "product": "Product"
-    }
+    },
+    "nextTo": "Next to",
+    "pickLocation": "Pick Location",
+    "dragPinHint": "Drag the pin to set your exact location"
   },
   "slotManager": {
     "selectTime": "Set start and end times",
