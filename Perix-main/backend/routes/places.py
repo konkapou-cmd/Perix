@@ -105,3 +105,83 @@ async def places_autocomplete(
     except Exception as e:
         logger.warning(f"Places autocomplete failed: {e}")
         return {"predictions": []}
+
+
+# Small in-memory cache for reverse lookups (rounded to ~50m) so pin drags
+# don't hammer Nominatim.
+_reverse_cache: dict = {}
+
+
+def _reverse_label(address: dict) -> Optional[str]:
+    for key in ("road", "pedestrian", "neighbourhood", "suburb", "quarter",
+                "city_district", "city", "town", "village", "municipality"):
+        val = address.get(key)
+        if val:
+            return val
+    return None
+
+
+@router.get("/reverse")
+async def places_reverse(
+    lat: float = Query(...),
+    lng: float = Query(...),
+    lang: str = Query("en"),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Reverse geocode a coordinate into a friendly nearby-place label
+    (e.g. the street name) for map-pin location pickers."""
+    global _last_nominatim_request
+    cache_key = (round(lat, 3), round(lng, 3), lang)
+    if cache_key in _reverse_cache:
+        return _reverse_cache[cache_key]
+
+    accept_lang = lang if lang in ("en", "de", "el") else "en"
+    try:
+        params = {
+            "lat": lat,
+            "lon": lng,
+            "format": "jsonv2",
+            "zoom": 18,
+            "addressdetails": 1,
+            "accept-language": accept_lang,
+        }
+        async with _nominatim_lock:
+            now = time.monotonic()
+            wait = 1.1 - (now - _last_nominatim_request)
+            if wait > 0:
+                await asyncio.sleep(wait)
+
+            result = None
+            for attempt in range(3):
+                try:
+                    async with httpx.AsyncClient(timeout=15) as client:
+                        resp = await client.get(
+                            "https://nominatim.openstreetmap.org/reverse",
+                            params=params,
+                            headers=HEADERS,
+                        )
+                        if resp.status_code in (429, 403):
+                            await asyncio.sleep(1.2 * (attempt + 1))
+                            continue
+                        resp.raise_for_status()
+                        result = resp.json()
+                        break
+                except Exception:
+                    if attempt < 2:
+                        await asyncio.sleep(0.5 * (attempt + 1))
+
+            _last_nominatim_request = time.monotonic()
+
+        if not result:
+            payload = {"label": None, "display_name": None}
+        else:
+            address = result.get("address", {})
+            payload = {
+                "label": _reverse_label(address),
+                "display_name": result.get("display_name"),
+            }
+        _reverse_cache[cache_key] = payload
+        return payload
+    except Exception as e:
+        logger.warning(f"Places reverse failed: {e}")
+        return {"label": None, "display_name": None}
