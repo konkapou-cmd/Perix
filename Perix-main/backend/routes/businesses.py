@@ -81,8 +81,8 @@ def build_business_summary(business_doc: Dict) -> BusinessSummary:
         subcategory=business_doc.get("subcategory", "other"),
         subcategories=business_doc.get("subcategories") or [business_doc.get("subcategory", "other")],
         address=business_doc.get("address", ""),
-        latitude=business_doc.get("latitude", 0.0),
-        longitude=business_doc.get("longitude", 0.0),
+        latitude=business_doc.get("latitude") or 0.0,
+        longitude=business_doc.get("longitude") or 0.0,
         logo_image=business_doc.get("logo_image"),
         theme=business_doc.get("theme"),
     )
