@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { AppState, Platform } from "react-native";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ensureLocationPermission } from "../lib/locationPermission";
@@ -82,7 +83,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       }
       
       const current = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.High,
       });
       
       const newLocation: LocationData = {
@@ -132,6 +133,50 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const refreshLocation = useCallback(() => {
     setRefreshKey(prev => prev + 1);
   }, []);
+
+  // Keep the "you are here" pin accurate: re-fix the live location every few
+  // minutes and whenever the app/tab returns to the foreground. Stale fixes
+  // (e.g. a coarse first browser fix) otherwise stay on the map forever.
+  const refreshingLiveRef = useRef(false);
+  const locationRef = useRef(location);
+  locationRef.current = location;
+
+  const silentLiveRefresh = useCallback(async () => {
+    if (refreshingLiveRef.current) return;
+    if (locationRef.current && !locationRef.current.isLiveLocation) return;
+    refreshingLiveRef.current = true;
+    try {
+      await requestLiveLocation();
+    } finally {
+      refreshingLiveRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void silentLiveRefresh();
+    }, 3 * 60 * 1000);
+    const onResume = () => void silentLiveRefresh();
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") onResume();
+      };
+      window.addEventListener("focus", onResume);
+      document.addEventListener("visibilitychange", onVisibility);
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener("focus", onResume);
+        document.removeEventListener("visibilitychange", onVisibility);
+      };
+    }
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") onResume();
+    });
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, [silentLiveRefresh]);
 
   return (
     <LocationContext.Provider
