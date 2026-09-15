@@ -87,7 +87,9 @@ Perix-main/.opencode/
 Perix-main/curl
 
 # Generated temp files
-*.txt
+# NOTE: do NOT use a bare "*.txt" here — the Railway CLI applies .gitignore
+# rules to uploads, which silently excluded backend/requirements.txt and
+# broke every deploy with "backend/requirements.txt: not found".
 COMPLETION_SUMMARY.txt
 DEVELOPMENT_SETUP.md
 QUICK_START.md
