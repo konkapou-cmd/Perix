@@ -151,6 +151,9 @@ export default function LocatorScreen() {
   const [eventSearchQuery, setEventSearchQuery] = useState("");
   const [activitySearchQuery, setActivitySearchQuery] = useState("");
   const [businessSearchQuery, setBusinessSearchQuery] = useState("");
+  const [rentalSearchQuery, setRentalSearchQuery] = useState("");
+  const [jobSearchQuery, setJobSearchQuery] = useState("");
+  const [hotelSearchQuery, setHotelSearchQuery] = useState("");
 
   // Apply filter states
   const [hasPendingFilters, setHasPendingFilters] = useState(false);
@@ -195,7 +198,7 @@ export default function LocatorScreen() {
   };
 
   useEffect(() => {
-    if (params.tab && ["hotels", "events", "activities", "businesses"].includes(params.tab)) {
+    if (params.tab && ["hotels", "events", "activities", "businesses", "rentals", "jobs"].includes(params.tab)) {
       setActiveTab(params.tab as TabType);
     }
     if (params.root_category) {
@@ -246,8 +249,13 @@ export default function LocatorScreen() {
   }, [businesses, businessSearchQuery]);
 
   const visibleHotels = useMemo(() => {
-    return visibleBusinesses.filter(b => b.root_category === "local-hotels");
-  }, [visibleBusinesses]);
+    let result = visibleBusinesses.filter(b => b.root_category === "local-hotels");
+    if (hotelSearchQuery.trim()) {
+      const query = hotelSearchQuery.toLowerCase();
+      result = result.filter(h => h.name.toLowerCase().includes(query) || (h.address || "").toLowerCase().includes(query));
+    }
+    return result;
+  }, [visibleBusinesses, hotelSearchQuery]);
 
    const visibleEvents = useMemo(() => {
      let result = events;
@@ -311,15 +319,31 @@ export default function LocatorScreen() {
       : (selectedRootGroup.subcategories ?? []);
   }, [selectedRootGroup]);
 
-  const filteredRentals = useMemo(() =>
-    rentalTypeFilter ? rentals.filter(r => r.subcategory === rentalTypeFilter) : rentals,
-    [rentals, rentalTypeFilter]
-  );
+  const filteredRentals = useMemo(() => {
+    let result = rentalTypeFilter ? rentals.filter(r => r.subcategory === rentalTypeFilter) : rentals;
+    if (rentalSearchQuery.trim()) {
+      const query = rentalSearchQuery.toLowerCase();
+      result = result.filter(r =>
+        (r.title || "").toLowerCase().includes(query) ||
+        (r.address || "").toLowerCase().includes(query) ||
+        (r.description || "").toLowerCase().includes(query)
+      );
+    }
+    return result;
+  }, [rentals, rentalTypeFilter, rentalSearchQuery]);
 
-  const filteredJobs = useMemo(() =>
-    jobTypeFilter ? jobs.filter(j => j.root_category === jobTypeFilter) : jobs,
-    [jobs, jobTypeFilter]
-  );
+  const filteredJobs = useMemo(() => {
+    let result = jobTypeFilter ? jobs.filter(j => j.root_category === jobTypeFilter) : jobs;
+    if (jobSearchQuery.trim()) {
+      const query = jobSearchQuery.toLowerCase();
+      result = result.filter(j =>
+        (j.title || "").toLowerCase().includes(query) ||
+        (j.business_name || "").toLowerCase().includes(query) ||
+        (j.location || "").toLowerCase().includes(query)
+      );
+    }
+    return result;
+  }, [jobs, jobTypeFilter, jobSearchQuery]);
   const selectedRootLabel = useMemo(() => {
     if (selectedRoot === "All") return t('locator.allCategories');
     return translateCategory(selectedRoot, t);
@@ -387,10 +411,16 @@ export default function LocatorScreen() {
   }, [sessionToken]);
 
   const loadJobs = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, loadId?: number) => {
-    const data = await getJobs(sessionToken ?? "", bounds);
+    const data = await getJobs(
+      sessionToken ?? "",
+      bounds,
+      selectedRoot !== "All"
+        ? { rootCategory: selectedRoot, subcategory: selectedSubcategory !== "All" ? selectedSubcategory : undefined }
+        : undefined
+    );
     if (loadId !== undefined && loadIdRef.current !== loadId) return;
     setJobs(data.jobs);
-  }, [sessionToken]);
+  }, [sessionToken, selectedRoot, selectedSubcategory]);
 
   const handleMapRegionChange = useCallback((bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
@@ -433,7 +463,7 @@ export default function LocatorScreen() {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory, activeTab, rentalTypeFilter, dateFilter, loadEvents, loadActivities]);
+  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory, activeTab, rentalTypeFilter, dateFilter, loadEvents, loadActivities, loadJobs, loadRentals]);
 
 
 
@@ -656,13 +686,34 @@ export default function LocatorScreen() {
           <Ionicons name="search" size={18} color="#264348" />
           <TextInput
             style={styles.searchInput}
-            placeholder={activeTab === "businesses" ? t('business.searchBusinesses') : activeTab === "events" ? t('events.searchEvents') : t('activities.searchActivities')}
+            placeholder={
+              activeTab === "businesses" ? t('business.searchBusinesses')
+              : activeTab === "events" ? t('events.searchEvents')
+              : activeTab === "activities" ? t('activities.searchActivities')
+              : activeTab === "rentals" ? t('rentals.searchRentals', "Search rentals...")
+              : activeTab === "jobs" ? t('jobs.searchJobs', "Search jobs...")
+              : t('home.searchHotels', "Search hotels...")
+            }
             placeholderTextColor="#264348"
-            value={activeTab === "businesses" ? businessSearchQuery : activeTab === "events" ? eventSearchQuery : activitySearchQuery}
-            onChangeText={activeTab === "businesses" ? setBusinessSearchQuery : activeTab === "events" ? setEventSearchQuery : setActivitySearchQuery}
+            value={
+              activeTab === "businesses" ? businessSearchQuery
+              : activeTab === "events" ? eventSearchQuery
+              : activeTab === "activities" ? activitySearchQuery
+              : activeTab === "rentals" ? rentalSearchQuery
+              : activeTab === "jobs" ? jobSearchQuery
+              : hotelSearchQuery
+            }
+            onChangeText={
+              activeTab === "businesses" ? setBusinessSearchQuery
+              : activeTab === "events" ? setEventSearchQuery
+              : activeTab === "activities" ? setActivitySearchQuery
+              : activeTab === "rentals" ? setRentalSearchQuery
+              : activeTab === "jobs" ? setJobSearchQuery
+              : setHotelSearchQuery
+            }
           />
-          {(businessSearchQuery || eventSearchQuery || activitySearchQuery) ? (
-            <Pressable onPress={() => { setBusinessSearchQuery(""); setEventSearchQuery(""); setActivitySearchQuery(""); }}>
+          {(businessSearchQuery || eventSearchQuery || activitySearchQuery || rentalSearchQuery || jobSearchQuery || hotelSearchQuery) ? (
+            <Pressable onPress={() => { setBusinessSearchQuery(""); setEventSearchQuery(""); setActivitySearchQuery(""); setRentalSearchQuery(""); setJobSearchQuery(""); setHotelSearchQuery(""); }}>
               <Ionicons name="close-circle" size={18} color="#264348" />
             </Pressable>
           ) : null}
@@ -676,7 +727,19 @@ export default function LocatorScreen() {
             categories={categoryTree}
             selectedRoot={selectedRoot}
             selectedSubcategory={selectedSubcategory}
-            onSelectRoot={(slug) => { setSelectedRoot(slug); setSelectedSubcategory("All"); }}
+            onSelectRoot={(slug) => {
+              setSelectedRoot(slug);
+              setSelectedSubcategory("All");
+              // Switching the category switches the visible content type so
+              // results always match the selected category.
+              if (slug === "local-hotels") {
+                setActiveTab("hotels");
+              } else if (slug === "rentals" || slug === "rental-real-estate") {
+                setActiveTab("rentals");
+              } else if (slug !== "All") {
+                setActiveTab("businesses");
+              }
+            }}
             onSelectSubcategory={setSelectedSubcategory}
             onClose={!isDesktop ? () => setSidebarOpen(false) : undefined}
           />
