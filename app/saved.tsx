@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -220,6 +221,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundPage,
+    ...Platform.select({
+      web: { width: "100%" as const, maxWidth: 1280, alignSelf: "center" as const },
+      default: {},
+    }),
   },
   header: {
     flexDirection: "row",

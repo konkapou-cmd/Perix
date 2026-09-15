@@ -3186,6 +3186,7 @@ currentUserId={businessDetail?.business?.business_id}
       {/* User Edit Profile Modal */}
       <Modal visible={userEditModalVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
+          <View style={[styles.modalShell, Platform.OS === "web" && styles.modalShellWeb]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t("profile.editProfile", "Edit Profile")}</Text>
             <Pressable onPress={() => setUserEditModalVisible(false)}>
@@ -3244,6 +3245,7 @@ currentUserId={businessDetail?.business?.business_id}
             </Pressable>
           </ScrollView>
           </KeyboardAvoidingView>
+          </View>
         </SafeAreaView>
       </Modal>
 
