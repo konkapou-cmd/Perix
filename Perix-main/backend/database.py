@@ -531,13 +531,23 @@ def build_category_tree() -> None:
             ],
         },
         {
-            "name": "🚗 Automotive",
+            "name": "🚗 Vehicles",
             "slug": "automotive",
             "groups": [
                 {
-                    "name": "Automotive",
-                    "slug": "automotive",
-                    "subcategories": ["car-dealers", "car-rentals", "repair-shops", "car-washes"],
+                    "name": "Cars",
+                    "slug": "cars",
+                    "subcategories": ["car-dealers", "used-cars", "car-rentals", "car-washes", "repair-shops"],
+                },
+                {
+                    "name": "Motorcycles",
+                    "slug": "motorcycles",
+                    "subcategories": ["moto-dealers", "moto-used", "moto-rentals", "moto-repair", "moto-parts"],
+                },
+                {
+                    "name": "Shared Services",
+                    "slug": "shared-services",
+                    "subcategories": ["tire-shops", "vehicle-washes", "driving-schools", "insurance-agencies", "leasing-financing", "roadside-assistance"],
                 },
             ],
         },
