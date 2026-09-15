@@ -3146,5 +3146,9 @@
     "androidStep1": "Öffne oben rechts das Chrome-Menü (⋮)",
     "androidStep2": "Tippe auf „App installieren“ oder „Zum Startbildschirm hinzufügen“",
     "androidStep3": "Perix erscheint wie eine native App auf deinem Startbildschirm"
+  },
+  "update": {
+    "newVersion": "Neue Version verfügbar",
+    "reload": "Aktualisieren"
   }
 }

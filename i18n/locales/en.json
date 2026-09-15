@@ -3047,5 +3047,9 @@
     "androidStep1": "Open the Chrome menu (⋮) at the top right",
     "androidStep2": "Tap \"Install app\" or \"Add to Home screen\"",
     "androidStep3": "Perix will appear on your home screen like a native app"
+  },
+  "update": {
+    "newVersion": "New version available",
+    "reload": "Update"
   }
 }

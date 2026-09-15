@@ -26,6 +26,7 @@ import { applyDefaultFontFamily } from "../lib/defaultFont";
 import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_600SemiBold, Quicksand_700Bold } from "@expo-google-fonts/quicksand";
 import GlobalWebChrome from "../components/GlobalWebChrome";
 import InstallBanner from "../components/InstallBanner";
+import UpdateBanner from "../components/UpdateBanner";
 import { UploadProvider } from "../context/UploadContext";
 
 applyDefaultFontFamily("Quicksand_400Regular");
@@ -81,6 +82,8 @@ class RootErrorBoundary extends React.Component<{ children: React.ReactNode }, {
 
 function WebErrorOverlay({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
+  const retryCountRef = React.useRef(0);
+  const lastRetryAtRef = React.useRef(0);
   useEffect(() => {
     if (Platform.OS !== "web") return;
     const isNonFatal = (msg: string) => {
@@ -102,6 +105,29 @@ function WebErrorOverlay({ children }: { children: React.ReactNode }) {
     };
   }, []);
   if (!error) return <>{children}</>;
+  const hardReload = () => {
+    try {
+      // Full reload always fetches the newest deployed bundle, since the
+      // served index.html is never cached.
+      window.location.reload();
+    } catch {}
+  };
+  const softRetry = () => {
+    const now = Date.now();
+    if (now - lastRetryAtRef.current < 15000) {
+      retryCountRef.current += 1;
+    } else {
+      retryCountRef.current = 1;
+    }
+    lastRetryAtRef.current = now;
+    if (retryCountRef.current >= 3) {
+      // Crash loop — a soft retry keeps hitting the same error. Force a
+      // fresh reload to pull the latest live version.
+      hardReload();
+      return;
+    }
+    setError(null);
+  };
   return (
     <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center", alignItems: "center" }}>
       <Text style={{ fontSize: 40, marginBottom: 12 }}>😕</Text>
@@ -109,14 +135,22 @@ function WebErrorOverlay({ children }: { children: React.ReactNode }) {
         Something went wrong
       </Text>
       <Text style={{ color: "#6b7280", fontSize: 14, textAlign: "center", marginBottom: 20, maxWidth: 340 }}>
-        Your connection may have been interrupted. Tap below to reconnect.
+        Your connection may have been interrupted. Tap below to reconnect, or reload to get the latest version.
       </Text>
-      <Pressable
-        onPress={() => setError(null)}
-        style={{ backgroundColor: "#59ABE3", borderRadius: 12, paddingHorizontal: 28, paddingVertical: 13 }}
-      >
-        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Reconnect</Text>
-      </Pressable>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Pressable
+          onPress={softRetry}
+          style={{ backgroundColor: "#59ABE3", borderRadius: 12, paddingHorizontal: 24, paddingVertical: 13 }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Reconnect</Text>
+        </Pressable>
+        <Pressable
+          onPress={hardReload}
+          style={{ backgroundColor: "#eef4f8", borderRadius: 12, paddingHorizontal: 24, paddingVertical: 13, borderWidth: 1, borderColor: "#d7e2e8" }}
+        >
+          <Text style={{ color: "#264348", fontWeight: "700", fontSize: 15 }}>Reload page</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -411,6 +445,7 @@ export default function RootLayout() {
                         </Stack>
                       </GlobalWebChrome>
                       <InstallBanner />
+                      <UpdateBanner />
                     </UploadProvider>
                   </NotificationProvider>
                 </SocketProvider>
