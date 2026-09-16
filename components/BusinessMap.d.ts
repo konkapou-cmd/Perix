@@ -54,8 +54,6 @@ type Props = {
   disabled?: boolean;
   disabledHint?: string;
   staticMode?: boolean;
-  circleOverlay?: boolean;
-  circleRadiusKm?: number;
 };
 
 declare const BusinessMap: React.FC<Props>;

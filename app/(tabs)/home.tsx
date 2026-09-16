@@ -118,8 +118,7 @@ export default function HomeScreen() {
 
   const [feedMode, setFeedMode] = useState<"nearby" | "following">("nearby");
 
-  const { homeLayout, toggleSection, setSorting, setFavoriteCategories, circleMapMode, setCircleMapMode, collapsedSections, setSectionCollapsed } = useLayoutPreferences();
-  const { radiusKm } = useLocation();
+  const { homeLayout, toggleSection, setSorting, setFavoriteCategories, collapsedSections, setSectionCollapsed } = useLayoutPreferences();
 
   const feedData = useFeedData({
     sessionToken,
@@ -941,8 +940,6 @@ export default function HomeScreen() {
             products={viewportProducts}
             ownerHomes={viewportHomes}
             userLocation={userLocation}
-            circleOverlay={circleMapMode}
-            circleRadiusKm={radiusKm}
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
             }}
@@ -1640,8 +1637,6 @@ export default function HomeScreen() {
         onToggleSection={toggleSection}
         onSetSorting={setSorting}
         onSetFavoriteCategories={setFavoriteCategories}
-        circleMapMode={circleMapMode}
-        onSetCircleMapMode={setCircleMapMode}
       />
     </SafeAreaView>
   );

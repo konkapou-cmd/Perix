@@ -754,10 +754,7 @@
     "rentals": "Rentals",
     "marketplace": "Marketplace",
     "homesNearby": "Homes Nearby",
-    "personalizeHome": "Personalize your home feed",
-    "mapView": "Map view",
-    "circleMapMode": "Circle view",
-    "circleMapModeHint": "Dim everything outside a circle around your location, so you focus on what's near you."
+    "personalizeHome": "Personalize your home feed"
   },
   "saved": {
     "title": "Saved",

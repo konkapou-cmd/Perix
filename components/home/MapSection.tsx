@@ -26,11 +26,9 @@ interface MapSectionProps {
   onRegionChange: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
   onRecenter?: (lat: number, lng: number) => void;
   focusToken?: number;
-  circleOverlay?: boolean;
-  circleRadiusKm?: number;
 }
 
-export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, onRegionChange, onRecenter, focusToken, circleOverlay = false, circleRadiusKm = 10 }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -129,8 +127,6 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
           onMarkerPress={handleMarkerPress}
           extraMarkers={extraMarkers}
           disabled={false}
-          circleOverlay={circleOverlay}
-          circleRadiusKm={circleRadiusKm}
         />
         <Pressable style={styles.recenterButton} onPress={handleRecenter}>
           <Ionicons name="locate" size={22} color={COLORS.primary} />

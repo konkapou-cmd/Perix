@@ -60,8 +60,6 @@ type Props = {
   disabled?: boolean;
   disabledHint?: string;
   staticMode?: boolean;
-  circleOverlay?: boolean;
-  circleRadiusKm?: number;
 };
 
 const googleKey =
@@ -126,8 +124,6 @@ export default function BusinessMap({
   disabled = false,
   disabledHint = "Tap to enable location",
   staticMode = false,
-  circleOverlay = false,
-  circleRadiusKm = 10,
 }: Props) {
   const { t } = useTranslation();
   const mapDivRef = useRef<HTMLDivElement>(null);
@@ -588,95 +584,6 @@ export default function BusinessMap({
       if (userLocationOverlayRef.current === overlay) userLocationOverlayRef.current = null;
     };
   }, [location, showUserLocation, mapReady]);
-
-  // Circle "radar" overlay: dims everything outside a radius circle centered
-  // on the user's location (or the map center), keeping focus on what's near.
-  const circleOverlayRef = useRef<any>(null);
-  const circleCenterRef = useRef<{ lat: number; lng: number } | null>(null);
-  circleCenterRef.current = location
-    ? { lat: location.latitude, lng: location.longitude }
-    : { lat: centerLat, lng: centerLng };
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReadyRef.current) return;
-    if (circleOverlayRef.current) {
-      try { circleOverlayRef.current.setMap(null); } catch (e) {}
-      circleOverlayRef.current = null;
-    }
-    if (!circleOverlay || !circleRadiusKm) return;
-
-    const google = (window as any).google;
-    const container = document.createElement("div");
-    container.style.position = "absolute";
-    container.style.pointerEvents = "none";
-
-    const SIZE = 6000;
-    const veil = document.createElement("div");
-    veil.style.width = SIZE + "px";
-    veil.style.height = SIZE + "px";
-    veil.style.transform = "translate(-50%, -50%)";
-    veil.style.willChange = "background";
-    container.appendChild(veil);
-
-    const update = () => {
-      const center = circleCenterRef.current;
-      if (!center) return;
-      const zoom = map.getZoom();
-      const metersPerPixel =
-        (156543.03392 * Math.cos((center.lat * Math.PI) / 180)) / Math.pow(2, zoom);
-      const r = Math.max(40, (circleRadiusKm * 1000) / metersPerPixel);
-      const r2 = Math.max(1, r - 2);
-      veil.style.background = [
-        `radial-gradient(circle at center, rgba(255,255,255,0) 0px, rgba(255,255,255,0) ${r2}px, rgba(255,255,255,0.55) ${r}px)`,
-        `radial-gradient(circle at center, rgba(89,171,227,0) ${Math.max(0, r2 - 3)}px, rgba(89,171,227,0.9) ${r2}px, rgba(89,171,227,0) ${r}px)`,
-      ].join(", ");
-    };
-
-    class CircleOverlay extends google.maps.OverlayView {
-      div: HTMLDivElement;
-      constructor(div: HTMLDivElement) {
-        super();
-        this.div = div;
-      }
-      onAdd(this: any) {
-        this.getPanes().overlayMouseTarget.appendChild(this.div);
-      }
-      draw(this: any) {
-        const center = circleCenterRef.current;
-        if (!center) return;
-        const overlayProjection = this.getProjection();
-        const point = overlayProjection.fromLatLngToDivPixel(
-          new google.maps.LatLng(center.lat, center.lng)
-        );
-        if (point) {
-          this.div.style.left = point.x + "px";
-          this.div.style.top = point.y + "px";
-        }
-        update();
-      }
-      onRemove(this: any) {
-        if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
-      }
-    }
-
-    const overlay = new CircleOverlay(container);
-    overlay.setMap(map);
-    circleOverlayRef.current = overlay;
-
-    const zoomListener = google.maps.event.addListener(map, "zoom_changed", () => {
-      update();
-    });
-    const centerListener = google.maps.event.addListener(map, "center_changed", () => {
-      update();
-    });
-    return () => {
-      google.maps.event.removeListener(zoomListener);
-      google.maps.event.removeListener(centerListener);
-      try { overlay.setMap(null); } catch (e) {}
-      if (circleOverlayRef.current === overlay) circleOverlayRef.current = null;
-    };
-  }, [circleOverlay, circleRadiusKm, location, mapReady, centerLat, centerLng]);
 
   // Pan when the initialRegion-based center changes (e.g. home map bounds updates)
   useEffect(() => {

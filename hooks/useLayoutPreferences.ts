@@ -13,7 +13,6 @@ export type SectionConfig = {
 export type HomeLayoutConfig = {
   sections: SectionConfig[];
   favoriteCategories: string[];
-  circleMapMode: boolean;
   featuredContent: {
     enabled: boolean;
     type: "posts" | "events" | "activities" | "businesses" | "jobs" | "none";
@@ -46,7 +45,6 @@ const DEFAULT_LAYOUT: HomeLayoutConfig = {
     { id: "posts", title: "Latest Posts", enabled: true, order: 11, layout: "list", customStyle: {} },
   ],
   favoriteCategories: [],
-  circleMapMode: false,
   featuredContent: { enabled: false, type: "none", count: 3 },
   sorting: {
     posts: "chronological",
@@ -129,10 +127,6 @@ export function useLayoutPreferences() {
     setHomeLayout(prev => ({ ...prev, favoriteCategories: categories }));
   }, []);
 
-  const setCircleMapMode = useCallback((enabled: boolean) => {
-    setHomeLayout(prev => ({ ...prev, circleMapMode: enabled }));
-  }, []);
-
   const setSectionCollapsed = useCallback((sectionId: string, collapsed: boolean) => {
     setCollapsedSections(prev => {
       const next = new Set(prev);
@@ -147,5 +141,5 @@ export function useLayoutPreferences() {
     AsyncStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsedSections])).catch(() => {});
   }, [collapsedSections]);
 
-  return { homeLayout, setHomeLayout, toggleSection, setSorting, setFavoriteCategories, circleMapMode: homeLayout.circleMapMode, setCircleMapMode, collapsedSections, setSectionCollapsed };
+  return { homeLayout, setHomeLayout, toggleSection, setSorting, setFavoriteCategories, collapsedSections, setSectionCollapsed };
 }
