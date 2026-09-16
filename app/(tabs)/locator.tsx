@@ -56,6 +56,7 @@ import {
 } from "../../lib/api";
 import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
+import { useLayoutPreferences } from "../../hooks/useLayoutPreferences";
 import { translateCategory, translateJobType } from "../../lib/categoryTranslation";
 import { CATEGORY_ICONS, subcategoryIcon, CATEGORY_COLORS, subcategoryColor } from "../../lib/categoryIcons";
 import { sortCategoriesByLabel } from "../../lib/categoryTranslation";
@@ -85,6 +86,7 @@ export default function LocatorScreen() {
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
   const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
   const { location: contextLocation, setManualLocation, radiusKm } = useLocation();
+  const { circleMapMode } = useLayoutPreferences();
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
@@ -769,6 +771,8 @@ export default function LocatorScreen() {
           }
           jobs={activeTab === "jobs" ? jobs : []}
           showUserLocation
+          circleOverlay={circleMapMode}
+          circleRadiusKm={radiusKm}
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
             if (activeTab === "businesses") {

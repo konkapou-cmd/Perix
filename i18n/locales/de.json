@@ -610,7 +610,10 @@
     "rentals": "Vermietungen",
     "marketplace": "Marktplatz",
     "homesNearby": "Unterkünfte in der Nähe",
-    "personalizeHome": "Passe deinen Home-Feed an"
+    "personalizeHome": "Passe deinen Home-Feed an",
+    "mapView": "Kartenansicht",
+    "circleMapMode": "Kreis-Ansicht",
+    "circleMapModeHint": "Alles außerhalb eines Kreises um deinen Standort wird abgedunkelt, damit du dich auf das Naheliegende konzentrierst."
   },
   "brand": {
     "title": "Perix",

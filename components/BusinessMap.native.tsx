@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Circle, Marker, Region } from "react-native-maps";
 import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -60,6 +60,8 @@ type Props = {
   disabled?: boolean;
   disabledHint?: string;
   staticMode?: boolean;
+  circleOverlay?: boolean;
+  circleRadiusKm?: number;
 };
 
 // Helper function to determine if business is currently open
@@ -126,6 +128,8 @@ export default function BusinessMap({
   disabled = false,
   disabledHint = "Tap to enable location",
   staticMode = false,
+  circleOverlay = false,
+  circleRadiusKm = 10,
 }: Props) {
   const generatedMarkers: MapMarker[] = [
     ...businesses
@@ -417,6 +421,15 @@ export default function BusinessMap({
           </Marker>
           );
         })}
+        {circleOverlay && location && circleRadiusKm > 0 && (
+          <Circle
+            center={{ latitude: location.latitude, longitude: location.longitude }}
+            radius={circleRadiusKm * 1000}
+            strokeColor="#59ABE3"
+            strokeWidth={2}
+            fillColor="rgba(89,171,227,0.06)"
+          />
+        )}
       </MapView>
       <Modal visible={selectedGroup !== null} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
         <Pressable style={styles.sheetOverlay} onPress={() => setSelectedGroup(null)}>

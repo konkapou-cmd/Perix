@@ -13,6 +13,8 @@ interface LayoutSettingsModalProps {
   onToggleSection: (sectionId: string) => void;
   onSetSorting: (type: keyof HomeLayoutConfig["sorting"], value: string) => void;
   onSetFavoriteCategories: (categories: string[]) => void;
+  circleMapMode?: boolean;
+  onSetCircleMapMode?: (enabled: boolean) => void;
 }
 
 const SORT_OPTIONS = ["engagement", "distance", "chronological", "random"] as const;
@@ -69,7 +71,7 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   rentals: "home",
 };
 
-export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSection, onSetSorting, onSetFavoriteCategories }: LayoutSettingsModalProps) {
+export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSection, onSetSorting, onSetFavoriteCategories, circleMapMode = false, onSetCircleMapMode }: LayoutSettingsModalProps) {
   const { t } = useTranslation();
 
   const sections = useMemo(
@@ -95,6 +97,28 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
           </View>
 
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {/* Map view mode */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="map" size={16} color="#264348" />
+                <Text style={styles.cardTitle}>{t("home.mapView", "Map view")}</Text>
+              </View>
+              <Pressable
+                style={styles.mapModeRow}
+                onPress={() => onSetCircleMapMode?.(!circleMapMode)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.mapModeLabel}>{t("home.circleMapMode", "Circle view")}</Text>
+                  <Text style={styles.mapModeHint}>
+                    {t("home.circleMapModeHint", "Dim everything outside a circle around your location, so you focus on what's near you.")}
+                  </Text>
+                </View>
+                <View style={[styles.mapModeToggle, circleMapMode && styles.mapModeToggleActive]}>
+                  <View style={[styles.mapModeKnob, circleMapMode && styles.mapModeKnobActive]} />
+                </View>
+              </Pressable>
+            </View>
+
             {/* Sort order */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
@@ -209,6 +233,13 @@ export function LayoutSettingsModal({ visible, onClose, homeLayout, onToggleSect
 }
 
 const styles = StyleSheet.create({
+  mapModeRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
+  mapModeLabel: { fontSize: 14, fontWeight: "600", color: "#264348" },
+  mapModeHint: { fontSize: 12, color: "rgba(38,67,72,0.6)", marginTop: 2 },
+  mapModeToggle: { width: 48, height: 28, borderRadius: 14, backgroundColor: "#d7e2e8", padding: 2, justifyContent: "center" },
+  mapModeToggleActive: { backgroundColor: "#59ABE3" },
+  mapModeKnob: { width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff" },
+  mapModeKnobActive: { alignSelf: "flex-end" },
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
