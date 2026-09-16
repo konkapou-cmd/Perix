@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import MapView, { Circle, Marker, Polygon, Region } from "react-native-maps";
+import MapView, { Circle, Marker, Region } from "react-native-maps";
 import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -229,39 +229,6 @@ export default function BusinessMap({
     longitudeDelta: 0.02,
   } : undefined);
 
-  // Circle "radar" view: dim everything outside a radius circle. The center
-  // follows the user location when available, otherwise the map center.
-  const circleCenter = useMemo(() => {
-    if (!circleOverlay || circleRadiusKm <= 0) return null;
-    if (location) return { latitude: location.latitude, longitude: location.longitude };
-    const base = (resolvedInitialRegion || initialRegion) as Region | undefined;
-    if (base) return { latitude: base.latitude, longitude: base.longitude };
-    return null;
-  }, [circleOverlay, circleRadiusKm, location, initialRegion, resolvedInitialRegion]);
-
-  const circleGeometry = useMemo(() => {
-    if (!circleCenter) return null;
-    const latPerKm = 1 / 110.574;
-    const lngPerKm = 1 / (111.320 * Math.max(0.2, Math.cos((circleCenter.latitude * Math.PI) / 180)));
-    const pad = circleRadiusKm * 4;
-    const outer: { latitude: number; longitude: number }[] = [
-      { latitude: circleCenter.latitude + (circleRadiusKm + pad) * latPerKm, longitude: circleCenter.longitude - (circleRadiusKm + pad) * lngPerKm },
-      { latitude: circleCenter.latitude + (circleRadiusKm + pad) * latPerKm, longitude: circleCenter.longitude + (circleRadiusKm + pad) * lngPerKm },
-      { latitude: circleCenter.latitude - (circleRadiusKm + pad) * latPerKm, longitude: circleCenter.longitude + (circleRadiusKm + pad) * lngPerKm },
-      { latitude: circleCenter.latitude - (circleRadiusKm + pad) * latPerKm, longitude: circleCenter.longitude - (circleRadiusKm + pad) * lngPerKm },
-    ];
-    const hole: { latitude: number; longitude: number }[] = [];
-    const segments = 64;
-    for (let i = 0; i <= segments; i++) {
-      const a = (i / segments) * Math.PI * 2;
-      hole.push({
-        latitude: circleCenter.latitude + circleRadiusKm * latPerKm * Math.sin(a),
-        longitude: circleCenter.longitude + circleRadiusKm * lngPerKm * Math.cos(a),
-      });
-    }
-    return { outer, hole };
-  }, [circleCenter, circleRadiusKm]);
-
   const mapRef = useRef<MapView>(null);
   const { t } = useTranslation();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -461,24 +428,6 @@ export default function BusinessMap({
             strokeColor="#59ABE3"
             strokeWidth={2}
             fillColor="rgba(89,171,227,0.06)"
-          />
-        )}
-        {circleGeometry && (
-          <Polygon
-            coordinates={circleGeometry.outer}
-            holes={[circleGeometry.hole]}
-            fillColor="rgba(255,255,255,0.6)"
-            strokeWidth={0}
-            tappable={false}
-          />
-        )}
-        {circleCenter && circleOverlay && circleRadiusKm > 0 && (
-          <Circle
-            center={circleCenter}
-            radius={circleRadiusKm * 1000}
-            strokeColor="#59ABE3"
-            strokeWidth={2.5}
-            fillColor="rgba(89,171,227,0.05)"
           />
         )}
       </MapView>

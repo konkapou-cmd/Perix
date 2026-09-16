@@ -628,8 +628,8 @@ export default function BusinessMap({
       const r = Math.max(40, (circleRadiusKm * 1000) / metersPerPixel);
       const r2 = Math.max(1, r - 2);
       veil.style.background = [
-        `radial-gradient(circle at center, rgba(255,255,255,0) 0px, rgba(255,255,255,0) ${r2}px, rgba(255,255,255,0.65) ${r}px)`,
-        `radial-gradient(circle at center, rgba(89,171,227,0) ${Math.max(0, r2 - 3)}px, rgba(89,171,227,0.95) ${r2}px, rgba(89,171,227,0) ${r}px)`,
+        `radial-gradient(circle at center, rgba(255,255,255,0) 0px, rgba(255,255,255,0) ${r2}px, rgba(255,255,255,0.55) ${r}px)`,
+        `radial-gradient(circle at center, rgba(89,171,227,0) ${Math.max(0, r2 - 3)}px, rgba(89,171,227,0.9) ${r2}px, rgba(89,171,227,0) ${r}px)`,
       ].join(", ");
     };
 
