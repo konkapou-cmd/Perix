@@ -96,7 +96,8 @@
     "subcategory": "Category",
     "contact": "Contact Seller",
     "loginToContact": "Please log in to contact the seller.",
-    "logout": "Log out"
+    "logout": "Log out",
+    "allTypes": "All types"
   },
   "dashboard": {
     "analyticsOverview": "Analytics Overview",
@@ -408,7 +409,15 @@
     "driving-schools": "Driving Schools",
     "insurance-agencies": "Insurance",
     "leasing-financing": "Financing / Leasing",
-    "roadside-assistance": "Roadside Assistance"
+    "roadside-assistance": "Roadside Assistance",
+    "apartment": "Apartment",
+    "house": "House",
+    "studio": "Studio",
+    "room": "Room",
+    "villa": "Villa",
+    "villas": "Villas",
+    "commercial": "Commercial",
+    "land": "Land"
   },
   "upload": {
     "preparing": "Preparing video...",

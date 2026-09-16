@@ -413,7 +413,15 @@
     "driving-schools": "Fahrschulen",
     "insurance-agencies": "Versicherungen",
     "leasing-financing": "Finanzierung / Leasing",
-    "roadside-assistance": "Pannenhilfe"
+    "roadside-assistance": "Pannenhilfe",
+    "apartment": "Wohnung",
+    "house": "Haus",
+    "studio": "Studio",
+    "room": "Zimmer",
+    "villa": "Villa",
+    "villas": "Villen",
+    "commercial": "Gewerbe",
+    "land": "Grundstück"
   },
   "upload": {
     "preparing": "Wird vorbereitet...",

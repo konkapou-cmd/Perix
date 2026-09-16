@@ -94,7 +94,8 @@
     "subcategory": "Κατηγορία",
     "contact": "Επικοινωνία με τον πωλητή",
     "loginToContact": "Συνδεθείτε για να επικοινωνήσετε με τον πωλητή.",
-    "logout": "Αποσύνδεση"
+    "logout": "Αποσύνδεση",
+    "allTypes": "Όλοι οι τύποι"
   },
   "dashboard": {
     "analyticsOverview": "Επισκόπηση Στατιστικών",
@@ -350,7 +351,7 @@
     "after-hours": "After Hours",
     "law-firms": "Δικηγορικά Γραφεία",
     "accounting": "Λογιστικά",
-    "real-estate": "Κτηματομεσιτικά",
+    "real-estate": "Ακίνητα",
     "travel-agencies": "Ταξιδιωτικά Γραφεία",
     "insurance": "Ασφάλειες",
     "consulting": "Συμβουλευτική",
@@ -395,9 +396,9 @@
     "apartments-for-rent": "Διαμερίσματα προς Ενοικίαση",
     "apartments": "Διαμερίσματα",
     "houses-for-rent": "Σπίτια προς Ενοικίαση",
-    "houses": "Σπίτια",
+    "houses": "Μονοκατοικίες",
     "real-estate-agencies": "Μεσιτικά Γραφεία",
-    "studios": "Στούντιο",
+    "studios": "Γκαρσονιέρες",
     "rooms": "Δωμάτια",
     "co-living-spaces": "Χώροι Συγκατοίκησης",
     "commercial-real-estate": "Επαγγελματικά Ακίνητα",
@@ -441,7 +442,15 @@
     "driving-schools": "Σχολές οδήγησης",
     "insurance-agencies": "Ασφάλειες",
     "leasing-financing": "Χρηματοδοτήσεις / Leasing",
-    "roadside-assistance": "Οδική βοήθεια"
+    "roadside-assistance": "Οδική βοήθεια",
+    "apartment": "Διαμέρισμα",
+    "house": "Μονοκατοικία",
+    "studio": "Γκαρσονιέρα",
+    "room": "Δωμάτιο",
+    "villa": "Βίλα",
+    "villas": "Βίλες",
+    "commercial": "Επαγγελματικός χώρος",
+    "land": "Οικόπεδο"
   },
   "upload": {
     "preparing": "Προετοιμασία βίντεο...",
