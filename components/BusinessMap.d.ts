@@ -9,7 +9,7 @@ type MapMarker = {
   isOpen?: boolean;
   pinColor?: string;
   pinInnerColor?: string;
-  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "user";
+  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product";
 };
 
 type MapBounds = {

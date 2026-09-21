@@ -54,7 +54,6 @@ import {
   Job,
   getJobs,
 } from "../../lib/api";
-import { getNearbyUsers, NearbyUser } from "../../lib/api/social";
 import { apiRequest } from "../../lib/api/core";
 import { useLocation } from "../../context/LocationContext";
 import { translateCategory, translateJobType } from "../../lib/categoryTranslation";
@@ -72,7 +71,7 @@ const BACKEND_URL =
 
 const itemWidth = (Dimensions.get("window").width - 48) / 3;
 
-type TabType = "hotels" | "businesses" | "events" | "activities" | "rentals" | "jobs" | "users";
+type TabType = "hotels" | "businesses" | "events" | "activities" | "rentals" | "jobs";
 
 interface DateFilter {
   startDate: string | null;
@@ -94,7 +93,6 @@ export default function LocatorScreen() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
-  const [nearbyUsers, setNearbyUsers] = useState<NearbyUser[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryModal, setCategoryModal] = useState(false);
@@ -156,7 +154,6 @@ export default function LocatorScreen() {
   const [rentalSearchQuery, setRentalSearchQuery] = useState("");
   const [jobSearchQuery, setJobSearchQuery] = useState("");
   const [hotelSearchQuery, setHotelSearchQuery] = useState("");
-  const [userSearchQuery, setUserSearchQuery] = useState("");
 
   // Apply filter states
   const [hasPendingFilters, setHasPendingFilters] = useState(false);
@@ -201,7 +198,7 @@ export default function LocatorScreen() {
   };
 
   useEffect(() => {
-    if (params.tab && ["hotels", "events", "activities", "businesses", "rentals", "jobs", "users"].includes(params.tab)) {
+    if (params.tab && ["hotels", "events", "activities", "businesses", "rentals", "jobs"].includes(params.tab)) {
       setActiveTab(params.tab as TabType);
     }
     if (params.root_category) {
@@ -347,19 +344,6 @@ export default function LocatorScreen() {
     }
     return result;
   }, [jobs, jobTypeFilter, jobSearchQuery]);
-
-  const filteredUsers = useMemo(() => {
-    let result = nearbyUsers;
-    if (userSearchQuery.trim()) {
-      const query = userSearchQuery.toLowerCase();
-      result = result.filter(u =>
-        (u.name || "").toLowerCase().includes(query) ||
-        (u.location || "").toLowerCase().includes(query) ||
-        (u.bio || "").toLowerCase().includes(query)
-      );
-    }
-    return result;
-  }, [nearbyUsers, userSearchQuery]);
   const selectedRootLabel = useMemo(() => {
     if (selectedRoot === "All") return t('locator.allCategories');
     return translateCategory(selectedRoot, t);
@@ -438,12 +422,6 @@ export default function LocatorScreen() {
     setJobs(data.jobs);
   }, [sessionToken, selectedRoot, selectedSubcategory]);
 
-  const loadUsers = useCallback(async (bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }, loadId?: number) => {
-    const data = await getNearbyUsers(sessionToken ?? "", bounds);
-    if (loadId !== undefined && loadIdRef.current !== loadId) return;
-    setNearbyUsers(data);
-  }, [sessionToken]);
-
   const handleMapRegionChange = useCallback((bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
     const centerLng = (bounds.minLng + bounds.maxLng) / 2;
@@ -477,9 +455,6 @@ export default function LocatorScreen() {
       if (activeTab === "jobs") {
         loadJobs(mapBounds, loadId);
       }
-      if (activeTab === "users") {
-        loadUsers(mapBounds, loadId);
-      }
       if (activeTab === "events") {
         loadEvents(mapBounds, loadId);
       }
@@ -488,7 +463,7 @@ export default function LocatorScreen() {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory, activeTab, rentalTypeFilter, dateFilter, loadEvents, loadActivities, loadJobs, loadRentals, loadUsers]);
+  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory, activeTab, rentalTypeFilter, dateFilter, loadEvents, loadActivities, loadJobs, loadRentals]);
 
 
 
@@ -717,7 +692,6 @@ export default function LocatorScreen() {
               : activeTab === "activities" ? t('activities.searchActivities')
               : activeTab === "rentals" ? t('rentals.searchRentals', "Search rentals...")
               : activeTab === "jobs" ? t('jobs.searchJobs', "Search jobs...")
-              : activeTab === "users" ? t('users.searchUsers', "Search people...")
               : t('home.searchHotels', "Search hotels...")
             }
             placeholderTextColor="#264348"
@@ -727,7 +701,6 @@ export default function LocatorScreen() {
               : activeTab === "activities" ? activitySearchQuery
               : activeTab === "rentals" ? rentalSearchQuery
               : activeTab === "jobs" ? jobSearchQuery
-              : activeTab === "users" ? userSearchQuery
               : hotelSearchQuery
             }
             onChangeText={
@@ -736,12 +709,11 @@ export default function LocatorScreen() {
               : activeTab === "activities" ? setActivitySearchQuery
               : activeTab === "rentals" ? setRentalSearchQuery
               : activeTab === "jobs" ? setJobSearchQuery
-              : activeTab === "users" ? setUserSearchQuery
               : setHotelSearchQuery
             }
           />
-          {(businessSearchQuery || eventSearchQuery || activitySearchQuery || rentalSearchQuery || jobSearchQuery || hotelSearchQuery || userSearchQuery) ? (
-            <Pressable onPress={() => { setBusinessSearchQuery(""); setEventSearchQuery(""); setActivitySearchQuery(""); setRentalSearchQuery(""); setJobSearchQuery(""); setHotelSearchQuery(""); setUserSearchQuery(""); }}>
+          {(businessSearchQuery || eventSearchQuery || activitySearchQuery || rentalSearchQuery || jobSearchQuery || hotelSearchQuery) ? (
+            <Pressable onPress={() => { setBusinessSearchQuery(""); setEventSearchQuery(""); setActivitySearchQuery(""); setRentalSearchQuery(""); setJobSearchQuery(""); setHotelSearchQuery(""); }}>
               <Ionicons name="close-circle" size={18} color="#264348" />
             </Pressable>
           ) : null}
@@ -796,20 +768,6 @@ export default function LocatorScreen() {
               : []
           }
           jobs={activeTab === "jobs" ? jobs : []}
-          extraMarkers={
-            activeTab === "users"
-              ? filteredUsers
-                  .filter((u) => u.latitude != null && u.longitude != null)
-                  .map((u) => ({
-                    id: u.user_id,
-                    latitude: u.latitude!,
-                    longitude: u.longitude!,
-                    title: u.name,
-                    pinColor: "#264348",
-                    type: "user" as const,
-                  }))
-              : []
-          }
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
@@ -832,7 +790,6 @@ export default function LocatorScreen() {
             if (activeTab === "jobs") { pushEntityRoute(router, entityRoutes.job(id), () => showInvalidEntityAlert(t)); return; }
             if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
-            if (activeTab === "users") { router.push(`/user/${id}` as any); return; }
           }}
           disabled={!contextLocation}
           disabledHint="Tap to enable location"
@@ -1171,41 +1128,6 @@ export default function LocatorScreen() {
                   distance={dist !== null ? formatDistance(dist) : null}
                   isOpen={null}
                   onPress={() => pushEntityRoute(router, entityRoutes.job(job.job_id), () => showInvalidEntityAlert(t))}
-                />
-              );
-            })}
-          </View>
-        )}
-
-        {/* People List */}
-        {activeTab === "users" && (
-          <View style={styles.list}>
-            <Text style={styles.listTitle}>{filteredUsers.length} {t('tabs.users', 'People')}</Text>
-            {filteredUsers.length === 0 && (
-              <EmptyState icon="people" message={t('users.noUsersNearby', "No people nearby yet")} size="default" muted />
-            )}
-            {filteredUsers.map((u) => {
-              const dist = getDistance(u.latitude, u.longitude);
-              return (
-                <LocatorCard
-                  key={u.user_id}
-                  type="business"
-                  data={{
-                    business_id: u.user_id,
-                    name: u.name,
-                    root_category: "",
-                    subcategory: u.location || t("users.member", "Member"),
-                    address: u.location,
-                    latitude: u.latitude,
-                    longitude: u.longitude,
-                    cover_image: u.profile_photo || u.picture,
-                    logo_image: u.profile_photo || u.picture,
-                    profile_photo: u.profile_photo || u.picture,
-                    description: u.bio,
-                  } as any}
-                  distance={dist !== null ? formatDistance(dist) : null}
-                  isOpen={null}
-                  onPress={() => router.push(`/user/${u.user_id}` as any)}
                 />
               );
             })}
