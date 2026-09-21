@@ -87,40 +87,6 @@ async def get_user_push_tokens(user_id: str) -> List[str]:
     return [t["push_token"] for t in tokens]
 
 
-async def send_call_notification(
-    recipient_user_id: str,
-    caller_name: str,
-    caller_id: str,
-    caller_photo: Optional[str],
-    call_id: str,
-    call_type: str  # "video" or "voice"
-) -> dict:
-    """Send incoming call notification."""
-    push_tokens = await get_user_push_tokens(recipient_user_id)
-    
-    title = "📹 Incoming Video Call" if call_type == "video" else "📞 Incoming Call"
-    body = f"{caller_name} is calling..."
-    
-    data = {
-        "type": "incoming_call",
-        "callId": call_id,
-        "callerId": caller_id,
-        "callerName": caller_name,
-        "callerPhoto": caller_photo or "",
-        "callType": call_type,
-    }
-    
-    return await send_push_notification(
-        push_tokens=push_tokens,
-        title=title,
-        body=body,
-        data=data,
-        sound="default",
-        priority="high",
-        channel_id="calls"
-    )
-
-
 async def send_message_notification(
     recipient_user_id: str,
     sender_name: str,

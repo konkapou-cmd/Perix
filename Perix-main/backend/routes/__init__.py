@@ -14,7 +14,6 @@ from routes.feed import router as feed_router
 from routes.notifications import router as notifications_router
 from routes.media import router as media_router
 from routes.categories import router as categories_router
-from routes.calls import router as calls_router
 from routes.uploads import router as uploads_router
 from routes.jobs import router as jobs_router
 from routes.admin import router as admin_router
@@ -56,7 +55,6 @@ api_router.include_router(feed_router)
 api_router.include_router(notifications_router)
 api_router.include_router(media_router)
 api_router.include_router(categories_router)
-api_router.include_router(calls_router)
 api_router.include_router(uploads_router)
 api_router.include_router(jobs_router)
 api_router.include_router(admin_router)

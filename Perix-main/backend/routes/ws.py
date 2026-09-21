@@ -139,13 +139,6 @@ async def ws_broadcast_notification(user_id: str, notification: dict):
     })
 
 
-async def ws_broadcast_call_status(user_id: str, call_data: dict):
-    await manager.send_to_user(user_id, {
-        "type": "call_status",
-        "call": call_data,
-    })
-
-
 async def ws_broadcast_channel_message(channel: str, message_data: dict, exclude_user_id: Optional[str] = None):
     await manager.broadcast_to_channel(channel, {
         "type": "channel_message",

@@ -146,6 +146,10 @@ async def build_story_response(story_doc: dict, current_user_id: str) -> StoryRe
 
 @router.post("", response_model=StoryResponse)
 async def create_story(body: StoryCreate, current_user: UserPublic = Depends(get_current_user)):
+    # Stories are city ads only — business accounts create them.
+    if body.actor_type == "user":
+        raise HTTPException(status_code=400, detail="Only city ads (business stories) are supported")
+
     # Idempotency: a retried request (e.g. after a network timeout) must not create a duplicate story
     if body.client_request_id:
         existing = await db.stories.find_one(
@@ -185,25 +189,6 @@ async def create_story(body: StoryCreate, current_user: UserPublic = Depends(get
     return await build_story_response(story_doc, current_user.user_id)
 
 
-@router.get("/my-stories", response_model=List[StoryResponse])
-async def get_my_stories(actor_type: str = "user", current_user: UserPublic = Depends(get_current_user)):
-    actor = await resolve_actor(actor_type, None, current_user)
-    at = actor["actor_type"]
-    aid = actor["actor_id"]
-    now = now_utc()
-    cutoff = (now - timedelta(hours=STORY_EXPIRY_HOURS)).isoformat()
-
-    stories = await db.stories.find(
-        {"actor_id": aid, "actor_type": at, "is_hidden": False, "expires_at": {"$gte": cutoff}},
-        sort=[("created_at", -1)],
-    ).to_list(length=100)
-
-    actor_map = await _batch_fetch_actor_info(stories)
-    story_ids = [s["story_id"] for s in stories]
-    stats = await _batch_fetch_story_stats(story_ids, current_user.user_id)
-    return [_build_story_response_from_batch(s, actor_map, stats) for s in stories]
-
-
 @router.get("", response_model=List[GroupedStoryResponse])
 async def get_stories(
     min_lat: Optional[float] = Query(None),
@@ -225,6 +210,8 @@ async def get_stories(
         "is_hidden": False,
         "expires_at": {"$gte": cutoff},
         "media_url": {"$ne": None},
+        # Stories are city ads only — business accounts advertise nearby.
+        "actor_type": "business",
     }
     if min_lat is not None and max_lat is not None and min_lng is not None and max_lng is not None:
         query["latitude"] = {"$gte": min_lat, "$lte": max_lat}

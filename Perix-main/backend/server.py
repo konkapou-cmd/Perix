@@ -46,7 +46,6 @@ RATE_LIMITS = {
     "/api/auth/google-session": (5, 60),
     "/api/uploads/": (20, 60),
     "/api/media/": (20, 60),
-    "/api/calls/initiate": (10, 60),
     "/api/messages/send": (30, 60),
 }
 
@@ -63,7 +62,7 @@ app = FastAPI(
 ### Features:
 - **Authentication**: Register, login, logout with session tokens
 - **Posts**: Create, read, like, comment on posts with media support
-- **Stories**: 24-hour ephemeral content
+- **City Ads**: Location-based business ads
 - **Businesses**: Business profiles with categories, events, fan gallery
 - **Artists**: Artist profiles with genres, booking requests, fan gallery
 - **Events**: Create and attend events
