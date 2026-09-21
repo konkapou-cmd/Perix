@@ -536,6 +536,12 @@ async def send_message(
                 detail="You must be friends to send messages to this user"
             )
 
+        # Blocked users cannot message each other, in either direction.
+        if current_user.user_id in recipient.get("blocked_users", []):
+            raise HTTPException(status_code=403, detail="You cannot send messages to this user")
+        if to_user_id in (getattr(current_user, "blocked_users", None) or []):
+            raise HTTPException(status_code=403, detail="You blocked this user")
+
     message_doc = {
         "message_id": generate_id("msg"),
         "from_user_id": current_user.user_id,
