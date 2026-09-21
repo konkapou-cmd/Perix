@@ -2638,7 +2638,8 @@
     "tabVehicles": "Vehicles",
     "tabReservations": "Reservations",
     "tabBookings": "Bookings",
-    "tabServices": "Services"
+    "tabServices": "Services",
+    "noPaymentInApp": "No payment is taken in the app. This sends a booking request and the business will confirm availability and price with you directly."
   },
   "detail": {
     "stay": "Stay Information",
@@ -3075,5 +3076,10 @@
   "update": {
     "newVersion": "New version available",
     "reload": "Update"
+  },
+  "users": {
+    "searchUsers": "Search people...",
+    "noUsersNearby": "No people nearby yet",
+    "member": "Member"
   }
 }

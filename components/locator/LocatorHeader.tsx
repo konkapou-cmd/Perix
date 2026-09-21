@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../lib/designTokens";
 import ProgressivePicker from "../navigation/ProgressivePicker";
 
-type TabType = "businesses" | "hotels" | "events" | "activities" | "rentals" | "jobs";
+type TabType = "businesses" | "hotels" | "events" | "activities" | "rentals" | "jobs" | "users";
 
 type Props = {
   activeTab: TabType;
@@ -20,6 +20,7 @@ const SECTION_OPTIONS: { key: TabType; label: string; icon: keyof typeof Ionicon
   { key: "activities", label: "Activities", icon: "people-outline", color: "#FF9F1C" },
   { key: "rentals", label: "Rentals", icon: "home-outline", color: "#59ABE3" },
   { key: "jobs", label: "Jobs", icon: "briefcase-outline", color: "#264348" },
+  { key: "users", label: "People", icon: "people", color: "#264348" },
 ];
 
 export default function LocatorHeader({ activeTab, onTabChange, t }: Props) {

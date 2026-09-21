@@ -111,6 +111,34 @@ export const searchUsers = async (token: string, query: string, friendsOnly?: bo
   return apiRequest<User[]>(`/users/search?query=${encodeURIComponent(query)}${flag}`, "GET", token);
 };
 
+export type NearbyUser = {
+  user_id: string;
+  name: string;
+  display_name?: string | null;
+  profile_photo?: string | null;
+  picture?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  created_at?: string | null;
+};
+
+export const getNearbyUsers = async (
+  token: string,
+  bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number }
+): Promise<NearbyUser[]> => {
+  const params = new URLSearchParams();
+  if (bounds) {
+    params.append("min_lat", String(bounds.minLat));
+    params.append("max_lat", String(bounds.maxLat));
+    params.append("min_lng", String(bounds.minLng));
+    params.append("max_lng", String(bounds.maxLng));
+  }
+  const qs = params.toString();
+  return apiRequest<NearbyUser[]>(`/users/nearby${qs ? `?${qs}` : ""}`, "GET", token);
+};
+
 export const getTaggedPosts = async (token: string, userId: string): Promise<Post[]> => {
   return apiRequest<Post[]>(`/users/${userId}/tagged-posts`, "GET", token);
 };

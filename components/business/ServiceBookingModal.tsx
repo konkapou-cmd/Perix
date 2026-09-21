@@ -560,6 +560,12 @@ export default function ServiceBookingModal({
 
         {ctaType !== "browse_only" && (
           <View style={s.footer}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <Ionicons name="information-circle-outline" size={15} color="rgba(38,67,72,0.65)" />
+              <Text style={{ flex: 1, fontSize: 12, color: "rgba(38,67,72,0.65)" }}>
+                {t("services.noPaymentInApp", "No payment is taken in the app. This sends a booking request and the business will confirm availability and price with you directly.")}
+              </Text>
+            </View>
             <Pressable style={s.cancelBtn} onPress={onClose}>
               <Text style={s.cancelBtnText}>{t("common.cancel", "Cancel")}</Text>
             </Pressable>

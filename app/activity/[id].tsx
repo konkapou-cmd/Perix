@@ -452,16 +452,19 @@ export default function ActivityDetailPage() {
 
           <BottomCTA
             primaryLabel={
-              remaining !== null && remaining <= 0
-                ? t("activities.fullyBooked", "Ausgebucht!")
-                : myStatus === "going"
-                  ? t("activities.attending", "Teilnehmend")
-                  : t("activities.attend", "Teilnehmen")
+              isPast
+                ? t("activities.pastActivity", "Past Activity")
+                : remaining !== null && remaining <= 0
+                  ? t("activities.fullyBooked", "Ausgebucht!")
+                  : myStatus === "going"
+                    ? t("activities.attending", "Teilnehmend")
+                    : t("activities.attend", "Teilnehmen")
             }
-            primaryIcon={remaining !== null && remaining <= 0 ? "close-circle-outline" : myStatus === "going" ? "checkmark-circle" : "people-outline"}
+            primaryIcon={isPast ? "flag" : remaining !== null && remaining <= 0 ? "close-circle-outline" : myStatus === "going" ? "checkmark-circle" : "people-outline"}
             accentColor={PAGE_ACCENT}
-            useGradient
-            onPrimary={remaining !== null && remaining <= 0 ? () => {} : () => handleRsvp("going")}
+            useGradient={!isPast}
+            primaryDisabled={isPast || (remaining !== null && remaining <= 0)}
+            onPrimary={() => handleRsvp("going")}
             saved={isSaved}
             onSave={handleToggleSave}
             onShare={() => setShowShareModal(true)}

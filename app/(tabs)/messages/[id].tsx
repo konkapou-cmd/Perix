@@ -41,6 +41,8 @@ import {
 } from "../../../lib/api";
 import AdaptiveVideo from "../../../components/AdaptiveVideo";
 import { confirmAction } from "../../../lib/confirm";
+import ReportModal from "../../../components/ReportModal";
+import { blockUser } from "../../../lib/api/social";
 
 import {
   COLORS,
@@ -191,6 +193,7 @@ export default function ChatScreen() {
   const [editLoading, setEditLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -657,9 +660,41 @@ export default function ChatScreen() {
           <Text style={styles.headerTitle}>{name || t("messages.chat")}</Text>
         </View>
         {id !== user?.user_id && (
-          <Pressable style={styles.headerIcon} hitSlop={8} onPress={handleDeleteConversation}>
-            <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
-          </Pressable>
+          <>
+            {convEntityType === "user" && (
+              <>
+                <Pressable style={styles.headerIcon} hitSlop={8} onPress={() => setReportOpen(true)}>
+                  <Ionicons name="flag-outline" size={20} color="#9ca3af" />
+                </Pressable>
+                <Pressable
+                  style={styles.headerIcon}
+                  hitSlop={8}
+                  onPress={async () => {
+                    const ok = await confirmAction({
+                      title: t("userProfile.blockConfirm", "Block this user?"),
+                      message: t("userProfile.blockMessage", "They won't be able to see your content, message you or interact with you."),
+                      confirmText: t("userProfile.block", "Block"),
+                      cancelText: t("common.cancel"),
+                      destructive: true,
+                    });
+                    if (!ok || !sessionToken || !id) return;
+                    try {
+                      await blockUser(sessionToken, id);
+                      Alert.alert(t("common.success", "Success"), t("userProfile.blockSuccess", "User blocked"));
+                      router.back();
+                    } catch (e: any) {
+                      Alert.alert(t("common.error", "Error"), e?.message || t("common.pleaseTryAgain", "Please try again"));
+                    }
+                  }}
+                >
+                  <Ionicons name="ban-outline" size={20} color={COLORS.danger} />
+                </Pressable>
+              </>
+            )}
+            <Pressable style={styles.headerIcon} hitSlop={8} onPress={handleDeleteConversation}>
+              <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+            </Pressable>
+          </>
         )}
       </View>
 
@@ -893,6 +928,14 @@ export default function ChatScreen() {
       </Modal>
 
       </SafeAreaView>
+
+      <ReportModal
+        visible={reportOpen}
+        targetType="user"
+        targetId={typeof id === "string" ? id : ""}
+        sessionToken={sessionToken}
+        onClose={() => setReportOpen(false)}
+      />
     </KeyboardAvoidingView>
   );
 }

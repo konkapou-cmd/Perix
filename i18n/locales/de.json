@@ -2736,7 +2736,8 @@
     "tabVehicles": "Fahrzeuge",
     "tabReservations": "Reservierungen",
     "tabBookings": "Buchungen",
-    "tabServices": "Dienste"
+    "tabServices": "Dienste",
+    "noPaymentInApp": "In der App erfolgt keine Zahlung. Damit sendest du eine Buchungsanfrage und das Unternehmen bestätigt Verfügbarkeit und Preis direkt mit dir."
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",
@@ -3173,5 +3174,10 @@
   "update": {
     "newVersion": "Neue Version verfügbar",
     "reload": "Aktualisieren"
+  },
+  "users": {
+    "searchUsers": "Personen suchen...",
+    "noUsersNearby": "Noch keine Personen in der Nähe",
+    "member": "Mitglied"
   }
 }
