@@ -616,6 +616,8 @@ async def delete_post(
 
     await db.posts.delete_one({"post_id": post_id})
     await db.home_posts.delete_many({"post_id": post_id})
+    # Drop the post from everyone's saved lists so stale bookmarks disappear.
+    await db.saved_items.delete_many({"item_type": "post", "item_id": post_id})
     return {"status": "deleted"}
 
 
