@@ -104,8 +104,6 @@ export * from "./api/businesses";
 export * from "./api/events";
 export * from "./api/artists";
 export * from "./api/activities";
-export * from "./api/calls";
-export * from "./api/groupCalls";
 export * from "./api/jobs";
 export * from "./api/rentals";
 export * from "./api/services";
