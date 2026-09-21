@@ -63,6 +63,7 @@ export function PostCard({
   const { t } = useTranslation();
   const [viewerOpen, setViewerOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [reported, setReported] = useState(false);
   const skipCardNav = useRef(false);
 
   const displayName = post.actor_name || post.author?.name || "User";
@@ -144,6 +145,10 @@ export function PostCard({
   };
 
   const activeVideo = isActive && !viewerOpen;
+
+  // After reporting, the post disappears from the user's feed immediately —
+  // the backend also auto-hides it once enough reports accumulate.
+  if (reported) return null;
 
   const editSlot = (canEdit || canDelete) ? (
     <>
@@ -233,6 +238,7 @@ export function PostCard({
         targetId={post.post_id}
         sessionToken={sessionToken}
         onClose={() => setReportOpen(false)}
+        onSubmitted={() => setReported(true)}
       />
 
       <PostCommentsRow

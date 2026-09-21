@@ -104,17 +104,16 @@ export default function SavedScreen() {
     const data = item.item_data;
     const icon = TYPE_ICONS[item.item_type] || "bookmark";
     const color = TYPE_COLORS[item.item_type] || COLORS.primary;
-    const title =
-      data?.title ||
-      data?.name ||
-      data?.text ||
-      t("saved.untitled", "Untitled");
+    const unavailable = !data;
+    const title = unavailable
+      ? t("saved.unavailable", "Content no longer available")
+      : data?.title || data?.name || data?.text || t("saved.untitled", "Untitled");
     const subtitle = data?.location || data?.address || translateJobType(data?.job_type, t) || "";
 
     return (
       <Pressable
         key={item.saved_id}
-        style={styles.card}
+        style={[styles.card, unavailable && styles.cardUnavailable]}
         onPress={() => handlePress(item)}
       >
         <View style={[styles.typeBadge, { backgroundColor: color + "18" }]}>
@@ -265,6 +264,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(38,67,72,0.15)",
     padding: SPACING.compact,
+  },
+  cardUnavailable: {
+    opacity: 0.55,
   },
   typeBadge: {
     width: 36,
