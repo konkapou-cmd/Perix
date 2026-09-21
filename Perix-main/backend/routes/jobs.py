@@ -354,6 +354,13 @@ async def apply_to_job(
     job = await db.jobs.find_one({"job_id": job_id}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    # Expired or deactivated jobs cannot receive applications.
+    now_iso = datetime.now(timezone.utc).isoformat()
+    if job.get("is_active") is False or job.get("is_hidden"):
+        raise HTTPException(status_code=400, detail="This job is no longer accepting applications")
+    if job.get("expires_at") and job["expires_at"] <= now_iso:
+        raise HTTPException(status_code=400, detail="This job has expired")
     
     # Check if already applied
     existing = await db.job_applications.find_one({
@@ -453,3 +460,27 @@ async def update_application_status(
     )
     
     return {"success": True, "status": status}
+
+
+@router.delete("/applications/{application_id}")
+async def delete_application(
+    application_id: str,
+    current_user: UserPublic = Depends(get_current_user)
+):
+    """Withdraw/delete an application. The applicant can always remove their
+    own data; the job owner can also remove applications for their jobs."""
+    application = await db.job_applications.find_one(
+        {"application_id": application_id},
+        {"_id": 0}
+    )
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    is_applicant = application["applicant_id"] == current_user.user_id
+    if not is_applicant:
+        job = await db.jobs.find_one({"job_id": application["job_id"]}, {"_id": 0})
+        if not job or job.get("owner_id") != current_user.user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+    await db.job_applications.delete_one({"application_id": application_id})
+    return {"success": True, "message": "Application deleted"}
