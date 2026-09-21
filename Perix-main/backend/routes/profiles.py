@@ -23,65 +23,6 @@ from datetime import timedelta
 router = APIRouter(tags=["User Profiles"])
 
 
-@router.get("/users/nearby")
-async def get_nearby_users(
-    min_lat: Optional[float] = None,
-    max_lat: Optional[float] = None,
-    min_lng: Optional[float] = None,
-    max_lng: Optional[float] = None,
-    latitude: Optional[float] = None,
-    longitude: Optional[float] = None,
-    radius_km: Optional[float] = 50,
-    limit: int = 50,
-    current_user=Depends(get_current_user_optional),
-):
-    """Discover nearby users — everyone appears regardless of whether they
-    have posted anything. Blocked/hidden/deleted accounts are excluded."""
-    import math
-
-    query: dict = {
-        "is_deleted": {"$ne": True},
-        "is_hidden": {"$ne": True},
-    }
-    if current_user:
-        from routes.dependencies import get_blocked_user_ids
-        blocked = await get_blocked_user_ids(current_user.user_id)
-        excluded = list(set(blocked + [current_user.user_id]))
-        query["user_id"] = {"$nin": excluded}
-
-    if latitude is not None and longitude is not None and radius_km:
-        r = max(float(radius_km), 1.0)
-        dlat = r / 110.574
-        dlng = r / (111.320 * max(0.2, abs(math.cos(math.radians(latitude)))))
-        query.setdefault("latitude", {"$gte": latitude - dlat, "$lte": latitude + dlat})
-        query.setdefault("longitude", {"$gte": longitude - dlng, "$lte": longitude + dlng})
-    elif all(v is not None for v in [min_lat, max_lat, min_lng, max_lng]):
-        query.setdefault("latitude", {"$gte": min_lat, "$lte": max_lat})
-        query.setdefault("longitude", {"$gte": min_lng, "$lte": max_lng})
-
-    users = await db.users.find(
-        query,
-        {"_id": 0, "password_hash": 0, "email": 0},
-    ).sort("created_at", -1).limit(min(limit, 100)).to_list(length=min(limit, 100))
-
-    result = []
-    for u in users:
-        pub = build_user_public(u)
-        result.append({
-            "user_id": u.get("user_id"),
-            "name": pub.name if hasattr(pub, "name") else u.get("name"),
-            "display_name": getattr(pub, "display_name", None),
-            "profile_photo": getattr(pub, "profile_photo", None) or u.get("profile_photo"),
-            "picture": u.get("picture"),
-            "bio": u.get("bio"),
-            "location": u.get("location"),
-            "latitude": u.get("latitude"),
-            "longitude": u.get("longitude"),
-            "created_at": u.get("created_at"),
-        })
-    return result
-
-
 
 
 @router.get("/users/slug/{slug}", response_model=UserPublic)
