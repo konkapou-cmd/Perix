@@ -292,20 +292,6 @@ function PushNotificationManager() {
       (notification) => {
         const data = notification.request.content.data;
         console.log("[Push] Received notification:", data?.type);
-        
-        // Handle incoming call notification in foreground
-        if (data?.type === "incoming_call") {
-          router.push({
-            pathname: "/incoming-call",
-            params: {
-              callId: data.callId as string,
-              callerId: data.callerId as string,
-              callerName: data.callerName as string,
-              callerPhoto: (data.callerPhoto as string) || "",
-              callType: data.callType as string,
-            },
-          });
-        }
       }
     );
 
@@ -318,20 +304,6 @@ function PushNotificationManager() {
         if (!data?.type) return;
 
         switch (data.type) {
-          case "incoming_call":
-            // Auto-accept when tapping from background/lock screen
-            router.push({
-              pathname: "/call-answer",
-              params: {
-                callId: data.callId as string,
-                callerId: data.callerId as string,
-                callerName: data.callerName as string,
-                callerPhoto: (data.callerPhoto as string) || "",
-                callType: data.callType as string,
-              },
-            });
-            break;
-
           case "new_message":
             router.navigate("/(tabs)/messages" as any);
             break;
@@ -439,10 +411,7 @@ export default function RootLayout() {
                     <PushNotificationManager />
                     <UploadProvider>
                       <GlobalWebChrome>
-                        <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
-                          <Stack.Screen name="call" options={{ gestureEnabled: false }} />
-                          <Stack.Screen name="incoming-call" options={{ gestureEnabled: false }} />
-                        </Stack>
+                        <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
                       </GlobalWebChrome>
                       <InstallBanner />
                       <UpdateBanner />

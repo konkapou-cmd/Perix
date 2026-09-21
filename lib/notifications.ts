@@ -6,19 +6,13 @@ import Constants from "expo-constants";
 try {
   Notifications.setNotificationHandler({
     handleNotification: async (notification) => {
-      const data = notification.request.content.data;
-      const isCall = data?.type === "incoming_call";
-      
       return {
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: true,
         shouldShowBanner: true,
         shouldShowList: true,
-        // For calls, we want high priority
-        priority: isCall 
-          ? Notifications.AndroidNotificationPriority.MAX 
-          : Notifications.AndroidNotificationPriority.HIGH,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
       };
     },
   });
@@ -28,7 +22,6 @@ try {
 
 // Notification channel IDs for Android
 export const CHANNEL_MESSAGES = "messages";
-export const CHANNEL_CALLS = "calls";
 export const CHANNEL_ACTIVITIES = "activities";
 export const CHANNEL_SOCIAL = "social";
 export const CHANNEL_EVENTS = "events";
@@ -49,21 +42,6 @@ export async function initializeNotificationChannels() {
       enableVibrate: true,
       enableLights: true,
       showBadge: true,
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-    });
-
-    // Calls channel - MAX priority with full lock screen support
-    await Notifications.setNotificationChannelAsync(CHANNEL_CALLS, {
-      name: "Incoming Calls",
-      description: "Incoming voice and video call notifications",
-      importance: Notifications.AndroidImportance.MAX,
-      sound: "default",
-      vibrationPattern: [0, 500, 500, 500, 500, 500],
-      lightColor: "#10b981",
-      enableVibrate: true,
-      enableLights: true,
-      showBadge: true,
-      bypassDnd: true,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
 
@@ -144,38 +122,6 @@ export async function getPushToken(): Promise<string | null> {
     console.error("Failed to get push token:", error);
     return null;
   }
-}
-
-// Schedule a local notification for incoming call
-// This will show on locked screen with full visibility
-export async function showIncomingCallNotification(
-  callerName: string,
-  callerId: string,
-  callId: string,
-  callType: "video" | "voice"
-): Promise<string> {
-  const content: Notifications.NotificationContentInput = {
-    title: callType === "video" ? "📹 Incoming Video Call" : "📞 Incoming Call",
-    body: `${callerName} is calling you`,
-    data: {
-      type: "incoming_call",
-      callerId,
-      callId,
-      callType,
-      callerName,
-    },
-    sound: true,
-    priority: Notifications.AndroidNotificationPriority.MAX,
-    categoryIdentifier: "incoming_call",
-    sticky: true,
-  };
-  
-  const notificationId = await Notifications.scheduleNotificationAsync({
-    content,
-    trigger: null, // Show immediately
-  });
-  
-  return notificationId;
 }
 
 // Schedule a local notification for new message
