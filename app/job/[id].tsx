@@ -183,10 +183,11 @@ export default function JobDetailPage() {
     );
   }
 
+  const isJobExpired = !!job.expires_at && new Date(job.expires_at).getTime() < Date.now();
+
   const mediaItems = [
     ...(job.cover_image ? [{ uri: job.cover_image, type: "image" as const }] : []),
-    ...(job.image_urls || []).map((uri: string) => ({ uri, type: "image" as const })),
-    ...(job.gallery_images || []).map((uri: string) => ({ uri, type: "image" as const })),
+    ...(job.image_urls || []).map((uri: string) => ({ uri, type: "image" as const })),    ...(job.gallery_images || []).map((uri: string) => ({ uri, type: "image" as const })),
     ...(job.gallery_videos || []).map((uri: string) => ({ uri, type: "video" as const })),
   ];
   return (
@@ -303,9 +304,10 @@ export default function JobDetailPage() {
           )}
 
           <BottomCTA
-            primaryLabel={t("jobs.apply") || "Jetzt bewerben"}
-            primaryIcon="paper-plane"
+            primaryLabel={isJobExpired ? (t("jobs.expired", "Job expired") || "Expired") : t("jobs.apply") || "Jetzt bewerben"}
+            primaryIcon={isJobExpired ? "time-outline" : "paper-plane"}
             accentColor={JOBS_ACCENT}
+            primaryDisabled={isJobExpired}
             onPrimary={() => setApplyModalVisible(true)}
             saved={isSaved}
             onSave={handleToggleSave}

@@ -16,7 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
 import { COLORS } from "../lib/designTokens";
 import { Ionicons } from "@expo/vector-icons";
-import { getMyApplications, MyApplication } from "../lib/api";
+import { getMyApplications, deleteJobApplication, MyApplication } from "../lib/api";
 import EmptyState from "../components/shared/EmptyState";
 import LoadingState from "../components/shared/LoadingState";
 import { formatDate } from "../lib/formatDate";
@@ -29,6 +29,20 @@ export default function MyApplicationsScreen() {
   const [applications, setApplications] = useState<MyApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+
+  const handleWithdraw = async (applicationId: string) => {
+    if (!sessionToken || withdrawing) return;
+    setWithdrawing(applicationId);
+    try {
+      await deleteJobApplication(sessionToken, applicationId);
+      setApplications((prev) => prev.filter((a) => a.application_id !== applicationId));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setWithdrawing(null);
+    }
+  };
 
   const loadApplications = async () => {
     if (!sessionToken) return;
@@ -123,6 +137,18 @@ export default function MyApplicationsScreen() {
                   <Text style={styles.date}>
                     {app.created_at ? formatDate(app.created_at.slice(0, 10)) : ""}
                   </Text>
+                  <Pressable
+                    style={styles.withdrawBtn}
+                    onPress={() => handleWithdraw(app.application_id)}
+                    disabled={withdrawing === app.application_id}
+                  >
+                    <Ionicons
+                      name={withdrawing === app.application_id ? "hourglass-outline" : "trash-outline"}
+                      size={16}
+                      color="#b91c1c"
+                    />
+                    <Text style={styles.withdrawText}>{t("jobs.withdraw", "Withdraw")}</Text>
+                  </Pressable>
                 </View>
                 {app.cv_url && (
                   <Pressable style={styles.docBtn} onPress={() => Linking.openURL(app.cv_url!)}>
@@ -170,6 +196,8 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 13, fontWeight: "600" },
   date: { fontSize: 13, color: "rgba(38,67,72,0.55)" },
+  withdrawBtn: { flexDirection: "row", alignItems: "center", gap: 4, marginLeft: 10, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: "#fee2e2" },
+  withdrawText: { fontSize: 12, fontWeight: "600", color: "#b91c1c" },
   docBtn: {
     flexDirection: "row",
     alignItems: "center",

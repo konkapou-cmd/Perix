@@ -117,5 +117,9 @@ export const updateApplicationStatus = async (
   return apiRequest<void>('/jobs/applications/' + applicationId + '/status?status=' + status, 'PUT', token);
 };
 export const getMyApplications = async (token: string): Promise<MyApplication[]> => {
-  return apiRequest<MyApplication[]>('/jobs/applications/my', 'GET', token);
+  return apiRequest<MyApplication[]>("/jobs/applications/my", "GET", token);
+};
+
+export const deleteJobApplication = async (token: string, applicationId: string): Promise<{ success: boolean; message: string }> => {
+  return apiRequest<{ success: boolean; message: string }>(`/jobs/applications/${applicationId}`, "DELETE", token);
 };
