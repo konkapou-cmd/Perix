@@ -610,7 +610,8 @@
     "rentals": "Vermietungen",
     "marketplace": "Marktplatz",
     "homesNearby": "Unterkünfte in der Nähe",
-    "personalizeHome": "Passe deinen Home-Feed an"
+    "personalizeHome": "Passe deinen Home-Feed an",
+    "searchHotels": "Hotels suchen..."
   },
   "brand": {
     "title": "Perix",
@@ -1087,7 +1088,11 @@
     "tagArtists": "Künstler taggen",
     "searchArtists": "Künstler suchen...",
     "title": "Veranstaltungen",
-    "taggedArtists": "Markierte Künstler"
+    "taggedArtists": "Markierte Künstler",
+    "endDate": "Enddatum",
+    "endTime": "Endzeit",
+    "endAfterStart": "Die Endzeit muss nach der Startzeit liegen.",
+    "privateEvent": "Private Veranstaltung"
   },
   "messages": {
     "tapToStop": "Tippe auf das Mikrofon, um zu stoppen",
@@ -1308,7 +1313,11 @@
         "no_agenda_meetup": "Treffen ohne Agenda",
         "bench_talk": "Bankgespräch"
       }
-    }
+    },
+    "dateTimeRequired": "Datum und Uhrzeit sind vor dem Speichern erforderlich.",
+    "privateHint": "Nur Personen mit dem Code können teilnehmen.",
+    "passwordPlaceholder": "Einladungscode / Passwort",
+    "codeCopied": "Einladungscode in die Zwischenablage kopiert"
   },
   "jobs": {
     "publishedMessage": "Dein Job wurde veröffentlicht.",
@@ -1382,7 +1391,9 @@
     "noApplications": "Noch keine Bewerbungen eingegangen",
     "reject": "Ablehnen",
     "accept": "Annehmen",
-    "noCv": "Kein Lebenslauf hochgeladen"
+    "noCv": "Kein Lebenslauf hochgeladen",
+    "expired": "Abgelaufen",
+    "withdraw": "Zurückziehen"
   },
   "languages": {
     "en": "English",
@@ -2740,7 +2751,10 @@
     "tabReservations": "Reservierungen",
     "tabBookings": "Buchungen",
     "tabServices": "Dienste",
-    "noPaymentInApp": "In der App erfolgt keine Zahlung. Damit sendest du eine Buchungsanfrage und das Unternehmen bestätigt Verfügbarkeit und Preis direkt mit dir."
+    "noPaymentInApp": "In der App erfolgt keine Zahlung. Damit sendest du eine Buchungsanfrage und das Unternehmen bestätigt Verfügbarkeit und Preis direkt mit dir.",
+    "published": "Veröffentlicht",
+    "draft": "Entwurf",
+    "hidden": "Versteckt"
   },
   "detail": {
     "stay": "Aufenthaltsinformationen",
@@ -3026,7 +3040,9 @@
       "womensClothing": "Damenbekleidung",
       "workshopEquipment": "Werkstattausstattung",
       "workwear": "Arbeitskleidung"
-    }
+    },
+    "invalidAvailabilityWindow": "Das Verfügbar-bis-Datum muss nach dem Verfügbar-ab-Datum liegen.",
+    "draftSavedMessage": "Dein Eintrag wurde als Entwurf gespeichert."
   },
   "listing": {
     "gallery": "Galerie",
