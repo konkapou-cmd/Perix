@@ -7,6 +7,7 @@ import {
   Dimensions,
   Animated,
   Alert,
+  Linking,
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -511,6 +512,8 @@ export default function CameraScreen() {
 
   // Permissions check
   if (!cameraPermission?.granted || !micPermission?.granted) {
+    const cannotAskAgain =
+      cameraPermission?.canAskAgain === false || micPermission?.canAskAgain === false;
     return (
       <SafeAreaView style={styles.permissionContainer}>
         <Ionicons name="camera-outline" size={64} color="#666" />
@@ -519,10 +522,18 @@ export default function CameraScreen() {
           {t("camera.permissionMessage") || "We need camera and microphone access to record videos and take photos."}
         </Text>
         <Pressable style={styles.permissionButton} onPress={() => {
-          requestCameraPermission();
-          requestMicPermission();
+          if (cannotAskAgain) {
+            try { Linking.openSettings(); } catch {}
+          } else {
+            requestCameraPermission();
+            requestMicPermission();
+          }
         }}>
-          <Text style={styles.permissionButtonText}>{t("camera.grantPermission") || "Grant Permission"}</Text>
+          <Text style={styles.permissionButtonText}>
+            {cannotAskAgain
+              ? t("camera.openSettings") || "Open Settings"
+              : t("camera.grantPermission") || "Grant Permission"}
+          </Text>
         </Pressable>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>{t("common.back")}</Text>

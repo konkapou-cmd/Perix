@@ -1753,7 +1753,8 @@
     "takePhoto": "Take photo",
     "recordVideo": "Record video",
     "gallery": "Choose from gallery",
-    "openCamera": "Open camera"
+    "openCamera": "Open camera",
+    "openSettings": "Open Settings"
   },
   "story": {
     "react": "React",

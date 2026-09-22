@@ -1847,7 +1847,8 @@
     "takePhoto": "Foto aufnehmen",
     "recordVideo": "Video aufnehmen",
     "gallery": "Aus Galerie wählen",
-    "openCamera": "Kamera öffnen"
+    "openCamera": "Kamera öffnen",
+    "openSettings": "Einstellungen öffnen"
   },
   "privacy": {
     "title": "Datenschutzrichtlinie",
