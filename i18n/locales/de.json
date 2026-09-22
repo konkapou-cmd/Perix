@@ -2278,7 +2278,8 @@
     "passwordChanged": "Passwort erfolgreich geändert",
     "passwordChangeFailed": "Passwortänderung fehlgeschlagen",
     "cacheCleared": "Cache erfolgreich geleert",
-    "cacheClearFailed": "Cache-Leerung fehlgeschlagen"
+    "cacheClearFailed": "Cache-Leerung fehlgeschlagen",
+    "blockPolicy": "Blockierte Konten können deine Inhalte nicht sehen, dir keine Nachrichten senden oder mit dir interagieren. Meldungen werden von unserem Team geprüft und Inhalte mit mehreren Meldungen werden automatisch ausgeblendet."
   },
   "time": {
     "justNow": "gerade eben"

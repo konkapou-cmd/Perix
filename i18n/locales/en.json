@@ -2184,7 +2184,8 @@
     "passwordChanged": "Password changed successfully",
     "passwordChangeFailed": "Failed to change password",
     "cacheCleared": "Cache cleared successfully",
-    "cacheClearFailed": "Failed to clear cache"
+    "cacheClearFailed": "Failed to clear cache",
+    "blockPolicy": "Blocked accounts cannot see your content, message you or interact with you. Reports are reviewed by our team and content with multiple reports is hidden automatically."
   },
   "time": {
     "justNow": "just now"

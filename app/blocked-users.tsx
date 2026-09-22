@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { COLORS } from "../lib/designTokens";
 import { useAuth } from "../context/AuthContext";
-import { apiRequest } from "../lib/api/core";
+import { getBlockedUsers, unblockUser } from "../lib/api/social";
 
 type BlockedUser = {
   user_id: string;
@@ -38,8 +38,8 @@ export default function BlockedUsersScreen() {
   const loadBlockedUsers = async () => {
     if (!sessionToken) return;
     try {
-      const data = await apiRequest<BlockedUser[]>("/users/blocked", "GET", sessionToken);
-      setBlockedUsers(data || []);
+      const data = await getBlockedUsers(sessionToken);
+      setBlockedUsers(data?.blocked_users || []);
     } catch (error) {
       console.error("Failed to load blocked users:", error);
     } finally {
@@ -59,7 +59,7 @@ export default function BlockedUsersScreen() {
             if (!sessionToken) return;
             setUnblocking(user.user_id);
             try {
-              await apiRequest("/users/unblock/" + user.user_id, "POST", sessionToken);
+              await unblockUser(sessionToken, user.user_id);
               setBlockedUsers(prev => prev.filter(u => u.user_id !== user.user_id));
             } catch (error) {
               console.error("Failed to unblock:", error);
@@ -91,6 +91,9 @@ export default function BlockedUsersScreen() {
         <View style={styles.centered}>
           <Ionicons name="ban-outline" size={48} color="#9ca3af" />
           <Text style={styles.emptyText}>{t("settings.noBlockedUsers") || "No blocked users"}</Text>
+          <Text style={styles.policyText}>
+            {t("settings.blockPolicy", "Blocked accounts cannot see your content, message you or interact with you. Reports are reviewed by our team and content with multiple reports is hidden automatically.")}
+          </Text>
         </View>
       ) : (
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
@@ -144,6 +147,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.textPrimary },
+  policyText: { fontSize: 13, color: "rgba(38,67,72,0.6)", textAlign: "center", marginTop: 12, paddingHorizontal: 24, lineHeight: 19 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyText: { fontSize: 16, color: "#9ca3af", marginTop: 12 },
   scrollView: { flex: 1 },
