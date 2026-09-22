@@ -43,6 +43,8 @@ import AdaptiveVideo from "../../../components/AdaptiveVideo";
 import { confirmAction } from "../../../lib/confirm";
 import ReportModal from "../../../components/ReportModal";
 import { blockUser } from "../../../lib/api/social";
+import { sendFriendRequest } from "../../../lib/api/social";
+import { getMessageQuota } from "../../../lib/api/messages";
 
 import {
   COLORS,
@@ -194,6 +196,21 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [quota, setQuota] = useState<{ is_friend: boolean; used: number; limit: number; remaining: number } | null>(null);
+  const [friendRequestSending, setFriendRequestSending] = useState(false);
+
+  const loadQuota = async () => {
+    if (!sessionToken || !id || convEntityType !== "user") return;
+    try {
+      const q = await getMessageQuota(sessionToken, id);
+      setQuota(q);
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (convEntityType === "user") void loadQuota();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionToken, id, convEntityType]);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -421,9 +438,17 @@ export default function ChatScreen() {
       const newMessage = await sendMessage(sessionToken, payload as any);
       setMessages([...messages, newMessage]);
       setText("");
+      // Keep the free-message quota notice in sync.
+      if (convEntityType === "user") {
+        setQuota((prev) => prev ? { ...prev, used: prev.used + 1, remaining: Math.max(0, prev.remaining - 1) } : prev);
+      }
     } catch (error) {
       const messageText = error instanceof Error ? error.message : "Unable to send";
       setErrorMessage(messageText);
+      // If the limit kicked in, refresh the quota so the notice shows it.
+      if (convEntityType === "user" && messageText.includes("limit")) {
+        void loadQuota();
+      }
     } finally {
       setSending(false);
     }
@@ -704,6 +729,36 @@ export default function ChatScreen() {
         </View>
       ) : (
         <ScrollView style={styles.chat} contentContainerStyle={styles.chatContent}>
+          {convEntityType === "user" && quota && !quota.is_friend && (
+            <View style={styles.quotaNotice}>
+              <Ionicons name="information-circle-outline" size={16} color="#92400e" />
+              <Text style={styles.quotaText}>
+                {t("messages.freeMessagesNotice", "Free messages: {{used}}/{{limit}}. Become friends to keep chatting without limits.", { used: quota.used, limit: quota.limit })}
+              </Text>
+              {quota.remaining <= 0 && (
+                <Pressable
+                  style={styles.quotaBtn}
+                  disabled={friendRequestSending}
+                  onPress={async () => {
+                    if (!sessionToken || !id) return;
+                    setFriendRequestSending(true);
+                    try {
+                      await sendFriendRequest(sessionToken, "user", id);
+                      setQuota((prev) => prev ? { ...prev, is_friend: true } : prev);
+                      Alert.alert(t("common.success", "Success"), t("messages.friendRequestSent", "Friend request sent!"));
+                    } catch (e: any) {
+                      Alert.alert(t("common.error", "Error"), e?.message || t("common.pleaseTryAgain", "Please try again"));
+                    } finally {
+                      setFriendRequestSending(false);
+                    }
+                  }}
+                >
+                  <Ionicons name="person-add" size={14} color="#fff" />
+                  <Text style={styles.quotaBtnText}>{t("messages.addFriend", "Add friend")}</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
           {messages.length === 0 ? (
             <Text style={styles.emptyText}>{t("messages.noMessagesYet")}</Text>
           ) : (
@@ -984,6 +1039,39 @@ const styles = StyleSheet.create({
   chatContent: {
     paddingHorizontal: SPACING.std,
     paddingVertical: SPACING.small,
+  },
+  quotaNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#fef3c7",
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: SPACING.small,
+    flexWrap: "wrap",
+  },
+  quotaText: {
+    flex: 1,
+    minWidth: 180,
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: "#92400e",
+    lineHeight: 17,
+  },
+  quotaBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#59ABE3",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  quotaBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
   },
   emptyText: {
     color: "rgba(38,67,72,0.45)",

@@ -1175,7 +1175,10 @@
     "accept": "Αποδοχή",
     "decline": "Απόρριψη",
     "requestSent": "Αίτημα εστάλη",
-    "noConversations": "Δεν υπάρχουν συνομιλίες ακόμα"
+    "noConversations": "Δεν υπάρχουν συνομιλίες ακόμα",
+    "freeMessagesNotice": "Δωρεάν μηνύματα: {{used}}/{{limit}}. Γίνετε φίλοι για να συνεχίσετε χωρίς όριο.",
+    "addFriend": "Προσθήκη φίλου",
+    "friendRequestSent": "Η πρόσκληση φιλίας στάλθηκε!"
   },
   "activities": {
     "publishedMessage": "Η δραστηριότητά σου δημοσιεύτηκε.",

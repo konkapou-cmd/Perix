@@ -1142,7 +1142,10 @@
     "accept": "Annehmen",
     "decline": "Ablehnen",
     "requestSent": "Anfrage gesendet",
-    "noConversations": "Noch keine Gespräche"
+    "noConversations": "Noch keine Gespräche",
+    "freeMessagesNotice": "Kostenlose Nachrichten: {{used}}/{{limit}}. Werde Freunde, um ohne Limit weiterzuschreiben.",
+    "addFriend": "Freund hinzufügen",
+    "friendRequestSent": "Freundschaftsanfrage gesendet!"
   },
   "activities": {
     "publishedMessage": "Deine Aktivität wurde veröffentlicht.",

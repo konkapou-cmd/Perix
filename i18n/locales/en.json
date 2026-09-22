@@ -1094,7 +1094,10 @@
     "accept": "Accept",
     "decline": "Decline",
     "requestSent": "Request sent",
-    "noConversations": "No conversations yet"
+    "noConversations": "No conversations yet",
+    "freeMessagesNotice": "Free messages: {{used}}/{{limit}}. Become friends to keep chatting without limits.",
+    "addFriend": "Add friend",
+    "friendRequestSent": "Friend request sent!"
   },
   "activities": {
     "publishedMessage": "Your activity has been published.",

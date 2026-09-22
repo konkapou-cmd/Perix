@@ -58,6 +58,17 @@ export const deleteMessage = async (token: string, messageId: string): Promise<{
   return apiRequest<{ message: string; message_id: string }>(`/messages/${messageId}`, "DELETE", token);
 };
 
+export type MessageQuota = {
+  is_friend: boolean;
+  used: number;
+  limit: number;
+  remaining: number;
+};
+
+export const getMessageQuota = async (token: string, userId: string): Promise<MessageQuota> => {
+  return apiRequest<MessageQuota>(`/messages/quota/${userId}`, "GET", token);
+};
+
 export const deleteGroupMessage = async (token: string, messageId: string): Promise<{ message: string; message_id: string }> => {
   return apiRequest<{ message: string; message_id: string }>(`/messages/group/${messageId}`, "DELETE", token);
 };
