@@ -33,6 +33,21 @@ class ContentReportRequest(BaseModel):
     reason: str = "other"
 
 
+@router.get("/my-status")
+async def get_my_report_status(
+    target_type: str,
+    target_id: str,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Whether the current user has already reported this target."""
+    existing = await db.reports.find_one({
+        "reporter_id": current_user.user_id,
+        "target_type": target_type,
+        "target_id": target_id,
+    })
+    return {"reported": existing is not None}
+
+
 @router.post("/content")
 async def report_content(
     payload: ContentReportRequest,
