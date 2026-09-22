@@ -542,7 +542,9 @@ async def send_message(
             {"user_id": to_user_id}, 
             {"_id": 0, "paused_users": 1, "is_hidden": 1, "friends": 1}
         )
-        if not recipient:
+        # `is None`, not `not recipient` — projected lookups can return {}
+        # for existing users that lack all projected fields.
+        if recipient is None:
             raise HTTPException(status_code=404, detail="Recipient not found")
         
         if recipient.get("is_hidden"):
@@ -885,7 +887,9 @@ async def send_media_message(
             {"user_id": to_user_id}, 
             {"_id": 0, "paused_users": 1, "is_hidden": 1}
         )
-        if not recipient:
+        # NOTE: use `is None` — a projected find_one can return {} (falsy)
+        # when the doc has none of the projected fields, but the user EXISTS.
+        if recipient is None:
             raise HTTPException(status_code=404, detail="Recipient not found")
         if recipient.get("is_hidden"):
             raise HTTPException(status_code=403, detail="This user is not available")

@@ -269,12 +269,17 @@ async def get_activity_feed(
                 read=False
             ))
     
+    # "Delete all" must actually remove items: drop everything the user has
+    # already marked as seen, so the notification bar stays empty until new
+    # activity arrives.
+    activities = [a for a in activities if a.activity_id not in seen_ids]
+
     # Sort by time and limit to last 5
     activities.sort(key=lambda x: x.created_at, reverse=True)
     activities = activities[:limit]
-    
-    # Calculate unread count (notifications not in seen_ids)
-    unread_count = len([a for a in activities if a.activity_id not in seen_ids])
+
+    # Calculate unread count (all remaining items are unseen)
+    unread_count = len(activities)
     
     return ActivityFeedResponse(
         activities=activities,
