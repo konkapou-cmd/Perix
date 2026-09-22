@@ -815,7 +815,7 @@ const syncEventEndTime = (d: Date, tm: Date) => {
       return;
     }
     const unresolvedMedia = ((eventForm as any).media_items || []).some(
-      (m: any) => m.processingStatus === "processing" || m.processingStatus === "failed",
+      (m: any) => m.processingStatus === "failed" || (m.processingStatus === "processing" && !(typeof m.uri === "string" && m.uri.startsWith("http"))),
     );
     if (unresolvedMedia) {
       Alert.alert(
@@ -928,7 +928,7 @@ const syncEventEndTime = (d: Date, tm: Date) => {
       return;
     }
     const unresolvedMedia = ((activityForm as any).media_items || []).some(
-      (m: any) => m.processingStatus === "processing" || m.processingStatus === "failed",
+      (m: any) => m.processingStatus === "failed" || (m.processingStatus === "processing" && !(typeof m.uri === "string" && m.uri.startsWith("http"))),
     );
     if (unresolvedMedia) {
       Alert.alert(
@@ -1737,7 +1737,7 @@ const [newListingType, setNewListingType] = useState<ListingType>("product");
       return;
     }
     const unresolvedMedia = ((serviceForm as any).media_items || []).some(
-      (m: any) => m.processingStatus === "processing" || m.processingStatus === "failed",
+      (m: any) => m.processingStatus === "failed" || (m.processingStatus === "processing" && !(typeof m.uri === "string" && m.uri.startsWith("http"))),
     );
     if (unresolvedMedia) {
       Alert.alert(
@@ -3044,7 +3044,7 @@ currentUserId={businessDetail?.business?.business_id}
           onSave={async () => {
             if (!sessionToken || !jobForm.title.trim()) return;
             const unresolvedMedia = ((jobForm as any).media_items || []).some(
-              (m: any) => m.processingStatus === "processing" || m.processingStatus === "failed",
+              (m: any) => m.processingStatus === "failed" || (m.processingStatus === "processing" && !(typeof m.uri === "string" && m.uri.startsWith("http"))),
             );
             if (unresolvedMedia) {
               Alert.alert(
