@@ -135,6 +135,10 @@ export const reportUser = async (token: string, userId: string, reason: string):
   return apiRequest("/users/report", "POST", token, { user_id: userId, reason });
 };
 
+export const getMyReportStatus = async (token: string, targetType: string, targetId: string): Promise<{ reported: boolean }> => {
+  return apiRequest<{ reported: boolean }>(`/reports/my-status?target_type=${encodeURIComponent(targetType)}&target_id=${encodeURIComponent(targetId)}`, "GET", token);
+};
+
 export const reportBusiness = async (token: string, businessId: string, reason: string): Promise<{ success: boolean; message: string; report_id: string }> => {
   return apiRequest(`/businesses/${businessId}/report`, "POST", token, { reason });
 };

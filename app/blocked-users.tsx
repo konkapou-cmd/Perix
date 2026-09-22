@@ -70,6 +70,24 @@ export default function BlockedUsersScreen() {
     setBusyReport(null);
   };
 
+  const openReportTarget = (report: any) => {
+    const id = report?.target_id;
+    if (!id) return;
+    const routeMap: Record<string, string> = {
+      post: "/post/",
+      event: "/event/",
+      activity: "/activity/",
+      business: "/business/",
+      artist: "/artist/",
+      job: "/job/",
+      service: "/service/",
+      listing: "/listing/",
+      user: "/user/",
+    };
+    const base = routeMap[report.target_type];
+    if (base) router.push(`${base}${id}` as any);
+  };
+
   const loadBlockedUsers = async () => {
     if (!sessionToken) return;
     try {
@@ -166,27 +184,33 @@ export default function BlockedUsersScreen() {
               <Text style={styles.emptyText}>{t("admin.noReports", "No reports")}</Text>
             ) : (
               reports.map((r) => (
-                <View key={r.report_id} style={styles.reportCard}>
+                <Pressable key={r.report_id} style={styles.reportCard} onPress={() => openReportTarget(r)}>
                   <View style={styles.reportHeader}>
                     <Text style={styles.reportType}>{String(r.target_type || "").toUpperCase()}</Text>
                     <Text style={[styles.reportStatus, r.is_hidden ? styles.reportHidden : styles.reportVisible]}>
                       {r.is_hidden ? t("admin.hidden", "Hidden") : t("admin.visible", "Visible")}
                     </Text>
+                    {r.status === "resolved" && (
+                      <Text style={styles.reportResolved}>
+                        {t("admin.resolved", "Resolved")}: {r.resolution || "-"}
+                      </Text>
+                    )}
+                    <Ionicons name="open-outline" size={14} color="#9ca3af" style={{ marginLeft: "auto" }} />
                   </View>
                   {r.preview ? <Text style={styles.reportPreview} numberOfLines={2}>{r.preview}</Text> : null}
                   <Text style={styles.reportReason}>{t("admin.reason", "Reason")}: {r.reason || "-"}</Text>
                   <View style={styles.reportActions}>
-                    <Pressable style={styles.reportBtnRestore} disabled={busyReport === r.report_id} onPress={() => resolveReport(r, "restore")}>
+                    <Pressable style={styles.reportBtnRestore} disabled={busyReport === r.report_id} onPress={(e) => { (e as any).stopPropagation?.(); resolveReport(r, "restore"); }}>
                       <Text style={styles.reportBtnTextGreen}>{t("admin.restore", "Restore")}</Text>
                     </Pressable>
-                    <Pressable style={styles.reportBtnDelete} disabled={busyReport === r.report_id} onPress={() => resolveReport(r, "delete")}>
+                    <Pressable style={styles.reportBtnDelete} disabled={busyReport === r.report_id} onPress={(e) => { (e as any).stopPropagation?.(); resolveReport(r, "delete"); }}>
                       <Text style={styles.reportBtnTextRed}>{t("admin.delete", "Delete")}</Text>
                     </Pressable>
-                    <Pressable style={styles.reportBtnDismiss} disabled={busyReport === r.report_id} onPress={() => resolveReport(r, "dismiss")}>
+                    <Pressable style={styles.reportBtnDismiss} disabled={busyReport === r.report_id} onPress={(e) => { (e as any).stopPropagation?.(); resolveReport(r, "dismiss"); }}>
                       <Text style={styles.reportBtnTextGray}>{t("admin.dismiss", "Dismiss")}</Text>
                     </Pressable>
                   </View>
-                </View>
+                </Pressable>
               ))
             )}
           </ScrollView>
@@ -226,6 +250,7 @@ const styles = StyleSheet.create({
   reportHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   reportType: { fontSize: 11, fontWeight: "800", color: "#59ABE3", letterSpacing: 0.5 },
   reportStatus: { fontSize: 10, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  reportResolved: { fontSize: 10, fontWeight: "700", color: "#7c3aed", paddingHorizontal: 6 },
   reportHidden: { backgroundColor: "#fee2e2", color: "#b91c1c" },
   reportVisible: { backgroundColor: "#d1fae5", color: "#065f46" },
   reportPreview: { fontSize: 12.5, color: "#1f2937", marginTop: 6, lineHeight: 17 },

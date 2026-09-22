@@ -44,6 +44,7 @@ import { confirmAction } from "../../../lib/confirm";
 import ReportModal from "../../../components/ReportModal";
 import { blockUser, unblockUser, getBlockedUsers } from "../../../lib/api/social";
 import { sendFriendRequest } from "../../../lib/api/social";
+import { getMyReportStatus } from "../../../lib/api/social";
 import { getMessageQuota } from "../../../lib/api/messages";
 
 import {
@@ -197,6 +198,7 @@ export default function ChatScreen() {
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [chatBlocked, setChatBlocked] = useState(false);
+  const [userReported, setUserReported] = useState(false);
   const [quota, setQuota] = useState<{ is_friend: boolean; used: number; limit: number; remaining: number } | null>(null);
   const [friendRequestSending, setFriendRequestSending] = useState(false);
 
@@ -204,6 +206,9 @@ export default function ChatScreen() {
     if (convEntityType === "user" && sessionToken && id) {
       getBlockedUsers(sessionToken)
         .then((d) => setChatBlocked((d?.blocked_users || []).some((u) => u.user_id === id)))
+        .catch(() => {});
+      getMyReportStatus(sessionToken, "user", id)
+        .then((s) => setUserReported(!!s?.reported))
         .catch(() => {});
     }
   }, [sessionToken, id, convEntityType]);
@@ -697,8 +702,15 @@ export default function ChatScreen() {
           <>
             {convEntityType === "user" && (
               <>
-                <Pressable style={styles.headerIcon} hitSlop={8} onPress={() => setReportOpen(true)}>
-                  <Ionicons name="flag-outline" size={20} color="#9ca3af" />
+                <Pressable
+                  style={styles.headerIcon}
+                  hitSlop={8}
+                  onPress={() => {
+                    if (userReported) return;
+                    setReportOpen(true);
+                  }}
+                >
+                  <Ionicons name={userReported ? "flag" : "flag-outline"} size={20} color={userReported ? "#f59e0b" : "#9ca3af"} />
                 </Pressable>
                 <Pressable
                   style={styles.headerIcon}
@@ -1018,6 +1030,7 @@ export default function ChatScreen() {
         targetId={typeof id === "string" ? id : ""}
         sessionToken={sessionToken}
         onClose={() => setReportOpen(false)}
+        onSubmitted={() => setUserReported(true)}
       />
     </KeyboardAvoidingView>
   );

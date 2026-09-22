@@ -82,8 +82,8 @@ export default function ReportModal({ visible, targetType, targetId, sessionToke
             <View style={styles.doneWrap}>
               <Ionicons name="checkmark-circle" size={52} color="#10b981" />
               <Text style={styles.doneText}>{t("report.thanks", "Thank you. Our team will review this report.")}</Text>
-              <Pressable style={styles.submitBtn} onPress={close}>
-                <Text style={styles.submitText}>{t("common.ok", "OK")}</Text>
+              <Pressable style={[styles.submitBtn, styles.okBtn]} onPress={close}>
+                <Text style={[styles.submitText, styles.okText]}>{t("common.ok", "OK")}</Text>
               </Pressable>
             </View>
           ) : (
@@ -215,5 +215,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#264348",
     textAlign: "center",
+  },
+  okBtn: {
+    marginTop: 14,
+    paddingVertical: 15,
+  },
+  okText: {
+    fontSize: 16,
   },
 });

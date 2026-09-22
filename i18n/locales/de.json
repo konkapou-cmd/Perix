@@ -3219,6 +3219,7 @@
     "noHiddenContent": "Kein ausgeblendeter Inhalt",
     "noHiddenUsers": "Keine ausgeblendeten Nutzer",
     "noText": "(kein Text)",
-    "policy": "Gemeldete Inhalte bleiben bis zur Klärung für die menschliche Prüfung verfügbar. Wir prüfen Meldungen nach Treu und Glauben und können Inhalte nach eigenem Ermessen löschen oder wiederherstellen, im Einklang mit unserer allgemeinen Leistungserbringung."
+    "policy": "Gemeldete Inhalte bleiben bis zur Klärung für die menschliche Prüfung verfügbar. Wir prüfen Meldungen nach Treu und Glauben und können Inhalte nach eigenem Ermessen löschen oder wiederherstellen, im Einklang mit unserer allgemeinen Leistungserbringung.",
+    "resolved": "Erledigt"
   }
 }
