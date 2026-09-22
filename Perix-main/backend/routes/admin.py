@@ -560,6 +560,83 @@ async def manage_post(
         raise HTTPException(status_code=400, detail="Invalid action")
 
 
+@router.get("/reports/content")
+async def get_content_reports(
+    current_user: UserPublic = Depends(get_current_user)
+):
+    """All content reports (posts, comments, events, jobs, services,
+    listings, stories, businesses, artists, users) with a content preview
+    and the current hidden state, so a human can review each one."""
+    await verify_admin(current_user)
+
+    from routes.reports import TARGET_COLLECTIONS
+
+    reports = await db.reports.find(
+        {"target_type": {"$in": list(TARGET_COLLECTIONS.keys())}},
+        {"_id": 0},
+    ).sort("reported_at", -1).to_list(500)
+
+    result = []
+    for r in reports:
+        preview = None
+        is_hidden = None
+        collection, id_field = TARGET_COLLECTIONS.get(r.get("target_type"), (None, None))
+        if collection:
+            doc = await db[collection].find_one({id_field: r["target_id"]}, {"_id": 0})
+            if doc:
+                preview = (doc.get("text") or doc.get("title") or doc.get("name") or "")[:140]
+                is_hidden = doc.get("is_hidden", False)
+        result.append({
+            **r,
+            "preview": preview,
+            "is_hidden": is_hidden,
+        })
+    return result
+
+
+class ReportResolveRequest(BaseModel):
+    report_id: str
+    action: str  # "dismiss" | "restore" | "delete"
+
+
+@router.post("/reports/resolve")
+async def resolve_report(
+    request: ReportResolveRequest,
+    current_user: UserPublic = Depends(get_current_user)
+):
+    """Resolve a report: dismiss it, restore the hidden content, or delete it.
+    The decision is made by the reviewer at their own discretion, in good
+    faith, consistent with how the service is provided generally."""
+    await verify_admin(current_user)
+
+    from routes.reports import TARGET_COLLECTIONS
+
+    report = await db.reports.find_one({"report_id": request.report_id})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    collection, id_field = TARGET_COLLECTIONS.get(report.get("target_type"), (None, None))
+    if collection and request.action in ("restore", "delete"):
+        if request.action == "restore":
+            await db[collection].update_one(
+                {id_field: report["target_id"]},
+                {"$set": {"is_hidden": False}, "$unset": {"hidden_reason": "", "hidden_at": ""}},
+            )
+        elif request.action == "delete":
+            await db[collection].delete_one({id_field: report["target_id"]})
+
+    await db.reports.update_one(
+        {"report_id": request.report_id},
+        {"$set": {
+            "status": "resolved",
+            "resolution": request.action,
+            "resolved_at": now_utc(),
+            "resolved_by": current_user.user_id,
+        }},
+    )
+    return {"success": True, "action": request.action}
+
+
 @router.delete("/reports/{report_id}")
 async def dismiss_report(
     report_id: str,

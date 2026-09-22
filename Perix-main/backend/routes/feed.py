@@ -457,8 +457,8 @@ async def get_home_feed(
                     root_category=biz_doc.get("root_category", ""),
                     subcategory=biz_doc.get("subcategory", ""),
                     address=biz_doc.get("address", ""),
-                    latitude=biz_doc.get("latitude", 0),
-                    longitude=biz_doc.get("longitude", 0),
+                    latitude=biz_doc.get("latitude") or 0,
+                    longitude=biz_doc.get("longitude") or 0,
                     logo_image=biz_doc.get("logo_image")
                 )
 
@@ -532,8 +532,8 @@ async def get_home_feed(
             gallery_videos=business.get("gallery_videos", []),
             tags=business.get("tags", []),
             address=business.get("address") or "",
-            latitude=business.get("latitude", 0),
-            longitude=business.get("longitude", 0),
+            latitude=business.get("latitude") or 0,
+            longitude=business.get("longitude") or 0,
             created_at=business.get("created_at", now_utc()),
             enabled_modules=enabled_modules,
             subscription_status=business.get("subscription_status", "trial"),
