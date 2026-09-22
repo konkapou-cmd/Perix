@@ -42,7 +42,7 @@ import {
 import AdaptiveVideo from "../../../components/AdaptiveVideo";
 import { confirmAction } from "../../../lib/confirm";
 import ReportModal from "../../../components/ReportModal";
-import { blockUser } from "../../../lib/api/social";
+import { blockUser, unblockUser, getBlockedUsers } from "../../../lib/api/social";
 import { sendFriendRequest } from "../../../lib/api/social";
 import { getMessageQuota } from "../../../lib/api/messages";
 
@@ -196,8 +196,17 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [chatBlocked, setChatBlocked] = useState(false);
   const [quota, setQuota] = useState<{ is_friend: boolean; used: number; limit: number; remaining: number } | null>(null);
   const [friendRequestSending, setFriendRequestSending] = useState(false);
+
+  useEffect(() => {
+    if (convEntityType === "user" && sessionToken && id) {
+      getBlockedUsers(sessionToken)
+        .then((d) => setChatBlocked((d?.blocked_users || []).some((u) => u.user_id === id)))
+        .catch(() => {});
+    }
+  }, [sessionToken, id, convEntityType]);
 
   const loadQuota = async () => {
     if (!sessionToken || !id || convEntityType !== "user") return;
@@ -695,6 +704,25 @@ export default function ChatScreen() {
                   style={styles.headerIcon}
                   hitSlop={8}
                   onPress={async () => {
+                    if (!sessionToken || !id) return;
+                    if (chatBlocked) {
+                      const ok = await confirmAction({
+                        title: t("userProfile.unblockConfirm", "Unblock user?"),
+                        message: t("userProfile.unblockMessage", "This user will be able to see your content and interact with you again."),
+                        confirmText: t("userProfile.unblock", "Unblock"),
+                        cancelText: t("common.cancel"),
+                        destructive: false,
+                      });
+                      if (!ok) return;
+                      try {
+                        await unblockUser(sessionToken, id);
+                        setChatBlocked(false);
+                        Alert.alert(t("common.success", "Success"), t("userProfile.unblockSuccess", "User unblocked successfully"));
+                      } catch (e: any) {
+                        Alert.alert(t("common.error", "Error"), e?.message || t("common.pleaseTryAgain", "Please try again"));
+                      }
+                      return;
+                    }
                     const ok = await confirmAction({
                       title: t("userProfile.blockConfirm", "Block this user?"),
                       message: t("userProfile.blockMessage", "They won't be able to see your content, message you or interact with you."),
@@ -702,17 +730,17 @@ export default function ChatScreen() {
                       cancelText: t("common.cancel"),
                       destructive: true,
                     });
-                    if (!ok || !sessionToken || !id) return;
+                    if (!ok) return;
                     try {
                       await blockUser(sessionToken, id);
+                      setChatBlocked(true);
                       Alert.alert(t("common.success", "Success"), t("userProfile.blockSuccess", "User blocked"));
-                      router.back();
                     } catch (e: any) {
                       Alert.alert(t("common.error", "Error"), e?.message || t("common.pleaseTryAgain", "Please try again"));
                     }
                   }}
                 >
-                  <Ionicons name="ban-outline" size={20} color={COLORS.danger} />
+                  <Ionicons name={chatBlocked ? "ban" : "ban-outline"} size={20} color={COLORS.danger} />
                 </Pressable>
               </>
             )}

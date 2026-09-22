@@ -3200,5 +3200,25 @@
     "searchUsers": "Personen suchen...",
     "noUsersNearby": "Noch keine Personen in der Nähe",
     "member": "Mitglied"
+  },
+  "admin": {
+    "title": "Admin-Panel",
+    "noAccess": "Admin-Zugriff erforderlich",
+    "reports": "Meldungen",
+    "moderation": "Moderation",
+    "hidden": "Ausgeblendet",
+    "visible": "Sichtbar",
+    "reason": "Grund",
+    "restore": "Wiederherstellen",
+    "delete": "Löschen",
+    "deleteAccount": "Konto löschen",
+    "dismiss": "Verwerfen",
+    "hiddenPosts": "Ausgeblendete Beiträge",
+    "hiddenUsers": "Ausgeblendete Nutzer",
+    "noReports": "Keine Meldungen",
+    "noHiddenContent": "Kein ausgeblendeter Inhalt",
+    "noHiddenUsers": "Keine ausgeblendeten Nutzer",
+    "noText": "(kein Text)",
+    "policy": "Gemeldete Inhalte bleiben bis zur Klärung für die menschliche Prüfung verfügbar. Wir prüfen Meldungen nach Treu und Glauben und können Inhalte nach eigenem Ermessen löschen oder wiederherstellen, im Einklang mit unserer allgemeinen Leistungserbringung."
   }
 }

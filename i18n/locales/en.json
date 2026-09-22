@@ -3102,5 +3102,25 @@
     "searchUsers": "Search people...",
     "noUsersNearby": "No people nearby yet",
     "member": "Member"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "noAccess": "Admin access required",
+    "reports": "Reports",
+    "moderation": "Moderation",
+    "hidden": "Hidden",
+    "visible": "Visible",
+    "reason": "Reason",
+    "restore": "Restore",
+    "delete": "Delete",
+    "deleteAccount": "Delete account",
+    "dismiss": "Dismiss",
+    "hiddenPosts": "Hidden posts",
+    "hiddenUsers": "Hidden users",
+    "noReports": "No reports",
+    "noHiddenContent": "No hidden content",
+    "noHiddenUsers": "No hidden users",
+    "noText": "(no text)",
+    "policy": "Reported content remains available for human review until resolved. We review reports in good faith and may delete or restore content at our discretion, consistent with how we provide our services generally."
   }
 }
