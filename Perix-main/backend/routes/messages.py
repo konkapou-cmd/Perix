@@ -21,6 +21,10 @@ from routes.ws import (
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
+# Non-friends may exchange up to this many free messages before they must
+# become friends to continue. Event/activity group chats are unlimited.
+FREE_MESSAGE_LIMIT = 10
+
 # In-memory typing status (for real-time, consider using Redis)
 typing_status: Dict[str, Dict[str, str]] = {}  # {user_id: {other_user_id: timestamp}}
 
@@ -38,6 +42,29 @@ class MediaMessageCreate(BaseModel):
     text: Optional[str] = None
     media_url: str
     media_type: str  # "image", "video", "audio"
+
+
+@router.get("/quota/{user_id}")
+async def get_message_quota(
+    user_id: str,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Free-message quota between the current user and another user."""
+    from routes.friend_requests import _is_friend_dict
+
+    is_friend = _is_friend_dict(current_user.friends, "user", user_id)
+    used = await db.messages.count_documents({
+        "$or": [
+            {"from_user_id": current_user.user_id, "to_user_id": user_id},
+            {"from_user_id": user_id, "to_user_id": current_user.user_id},
+        ]
+    })
+    return {
+        "is_friend": is_friend,
+        "used": used,
+        "limit": FREE_MESSAGE_LIMIT,
+        "remaining": max(0, FREE_MESSAGE_LIMIT - used),
+    }
 
 
 @router.get("/conversations", response_model=List[ConversationResponse])
@@ -530,11 +557,21 @@ async def send_message(
         
         # CHECK FRIENDSHIP for user-to-user
         from routes.friend_requests import _is_friend_dict
-        if not _is_friend_dict(current_user.friends, "user", to_user_id):
-            raise HTTPException(
-                status_code=403, 
-                detail="You must be friends to send messages to this user"
-            )
+        is_friend = _is_friend_dict(current_user.friends, "user", to_user_id)
+        if not is_friend:
+            # Non-friends may exchange up to 10 free messages. After that
+            # they must become friends to continue the conversation.
+            used = await db.messages.count_documents({
+                "$or": [
+                    {"from_user_id": current_user.user_id, "to_user_id": to_user_id},
+                    {"from_user_id": to_user_id, "to_user_id": current_user.user_id},
+                ]
+            })
+            if used >= FREE_MESSAGE_LIMIT:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You have reached the free message limit with this user. Become friends to continue chatting.",
+                )
 
         # Blocked users cannot message each other, in either direction.
         if current_user.user_id in recipient.get("blocked_users", []):
@@ -854,16 +891,27 @@ async def send_media_message(
             raise HTTPException(status_code=403, detail="This user is not available")
         if current_user.user_id in recipient.get("paused_users", []):
             raise HTTPException(status_code=403, detail="You cannot send messages to this user")
+        if current_user.user_id in recipient.get("blocked_users", []):
+            raise HTTPException(status_code=403, detail="You cannot send messages to this user")
+        if to_user_id in (getattr(current_user, "blocked_users", None) or []):
+            raise HTTPException(status_code=403, detail="You blocked this user")
         conversation_id = to_user_id
         recipient_name = recipient.get("name")
         recipient_photo = recipient.get("profile_photo") or recipient.get("picture")
         
         from routes.friend_requests import _is_friend_dict
         if not _is_friend_dict(current_user.friends, "user", to_user_id):
-            raise HTTPException(
-                status_code=403, 
-                detail="You must be friends to send messages to this user"
-            )
+            used = await db.messages.count_documents({
+                "$or": [
+                    {"from_user_id": current_user.user_id, "to_user_id": to_user_id},
+                    {"from_user_id": to_user_id, "to_user_id": current_user.user_id},
+                ]
+            })
+            if used >= FREE_MESSAGE_LIMIT:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You have reached the free message limit with this user. Become friends to continue chatting.",
+                )
     
     message_doc = {
         "message_id": generate_id("msg"),
