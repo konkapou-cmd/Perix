@@ -1,0 +1,618 @@
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import Constants from "expo-constants";
+import { useAuth } from "../../context/AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
+import { getServiceDetail, sendServiceInquiry } from "../../lib/api/services";
+import { toggleSaved, checkSaved } from "../../lib/api/saved";
+import { Service } from "../../lib/api/core";
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
+import ReportModal from "../../components/ReportModal";
+import { getServiceCtaType, isServiceBookable, requiresServiceSlots, getServiceFields, getServiceModuleIcon, getServiceModuleLabel } from "../../lib/config/serviceModules";
+import ServiceBookingModal from "../../components/business/ServiceBookingModal";
+import { normalizeId } from "../../lib/navigation/entityRoutes";
+import { FIELD_REGISTRY, LEASE_DURATION_LABELS, DIETARY_LABELS } from "../../lib/fieldRegistry";
+import { optionLabel } from "../../lib/categoryTranslation";
+import { formatPrice, formatDuration } from "../../lib/serviceFormat";
+import { formatDate } from "../../lib/formatDate";
+import { buildMediaItems } from "../../lib/api/mediaUtils";
+import LazyMediaViewer, { MediaItem } from "../../components/LazyMediaViewer";
+import ShareContent from "../../components/ShareContent";
+import { ContentHero, ContentGallery, ContentMap } from "../../components/shared";
+import { DetailFacts, DetailFact } from "../../components/shared/DetailFacts";
+import ErrorState from "../../components/shared/ErrorState";
+import { BottomCTA } from "../../components/shared/BottomCTA";
+
+const SERVICES_ACCENT = "#7B3FF2";
+
+const BACKEND_URL =
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
+  process.env.EXPO_PUBLIC_BACKEND_URL;
+
+export default function ServiceDetailPage() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { sessionToken, user } = useAuth();
+  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = normalizeId(rawId);
+
+  const [service, setService] = useState<Service | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingItem, setSavingItem] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
+  const [showInquiry, setShowInquiry] = useState(false);
+  const [inquiryName, setInquiryName] = useState("");
+  const [inquiryEmail, setInquiryEmail] = useState("");
+  const [inquiryMessage, setInquiryMessage] = useState("");
+  const [submittingInquiry, setSubmittingInquiry] = useState(false);
+  const [mediaViewerVisible, setMediaViewerVisible] = useState(false);
+  const [mediaViewerItems, setMediaViewerItems] = useState<MediaItem[]>([]);
+  const [mediaViewerIndex, setMediaViewerIndex] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [themedAlertVisible, setThemedAlertVisible] = useState(false);
+  const [themedAlertMessage, setThemedAlertMessage] = useState("");
+
+  const showThemedAlert = useCallback((message: string) => {
+    setThemedAlertMessage(message);
+    setThemedAlertVisible(true);
+  }, []);
+
+  const loadService = useCallback(async () => {
+    if (!id) { setLoading(false); return; }
+    try {
+      const data = await getServiceDetail(id, sessionToken);
+      setService(data);
+      if (sessionToken) {
+        try { const { is_saved } = await checkSaved(sessionToken, "service", id); setIsSaved(is_saved); } catch {}
+      }
+    } catch (e) { console.log("Failed to load service:", e); }
+    finally { setLoading(false); }
+  }, [id, sessionToken]);
+
+  useEffect(() => { loadService(); }, [loadService]);
+
+  const requiresSlots = useMemo(() => {
+    if (!service) return true;
+    return requiresServiceSlots(service.type);
+  }, [service]);
+
+  const requiresBooking = useMemo(() => {
+    if (!service) return true;
+    return isServiceBookable(service.type);
+  }, [service]);
+
+  const ctaType = useMemo(() => {
+    if (!service) return "browse_only" as const;
+    return getServiceCtaType(service.type);
+  }, [service]);
+
+  const ctaLabel =
+    ctaType === "booking" && service?.type === "hotel_room" ? t("services.requestBooking", "Request Booking")
+    : ctaType === "booking" ? t("services.bookNow", "Jetzt buchen")
+    : ctaType === "reservation" ? t("services.reserve", "Reservieren")
+    : ctaType === "request_quote" ? t("services.requestQuote", "Angebot anfragen")
+    : ctaType === "get_in_touch" ? t("services.getInTouch", "Kontakt aufnehmen")
+    : t("services.learnMore", "Mehr erfahren");
+
+  const ctaIcon =
+    ctaType === "booking" || ctaType === "reservation" ? "calendar-outline"
+    : ctaType === "request_quote" ? "chatbubble-ellipses-outline"
+    : ctaType === "get_in_touch" ? "mail-outline"
+    : "information-circle-outline";
+
+  const handleCta = () => {
+    if (ctaType === "booking") {
+      setShowBooking(true);
+    } else {
+      setShowInquiry(true);
+      setInquiryName(user?.name || "");
+      setInquiryEmail(user?.email || "");
+      if (ctaType === "request_quote") {
+        setInquiryMessage(`Ich interessiere mich für: ${service?.name || ""}`);
+      } else if (ctaType === "reservation") {
+        setInquiryMessage(`Hallo, ich möchte ${service?.name || ""} reservieren. Bitte teilen Sie mir die Verfügbarkeit mit.`);
+      } else {
+        setInquiryMessage("");
+      }
+    }
+  };
+
+  const handleToggleSave = async () => {
+    if (savingItem) return;
+    if (!sessionToken) {
+      Alert.alert(t("common.loginRequired", "Login Required"), t("common.loginToSave", "Please log in"),
+        [{ text: t("common.cancel", "Cancel"), style: "cancel" }, { text: t("auth.login", "Login"), onPress: () => router.push("/login") }]);
+      return;
+    }
+    if (!service?.service_id) return;
+    setSavingItem(true);
+    try {
+      const { is_saved } = await toggleSaved(sessionToken, "service", service.service_id);
+      setIsSaved(is_saved);
+    } catch (e: any) { Alert.alert("Error", e.message || "Save failed"); }
+    finally { setSavingItem(false); }
+  };
+
+  const handleSendInquiry = async () => {
+    if (!sessionToken || !service) { Alert.alert("Error", t("services.loginRequired")); return; }
+    if (!inquiryName.trim() || !inquiryMessage.trim()) { Alert.alert("Error", t("services.fillRequired")); return; }
+    setSubmittingInquiry(true);
+    try {
+      await sendServiceInquiry(sessionToken, service.service_id, { name: inquiryName.trim(), email: inquiryEmail.trim() || user?.email || "", message: inquiryMessage.trim() });
+      Alert.alert(t("services.inquirySent"), t("services.inquirySentMsg"));
+      setShowInquiry(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage("");
+    } catch (e: any) { Alert.alert("Error", e.message || t("services.inquiryFailed")); }
+    finally { setSubmittingInquiry(false); }
+  };
+
+  const formatTime = (time: string) => { const [h, m] = time.split(":"); return `${h}:${m}`; };
+
+  const currentCategory = service?.root_category || "";
+  const isRental = currentCategory === "rentals" || currentCategory === "rental-real-estate";
+
+  const getTypeIcon = (type: string) => {
+    return getServiceModuleIcon(type);
+  };
+
+  const getTypeLabel = (type: string) => {
+    return getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? type));
+  };
+
+  const getFieldsForType = (): string[] => {
+    if (!service) return [];
+    return getServiceFields(service.type);
+  };
+
+  const serviceField = (name: string): any => (service as any)?.[name];
+
+  const hasDetailValue = (name: string): boolean => {
+    const val = serviceField(name);
+    if (val === null || val === undefined) return false;
+    if (typeof val === "string" && val === "") return false;
+    if (Array.isArray(val) && val.length === 0) return false;
+    return true;
+  };
+
+  const allMediaItems = service ? buildMediaItems(service) : [];
+
+  const excludedFromDetailCards = ["duration_minutes", "capacity", "bedrooms", "bathrooms", "size_sqm", "property_type", "floor", "deposit", "available_from", "lease_duration", "furnished", "max_guests", "address", "facilities"];
+
+  const getFieldIcon = (name: string) => {
+    const map: Record<string, string> = { instructor: "person-outline", specialist_name: "person", difficulty_level: "options", session_type: "calendar", treatment_type: "medkit", service_category: "cut", consultation_type: "briefcase", meeting_type: "videocam", menu_category: "list", calories: "flame", spice_level: "thermometer", make: "car-sport", model: "car-sport", year: "calendar", mileage_km: "speedometer", fuel_type: "water", transmission: "settings", brand: "pricetag", stock_status: "checkmark-circle", condition: "reload", max_guests: "people", bed_config: "bed", room_size_sqm: "resize", room_view: "eye", amenities: "star", capacity: "people-outline", duration_minutes: "time-outline", bedrooms: "bed-outline", bathrooms: "water-outline", size_sqm: "resize-outline", property_type: "home-outline", floor: "layers-outline", deposit: "wallet-outline", available_from: "calendar-outline", lease_duration: "time-outline", furnished: "home-outline", dietary_tags: "leaf", allergens: "warning", facilities: "star-outline", pet_name: "paw", pet_type: "paw", pickup_location: "location", dropoff_location: "location", reason_for_visit: "document-text", insurance_info: "shield", includes: "list", sessions_count: "layers", duration_days: "calendar", duration_months: "calendar", duration_per_session: "timer", visits_included: "footsteps", valid_days: "calendar", included_services: "grid", special_requests: "star" };
+    return map[name] || "information-circle";
+  };
+
+  const handleShareService = async () => {
+    if (!service) return;
+    const message = `${service.name} — ${formatPrice(service.price)}${service.type === "hotel_room" ? " / night" : ""} on Perix`;
+    await Share.share({ message });
+  };
+
+  const handleWhatsAppShare = async () => {
+    if (!service) return;
+    const message = `${service.name} — ${formatPrice(service.price)}${service.type === "hotel_room" ? " / night" : ""} on Perix`;
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+    try {
+      const supported = await Linking.canOpenURL(whatsappUrl);
+      if (supported) await Linking.openURL(whatsappUrl);
+      else await Share.share({ message });
+    } catch { await Share.share({ message }); }
+  };
+
+  const getQuickInfoFields = () => getFieldsForType().filter((f) => ["duration_minutes", "capacity", "bedrooms", "bathrooms", "size_sqm", "max_guests"].includes(f) && hasDetailValue(f));
+
+  const getModuleDetailSections = (): { title: string; icon: string; fields: string[] }[] => {
+    if (!service) return [];
+    const moduleFields = getServiceFields(service.type);
+    const sections: { title: string; icon: string; fields: string[] }[] = [];
+
+    const specs: string[] = [];
+    const stay: string[] = [];
+    const vehicle: string[] = [];
+    const food: string[] = [];
+    const health: string[] = [];
+    const included: string[] = [];
+    const timing: string[] = [];
+
+    for (const f of moduleFields) {
+      if (!hasDetailValue(f)) continue;
+      if (f === "check_in_time" || f === "check_out_time" || f === "min_nights" || f === "max_nights" || f === "cancellation_policy" || f === "available_from" || f === "available_until") stay.push(f);
+      else if (f === "duration_minutes" || f === "sessions_count" || f === "duration_days" || f === "duration_months" || f === "duration_per_session" || f === "visits_included" || f === "valid_days") timing.push(f);
+      else if (f === "make" || f === "model" || f === "year" || f === "mileage_km" || f === "fuel_type" || f === "transmission") vehicle.push(f);
+      else if (f === "menu_category" || f === "dietary_tags" || f === "allergens" || f === "calories" || f === "spice_level") food.push(f);
+      else if (f === "reason_for_visit" || f === "insurance_info" || f === "pet_name" || f === "pet_type") health.push(f);
+      else if (f === "includes" || f === "included_services" || f === "special_requests") included.push(f);
+      else if (f === "instructor" || f === "specialist_name" || f === "difficulty_level" || f === "session_type" || f === "treatment_type" || f === "service_category" || f === "consultation_type" || f === "meeting_type" || f === "capacity" || f === "max_guests") specs.push(f);
+      else if (f === "pickup_location" || f === "dropoff_location" || f === "lease_duration" || f === "furnished" || f === "floor" || f === "bedrooms" || f === "bathrooms" || f === "size_sqm" || f === "room_size_sqm" || f === "room_view" || f === "bed_config") specs.push(f);
+      else if (f === "amenities") specs.push(f);
+      else if (f === "brand" || f === "stock_status" || f === "condition") specs.push(f);
+    }
+
+    if (timing.length) sections.push({ title: t("detail.timing", "Dauer & Verfügbarkeit"), icon: "time-outline", fields: timing });
+    if (specs.length) sections.push({ title: t("detail.specs", "Details"), icon: "information-circle-outline", fields: specs });
+    if (stay.length) sections.push({ title: t("detail.stay", "Stay Information"), icon: "bed", fields: stay });
+    if (vehicle.length) sections.push({ title: t("detail.vehicle", "Fahrzeugdaten"), icon: "car-sport-outline", fields: vehicle });
+    if (food.length) sections.push({ title: t("detail.food", "Gerichtinfos"), icon: "restaurant-outline", fields: food });
+    if (health.length) sections.push({ title: t("detail.health", "Gesundheit & Pflege"), icon: "medkit-outline", fields: health });
+    if (included.length) sections.push({ title: t("detail.included", "Enthalten"), icon: "list-outline", fields: included });
+
+    return sections;
+  };
+
+  const getFacilities = (): string[] => {
+    if (!service?.facilities || !Array.isArray(service.facilities)) return [];
+    return service.facilities.map((f: string) => f.charAt(0).toUpperCase() + f.slice(1).replace(/-/g, " "));
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.skeletonHero} />
+          <View style={styles.skeletonBlock}>
+            <View style={styles.skeletonLine} />
+            <View style={[styles.skeletonLine, { width: "60%" }]} />
+          </View>
+          <View style={styles.skeletonRow}>
+            <View style={styles.skeletonCard} />
+            <View style={styles.skeletonCard} />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (!service) {
+    return (
+      <SafeAreaView style={styles.centered} edges={["top"]}>
+        <ErrorState
+          message={t("services.notFound", "Dienst nicht gefunden")}
+          fullWidth
+          onRetry={() => loadService()}
+        />
+        <Pressable style={[styles.backButton, { backgroundColor: COLORS.servicesAccent }]} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>{t("common.back")}</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.backgroundPage }]} edges={["top", "bottom"]}>
+      <Modal visible={themedAlertVisible} transparent animationType="fade">
+        <View style={styles.themedAlertOverlay}><View style={styles.themedAlertContainer}>
+          <Text style={styles.themedAlertMessage}>{themedAlertMessage}</Text>
+          <Pressable style={styles.themedAlertButton} onPress={() => setThemedAlertVisible(false)}>
+            <Text style={styles.themedAlertButtonText}>OK</Text>
+          </Pressable>
+        </View></View>
+      </Modal>
+      <KeyboardAvoidingView style={styles.flex1} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 30}>
+        <ScrollView
+          style={[styles.flex1, Platform.OS === "web" ? { width: "100%", maxWidth: 1280, alignSelf: "center" } as any : undefined]}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.topRow}>
+            <Pressable style={styles.backButtonRow} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={20} color={COLORS.primaryDark} />
+              <Text style={styles.backText}>{t("common.back")}</Text>
+            </Pressable>
+            <Pressable style={styles.reportBtn} hitSlop={8} onPress={() => setReportOpen(true)}>
+              <Ionicons name="flag-outline" size={18} color="#9ca3af" />
+            </Pressable>
+          </View>
+          <ContentHero
+            coverImageUrl={service.cover_image_url}
+            videoUrl={service.video_url}
+            muxThumbnailUrl={service.mux_thumbnail_url}
+            videoStatus={service.video_status}
+            isCoverVideo={!service.cover_image_url && !!service.video_url}
+            coverFocalPoint={service.cover_focal_point}
+            imageUrls={service.image_urls}
+            title={service.name}
+            hideBack
+            flush
+            badges={[
+              { icon: getTypeIcon(service.type), text: getTypeLabel(service.type), color: SERVICES_ACCENT },
+              ...(service.price ? [{ icon: "cash", text: formatPrice(service.price), color: "#FFC400" }] : []),
+            ]}
+            subtitle={service.address ? { text: service.address, icon: "location" } : undefined}
+            mediaItems={allMediaItems}
+            onMediaPress={(idx) => { setMediaViewerItems(allMediaItems); setMediaViewerIndex(idx); setMediaViewerVisible(true); }}
+          />
+
+          <DetailFacts>
+            <DetailFact
+              icon={getTypeIcon(service.type) as any}
+              label={t("services.serviceCategory", "Kategorie")}
+              value={getTypeLabel(service.type)}
+              accentColor={SERVICES_ACCENT}
+            />
+            {service.price ? (
+              <DetailFact
+                icon="cash-outline"
+                label={service.type === "hotel_room" ? t("services.pricePerNight", "Price / night") : t("services.priceFrom", "Price from")}
+                value={formatPrice(service.price)}
+                accentColor={SERVICES_ACCENT}
+              />
+            ) : null}
+            {getQuickInfoFields().map((fieldName) => {
+              const value = serviceField(fieldName);
+              const config = FIELD_REGISTRY[fieldName];
+              if (!config) return null;
+              let displayValue = config.displayFormat === "duration" ? formatDuration(Number(value), t) : String(value);
+              if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
+              if (fieldName === "capacity" || fieldName === "max_guests") displayValue = t("services.upTo", "Bis zu") + " " + value;
+              return (
+                <DetailFact
+                  key={fieldName}
+                  icon={getFieldIcon(fieldName) as any}
+                  label={t(config.labelKey, config.labelKey)}
+                  value={displayValue}
+                  accentColor={SERVICES_ACCENT}
+                />
+              );
+            })}
+            {service.business_name ? (
+              <DetailFact
+                icon="business"
+                label={t("services.viewBusiness") || "Unternehmen"}
+                value={service.business_name}
+                accentColor={SERVICES_ACCENT}
+                onPress={service.business_id ? () => router.push(`/business/${service.business_id}` as any) : undefined}
+              />
+            ) : null}
+          </DetailFacts>
+
+          {service.latitude != null && service.longitude != null && (
+            <ContentMap
+              latitude={service.latitude}
+              longitude={service.longitude}
+              title={service.name}
+              address={service.address ?? undefined}
+              flush
+            />
+          )}
+
+          {service.description ? (
+            <View style={styles.plainSection}>
+              <Text style={styles.sectionTitle}>{t("services.description", "Beschreibung")}</Text>
+              <Text style={styles.description}>{service.description}</Text>
+            </View>
+          ) : null}
+
+          {getModuleDetailSections().map((section) => {
+            const facts = section.fields.map((fieldName) => {
+              const value = serviceField(fieldName);
+              const config = FIELD_REGISTRY[fieldName];
+              if (!config || value === undefined || value === null) return null;
+              let displayValue = String(value);
+              if (config.component === "number" && config.displayFormat === "duration") displayValue = formatDuration(Number(value), t);
+              if (fieldName === "size_sqm" || fieldName === "room_size_sqm") displayValue = String(value) + " m²";
+              if (fieldName === "calories") displayValue = String(value) + " kcal";
+              if (fieldName === "mileage_km") displayValue = String(value) + " km";
+              if (fieldName === "duration_days") displayValue = String(value) + " " + t("services.days", "days");
+              if (fieldName === "duration_months") displayValue = String(value) + " " + t("services.months", "months");
+              if (fieldName === "sessions_count") displayValue = String(value) + " " + t("services.sessions", "sessions");
+              if (config.component === "chips" || config.component === "chips-multi") displayValue = optionLabel(String(value), t);
+              if (fieldName === "available_from" || fieldName === "available_until") {
+                try { displayValue = formatDate(String(value)); } catch {}
+              }
+              if (fieldName === "min_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));
+              if (fieldName === "max_nights") displayValue = String(value) + " " + (Number(value) === 1 ? t("services.night", "night") : t("services.nights", "nights"));
+              return (
+                <DetailFact
+                  key={fieldName}
+                  icon={(getFieldIcon(fieldName) || "information-circle") as any}
+                  label={t(config.labelKey, config.labelKey)}
+                  value={displayValue}
+                  accentColor={SERVICES_ACCENT}
+                />
+              );
+            }).filter(Boolean);
+            if (facts.length === 0) return null;
+            return (
+              <View key={section.title} style={styles.plainSection}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <DetailFacts>{facts}</DetailFacts>
+              </View>
+            );
+          })}
+
+          {getFacilities().length > 0 && (
+            <View style={styles.plainSection}>
+              <Text style={styles.sectionTitle}>{t("services.ourServices", "Our services")}</Text>
+              {getFacilities().map((f) => (
+                <View key={f} style={styles.facilityRow}>
+                  <Ionicons name="checkmark-circle-outline" size={18} color={SERVICES_ACCENT} />
+                  <Text style={styles.facilityText}>{f}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {allMediaItems.length > 0 && (
+            <ContentGallery mediaItems={allMediaItems} title={t("services.gallery", "Gallery")} />
+          )}
+
+          {ctaType !== "browse_only" && (
+            <BottomCTA
+              primaryLabel={ctaLabel}
+              primaryIcon={ctaIcon}
+              accentColor={SERVICES_ACCENT}
+              useGradient
+              gradientColors={["#7B3FF2", "#4C1D95"]}
+              onPrimary={handleCta}
+              saved={isSaved}
+              onSave={handleToggleSave}
+              onShare={handleShareService}
+              onWhatsApp={handleWhatsAppShare}
+            />
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <ReportModal
+        visible={reportOpen}
+        targetType="service"
+        targetId={service?.service_id || ""}
+        sessionToken={sessionToken}
+        onClose={() => setReportOpen(false)}
+      />
+
+      <ShareContent
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        contentType="service"
+        contentId={service.service_id}
+        title={service.name}
+        description={service.description || undefined}
+        imageUrl={service.cover_image_url || service.image_urls?.[0] || undefined}
+      />
+      <LazyMediaViewer visible={mediaViewerVisible} media={mediaViewerItems} initialIndex={mediaViewerIndex} onClose={() => setMediaViewerVisible(false)} />
+
+      {/* Booking Modal */}
+      <ServiceBookingModal
+        visible={showBooking}
+        service={service}
+        rootCategory={service?.root_category || ""}
+        sessionToken={sessionToken || ""}
+        userName={user?.name}
+        userEmail={user?.email}
+        onClose={() => setShowBooking(false)}
+        onSuccess={() => setShowBooking(false)}
+      />
+
+      {/* Inquiry Modal */}
+      <Modal visible={showInquiry} animationType="slide" onRequestClose={() => { setShowInquiry(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage(""); }}>
+        <SafeAreaView style={styles.bookingContainer} edges={["top", "bottom"]}>
+          <View style={styles.bookingHeader}>
+            <Pressable onPress={() => { setShowInquiry(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage(""); }}><Ionicons name="close" size={24} color={COLORS.servicesAccent} /></Pressable>
+            <Text style={styles.bookingTitle}>{t("services.sendMessage")}</Text>
+            <View style={{ width: 24 }} />
+          </View>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <ScrollView style={styles.bookingForm} keyboardShouldPersistTaps="handled">
+            <Text style={styles.bookingServiceName}>{service.name}</Text>
+            {service.price && <Text style={styles.bookingServicePrice}>{formatPrice(service.price)}</Text>}
+            <Text style={styles.modalSectionTitle}>{t("services.yourName")} *</Text>
+            <TextInput style={styles.input} value={inquiryName} onChangeText={setInquiryName} placeholder={user?.name || "Name"} />
+            <Text style={styles.modalSectionTitle}>{t("services.yourEmail")}</Text>
+            <TextInput style={styles.input} value={inquiryEmail} onChangeText={setInquiryEmail} placeholder={user?.email || "email@example.com"} keyboardType="email-address" />
+            <Text style={styles.modalSectionTitle}>{t("services.message")} *</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={inquiryMessage} onChangeText={setInquiryMessage} placeholder={t("services.messagePlaceholder")} multiline numberOfLines={4} />
+            <Pressable style={[styles.submitButton, submittingInquiry && styles.submitButtonDisabled]} onPress={handleSendInquiry} disabled={submittingInquiry}>
+              <LinearGradient
+                colors={["#7B3FF2", "#4C1D95"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitGradient}
+              >
+                {submittingInquiry ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>{t("services.send")}</Text>}
+              </LinearGradient>
+            </Pressable>
+            <View style={{ height: 20 }} />
+          </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, overflow: "hidden" },
+  flex1: { flex: 1 },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.backgroundPage },
+  content: { paddingBottom: 60 },
+  backButton: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: BORDER_RADIUS.md, alignSelf: "center", marginTop: SPACING.section },
+  backButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "700" },
+  backButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignSelf: "flex-start",
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 16,
+  },
+  reportBtn: {
+    padding: 6,
+  },
+  backText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.primaryDark,
+  },
+  plainSection: { marginTop: SPACING.section, paddingHorizontal: SPACING.std },
+  sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", marginBottom: SPACING.small },
+  description: { fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 22 },
+  facilityRow: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.tiny },
+  facilityText: { flex: 1, fontSize: FONT_SIZES.bodySmall, color: "#264348", lineHeight: 20 },
+  businessRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.card,
+    padding: SPACING.section, marginHorizontal: SPACING.page, marginTop: SPACING.small, gap: SPACING.small, ...SHADOWS.subtle,
+  },
+  businessRowText: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.servicesAccent, flex: 1 },
+  themedAlertOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: SPACING.section },
+  themedAlertContainer: { backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.xl, padding: SPACING.page, width: "100%", maxWidth: 320, alignItems: "center" },
+  themedAlertMessage: { fontSize: FONT_SIZES.body, color: COLORS.textPrimary, textAlign: "center", marginBottom: SPACING.section, lineHeight: 22 },
+  themedAlertButton: { backgroundColor: COLORS.servicesAccent, paddingHorizontal: SPACING.large, paddingVertical: SPACING.compact, borderRadius: BORDER_RADIUS.md, width: "100%", alignItems: "center" },
+  themedAlertButtonText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "600" },
+  skeletonHero: { width: "100%", height: 220, borderRadius: BORDER_RADIUS.xl, backgroundColor: COLORS.borderGray, marginBottom: SPACING.compact },
+  skeletonBlock: { marginBottom: SPACING.compact },
+  skeletonLine: { height: 20, borderRadius: BORDER_RADIUS.sm, backgroundColor: COLORS.borderGray, marginBottom: SPACING.small },
+  skeletonRow: { flexDirection: "row", gap: SPACING.small },
+  skeletonCard: { flex: 1, height: 100, borderRadius: BORDER_RADIUS.lg, backgroundColor: COLORS.borderGray },
+  bookingContainer: { flex: 1, backgroundColor: "#fff" },
+  bookingHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACING.std, paddingVertical: SPACING.compact, borderBottomWidth: 1, borderBottomColor: COLORS.borderGray },
+  bookingTitle: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: COLORS.servicesAccent },
+  bookingForm: { flex: 1, paddingHorizontal: SPACING.std },
+  bookingServiceName: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: COLORS.textPrimary, marginTop: SPACING.compact },
+  bookingServicePrice: { fontSize: FONT_SIZES.body, color: COLORS.textSecondary, marginBottom: SPACING.std },
+  modalSectionTitle: { fontSize: FONT_SIZES.small, fontWeight: "600", color: COLORS.textDark, marginBottom: SPACING.small, marginTop: SPACING.std },
+  sectionHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: SPACING.std, marginBottom: SPACING.small },
+  calendarToggleBtn: { padding: 6, borderRadius: BORDER_RADIUS.sm, backgroundColor: COLORS.servicesAccent + "10" },
+  calendarWrapper: { borderRadius: BORDER_RADIUS.md, overflow: "hidden", marginBottom: SPACING.std, borderWidth: 1, borderColor: COLORS.borderGray },
+  dateRow: { flexGrow: 0, marginBottom: SPACING.std },
+  dateChip: { width: 56, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.borderGray, alignItems: "center", marginRight: SPACING.small, backgroundColor: "#fff" },
+  dateChipSelected: { backgroundColor: COLORS.servicesAccent, borderColor: COLORS.servicesAccent },
+  dateChipDay: { fontSize: 11, color: COLORS.textSecondary },
+  dateChipDaySelected: { color: "#fff" },
+  dateChipNum: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: COLORS.textPrimary },
+  dateChipNumSelected: { color: "#fff" },
+  slotsGrid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: SPACING.std },
+  slotChip: { paddingHorizontal: SPACING.compact, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.borderGray, backgroundColor: "#fff" },
+  slotChipSelected: { backgroundColor: COLORS.servicesAccent, borderColor: COLORS.servicesAccent },
+  slotChipFull: { opacity: 0.4, borderColor: COLORS.danger },
+  slotChipText: { fontSize: FONT_SIZES.small, color: COLORS.textDark },
+  slotChipTextSelected: { color: "#fff" },
+  slotChipTextFull: { textDecorationLine: "line-through" },
+  input: { borderWidth: 1, borderColor: COLORS.borderGray, borderRadius: BORDER_RADIUS.md, paddingHorizontal: 14, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, marginBottom: SPACING.compact },
+  textArea: { minHeight: 80, textAlignVertical: "top" },
+  guestRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginVertical: SPACING.small },
+  stepper: { flexDirection: "row", alignItems: "center", gap: SPACING.compact },
+  stepperBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: COLORS.borderGray, alignItems: "center", justifyContent: "center" },
+  stepperValue: { fontSize: FONT_SIZES.h4, fontWeight: "700", color: COLORS.textPrimary, minWidth: 30, textAlign: "center" },
+  submitButton: { borderRadius: BORDER_RADIUS.md, marginTop: SPACING.std, overflow: "hidden" },
+  submitGradient: { paddingVertical: SPACING.std, alignItems: "center" },
+  submitButtonDisabled: { opacity: 0.6 },
+  submitButtonText: { fontSize: FONT_SIZES.body, fontWeight: "700", color: "#fff" },
+  moduleGrid: { gap: SPACING.small },
+  moduleItem: { flexDirection: "row", alignItems: "center", gap: SPACING.small, paddingVertical: SPACING.tiny },
+  moduleLabel: { fontSize: FONT_SIZES.caption, color: COLORS.textMuted, width: 110 },
+  moduleValue: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textPrimary, fontWeight: "600", flex: 1 },
+});

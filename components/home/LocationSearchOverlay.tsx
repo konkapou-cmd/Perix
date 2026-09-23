@@ -1,0 +1,187 @@
+import React, { useState, useRef, useEffect } from "react";
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { COLORS } from "../../lib/designTokens";
+import { apiRequest } from "../../lib/api/core";
+
+interface PlaceSuggestion {
+  place_id: string;
+  description: string;
+  lat: number | null;
+  lng: number | null;
+  lon?: number | null;
+}
+
+interface LocationSearchOverlayProps {
+  visible: boolean;
+  sessionToken?: string | null;
+  nearLat?: number | null;
+  nearLng?: number | null;
+  onClose: () => void;
+  onSelectPlace: (lat: number, lng: number, name: string) => void;
+}
+
+export function LocationSearchOverlay({ visible, sessionToken, nearLat, nearLng, onClose, onSelectPlace }: LocationSearchOverlayProps) {
+  const { t } = useTranslation();
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
+
+  // Cancel pending work when the modal closes
+  useEffect(() => {
+    if (!visible) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      requestIdRef.current += 1;
+      setLoading(false);
+    }
+  }, [visible]);
+
+  const searchPlaces = async (text: string) => {
+    setQuery(text);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (text.length < 2 || !sessionToken) {
+      setSuggestions([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const requestId = ++requestIdRef.current;
+    debounceRef.current = setTimeout(async () => {
+      try {
+        let url = `/places/autocomplete?input=${encodeURIComponent(text)}`;
+        if (nearLat != null && nearLng != null) {
+          url += `&near_lat=${nearLat}&near_lng=${nearLng}`;
+        }
+        const data = await apiRequest<{ predictions: PlaceSuggestion[] }>(
+          url, "GET", sessionToken
+        );
+        if (requestId !== requestIdRef.current) return; // stale response
+        setSuggestions(data.predictions || []);
+      } catch (error) {
+        console.warn("[LocationSearch] failed:", error);
+        if (requestId === requestIdRef.current) setSuggestions([]);
+      } finally {
+        if (requestId === requestIdRef.current) setLoading(false);
+      }
+    }, 450);
+  };
+
+  const handleSelect = (place: PlaceSuggestion) => {
+    const lng = place.lng ?? place.lon ?? null;
+    if (place.lat != null && lng != null) {
+      onSelectPlace(place.lat, lng, place.description.split(",")[0]);
+    }
+    setQuery("");
+    setSuggestions([]);
+    onClose();
+  };
+
+  const handleClose = () => {
+    setQuery("");
+    setSuggestions([]);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={handleClose}>
+      <View style={styles.backdrop}>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color="#264348" />
+            <TextInput
+              style={styles.input}
+              placeholder={t("location.searchPlaceholder", "Search city or location...")}
+              placeholderTextColor="#264348"
+              value={query}
+              onChangeText={searchPlaces}
+              autoFocus
+            />
+            {query.length > 0 && (
+              <Pressable onPress={() => { setQuery(""); setSuggestions([]); }}>
+                <Ionicons name="close-circle" size={20} color="#264348" />
+              </Pressable>
+            )}
+            <Pressable onPress={handleClose}>
+              <Ionicons name="close" size={22} color="#264348" />
+            </Pressable>
+          </View>
+          {loading && <ActivityIndicator style={styles.loader} size="small" color="#264348" />}
+          {suggestions.length > 0 && (
+            <ScrollView nestedScrollEnabled style={styles.suggestionList}>
+              {suggestions.map((item) => (
+                <Pressable key={item.place_id} style={styles.suggestionItem} onPress={() => handleSelect(item)}>
+                  <Ionicons name="location" size={18} color="#264348" />
+                  <Text style={styles.suggestionText} numberOfLines={2}>{item.description}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  searchContainer: {
+    backgroundColor: COLORS.background,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: COLORS.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, alignSelf: "center" },
+    }),
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 48,
+    gap: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(38,67,72,0.2)",
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: "#264348",
+    paddingVertical: 0,
+  },
+  loader: {
+    marginTop: 12,
+    alignSelf: "center",
+  },
+  suggestionList: {
+    maxHeight: 320,
+  },
+  suggestionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.borderGray,
+  },
+  suggestionText: {
+    fontSize: 15,
+    color: "#264348",
+    flex: 1,
+  },
+});

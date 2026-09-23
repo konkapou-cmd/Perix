@@ -1,0 +1,305 @@
+import { Ionicons } from "@expo/vector-icons";
+
+type IconName = keyof typeof Ionicons.glyphMap;
+
+export const CATEGORY_ICONS: Record<string, IconName> = {
+  // Root categories
+  food: "restaurant",
+  drinks: "wine",
+  music: "musical-notes",
+  nightlife: "moon",
+  sports: "fitness",
+  beauty: "rose",
+  health: "medkit",
+  education: "school",
+  shopping: "bag",
+  technology: "hardware-chip",
+  automotive: "car",
+  realestate: "home",
+  "rental-real-estate": "home",
+  professional: "briefcase",
+  pets: "paw",
+  travel: "airplane",
+  rentals: "home",
+  "local-hotels": "bed",
+  // Subcategory-level slugs
+  "sports-fitness-wellness": "fitness",
+  "fashion-accessories": "shirt",
+  "beauty-care": "rose",
+  "entertainment-events": "ticket",
+  "nightlife-social": "wine",
+  "food-dining": "restaurant",
+  "education-creativity": "school",
+  "professional-services": "briefcase",
+  "shopping-retail": "bag",
+  healthcare: "medkit",
+  arts: "color-palette",
+  community: "people",
+  entertainment: "ticket",
+  fashion: "shirt",
+  home: "home",
+  other: "grid",
+};
+
+export const categoryIcon = (slug: string): IconName =>
+  CATEGORY_ICONS[slug] || "grid";
+
+// Per-category icon colors (icons only — text stays neutral).
+export const CATEGORY_COLORS: Record<string, string> = {
+  // Root categories
+  "sports-fitness-wellness": "#8BC34A", // light green
+  sports: "#8BC34A",
+  fitness: "#8BC34A",
+  "fashion-accessories": "#E8C15A", // vanilla
+  fashion: "#E8C15A",
+  "beauty-care": "#FF69B4", // rose
+  beauty: "#FF69B4",
+  "entertainment-events": "#FF8C42", // orange
+  entertainment: "#FF8C42",
+  "nightlife-social": "#7B2CBF", // purple
+  nightlife: "#7B2CBF",
+  "food-dining": "#FFC93C", // yellow
+  food: "#FFC93C",
+  drinks: "#FFC93C",
+  "education-creativity": "#34A853", // light green (different from sport)
+  education: "#34A853",
+  arts: "#34A853",
+  "professional-services": "#4169E1", // royal blue
+  professional: "#4169E1",
+  "shopping-retail": "#E91E8C", // fuchsia
+  shopping: "#E91E8C",
+  automotive: "#E53935", // red
+  healthcare: "#2F7D32", // darker green
+  health: "#2F7D32",
+  pets: "#8D6E63", // brown
+  rentals: "#4CAF50", // green like rentals
+  "rental-real-estate": "#4CAF50",
+  realestate: "#4CAF50",
+  hotels: "#5BC0EB", // light blue
+  "local-hotels": "#5BC0EB",
+  travel: "#5BC0EB",
+  technology: "#4169E1",
+  music: "#7B2CBF",
+  community: "#4169E1",
+};
+
+// Subcategory color overrides (more specific than the root color).
+const SUBCATEGORY_COLOR_OVERRIDES: Record<string, string> = {
+  barbershops: "#5BC0EB", // light blue
+  seafood: "#56B4E9", // fish -> light blue
+  fish: "#56B4E9",
+  vegan: "#2ECC71", // green
+  vegetarian: "#2ECC71",
+  pizza: "#E53935", // red
+  italian: "#E53935",
+  burger: "#C67B3D", // burger colors
+  bakeries: "#8D6E63", // brown bread
+  "coffee-shops": "#8D6E63",
+  cafes: "#8D6E63",
+};
+
+export const categoryColor = (slug: string): string | undefined =>
+  CATEGORY_COLORS[slug];
+
+export const subcategoryColor = (
+  slug: string,
+  rootSlug?: string
+): string | undefined =>
+  SUBCATEGORY_COLOR_OVERRIDES[slug] ?? CATEGORY_COLORS[slug] ?? (rootSlug ? CATEGORY_COLORS[rootSlug] : undefined);
+
+const SUBICON_EXACT: Record<string, IconName> = {
+  // Sports, Fitness & Wellness
+  gyms: "barbell",
+  crossfit: "barbell",
+  "functional-training": "fitness",
+  "personal-training": "body",
+  pilates: "flower",
+  yoga: "body",
+  "group-fitness": "people",
+  "team-sports": "football",
+  "racket-sports": "tennisball",
+  swimming: "water",
+  "martial-arts": "flash",
+  climbing: "trail-sign",
+  cycling: "bicycle",
+  "running-clubs": "walk",
+  "water-sports": "boat",
+  "winter-sports": "snow",
+  "extreme-sports": "flash",
+  physiotherapy: "fitness",
+  rehabilitation: "heart",
+  "sports-massage": "hand-left",
+  "recovery-centers": "pulse",
+  "wellness-centers": "flower",
+  meditation: "leaf",
+  // Fashion & Accessories
+  "casual-wear": "shirt",
+  "formal-wear": "shirt",
+  sportswear: "fitness",
+  "childrens-clothing": "happy",
+  "vintage-thrift": "storefront",
+  sneakers: "footsteps",
+  "formal-shoes": "footsteps",
+  "athletic-footwear": "footsteps",
+  jewelry: "diamond",
+  watches: "time",
+  sunglasses: "glasses",
+  "fashion-accessories": "bag",
+  "tailoring-custom": "cut",
+  "bags-leather-goods": "bag-handle",
+  "luxury-fashion": "diamond",
+  // Entertainment & Events
+  cinema: "film",
+  theatre: "ticket",
+  "stand-up-comedy": "mic",
+  "cultural-events": "color-palette",
+  exhibitions: "images",
+  "escape-rooms": "key",
+  "vr-gaming": "glasses",
+  arcades: "game-controller",
+  bowling: "game-controller",
+  billiards: "ellipsis-horizontal",
+  "indoor-playgrounds": "happy",
+  "family-activity-centers": "people",
+  "event-venues": "business",
+  "concert-halls": "musical-notes",
+  djs: "disc",
+  bands: "people",
+  singers: "mic",
+  comedians: "happy",
+  magicians: "sparkles",
+  dancers: "body",
+  actors: "people",
+  "mcs-hosts": "mic",
+  "cultural-groups": "people",
+  // Nightlife & Social
+  "cocktail-bars": "wine",
+  "wine-bars": "wine",
+  "beer-bars": "beer",
+  "sports-bars": "football",
+  "rock-bars": "musical-notes",
+  "jazz-bars": "musical-notes",
+  "live-folk-music": "musical-notes",
+  "live-music-venues": "musical-notes",
+  "dj-clubs": "disc",
+  "dance-clubs": "musical-notes",
+  "after-hours-clubs": "moon",
+  // Professional Services
+  "law-firms": "ribbon",
+  accounting: "calculator",
+  "tax-services": "receipt",
+  insurance: "shield",
+  consulting: "bulb",
+  "translation-services": "language",
+  "it-services": "code-slash",
+  "software-development": "code",
+  "web-design": "globe",
+  // Beauty & Personal Care
+  "hair-salons": "cut",
+  barbershops: "cut",
+  "nail-salons": "hand-left",
+  "dermatology-laser": "flash",
+  "facial-body-treatments": "rose",
+  spas: "flower",
+  "makeup-services": "brush",
+  "tanning-salons": "sunny",
+  // Education & Creativity
+  tutoring: "book",
+  "language-schools": "language",
+  "music-schools": "musical-notes",
+  "dance-schools": "musical-notes",
+  "art-workshops": "color-palette",
+  // Food & Dining
+  "casual-dining": "restaurant",
+  "fine-dining": "restaurant",
+  "fast-casual": "fast-food",
+  buffet: "restaurant",
+  "food-courts": "restaurant",
+  italian: "pizza",
+  greek: "restaurant",
+  balkan: "restaurant",
+  german: "restaurant",
+  african: "restaurant",
+  american: "fast-food",
+  arabic: "restaurant",
+  japanese: "restaurant",
+  chinese: "restaurant",
+  korean: "restaurant",
+  thai: "restaurant",
+  mexican: "restaurant",
+  indian: "restaurant",
+  mediterranean: "restaurant",
+  asian: "restaurant",
+  seafood: "fish",
+  steakhouse: "restaurant",
+  vegan: "leaf",
+  vegetarian: "leaf",
+  brunch: "cafe",
+  pizza: "pizza",
+  burger: "fast-food",
+  cafes: "cafe",
+  "coffee-shops": "cafe",
+  bakeries: "cafe",
+  // Local Hotels
+  hotels: "bed",
+  guesthouses: "home",
+  hostels: "bed",
+  // Shopping & Retail
+  electronics: "hardware-chip",
+  "home-goods": "home",
+  furniture: "home",
+  "books-stationery": "book",
+  florists: "flower",
+  "gifts-souvenirs": "gift",
+  // Automotive
+  "car-dealers": "car",
+  "car-rentals": "key",
+  "repair-shops": "construct",
+  "car-washes": "water",
+  // Healthcare
+  doctors: "medkit",
+  dentists: "medical",
+  clinics: "business",
+  pharmacies: "medical",
+  "mental-health": "heart",
+  // Pets
+  veterinarians: "paw",
+  "pet-grooming": "cut",
+  "pet-supplies": "bag",
+};
+
+const SUBICON_RULES: [RegExp, IconName][] = [
+  [/gym|crossfit|functional|personal-train|pilates|yoga|group-fitness|fitness/, "barbell"],
+  [/team-sport|racket|swim|martial|climb|cycling|run|water-sport|winter-sport|extreme|sports|sport/, "football"],
+  [/physio|rehab|massage|recovery|wellness|meditation/, "leaf"],
+  [/hotel|guesthouse|hostel/, "bed"],
+  [/apartment|houses|studios|rooms|real-estate|property/, "home"],
+  [/casual-wear|formal-wear|sportswear|children|vintage|thrift|clothing|wear|tailoring/, "shirt"],
+  [/sneaker|shoes|footwear/, "footsteps"],
+  [/jewel|watch|sunglass|bag|leather|luxury|accessories/, "diamond"],
+  [/cinema|theatre|stand-up|comedy|cultural|exhibit|escape|vr-|arcade|bowling|billiard|playground|family-activ|venue|concert/, "ticket"],
+  [/dj|band|singer|comedian|magician|dancer|actor|mc|host|cultural-group|artist/, "mic"],
+  [/cocktail|wine-bar|beer|sports-bar|rock-bar|jazz|folk|live-music|dj-club|dance-club|after-hours|bar|club/, "wine"],
+  [/it-service|it-support|software|web-design|web-develop|development|tech-support|it-/, "code-slash"],
+  [/law|account|tax|insur|consult|marketing|translation|legal|financial|tech/, "briefcase"],
+  [/hair|barber|nail|derma|laser|facial|spa|makeup|tanning|salon|skin/, "rose"],
+  [/tutor|language-school|music-school|dance-school|art-workshop|school|academic|creative/, "school"],
+  [/dining|buffet|food-court|italian|asian|greek|balkan|german|african|american|arabic|japanese|chinese|korean|thai|mexican|indian|mediterranean|seafood|steak|vegan|vegetarian|brunch|pizza|burger|cafe|coffee|bakery|cuisine|restaurant|food/, "restaurant"],
+  [/electronics|home-goods|furniture|books|stationery|florist|gift|souvenir|shopping|retail|store/, "bag"],
+  [/car|auto|repair|wash|vehicle/, "car"],
+  [/doctor|dentist|clinic|pharma|mental-health|health/, "medkit"],
+  [/veterinar|pet/, "paw"],
+  [/rental/, "key"],
+];
+
+export const subcategoryIcon = (slug: string): IconName => {
+  if (!slug) return "ellipsis-horizontal";
+  const exact = SUBICON_EXACT[slug];
+  if (exact) return exact;
+  const existing = CATEGORY_ICONS[slug];
+  if (existing) return existing;
+  for (const [re, icon] of SUBICON_RULES) {
+    if (re.test(slug)) return icon;
+  }
+  return "pricetag";
+};

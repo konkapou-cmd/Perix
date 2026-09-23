@@ -1,0 +1,716 @@
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import {
+  Alert, Modal, Pressable, ScrollView, StyleSheet,
+  Text, TextInput, View, KeyboardAvoidingView, Platform, ActivityIndicator,
+} from "react-native";
+import DatePickerModal from "../shared/DatePickerModal";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../lib/designTokens";
+import { formatDate } from "../../lib/formatDate";
+import { ListingType, ListingStatus, ListingCreatePayload, Listing, LocationVisibility, SellerType, PublicationScope } from "../../lib/api/listings";
+import { createListing, updateListing } from "../../lib/api/listings";
+import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
+import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
+import MarketplaceCategoryPicker from "../marketplace/MarketplaceCategoryPicker";
+import MarketplaceAttributeFields from "../marketplace/MarketplaceAttributeFields";
+import { getCategoryAttributes, getCategoryConfig, normalizeCategory } from "../../lib/marketplace/marketplaceTaxonomy";
+
+type Props = {
+  visible: boolean;
+  listingType: ListingType;
+  editingListing?: Listing | null;
+  sessionToken: string;
+  businessId?: string | null;
+  businessAddress?: string | null;
+  businessLatitude?: number | null;
+  businessLongitude?: number | null;
+  businessPublicLocationLabel?: string | null;
+  allowedTaxonomy?: Record<string, "*" | string[]> | null;
+  onClose: () => void;
+  onSave: () => void;
+  onCreated?: (listingId: string, effectiveStatus: ListingStatus) => void;
+};
+
+const HOME_TYPES = ["apartment", "house", "studio", "room"];
+const CONDITION_FALLBACKS: Record<string, string> = { new: "New", like_new: "Like new", good: "Good", used: "Used" };
+const DELIVERY_FALLBACKS: Record<string, string> = { pickup: "Pickup", shipping: "Shipping", both: "Both" };
+
+function listingToMedia(listing: Listing | null | undefined): MediaItem[] {
+  if (!listing) return [];
+  const items: MediaItem[] = [];
+  const seen = new Set<string>();
+
+  function push(item: MediaItem) {
+    if (!seen.has(item.uri)) {
+      seen.add(item.uri);
+      items.push(item);
+    }
+  }
+
+  if (listing.cover_image_url) {
+    push({ uri: listing.cover_image_url, type: "image", isCoverImage: true });
+  }
+
+  if (listing.video_url) {
+    push({ uri: listing.video_url, type: "video", isCoverVideo: !listing.cover_image_url });
+  }
+
+  if (listing.image_urls) {
+    listing.image_urls.forEach((u) => push({ uri: u, type: "image" }));
+  }
+
+  if (listing.gallery_images) {
+    listing.gallery_images.forEach((u) => push({ uri: u, type: "image" }));
+  }
+
+  if (listing.gallery_videos) {
+    listing.gallery_videos.forEach((u) => push({ uri: u, type: "video" }));
+  }
+
+  return items;
+}
+
+function hasUnresolvedMedia(media: MediaItem[]): boolean {
+  return media.some((m) => m.processingStatus === "processing" || m.processingStatus === "failed");
+}
+
+function mediaToPayload(media: MediaItem[]): { image_urls: string[]; gallery_images: string[]; gallery_videos: string[]; video_url?: string; cover_image_url?: string | null; cover_focal_point?: { x: number; y: number } } {
+  const ready = media.filter((m) => !m.processingStatus || m.processingStatus === "ready");
+  const images = ready.filter((m) => m.type === "image");
+  const videos = ready.filter((m) => m.type === "video");
+  const explicitCoverVideo = videos.find((m) => (m as any).isCoverVideo);
+  const explicitCoverImage = images.find((m) => (m as any).isCoverImage);
+  const coverImage = explicitCoverVideo ? null : explicitCoverImage ?? images[0] ?? null;
+  const primaryVideo = explicitCoverVideo ?? videos[0];
+  const coverItem = explicitCoverVideo || explicitCoverImage || images[0] || videos[0];
+  return {
+    cover_image_url: coverImage === null ? null : coverImage?.uri,
+    image_urls: images.map((m) => m.uri),
+    gallery_images: images.filter((m) => m.uri !== coverImage?.uri && coverImage !== null).map((m) => m.uri),
+    video_url: primaryVideo?.uri,
+    gallery_videos: videos.filter((m) => m.uri !== primaryVideo?.uri).map((m) => m.uri),
+    cover_focal_point: coverItem?.focalPoint ?? { x: 0.5, y: 0.5 },
+  };
+}
+
+export default function ListingModal({ visible, listingType, editingListing, sessionToken, businessId, businessAddress, businessLatitude, businessLongitude, businessPublicLocationLabel, allowedTaxonomy, onClose, onSave: onSaveProp, onCreated }: Props) {
+  const { t } = useTranslation();
+  const isProduct = listingType === "product";
+  const isEditing = !!editingListing;
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [status, setStatus] = useState<ListingStatus>("published");
+  const [address, setAddress] = useState("");
+  const [latitude, setLatitude] = useState<number | undefined>();
+  const [longitude, setLongitude] = useState<number | undefined>();
+  const [publicLocationLabel, setPublicLocationLabel] = useState("");
+  const [locationVisibility, setLocationVisibility] = useState<LocationVisibility>("approximate");
+  const [showPublicLabelInput, setShowPublicLabelInput] = useState(false);
+  const [media, setMedia] = useState<MediaItem[]>([]);
+
+  // Product fields
+  const [condition, setCondition] = useState("");
+  const [brand, setBrand] = useState("");
+  const [delivery, setDelivery] = useState("");
+
+  // Home fields
+  const [propertyType, setPropertyType] = useState("apartment");
+  const [bedrooms, setBedrooms] = useState("");
+  const [bathrooms, setBathrooms] = useState("");
+  const [sizeSqm, setSizeSqm] = useState("");
+  const [furnished, setFurnished] = useState(false);
+  const [availableFrom, setAvailableFrom] = useState("");
+  const [availableUntil, setAvailableUntil] = useState("");
+  const [leaseDuration, setLeaseDuration] = useState("");
+  const [deposit, setDeposit] = useState("");
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState<"available_from" | "available_until">("available_from");
+
+  const [listingCategory, setListingCategory] = useState("");
+  const [listingSubcategory, setListingSubcategory] = useState("");
+  const [listingAttributes, setListingAttributes] = useState<Record<string, any>>({});
+  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
+  const [sellerType, setSellerType] = useState<SellerType>(businessId ? "business" : "user");
+  const [sellerBusinessId, setSellerBusinessId] = useState<string | null>(businessId ?? null);
+  const [scope, setScope] = useState<PublicationScope>("profile_and_marketplace");
+
+  const hasCoordinates = useMemo(
+    () => Number.isFinite(latitude) && Number.isFinite(longitude),
+    [latitude, longitude],
+  );
+
+  useEffect(() => {
+    if (visible && editingListing) {
+      setTitle(editingListing.title || "");
+      setDescription(editingListing.description || "");
+      setPrice(editingListing.price || "");
+      setStatus(editingListing.status as ListingStatus);
+      setAddress(editingListing.address || "");
+      setLatitude(editingListing.latitude);
+      setLongitude(editingListing.longitude);
+      setPublicLocationLabel(editingListing.public_location_label || "");
+      setLocationVisibility(editingListing.location_visibility || "approximate");
+      setCondition(editingListing.condition || "");
+      setBrand(editingListing.brand || "");
+      setDelivery(editingListing.delivery_method || "");
+      setPropertyType(editingListing.property_type || "apartment");
+      setBedrooms(editingListing.bedrooms?.toString() || "");
+      setBathrooms(editingListing.bathrooms?.toString() || "");
+      setSizeSqm(editingListing.size_sqm?.toString() || "");
+      setFurnished(editingListing.furnished || false);
+      setAvailableFrom(editingListing.available_from || "");
+      setAvailableUntil(editingListing.available_until || "");
+      setLeaseDuration(editingListing.lease_duration || "");
+      setDeposit(editingListing.deposit || "");
+      const cat = normalizeCategory(editingListing.category || "");
+      setListingCategory(cat);
+      setListingSubcategory(editingListing.subcategory || "");
+      setListingAttributes(editingListing.attributes || {});
+      setSellerType(editingListing.seller_type || "user");
+      setSellerBusinessId(editingListing.business_id ?? null);
+      setScope(editingListing.publication_scope || "profile_and_marketplace");
+      setMedia(listingToMedia(editingListing));
+    } else if (visible) {
+      setTitle(""); setDescription(""); setPrice(""); setStatus("published");
+      setAddress(""); setLatitude(undefined); setLongitude(undefined); setMedia([]);
+      setPublicLocationLabel(""); setLocationVisibility("approximate");
+      setCondition(""); setBrand(""); setDelivery("");
+      setPropertyType("apartment"); setBedrooms(""); setBathrooms("");
+      setSizeSqm(""); setFurnished(false); setAvailableFrom(""); setAvailableUntil(""); setLeaseDuration(""); setDeposit("");
+      setListingCategory(""); setListingSubcategory(""); setListingAttributes({});
+      setSellerType(businessId ? "business" : "user");
+      setSellerBusinessId(businessId ?? null);
+      setScope("profile_and_marketplace");
+      if (businessId) {
+        setAddress(businessAddress ?? "");
+        setLatitude(businessLatitude ?? undefined);
+        setLongitude(businessLongitude ?? undefined);
+        setPublicLocationLabel(businessPublicLocationLabel ?? "");
+      }
+    }
+  }, [visible, editingListing]);
+
+  const handleSave = async () => {
+    if (savingRef.current) return;
+    if (!title.trim()) {
+      Alert.alert(t("common.error", "Error"), t("common.titleRequired", "Title is required"));
+      return;
+    }
+
+    if (hasUnresolvedMedia(media)) {
+      const failed = media.filter((m) => m.processingStatus === "failed");
+      if (failed.length > 0) {
+        Alert.alert(
+          t("upload.failedTitle", "Upload fehlgeschlagen"),
+          t("upload.failedBody", "Ein oder mehrere Uploads sind fehlgeschlagen. Diese werden beim Speichern nicht übernommen."),
+          [{ text: t("common.ok", "OK") }],
+        );
+      } else {
+        Alert.alert(
+          t("upload.processingVideoTitle", "Video wird verarbeitet"),
+          t("upload.processingVideoBody", "Warte bis das Video fertig verarbeitet wurde, oder entferne es."),
+        );
+      }
+      return;
+    }
+
+    if (!isProduct && availableFrom && availableUntil && availableUntil < availableFrom) {
+      Alert.alert(t("common.error", "Error"), t("marketplace.invalidAvailabilityWindow", "The available-until date must be after the available-from date."));
+      return;
+    }
+
+    let effectiveStatus: ListingStatus = status;
+    if (status === "published") {
+      const isBusinessSeller = sellerType === "business";
+      // Business listings always use the business address/location, so only
+      // user sellers need a verified address to publish.
+      if (!isBusinessSeller) {
+        if (!hasCoordinates) {
+          effectiveStatus = "draft";
+        } else if (locationVisibility === "approximate" && !publicLocationLabel.trim()) {
+          effectiveStatus = "draft";
+        }
+      }
+      if (effectiveStatus === "published" && isProduct && !listingCategory) {
+        effectiveStatus = "draft";
+      }
+      if (effectiveStatus === "published" && isProduct && !listingSubcategory) {
+        effectiveStatus = "draft";
+      }
+    }
+
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const mediaFields = mediaToPayload(media);
+      const payload: any = {
+        title: title.trim(),
+        description: description || null,
+        price: price || null,
+        status: effectiveStatus,
+        address: address || null,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
+        public_location_label: publicLocationLabel || null,
+        location_visibility: locationVisibility,
+        category: listingCategory || null,
+        subcategory: listingSubcategory || null,
+        attributes: Object.keys(listingAttributes).length > 0 ? listingAttributes : {},
+        publication_scope: scope,
+        condition: isProduct ? (condition || null) : undefined,
+        brand: isProduct ? (brand || null) : undefined,
+        delivery_method: isProduct ? (delivery || null) : undefined,
+        property_type: !isProduct ? propertyType : undefined,
+        bedrooms: !isProduct ? (bedrooms.trim() ? parseInt(bedrooms, 10) : null) : undefined,
+        bathrooms: !isProduct ? (bathrooms.trim() ? parseInt(bathrooms, 10) : null) : undefined,
+        size_sqm: !isProduct ? (sizeSqm.trim() ? parseInt(sizeSqm, 10) : null) : undefined,
+        furnished: !isProduct ? furnished : undefined,
+        available_from: !isProduct ? (availableFrom || null) : undefined,
+        available_until: !isProduct ? (availableUntil || null) : undefined,
+        lease_duration: !isProduct ? (leaseDuration || null) : undefined,
+        deposit: !isProduct ? (deposit || null) : undefined,
+        cover_focal_point: mediaFields.cover_focal_point,
+      };
+
+      if (!isEditing) {
+        payload.listing_type = listingType;
+        payload.seller_type = sellerType;
+        payload.seller_id = sellerType === "business" ? sellerBusinessId : undefined;
+        payload.business_id = sellerType === "business" ? sellerBusinessId : undefined;
+      }
+
+      const isCoverVideo = !!mediaFields.video_url && !mediaFields.cover_image_url;
+
+      if (mediaFields.cover_image_url !== undefined) {
+        payload.cover_image_url = mediaFields.cover_image_url;
+      }
+      if (mediaFields.video_url) {
+        payload.video_url = mediaFields.video_url;
+      }
+      if (mediaFields.image_urls.length > 0) {
+        payload.image_urls = mediaFields.image_urls;
+      }
+      if (mediaFields.gallery_images.length > 0) {
+        payload.gallery_images = mediaFields.gallery_images;
+      }
+      if (mediaFields.gallery_videos.length > 0) {
+        payload.gallery_videos = mediaFields.gallery_videos;
+      }
+
+      if (isEditing) {
+        await updateListing(sessionToken, editingListing!.listing_id, payload);
+      } else {
+        const created = await createListing(sessionToken, payload);
+        onCreated?.(created.listing_id, effectiveStatus);
+      }
+
+      if (effectiveStatus !== status) {
+        Alert.alert(
+          t("common.savedAsDraft", "Als Entwurf gespeichert"),
+          t("marketplace.draftLocationHint", "Füge eine verifizierte Adresse hinzu, bevor du veröffentlichst."),
+        );
+      }
+    } catch (e: any) {
+      console.log("[ListingModal] Save failed:", e?.message, e?.status);
+      Alert.alert(t("common.error", "Error"), e?.message || t("common.saveFailed", "Failed to save listing"));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+
+    try { onSaveProp(); } catch (_) {}
+    try { onClose(); } catch (_) {}
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <View style={styles.header}>
+            <Pressable onPress={onClose} style={styles.closeBtn}>
+              <Ionicons name="close" size={24} color="#264348" />
+            </Pressable>
+            <Text style={styles.headerTitle}>
+              {isEditing
+                ? t("common.edit", "Edit")
+                : isProduct
+                  ? t("marketplace.sellItem", "Sell an Item")
+                  : t("marketplace.listHome", "List a Home")}
+            </Text>
+            <View style={styles.closeBtn} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+            <Text style={styles.label}>
+              {t("common.title", "Title")} <Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder={t("marketplace.titlePlaceholder", "Titel")} placeholderTextColor={COLORS.textDisabled} />
+
+            <Text style={styles.label}>{t("services.price", "Price")}</Text>
+            <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder="0" placeholderTextColor={COLORS.textDisabled} keyboardType="numeric" />
+
+            <Text style={styles.label}>{t("services.description", "Description")}</Text>
+            <TextInput style={[styles.input, { height: 80 }]} value={description} onChangeText={setDescription} placeholder={t("services.descriptionPlaceholder", "Beschreibung...")} placeholderTextColor={COLORS.textDisabled} multiline textAlignVertical="top" />
+
+            <UnifiedMediaGallery
+              media={media}
+              onChange={setMedia}
+              sessionToken={sessionToken}
+              label={t("marketplace.photosVideos", "Photos & Videos")}
+              accentColor={COLORS.success}
+              lightBackground
+            />
+
+            {isProduct && (
+              <>
+                <Text style={styles.label}>
+                  {t("marketplace.category", "Kategorie")}
+                  {status === "published" && <Text style={styles.required}> *</Text>}
+                </Text>
+                <Pressable
+                  style={styles.input}
+                  onPress={() => setCategoryPickerVisible(true)}
+                >
+                  <Text style={listingCategory ? { color: COLORS.textPrimary } : { color: COLORS.textDisabled }}>
+                    {listingCategory
+                      ? `${getCategoryConfig(listingCategory)?.fallback ?? listingCategory}${listingSubcategory ? ` · ${getCategoryConfig(listingCategory)?.subcategories.find((s) => s.key === listingSubcategory)?.fallback ?? listingSubcategory}` : ""}`
+                      : t("marketplace.selectCategory", "Kategorie auswählen")}
+                  </Text>
+                </Pressable>
+
+                <MarketplaceCategoryPicker
+                  visible={categoryPickerVisible}
+                  selectedCategory={listingCategory}
+                  selectedSubcategory={listingSubcategory}
+                  allowedTaxonomy={allowedTaxonomy}
+                  onSelect={(cat, sub) => {
+                    if (cat !== listingCategory) setListingAttributes({});
+                    setListingCategory(cat);
+                    setListingSubcategory(sub);
+                  }}
+                  onClose={() => setCategoryPickerVisible(false)}
+                />
+
+                {listingCategory && (
+                  <MarketplaceAttributeFields
+                    attributes={getCategoryAttributes(listingCategory, listingSubcategory || undefined)}
+                    values={listingAttributes}
+                    onChange={(key, val) => setListingAttributes((prev) => ({ ...prev, [key]: val }))}
+                  />
+                )}
+
+                <Pressable
+                  style={[styles.toggle, scope === "profile_and_marketplace" && styles.toggleActive]}
+                  onPress={() => setScope(scope === "profile_and_marketplace" ? "profile_only" : "profile_and_marketplace")}
+                >
+                  <Ionicons name={scope === "profile_and_marketplace" ? "checkbox" : "square-outline"} size={20} color={scope === "profile_and_marketplace" ? COLORS.success : "#264348"} />
+                  <Text style={styles.toggleText}>{t("marketplace.showInMarketplace", "Im Marktplatz anzeigen")}</Text>
+                </Pressable>
+
+                {businessId && sellerType !== "business" && (
+                  <Pressable
+                    style={styles.toggle}
+                    onPress={() => {
+                      if (address) {
+                        setAddress(""); setLatitude(undefined); setLongitude(undefined);
+                      } else {
+                        setAddress(businessAddress || ""); setLatitude(businessLatitude ?? undefined); setLongitude(businessLongitude ?? undefined);
+                      }
+                    }}
+                  >
+                    <Ionicons name={address === businessAddress ? "checkbox" : "square-outline"} size={20} color={address === businessAddress ? COLORS.success : "#264348"} />
+                    <Text style={styles.toggleText}>{t("marketplace.useBusinessAddress", "Geschäftsadresse verwenden")}</Text>
+                  </Pressable>
+                )}
+
+                <View style={{ height: SPACING.section }} />
+              </>
+            )}
+
+            {isProduct ? (
+              <>
+                <Text style={styles.label}>{t("services.condition", "Condition")}</Text>
+                <View style={styles.chipRow}>
+                  {Object.entries(CONDITION_FALLBACKS).map(([key, fallback]) => (
+                    <Pressable key={key} style={[styles.chip, condition === key && styles.chipActive]} onPress={() => setCondition(condition === key ? "" : key)}>
+                      <Text style={[styles.chipText, condition === key && styles.chipTextActive]}>{t(`listing.condition.${key}`, fallback)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <Text style={styles.label}>{t("services.brand", "Brand")}</Text>
+                <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder={t("marketplace.brandPlaceholder", "z. B. Marke angeben")} placeholderTextColor={COLORS.textDisabled} />
+
+                <Text style={styles.label}>{t("services.delivery", "Delivery")}</Text>
+                <View style={styles.chipRow}>
+                  {Object.entries(DELIVERY_FALLBACKS).map(([key, fallback]) => (
+                    <Pressable key={key} style={[styles.chip, delivery === key && styles.chipActive]} onPress={() => setDelivery(delivery === key ? "" : key)}>
+                      <Text style={[styles.chipText, delivery === key && styles.chipTextActive]}>{t(`marketplace.${key}`, fallback)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>{t("rentals.propertyType", "Property Type")}</Text>
+                <View style={styles.chipRow}>
+                  {HOME_TYPES.map((ht) => (
+                    <Pressable key={ht} style={[styles.chip, propertyType === ht && styles.chipActive]} onPress={() => setPropertyType(ht)}>
+                      <Text style={[styles.chipText, propertyType === ht && styles.chipTextActive]}>{t(`rentals.types.${ht}`, ht)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <View style={styles.row}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>{t("services.bedrooms", "Beds")}</Text>
+                    <TextInput style={styles.input} value={bedrooms} onChangeText={setBedrooms} keyboardType="numeric" placeholder="2" placeholderTextColor={COLORS.textDisabled} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>{t("services.bathrooms", "Baths")}</Text>
+                    <TextInput style={styles.input} value={bathrooms} onChangeText={setBathrooms} keyboardType="numeric" placeholder="1" placeholderTextColor={COLORS.textDisabled} />
+                  </View>
+                </View>
+
+                <Text style={styles.label}>{t("services.sizeSqm", "Size (m²)")}</Text>
+                <TextInput style={styles.input} value={sizeSqm} onChangeText={setSizeSqm} keyboardType="numeric" placeholder="65" placeholderTextColor={COLORS.textDisabled} />
+
+                <Pressable style={[styles.toggle, furnished && styles.toggleActive]} onPress={() => setFurnished(!furnished)}>
+                  <Ionicons name={furnished ? "checkbox" : "square-outline"} size={20} color={furnished ? COLORS.success : "#264348"} />
+                  <Text style={styles.toggleText}>{t("services.furnished", "Furnished")}</Text>
+                </Pressable>
+
+                <Text style={styles.label}>{t("services.availableFrom", "Available from")}</Text>
+                <Pressable style={styles.selector} onPress={() => { setDatePickerTarget("available_from"); setShowDatePicker(true); }}>
+                  <Text style={availableFrom ? styles.selectorTextSelected : styles.selectorText}>
+                    {availableFrom ? formatDate(availableFrom) : t("services.selectDate", "Select date")}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+                </Pressable>
+
+                <Text style={styles.label}>{t("services.availableUntil", "Available until")}</Text>
+                <Pressable style={styles.selector} onPress={() => { setDatePickerTarget("available_until"); setShowDatePicker(true); }}>
+                  <Text style={availableUntil ? styles.selectorTextSelected : styles.selectorText}>
+                    {availableUntil ? formatDate(availableUntil) : t("services.selectDate", "Select date")}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={18} color={COLORS.textMuted} />
+                </Pressable>
+
+                <Text style={styles.label}>{t("services.leaseDuration", "Lease Duration")}</Text>
+                <TextInput style={styles.input} value={leaseDuration} onChangeText={setLeaseDuration} placeholder="1 year" placeholderTextColor={COLORS.textDisabled} />
+
+                <Text style={styles.label}>{t("rentals.deposit", "Deposit")}</Text>
+                <TextInput style={styles.input} value={deposit} onChangeText={setDeposit} placeholder="€1000" placeholderTextColor={COLORS.textDisabled} />
+              </>
+            )}
+
+            <Text style={styles.label}>
+              {t("services.address", "Address")}
+              {status === "published" && <Text style={styles.required}> *</Text>}
+            </Text>
+            {sellerType === "business" ? (
+              <View style={[styles.input, { flexDirection: "row", alignItems: "center", gap: 8 }]}>
+                <Ionicons name="lock-closed" size={16} color={COLORS.textMuted} />
+                <Text style={{ flex: 1, color: address ? COLORS.textPrimary : COLORS.textDisabled }} numberOfLines={2}>
+                  {address || t("services.noAddress", "Keine Adresse hinterlegt")}
+                </Text>
+              </View>
+            ) : (
+            <PlacesAutocompleteInput
+              value={address}
+              onChangeText={(text) => { setAddress(text); }}
+              onSelectPlace={(addr, lat, lng, publicLabel) => {
+                setAddress(addr);
+                setLatitude(lat);
+                setLongitude(lng);
+                const streetPart = addr.split(",")[0].trim();
+                const streetOnly = streetPart.replace(/\s+\d+.*$/, "").trim() || streetPart;
+                setPublicLocationLabel(streetOnly);
+              }}
+              placeholder={t("services.addressPlaceholder", "Search address...")}
+              confirmed={hasCoordinates}
+              sessionToken={sessionToken}
+            />
+            )}
+
+                {hasCoordinates && (
+                  <>
+                    <Text style={styles.label}>{t("marketplace.locationVisibility", "Sichtbarkeit des Standorts")}</Text>
+                    <View style={styles.chipRow}>
+                      <Pressable
+                        style={[styles.chip, locationVisibility === "approximate" && styles.chipActive]}
+                        onPress={() => setLocationVisibility("approximate")}
+                      >
+                        <Text style={[styles.chipText, locationVisibility === "approximate" && styles.chipTextActive]}>
+                          {t("marketplace.approximate", "Ungefährer Bereich")}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.chip, locationVisibility === "exact" && styles.chipActive]}
+                        onPress={() => setLocationVisibility("exact")}
+                      >
+                        <Text style={[styles.chipText, locationVisibility === "exact" && styles.chipTextActive]}>
+                          {t("marketplace.exact", "Genaue Adresse")}
+                        </Text>
+                      </Pressable>
+                    </View>
+
+                    {publicLocationLabel && (
+                      <View style={styles.locationLabelRow}>
+                        <Ionicons name="eye-outline" size={14} color={COLORS.textMuted} />
+                        <Text style={styles.locationLabelText} numberOfLines={1}>
+                          {publicLocationLabel}
+                        </Text>
+                      </View>
+                    )}
+                  </>
+                )}
+
+            <View style={styles.statusRow}>
+              <Pressable style={[styles.statusBtn, status === "draft" && styles.statusBtnDraft]} onPress={() => setStatus("draft")}>
+                <Text style={[styles.statusBtnText, status === "draft" && styles.statusBtnTextDraft]}>{t("common.saveDraft", "Save as draft")}</Text>
+              </Pressable>
+              <Pressable style={[styles.statusBtn, status === "published" && styles.statusBtnPub]} onPress={() => setStatus("published")}>
+                <Text style={[styles.statusBtnText, status === "published" && styles.statusBtnTextPub]}>{t("common.publish", "Publish")}</Text>
+              </Pressable>
+            </View>
+
+            <Pressable style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+              {saving ? <ActivityIndicator color="#fff" /> : (
+                <Text style={styles.saveBtnText}>
+                  {isEditing ? t("common.save", "Save") : status === "draft" ? t("common.saveDraft", "Save Draft") : t("common.publish", "Publish Listing")}
+                </Text>
+              )}
+            </Pressable>
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        variant="sheet"
+        horizontal
+        value={{ startDate: datePickerTarget === "available_from" ? availableFrom : availableUntil, endDate: null }}
+        minDate={datePickerTarget === "available_until" && availableFrom ? availableFrom : undefined}
+        onApply={(v) => {
+          const next = v.startDate ?? "";
+          if (datePickerTarget === "available_from") {
+            setAvailableFrom(next);
+            if (availableUntil && next && availableUntil < next) setAvailableUntil("");
+          } else {
+            setAvailableUntil(next);
+          }
+          setShowDatePicker(false);
+        }}
+        accentColor={COLORS.success}
+      />
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: SPACING.std, paddingVertical: SPACING.small,
+    borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)", backgroundColor: COLORS.background,
+  },
+  closeBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  headerTitle: { fontSize: FONT_SIZES.h4, fontWeight: "600", color: COLORS.success },
+  body: { padding: SPACING.std, paddingBottom: 100 },
+  label: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: "#264348", marginTop: SPACING.small, marginBottom: 4 },
+  required: { color: COLORS.danger },
+  input: {
+    backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.md,
+    padding: 12, fontSize: FONT_SIZES.bodySmall, color: "#264348",
+    borderWidth: 1, borderColor: "rgba(38,67,72,0.2)",
+  },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginBottom: 4 },
+  chip: {
+    paddingHorizontal: SPACING.small, paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.md, backgroundColor: "transparent",
+    borderWidth: 1, borderColor: "rgba(38,67,72,0.25)",
+  },
+  chipActive: { backgroundColor: COLORS.success, borderColor: COLORS.success },
+  chipText: { fontSize: 13, color: "#264348" },
+  chipTextActive: { color: "#fff" },
+  row: { flexDirection: "row", gap: SPACING.small },
+  toggle: { flexDirection: "row", alignItems: "center", gap: SPACING.small, marginVertical: SPACING.small },
+  toggleActive: {},
+  toggleText: { fontSize: FONT_SIZES.bodySmall, color: "#264348" },
+  statusRow: { flexDirection: "row", gap: SPACING.small, marginTop: SPACING.section },
+  statusBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: BORDER_RADIUS.md,
+    alignItems: "center", backgroundColor: "transparent", borderWidth: 1, borderColor: "rgba(38,67,72,0.25)",
+  },
+  statusBtnDraft: { backgroundColor: "#264348", borderColor: "#264348" },
+  statusBtnPub: { backgroundColor: COLORS.success, borderColor: COLORS.success },
+  statusBtnText: { fontSize: 14, fontWeight: "600", color: "#264348" },
+  statusBtnTextDraft: { color: "#fff" },
+  statusBtnTextPub: { color: "#fff" },
+  saveBtn: {
+    marginTop: SPACING.section, backgroundColor: COLORS.success,
+    borderRadius: BORDER_RADIUS.md, paddingVertical: 14, alignItems: "center",
+  },
+  saveBtnText: { fontSize: FONT_SIZES.body, fontWeight: "700", color: "#fff" },
+  locationLabelRow: { marginBottom: SPACING.small },
+  locationLabelPressable: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    padding: SPACING.small, borderRadius: BORDER_RADIUS.md,
+    backgroundColor: "transparent", borderWidth: 1, borderColor: "rgba(38,67,72,0.2)",
+  },
+  locationLabelText: { flex: 1, fontSize: 13, color: "#264348" },
+  locationLabelEdit: { fontSize: 12, color: COLORS.success, fontWeight: "600" },
+  field: { marginTop: SPACING.small },
+  selector: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.2)",
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.compact,
+    backgroundColor: COLORS.background,
+  },
+  selectorText: {
+    fontSize: FONT_SIZES.body,
+    color: "rgba(38,67,72,0.45)",
+  },
+  selectorTextSelected: {
+    fontSize: FONT_SIZES.body,
+    color: "#264348",
+  },
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  calendarContainer: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: BORDER_RADIUS.xl,
+    borderTopRightRadius: BORDER_RADIUS.xl,
+    maxHeight: "70%",
+  },
+  calendarHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.compact,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  calendarDoneText: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: "600" as const,
+    color: COLORS.success,
+  },
+});

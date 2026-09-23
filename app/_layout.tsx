@@ -1,0 +1,432 @@
+import React, { useEffect, useRef, useState } from "react";
+import { Stack, usePathname, useSegments, router } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { I18nextProvider } from "react-i18next";
+import { Platform, BackHandler, ToastAndroid, View, Text, Pressable, LogBox } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StatusBar } from "expo-status-bar";
+import "../lib/suppressExpoNotifError";
+import * as Notifications from "expo-notifications";
+import { AuthProvider, useAuth } from "../context/AuthContext";
+import { NotificationProvider } from "../context/NotificationContext";
+import { BadgeProvider } from "../context/BadgeContext";
+import { SocketProvider } from "../context/SocketContext";
+import { LocationProvider } from "../context/LocationContext";
+import { MapBoundsProvider } from "../context/MapBoundsContext";
+import { 
+  initializeNotificationChannels, 
+  requestNotificationPermissions,
+  getPushToken 
+} from "../lib/notifications";
+import { registerPushToken } from "../lib/api";
+import { ensureWebPushSubscription } from "../lib/webPush";
+import { useDeepLinkHandler } from "../hooks/useDeepLinkHandler";
+import i18n from "../i18n";
+import { applyDefaultFontFamily } from "../lib/defaultFont";
+import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_600SemiBold, Quicksand_700Bold } from "@expo-google-fonts/quicksand";
+import GlobalWebChrome from "../components/GlobalWebChrome";
+import InstallBanner from "../components/InstallBanner";
+import UpdateBanner from "../components/UpdateBanner";
+import { UploadProvider } from "../context/UploadContext";
+
+applyDefaultFontFamily("Quicksand_400Regular");
+
+// Font gate: only load the Google fonts on native. On web, font loading is
+// skipped entirely (system fonts) so a missing/failing font asset can never
+// crash the web app (unhandled NetworkError from expo-font).
+function NativeFontGate({ children }: { children: React.ReactNode }) {
+  const [fontsLoaded] = useFonts({
+    Quicksand_400Regular,
+    Quicksand_500Medium,
+    Quicksand_600SemiBold,
+    Quicksand_700Bold,
+  });
+  if (!fontsLoaded) return null;
+  return <>{children}</>;
+}
+
+function WebFontGate({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
+const AppFontGate = Platform.OS === "web" ? WebFontGate : NativeFontGate;
+
+class RootErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: string | null }> {
+  state = { error: null as string | null };
+  static getDerivedStateFromError(e: any) {
+    return { error: String(e?.message || e) + (e?.stack ? "\n\n" + String(e.stack).split("\n").slice(0, 12).join("\n") : "") };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ fontSize: 40, marginBottom: 12 }}>😕</Text>
+          <Text style={{ color: "#1f2937", fontWeight: "700", fontSize: 18, marginBottom: 8, textAlign: "center" }}>
+            Something went wrong
+          </Text>
+          <Text style={{ color: "#6b7280", fontSize: 14, textAlign: "center", marginBottom: 20, maxWidth: 340 }}>
+            Your connection may have been interrupted. Tap below to try again — no need to restart the app.
+          </Text>
+          <Pressable
+            onPress={() => this.setState({ error: null })}
+            style={{ backgroundColor: "#59ABE3", borderRadius: 12, paddingHorizontal: 28, paddingVertical: 13 }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Try again</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function WebErrorOverlay({ children }: { children: React.ReactNode }) {
+  const [error, setError] = useState<string | null>(null);
+  const retryCountRef = React.useRef(0);
+  const lastRetryAtRef = React.useRef(0);
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const isNonFatal = (msg: string) => {
+      // Font/icon-font asset loads can fail (e.g. during deploys) — treat as
+      // non-fatal: the app still works with system fonts.
+      return msg === "A network error occurred." || msg === "network error occurred";
+    };
+    const onErr = (ev: any) => {
+      const msg = ev?.message || ev?.reason?.message || (typeof ev?.reason === "string" ? ev.reason : "") || "Unknown error";
+      if (typeof msg === "string" && isNonFatal(msg)) return;
+      const stack = ev?.error?.stack || ev?.reason?.stack || "";
+      setError((prev) => prev || String(msg) + (stack ? "\n\n" + stack.split("\n").slice(0, 10).join("\n") : ""));
+    };
+    (window as any).addEventListener("error", onErr);
+    (window as any).addEventListener("unhandledrejection", onErr);
+    return () => {
+      (window as any).removeEventListener("error", onErr);
+      (window as any).removeEventListener("unhandledrejection", onErr);
+    };
+  }, []);
+  if (!error) return <>{children}</>;
+  const hardReload = () => {
+    try {
+      // Full reload always fetches the newest deployed bundle, since the
+      // served index.html is never cached.
+      window.location.reload();
+    } catch {}
+  };
+  const softRetry = () => {
+    const now = Date.now();
+    if (now - lastRetryAtRef.current < 15000) {
+      retryCountRef.current += 1;
+    } else {
+      retryCountRef.current = 1;
+    }
+    lastRetryAtRef.current = now;
+    if (retryCountRef.current >= 3) {
+      // Crash loop — a soft retry keeps hitting the same error. Force a
+      // fresh reload to pull the latest live version.
+      hardReload();
+      return;
+    }
+    setError(null);
+  };
+  return (
+    <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, justifyContent: "center", alignItems: "center" }}>
+      <Text style={{ fontSize: 40, marginBottom: 12 }}>😕</Text>
+      <Text style={{ color: "#1f2937", fontWeight: "700", fontSize: 18, marginBottom: 8, textAlign: "center" }}>
+        Something went wrong
+      </Text>
+      <Text style={{ color: "#6b7280", fontSize: 14, textAlign: "center", marginBottom: 20, maxWidth: 340 }}>
+        Your connection may have been interrupted. Tap below to reconnect, or reload to get the latest version.
+      </Text>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Pressable
+          onPress={softRetry}
+          style={{ backgroundColor: "#59ABE3", borderRadius: 12, paddingHorizontal: 24, paddingVertical: 13 }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Reconnect</Text>
+        </Pressable>
+        <Pressable
+          onPress={hardReload}
+          style={{ backgroundColor: "#eef4f8", borderRadius: 12, paddingHorizontal: 24, paddingVertical: 13, borderWidth: 1, borderColor: "#d7e2e8" }}
+        >
+          <Text style={{ color: "#264348", fontWeight: "700", fontSize: 15 }}>Reload page</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+// Ignore specific warnings that can cause issues
+LogBox.ignoreLogs([
+  'Non-serializable values were found in the navigation state',
+  'Require cycle:',
+]);
+
+function AuthGuard() {
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (loading) return;
+    const segs = (segments as string[]) || [];
+    const inAuthGroup = segs[0] === "(auth)";
+    if (user) {
+      if (inAuthGroup) {
+        router.replace("/(tabs)/home");
+      }
+      return;
+    }
+    // Guest browsing: allow the auth group, email verification/reset pages,
+    // and the public home + locator tabs. Everything else requires login.
+    const publicTopLevel = ["verify-email", "reset-password", "forgot-password", "privacy-policy", "terms-of-service", "share"];
+    const isTopLevelPublic = segs.length > 0 && publicTopLevel.includes(segs[0]);
+    const isPublicTab =
+      segs[0] === "(tabs)" &&
+      (segs.length < 2 || segs[1] === "home" || segs[1] === "locator");
+    const allowed = inAuthGroup || isTopLevelPublic || isPublicTab || segs.length === 0;
+    if (!allowed) {
+      router.replace("/login");
+    }  }, [user, loading]);
+
+  return null;
+}
+
+// Component that handles Android hardware back button
+// With root <Stack>: React Navigation handles back for pushed screens.
+// This only handles edge cases when the Stack can't go back further.
+function BackButtonHandler() {
+  const pathname = usePathname();
+  const segments = useSegments();
+  const lastBackPress = useRef(0);
+    
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // If the Stack has screens to pop, let React Navigation handle it
+      if (router.canGoBack()) {
+        return false;
+      }
+      
+      // We're at the root of the Stack — check which tab we're on
+      const currentPath = pathname || '';
+      const isOnHomeTab = 
+        currentPath === '/(tabs)/home' || 
+        currentPath === '/home' || 
+        currentPath.endsWith('/home') ||
+        (segments.length >= 2 && segments[0] === '(tabs)' && (segments as any)[1] === 'home');
+      
+      if (isOnHomeTab) {
+        const now = Date.now();
+        if (now - lastBackPress.current < 2000) {
+          return false;
+        }
+        lastBackPress.current = now;
+        ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
+        return true;
+      }
+      
+      // On a non-home tab at the root — navigate to home tab first
+      router.navigate('/(tabs)/home' as any);
+      return true;
+    });
+    
+    return () => handler.remove();
+  }, [pathname, segments]);
+    
+  return null;
+}
+
+// Component that handles deep links for navigation
+function DeepLinkHandler() {
+  // Initialize deep link handler - it handles everything internally
+  useDeepLinkHandler();
+  return null;
+}
+
+// Component that handles push notification registration after auth
+function PushNotificationManager() {
+  const { user, sessionToken } = useAuth();
+  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
+  const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const registeredToken = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!user || !sessionToken) return;
+
+    // Register push token when user is authenticated
+    const registerToken = async () => {
+      try {
+        // Web: register the PWA service worker + push subscription so the
+        // backend can deliver notifications and icon badges while the app
+        // is closed.
+        if (Platform.OS === "web") {
+          try {
+            await ensureWebPushSubscription(sessionToken);
+          } catch (e) {
+            console.log("[Push] Web push setup skipped/failed:", e);
+          }
+          return;
+        }
+        const hasPermission = await requestNotificationPermissions();
+        if (!hasPermission) {
+          console.log("[Push] Permission denied");
+          return;
+        }
+
+        const pushToken = await getPushToken();
+        if (pushToken && pushToken !== registeredToken.current) {
+          const platform = Platform.OS as "ios" | "android" | "web";
+          await registerPushToken(sessionToken, pushToken, platform);
+          registeredToken.current = pushToken;
+          console.log("[Push] Token registered:", pushToken.substring(0, 30) + "...");
+        }
+      } catch (error) {
+        console.error("[Push] Failed to register token:", error);
+      }
+    };
+
+    registerToken();
+
+    // Listen for incoming notifications (foreground)
+    notificationListener.current = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        const data = notification.request.content.data;
+        console.log("[Push] Received notification:", data?.type);
+      }
+    );
+
+    // Listen for notification taps (background/killed)
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content.data;
+        console.log("[Push] Notification tapped:", data?.type);
+
+        if (!data?.type) return;
+
+        switch (data.type) {
+          case "new_message":
+            router.navigate("/(tabs)/messages" as any);
+            break;
+
+          case "activity":
+            if (data.activityType === "like" || data.activityType === "comment") {
+              if (data.postId) {
+                router.push(`/post/${data.postId}`);
+              } else {
+                router.push("/activities");
+              }
+            } else if (data.activityType === "friend_request" || data.activityType === "friend_accepted") {
+              if (data.actorId) {
+                router.push(`/user/${data.actorId}`);
+              } else {
+                router.push("/activities");
+              }
+            } else {
+              router.push("/activities");
+            }
+            break;
+
+          case "event":
+            if (data.eventId) {
+              router.push(`/event/${data.eventId}`);
+            }
+            break;
+
+          case "event_reminder":
+            if (data.eventId) {
+              router.push(`/event/${data.eventId}`);
+            }
+            break;
+
+          case "like":
+          case "comment":
+            if (data.postId) {
+              router.push(`/post/${data.postId}`);
+            }
+            break;
+
+          case "friend_request":
+            router.push("/friend-requests");
+            break;
+
+          case "friend_accepted":
+            if (data.accepterId) {
+              router.push(`/user/${data.accepterId}`);
+            } else if (data.actorId) {
+              router.push(`/user/${data.actorId}`);
+            }
+            break;
+
+          case "friend_declined":
+            if (data.declinerId) {
+              router.push(`/user/${data.declinerId}`);
+            } else if (data.userId) {
+              router.push(`/user/${data.userId}`);
+            }
+            break;
+        }
+      }
+    );
+
+    return () => {
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+    };
+  }, [user, sessionToken]);
+
+  return null;
+}
+
+export default function RootLayout() {
+  // Initialize notification channels on app start
+  useEffect(() => {
+    try {
+      initializeNotificationChannels();
+    } catch (error) {
+      console.error('Error initializing notifications:', error);
+    }
+  }, []);
+
+  return (
+    <AppFontGate>
+    <WebErrorOverlay>
+      <RootErrorBoundary>
+    <I18nextProvider i18n={i18n}>
+      <SafeAreaProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <AuthProvider>
+          <LocationProvider>
+            <MapBoundsProvider>
+              <BadgeProvider>
+                <SocketProvider>
+                  <NotificationProvider>
+                    <StatusBar style="dark" />
+                    <AuthGuard />
+                    <BackButtonHandler />
+                    <DeepLinkHandler />
+                    <PushNotificationManager />
+                    <UploadProvider>
+                      <GlobalWebChrome>
+                        <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
+                      </GlobalWebChrome>
+                      <InstallBanner />
+                      <UpdateBanner />
+                    </UploadProvider>
+                  </NotificationProvider>
+                </SocketProvider>
+              </BadgeProvider>
+            </MapBoundsProvider>
+          </LocationProvider>
+          </AuthProvider>
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
+    </I18nextProvider>
+      </RootErrorBoundary>
+    </WebErrorOverlay>
+    </AppFontGate>
+  );
+}

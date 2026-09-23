@@ -1,0 +1,321 @@
+﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView, ActivityIndicator, Alert, RefreshControl, KeyboardAvoidingView, Platform } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { Booking } from "../../lib/api/core";
+import { getBookings, confirmBooking, declineBooking, cancelBooking, completeBooking } from "../../lib/api/services";
+import { formatPrice } from "../../lib/serviceFormat";
+import { formatDate } from "../../lib/formatDate";
+import { translateServiceType } from "../../lib/categoryTranslation";
+import { getServiceModuleIcon } from "../../lib/config/serviceModules";
+
+type Props = {
+  visible: boolean;
+  businessId: string;
+  sessionToken: string;
+  onClose: () => void;
+};
+
+const TABS = ["confirmed", "pending", "completed", "declined", "cancelled", "expired"] as const;
+type Tab = typeof TABS[number];
+
+const STATUS_COLORS: Record<string, string> = {
+  pending: COLORS.warning,
+  confirmed: COLORS.success,
+  declined: COLORS.danger,
+  cancelled: COLORS.danger,
+  expired: COLORS.textMuted,
+  completed: COLORS.info,
+};
+
+export default function BookingListModal({ visible, businessId, sessionToken, onClose }: Props) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<Tab>("confirmed");
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    bookings.forEach((b) => { counts[b.status] = (counts[b.status] || 0) + 1; });
+    return counts;
+  }, [bookings]);
+
+  const visibleBookings = useMemo(
+    () => bookings.filter((b) => b.status === activeTab),
+    [bookings, activeTab],
+  );
+
+  const loadBookings = useCallback(async () => {
+    try {
+      const data = await getBookings(sessionToken, businessId, undefined);
+      setBookings(data || []);
+    } catch (e: any) { console.log("loadBookings error:", e?.message || e); }
+  }, [sessionToken, businessId]);
+
+  useEffect(() => {
+    if (visible) {
+      setLoading(true);
+      loadBookings().finally(() => setLoading(false));
+    }
+  }, [visible, loadBookings]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadBookings();
+    setRefreshing(false);
+  }, [loadBookings]);
+
+  const handleConfirm = async (bookingId: string) => {
+    try {
+      await confirmBooking(sessionToken, bookingId);
+      Alert.alert(t("common.success", "Success"), t("bookingList.bookingConfirmed", "Booking confirmed"));
+      loadBookings();
+    } catch (err: any) {
+      Alert.alert(t("common.error", "Error"), err.message);
+    }
+  };
+
+  const handleCancel = async (bookingId: string) => {
+    Alert.alert(
+      t("bookingList.cancelTitle", "Cancel booking?"),
+      t("bookingList.cancelConfirm", "Are you sure?"),
+      [
+        { text: t("common.no", "No"), style: "cancel" },
+        {
+          text: t("common.yes", "Yes"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelBooking(sessionToken, bookingId);
+              loadBookings();
+            } catch (err: any) {
+              Alert.alert(t("common.error", "Error"), err.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleComplete = async (bookingId: string) => {
+    try {
+      await completeBooking(sessionToken, bookingId);
+      Alert.alert(t("common.success", "Success"), t("bookingList.bookingCompleted", "Booking completed"));
+      loadBookings();
+    } catch (err: any) {
+      Alert.alert(t("common.error", "Error"), err.message);
+    }
+  };
+
+  const handleDecline = async (bookingId: string) => {
+    try {
+      await declineBooking(sessionToken, bookingId);
+      loadBookings();
+    } catch (err: any) {
+      Alert.alert(t("common.error", "Error"), err.message);
+    }
+  };
+
+  const renderBooking = (booking: Booking) => {
+    const statusColor = STATUS_COLORS[booking.status] || COLORS.textMuted;
+    return (
+      <View key={booking.booking_id} style={s.bookingCard}>
+        <View style={s.bookingHeader}>
+          <View style={{ flex: 1, marginRight: SPACING.small }}>
+          {booking.client_id ? (
+            <Pressable onPress={() => router.push(`/user/${booking.client_id}` as any)}>
+              <Text style={[s.clientName, { color: COLORS.primaryDark }]} numberOfLines={1} ellipsizeMode="tail">{booking.client_name}</Text>
+            </Pressable>
+          ) : (
+            <Text style={s.clientName} numberOfLines={1} ellipsizeMode="tail">{booking.client_name}</Text>
+          )}
+          </View>
+          <View style={[s.statusBadge, { backgroundColor: statusColor + "20" }]}>
+            <Text style={[s.statusText, { color: statusColor }]} numberOfLines={1} ellipsizeMode="tail">{t(`bookingList.${booking.status}`, booking.status)}</Text>
+          </View>
+        </View>
+        {booking.service_name && (
+          <View style={s.serviceRow}>
+            <Ionicons name={getServiceModuleIcon(booking.service_type || "")} size={14} color="#59ABE3" />
+            <Text style={s.serviceName} numberOfLines={1} ellipsizeMode="tail">{booking.service_name}</Text>
+            {booking.service_type && (
+              <View style={s.typeBadge}>
+                <Text style={s.typeBadgeText} numberOfLines={1}>{translateServiceType(booking.service_type, t)}</Text>
+              </View>
+            )}
+          </View>
+        )}
+        {booking.booking_mode !== "date_range" && (
+          <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{formatDate(booking.date)} {booking.start_time ? `| ${booking.start_time}` : ""}{booking.end_time ? ` - ${booking.end_time}` : ""}</Text>
+        )}
+        {booking.service_address && (
+          <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail"><Ionicons name="location" size={12} /> {booking.service_address}</Text>
+        )}
+        {booking.booking_mode === "date_range" && booking.end_date && (
+          <>
+            <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{formatDate(booking.date)} → {formatDate(booking.end_date)}</Text>
+            <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{booking.nights} {t("bookingList.nights", "nights")} · {booking.room_count || 1} {t("bookingList.rooms", "room(s)")}</Text>
+            <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{booking.adults || 1} {t("bookingList.adults", "adults")} · {booking.children || 0} {t("bookingList.children", "children")}</Text>
+            {booking.confirmation_code && <Text style={s.bookingCode} numberOfLines={1}>{booking.confirmation_code}</Text>}
+            {booking.service_name && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{booking.service_name}</Text>}
+            {booking.business_name && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail"><Ionicons name="business" size={12} /> {booking.business_name}</Text>}
+            {booking.check_in_time && booking.check_out_time && (
+              <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">Check-in: {booking.check_in_time} · Check-out: {booking.check_out_time}</Text>
+            )}
+            {booking.cancellation_policy && <Text style={s.bookingNotes}>{booking.cancellation_policy}</Text>}
+          </>
+        )}
+        {booking.guests && !booking.booking_mode && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{t("bookingList.guests", "Guests")}: {booking.guests}</Text>}
+        {booking.total_amount != null && booking.currency ? (
+          <View>
+            {booking.nightly_rate_amount != null && (
+              <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{(booking.nightly_rate_amount / 100).toFixed(2)} {booking.currency} / night</Text>
+            )}
+            <Text style={s.bookingPrice}>{(booking.total_amount / 100).toFixed(2)} {booking.currency}</Text>
+          </View>
+        ) : booking.total_price ? (
+          <Text style={s.bookingPrice}>{formatPrice(booking.total_price)}</Text>
+        ) : null}
+        {booking.notes && <Text style={s.bookingNotes}>{"\u201C"}{booking.notes}{"\u201D"}</Text>}
+        {booking.pet_name && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{t("bookingList.pet", "Pet")}: {booking.pet_name} ({booking.pet_type || "?"})</Text>}
+        {booking.reason_for_visit && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{t("bookingList.reason", "Reason")}: {booking.reason_for_visit}</Text>}
+        {booking.pickup_location && <Text style={s.bookingDetail} numberOfLines={1} ellipsizeMode="tail">{t("bookingList.pickup", "Pickup")}: {booking.pickup_location}</Text>}
+
+        <View style={s.actionRow}>
+          {booking.status === "pending" && (
+            <>
+              <Pressable style={[s.actionBtn, { backgroundColor: COLORS.success }]} onPress={() => handleConfirm(booking.booking_id)}>
+                <Ionicons name="checkmark" size={16} color="#fff" />
+                <Text style={s.actionText}>{t("services.confirmBooking", "Confirm")}</Text>
+              </Pressable>
+              <Pressable style={[s.actionBtn, { backgroundColor: COLORS.danger }]} onPress={() => handleDecline(booking.booking_id)}>
+                <Ionicons name="close" size={16} color="#fff" />
+                <Text style={s.actionText}>{t("services.declineBooking", "Decline")}</Text>
+              </Pressable>
+            </>
+          )}
+          {booking.status === "confirmed" && (
+            <>
+              <Pressable style={[s.actionBtn, { backgroundColor: COLORS.info }]} onPress={() => handleComplete(booking.booking_id)}>
+                <Ionicons name="checkmark-done" size={16} color="#fff" />
+                <Text style={s.actionText}>{t("services.completeBooking", "Complete")}</Text>
+              </Pressable>
+              <Pressable style={[s.actionBtn, { backgroundColor: COLORS.danger }]} onPress={() => handleCancel(booking.booking_id)}>
+                <Ionicons name="close" size={16} color="#fff" />
+                <Text style={s.actionText}>{t("services.cancelBooking", "Cancel")}</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide">
+      <SafeAreaView style={s.container} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <View style={s.header}>
+          <Pressable onPress={onClose} hitSlop={12} style={s.headerBtn}>
+            <Ionicons name="close" size={24} color="#264348" />
+          </Pressable>
+          <Text style={s.headerTitle}>{t("services.manageBookings", "Manage Bookings")}</Text>
+          <View style={s.headerBtn} />
+        </View>
+
+        <View style={s.filterList}>
+          {TABS.map((tab) => {
+            const count = statusCounts[tab] || 0;
+            const active = activeTab === tab;
+            return (
+              <Pressable
+                key={tab}
+                style={[s.filterBtn, active && s.filterBtnActive]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text style={[s.filterBtnText, active && s.filterBtnTextActive]} numberOfLines={1} ellipsizeMode="tail">
+                  {t(`services.${tab}`, tab.charAt(0).toUpperCase() + tab.slice(1))}
+                </Text>
+                <View style={[s.filterCount, active && s.filterCountActive]}>
+                  <Text style={[s.filterCountText, active && s.filterCountTextActive]}>{count}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {loading && !refreshing ? (
+          <ActivityIndicator size="large" color="#59ABE3" style={{ marginTop: SPACING.large }} />
+        ) : visibleBookings.length === 0 ? (
+          <View style={s.emptyState}>
+            <Ionicons name="calendar-outline" size={48} color="#264348" />
+            <Text style={s.emptyText}>{t("services.noBookings", "No bookings yet")}</Text>
+          </View>
+        ) : (
+          <ScrollView
+            style={s.body}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            contentContainerStyle={{ paddingBottom: SPACING.large }}
+          >
+            {visibleBookings.map(renderBooking)}
+          </ScrollView>
+        )}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const s = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    ...Platform.select({
+      web: { width: "100%", maxWidth: 1280, alignSelf: "center" },
+    }),
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(38,67,72,0.15)",
+  },
+  headerBtn: { padding: 4, width: 40, alignItems: "center" },
+  headerTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textPrimary },
+  filterList: { paddingHorizontal: SPACING.std, paddingVertical: SPACING.small, gap: SPACING.small, borderBottomWidth: 1, borderBottomColor: "rgba(38,67,72,0.15)" },
+  filterBtn: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.std, paddingVertical: 12 },
+  filterBtnActive: { backgroundColor: "#59ABE3", borderColor: "#59ABE3" },
+  filterBtnText: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348" },
+  filterBtnTextActive: { color: "#fff" },
+  filterCount: { minWidth: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(38,67,72,0.08)", alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
+  filterCountActive: { backgroundColor: "rgba(255,255,255,0.25)" },
+  filterCountText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.textMuted },
+  filterCountTextActive: { color: "#fff" },
+  body: { flex: 1, paddingHorizontal: SPACING.std, paddingVertical: SPACING.std },
+  emptyState: { alignItems: "center", paddingVertical: SPACING.large, gap: SPACING.compact },
+  emptyText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted },
+  bookingCard: { backgroundColor: "#fff", borderRadius: BORDER_RADIUS.lg, borderWidth: 1, borderColor: "rgba(38,67,72,0.15)", padding: SPACING.std, marginBottom: SPACING.compact },
+  bookingHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.small },
+  serviceRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: SPACING.tiny },
+  serviceName: { flexShrink: 1, fontSize: FONT_SIZES.small, fontWeight: FONT_WEIGHTS.semibold as any, color: "#264348" },
+  typeBadge: { backgroundColor: "#59ABE3" + "20", paddingHorizontal: SPACING.small, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
+  typeBadgeText: { fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any, color: "#1F4788" },
+  clientName: { fontSize: FONT_SIZES.body, fontWeight: FONT_WEIGHTS.semibold as any, color: COLORS.textPrimary },
+  statusBadge: { flexShrink: 1, maxWidth: "45%", paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: BORDER_RADIUS.full },
+  statusText: { textAlign: "center", fontSize: FONT_SIZES.micro, fontWeight: FONT_WEIGHTS.semibold as any },
+  bookingDetail: { fontSize: FONT_SIZES.small, color: "rgba(38,67,72,0.75)", marginTop: SPACING.tiny },
+  bookingCode: { fontSize: FONT_SIZES.caption, fontWeight: FONT_WEIGHTS.bold as any, color: "#59ABE3", marginTop: SPACING.tiny },
+  bookingPrice: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold as any, color: COLORS.success, marginTop: SPACING.tiny },
+  bookingNotes: { fontSize: FONT_SIZES.small, color: "rgba(38,67,72,0.75)", fontStyle: "italic", marginTop: SPACING.tiny },
+  actionRow: { flexDirection: "row", gap: SPACING.small, marginTop: SPACING.compact },
+  actionBtn: { flexDirection: "row", alignItems: "center", gap: SPACING.tiny, paddingHorizontal: SPACING.small, paddingVertical: SPACING.small, borderRadius: BORDER_RADIUS.full },
+  actionText: { fontSize: FONT_SIZES.small, fontWeight: FONT_WEIGHTS.semibold as any, color: "#fff" },
+});

@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {},
+  "files": [
+    "app/service/[id].tsx",
+    "components/business/ServiceBookingModal.tsx",
+    "components/business/ServiceModal.tsx",
+    "components/business/HotelAvailabilityModal.tsx",
+    "components/business/SlotManagerModal.tsx",
+    "components/business/BookingListModal.tsx",
+    "components/business/UserBookingListModal.tsx",
+    "components/shared/DatePickerModal.tsx",
+    "components/ShareContent.tsx",
+    "lib/config/serviceModules.ts",
+    "lib/config/serviceCategoryMatrix.ts",
+    "lib/fieldRegistry.ts",
+    "lib/booking/dateRange.ts",
+    "lib/navigation/entityRoutes.ts",
+    "hooks/useLayoutPreferences.ts"
+  ],
+  "include": [],
+  "exclude": ["node_modules", "dist", ".expo"]
+}

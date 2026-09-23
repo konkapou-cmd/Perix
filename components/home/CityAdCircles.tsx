@@ -1,0 +1,289 @@
+import React, { useRef, useEffect } from "react";
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { GroupedStory, User, Story } from "../../lib/api";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { useTranslation } from "react-i18next";
+import { deleteStory } from "../../lib/api/stories";
+import { muxThumbnailUrl, muxAnimatedGifUrl } from "../../lib/media/mediaResolver";
+import { useAuth } from "../../context/AuthContext";
+import { confirmAction } from "../../lib/confirm";
+
+const CARD_WIDTH = Platform.OS === "web" ? 180 : 145;
+const CARD_IMAGE_HEIGHT = Platform.OS === "web" ? 135 : 110;
+const SNAP_INTERVAL = Platform.OS === "web" ? 192 : 157;
+const CARD_PREVIEW_WIDTH = 300;
+
+interface CityAdCirclesProps {
+  user: User | null;
+  storyGroups: GroupedStory[];
+  onYourStoryPress: () => void;
+  onStoryPress: (index: number) => void;
+  onAdDeleted?: () => void;
+  sessionToken?: string | null;
+  activeIdentity?: {
+    type: "user" | "business" | "artist";
+    id: string;
+    name: string;
+    avatar?: string | null;
+  } | null;
+}
+
+function AdVideoPreview({ story }: { story: Story }) {
+  const isProcessing = story?.video_status === "processing" || story?.video_status === "uploading";
+  const playbackId = story?.mux_playback_id;
+  const thumb = story?.mux_thumbnail_url || (playbackId ? muxThumbnailUrl(playbackId, CARD_PREVIEW_WIDTH) : null);
+
+  // While processing, show the static thumbnail. Once ready, show the short
+  // animated GIF preview — a "moving" cover that is far lighter than spinning
+  // up a full HLS video player per card.
+  if (isProcessing || !playbackId) {
+    return thumb ? (
+      <Image source={{ uri: thumb }} style={styles.videoPreview} resizeMode="cover" />
+    ) : (
+      <View style={[styles.videoPreview, { backgroundColor: "#000" }]} />
+    );
+  }
+  return (
+    <Image
+      source={{ uri: muxAnimatedGifUrl(playbackId, CARD_PREVIEW_WIDTH) }}
+      style={styles.videoPreview}
+      resizeMode="cover"
+    />
+  );
+}
+
+export function CityAdCircles({ user, storyGroups, onYourStoryPress, onStoryPress, onAdDeleted, sessionToken, activeIdentity }: CityAdCirclesProps) {
+  const { t } = useTranslation();
+  const { myBusinesses } = useAuth();
+  const isBusiness = activeIdentity?.type === "business";
+
+  if (!user) return null;
+
+  const ownAvatar = activeIdentity?.avatar || user?.profile_photo || user?.picture;
+  const ownName = activeIdentity?.name || user?.name || "B";
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitle}>
+          <Ionicons name="megaphone" size={20} color="#59ABE3" />
+          <Text style={styles.cardTitle}>{t("cityAd.sectionTitle", "City Ads")}</Text>
+        </View>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={SNAP_INTERVAL} decelerationRate="fast">
+        {storyGroups.length === 0 && !isBusiness && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>{t("cityAd.noAds", "No ads yet")}</Text>
+          </View>
+        )}
+
+        {/* Business "Your City Ad" card */}
+        {isBusiness && (
+          <Pressable style={styles.adCard} onPress={onYourStoryPress}>
+            <View style={styles.uploadCardContent}>
+              <View style={styles.uploadIconWrap}>
+                <Ionicons name="megaphone" size={26} color="#59ABE3" />
+              </View>
+              <Text style={styles.businessName} numberOfLines={1}>
+                {t("cityAd.yourAd", "Your Ad")}
+              </Text>
+            </View>
+          </Pressable>
+        )}
+
+        {/* City Ad cards */}
+        {storyGroups.map((group, idx) => {
+          const isOwn = (activeIdentity?.type === "business" && group.actor_id === activeIdentity.id) ||
+            (!!group.actor_id && myBusinesses.some((b) => b.business_id === group.actor_id));
+          const firstStory = group.stories[0];
+          return (
+          <Pressable
+            key={group.actor_id}
+            style={styles.adCard}
+            onPress={() => onStoryPress(idx)}
+          >
+            <View style={styles.previewContainer}>
+              {firstStory?.media_url && (
+                firstStory?.media_type === "video" ? (
+                  <AdVideoPreview story={firstStory} />
+                ) : (
+                  <Image
+                    source={{ uri: firstStory.media_url }}
+                    style={styles.imagePreview}
+                  />
+                )
+              )}
+              {!firstStory?.media_url && (
+                <View style={styles.fallbackPreview}>
+                  <Ionicons name="business" size={32} color={COLORS.textMuted} />
+                </View>
+              )}
+              {!group.has_unseen && (
+                <View style={styles.seenOverlay}>
+                  <Ionicons name="checkmark" size={16} color={COLORS.textLight} />
+                </View>
+              )}
+              {isOwn && sessionToken && (
+                <Pressable
+                  style={styles.deleteBtn}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    confirmAction({
+                      title: t("cityAd.deleteTitle", "Delete Ad"),
+                      message: t("cityAd.deleteConfirm", "Remove this city ad?"),
+                      confirmText: t("common.delete", "Delete"),
+                      cancelText: t("common.cancel", "Cancel"),
+                      destructive: true,
+                    }).then((ok) => {
+                      if (ok && firstStory) {
+                        deleteStory(sessionToken!, firstStory.story_id)
+                          .then(() => onAdDeleted?.())
+                          .catch(() => Alert.alert(t("common.error"), t("cityAd.deleteFailed", "Failed to delete")));
+                      }
+                    });
+                  }}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close-circle" size={22} color={COLORS.danger} />
+                </Pressable>
+              )}
+            </View>
+            <Text style={styles.businessName} numberOfLines={1}>
+              {group.author_name || "Business"}
+            </Text>
+          </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: COLORS.background,
+    paddingVertical: SPACING.std,
+    paddingHorizontal: SPACING.small,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: SPACING.compact,
+  },
+  sectionTitle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.small,
+  },
+  iconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: "#59ABE3",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardTitle: {
+    fontSize: FONT_SIZES.bodyLarge,
+    fontWeight: FONT_WEIGHTS.semibold,
+    color: "#1F4788",
+  },
+  adCard: {
+    width: CARD_WIDTH,
+    backgroundColor: COLORS.background,
+    marginRight: 12,
+    marginBottom: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#59ABE3",
+    shadowColor: COLORS.primaryDark,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    overflow: "hidden",
+  },
+  previewContainer: {
+    width: CARD_WIDTH,
+    height: CARD_IMAGE_HEIGHT,
+    backgroundColor: COLORS.border,
+    position: "relative",
+  },
+  videoPreview: {
+    width: "100%",
+    height: "100%",
+  },
+  imagePreview: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  fallbackPreview: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  seenOverlay: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.success,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
+  deleteBtn: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    zIndex: 20,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: BORDER_RADIUS.full,
+  },
+  uploadCardContent: {
+    width: CARD_WIDTH,
+    height: CARD_IMAGE_HEIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  uploadIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.small,
+    shadowColor: COLORS.primaryDark,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  businessName: {
+    fontSize: Platform.OS === "web" ? 15 : 13,
+    fontWeight: "600",
+    color: "#1F4788",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  emptyState: {
+    width: CARD_WIDTH,
+    paddingHorizontal: SPACING.small,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textMuted,
+    textAlign: "center",
+  },
+});

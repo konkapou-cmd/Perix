@@ -1,0 +1,859 @@
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Alert,
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { EventItem, EVENT_THEMES, DEFAULT_EVENT_THEME } from "../../lib/api/events";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { getPickerLocaleTag } from "../../lib/calendarLocale";
+import PlacesAutocompleteInput from "../PlacesAutocompleteInput";
+import UnifiedMediaGallery, { MediaItem } from "../UnifiedMediaGallery";
+import FormScreen from "../ui/FormScreen";
+import FormBottomBar from "../ui/FormBottomBar";
+
+type EventForm = {
+  title: string;
+  description: string;
+  start_time: string;
+  end_time?: string;
+  location: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  cover_image_url?: string;
+  image_urls: string[];
+  video_url?: string;
+  theme: string;
+  themes: string[];
+  gallery_images: string[];
+  gallery_videos: string[];
+  is_private: boolean;
+  password: string;
+  tagged_artist_ids: string[];
+  media_items?: any[];
+};
+
+type ArtistSuggestion = {
+  artist_id: string;
+  name: string;
+  profile_photo?: string | null;
+};
+
+type Props = {
+  visible: boolean;
+  onClose: () => void;
+  eventForm: EventForm;
+  onFormChange: (form: EventForm) => void;
+  eventEditing: EventItem | null;
+  eventThemes: { slug: string; label: string; color?: string; emoji?: string; gradient?: [string, string] }[];
+  eventDate: Date;
+  eventTime: Date;
+  eventEndDate: Date;
+  eventEndTime: Date;
+  showEventDatePicker: boolean;
+  showEventTimePicker: boolean;
+  showEventEndDatePicker: boolean;
+  showEventEndTimePicker: boolean;
+  showThemePicker: boolean;
+  onShowDatePicker: (show: boolean) => void;
+  onShowTimePicker: (show: boolean) => void;
+  onShowEndDatePicker: (show: boolean) => void;
+  onShowEndTimePicker: (show: boolean) => void;
+  onShowThemePicker: (show: boolean) => void;
+  onDateChange: (event: any, date?: Date) => void;
+  onTimeChange: (event: any, time?: Date) => void;
+  onEndDateChange: (event: any, date?: Date) => void;
+  onEndTimeChange: (event: any, time?: Date) => void;
+  onSave: () => void;
+  sessionToken?: string;
+  nearLat?: number;
+  nearLng?: number;
+  businessAddress?: string;
+  availableArtists?: ArtistSuggestion[];
+  isSaving?: boolean;
+};
+
+const themesMap = EVENT_THEMES;
+
+function formToMedia(form: EventForm): MediaItem[] {
+  const items: MediaItem[] = [];
+  const seen = new Set<string>();
+  if (form.cover_image_url) {
+    seen.add(form.cover_image_url);
+    items.push({ uri: form.cover_image_url, type: "image", isCoverImage: true, focalPoint: (form as any).cover_focal_point ?? { x: 0.5, y: 0.5 } });
+  } else if (form.video_url) {
+    seen.add(form.video_url);
+    items.push({ uri: form.video_url, type: "video", isCoverVideo: true, focalPoint: (form as any).cover_focal_point ?? { x: 0.5, y: 0.5 } });
+  }
+  form.image_urls.forEach((u) => {
+    if (!seen.has(u)) {
+      seen.add(u);
+      items.push({ uri: u, type: "image" });
+    }
+  });
+  if (form.video_url && !seen.has(form.video_url)) {
+    seen.add(form.video_url);
+    items.push({ uri: form.video_url, type: "video" });
+  }
+  form.gallery_images.forEach((u) => {
+    if (!seen.has(u)) {
+      seen.add(u);
+      items.push({ uri: u, type: "image" });
+    }
+  });
+  form.gallery_videos.forEach((u) => {
+    if (!seen.has(u)) {
+      seen.add(u);
+      items.push({ uri: u, type: "video" });
+    }
+  });
+  return items;
+}
+
+function mediaToForm(media: MediaItem[], base: EventForm): EventForm {
+  const coverImageItem = media.find((m) => m.isCoverImage && m.type === "image");
+  const coverVideoItem = media.find((m) => m.isCoverVideo && m.type === "video");
+  const coverItem = coverImageItem || coverVideoItem;
+  const images = media.filter((m) => m.type === "image").map((m) => m.uri);
+  const videos = media.filter((m) => m.type === "video").map((m) => m.uri);
+  return {
+    ...base,
+    cover_image_url: coverImageItem?.uri || (coverVideoItem ? "" : images[0]) || "",
+    image_urls: images,
+    video_url: coverVideoItem?.uri || videos[0] || undefined,
+    gallery_images: coverImageItem
+      ? images.filter((u) => u !== coverImageItem.uri)
+      : images.slice(1),
+    gallery_videos: coverVideoItem
+      ? videos.filter((u) => u !== coverVideoItem.uri)
+      : videos.slice(1),
+    cover_focal_point: coverItem?.focalPoint ?? { x: 0.5, y: 0.5 },
+    media_items: media as any,
+  } as any;
+}
+
+export default function EventModal({
+  visible,
+  onClose,
+  eventForm,
+  onFormChange,
+  eventEditing,
+  eventThemes,
+  eventDate,
+  eventTime,
+  eventEndDate,
+  eventEndTime,
+  showEventDatePicker,
+  showEventTimePicker,
+  showEventEndDatePicker,
+  showEventEndTimePicker,
+  showThemePicker,
+  onShowDatePicker,
+  onShowTimePicker,
+  onShowEndDatePicker,
+  onShowEndTimePicker,
+  onShowThemePicker,
+  onDateChange,
+  onTimeChange,
+  onEndDateChange,
+  onEndTimeChange,
+  onSave,
+  sessionToken,
+  nearLat,
+  nearLng,
+  businessAddress,
+  availableArtists,
+  isSaving = false,
+}: Props) {
+  const { t, i18n } = useTranslation();
+  const [artistQuery, setArtistQuery] = useState("");
+  const [showArtistSuggestions, setShowArtistSuggestions] = useState(false);
+  const webTimeInputRef = useRef<any>(null);
+
+  const taggedArtists = (availableArtists || []).filter(a =>
+    (eventForm.tagged_artist_ids || []).includes(a.artist_id)
+  );
+
+  const filteredArtistSuggestions = artistQuery.trim()
+    ? (availableArtists || []).filter(a =>
+        a.name.toLowerCase().includes(artistQuery.toLowerCase()) &&
+        !(eventForm.tagged_artist_ids || []).includes(a.artist_id)
+      ).slice(0, 10)
+    : [];
+
+  const handleSelectArtist = (artist: ArtistSuggestion) => {
+    const ids = [...(eventForm.tagged_artist_ids || []), artist.artist_id];
+    onFormChange({ ...eventForm, tagged_artist_ids: ids });
+    setArtistQuery("");
+    setShowArtistSuggestions(false);
+  };
+
+  const handleRemoveArtist = (artistId: string) => {
+    onFormChange({
+      ...eventForm,
+      tagged_artist_ids: (eventForm.tagged_artist_ids || []).filter(id => id !== artistId)
+    });
+  };
+
+  useEffect(() => {
+    if (eventEditing) {
+      onFormChange({
+        title: eventEditing.title,
+        description: eventEditing.description || "",
+        start_time: eventEditing.start_time || "",
+        end_time: (eventEditing as any).end_time || "",
+        location: eventEditing.location || "",
+        latitude: eventEditing.latitude ?? null,
+        longitude: eventEditing.longitude ?? null,
+        cover_image_url: (eventEditing as any).cover_image_url || undefined,
+        image_urls: (eventEditing as any).image_urls || [],
+        video_url: (eventEditing as any).video_url ?? undefined,
+        theme: eventEditing.theme || "",
+        themes: (eventEditing as any).themes?.length ? (eventEditing as any).themes : (eventEditing.theme ? [eventEditing.theme] : []),
+        gallery_images: (eventEditing as any).gallery_images || [],
+        gallery_videos: (eventEditing as any).gallery_videos || [],
+        is_private: (eventEditing as any).is_private || false,
+        password: (eventEditing as any).password || "",
+        tagged_artist_ids: eventEditing.tagged_artist_ids || [],
+      });
+    }
+  }, [eventEditing]);
+
+  const hasCoordinates =
+    Number.isFinite(Number(eventForm.latitude)) &&
+    Number.isFinite(Number(eventForm.longitude));
+
+  const hasBusinessCoordinates =
+    Number.isFinite(Number(nearLat)) &&
+    Number.isFinite(Number(nearLng));
+
+  // Auto-fill business location coordinates when address is auto-filled
+  useEffect(() => {
+    if (visible && !eventEditing && !eventForm.location && businessAddress) {
+      onFormChange({ ...eventForm, location: businessAddress, latitude: nearLat ?? null, longitude: nearLng ?? null });
+    }
+  }, [visible]);
+
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString(getPickerLocaleTag(i18n.language), { year: "numeric", month: "long", day: "numeric" });
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString(getPickerLocaleTag(i18n.language), { hour: "2-digit", minute: "2-digit", hour12: false });
+
+  const media = formToMedia(eventForm);
+  const formRef = useRef(eventForm);
+  formRef.current = eventForm;
+  const handleMediaChange = (newMedia: MediaItem[]) => {
+    onFormChange(mediaToForm(newMedia, formRef.current));
+  };
+
+  const themeList = eventThemes.length > 0
+    ? eventThemes.map(th => {
+        const local = themesMap[th.slug];
+        return {
+          slug: th.slug,
+          label: t(`events.themes.${th.slug}`, th.label),
+          color: th.color || local?.color,
+          emoji: th.emoji || local?.emoji,
+          gradient: th.gradient || local?.gradient,
+        };
+      })
+    : Object.entries(themesMap).map(([slug, th]) => ({ slug, label: t(`events.themes.${slug}`, th.label), color: th.color, emoji: th.emoji, gradient: th.gradient }));
+
+  return (
+    <FormScreen title={eventEditing ? t("events.editEvent") : t("events.createEvent")} onClose={onClose} visible={visible} titleColor="#FF9F1C">
+          <Text style={s.label}><Text style={s.required}>* </Text>{t("events.eventTitle") || "Event Title"}</Text>
+          <TextInput
+            style={s.input}
+            value={eventForm.title}
+            onChangeText={(text) => onFormChange({ ...eventForm, title: text })}
+            placeholder={t("events.eventTitlePlaceholder") || "Event title"}
+            placeholderTextColor="rgba(38,67,72,0.45)"
+          />
+
+          <Text style={s.label}>{t("events.description") || "Description"}</Text>
+          <TextInput
+            style={[s.input, s.textArea]}
+            value={eventForm.description}
+            onChangeText={(text) => onFormChange({ ...eventForm, description: text })}
+            placeholder={t("events.descriptionPlaceholder") || "Describe your event..."}
+            placeholderTextColor="rgba(38,67,72,0.45)"
+            multiline
+          />
+
+          <Text style={s.label}>{t("events.theme") || "Theme"}</Text>
+          <Pressable style={s.selector} onPress={() => onShowThemePicker(!showThemePicker)}>
+            <View style={s.themeChipPreview}>
+              {eventForm.themes?.length > 0 ? (
+                <>
+                  <Text style={s.themeChipEmoji}>{themeList.find(th => th.slug === eventForm.themes[0])?.emoji || DEFAULT_EVENT_THEME.emoji}</Text>
+                  <Text style={s.themeChipText}>
+                    {eventForm.themes.length === 1
+                      ? (themeList.find(th => th.slug === eventForm.themes[0])?.label || DEFAULT_EVENT_THEME.label)
+                      : `${eventForm.themes.length} ${t("events.themesTitle", "Themes")}`}
+                  </Text>
+                </>
+              ) : (
+                <Text style={s.selectorText}>{t("events.selectTheme") || "Select theme"}</Text>
+              )}
+            </View>
+            <Ionicons name="chevron-down" size={18} color="#264348" />
+          </Pressable>
+
+          {showThemePicker && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.themeChipsRow}>
+              {themeList.map((theme) => {
+                const active = (eventForm.themes || []).includes(theme.slug);
+                return (
+                <Pressable
+                  key={theme.slug}
+                  style={[s.themeChip, active && { backgroundColor: theme.color || "#FF9F1C", borderColor: theme.color || "#FF9F1C" }]}
+                  onPress={() => {
+                    const next = active
+                      ? (eventForm.themes || []).filter(t => t !== theme.slug)
+                      : [...(eventForm.themes || []), theme.slug];
+                    onFormChange({ ...eventForm, themes: next, theme: next.length > 0 ? next[0] : "" });
+                  }}
+                >
+                  <Text style={s.themeChipEmoji}>{theme.emoji || "🎉"}</Text>
+                  <Text style={[s.themeChipText, active && s.themeChipTextActive]}>{theme.label}</Text>
+                  {active && <Ionicons name="checkmark-circle" size={14} color="#fff" />}
+                </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          <View style={s.row}>
+            <View style={s.halfWidth}>
+              <Text style={s.label}><Text style={s.required}>* </Text>{t("events.date") || "Date"}</Text>
+              <Pressable style={s.selector} onPress={() => onShowDatePicker(true)}>
+                <Text style={s.selectorTextSelected}>{formatDate(eventDate)}</Text>
+                <Ionicons name="calendar-outline" size={18} color="#264348" />
+              </Pressable>
+            </View>
+            <View style={s.halfWidth}>
+              <Text style={s.label}><Text style={s.required}>* </Text>{t("events.time") || "Time"}</Text>
+              <View style={[s.selector, { position: "relative" }]}>
+                <Text style={s.selectorTextSelected}>{formatTime(eventTime)}</Text>
+                <Ionicons name="time-outline" size={18} color="#264348" />
+                {Platform.OS === "web" && (
+                  React.createElement("input", {
+                    ref: webTimeInputRef,
+                    type: "time",
+                    value: `${String(eventTime.getHours()).padStart(2, "0")}:${String(eventTime.getMinutes()).padStart(2, "0")}`,
+                    style: {
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      opacity: 0,
+                      cursor: "pointer",
+                    },
+                    onChange: (e: any) => {
+                      const v = e?.target?.value;
+                      if (!v) return;
+                      const [h, m] = v.split(":").map((x: string) => parseInt(x, 10));
+                      const d = new Date(eventTime);
+                      d.setHours(h || 0, m || 0, 0, 0);
+                      onTimeChange(null, d);
+                    },
+                  })
+                )}
+              </View>
+            </View>
+          </View>
+
+          {showEventDatePicker && (
+            <View>
+              {Platform.OS === "ios" && (
+                <Pressable style={s.pickerDoneBtn} onPress={() => onShowDatePicker(false)}>
+                  <Text style={s.pickerDoneText}>{t("common.done") || "Done"}</Text>
+                </Pressable>
+              )}
+              <DateTimePicker value={eventDate} mode="date" display={Platform.OS === "ios" ? "spinner" : "default"} locale={getPickerLocaleTag(i18n.language)} onChange={onDateChange} />
+            </View>
+          )}
+          {showEventTimePicker && (
+            <View>
+              {Platform.OS === "ios" && (
+                <Pressable style={s.pickerDoneBtn} onPress={() => onShowTimePicker(false)}>
+                  <Text style={s.pickerDoneText}>{t("common.done") || "Done"}</Text>
+                </Pressable>
+              )}
+              <DateTimePicker value={eventTime} mode="time" display={Platform.OS === "ios" ? "spinner" : "default"} locale={getPickerLocaleTag(i18n.language)} onChange={onTimeChange} />
+            </View>
+          )}
+
+          <View style={s.row}>
+            <View style={s.halfWidth}>
+              <Text style={s.label}>{t("events.endDate") || "End date"}</Text>
+              <Pressable style={s.selector} onPress={() => onShowEndDatePicker(true)}>
+                <Text style={s.selectorTextSelected}>{formatDate(eventEndDate)}</Text>
+                <Ionicons name="calendar-outline" size={18} color="#264348" />
+              </Pressable>
+            </View>
+            <View style={s.halfWidth}>
+              <Text style={s.label}>{t("events.endTime") || "End time"}</Text>
+              <View style={[s.selector, { position: "relative" }]}>
+                <Text style={s.selectorTextSelected}>{formatTime(eventEndTime)}</Text>
+                <Ionicons name="time-outline" size={18} color="#264348" />
+                {Platform.OS === "web" && (
+                  React.createElement("input", {
+                    type: "time",
+                    value: `${String(eventEndTime.getHours()).padStart(2, "0")}:${String(eventEndTime.getMinutes()).padStart(2, "0")}`,
+                    style: {
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      opacity: 0,
+                      cursor: "pointer",
+                    },
+                    onChange: (e: any) => {
+                      const v = e?.target?.value;
+                      if (!v) return;
+                      const [h, m] = v.split(":").map((x: string) => parseInt(x, 10));
+                      const d = new Date(eventEndTime);
+                      d.setHours(h || 0, m || 0, 0, 0);
+                      onEndTimeChange(null, d);
+                    },
+                  })
+                )}
+              </View>
+            </View>
+          </View>
+
+          {showEventEndDatePicker && (
+            <View>
+              {Platform.OS === "ios" && (
+                <Pressable style={s.pickerDoneBtn} onPress={() => onShowEndDatePicker(false)}>
+                  <Text style={s.pickerDoneText}>{t("common.done") || "Done"}</Text>
+                </Pressable>
+              )}
+              <DateTimePicker value={eventEndDate} mode="date" display={Platform.OS === "ios" ? "spinner" : "default"} locale={getPickerLocaleTag(i18n.language)} onChange={onEndDateChange} />
+            </View>
+          )}
+          {showEventEndTimePicker && (
+            <View>
+              {Platform.OS === "ios" && (
+                <Pressable style={s.pickerDoneBtn} onPress={() => onShowEndTimePicker(false)}>
+                  <Text style={s.pickerDoneText}>{t("common.done") || "Done"}</Text>
+                </Pressable>
+              )}
+              <DateTimePicker value={eventEndTime} mode="time" display={Platform.OS === "ios" ? "spinner" : "default"} locale={getPickerLocaleTag(i18n.language)} onChange={onEndTimeChange} />
+            </View>
+          )}
+
+          {/* Private event + password */}
+          <View style={s.privateRow}>
+            <View style={s.privateLabelContainer}>
+              <Text style={s.labelNoMargin}>{t("events.privateEvent", "Private event")}</Text>
+              <Text style={s.labelHint}>{t("events.privateHint", "Only people with the password can join.")}</Text>
+            </View>
+            <Pressable
+              style={[s.toggle, eventForm.is_private && s.toggleActive]}
+              onPress={() => onFormChange({ ...eventForm, is_private: !eventForm.is_private, password: eventForm.is_private ? "" : eventForm.password })}
+            >
+              <View style={[s.toggleKnob, eventForm.is_private && s.toggleKnobActive]} />
+            </Pressable>
+          </View>
+          {eventForm.is_private && (
+            <TextInput
+              style={s.input}
+              value={eventForm.password}
+              onChangeText={(text) => onFormChange({ ...eventForm, password: text })}
+              placeholder={t("events.passwordPlaceholder", "Event password")}
+              placeholderTextColor="rgba(38,67,72,0.45)"
+              secureTextEntry
+            />
+          )}
+
+          <Text style={s.label}>{t("events.location") || "Location"}</Text>
+          {businessAddress ? (
+            <View>
+              <PlacesAutocompleteInput
+                value={businessAddress}
+                onChangeText={() => {}}
+                locked
+                confirmed={hasBusinessCoordinates}
+                style={s.input}
+              />
+              <Text style={s.hint}>{t("events.businessLocationLocked", "Events use your business address.")}</Text>
+            </View>
+          ) : (
+            <PlacesAutocompleteInput
+              value={eventForm.location}
+              onChangeText={(text) => onFormChange({ ...eventForm, location: text, latitude: null, longitude: null })}
+              onSelectPlace={(address, lat, lng) => onFormChange({ ...eventForm, location: address, latitude: lat, longitude: lng })}
+              placeholder={t("events.locationPlaceholder") || "Location or address"}
+              style={s.input}
+              nearLat={nearLat}
+              nearLng={nearLng}
+              sessionToken={sessionToken}
+              confirmed={hasCoordinates}
+            />
+          )}
+
+          {/* Artist Tagging */}
+          <View style={s.artistSection}>
+            <Text style={s.label}>{t("events.tagArtists", "Tag Artists")}</Text>
+            {taggedArtists.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.taggedArtistsRow}>
+                {taggedArtists.map((artist) => (
+                  <Pressable key={artist.artist_id} style={s.taggedArtistChip} onPress={() => handleRemoveArtist(artist.artist_id)}>
+                    {artist.profile_photo ? (
+                      <Image source={{ uri: artist.profile_photo }} style={s.taggedArtistAvatar} />
+                    ) : (
+                      <View style={[s.taggedArtistAvatar, s.taggedArtistAvatarPlaceholder]}>
+                        <Ionicons name="person" size={14} color="#264348" />
+                      </View>
+                    )}
+                    <Text style={s.taggedArtistName} numberOfLines={1}>{artist.name}</Text>
+                    <Ionicons name="close-circle" size={16} color="#264348" />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+            <View style={s.artistInputRow}>
+              <Ionicons name="search" size={16} color="#264348" style={{ marginRight: 6 }} />
+              <TextInput
+                style={[s.input, { flex: 1 }]}
+                value={artistQuery}
+                onChangeText={(text) => { setArtistQuery(text); setShowArtistSuggestions(!!text.trim()); }}
+                placeholder={t("events.searchArtists", "Search artists...")}
+                placeholderTextColor="rgba(38,67,72,0.45)"
+                onFocus={() => artistQuery.trim() && setShowArtistSuggestions(true)}
+              />
+              {artistQuery ? (
+                <Pressable onPress={() => { setArtistQuery(""); setShowArtistSuggestions(false); }}>
+                  <Ionicons name="close-circle" size={16} color="#264348" />
+                </Pressable>
+              ) : null}
+            </View>
+            {showArtistSuggestions && filteredArtistSuggestions.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.artistSuggestionsRow}>
+                {filteredArtistSuggestions.map((artist) => (
+                  <Pressable key={artist.artist_id} style={s.artistSuggestionChip} onPress={() => handleSelectArtist(artist)}>
+                    {artist.profile_photo ? (
+                      <Image source={{ uri: artist.profile_photo }} style={s.artistSuggestionAvatar} />
+                    ) : (
+                      <View style={[s.artistSuggestionAvatar, s.artistSuggestionAvatarPlaceholder]}>
+                        <Ionicons name="person" size={14} color="#264348" />
+                      </View>
+                    )}
+                    <Text style={s.artistSuggestionName} numberOfLines={1}>{artist.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+
+      <UnifiedMediaGallery
+            media={media}
+            onChange={handleMediaChange}
+            sessionToken={sessionToken}
+            label={t("events.media") || "Media"}
+            accentColor="#FF9F1C"
+            lightBackground
+          />
+
+      <FormBottomBar
+        onCancel={onClose}
+        onSave={onSave}
+        isSaving={isSaving}
+        disabled={!(eventForm.title || "").trim() || (!!businessAddress && !hasBusinessCoordinates)}
+        saveLabel={eventEditing ? t("common.save", "Speichern") : t("common.create", "Erstellen")}
+        accentColor="#FF9F1C"
+      />
+    </FormScreen>
+  );
+}
+
+const s = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  headerBtn: {
+    width: 40,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: FONT_SIZES.h3,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    color: "#264348",
+  },
+  body: {
+    flex: 1,
+    paddingHorizontal: SPACING.std,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: SPACING.small,
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  cancelBtn: {
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.section,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.2)",
+  },
+  cancelBtnText: {
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#264348",
+  },
+  saveBtn: {
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.section,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: "#FF9F1C",
+  },
+  saveBtnText: {
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#fff",
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#264348",
+    marginBottom: SPACING.tiny,
+    marginTop: SPACING.std,
+  },
+  required: {
+    color: COLORS.danger,
+  },
+  labelNoMargin: {
+    fontSize: 14,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#264348",
+    marginBottom: 0,
+    marginTop: 0,
+  },
+  labelHint: {
+    fontSize: FONT_SIZES.micro,
+    color: "rgba(38,67,72,0.45)",
+    marginTop: -2,
+    marginBottom: SPACING.small,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.2)",
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.compact,
+    fontSize: FONT_SIZES.bodySmall,
+    color: "#264348",
+    backgroundColor: "#fff",
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: "top",
+  },
+  row: {
+    flexDirection: "row",
+    gap: SPACING.small,
+  },
+  halfWidth: {
+    flex: 1,
+  },
+  selector: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.2)",
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.compact,
+    backgroundColor: "#fff",
+  },
+  selectorText: {
+    fontSize: FONT_SIZES.bodySmall,
+    color: "rgba(38,67,72,0.45)",
+  },
+  selectorTextSelected: {
+    fontSize: FONT_SIZES.bodySmall,
+    color: "#264348",
+  },
+  themeChipPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  themeChipsRow: {
+    gap: SPACING.small,
+    paddingVertical: SPACING.tiny,
+  },
+  themeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.small,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.2)",
+    backgroundColor: "transparent",
+  },
+  themeChipEmoji: {
+    fontSize: FONT_SIZES.small,
+  },
+  themeChipText: {
+    fontSize: FONT_SIZES.micro,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: "#264348",
+  },
+  themeChipTextActive: {
+    color: "#fff",
+    fontWeight: FONT_WEIGHTS.semibold as any,
+  },
+  privateRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: SPACING.small,
+  },
+  privateLabelContainer: {
+    flex: 1,
+  },
+  toggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.border,
+    padding: 2,
+    justifyContent: "center",
+  },
+  toggleActive: {
+    backgroundColor: '#FF9F1C',
+  },
+  toggleKnob: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+  },
+  toggleKnobActive: {
+    alignSelf: "flex-end",
+  },
+  pickerDoneBtn: {
+    alignSelf: "flex-end",
+    paddingHorizontal: SPACING.small,
+    paddingVertical: SPACING.tiny,
+    marginTop: SPACING.small,
+  },
+  pickerDoneText: {
+    fontSize: FONT_SIZES.bodySmall,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#FF9F1C",
+  },
+  // Artist tagging
+  artistSection: {
+    marginBottom: SPACING.small,
+  },
+  taggedArtistsRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 8,
+  },
+  taggedArtistChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,159,28,0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  taggedArtistAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  taggedArtistAvatarPlaceholder: {
+    backgroundColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  taggedArtistName: {
+    fontSize: 14,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: "#264348",
+    maxWidth: 100,
+  },
+  artistInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.2)",
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: Platform.OS === "web" ? 8 : 6,
+    backgroundColor: COLORS.background,
+  },
+  artistSuggestionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 8,
+  },
+  artistSuggestionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "transparent",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.2)",
+  },
+  artistSuggestionAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  artistSuggestionAvatarPlaceholder: {
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  artistSuggestionName: {
+    fontSize: 14,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: "#264348",
+    maxWidth: 100,
+  },
+  hint: {
+    fontSize: 14,
+    color: "#264348",
+    marginTop: SPACING.tiny,
+  },
+});

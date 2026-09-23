@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Perix Player Test</title>
+<script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 20px; background: #f5f5f5; }
+  h2 { margin: 8px 0; }
+  #status { background: #111; color: #0f0; padding: 10px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; min-height: 120px; }
+  mux-player { width: 100%; max-width: 480px; aspect-ratio: 9/16; background: #000; }
+</style>
+</head>
+<body>
+<h2>1) Mux Player + first-party src (our proxy)</h2>
+<mux-player id="p1" stream-type="on-demand" muted autoplay playsinline loop
+  src="https://app.perixapp.com/api/mux-hls/zU9EecRo2Gn00v3Jr02x8yFbGY02cnhvT6KEJfsLYf02Aqc.m3u8">
+</mux-player>
+
+<h2>2) Mux Player + direct stream.mux.com</h2>
+<mux-player id="p2" stream-type="on-demand" muted autoplay playsinline loop
+  src="https://stream.mux.com/zU9EecRo2Gn00v3Jr02x8yFbGY02cnhvT6KEJfsLYf02Aqc.m3u8">
+</mux-player>
+
+<h2>Log</h2>
+<div id="status">waiting...</div>
+
+<script>
+const status = document.getElementById("status");
+function log(msg) { status.textContent += "\n" + msg; }
+for (const id of ["p1", "p2"]) {
+  const p = document.getElementById(id);
+  p.addEventListener("playing", () => log(id + ": PLAYING"));
+  p.addEventListener("pause", () => log(id + ": pause"));
+  p.addEventListener("error", (e) => log(id + ": ERROR " + JSON.stringify(e.detail || e.message)));
+  p.addEventListener("loadstart", () => log(id + ": loadstart"));
+  p.addEventListener("durationchange", () => log(id + ": duration " + p.duration));
+}
+log("script loaded");
+</script>
+</body>
+</html>

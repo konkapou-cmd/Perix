@@ -1,0 +1,99 @@
+import React from "react";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS } from "../../lib/designTokens";
+
+type FormScreenProps = {
+  title: string;
+  onClose: () => void;
+  visible: boolean;
+  children?: React.ReactNode;
+  footer?: React.ReactNode;
+  titleColor?: string;
+};
+
+export default function FormScreen({ title, onClose, visible, children, footer, titleColor = "#264348" }: FormScreenProps) {
+  const { t } = useTranslation();
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView
+          style={styles.kav}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={[styles.header, { borderBottomColor: "rgba(38,67,72,0.15)" }]}>
+            <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={12}>
+              <Ionicons name="close" size={24} color="#264348" />
+            </Pressable>
+            <Text style={[styles.title, { color: titleColor }]} numberOfLines={1}>
+              {title}
+            </Text>
+            <View style={styles.closeBtn} />
+          </View>
+
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
+
+          {footer ? <View style={styles.footer}>{footer}</View> : null}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    ...Platform.select({
+      web: { maxWidth: 1280, width: "100%", marginHorizontal: "auto" },
+    }),
+  },
+  kav: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.background,
+  },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: FONT_SIZES.h4,
+    fontWeight: FONT_WEIGHTS.semibold,
+  },
+  body: {
+    flex: 1,
+  },
+  bodyContent: {
+    paddingHorizontal: SPACING.std,
+    paddingTop: SPACING.std,
+    paddingBottom: 24,
+  },
+  footer: {
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.small,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(38,67,72,0.15)",
+    backgroundColor: COLORS.background,
+  },
+});

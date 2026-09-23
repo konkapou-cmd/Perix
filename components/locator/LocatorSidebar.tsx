@@ -1,0 +1,332 @@
+import React, { useCallback } from "react";
+import {
+  Pressable,
+  ScrollView,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  LayoutAnimation,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../../lib/designTokens";
+import { CategoryGroup } from "../../lib/api";
+import { CATEGORY_ICONS, subcategoryIcon, CATEGORY_COLORS, subcategoryColor } from "../../lib/categoryIcons";
+import { sortCategoriesByLabel } from "../../lib/categoryTranslation";
+
+type Props = {
+  categories: CategoryGroup[];
+  selectedRoot: string;
+  selectedSubcategory: string;
+  onSelectRoot: (slug: string) => void;
+  onSelectSubcategory: (slug: string) => void;
+  onClose?: () => void;
+};
+
+const SIDEBAR_WIDTH = 260;
+
+export { SIDEBAR_WIDTH };
+
+export default function LocatorSidebar({
+  categories,
+  selectedRoot,
+  selectedSubcategory,
+  onSelectRoot,
+  onSelectSubcategory,
+  onClose,
+}: Props) {
+  const { t } = useTranslation();
+
+  const label = (slug: string, name: string) => {
+    const key = `categories.${slug}`;
+    const translated = t(key);
+    return translated && translated !== key ? translated : name;
+  };
+
+  const handleRootToggle = useCallback(
+    (slug: string) => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      onSelectRoot(selectedRoot === slug ? "All" : slug);
+    },
+    [selectedRoot, onSelectRoot]
+  );
+
+  const handleSubSelect = useCallback(
+    (slug: string) => {
+      onSelectSubcategory(selectedSubcategory === slug ? "All" : slug);
+      if (onClose) onClose();
+    },
+    [selectedSubcategory, onSelectSubcategory, onClose]
+  );
+
+  const handleAllPress = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    onSelectRoot("All");
+    onSelectSubcategory("All");
+    if (onClose) onClose();
+  }, [onSelectRoot, onSelectSubcategory, onClose]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>{t("locator.categories", "Categories")}</Text>
+        {onClose && (
+          <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={8}>
+            <Ionicons name="close" size={20} color="#264348" />
+          </Pressable>
+        )}
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* All category */}
+        <Pressable
+          style={[styles.item, selectedRoot === "All" && styles.itemActive]}
+          onPress={handleAllPress}
+        >
+          <View style={styles.itemIcon}>
+            <Ionicons
+              name="grid-outline"
+              size={16}
+              color={selectedRoot === "All" ? "#59ABE3" : "#264348"}
+            />
+          </View>
+          <Text
+            style={[
+              styles.itemText,
+              selectedRoot === "All" && styles.itemTextActive,
+            ]}
+          >
+            {t("locator.allCategories", "All Categories")}
+          </Text>
+        </Pressable>
+        {sortCategoriesByLabel(categories, t).map((cat) => {
+          const isExpanded = selectedRoot === cat.slug;
+          const hasGroups = cat.groups && cat.groups.length > 0;
+          const hasSubs = (cat.subcategories && cat.subcategories.length > 0) || hasGroups;
+          const allSubs = hasGroups
+            ? cat.groups!.flatMap(g => g.subcategories || [])
+            : (cat.subcategories || []);
+
+          return (
+            <View key={cat.slug}>
+              <Pressable
+                style={[styles.item, isExpanded && styles.itemActive]}
+                onPress={() => {
+                  if (hasSubs) {
+                    handleRootToggle(cat.slug);
+                  } else {
+                    handleRootToggle(cat.slug);
+                    if (onClose) onClose();
+                  }
+                }}
+              >
+                <View style={styles.itemIcon}>
+                  <Ionicons
+                    name={(CATEGORY_ICONS[cat.slug] || "folder-outline") as any}
+                    size={16}
+                    color={isExpanded ? "#59ABE3" : (CATEGORY_COLORS[cat.slug] || "#264348")}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.itemText,
+                    isExpanded && styles.itemTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {label(cat.slug, cat.name)}
+                </Text>
+                {hasSubs && (
+                  <Ionicons
+                    name={isExpanded ? "chevron-up" : "chevron-down"}
+                    size={14}
+                    color={isExpanded ? "#59ABE3" : "#264348"}
+                    style={styles.chevron}
+                  />
+                )}
+              </Pressable>
+
+              {isExpanded && hasGroups ? (
+                <View style={styles.groupList}>
+                  {cat.groups!.map((group) => (
+                    <View key={group.slug}>
+                      <Text style={styles.groupHeader}>{label(group.slug, group.name)}</Text>
+                      <View style={styles.subList}>
+                        {sortCategoriesByLabel(group.subcategories, t).map((sub) => {
+                          const isSubActive = selectedSubcategory === sub.slug;
+                          return (
+                            <Pressable
+                              key={sub.slug}
+                              style={[styles.subItem, isSubActive && styles.subItemActive]}
+                              onPress={() => handleSubSelect(sub.slug)}
+                            >
+                              <Ionicons
+                                name={subcategoryIcon(sub.slug) as any}
+                                size={14}
+                                color={isSubActive ? "#59ABE3" : (subcategoryColor(sub.slug, cat.slug) || "#264348")}
+                                style={styles.subIcon}
+                              />
+                              <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
+                                {label(sub.slug, sub.name)}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : isExpanded && hasSubs ? (
+                  <View style={styles.subList}>
+                    {sortCategoriesByLabel(allSubs, t).map((sub) => {
+                      const isSubActive = selectedSubcategory === sub.slug;
+                      return (
+                        <Pressable
+                          key={sub.slug}
+                          style={[styles.subItem, isSubActive && styles.subItemActive]}
+                          onPress={() => handleSubSelect(sub.slug)}
+                        >
+                          <Ionicons
+                            name={subcategoryIcon(sub.slug) as any}
+                            size={14}
+                            color={isSubActive ? "#59ABE3" : (subcategoryColor(sub.slug, cat.slug) || "#264348")}
+                            style={styles.subIcon}
+                          />
+                          <Text style={[styles.subText, isSubActive && styles.subTextActive]} numberOfLines={1}>
+                            {label(sub.slug, sub.name)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+              ) : null}
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: SIDEBAR_WIDTH,
+    height: "100%",
+    backgroundColor: COLORS.background,
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+    ...Platform.select({
+      web: { position: "relative" as any, flexShrink: 0 } as any,
+      default: { position: "absolute" as any, top: 0, left: 0, bottom: 0, zIndex: 100, elevation: 10, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 4, height: 0 } },
+    }),
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.compact,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  headerTitle: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#264348",
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingVertical: SPACING.small,
+    paddingBottom: 160,
+  },
+  item: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: SPACING.std,
+    paddingVertical: SPACING.compact,
+    gap: SPACING.small,
+    borderRadius: BORDER_RADIUS.sm,
+    marginHorizontal: SPACING.small,
+  },
+  itemActive: {
+    backgroundColor: "rgba(89,171,227,0.12)",
+  },
+  itemIcon: {
+    width: 22,
+    alignItems: "center",
+  },
+  itemText: {
+    flex: 1,
+    fontSize: Platform.OS === "web" ? 14 : 13,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: "#264348",
+    ...Platform.select({ web: { cursor: "pointer" } as any, default: {} }),
+  },
+  itemTextActive: {
+    color: "#59ABE3",
+    fontWeight: FONT_WEIGHTS.semibold as any,
+  },
+  chevron: {
+    marginLeft: "auto",
+  },
+  subList: {
+    paddingLeft: SPACING.std + 22 + SPACING.small,
+    paddingRight: SPACING.small,
+    marginBottom: SPACING.tiny,
+  },
+  subItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: SPACING.small + 1,
+    paddingHorizontal: SPACING.small,
+    borderRadius: BORDER_RADIUS.sm,
+    gap: SPACING.small,
+  },
+  subItemActive: {
+    backgroundColor: "rgba(89,171,227,0.12)",
+  },
+  subIcon: {
+    marginRight: SPACING.small,
+    marginLeft: 1,
+  },
+  subDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#264348",
+  },
+  subText: {
+    flex: 1,
+    fontSize: Platform.OS === "web" ? 13 : 12,
+    color: "#264348",
+    ...Platform.select({ web: { cursor: "pointer" } as any, default: {} }),
+  },
+  subTextActive: {
+    color: "#59ABE3",
+    fontWeight: FONT_WEIGHTS.semibold as any,
+  },
+  groupList: {
+    paddingLeft: SPACING.std + 22 + SPACING.small,
+    paddingRight: SPACING.small,
+    marginBottom: SPACING.tiny,
+  },
+  groupHeader: {
+    fontSize: Platform.OS === "web" ? 11 : 10,
+    fontWeight: FONT_WEIGHTS.semibold as any,
+    color: "#264348",
+    textTransform: "uppercase" as any,
+    letterSpacing: 0.5,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.small,
+  },
+});

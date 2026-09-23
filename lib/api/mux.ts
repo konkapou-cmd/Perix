@@ -1,0 +1,309 @@
+import { Platform } from "react-native";
+import { apiRequest, API_BASE } from "./core";
+import * as FileSystem from "expo-file-system/legacy";
+
+const FileSystemUploadType = (FileSystem as any).FileSystemUploadType ?? { BINARY_CONTENT: 0, MULTIPART: 1 };
+
+// Client-side timeout for Mux API calls (backend has its own 20s timeout on the SDK).
+// Kept comfortably below the OS ~60s default so the user sees a clear error instead
+// of a generic "Network request failed" hang.
+const MUX_REQUEST_TIMEOUT_MS = 40 * 1000;
+
+export type MuxUploadCreateResponse = {
+  upload_id: string;
+  upload_url: string;
+};
+
+export type MuxUploadConfirmResponse = {
+  upload_id: string;
+  asset_id: string | null;
+  playback_id: string | null;
+  playback_url: string | null;
+  thumbnail_url: string | null;
+  status: string;
+  duration: number | null;
+};
+
+export type MuxAssetStatus = {
+  asset_id: string | null;
+  playback_id: string | null;
+  playback_url: string | null;
+  thumbnail_url: string | null;
+  status: string;
+  duration: number | null;
+};
+
+export type MuxVideoUploadResult = {
+  playback_url: string | null;
+  thumbnail_url: string | null;
+  mux_upload_id: string;
+  mux_asset_id: string | null;
+  mux_playback_id: string | null;
+  status: "ready" | "processing";
+};
+
+export const createMuxUpload = async (
+  token: string,
+  contentRef?: string
+): Promise<MuxUploadCreateResponse> => {
+  return apiRequest<MuxUploadCreateResponse>("/mux/upload/create", "POST", token, {
+    content_ref: contentRef || "",
+  }, MUX_REQUEST_TIMEOUT_MS);
+};
+
+export const confirmMuxUpload = async (
+  token: string,
+  uploadId: string
+): Promise<MuxUploadConfirmResponse> => {
+  return apiRequest<MuxUploadConfirmResponse>("/mux/upload/confirm", "POST", token, {
+    upload_id: uploadId,
+  }, MUX_REQUEST_TIMEOUT_MS);
+};
+
+export const getMuxAssetStatus = async (
+  token: string,
+  assetId: string
+): Promise<MuxAssetStatus> => {
+  return apiRequest<MuxAssetStatus>(`/mux/asset/${assetId}`, "GET", token, undefined, MUX_REQUEST_TIMEOUT_MS);
+};
+
+const uploadToMuxDirectWeb = async (
+  uploadUrl: string,
+  videoUri: string,
+  onProgress?: (progress: { phase: string; progress: number }) => void
+): Promise<void> => {
+  onProgress?.({ phase: "preparing", progress: 10 });
+
+  let blob: Blob;
+  if (videoUri.startsWith("data:")) {
+    const match = videoUri.match(/^data:(.*?);base64,(.*)$/s);
+    if (!match) throw new Error("Unsupported data URI for video upload");
+    const mime = match[1] || "video/mp4";
+    const binary = atob(match[2]);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    blob = new Blob([bytes], { type: mime });
+  } else {
+    const response = await fetch(videoUri);
+    if (!response.ok) throw new Error("Could not read video file");
+    blob = await response.blob();
+  }
+
+  onProgress?.({ phase: "uploading", progress: 15 });
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", blob.type || "video/mp4");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const pct = 15 + Math.round((e.loaded / e.total) * 70);
+        onProgress?.({ phase: "uploading", progress: Math.min(pct, 85) });
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Mux upload failed with status ${xhr.status}`));
+    };
+    xhr.onerror = () => reject(new Error("Mux upload network error"));
+    xhr.send(blob);
+  });
+
+  onProgress?.({ phase: "processing", progress: 85 });
+};
+
+const uploadToMuxDirect = async (
+  uploadUrl: string,
+  videoUri: string,
+  onProgress?: (progress: { phase: string; progress: number }) => void
+): Promise<void> => {
+  onProgress?.({ phase: "preparing", progress: 10 });
+
+  let localUri = videoUri;
+
+  // Convert content:// and ph:// URIs to file:// URIs
+  if (videoUri.startsWith("content://") || videoUri.startsWith("ph://") || videoUri.startsWith("assets-library://")) {
+    const ext = videoUri.endsWith(".mp4") ? "mp4"
+      : videoUri.endsWith(".mov") ? "mov"
+      : videoUri.endsWith(".3gp") ? "3gp"
+      : "mp4";
+    const tempPath = `${FileSystem.cacheDirectory}mux_upload_${Date.now()}.${ext}`;
+    await FileSystem.copyAsync({ from: videoUri, to: tempPath });
+    localUri = tempPath;
+  }
+
+  // Remote URLs should never reach here (handled by uploadVideoToMux)
+  if (localUri.startsWith("http://") || localUri.startsWith("https://")) {
+    return;
+  }
+
+  const fileInfo = await FileSystem.getInfoAsync(localUri);
+  if (!fileInfo.exists) {
+    throw new Error("Video file not found at: " + localUri);
+  }
+
+  const fileSize = fileInfo.size || 0;
+  const mimeType = localUri.endsWith(".mov") ? "video/quicktime" : "video/mp4";
+  const filename = localUri.split("/").pop() || "upload.mp4";
+
+  onProgress?.({ phase: "uploading", progress: 15 });
+
+  // Use createUploadTask to get byte-level upload progress (uploadAsync has no progress callback)
+  const task = FileSystem.createUploadTask(uploadUrl, localUri, {
+    httpMethod: "PUT",
+    headers: {
+      "Content-Type": mimeType,
+    },
+    uploadType: FileSystemUploadType.BINARY_CONTENT as any,
+  }, (progressEvent: { totalBytesSent: number; totalBytesExpectedToSend: number }) => {
+    const total = progressEvent?.totalBytesExpectedToSend;
+    const sent = progressEvent?.totalBytesSent;
+    if (total && sent && total > 0) {
+      const pct = 15 + Math.round((sent / total) * 70);
+      onProgress?.({ phase: "uploading", progress: Math.min(pct, 85) });
+    }
+  });
+
+  const result = await task.uploadAsync();
+
+  if (!result || result.status < 200 || result.status >= 300) {
+    throw new Error(`Mux upload failed with status ${result?.status ?? "unknown"}: ${result?.body?.substring(0, 200)}`);
+  }
+
+  onProgress?.({ phase: "processing", progress: 85 });
+
+  // Clean up temp file if we created one
+  if (localUri !== videoUri) {
+    try {
+      await FileSystem.deleteAsync(localUri, { idempotent: true });
+    } catch {}
+  }
+};
+
+export const uploadVideoToMux = async (
+  token: string,
+  videoUri: string,
+  contentRef?: string,
+  onProgress?: (progress: { phase: string; progress: number }) => void
+): Promise<MuxVideoUploadResult> => {
+  // If the video is already a Mux playback URL, no need to re-upload
+  const muxMatch = videoUri.match(/stream\.mux\.com\/([a-zA-Z0-9]+)\.m3u8/);
+  if (muxMatch) {
+    const playbackId = muxMatch[1];
+    onProgress?.({ phase: "complete", progress: 100 });
+    return {
+      playback_url: videoUri,
+      thumbnail_url: `https://image.mux.com/${playbackId}/thumbnail.jpg`,
+      mux_upload_id: "",
+      mux_asset_id: null,
+      mux_playback_id: playbackId,
+      status: "ready",
+    };
+  }
+
+  if (videoUri.startsWith("http://") || videoUri.startsWith("https://")) {
+    onProgress?.({ phase: "complete", progress: 100 });
+    return {
+      playback_url: videoUri,
+      thumbnail_url: null,
+      mux_upload_id: "",
+      mux_asset_id: null,
+      mux_playback_id: null,
+      status: "ready",
+    };
+  }
+
+  onProgress?.({ phase: "preparing", progress: 5 });
+
+  let createResult: MuxUploadCreateResponse;
+  try {
+    createResult = await createMuxUpload(token, contentRef);
+  } catch (createErr: any) {
+    // Retry create once — transient network/timeouts are common here
+    console.warn("[Mux] Create upload failed, retrying...", createErr?.message);
+    await new Promise((r) => setTimeout(r, 2000));
+    createResult = await createMuxUpload(token, contentRef);
+  }
+  const { upload_id, upload_url } = createResult;
+
+  if (!upload_url) {
+    throw new Error("Failed to create Mux upload: no upload URL received");
+  }
+
+  onProgress?.({ phase: "uploading", progress: 10 });
+
+  if (Platform.OS === "web") {
+    await uploadToMuxDirectWeb(upload_url, videoUri, onProgress);
+  } else {
+    await uploadToMuxDirect(upload_url, videoUri, onProgress);
+  }
+
+  onProgress?.({ phase: "processing", progress: 85 });
+
+  let confirmResult: MuxUploadConfirmResponse;
+  try {
+    confirmResult = await confirmMuxUpload(token, upload_id);
+  } catch (confirmErr: any) {
+    // Retry confirm once — network errors are common here
+    console.warn("[Mux] Confirm failed, retrying...", confirmErr?.message);
+    try {
+      await new Promise((r) => setTimeout(r, 2000));
+      confirmResult = await confirmMuxUpload(token, upload_id);
+    } catch (retryErr: any) {
+      const isPollError = retryErr?.message?.includes("Video processing failed on Mux");
+      if (isPollError) throw retryErr;
+      throw new Error(retryErr?.message || "Mux upload confirmation failed");
+    }
+  }
+
+  if (confirmResult.status === "ready" && confirmResult.playback_url) {
+    onProgress?.({ phase: "complete", progress: 100 });
+    return {
+      playback_url: confirmResult.playback_url,
+      thumbnail_url: confirmResult.thumbnail_url,
+      mux_upload_id: upload_id,
+      mux_asset_id: confirmResult.asset_id,
+      mux_playback_id: confirmResult.playback_id,
+      status: "ready",
+    };
+  }
+
+  if (confirmResult.asset_id) {
+    onProgress?.({ phase: "processing", progress: 90 });
+    const maxAttempts = 30;
+    const pollIntervalMs = 3000;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise((r) => setTimeout(r, pollIntervalMs));
+      try {
+        const status = await getMuxAssetStatus(token, confirmResult.asset_id);
+        onProgress?.({ phase: "processing", progress: 90 + Math.round((attempt / maxAttempts) * 10) });
+        if (status.status === "ready" && status.playback_url) {
+          onProgress?.({ phase: "complete", progress: 100 });
+          return {
+            playback_url: status.playback_url,
+            thumbnail_url: status.thumbnail_url,
+            mux_upload_id: upload_id,
+            mux_asset_id: status.asset_id,
+            mux_playback_id: status.playback_id,
+            status: "ready",
+          };
+        }
+        if (status.status === "errored") {
+          throw new Error("Video processing failed on Mux");
+        }
+      } catch (pollErr) {
+        console.warn(`Poll attempt ${attempt + 1} failed:`, pollErr);
+      }
+    }
+  }
+
+  onProgress?.({ phase: "processing", progress: 90 });
+  return {
+    playback_url: null,
+    thumbnail_url: confirmResult.thumbnail_url,
+    mux_upload_id: upload_id,
+    mux_asset_id: confirmResult.asset_id,
+    mux_playback_id: confirmResult.playback_id,
+    status: "processing",
+  };
+};
