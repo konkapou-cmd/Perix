@@ -1,50 +1,74 @@
-# Welcome to your Expo app 👋
+# Perix
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Social city app. One repo, one frontend, one backend.
 
-## Get started
+## Structure
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+Perix-main/
+  frontend/   # Expo (React Native + web) app — the single source of truth
+  backend/    # FastAPI + MongoDB backend (deployed on Railway)
+  Dockerfile  # serves backend + webdist (built frontend)
+  railway.json
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Local development
 
-## Learn more
+```bash
+# Web app
+cd Perix-main/frontend
+npm install
+npm run web            # expo start --web
 
-To learn more about developing your project with Expo, look at the following resources:
+# Backend
+cd Perix-main/backend
+pip install -r requirements.txt
+uvicorn server:app --reload
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Checks before committing:
 
-## Join the community
+```bash
+cd Perix-main/frontend
+npm run typecheck      # tsc --noEmit
+cd Perix-main/backend
+python -m py_compile routes/*.py services/*.py
+```
 
-Join our community of developers creating universal apps.
+## Deploy (web → Railway, service `backend`)
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```powershell
+# 1. Build the web bundle
+cd Perix-main/frontend
+npx expo export --platform web
+
+# 2. Copy the build into the backend web root
+robocopy frontend\dist backend\webdist /MIR
+
+# 3. Sync backend to a staging folder (excludes caches/tests)
+robocopy backend "$env:TEMP\opencode\rz-deploy\Perix-main\backend" /MIR /XD "__pycache__" ".pytest_cache" "tests" ".git"
+
+# 4. Copy Dockerfile + railway.json next to it
+Copy-Item Dockerfile, railway.json "$env:TEMP\opencode\rz-deploy\Perix-main\"
+
+# 5. Deploy from the staging folder
+cd "$env:TEMP\opencode\rz-deploy\Perix-main"
+railway up --service backend --no-gitignore
+```
+
+Notes:
+
+- Always run `railway up` from the staging folder with `--no-gitignore`.
+- If the Railway build fails once ("operation timed out"), retry — the second attempt usually succeeds.
+- Do NOT add a bare `*.txt` rule to any `.gitignore` — the Railway CLI applies
+  gitignore rules to uploads and a bare `*.txt` silently excludes
+  `backend/requirements.txt` and breaks every deploy.
+- `backend/webdist/` is generated and not tracked in git.
+
+## Admin / moderation
+
+- Admins: emails listed in `backend/routes/admin.py` (`ADMIN_EMAILS`).
+- Admin UI: app → Settings → Blocked Users → Reports section (admins only).
+- Reporting/blocking/deletion rules: `GET /api/reports/policy?lang=en|de|el`
+  (source of truth: `backend/routes/reports.py`).
+- No calls: voice/video calling was removed from the app entirely.

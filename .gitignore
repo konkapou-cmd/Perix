@@ -1,98 +1,83 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# ---- Dependencies ----
 node_modules/
 
-# Expo
+# ---- Expo / Metro ----
 .expo/
+.metro-cache/
+.metro-health-check*
 dist/
 web-build/
 expo-env.d.ts
+*.tsbuildinfo
 
-# Native
-.kotlin/
-*.orig.*
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+
+# ---- Environment / secrets ----
+.env
+.env.*
+*.env
+*.env.*
+!.env.example
+google-services.json
+play-store-key.json
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.pem
+*token.json*
+*credentials.json*
 
-# Metro
-.metro-health-check*
-.metro-cache/
+# ---- Build artifacts ----
+*.apk
+*.zip
+*.tar.gz
+*.tgz
+*.bak
+*.docx
+webdist/
+Perix-main/backend/webdist/
 
-# debug
+# ---- IDE / OS ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.orig.*
+
+# ---- Logs ----
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+.pnpm-debug.log*
+dump.rdb
 
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env
-.env.local
-.env.development
-.env.production
-.env*.local
-
-# Firebase config (contains API keys - use google-services.json.example for template)
-google-services.json
-
-# Play Store signing keys
-play-store-key.json
-
-# TypeScript error output
+# ---- Temp / generated ----
 tsc_output.txt
 tsc_final.txt
-
-# Orphaned files
-fix
-
-# typescript
-*.tsbuildinfo
-
-app-example
-
-# Build artifacts
-*.apk
-*.zip
-*.docx
-*.bak
-
-# Temp / generated scripts
-apply_translations.py
-apply_all_translations.py
-check_counts.py
-migrate.js
-run_migration.py
-translate_el.ps1
-translate_lang.ps1
+expo_output.txt
 nul
+fix
+app-example
+.vercel/
+test_reports/
 
-# Duplicate / backup
+# ---- Frontend is a linked git worktree (branch: opencode/secure-admin-endpoints)
+#      Never track it from master.
 Perix-main/frontend/
 
-# IDE plans
+# ---- Local opencode plans ----
 .opencode/plans/
 
-# Local env files with any prefix
-*.env
-*.env.*
+# ---- User notes ----
+Perix Reset gut zustand .txt
 
-# Perix-main cruft
-Perix-main/.opencode/
-Perix-main/curl
-
-# Generated temp files
 # NOTE: do NOT use a bare "*.txt" here — the Railway CLI applies .gitignore
 # rules to uploads, which silently excluded backend/requirements.txt and
 # broke every deploy with "backend/requirements.txt: not found".
-COMPLETION_SUMMARY.txt
-DEVELOPMENT_SETUP.md
-QUICK_START.md
-README_TESTING.md
-TESTING_GUIDE.md
-perix-design-system/
