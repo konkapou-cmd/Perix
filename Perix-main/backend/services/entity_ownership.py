@@ -83,6 +83,13 @@ async def acquire_new_deletion_lock(user_id: str) -> str | None:
     """Atomically acquire a NEW deletion lock using setOnInsert."""
     lock_key = f"account_deletion:{user_id}"
     now = _now_utc()
+    # A stale completed operation (account was restored) would block a new
+    # deletion forever — clear it before inserting the new lock.
+    try:
+        await db.deletion_operations.delete_one(
+            {"lock_key": lock_key, "status": "completed"})
+    except Exception:
+        pass
     try:
         result = await db.deletion_operations.update_one(
             {"lock_key": lock_key},
@@ -246,6 +253,13 @@ async def run_account_deletion(user_id: str, lock_key: str) -> dict:
         # Step 1: Personal content — hard-deleted (never merely hidden)
         await _step("personal_content",
                     lambda: delete_user_content(user_id))
+
+        # Step 1b: Business/artist profiles + their content — deactivated so
+        # nothing stays publicly visible after the owner is gone. Personal
+        # listings were already hard-deleted in step 1.
+        await _step("business_content",
+                    lambda: deactivate_user_content(
+                        user_id, reason="owner_account_deleted"))
 
         # Step 2: Subscriptions — check for manual review
         sub_result = {}
@@ -711,11 +725,28 @@ async def delete_user_content(user_id: str) -> DeactivationResult:
     r = await db.activities.update_many({}, {"$pull": {"attendees": user_id}})
     result.record("activity_attendance", r.modified_count)
 
-    # --- Personal listings ---
-    r = await db.listings.delete_many(
-        {"owner_id": user_id,
-         "$or": [{"seller_type": "user"}, {"seller_type": {"$exists": False}}]})
-    result.record("listings_personal", r.deleted_count)
+    # --- Personal listings (ALL seller types: user or business identity) ---
+    listing_cursor = db.listings.find(
+        {"owner_id": user_id},
+        {"listing_id": 1, "cover_image_url": 1, "image_urls": 1, "video_url": 1},
+    )
+    listing_ids: List[str] = []
+    async for lst in listing_cursor:
+        listing_ids.append(lst["listing_id"])
+        for key in ("cover_image_url", "video_url"):
+            if lst.get(key):
+                media_urls.append(lst[key])
+        for url in lst.get("image_urls") or []:
+            if isinstance(url, str):
+                media_urls.append(url)
+    if listing_ids:
+        r = await db.listings.delete_many({"listing_id": {"$in": listing_ids}})
+        result.record("listings", r.deleted_count)
+        await db.saved_items.delete_many({"item_type": "listing", "item_id": {"$in": listing_ids}})
+        await db.reports.update_many(
+            {"target_type": "listing", "target_id": {"$in": listing_ids}},
+            {"$set": {"target_deleted": True}},
+        )
 
     # --- Job applications submitted by the user ---
     r = await db.job_applications.delete_many({"applicant_id": user_id})
@@ -825,10 +856,16 @@ async def cleanup_relationships(user_id: str):
 async def create_user_tombstone(user_id: str):
     """Mark user as deleted without removing the record.
     Email is replaced with a tombstone value so re-registration is possible.
-    Profile fields are cleared to prevent public exposure.
+    Profile fields are cleared to prevent public exposure. The original email
+    and name are archived so an admin can restore the account later.
     """
     tombstone_email = f"deleted+{user_id}@deleted.perix.app"
     now = _now_utc()
+
+    user_doc = await db.users.find_one(
+        {"user_id": user_id},
+        {"email": 1, "name": 1, "display_name": 1},
+    )
 
     await db.users.update_one(
         {"user_id": user_id},
@@ -848,9 +885,53 @@ async def create_user_tombstone(user_id: str):
                 "longitude": None,
                 "bio": None,
                 "location": None,
+                "pre_deletion_email": (user_doc or {}).get("email") if (user_doc or {}).get("email") != tombstone_email else None,
+                "pre_deletion_name": (user_doc or {}).get("name"),
+                "pre_deletion_display_name": (user_doc or {}).get("display_name"),
             },
         },
     )
+
+
+async def restore_deleted_user(user_id: str) -> dict:
+    """Restore a tombstoned account: bring back the archived email and name,
+    clear deletion flags, and let the user set a new password via the
+    forgot-password flow. Returns the restored summary."""
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user:
+        raise ValueError("user_not_found")
+    if not user.get("is_deleted"):
+        raise ValueError("not_deleted")
+
+    email = user.get("pre_deletion_email")
+    if not email or "@" not in email:
+        raise ValueError("no_archived_email")
+    name = user.get("pre_deletion_name") or "User"
+
+    await db.users.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "email": email,
+                "name": name,
+                "display_name": user.get("pre_deletion_display_name") or name,
+                "is_deleted": False,
+                "deletion_pending": False,
+            },
+            "$unset": {
+                "deleted_at": "",
+                "deletion_started_at": "",
+                "pre_deletion_email": "",
+                "pre_deletion_name": "",
+                "pre_deletion_display_name": "",
+            },
+        },
+    )
+    # Reset the deletion lifecycle so the account can be deleted again later.
+    await db.deletion_operations.delete_one(
+        {"lock_key": f"account_deletion:{user_id}"})
+    logger.info("Restored deleted account %s -> %s", user_id, email)
+    return {"user_id": user_id, "email": email, "name": name}
 
 
 async def set_deletion_pending(user_id: str):
@@ -884,7 +965,8 @@ async def get_account_deletion_state(user_id: str) -> str:
     if s in ("running", "failed", "review_required", "ready_to_resume"):
         return s
     if s == "completed":
-        return "completed"
+        # A live (restored) account with a stale completed operation starts fresh.
+        return "new"
     return "new"
 
 

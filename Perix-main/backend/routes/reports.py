@@ -26,6 +26,80 @@ TARGET_COLLECTIONS = {
 
 AUTO_HIDE_THRESHOLD = 2  # distinct reporters before auto-hiding content
 
+MODERATION_POLICY_VERSION = "1.0"
+
+MODERATION_POLICY = {
+    "en": (
+        "Reporting: any user may report content (posts, comments, events, activities, jobs, "
+        "services, listings, stories, businesses, artists, users). Every report is stored securely "
+        "with the reporting user's ID, the reason and a timestamp, and is kept even after the "
+        "content or the account is removed. Decision: reported content remains available for human "
+        "review until an administrator resolves the report. The administrator may at any time "
+        "choose: Dismiss (no action), Hide (temporarily hidden - fully reversible), Restore (make "
+        "visible again) or Purge (permanent deletion). Deleting an account removes its personal "
+        "data and all its listings. Blocking: an administrator may block or unblock a user's email "
+        "at any time. A blocked email cannot log in. This does not delete the account or the "
+        "reports - they remain stored for review. Deleted accounts: the original email and name "
+        "are archived so an account can be restored; a restored account must set a new password. "
+        "Residual references are purged automatically (content 30 days, account record 365 days). "
+        "Legal basis: these measures serve the legitimate interests of operating a safe service "
+        "and protecting users (GDPR Art. 6(1)(f)), and data erasure follows GDPR Art. 17. "
+        "Decisions are made in good faith, consistent with our Terms of Service."
+    ),
+    "de": (
+        "Melden: Jede:r Nutzer:in kann Inhalte melden (Beiträge, Kommentare, Events, "
+        "Aktivitäten, Jobs, Services, Anzeigen, Stories, Unternehmen, Künstler, Nutzer). Jede "
+        "Meldung wird sicher gespeichert – mit der ID des Meldenden, dem Grund und einem "
+        "Zeitstempel – und bleibt auch nach Entfernung des Inhalts oder des Kontos erhalten. "
+        "Entscheidung: Gemeldete Inhalte bleiben bis zur Klärung für die menschliche Prüfung "
+        "verfügbar. Die Administration kann jederzeit wählen: Verwerfen (keine Maßnahme), "
+        "Ausblenden (vorübergehend – vollständig umkehrbar), Wiederherstellen (wieder sichtbar) "
+        "oder Endgültig löschen (dauerhaft). Die Löschung eines Kontos entfernt dessen "
+        "persönliche Daten und alle Anzeigen. Sperren: Die Administration kann eine "
+        "E-Mail-Adresse jederzeit sperren oder entsperren. Eine gesperrte E-Mail kann sich nicht "
+        "anmelden. Das Konto und die Meldungen werden dadurch nicht gelöscht – sie bleiben zur "
+        "Prüfung gespeichert. Gelöschte Konten: Ursprüngliche E-Mail und Name werden archiviert, "
+        "sodass ein Konto wiederhergestellt werden kann; ein wiederhergestelltes Konto muss ein "
+        "neues Passwort setzen. Verbleibende Verweise werden automatisch bereinigt (Inhalte nach "
+        "30 Tagen, Kontodatensatz nach 365 Tagen). Rechtsgrundlage: Diese Maßnahmen dienen den "
+        "berechtigten Interessen eines sicheren Dienstbetriebs und des Nutzerschutzes (DSGVO "
+        "Art. 6 Abs. 1 lit. f); die Löschung folgt DSGVO Art. 17. Entscheidungen erfolgen nach "
+        "Treu und Glauben, im Einklang mit unseren Nutzungsbedingungen."
+    ),
+    "el": (
+        "Αναφορές: κάθε χρήστης μπορεί να αναφέρει περιεχόμενο (δημοσιεύσεις, σχόλια, "
+        "εκδηλώσεις, δραστηριότητες, θέσεις εργασίας, υπηρεσίες, αγγελίες, stories, "
+        "επιχειρήσεις, καλλιτέχνες, χρήστες). Κάθε αναφορά αποθηκεύεται με ασφάλεια — με το ID "
+        "του χρήστη που αναφέρει, τον λόγο και χρονική σήμανση — και παραμένει ακόμα κι αν "
+        "αφαιρεθεί το περιεχόμενο ή ο λογαριασμός. Απόφαση: το αναφερόμενο περιεχόμενο "
+        "παραμένει διαθέσιμο για ανθρώπινο έλεγχο μέχρι να επιλυθεί η αναφορά. Ο διαχειριστής "
+        "μπορεί ανά πάσα στιγμή να επιλέξει: Απόρριψη (καμία ενέργεια), Απόκρυψη (προσωρινή — "
+        "πλήρως αναστρέψιμη), Επαναφορά (ξανά ορατό) ή Οριστική διαγραφή (μόνιμη). Η διαγραφή "
+        "λογαριασμού αφαιρεί τα προσωπικά δεδομένα και όλες τις αγγελίες του. Αποκλεισμός: ο "
+        "διαχειριστής μπορεί να αποκλείσει ή να άρει τον αποκλεισμό ενός email ανά πάσα στιγμή. "
+        "Ένα αποκλεισμένο email δεν μπορεί να συνδεθεί. Αυτό δεν διαγράφει τον λογαριασμό ούτε "
+        "τις αναφορές — παραμένουν αποθηκευμένα για έλεγχο. Διαγραμμένοι λογαριασμοί: το "
+        "αρχικό email και το όνομα αρχειοθετούνται ώστε να είναι δυνατή η επαναφορά· ένας "
+        "επαναφερόμενος λογαριασμός πρέπει να ορίσει νέο κωδικό. Υπολειπόμενες αναφορές "
+        "διαγράφονται αυτόματα (περιεχόμενο 30 ημέρες, εγγραφή λογαριασμού 365 ημέρες). Νομική "
+        "βάση: τα μέτρα αυτά εξυπηρετούν τα έννομα συμφέροντα της ασφαλούς λειτουργίας της "
+        "υπηρεσίας και της προστασίας των χρηστών (GDPR Άρθρο 6 παρ. 1 στ. στ') και η διαγραφή "
+        "δεδομένων ακολουθεί το GDPR Άρθρο 17. Οι αποφάσεις λαμβάνονται καλόπιστα, σύμφωνα με "
+        "τους Όρους Χρήσης μας."
+    ),
+}
+
+
+@router.get("/policy")
+async def moderation_policy(lang: Optional[str] = "en"):
+    """Public description of the reporting, blocking and deletion rules."""
+    return {
+        "policy": MODERATION_POLICY.get((lang or "en").lower(), MODERATION_POLICY["en"]),
+        "version": MODERATION_POLICY_VERSION,
+        "effective": "23/09/2026",
+        "last_updated": "23/09/2026",
+    }
+
 
 class ContentReportRequest(BaseModel):
     target_type: str

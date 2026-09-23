@@ -133,6 +133,8 @@ async def get_current_user(request: Request) -> UserPublic:
 
     if user.get("is_deleted") or user.get("deletion_pending"):
         raise HTTPException(status_code=401, detail="Account is unavailable")
+    if user.get("is_blocked"):
+        raise HTTPException(status_code=403, detail="Account is blocked")
 
     return build_user_public(user)
 

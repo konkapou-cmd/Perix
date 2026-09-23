@@ -43,6 +43,15 @@ class UserManageRequest(BaseModel):
     action: str  # "hide", "unhide", "delete"
 
 
+class UserRestoreRequest(BaseModel):
+    user_id: str
+
+
+class UserBlockRequest(BaseModel):
+    user_id: str
+    blocked: bool
+
+
 class PostManageRequest(BaseModel):
     post_id: str
     action: str  # "hide", "unhide", "delete"
@@ -586,17 +595,34 @@ async def get_content_reports(
             if doc:
                 preview = (doc.get("text") or doc.get("title") or doc.get("name") or "")[:140]
                 is_hidden = doc.get("is_hidden", False)
-        result.append({
+        entry = {
             **r,
             "preview": preview,
             "is_hidden": is_hidden,
-        })
+        }
+        if r.get("target_type") == "user":
+            target_user = await db.users.find_one(
+                {"user_id": r["target_id"]},
+                {"_id": 0, "email": 1, "is_deleted": 1, "is_blocked": 1,
+                 "is_hidden": 1, "pre_deletion_email": 1, "name": 1},
+            )
+            if target_user:
+                entry["reported_email"] = (
+                    target_user.get("pre_deletion_email")
+                    or (target_user.get("email") if not target_user.get("is_deleted") else None)
+                )
+                entry["reported_is_deleted"] = bool(target_user.get("is_deleted"))
+                entry["reported_is_blocked"] = bool(target_user.get("is_blocked"))
+                entry["reported_name"] = target_user.get("name")
+                is_hidden = target_user.get("is_hidden", False)
+                entry["is_hidden"] = is_hidden
+        result.append(entry)
     return result
 
 
 class ReportResolveRequest(BaseModel):
     report_id: str
-    action: str  # "dismiss" | "restore" | "delete"
+    action: str  # "dismiss" | "restore" | "hide" | "delete" | "purge"
 
 
 @router.post("/reports/resolve")
@@ -604,37 +630,119 @@ async def resolve_report(
     request: ReportResolveRequest,
     current_user: UserPublic = Depends(get_current_user)
 ):
-    """Resolve a report: dismiss it, restore the hidden content, or delete it.
+    """Resolve a report. Actions:
+    - dismiss: close the report without touching content.
+    - hide / delete: hide the reported content (reversible — the reviewer
+      can restore it at any time).
+    - restore: make hidden content visible again, and for deleted accounts
+      bring the account back (email re-enabled, password reset required).
+    - purge: permanently remove the reported content (non-reversible).
     The decision is made by the reviewer at their own discretion, in good
     faith, consistent with how the service is provided generally."""
     await verify_admin(current_user)
 
     from routes.reports import TARGET_COLLECTIONS
+    from services.entity_ownership import (
+        run_account_deletion, acquire_new_deletion_lock,
+        resume_failed_deletion, resume_resolved_review,
+        set_deletion_pending, get_account_deletion_state,
+        restore_deleted_user,
+    )
+
+    action = request.action
+    if action == "delete":
+        action = "hide"  # legacy alias: reversible
 
     report = await db.reports.find_one({"report_id": request.report_id})
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
-    collection, id_field = TARGET_COLLECTIONS.get(report.get("target_type"), (None, None))
-    if collection and request.action in ("restore", "delete"):
-        if request.action == "restore":
+    target_type = report.get("target_type")
+    target_id = report.get("target_id")
+    collection, id_field = TARGET_COLLECTIONS.get(target_type, (None, None))
+
+    if action == "purge":
+        if not collection:
+            raise HTTPException(status_code=400, detail="Cannot purge this target type")
+        if target_type == "user":
+            user = await db.users.find_one({"user_id": target_id}, {"is_deleted": 1})
+            if user and user.get("is_deleted"):
+                raise HTTPException(status_code=409, detail="Account already deleted")
+            state = await get_account_deletion_state(target_id)
+            lock_key = f"account_deletion:{target_id}"
+            if state == "running":
+                raise HTTPException(status_code=409, detail="Account deletion in progress")
+            elif state == "failed":
+                if not await resume_failed_deletion(lock_key):
+                    raise HTTPException(status_code=409, detail="Already resuming")
+            elif state == "ready_to_resume":
+                if not await resume_resolved_review(lock_key):
+                    raise HTTPException(status_code=409, detail="Resume already acquired")
+            elif state == "review_required":
+                raise HTTPException(status_code=202, detail="Resolve pending reviews before deletion")
+            elif state == "new":
+                if not await acquire_new_deletion_lock(target_id):
+                    raise HTTPException(status_code=409, detail="Lock unavailable")
+                await set_deletion_pending(target_id)
+            result = await run_account_deletion(target_id, lock_key)
+            if result["status"] == "review_required":
+                raise HTTPException(status_code=202, detail={"message": "Manual review required", "reason": result.get("reason", "")})
+            if result["status"] != "completed":
+                raise HTTPException(status_code=500, detail="Deletion failed")
+            action = "account_deleted"
+        else:
+            await db[collection].delete_one({id_field: target_id})
+            action = "purged"
+    elif action == "hide":
+        if not collection:
+            raise HTTPException(status_code=400, detail="Cannot hide this target type")
+        await db[collection].update_one(
+            {id_field: target_id},
+            {"$set": {"is_hidden": True, "hidden_reason": "admin_report_resolved",
+                      "hidden_at": now_utc(), "hidden_by": current_user.user_id}},
+        )
+    elif action == "restore":
+        if not collection:
+            raise HTTPException(status_code=400, detail="Cannot restore this target type")
+        if target_type == "user":
+            target_user = await db.users.find_one({"user_id": target_id}, {"is_deleted": 1})
+            if target_user and target_user.get("is_deleted"):
+                try:
+                    summary = await restore_deleted_user(target_id)
+                except ValueError as e:
+                    raise HTTPException(status_code=400, detail=f"Cannot restore account: {e}")
+                await db.users.update_one(
+                    {"user_id": target_id},
+                    {"$set": {"is_hidden": False, "is_blocked": False},
+                     "$unset": {"hidden_at": "", "hidden_by": "", "blocked_at": "", "blocked_by": ""}},
+                )
+                action = "account_restored"
+            else:
+                await db.users.update_one(
+                    {"user_id": target_id},
+                    {"$set": {"is_hidden": False},
+                     "$unset": {"hidden_at": "", "hidden_by": ""}},
+                )
+                action = "restored"
+        else:
             await db[collection].update_one(
-                {id_field: report["target_id"]},
-                {"$set": {"is_hidden": False}, "$unset": {"hidden_reason": "", "hidden_at": ""}},
+                {id_field: target_id},
+                {"$set": {"is_hidden": False},
+                 "$unset": {"hidden_reason": "", "hidden_at": "", "hidden_by": ""}},
             )
-        elif request.action == "delete":
-            await db[collection].delete_one({id_field: report["target_id"]})
+            action = "restored"
+    # dismiss: nothing to change on content
 
     await db.reports.update_one(
         {"report_id": request.report_id},
         {"$set": {
             "status": "resolved",
-            "resolution": request.action,
+            "resolution": action,
             "resolved_at": now_utc(),
             "resolved_by": current_user.user_id,
         }},
     )
-    return {"success": True, "action": request.action}
+    return {"success": True, "action": action}
 
 
 @router.delete("/reports/{report_id}")
@@ -683,6 +791,308 @@ class DevResetPasswordInput(BaseModel):
     email: str
     new_password: str
     dev_key: str
+
+
+@router.get("/users/deleted")
+async def get_deleted_users(
+    current_user: UserPublic = Depends(get_current_user)
+):
+    """List tombstoned (deleted) accounts with their archived original email,
+    so an admin can restore them if needed."""
+    await verify_admin(current_user)
+
+    users = await db.users.find(
+        {"is_deleted": True},
+        {"_id": 0, "password_hash": 0},
+    ).sort("deleted_at", -1).to_list(500)
+
+    return [
+        {
+            "user_id": u.get("user_id"),
+            "email": u.get("email"),
+            "pre_deletion_email": u.get("pre_deletion_email"),
+            "pre_deletion_name": u.get("pre_deletion_name"),
+            "deleted_at": u.get("deleted_at"),
+            "is_blocked": bool(u.get("is_blocked")),
+        }
+        for u in users
+    ]
+
+
+@router.post("/users/restore")
+async def restore_user(
+    request: UserRestoreRequest,
+    current_user: UserPublic = Depends(get_current_user)
+):
+    """Restore a deleted account. The archived email is re-activated and the
+    user sets a new password via the forgot-password flow."""
+    await verify_admin(current_user)
+
+    from services.entity_ownership import restore_deleted_user
+    try:
+        summary = await restore_deleted_user(request.user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Cannot restore account: {e}")
+    await db.users.update_one(
+        {"user_id": request.user_id},
+        {"$set": {"is_hidden": False, "is_blocked": False},
+         "$unset": {"hidden_at": "", "hidden_by": "", "blocked_at": "", "blocked_by": ""}},
+    )
+    return {"success": True, **summary}
+
+
+@router.post("/users/block")
+async def block_user(
+    request: UserBlockRequest,
+    current_user: UserPublic = Depends(get_current_user)
+):
+    """Block (or unblock) a user's email from authenticating. Reports remain
+    stored; this only toggles account access."""
+    await verify_admin(current_user)
+
+    user = await db.users.find_one({"user_id": request.user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if request.blocked:
+        await db.users.update_one(
+            {"user_id": request.user_id},
+            {"$set": {"is_blocked": True, "blocked_at": now_utc(),
+                      "blocked_by": current_user.user_id}},
+        )
+        return {"success": True, "blocked": True}
+    await db.users.update_one(
+        {"user_id": request.user_id},
+        {"$set": {"is_blocked": False},
+         "$unset": {"blocked_at": "", "blocked_by": ""}},
+    )
+    return {"success": True, "blocked": False}
+
+
+@router.post("/dev-set-block")
+async def dev_set_block(payload: dict):
+    """Dev helper: block/unblock a user's email for auth testing."""
+    if payload.get("dev_key") != "perix-dev-reset-key-2026":
+        raise HTTPException(status_code=403, detail="Invalid dev key")
+    email = (payload.get("email") or "").strip().lower()
+    blocked = bool(payload.get("blocked", False))
+    if not email:
+        return {"status": "error", "detail": "email required"}
+    user = await db.users.find_one({"email": email}, {"user_id": 1})
+    if not user:
+        return {"status": "not_found"}
+    if blocked:
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {"$set": {"is_blocked": True, "blocked_at": now_utc(),
+                      "blocked_by": "dev"}},
+        )
+    else:
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {"$set": {"is_blocked": False},
+             "$unset": {"blocked_at": "", "blocked_by": ""}},
+        )
+    return {"status": "ok", "blocked": blocked, "user_id": user["user_id"]}
+
+
+@router.post("/dev-list-reports")
+async def dev_list_reports(payload: dict):
+    """Dev helper: dump user-target reports with target existence + emails."""
+    if payload.get("dev_key") != "perix-dev-reset-key-2026":
+        raise HTTPException(status_code=403, detail="Invalid dev key")
+    reports = await db.reports.find(
+        {"target_type": "user"},
+        {"_id": 0},
+    ).sort("reported_at", -1).to_list(500)
+    result = []
+    for r in reports:
+        uid = r.get("target_id")
+        user = await db.users.find_one(
+            {"user_id": uid},
+            {"_id": 0, "email": 1, "name": 1, "is_deleted": 1,
+             "pre_deletion_email": 1, "is_blocked": 1},
+        )
+        r["target_exists"] = user is not None
+        r["target_user"] = user
+        result.append(r)
+    return result
+
+
+@router.post("/dev-list-deleted")
+async def dev_list_deleted(payload: dict):
+    """Dev helper: list tombstoned accounts."""
+    if payload.get("dev_key") != "perix-dev-reset-key-2026":
+        raise HTTPException(status_code=403, detail="Invalid dev key")
+    users = await db.users.find(
+        {"is_deleted": True},
+        {"_id": 0, "password_hash": 0},
+    ).sort("deleted_at", -1).to_list(500)
+
+    result = []
+    for u in users:
+        uid = u.get("user_id")
+        entry = {
+            "user_id": uid,
+            "email": u.get("email"),
+            "pre_deletion_email": u.get("pre_deletion_email"),
+            "pre_deletion_name": u.get("pre_deletion_name"),
+            "deleted_at": u.get("deleted_at"),
+            "is_blocked": bool(u.get("is_blocked")),
+        }
+        reports = await db.reports.find(
+            {"target_type": "user", "target_id": uid},
+            {"_id": 0, "report_id": 1, "reason": 1, "reported_at": 1,
+             "reporter_id": 1, "status": 1, "resolution": 1},
+        ).to_list(50)
+        if reports:
+            entry["reports"] = reports
+        biz_emails = [b.get("contact_email") async for b in db.businesses.find(
+            {"owner_id": uid}, {"contact_email": 1}) if b.get("contact_email")]
+        if biz_emails:
+            entry["business_emails"] = biz_emails
+        result.append(entry)
+    return result
+
+
+@router.post("/dev-restore-account")
+async def dev_restore_account(payload: dict):
+    """Dev helper: restore a deleted account by its original email or user_id.
+    For accounts deleted before archiving existed, pass the original email
+    explicitly along with the user_id."""
+    if payload.get("dev_key") != "perix-dev-reset-key-2026":
+        raise HTTPException(status_code=403, detail="Invalid dev key")
+    email = (payload.get("email") or "").strip().lower()
+    user_id = (payload.get("user_id") or "").strip()
+
+    from services.entity_ownership import restore_deleted_user
+
+    user = None
+    if user_id:
+        user = await db.users.find_one(
+            {"user_id": user_id, "is_deleted": True},
+            {"user_id": 1, "email": 1, "pre_deletion_email": 1},
+        )
+    if not user and email:
+        user = await db.users.find_one(
+            {"is_deleted": True, "pre_deletion_email": email},
+            {"user_id": 1, "email": 1, "pre_deletion_email": 1},
+        )
+    if not user and email:
+        user = await db.users.find_one(
+            {"is_deleted": True, "email": email},
+            {"user_id": 1, "email": 1, "pre_deletion_email": 1},
+        )
+    if not user:
+        return {"status": "not_found", "detail": "No deleted account found"}
+
+    if user.get("pre_deletion_email"):
+        try:
+            summary = await restore_deleted_user(user["user_id"])
+        except ValueError as e:
+            return {"status": "error", "detail": str(e)}
+    else:
+        if not email or "@" not in email:
+            return {"status": "error", "detail": "This account predates email archiving — provide the original email to restore it"}
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {"$set": {
+                "email": email,
+                "is_deleted": False,
+                "deletion_pending": False,
+                "name": "User",
+                "display_name": "User",
+            },
+             "$unset": {"deleted_at": "", "deletion_started_at": ""}},
+        )
+        await db.deletion_operations.delete_one(
+            {"lock_key": f"account_deletion:{user['user_id']}"})
+        summary = {"user_id": user["user_id"], "email": email, "name": "User"}
+
+    await db.users.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {"is_hidden": False, "is_blocked": False},
+         "$unset": {"hidden_at": "", "hidden_by": "", "blocked_at": "", "blocked_by": ""}},
+    )
+    return {"status": "restored", **summary}
+
+
+async def _purge_orphans() -> dict:
+    """Permanently remove content whose owner account is deleted or missing
+    (listings, services, jobs, events, activities, posts, stories)."""
+    deleted_ids = [u["user_id"] async for u in db.users.find(
+        {"is_deleted": True}, {"user_id": 1})]
+    stats: dict = {}
+
+    def count(d):
+        for k, v in d.items():
+            stats[k] = stats.get(k, 0) + v
+
+    # Listings whose owner is gone or whose seller no longer exists
+    orphan_owner_listings = await db.listings.find(
+        {"owner_id": {"$in": deleted_ids}},
+        {"listing_id": 1},
+    ).to_list(5000)
+    if orphan_owner_listings:
+        ids = [l["listing_id"] for l in orphan_owner_listings]
+        r = await db.listings.delete_many({"listing_id": {"$in": ids}})
+        count({"listings_owner_deleted": r.deleted_count})
+
+    orphan_listings = []
+    cursor = db.listings.find({"is_active": True}, {"listing_id": 1, "owner_id": 1})
+    async for l in cursor:
+        owner = l.get("owner_id")
+        if owner:
+            u = await db.users.find_one({"user_id": owner, "is_deleted": {"$ne": True}}, {"_id": 1})
+            if not u:
+                orphan_listings.append(l["listing_id"])
+    if orphan_listings:
+        r = await db.listings.delete_many({"listing_id": {"$in": orphan_listings}})
+        count({"listings_owner_missing": r.deleted_count})
+
+    # Services/jobs of deactivated (or missing) businesses
+    inactive_biz_ids = [b["business_id"] async for b in db.businesses.find(
+        {"$or": [{"is_active": {"$ne": True}}, {"is_hidden": True}]},
+        {"business_id": 1})]
+    if inactive_biz_ids:
+        r = await db.services.delete_many({"business_id": {"$in": inactive_biz_ids}})
+        count({"services_inactive_business": r.deleted_count})
+        r = await db.jobs.delete_many({"business_id": {"$in": inactive_biz_ids}})
+        count({"jobs_inactive_business": r.deleted_count})
+        r = await db.events.delete_many({"business_id": {"$in": inactive_biz_ids}})
+        count({"events_inactive_business": r.deleted_count})
+
+    # Events/activities/posts/stories whose creator account is deleted
+    if deleted_ids:
+        r = await db.events.delete_many({"creator_id": {"$in": deleted_ids}})
+        count({"events_creator_deleted": r.deleted_count})
+        r = await db.activities.delete_many({"creator_id": {"$in": deleted_ids}})
+        count({"activities_creator_deleted": r.deleted_count})
+        r = await db.posts.delete_many({"$or": [{"user_id": {"$in": deleted_ids}}, {"author_id": {"$in": deleted_ids}}]})
+        count({"posts_author_deleted": r.deleted_count})
+        r = await db.stories.delete_many({"user_id": {"$in": deleted_ids}})
+        count({"stories_author_deleted": r.deleted_count})
+
+    return stats
+
+
+@router.post("/purge-orphans")
+async def purge_orphans(
+    current_user: UserPublic = Depends(get_current_user)
+):
+    """Admin: permanently remove orphaned content of deleted/missing owners."""
+    await verify_admin(current_user)
+    stats = await _purge_orphans()
+    return {"status": "purged", "stats": stats}
+
+
+@router.post("/dev-purge-orphans")
+async def dev_purge_orphans(payload: dict):
+    """Dev helper for the same orphan purge."""
+    if payload.get("dev_key") != "perix-dev-reset-key-2026":
+        raise HTTPException(status_code=403, detail="Invalid dev key")
+    stats = await _purge_orphans()
+    return {"status": "purged", "stats": stats}
 
 
 @router.post("/dev-reset-password")

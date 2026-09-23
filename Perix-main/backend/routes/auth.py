@@ -137,6 +137,8 @@ async def login_user(payload: LoginInput, response: Response):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if user.get("is_deleted") or user.get("deletion_pending"):
         raise HTTPException(status_code=401, detail="Account is unavailable")
+    if user.get("is_blocked"):
+        raise HTTPException(status_code=403, detail="Account is blocked")
 
     if not pwd_context.verify(payload.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -179,6 +181,8 @@ async def google_session(payload: GoogleSessionInput, response: Response):
         await db.users.insert_one(user)
     elif user.get("is_deleted") or user.get("deletion_pending"):
         raise HTTPException(status_code=401, detail="Account is unavailable")
+    elif user.get("is_blocked"):
+        raise HTTPException(status_code=403, detail="Account is blocked")
 
     session_token = data["session_token"]
     existing_session = await db.user_sessions.find_one(
