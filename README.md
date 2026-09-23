@@ -1,6 +1,6 @@
 # Perix
 
-Social city app. One repo, one frontend, one backend.
+Social city app. One repo, one branch, one frontend, one backend.
 
 ## Structure
 
@@ -10,6 +10,7 @@ Perix-main/
   backend/    # FastAPI + MongoDB backend (deployed on Railway)
   Dockerfile  # serves backend + webdist (built frontend)
   railway.json
+.github/       # CI workflows (backend)
 ```
 
 ## Local development
