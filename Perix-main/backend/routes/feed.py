@@ -186,6 +186,10 @@ async def get_home_feed(
         filtered_posts = []
         for post in posts:
             include_post = False
+
+            # The current user's own posts always appear in their feed
+            if current_user and post.get("user_id") == current_user.user_id:
+                include_post = True
             
             # Check if post is from a user with location in the area
             if post.get("actor_type") != "business" and post.get("actor_type") != "artist":

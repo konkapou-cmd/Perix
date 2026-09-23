@@ -190,15 +190,16 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   submitBtn: {
-    marginTop: 14,
+    marginTop: 16,
+    width: "100%",
     backgroundColor: "#59ABE3",
-    borderRadius: 12,
-    paddingVertical: 13,
+    borderRadius: 14,
+    paddingVertical: 15,
     alignItems: "center",
   },
   submitText: {
     color: "#fff",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
   },
   error: {
@@ -217,8 +218,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   okBtn: {
-    marginTop: 14,
+    marginTop: 16,
     paddingVertical: 15,
+    borderRadius: 14,
   },
   okText: {
     fontSize: 16,

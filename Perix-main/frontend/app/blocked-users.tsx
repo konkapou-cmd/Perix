@@ -46,6 +46,7 @@ export default function BlockedUsersScreen() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [reports, setReports] = useState<any[]>([]);
   const [busyReport, setBusyReport] = useState<string | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   useEffect(() => {
     loadBlockedUsers();
@@ -224,9 +225,19 @@ export default function BlockedUsersScreen() {
             </Pressable>
           </View>
           <View style={styles.rulesBox}>
-            <Text style={styles.rulesTitle}>{t("admin.moderationRules", "Moderation & reporting rules")}</Text>
-            <Text style={styles.rulesVersion}>{t("admin.moderationVersion", "Version 1.0 · Last updated 23/09/2026")}</Text>
-            <Text style={styles.rulesText}>{t("admin.moderationRulesText")}</Text>
+            <Pressable style={styles.rulesHeader} onPress={() => setRulesOpen((v) => !v)}>
+              <View style={styles.rulesHeaderLeft}>
+                <Ionicons name="shield-checkmark-outline" size={15} color="#264348" />
+                <Text style={styles.rulesTitle}>{t("admin.moderationRules", "Moderation & reporting rules")}</Text>
+              </View>
+              <Ionicons name={rulesOpen ? "chevron-up" : "chevron-down"} size={16} color="#264348" />
+            </Pressable>
+            {rulesOpen && (
+              <View style={styles.rulesBody}>
+                <Text style={styles.rulesVersion}>{t("admin.moderationVersion", "Version 1.0 · Last updated 23/09/2026")}</Text>
+                <Text style={styles.rulesText}>{t("admin.moderationRulesText")}</Text>
+              </View>
+            )}
           </View>
           <ScrollView style={styles.adminScroll} contentContainerStyle={styles.adminScrollContent}>
             {reports.length === 0 ? (
@@ -321,8 +332,11 @@ const styles = StyleSheet.create({
   orphanBtn: { backgroundColor: "#fef3c7", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   orphanBtnText: { fontSize: 12, fontWeight: "700", color: "#b45309" },
   adminScroll: { maxHeight: 340 },
-  rulesBox: { marginHorizontal: 16, marginBottom: 8, backgroundColor: "#f8fafc", borderRadius: 10, borderWidth: 1, borderColor: "rgba(38,67,72,0.12)", padding: 10 },
-  rulesTitle: { fontSize: 12.5, fontWeight: "800", color: "#264348", marginBottom: 4 },
+  rulesBox: { marginHorizontal: 16, marginBottom: 8, backgroundColor: "#f8fafc", borderRadius: 10, borderWidth: 1, borderColor: "rgba(38,67,72,0.12)" },
+  rulesHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 10 },
+  rulesHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
+  rulesTitle: { fontSize: 12.5, fontWeight: "800", color: "#264348" },
+  rulesBody: { paddingHorizontal: 12, paddingBottom: 12 },
   rulesVersion: { fontSize: 10.5, fontWeight: "600", color: "#8a9aa3", marginBottom: 6 },
   rulesText: { fontSize: 11.5, color: "#4b5a60", lineHeight: 16 },
   adminScrollContent: { paddingHorizontal: 16, paddingBottom: 24 },
@@ -339,16 +353,16 @@ const styles = StyleSheet.create({
   reportPreview: { fontSize: 12.5, color: "#1f2937", marginTop: 6, lineHeight: 17 },
   reportReason: { fontSize: 12, color: "#6b7280", marginTop: 4 },
   reportDate: { fontSize: 10.5, color: "#9ca3af", marginTop: 3 },
-  reportActions: { flexDirection: "row", gap: 6, marginTop: 8, flexWrap: "wrap" },
-  reportBtnRestore: { backgroundColor: "#d1fae5", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  reportBtnDelete: { backgroundColor: "#fee2e2", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  reportBtnPurge: { backgroundColor: "#1f2937", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  reportBtnBlock: { backgroundColor: "#fecaca", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#fca5a5" },
-  reportBtnDismiss: { backgroundColor: "#eef2f4", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  reportBtnTextGreen: { fontSize: 12, fontWeight: "700", color: "#065f46" },
-  reportBtnTextRed: { fontSize: 12, fontWeight: "700", color: "#b91c1c" },
-  reportBtnTextDark: { fontSize: 12, fontWeight: "700", color: "#f9fafb" },
-  reportBtnTextGray: { fontSize: 12, fontWeight: "700", color: "#264348" },
+  reportActions: { flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" },
+  reportBtnRestore: { backgroundColor: "#d1fae5", borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9 },
+  reportBtnDelete: { backgroundColor: "#fee2e2", borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9 },
+  reportBtnPurge: { backgroundColor: "#1f2937", borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9 },
+  reportBtnBlock: { backgroundColor: "#fecaca", borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9, borderWidth: 1, borderColor: "#fca5a5" },
+  reportBtnDismiss: { backgroundColor: "#eef2f4", borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9 },
+  reportBtnTextGreen: { fontSize: 12.5, fontWeight: "700", color: "#065f46" },
+  reportBtnTextRed: { fontSize: 12.5, fontWeight: "700", color: "#b91c1c" },
+  reportBtnTextDark: { fontSize: 12.5, fontWeight: "700", color: "#f9fafb" },
+  reportBtnTextGray: { fontSize: 12.5, fontWeight: "700", color: "#264348" },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyText: { fontSize: 16, color: "#9ca3af", marginTop: 12 },
   scrollView: { flex: 1 },
