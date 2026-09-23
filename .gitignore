@@ -68,10 +68,6 @@ app-example
 .vercel/
 test_reports/
 
-# ---- Frontend is a linked git worktree (branch: opencode/secure-admin-endpoints)
-#      Never track it from master.
-Perix-main/frontend/
-
 # ---- Local opencode plans ----
 .opencode/plans/
 
