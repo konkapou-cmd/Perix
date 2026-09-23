@@ -1081,11 +1081,12 @@ export default function LocatorScreen() {
                     address: rental.address,
                     latitude: rental.latitude,
                     longitude: rental.longitude,
-                    cover_image: rental.cover_image || (rental.gallery_images?.[0]),
+                    cover_image: rental.cover_image,
                     logo_image: rental.business_logo,
                     profile_photo: rental.cover_image,
                     description: rental.description,
                   } as any}
+                  videoUrl={(rental as any).video_url || undefined}
                   distance={dist !== null ? formatDistance(dist) : null}
                   isOpen={null}
                   onPress={() => {
@@ -1125,6 +1126,7 @@ export default function LocatorScreen() {
                     profile_photo: job.cover_image,
                     description: job.description,
                   } as any}
+                  videoUrl={job.video_url || undefined}
                   distance={dist !== null ? formatDistance(dist) : null}
                   isOpen={null}
                   onPress={() => pushEntityRoute(router, entityRoutes.job(job.job_id), () => showInvalidEntityAlert(t))}

@@ -28,6 +28,7 @@ import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } fro
 import { formatDate, formatTime } from "../lib/formatDate";
 import BusinessMap from "../components/BusinessMap";
 import AdaptiveImage from "../components/AdaptiveImage";
+import AdaptiveVideo from "../components/AdaptiveVideo";
 import DropdownSearch from "../components/DropdownSearch";
 import PlacesAutocompleteInput from "../components/PlacesAutocompleteInput";
 import { useAuth } from "../context/AuthContext";
@@ -703,7 +704,9 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
                 onPress={() => router.push(`/activity/${activity.activity_id}`)}
               >
                 <View style={styles.airbnbImageContainer}>
-                  {(activity.gallery_images?.[0] || activity.cover_image_url || activity.image_urls?.[0]) ? (
+                  {!activity.cover_image_url && (activity as any).video_url ? (
+                    <AdaptiveVideo uri={(activity as any).video_url} style={styles.airbnbImage} autoPlay isLooping initialMuted resizeMode="cover" />
+                  ) : (activity.gallery_images?.[0] || activity.cover_image_url || activity.image_urls?.[0]) ? (
                     <AdaptiveImage 
                       uri={activity.gallery_images?.[0] ?? activity.cover_image_url ?? activity.image_urls?.[0] ?? ""} 
                       style={styles.airbnbImage}

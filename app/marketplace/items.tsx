@@ -10,6 +10,7 @@ import { pushEntityRoute, entityRoutes } from "../../lib/navigation/entityRoutes
 import { getCategoryConfig, getCategoryAttributes } from "../../lib/marketplace/marketplaceTaxonomy";
 import { formatPrice } from "../../lib/serviceFormat";
 import DiscoverySearch from "../../components/discovery/DiscoverySearch";
+import AdaptiveVideo from "../../components/AdaptiveVideo";
 import DiscoveryFilterChips, { FilterChip } from "../../components/discovery/DiscoveryFilterChips";
 import DiscoveryMap, { DiscoveryMapMarker } from "../../components/discovery/DiscoveryMap";
 import DiscoveryEmptyState from "../../components/discovery/DiscoveryEmptyState";
@@ -151,7 +152,7 @@ export default function MarketplaceItemsPage() {
   );
 
   const renderCard = useCallback(({ item }: { item: Listing }) => {
-    const img = item.cover_image_url || item.image_urls?.[0] || item.gallery_images?.[0];
+    const img = item.cover_image_url || (!item.video_url ? (item.image_urls?.[0] || item.gallery_images?.[0]) : undefined);
     const isCV = !item.cover_image_url && !!item.video_url;
     const sellerId = item.seller_id || item.owner_id;
     const sellerName = item.business_name || item.seller_name;
@@ -170,7 +171,11 @@ export default function MarketplaceItemsPage() {
         style={styles.card}
         onPress={() => handleCardPress(item)}
       >
-        {img ? (
+        {isCV && item.video_url ? (
+          <View style={styles.cardPhotoWrap}>
+            <AdaptiveVideo uri={item.video_url} style={styles.cardImage} autoPlay isLooping initialMuted resizeMode="cover" />
+          </View>
+        ) : img ? (
           <View style={styles.cardPhotoWrap}>
             <Image source={{ uri: img }} style={styles.cardImage} resizeMode="cover" />
           </View>

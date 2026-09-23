@@ -983,6 +983,7 @@ export default function HomeScreen() {
                   key={`${event.event_id}-${mapRefreshKey}`}
                   imageUrl={eventImg}
                   videoUrl={event.video_url}
+                  isCoverVideo={!event.cover_image_url && !!event.video_url}
                   title={event.title}
                   subtitle={`${event.theme && EVENT_THEMES[event.theme] ? EVENT_THEMES[event.theme].label + " · " : ""}${event.creator?.name || event.business?.name || event.artist?.name || ""}`}
                   thirdLine={`${formatEventDate(event.start_time)}${event.start_time ? " · " + formatEventTime(event.start_time) : ""}`}
@@ -1051,6 +1052,7 @@ export default function HomeScreen() {
                   key={`${activity.activity_id}-${mapRefreshKey}`}
                   imageUrl={activityImg}
                   videoUrl={activity.video_url}
+                  isCoverVideo={!activity.cover_image_url && !!activity.video_url}
                   title={activity.title}
                   subtitle={`${activity.theme && ACTIVITY_TYPES[activity.theme] ? t(`activities.themes.types.${activity.theme}`, ACTIVITY_TYPES[activity.theme].label) + " · " : ""}${activity.creator?.name || ""}`}
                   thirdLine={`${formatEventDate(activity.date)}${activity.time ? " · " + activity.time : ""}`}
@@ -1177,6 +1179,7 @@ export default function HomeScreen() {
                   key={service.service_id}
                   imageUrl={serviceImg}
                   videoUrl={service.video_url}
+                  isCoverVideo={!service.cover_image_url && !!service.video_url}
                   title={service.name}
                   subtitle={serviceTypeLabel}
                   thirdLine={[service.price || "", durationText].filter(Boolean).join(" · ")}
@@ -1210,6 +1213,7 @@ export default function HomeScreen() {
                     key={rental.rental_id}
                     imageUrl={rentalImg}
                     videoUrl={rental.video_url}
+                    isCoverVideo={!rental.cover_image && !!(rental as any).video_url}
                     title={rental.title}
                     subtitle={(rental as any).source_badge ? `💼 ${(rental as any).source_badge}` : (rental.rent_price || rental.rooms_size || "")}
                     thirdLine={rental.address || ""}
@@ -1240,6 +1244,7 @@ export default function HomeScreen() {
                   key={job.job_id}
                   imageUrl={jobImg}
                   videoUrl={job.video_url}
+                  isCoverVideo={!job.cover_image && !!job.video_url}
                   title={job.title}
                   subtitle={job.business_name || job.location || ""}
                   thirdLine={[job.salary_range || "", translateJobType(job.job_type, t)].filter(Boolean).join(" · ")}

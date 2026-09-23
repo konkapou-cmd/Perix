@@ -10,6 +10,7 @@ import { Listing, ListingStatus } from "../../lib/api/listings";
 import { entityRoutes, pushEntityRoute } from "../../lib/navigation/entityRoutes";
 import { MARKETPLACE_CATEGORIES, getCategoryConfig, getSubcategories } from "../../lib/marketplace/marketplaceTaxonomy";
 import { SectionHeader } from "../shared/SectionHeader";
+import AdaptiveVideo from "../AdaptiveVideo";
 
 function getMuxThumb(uri?: string): string | null {
   if (!uri) return null;
@@ -181,9 +182,12 @@ export default function ProfileItemsSection({ listings, isOwner, listingType = "
           {visibleListings.map((listing) => {
             const badge = statusBadge(listing.status, listing.is_active, t);
             const img = resolveCardImage(listing);
+            const isCV = !listing.cover_image_url && !!listing.video_url;
             return (
               <Pressable key={listing.listing_id} style={styles.card} onPress={() => handleCardPress(listing)}>
-                {img ? (
+                {isCV && listing.video_url ? (
+                  <AdaptiveVideo uri={listing.video_url} style={styles.cardImg} autoPlay isLooping initialMuted resizeMode="cover" />
+                ) : img ? (
                   <Image source={{ uri: img }} style={styles.cardImg} />
                 ) : (
                   <View style={[styles.cardImg, { backgroundColor: "#EDF4FB", alignItems: "center", justifyContent: "center" }]}>

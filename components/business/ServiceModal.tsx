@@ -384,9 +384,10 @@ export default function ServiceModal({
       return;
     }
     const hasCoverPhoto = !!form.cover_image_url ||
-      (form.image_urls && form.image_urls.length > 0);
+      (form.image_urls && form.image_urls.length > 0) ||
+      !!form.video_url;
     if (form.status === "published" && !hasCoverPhoto) {
-      setCoverPhotoError(t("services.coverRequired", "Bitte füge ein Titelbild hinzu, bevor du den Dienst veröffentlichst."));
+      setCoverPhotoError(t("services.coverRequired", "Bitte fǬge ein Titelbild hinzu, bevor du den Dienst ver��ffentlichst."));
       return;
     }
     // Hotel publish validation

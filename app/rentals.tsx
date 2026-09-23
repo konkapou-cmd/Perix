@@ -32,6 +32,7 @@ import {
 } from "../lib/api";
 import { HeaderBackButton } from "../components/shared/HeaderBackButton";
 import BusinessMap from "../components/BusinessMap";
+import AdaptiveVideo from "../components/AdaptiveVideo";
 import { useMapBounds } from "../context/MapBoundsContext";
 import EmptyState from "../components/shared/EmptyState";
 import { SkeletonBox } from "../components/shared";
@@ -329,6 +330,8 @@ export default function RentalsScreen() {
             >
               {item.cover_image ? (
                 <Image source={{ uri: item.cover_image }} style={styles.rentalImage} />
+              ) : (item as any).video_url ? (
+                <AdaptiveVideo uri={(item as any).video_url} style={styles.rentalImage} autoPlay isLooping initialMuted resizeMode="cover" />
               ) : item.gallery_images && item.gallery_images[0] ? (
                 <Image source={{ uri: item.gallery_images[0] }} style={styles.rentalImage} />
               ) : (

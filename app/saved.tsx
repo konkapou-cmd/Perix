@@ -19,6 +19,7 @@ import { getSavedItems, toggleSaved, SavedItem } from "../lib/api";
 import { translateJobType } from "../lib/categoryTranslation";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
 import { HeaderBackButton } from "../components/shared/HeaderBackButton";
+import AdaptiveVideo from "../components/AdaptiveVideo";
 
 const TYPE_ICONS: Record<string, string> = {
   event: "calendar",
@@ -121,7 +122,9 @@ export default function SavedScreen() {
         </View>
 
         <View style={styles.cardBody}>
-          {data?.cover_image_url || data?.image_url || data?.logo_image ? (
+          {!data?.cover_image_url && (data as any)?.video_url ? (
+            <AdaptiveVideo uri={(data as any).video_url} style={styles.cardImage} autoPlay isLooping initialMuted resizeMode="cover" />
+          ) : data?.cover_image_url || data?.image_url || data?.logo_image ? (
             <Image
               source={{ uri: (data.cover_image_url || data.image_url || data.logo_image)! }}
               style={styles.cardImage}

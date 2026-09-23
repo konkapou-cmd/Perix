@@ -7,6 +7,7 @@ import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } fro
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
 import type { Business, EventItem, ActivityItem } from "../../lib/api";
 import { formatEventDate, formatDate } from "../../lib/formatDate";
+import AdaptiveVideo from "../AdaptiveVideo";
 
 type BusinessCardProps = {
   type: "business";
@@ -14,6 +15,7 @@ type BusinessCardProps = {
   distance: string | null;
   isOpen: boolean | null;
   onPress: () => void;
+  videoUrl?: string | null;
 };
 
 type EventCardProps = {
@@ -38,16 +40,21 @@ export default function LocatorCard(props: LocatorCardProps) {
   return <ActivityCard {...props} />;
 }
 
-function BusinessCard({ data, distance, isOpen, onPress }: BusinessCardProps) {
+function BusinessCard({ data, distance, isOpen, onPress, videoUrl }: BusinessCardProps) {
   const { t } = useTranslation();
   const themeColors = getThemeColors(data.theme as any);
   const primaryColor = themeColors.primaryColor;
   const photo = data.cover_image || data.logo_image || data.profile_photo;
+  const showVideo = !!videoUrl && !data.cover_image;
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardRow}>
-        {photo ? (
+        {showVideo ? (
+          <View style={styles.photoWrap}>
+            <AdaptiveVideo uri={videoUrl!} style={styles.photo} autoPlay isLooping initialMuted resizeMode="cover" />
+          </View>
+        ) : photo ? (
           <View style={styles.photoWrap}>
             <Image source={{ uri: photo as string }} style={styles.photo} resizeMode="cover" />
           </View>
@@ -94,6 +101,8 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
   const themeColors = getThemeColors((data as any).profile_theme as any);
   const primaryColor = themeColors.primaryColor;
   const coverImage = data.cover_image_url || data.image_urls?.[0] || data.gallery_images?.[0];
+  const videoUrl = (data as any).video_url;
+  const showVideo = !data.cover_image_url && !!videoUrl;
   const formattedDate = formatEventDate(data.start_time);
   const parts = formattedDate.split(".");
   const dateDay = parts[0] || "";
@@ -103,7 +112,15 @@ function EventCard({ data, distance, onPress }: EventCardProps) {
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardRow}>
-        {coverImage ? (
+        {showVideo ? (
+          <View style={styles.photoWrap}>
+            <AdaptiveVideo uri={videoUrl!} style={styles.photo} autoPlay isLooping initialMuted resizeMode="cover" />
+            <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
+              <Text style={styles.dateBadgeDay}>{dateDay}</Text>
+              <Text style={styles.dateBadgeMonth}>{dateMonth}</Text>
+            </View>
+          </View>
+        ) : coverImage ? (
           <View style={styles.photoWrap}>
             <Image source={{ uri: coverImage }} style={styles.photo} resizeMode="cover" />
             <View style={[styles.dateBadge, { backgroundColor: primaryColor }]}>
@@ -153,13 +170,19 @@ function ActivityCard({ data, distance, onPress }: ActivityCardProps) {
   const themeColors = getThemeColors((data as any).profile_theme as any);
   const primaryColor = themeColors.primaryColor;
   const coverImage = data.cover_image_url || data.image_urls?.[0];
+  const videoUrl = (data as any).video_url;
+  const showVideo = !data.cover_image_url && !!videoUrl;
   const timeStr = data.time || "";
   const dateStr = data.date ? formatDate(data.date) : "";
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardRow}>
-        {coverImage ? (
+        {showVideo ? (
+          <View style={styles.photoWrap}>
+            <AdaptiveVideo uri={videoUrl!} style={styles.photo} autoPlay isLooping initialMuted resizeMode="cover" />
+          </View>
+        ) : coverImage ? (
           <View style={styles.photoWrap}>
             <Image source={{ uri: coverImage }} style={styles.photo} resizeMode="cover" />
           </View>

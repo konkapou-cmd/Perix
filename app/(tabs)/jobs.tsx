@@ -43,6 +43,7 @@ import {
 } from "../../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../../lib/navigation/entityRoutes";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
+import AdaptiveVideo from "../../components/AdaptiveVideo";
 
 export default function JobsScreen() {
   const { t } = useTranslation();
@@ -331,6 +332,8 @@ export default function JobsScreen() {
             >
               {item.cover_image ? (
                 <Image source={{ uri: item.cover_image }} style={styles.jobImage} />
+              ) : (item as any).video_url ? (
+                <AdaptiveVideo uri={(item as any).video_url} style={styles.jobImage} autoPlay isLooping initialMuted resizeMode="cover" />
               ) : (
                 <View style={[styles.jobImage, styles.jobImagePlaceholder]}>
                   <Ionicons name={jobTypeIcon(item.job_type) as any} size={32} color="#264348" />

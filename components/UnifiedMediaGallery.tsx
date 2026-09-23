@@ -193,7 +193,7 @@ export default function UnifiedMediaGallery({
           if (confirm.status === "ready" && confirm.playback_url) {
             const updated = current.map((item) =>
               item.temporaryId === temporaryId
-                ? { uri: confirm.playback_url!, type: "video" as const, posterUrl: confirm.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: confirm.asset_id }
+                ? { ...item, uri: confirm.playback_url!, posterUrl: confirm.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: confirm.asset_id }
                 : item,
             );
             commitMedia(updated);
@@ -224,7 +224,7 @@ export default function UnifiedMediaGallery({
         if (status.status === "ready" && status.playback_url) {
           const updated = current.map((item) =>
             item.temporaryId === temporaryId
-              ? { uri: status.playback_url!, type: "video" as const, posterUrl: status.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: resolvedAssetId }
+              ? { ...item, uri: status.playback_url!, posterUrl: status.thumbnail_url || null, focalPoint: { x: 0.5, y: 0.5 }, processingStatus: "ready" as const, muxAssetId: resolvedAssetId }
               : item,
           );
           commitMedia(updated);
@@ -291,7 +291,10 @@ export default function UnifiedMediaGallery({
           temporaryId: muxResult.mux_upload_id,
         };
         setItemProgress((prev) => ({ ...prev, [idx]: { phase: "processing", progress: 100 } }));
-        const combined = [...media, processingItem];
+        let combined = [...media, processingItem];
+        if (mediaContext === "cover") {
+          combined = setExplicitCover(combined, combined.length - 1, "video");
+        }
         onChange(combined.slice(0, maxItemsResolved));
         Alert.alert(
           t("upload.videoProcessingTitle", "Video wird verarbeitet"),
@@ -311,7 +314,10 @@ export default function UnifiedMediaGallery({
       });
       if (newItems.length > 0) {
         setItemProgress((prev) => ({ ...prev, [idx]: { phase: "complete", progress: 100 } }));
-        const combined = Array.from(new Set([...media, ...newItems]));
+        let combined = Array.from(new Set([...media, ...newItems]));
+        if (mediaContext === "cover") {
+          combined = setExplicitCover(combined, combined.length - 1, "video");
+        }
         onChange(combined.slice(0, maxItemsResolved));
         uploadHandle.finish();
       } else {
@@ -531,7 +537,11 @@ export default function UnifiedMediaGallery({
             ) : (
               <Ionicons name="videocam-outline" size={20} color={accentColor} />
             )}
-            <Text style={[s.addBtnText, lightBackground && s.addBtnTextLight]}>{uploadingIndex !== null ? (t("upload.uploading") || "Uploading...") : "Video"}</Text>
+            <Text style={[s.addBtnText, lightBackground && s.addBtnTextLight]}>
+              {uploadingIndex !== null
+                ? `${t("upload.uploading") || "Uploading"} ${Math.round(itemProgress[uploadingIndex]?.progress ?? 0)}%`
+                : "Video"}
+            </Text>
           </Pressable>
         </View>
       )}

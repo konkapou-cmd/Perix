@@ -43,6 +43,7 @@ import {
 } from "../lib/designTokens";
 import { entityRoutes, pushEntityRoute, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
 import { CATEGORY_ICONS } from "../lib/categoryIcons";
+import AdaptiveVideo from "../components/AdaptiveVideo";
 import ProgressivePicker from "../components/navigation/ProgressivePicker";
 
 export default function ServicesScreen() {
@@ -290,6 +291,8 @@ export default function ServicesScreen() {
             >
               {item.cover_image_url ? (
                 <Image source={{ uri: item.cover_image_url }} style={styles.serviceImage} />
+              ) : (item as any).video_url ? (
+                <AdaptiveVideo uri={(item as any).video_url} style={styles.serviceImage} autoPlay isLooping initialMuted resizeMode="cover" />
               ) : item.image_urls?.[0] ? (
                 <Image source={{ uri: item.image_urls[0] }} style={styles.serviceImage} />
               ) : (
