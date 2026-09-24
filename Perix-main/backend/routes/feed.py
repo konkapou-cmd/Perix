@@ -89,6 +89,7 @@ async def get_home_feed(
             {
                 "$or": [
                     {"expires_at": {"$gt": current_time}},
+                    {"expires_at": None},
                     {"expires_at": {"$exists": False}}
                 ]
             },
