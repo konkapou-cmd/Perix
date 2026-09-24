@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Post, BACKEND_URL } from "../../lib/api";
 import { COLORS, SPACING, BORDER_RADIUS } from "../../lib/designTokens";
@@ -221,6 +221,21 @@ export function PostCard({
         />
       ) : null}
 
+      {post.business && (
+        <Pressable
+          style={styles.locationRow}
+          onPress={() => {
+            skipCardNav.current = true;
+            if (post.business?.business_id) router.push(`/business/${post.business.business_id}` as any);
+          }}
+        >
+          <Ionicons name="location-outline" size={14} color="#59ABE3" />
+          <Text style={styles.locationText} numberOfLines={1}>
+            {post.business.name}{post.business.address ? ` · ${post.business.address}` : ""}
+          </Text>
+        </Pressable>
+      )}
+
       <PostActions
         liked={!!post.liked_by_me}
         likesCount={post.likes_count || 0}
@@ -285,5 +300,19 @@ const styles = StyleSheet.create({
     fontSize: Platform.OS === "web" ? 16 : 14,
     color: COLORS.textDark,
     lineHeight: Platform.OS === "web" ? 24 : 20,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  locationText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#264348",
   },
 });

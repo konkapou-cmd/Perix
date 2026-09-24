@@ -51,9 +51,13 @@ class TaggedBusinessInfo(BaseModel):
 
 
 class BusinessPostInfo(BaseModel):
+    business_id: Optional[str] = None
     name: str
     logo_image: Optional[str] = None
     theme: Optional["ThemeSettings"] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class PostResponse(BaseModel):

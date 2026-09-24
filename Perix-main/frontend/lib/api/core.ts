@@ -137,6 +137,14 @@ export type Post = {
   youtube_link?: string | null;
   soundcloud_url?: string | null;
   business_id?: string | null;
+  business?: {
+    business_id?: string | null;
+    name: string;
+    logo_image?: string | null;
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null;
 };
 
 export type ChatMessage = {

@@ -183,7 +183,44 @@ async def get_home_feed(
     
     def in_bounds(lat, lng):
         return lat and lng and min_lat <= lat <= max_lat and min_lng <= lng <= max_lng
-    
+
+    # Fetch the businesses referenced by posts (actor business or tagged
+    # business) so a post is anchored at the business ADDRESS. Unlike
+    # all_businesses above, opening hours are NOT required here — a
+    # business's posts are public even before the business itself shows
+    # on the map.
+    post_biz_ids: set = set()
+    for post in posts:
+        if post.get("actor_type") == "business" and post.get("actor_id"):
+            post_biz_ids.add(post["actor_id"])
+        if post.get("business_id"):
+            post_biz_ids.add(post["business_id"])
+        for bid in post.get("tagged_business_ids") or []:
+            post_biz_ids.add(bid)
+    post_biz_locs: dict = {}
+    if post_biz_ids:
+        post_biz_docs = await db.businesses.find(
+            {"business_id": {"$in": list(post_biz_ids)}},
+            {"_id": 0, "business_id": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(post_biz_ids) + 1)
+        post_biz_locs = {b["business_id"]: b for b in post_biz_docs}
+
+    def post_location_in_bounds(post: dict) -> bool:
+        """True when the post's business address (actor business or tagged
+        business) lies inside the visible map area."""
+        biz_ids: list = []
+        if post.get("actor_type") == "business" and post.get("actor_id"):
+            biz_ids.append(post["actor_id"])
+        if post.get("business_id"):
+            biz_ids.append(post["business_id"])
+        for bid in post.get("tagged_business_ids") or []:
+            biz_ids.append(bid)
+        for bid in biz_ids:
+            biz = post_biz_locs.get(bid)
+            if biz and in_bounds(biz.get("latitude"), biz.get("longitude")):
+                return True
+        return False
+
     # Filter posts based on map bounds
     if use_bounds and posts:
         filtered_posts = []
@@ -193,36 +230,24 @@ async def get_home_feed(
             # The current user's own posts always appear in their feed
             if current_user and post.get("user_id") == current_user.user_id:
                 include_post = True
-            
-            # Check if post is from a user with location in the area
-            if post.get("actor_type") != "business" and post.get("actor_type") != "artist":
+
+            # Anchor posts at the business address (actor or tagged)
+            if not include_post and post_location_in_bounds(post):
+                include_post = True
+
+            # Fallback: the post author's own location
+            if not include_post and post.get("actor_type") != "business" and post.get("actor_type") != "artist":
                 user = user_location_map.get(post.get("user_id"))
                 if user and in_bounds(user.get("latitude"), user.get("longitude")):
                     include_post = True
-            
-            # Check if post is tagged with a business in the area
-            if not include_post and post.get("tagged_business_ids"):
-                for biz_id in post["tagged_business_ids"]:
-                    if biz_id in all_business_map:
-                        biz = all_business_map[biz_id]
-                        if in_bounds(biz.get("latitude"), biz.get("longitude")):
-                            include_post = True
-                            break
-            
+
             # Check if post is from an artist in the area
             if not include_post and post.get("actor_type") == "artist" and post.get("actor_id"):
                 if post["actor_id"] in all_artist_map:
                     artist = all_artist_map[post["actor_id"]]
                     if in_bounds(artist.get("latitude"), artist.get("longitude")):
                         include_post = True
-            
-            # Check if post is from a business in the area
-            if not include_post and post.get("actor_type") == "business" and post.get("actor_id"):
-                if post["actor_id"] in all_business_map:
-                    biz = all_business_map[post["actor_id"]]
-                    if in_bounds(biz.get("latitude"), biz.get("longitude")):
-                        include_post = True
-            
+
             # Check if post user owns a business/artist in the area
             if not include_post:
                 user_id = post.get("user_id")
@@ -234,23 +259,27 @@ async def get_home_feed(
                     artist = owner_to_artist[user_id]
                     if in_bounds(artist.get("latitude"), artist.get("longitude")):
                         include_post = True
-            
+
             if include_post:
                 filtered_posts.append(post)
-        
+
         posts = filtered_posts[:100]
     
-    # Fetch tagged business info for posts
+    # Fetch business info for posts (tagged business or the business actor)
     all_tagged_business_ids = []
     for post in posts:
         if post.get("tagged_business_ids"):
             all_tagged_business_ids.extend(post["tagged_business_ids"])
-    
+        if post.get("actor_type") == "business" and post.get("actor_id"):
+            all_tagged_business_ids.append(post["actor_id"])
+        if post.get("business_id"):
+            all_tagged_business_ids.append(post["business_id"])
+
     tagged_businesses_map = {}
     if all_tagged_business_ids:
         businesses_cursor = await db.businesses.find(
             {"business_id": {"$in": list(set(all_tagged_business_ids))}},
-            {"_id": 0, "business_id": 1, "name": 1, "logo_image": 1, "latitude": 1, "longitude": 1}
+            {"_id": 0, "business_id": 1, "name": 1, "logo_image": 1, "latitude": 1, "longitude": 1, "address": 1}
         ).to_list(100)
         tagged_businesses_map = {b["business_id"]: b for b in businesses_cursor}
     
@@ -384,15 +413,23 @@ async def get_home_feed(
     post_responses = []
     for post in posts:
         business_info = None
+        biz_ref_id = None
         if post.get("tagged_business_ids"):
-            first_biz_id = post["tagged_business_ids"][0]
-            if first_biz_id in tagged_businesses_map:
-                b = tagged_businesses_map[first_biz_id]
-                business_info = {
-                    "business_id": b["business_id"],
-                    "name": b["name"],
-                    "logo_image": b.get("logo_image")
-                }
+            biz_ref_id = post["tagged_business_ids"][0]
+        elif post.get("actor_type") == "business" and post.get("actor_id"):
+            biz_ref_id = post["actor_id"]
+        elif post.get("business_id"):
+            biz_ref_id = post["business_id"]
+        if biz_ref_id and biz_ref_id in tagged_businesses_map:
+            b = tagged_businesses_map[biz_ref_id]
+            business_info = {
+                "business_id": b["business_id"],
+                "name": b["name"],
+                "logo_image": b.get("logo_image"),
+                "address": b.get("address"),
+                "latitude": b.get("latitude"),
+                "longitude": b.get("longitude"),
+            }
         
         author_doc = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0})
         if not author_doc:
