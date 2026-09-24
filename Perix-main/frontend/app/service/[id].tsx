@@ -508,6 +508,10 @@ export default function ServiceDetailPage() {
             <TextInput style={styles.input} value={inquiryEmail} onChangeText={setInquiryEmail} placeholder={user?.email || "email@example.com"} keyboardType="email-address" />
             <Text style={styles.modalSectionTitle}>{t("services.message")} *</Text>
             <TextInput style={[styles.input, styles.textArea]} value={inquiryMessage} onChangeText={setInquiryMessage} placeholder={t("services.messagePlaceholder")} multiline numberOfLines={4} />
+            <View style={styles.txnNotice}>
+              <Ionicons name="shield-checkmark-outline" size={15} color="#475569" />
+              <Text style={styles.txnNoticeText}>{t("common.noTransactions")}</Text>
+            </View>
             <Pressable style={[styles.submitButton, submittingInquiry && styles.submitButtonDisabled]} onPress={handleSendInquiry} disabled={submittingInquiry}>
               <LinearGradient
                 colors={["#7B3FF2", "#4C1D95"]}
@@ -603,6 +607,25 @@ const styles = StyleSheet.create({
   slotChipTextFull: { textDecorationLine: "line-through" },
   input: { borderWidth: 1, borderColor: COLORS.borderGray, borderRadius: BORDER_RADIUS.md, paddingHorizontal: 14, paddingVertical: SPACING.compact, fontSize: FONT_SIZES.body, color: COLORS.textPrimary, marginBottom: SPACING.compact },
   textArea: { minHeight: 80, textAlignVertical: "top" },
+  txnNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: SPACING.std,
+  },
+  txnNoticeText: {
+    flex: 1,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: "#475569",
+    fontWeight: "500",
+  },
   guestRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginVertical: SPACING.small },
   stepper: { flexDirection: "row", alignItems: "center", gap: SPACING.compact },
   stepperBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: COLORS.borderGray, alignItems: "center", justifyContent: "center" },

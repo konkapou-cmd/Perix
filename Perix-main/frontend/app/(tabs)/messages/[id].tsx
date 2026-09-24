@@ -165,7 +165,7 @@ function VoiceMessageBubble({ uri, isMine }: { uri: string; isMine: boolean }) {
 
 export default function ChatScreen() {
   const { t } = useTranslation();
-  const { id, name, entityType } = useLocalSearchParams<{ id: string; name?: string; entityType?: string }>();
+  const { id, name, entityType, context } = useLocalSearchParams<{ id: string; name?: string; entityType?: string; context?: string }>();
   const convEntityType = (entityType || "user") as "user" | "business" | "artist";
   const pathname = usePathname();
   const router = useRouter();
@@ -769,6 +769,12 @@ export default function ChatScreen() {
         </View>
       ) : (
         <ScrollView style={styles.chat} contentContainerStyle={styles.chatContent}>
+          {(convEntityType === "business" || context === "marketplace") && (
+            <View style={styles.txnNotice}>
+              <Ionicons name="shield-checkmark-outline" size={15} color="#475569" />
+              <Text style={styles.txnNoticeText}>{t("common.noTransactions")}</Text>
+            </View>
+          )}
           {convEntityType === "user" && quota && !quota.is_friend && (
             <View style={styles.quotaNotice}>
               <Ionicons name="information-circle-outline" size={16} color="#92400e" />
@@ -1090,7 +1096,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: SPACING.small,
-    flexWrap: "wrap",
+  },
+  txnNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: SPACING.small,
+  },
+  txnNoticeText: {
+    flex: 1,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: "#475569",
+    fontWeight: "500",
   },
   quotaText: {
     flex: 1,

@@ -169,13 +169,9 @@ export default function CategoryServiceCard({ service, rootCategory, onPress, pr
     : ctaType === "get_in_touch" ? t("services.contactCta", "Contact")
     : ctaType === "buy" ? t("services.buy", "Buy")
     : "";
-  const ctaColor =
-    ctaType === "booking" ? "#4ade80"
-    : ctaType === "reservation" ? "#59ABE3"
-    : ctaType === "request_quote" ? "#FF9F1C"
-    : ctaType === "get_in_touch" ? "#264348"
-    : ctaType === "buy" ? "#7B3FF2"
-    : "#264348";
+  // Unified styling with the other profile tabs (jobs/events): the card
+  // uses the business primary color for badges and the CTA pill.
+  const ctaColor = primaryColor;
 
   const typeName = getServiceModuleLabel(service.type, (k: string, fb?: string) => t(k, fb ?? service.type));
 

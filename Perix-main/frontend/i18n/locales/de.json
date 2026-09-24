@@ -99,7 +99,8 @@
     "status": "Status",
     "contact": "Anbieter kontaktieren",
     "loginToContact": "Bitte melde dich an, um den Anbieter zu kontaktieren.",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "noTransactions": "Perix ist an keinerlei Transaktionen zwischen Nutzern oder Unternehmen beteiligt. Alle Vereinbarungen und Zahlungen erfolgen direkt zwischen den Parteien."
   },
   "dashboard": {
     "analyticsOverview": "Statistikübersicht",

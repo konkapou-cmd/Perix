@@ -83,7 +83,7 @@ export default function ServiceSection({
       <SectionHeader
         icon={getServiceModuleIcon(getDefaultModule(rootCategory)) || "construct"}
         title={tabLabel}
-        accent="#59ABE3"
+        accent={primaryColor}
         onSeeAll={!readOnly && onAddService ? () => onAddService(getDefaultModule(rootCategory)) : undefined}
         seeAllLabel={t("services.add", "Hinzufügen")}
         style={{ paddingHorizontal: SPACING.std }}

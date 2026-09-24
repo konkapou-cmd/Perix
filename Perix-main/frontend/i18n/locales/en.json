@@ -96,7 +96,8 @@
     "contact": "Contact Seller",
     "loginToContact": "Please log in to contact the seller.",
     "logout": "Log out",
-    "allTypes": "All types"
+    "allTypes": "All types",
+    "noTransactions": "Perix is not involved in any transactions between users or businesses. All arrangements and payments happen directly between the parties."
   },
   "dashboard": {
     "analyticsOverview": "Analytics Overview",

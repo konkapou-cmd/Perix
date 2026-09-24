@@ -96,6 +96,7 @@ export default function ListingDetailScreen() {
       params: {
         name: listing.business_name || listing.seller_name || t("marketplace.seller", "Anbieter"),
         entityType: isBusinessSeller ? "business" : "user",
+        context: "marketplace",
       } as any,
     });
   };
@@ -380,6 +381,11 @@ export default function ListingDetailScreen() {
           onShare={handleShare}
           onWhatsApp={handleShare}
         />
+
+        <View style={styles.txnNotice}>
+          <Ionicons name="shield-checkmark-outline" size={15} color="#475569" />
+          <Text style={styles.txnNoticeText}>{t("common.noTransactions")}</Text>
+        </View>
       </ScrollView>
 
       <ReportModal
@@ -464,6 +470,26 @@ const styles = StyleSheet.create({
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
     backgroundColor: COLORS.success, borderRadius: BORDER_RADIUS.md,
     paddingVertical: 14,
+  },
+  txnNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: SPACING.std,
+    marginTop: SPACING.std,
+  },
+  txnNoticeText: {
+    flex: 1,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: "#475569",
+    fontWeight: "500",
   },
   contactText: { fontSize: 15, fontWeight: "600", color: "#fff" },
   iconBtn: {
