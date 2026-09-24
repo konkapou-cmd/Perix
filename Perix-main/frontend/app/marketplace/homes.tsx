@@ -290,14 +290,15 @@ const styles = StyleSheet.create({
   pageLimit: {
     flex: 1,
     ...Platform.select({
-      web: { width: "100%", maxWidth: 1280, marginHorizontal: "auto" },
+      web: { width: "100%", marginHorizontal: "auto" },
     }),
   },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  listContent: { paddingBottom: SPACING.section, paddingHorizontal: SPACING.std },
+  listContent: { paddingBottom: SPACING.section },
   card: {
     flexDirection: "row", alignItems: "stretch", backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.md, padding: SPACING.small, gap: SPACING.std,
+    marginHorizontal: SPACING.std,
     marginBottom: SPACING.small,
   },
   cardPhotoWrap: { width: "42%", height: 150, borderRadius: BORDER_RADIUS.md, overflow: "hidden", backgroundColor: "#EDF4FB" },
