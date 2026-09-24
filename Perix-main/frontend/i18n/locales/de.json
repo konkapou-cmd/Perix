@@ -1797,13 +1797,16 @@
     "searchUser": "Nutzer suchen",
     "stickers": "Stickers",
     "story24h": "Story (24h)",
-    "businessTag": "Unternehmen",
-    "tagBusiness": "Unternehmen taggen",
+    "businessTag": "Tag",
+    "tagBusiness": "Unternehmen, Aktivität oder Artikel taggen",
     "selectBusiness": "Unternehmen wählen",
     "searchBusinessPlaceholder": "Unternehmensnamen eingeben",
     "businessTagRequiredTitle": "Unternehmens-Tag erforderlich",
-    "businessTagRequired": "Tagge das Unternehmen, um das es in deinem Beitrag geht, bevor du veröffentlichst.",
-    "noBusinessFriends": "Du hast noch keine Unternehmens-Freunde. Füge das Unternehmen zuerst als Freund hinzu."
+    "businessTagRequired": "Tagge vor dem Veröffentlichen ein Unternehmen, mit dem du befreundet bist, eine deiner Aktivitäten oder einen deiner Artikel.",
+    "noBusinessFriends": "Noch nichts zu taggen. Füge zuerst ein Unternehmen als Freund hinzu oder erstelle eine Aktivität bzw. einen Artikel.",
+    "groupBusinesses": "Unternehmen (Freunde)",
+    "groupActivities": "Deine Aktivitäten",
+    "groupItems": "Deine Artikel"
   },
   "camera": {
     "permissionRequired": "Kameraberechtigung erforderlich",

@@ -572,7 +572,7 @@ export default function HomeScreen() {
       let actor = activeIdentity ? { type: activeIdentity.type, id: activeIdentity.id } : undefined;
       if (!actor && user) actor = { type: "user", id: user.user_id };
       const businessId = activeIdentity?.type === "business" ? activeIdentity.id : undefined;
-      const newPost = await createPost(sessionToken, finalText.trim() || t("home.sharedAnUpdate"), imageUrl ? null : postImage, null, businessId, actor, postMediaRatio || undefined, taggedUserIds, taggedBusinessId, null, imageUrl, videoUrl, extractedYoutube, extractedSoundcloud, postVideoMuxUploadId);
+      const newPost = await createPost(sessionToken, finalText.trim() || t("home.sharedAnUpdate"), imageUrl ? null : postImage, null, businessId, actor, postMediaRatio || undefined, taggedUserIds, taggedBusinessId, null, null, null, imageUrl, videoUrl, extractedYoutube, extractedSoundcloud, postVideoMuxUploadId);
       setLocalPosts((prev: Post[]) => [newPost, ...prev.filter(p => p.post_id !== newPost.post_id)]);
       setPostText(""); setPostImage(null); setPostVideo(null); setPostVideoMuxUploadId(null); setPostVideoPreview(null); setPostMediaRatio(null); setTaggedUserIds([]); setTagResults([]); setTaggedBusinessId(null); setTaggedBusiness(null); setYoutubeLink(null); setSoundcloudLink(null);
       if (Platform.OS === "web" && typeof window !== "undefined") {

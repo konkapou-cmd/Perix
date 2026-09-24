@@ -221,17 +221,31 @@ export function PostCard({
         />
       ) : null}
 
-      {post.business && (
+      {(post.business || post.tagged_activity || post.tagged_listing) && (
         <Pressable
           style={styles.locationRow}
           onPress={() => {
             skipCardNav.current = true;
-            if (post.business?.business_id) router.push(`/business/${post.business.business_id}` as any);
+            if (post.business?.business_id) {
+              router.push(`/business/${post.business.business_id}` as any);
+            } else if (post.tagged_activity?.activity_id) {
+              router.push(`/activity/${post.tagged_activity.activity_id}` as any);
+            } else if (post.tagged_listing?.listing_id) {
+              router.push(`/listing/${post.tagged_listing.listing_id}` as any);
+            }
           }}
         >
-          <Ionicons name="location-outline" size={14} color="#59ABE3" />
+          <Ionicons
+            name={post.business ? "location-outline" : post.tagged_activity ? "people-outline" : "pricetag-outline"}
+            size={14}
+            color="#59ABE3"
+          />
           <Text style={styles.locationText} numberOfLines={1}>
-            {post.business.name}{post.business.address ? ` · ${post.business.address}` : ""}
+            {post.business
+              ? `${post.business.name}${post.business.address ? ` · ${post.business.address}` : ""}`
+              : post.tagged_activity
+              ? `${post.tagged_activity.title}${post.tagged_activity.location ? ` · ${post.tagged_activity.location}` : ""}`
+              : `${post.tagged_listing?.title}${post.tagged_listing?.address ? ` · ${post.tagged_listing.address}` : ""}`}
           </Text>
         </Pressable>
       )}

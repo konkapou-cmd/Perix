@@ -60,8 +60,8 @@ interface ProfilePostsProps {
   friends?: any[];
   businesses?: any[];
   showMentionSuggestions?: boolean;
-  mentionSuggestions?: { id: string; name: string; type: 'user' | 'business'; avatar?: string | null }[];
-  onSelectMention?: (item: { id: string; name: string; type: 'user' | 'business' }) => void;
+  mentionSuggestions?: { id: string; name: string; type: 'user' | 'business' | 'activity' | 'listing'; avatar?: string | null }[];
+  onSelectMention?: (item: { id: string; name: string; type: 'user' | 'business' | 'activity' | 'listing' }) => void;
   pendingMentionIds?: string[];
   isOwnProfile?: boolean;
   isPosting?: boolean;
@@ -348,14 +348,21 @@ pendingMentionIds = [],
                   <Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
                 ) : (
                   <View style={[styles.mentionAvatar, styles.mentionAvatarPlaceholder]}>
-                    <Text style={styles.mentionInitials}>
-                      {(item.name || "").slice(0, 2).toUpperCase()}
-                    </Text>
+                    <Ionicons
+                      name={item.type === "business" ? "business" : item.type === "activity" ? "people" : item.type === "listing" ? "pricetag" : "person"}
+                      size={14}
+                      color="#6b7280"
+                    />
                   </View>
                 )}
                 <Text style={styles.mentionName} numberOfLines={1}>
                   @{item.name}
                 </Text>
+                <View style={styles.mentionBadge}>
+                  <Text style={styles.mentionBadgeText}>
+                    {item.type === "business" ? t("common.business", "Business") : item.type === "activity" ? t("common.activity", "Activity") : item.type === "listing" ? t("common.item", "Item") : t("common.friend", "Friend")}
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </ScrollView>

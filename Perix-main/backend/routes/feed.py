@@ -143,6 +143,7 @@ async def get_home_feed(
          "actor_type": 1, "actor_id": 1, "actor_name": 1, "actor_avatar": 1,
          "business_id": 1, "media_ratio": 1, "tagged_user_ids": 1, "expires_at": 1,
          "tagged_business_ids": 1, "tagged_artist_ids": 1, "video_status": 1,
+         "tagged_activity_ids": 1, "tagged_listing_ids": 1,
          "mux_playback_id": 1, "mux_thumbnail_url": 1, "mux_asset_id": 1}
     ).sort("created_at", -1).skip(offset).to_list(100)
     
@@ -191,6 +192,8 @@ async def get_home_feed(
     # business's posts are public even before the business itself shows
     # on the map.
     post_biz_ids: set = set()
+    post_activity_ids: set = set()
+    post_listing_ids: set = set()
     for post in posts:
         if post.get("actor_type") == "business" and post.get("actor_id"):
             post_biz_ids.add(post["actor_id"])
@@ -198,6 +201,10 @@ async def get_home_feed(
             post_biz_ids.add(post["business_id"])
         for bid in post.get("tagged_business_ids") or []:
             post_biz_ids.add(bid)
+        for aid in post.get("tagged_activity_ids") or []:
+            post_activity_ids.add(aid)
+        for lid in post.get("tagged_listing_ids") or []:
+            post_listing_ids.add(lid)
     post_biz_locs: dict = {}
     if post_biz_ids:
         post_biz_docs = await db.businesses.find(
@@ -205,10 +212,24 @@ async def get_home_feed(
             {"_id": 0, "business_id": 1, "latitude": 1, "longitude": 1},
         ).to_list(len(post_biz_ids) + 1)
         post_biz_locs = {b["business_id"]: b for b in post_biz_docs}
+    post_activity_locs: dict = {}
+    if post_activity_ids:
+        post_activity_docs = await db.activities.find(
+            {"activity_id": {"$in": list(post_activity_ids)}},
+            {"_id": 0, "activity_id": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(post_activity_ids) + 1)
+        post_activity_locs = {a["activity_id"]: a for a in post_activity_docs}
+    post_listing_locs: dict = {}
+    if post_listing_ids:
+        post_listing_docs = await db.listings.find(
+            {"listing_id": {"$in": list(post_listing_ids)}},
+            {"_id": 0, "listing_id": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(post_listing_ids) + 1)
+        post_listing_locs = {l["listing_id"]: l for l in post_listing_docs}
 
     def post_location_in_bounds(post: dict) -> bool:
-        """True when the post's business address (actor business or tagged
-        business) lies inside the visible map area."""
+        """True when the post's tagged anchor (business address, activity
+        or listing location) lies inside the visible map area."""
         biz_ids: list = []
         if post.get("actor_type") == "business" and post.get("actor_id"):
             biz_ids.append(post["actor_id"])
@@ -219,6 +240,14 @@ async def get_home_feed(
         for bid in biz_ids:
             biz = post_biz_locs.get(bid)
             if biz and in_bounds(biz.get("latitude"), biz.get("longitude")):
+                return True
+        for aid in post.get("tagged_activity_ids") or []:
+            act = post_activity_locs.get(aid)
+            if act and in_bounds(act.get("latitude"), act.get("longitude")):
+                return True
+        for lid in post.get("tagged_listing_ids") or []:
+            lst = post_listing_locs.get(lid)
+            if lst and in_bounds(lst.get("latitude"), lst.get("longitude")):
                 return True
         return False
 
@@ -283,6 +312,49 @@ async def get_home_feed(
             {"_id": 0, "business_id": 1, "name": 1, "logo_image": 1, "latitude": 1, "longitude": 1, "address": 1}
         ).to_list(100)
         tagged_businesses_map = {b["business_id"]: b for b in businesses_cursor}
+
+    # Fetch tagged activity / listing summaries for display
+    activity_summaries: dict = {}
+    listing_summaries: dict = {}
+    all_act_ids = list(post_activity_ids)
+    all_lst_ids = list(post_listing_ids)
+    if all_act_ids:
+        act_docs = await db.activities.find(
+            {"activity_id": {"$in": all_act_ids}},
+            {"_id": 0, "activity_id": 1, "title": 1, "location": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(all_act_ids) + 1)
+        activity_summaries = {a["activity_id"]: a for a in act_docs}
+    if all_lst_ids:
+        lst_docs = await db.listings.find(
+            {"listing_id": {"$in": all_lst_ids}},
+            {"_id": 0, "listing_id": 1, "title": 1, "address": 1, "latitude": 1, "longitude": 1},
+        ).to_list(len(all_lst_ids) + 1)
+        listing_summaries = {l["listing_id"]: l for l in lst_docs}
+    for post in posts:
+        post["_tagged_activity"] = None
+        post["_tagged_listing"] = None
+        if post.get("tagged_activity_ids"):
+            aid = post["tagged_activity_ids"][0]
+            a = activity_summaries.get(aid)
+            if a:
+                post["_tagged_activity"] = {
+                    "activity_id": a["activity_id"],
+                    "title": a.get("title") or "",
+                    "location": a.get("location"),
+                    "latitude": a.get("latitude"),
+                    "longitude": a.get("longitude"),
+                }
+        if post.get("tagged_listing_ids"):
+            lid = post["tagged_listing_ids"][0]
+            l = listing_summaries.get(lid)
+            if l:
+                post["_tagged_listing"] = {
+                    "listing_id": l["listing_id"],
+                    "title": l.get("title") or "",
+                    "address": l.get("address"),
+                    "latitude": l.get("latitude"),
+                    "longitude": l.get("longitude"),
+                }
     
     # Get upcoming events
     event_query = {
@@ -462,6 +534,10 @@ async def get_home_feed(
             tagged_user_ids=post.get("tagged_user_ids", []),
             tagged_business_ids=post.get("tagged_business_ids", []),
             tagged_artist_ids=post.get("tagged_artist_ids", []),
+            tagged_activity_ids=post.get("tagged_activity_ids", []),
+            tagged_listing_ids=post.get("tagged_listing_ids", []),
+            tagged_activity=post.get("_tagged_activity"),
+            tagged_listing=post.get("_tagged_listing"),
             text=post.get("text", ""),
             image_base64=post.get("image_base64"),
             image_url=post.get("image_url"),

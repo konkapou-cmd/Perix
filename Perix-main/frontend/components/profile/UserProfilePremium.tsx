@@ -108,8 +108,8 @@ interface UserProfilePremiumProps {
   onOpenTagModal?: () => void;
   onEditTags?: (userIds: string[], businessIds: string[]) => void;
   showMentionSuggestions?: boolean;
-  mentionSuggestions?: { id: string; name: string; type: 'user' | 'business'; avatar?: string | null }[];
-  onSelectMention?: (item: { id: string; name: string; type: 'user' | 'business' }) => void;
+  mentionSuggestions?: { id: string; name: string; type: 'user' | 'business' | 'activity' | 'listing'; avatar?: string | null }[];
+  onSelectMention?: (item: { id: string; name: string; type: 'user' | 'business' | 'activity' | 'listing' }) => void;
   pendingMentionIds?: string[];
   onRefreshPosts?: () => void;
   businesses?: any[];

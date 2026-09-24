@@ -72,6 +72,8 @@ def build_post_response(
         tagged_user_ids=post_doc.get("tagged_user_ids", []),
         tagged_business_ids=post_doc.get("tagged_business_ids", []),
         tagged_artist_ids=post_doc.get("tagged_artist_ids", []),
+        tagged_activity_ids=post_doc.get("tagged_activity_ids", []),
+        tagged_listing_ids=post_doc.get("tagged_listing_ids", []),
         tagged_business=tagged_business,
         text=post_doc["text"],
         image_base64=post_doc.get("image_base64"),
@@ -96,34 +98,47 @@ async def create_post(
     created_at = now_utc()
     # Posts never expire automatically (2-week rule removed).
 
-    # Personal posts must tag a Perix business the user is friends with.
-    # Business and artist posts are exempt — they represent that
-    # business/artist.
+    # Personal posts must tag something the user owns or is friends with:
+    # a business they are friends with, an activity they created, or a
+    # listing/item they posted. Business and artist posts are exempt —
+    # they represent that business/artist.
     if actor["actor_type"] == "user":
         tagged_biz = payload.tagged_business_ids or []
-        if not tagged_biz:
-            raise HTTPException(
-                status_code=400,
-                detail="Tag a business to publish this post",
-            )
+        tagged_acts = payload.tagged_activity_ids or []
+        tagged_lists = payload.tagged_listing_ids or []
+
         friend_biz_ids = {
             f["entity_id"] for f in (current_user.friends or [])
             if isinstance(f, dict) and f.get("entity_type") == "business"
         }
-        invalid = [b for b in tagged_biz if b not in friend_biz_ids]
-        if invalid:
+        has_friend_biz = any(b in friend_biz_ids for b in tagged_biz)
+
+        own_activity_ids = []
+        if tagged_acts:
+            own_activity_ids = [a["activity_id"] async for a in db.activities.find(
+                {"activity_id": {"$in": tagged_acts}, "creator_id": current_user.user_id},
+                {"activity_id": 1})]
+        own_listing_ids = []
+        if tagged_lists:
+            own_listing_ids = [l["listing_id"] async for l in db.listings.find(
+                {"listing_id": {"$in": tagged_lists}, "owner_id": current_user.user_id},
+                {"listing_id": 1})]
+
+        if not (has_friend_biz or own_activity_ids or own_listing_ids):
             raise HTTPException(
                 status_code=400,
-                detail="You can only tag businesses you are friends with",
+                detail="Tag a business you are friends with, one of your activities, or one of your items to publish this post",
             )
-        biz_count = await db.businesses.count_documents(
-            {"business_id": {"$in": tagged_biz}},
-        )
-        if biz_count != len(set(tagged_biz)):
-            raise HTTPException(
-                status_code=400,
-                detail="Tagged business not found",
+
+        if tagged_biz:
+            biz_count = await db.businesses.count_documents(
+                {"business_id": {"$in": tagged_biz}},
             )
+            if biz_count != len(set(tagged_biz)):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Tagged business not found",
+                )
 
     # Idempotency: a retried request (e.g. after a network timeout) must not create a duplicate post
     if payload.client_request_id:
@@ -149,6 +164,8 @@ async def create_post(
         "tagged_user_ids": payload.tagged_user_ids or [],
         "tagged_business_ids": payload.tagged_business_ids or [],
         "tagged_artist_ids": payload.tagged_artist_ids or [],
+        "tagged_activity_ids": payload.tagged_activity_ids or [],
+        "tagged_listing_ids": payload.tagged_listing_ids or [],
         "text": payload.text,
         "image_base64": payload.image_base64,  # Legacy support
         "image_url": payload.image_url,         # New Cloudinary URL

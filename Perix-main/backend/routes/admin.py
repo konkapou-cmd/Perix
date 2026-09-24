@@ -896,6 +896,32 @@ async def dev_set_block(payload: dict):
     return {"status": "ok", "blocked": blocked, "user_id": user["user_id"]}
 
 
+@router.post("/dev-dbg-feed")
+async def dev_dbg_feed(payload: dict):
+    """Dev helper: debug the feed post query branches."""
+    if payload.get("dev_key") != "perix-dev-reset-key-2026":
+        raise HTTPException(status_code=403, detail="Invalid dev key")
+    from utils.helpers import now_utc
+    now = now_utc()
+    total = await db.posts.count_documents({})
+    gt = await db.posts.count_documents({"expires_at": {"$gt": now}})
+    null = await db.posts.count_documents({"expires_at": None})
+    missing = await db.posts.count_documents({"expires_at": {"$exists": False}})
+    hidden = await db.posts.count_documents({"is_hidden": True})
+    matched = await db.posts.find(
+        {"$and": [
+            {"$or": [{"expires_at": {"$gt": now}}, {"expires_at": None}, {"expires_at": {"$exists": False}}]},
+            {"is_hidden": {"$ne": True}},
+        ]},
+        {"_id": 0, "post_id": 1, "expires_at": 1},
+    ).to_list(50)
+    return {
+        "total": total, "gt_now": gt, "null": null, "missing": missing,
+        "hidden": hidden,
+        "matched": [{"post_id": m["post_id"], "expires_at": str(m.get("expires_at"))} for m in matched],
+    }
+
+
 @router.post("/dev-list-posts")
 async def dev_list_posts(payload: dict):
     """Dev helper: list the latest posts with visibility info for debugging."""
@@ -926,6 +952,7 @@ async def dev_list_posts(payload: dict):
             "hidden_reason": p.get("hidden_reason"),
             "tagged_business_ids": p.get("tagged_business_ids", []),
             "tagged_user_ids": p.get("tagged_user_ids", []),
+            "expires_at": str(p.get("expires_at")),
             "created_at": p.get("created_at"),
         })
     return result

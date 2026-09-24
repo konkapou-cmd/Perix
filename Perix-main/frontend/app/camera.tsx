@@ -378,48 +378,17 @@ export default function CameraScreen() {
   };
 
   const publishPending = async () => {
-    if (!sessionToken || !pendingMedia || publishing) return;
-    setPublishing(true);
-    try {
-      const actor = activeIdentity ? { type: activeIdentity.type, id: activeIdentity.id } : undefined;
-      const businessId = activeIdentity?.type === "business" ? activeIdentity.id : undefined;
-      const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-      const caption = t("home.sharedAnUpdate", "Shared an update");
-      if (pendingMedia.type === "image") {
-        const imageUrl = await uploadMedia(sessionToken, pendingMedia.uri, "image");
-        await createPost(sessionToken, caption, null, null, businessId, actor, pendingMedia.ratio ?? null, [], null, null, imageUrl, null, null, null, null, undefined, undefined, requestId);
-      } else {
-        const muxResult = await uploadVideoMux(sessionToken, pendingMedia.uri);
-        const videoUrl = muxResult.url || (muxResult.mux_playback_id ? `https://stream.mux.com/${muxResult.mux_playback_id}.m3u8` : null);
-        await createPost(
-          sessionToken,
-          caption,
-          null,
-          null,
-          businessId,
-          actor,
-          pendingMedia.ratio ?? null,
-          [],
-          null,
-          null,
-          null,
-          videoUrl,
-          null,
-          null,
-          muxResult.mux_upload_id || null,
-          muxResult.mux_playback_id || null,
-          muxResult.video_status || (muxResult.url ? "ready" : "processing"),
-          requestId,
-        );
-      }
-      setPendingMedia(null);
-      router.replace("/(tabs)/home" as any);
-    } catch (error: any) {
-      console.error("[camera] publish failed:", error?.message);
-      Alert.alert(t("common.error"), error?.message || t("editor.publishFailed", "Failed to publish"));
-    } finally {
-      setPublishing(false);
-    }
+    if (!pendingMedia || publishing) return;
+    // Route through the media editor so the mandatory tagging
+    // (business friend / own activity / own item) is applied.
+    router.push({
+      pathname: "/media-editor",
+      params: {
+        uri: encodeURIComponent(pendingMedia.uri),
+        type: pendingMedia.type,
+        ratio: pendingMedia.ratio ? String(pendingMedia.ratio) : undefined,
+      },
+    } as any);
   };
 
   if (Platform.OS === "web") {

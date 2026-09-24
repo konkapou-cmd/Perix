@@ -145,6 +145,22 @@ export type Post = {
     latitude?: number | null;
     longitude?: number | null;
   } | null;
+  tagged_activity_ids?: string[];
+  tagged_listing_ids?: string[];
+  tagged_activity?: {
+    activity_id?: string;
+    title: string;
+    location?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null;
+  tagged_listing?: {
+    listing_id?: string;
+    title: string;
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null;
 };
 
 export type ChatMessage = {

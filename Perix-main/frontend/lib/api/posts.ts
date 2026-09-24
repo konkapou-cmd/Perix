@@ -34,6 +34,8 @@ export const createPost = async (
   tagged_user_ids?: string[],
   tagged_business_id?: string | null,
   tagged_artist_id?: string | null,
+  tagged_activity_ids?: string[] | null,
+  tagged_listing_ids?: string[] | null,
   image_url?: string | null,
   video_url?: string | null,
   youtube_link?: string | null,
@@ -60,6 +62,8 @@ export const createPost = async (
     tagged_user_ids,
     tagged_business_ids: tagged_business_id ? [tagged_business_id] : [],
     tagged_artist_ids: tagged_artist_id ? [tagged_artist_id] : [],
+    tagged_activity_ids: tagged_activity_ids || [],
+    tagged_listing_ids: tagged_listing_ids || [],
     client_request_id,
   });
 };

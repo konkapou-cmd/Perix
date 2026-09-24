@@ -1703,13 +1703,16 @@
     "searchUser": "Search user",
     "stickers": "Stickers",
     "story24h": "Story (24h)",
-    "businessTag": "Business",
-    "tagBusiness": "Tag the business",
+    "businessTag": "Tag",
+    "tagBusiness": "Tag business, activity or item",
     "selectBusiness": "Select business",
     "searchBusinessPlaceholder": "Type the business name",
     "businessTagRequiredTitle": "Business tag required",
-    "businessTagRequired": "Tag the business your post is about before publishing.",
-    "noBusinessFriends": "You have no business friends yet. Add the business as a friend first."
+    "businessTagRequired": "Tag a business you are friends with, one of your activities, or one of your items before publishing.",
+    "noBusinessFriends": "Nothing to tag yet. Add a business as a friend, or create an activity or item first.",
+    "groupBusinesses": "Businesses (friends)",
+    "groupActivities": "Your activities",
+    "groupItems": "Your items"
   },
   "camera": {
     "permissionRequired": "Camera Permission Required",

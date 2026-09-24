@@ -9,8 +9,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { createPost, uploadMedia, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL } from "../lib/api";
+import { createPost, uploadMedia, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL, getUserActivities } from "../lib/api";
 import { getMyFriendProfiles } from "../lib/api/social";
+import { getUserSellerListings } from "../lib/api/listings";
 import { translateCategory } from "../lib/categoryTranslation";
 import UploadProgressSheet from "../components/UploadProgressSheet";
 import * as FileSystem from "expo-file-system/legacy";
@@ -24,7 +25,7 @@ export default function MediaEditor() {
   const { t } = useTranslation();
   const router = useRouter();
   const { uri, type, mode, ratio } = useLocalSearchParams<{ uri: string; type: string; mode?: string; ratio?: string }>();
-  const { sessionToken, activeIdentity } = useAuth();
+  const { sessionToken, activeIdentity, user } = useAuth();
   const isVideo = type === "video";
 
   const maxDurationSeconds = mode === "cover"
@@ -54,6 +55,11 @@ export default function MediaEditor() {
   const [allBusinesses, setAllBusinesses] = useState<any[]>([]);
   const [showBusinessPicker, setShowBusinessPicker] = useState(false);
   const [businessSearchQuery, setBusinessSearchQuery] = useState("");
+  // Tagging something you created: activities + items
+  const [ownActivities, setOwnActivities] = useState<any[]>([]);
+  const [ownListings, setOwnListings] = useState<any[]>([]);
+  const [selectedActivity, setSelectedActivity] = useState<any>(null);
+  const [selectedListing, setSelectedListing] = useState<any>(null);
 
   const selectedBusiness = useMemo(() => {
     const bizId = pendingMentionIds.find(id =>
@@ -69,8 +75,30 @@ export default function MediaEditor() {
       .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [allBusinesses, businessSearchQuery]);
 
+  const filteredActivities = useMemo(() => {
+    const q = businessSearchQuery.trim().toLowerCase();
+    return ownActivities.filter((a: any) => !q || (a.title || "").toLowerCase().includes(q));
+  }, [ownActivities, businessSearchQuery]);
+
+  const filteredListings = useMemo(() => {
+    const q = businessSearchQuery.trim().toLowerCase();
+    return ownListings.filter((l: any) => !q || (l.title || "").toLowerCase().includes(q));
+  }, [ownListings, businessSearchQuery]);
+
   const selectBusinessTag = (business: any) => {
     setPendingMentionIds(prev => prev.includes(business.business_id) ? prev : [...prev, business.business_id]);
+    setShowBusinessPicker(false);
+    setBusinessSearchQuery("");
+  };
+
+  const selectActivityTag = (activity: any) => {
+    setSelectedActivity(activity);
+    setShowBusinessPicker(false);
+    setBusinessSearchQuery("");
+  };
+
+  const selectListingTag = (listing: any) => {
+    setSelectedListing(listing);
     setShowBusinessPicker(false);
     setBusinessSearchQuery("");
   };
@@ -149,6 +177,18 @@ export default function MediaEditor() {
     }).catch(() => {});
   }, [sessionToken]);
 
+  // Load the user's own activities and listings for tagging
+  useEffect(() => {
+    if (!sessionToken || !user?.user_id) return;
+    Promise.all([
+      getUserActivities(sessionToken, user.user_id).catch(() => []),
+      getUserSellerListings(user.user_id).catch(() => []),
+    ]).then(([activities, listings]) => {
+      setOwnActivities((activities || []).filter((a: any) => a?.activity_id));
+      setOwnListings((listings || []).filter((l: any) => l?.listing_id));
+    }).catch(() => {});
+  }, [sessionToken, user?.user_id]);
+
   const filteredSuggestions = useMemo(() => {
     if (!mentionQuery) return allMentionables.slice(0, 10);
     const search = mentionQuery.toLowerCase();
@@ -209,13 +249,13 @@ export default function MediaEditor() {
       );
       const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
 
-      // Personal posts must tag a Perix business before publishing
+      // Personal posts must tag something the user owns or is friends with
       const postingAsBusiness = activeIdentity?.type === "business";
       const postingAsArtist = activeIdentity?.type === "artist";
-      if (!postingAsBusiness && !postingAsArtist && tagBusinessArray.length === 0) {
+      if (!postingAsBusiness && !postingAsArtist && tagBusinessArray.length === 0 && !selectedActivity && !selectedListing) {
         Alert.alert(
-          t("editor.businessTagRequiredTitle", "Business tag required"),
-          t("editor.businessTagRequired", "Tag the business your post is about before publishing."),
+          t("editor.businessTagRequiredTitle", "Tag required"),
+          t("editor.businessTagRequired", "Tag a business you are friends with, one of your activities, or one of your items before publishing."),
         );
         setPublishing(false);
         return;
@@ -263,7 +303,7 @@ export default function MediaEditor() {
         console.log("[media-editor] creating post with video:", { videoUrl, muxPlaybackId });
         const requestId = getRequestId();
         await withIdempotentRetry(
-          () => createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, videoStatus, requestId),
+          () => createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, selectedActivity ? [selectedActivity.activity_id] : null, selectedListing ? [selectedListing.listing_id] : null, null, videoUrl, null, null, muxPlaybackId, muxPlaybackId, videoStatus, requestId),
           requestId,
         );
       } else {
@@ -286,7 +326,7 @@ export default function MediaEditor() {
         console.log("[media-editor] creating post with image:", { imageUrl });
         const requestId = getRequestId();
         await withIdempotentRetry(
-          () => createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, imageUrl, null, null, null, undefined, undefined, undefined, requestId),
+          () => createPost(sessionToken, caption || t("home.sharedAnUpdate", "Shared an update"), null, null, businessId, actor, mediaRatio, tagUserArray, firstBusinessId, null, selectedActivity ? [selectedActivity.activity_id] : null, selectedListing ? [selectedListing.listing_id] : null, imageUrl, null, null, null, undefined, undefined, undefined, requestId),
           requestId,
         );
       }
@@ -359,26 +399,50 @@ export default function MediaEditor() {
             <Text style={styles.charCount}>{caption.length}/500</Text>
           </View>
 
-          {/* Business tag (mandatory for personal posts) */}
+          {/* Tag (mandatory for personal posts): business friend, own activity or own item */}
           {activeIdentity?.type !== "business" && activeIdentity?.type !== "artist" && (
             <View style={styles.captionSection}>
-              <Text style={styles.captionLabel}>{t("editor.businessTag", "Business")}</Text>
-              {selectedBusiness ? (
+              <Text style={styles.captionLabel}>{t("editor.businessTag", "Tag")}</Text>
+              {(selectedBusiness || selectedActivity || selectedListing) ? (
                 <View style={styles.businessChipRow}>
-                  <View style={styles.businessChip}>
-                    <Ionicons name="business" size={15} color="#59ABE3" />
-                    <Text style={styles.businessChipText} numberOfLines={1}>
-                      {(selectedBusiness as any).name || (selectedBusiness as any).id}
-                    </Text>
-                    <Pressable onPress={removeBusinessTag} hitSlop={8}>
-                      <Ionicons name="close-circle" size={17} color="#6b7280" />
-                    </Pressable>
-                  </View>
+                  {selectedBusiness ? (
+                    <View style={styles.businessChip}>
+                      <Ionicons name="business" size={15} color="#59ABE3" />
+                      <Text style={styles.businessChipText} numberOfLines={1}>
+                        {(selectedBusiness as any).name || (selectedBusiness as any).id}
+                      </Text>
+                      <Pressable onPress={removeBusinessTag} hitSlop={8}>
+                        <Ionicons name="close-circle" size={17} color="#6b7280" />
+                      </Pressable>
+                    </View>
+                  ) : null}
+                  {selectedActivity ? (
+                    <View style={styles.businessChip}>
+                      <Ionicons name="people" size={15} color="#FF9F1C" />
+                      <Text style={styles.businessChipText} numberOfLines={1}>
+                        {(selectedActivity as any).title}
+                      </Text>
+                      <Pressable onPress={() => setSelectedActivity(null)} hitSlop={8}>
+                        <Ionicons name="close-circle" size={17} color="#6b7280" />
+                      </Pressable>
+                    </View>
+                  ) : null}
+                  {selectedListing ? (
+                    <View style={styles.businessChip}>
+                      <Ionicons name="pricetag" size={15} color="#10b981" />
+                      <Text style={styles.businessChipText} numberOfLines={1}>
+                        {(selectedListing as any).title}
+                      </Text>
+                      <Pressable onPress={() => setSelectedListing(null)} hitSlop={8}>
+                        <Ionicons name="close-circle" size={17} color="#6b7280" />
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </View>
               ) : (
                 <Pressable style={styles.businessTagBtn} onPress={() => setShowBusinessPicker(true)}>
-                  <Ionicons name="business-outline" size={16} color="#59ABE3" />
-                  <Text style={styles.businessTagBtnText}>{t("editor.tagBusiness", "Tag the business")}</Text>
+                  <Ionicons name="pricetag-outline" size={16} color="#59ABE3" />
+                  <Text style={styles.businessTagBtnText}>{t("editor.tagBusiness", "Tag business, activity or item")}</Text>
                   <Ionicons name="chevron-forward" size={14} color="#9ca3af" />
                 </Pressable>
               )}
@@ -460,24 +524,57 @@ export default function MediaEditor() {
               placeholderTextColor="#9ca3af"
             />
             <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
-              {filteredBusinesses.length === 0 ? (
-                <Text style={styles.pickerEmpty}>{t("editor.noBusinessFriends", "You have no business friends yet. Add the business as a friend first.")}</Text>
+              {filteredBusinesses.length === 0 && filteredActivities.length === 0 && filteredListings.length === 0 ? (
+                <Text style={styles.pickerEmpty}>{t("editor.noBusinessFriends", "Nothing to tag yet. Add a business as a friend, or create an activity or item first.")}</Text>
               ) : (
-                filteredBusinesses.map((b: any) => (
-                  <Pressable key={b.business_id} style={styles.pickerRow} onPress={() => selectBusinessTag(b)}>
-                    <View style={styles.pickerAvatar}>
-                      {b.logo_image ? (
-                        <Image source={{ uri: b.logo_image }} style={styles.pickerAvatarImg} />
-                      ) : (
-                        <Text style={styles.pickerAvatarText}>{(b.name || "B").charAt(0).toUpperCase()}</Text>
-                      )}
-                    </View>
-                    <View style={styles.pickerInfo}>
-                      <Text style={styles.pickerName} numberOfLines={1}>{b.name}</Text>
-                      {b.category ? <Text style={styles.pickerSub} numberOfLines={1}>{translateCategory(b.category, t)}</Text> : null}
-                    </View>
-                  </Pressable>
-                ))
+                <>
+                  {filteredBusinesses.length > 0 && (
+                    <Text style={styles.pickerGroupTitle}>{t("editor.groupBusinesses", "Businesses (friends)")}</Text>
+                  )}
+                  {filteredBusinesses.map((b: any) => (
+                    <Pressable key={b.business_id} style={styles.pickerRow} onPress={() => selectBusinessTag(b)}>
+                      <View style={styles.pickerAvatar}>
+                        {b.logo_image ? (
+                          <Image source={{ uri: b.logo_image }} style={styles.pickerAvatarImg} />
+                        ) : (
+                          <Text style={styles.pickerAvatarText}>{(b.name || "B").charAt(0).toUpperCase()}</Text>
+                        )}
+                      </View>
+                      <View style={styles.pickerInfo}>
+                        <Text style={styles.pickerName} numberOfLines={1}>{b.name}</Text>
+                        {b.category ? <Text style={styles.pickerSub} numberOfLines={1}>{translateCategory(b.category, t)}</Text> : null}
+                      </View>
+                    </Pressable>
+                  ))}
+                  {filteredActivities.length > 0 && (
+                    <Text style={styles.pickerGroupTitle}>{t("editor.groupActivities", "Your activities")}</Text>
+                  )}
+                  {filteredActivities.map((a: any) => (
+                    <Pressable key={a.activity_id} style={styles.pickerRow} onPress={() => selectActivityTag(a)}>
+                      <View style={styles.pickerAvatar}>
+                        <Ionicons name="people" size={16} color="#FF9F1C" />
+                      </View>
+                      <View style={styles.pickerInfo}>
+                        <Text style={styles.pickerName} numberOfLines={1}>{a.title}</Text>
+                        {a.location ? <Text style={styles.pickerSub} numberOfLines={1}>{a.location}</Text> : null}
+                      </View>
+                    </Pressable>
+                  ))}
+                  {filteredListings.length > 0 && (
+                    <Text style={styles.pickerGroupTitle}>{t("editor.groupItems", "Your items")}</Text>
+                  )}
+                  {filteredListings.map((l: any) => (
+                    <Pressable key={l.listing_id} style={styles.pickerRow} onPress={() => selectListingTag(l)}>
+                      <View style={styles.pickerAvatar}>
+                        <Ionicons name="pricetag" size={16} color="#10b981" />
+                      </View>
+                      <View style={styles.pickerInfo}>
+                        <Text style={styles.pickerName} numberOfLines={1}>{l.title}</Text>
+                        {l.address ? <Text style={styles.pickerSub} numberOfLines={1}>{l.address}</Text> : null}
+                      </View>
+                    </Pressable>
+                  ))}
+                </>
               )}
             </ScrollView>
           </View>
@@ -542,4 +639,5 @@ const styles = StyleSheet.create({
   pickerSub: { fontSize: 12, color: "#9ca3af", marginTop: 1 },
   pickerDistance: { fontSize: 12, fontWeight: "700", color: "#59ABE3" },
   pickerEmpty: { fontSize: 13, color: "#9ca3af", textAlign: "center", paddingVertical: 20 },
+  pickerGroupTitle: { fontSize: 11.5, fontWeight: "800", color: "#8a9aa3", textTransform: "uppercase", letterSpacing: 0.5, paddingTop: 10, paddingBottom: 4 },
 });

@@ -304,6 +304,8 @@ const [followLoading, setFollowLoading] = useState(false);
         [],
         undefined,
         undefined,
+        undefined,
+        undefined,
         uploadedImageUrl,
         uploadedVideoUrl
       );

@@ -137,8 +137,8 @@ interface BusinessProfilePremiumProps {
   onOpenTagModal?: () => void;
   onEditTags?: (userIds: string[], businessIds: string[]) => void;
   showMentionSuggestions?: boolean;
-  mentionSuggestions?: { id: string; name: string; type: 'user' | 'business'; avatar?: string | null }[];
-  onSelectMention?: (item: { id: string; name: string; type: 'user' | 'business' }) => void;
+  mentionSuggestions?: { id: string; name: string; type: 'user' | 'business' | 'activity' | 'listing'; avatar?: string | null }[];
+  onSelectMention?: (item: { id: string; name: string; type: 'user' | 'business' | 'activity' | 'listing' }) => void;
   pendingMentionIds?: string[];
   onRefreshPosts?: () => void;
   friends?: any[];
@@ -326,7 +326,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     if (businessListings.filter(l => l.status === "published" && l.is_active).length > 0) {
       tabs.push({ key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetags-outline", count: businessListings.filter(l => l.status === "published" && l.is_active).length });
     }
-    // Service type tabs — one per categoryKey:serviceType
+    // Service type tabs â€” one per categoryKey:serviceType
     const rootCat = detail.business.root_category || "";
     const hasModule = hasServiceModules(rootCat);
     if (hasModule) {
@@ -367,7 +367,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     if (canAddItems || businessListings.length > 0) {
       tabs.push({ key: "items", label: t("marketplace.items", "Shop"), icon: "storefront-outline", count: businessListings.length });
     }
-    // 2. Service type tabs — one per categoryKey:serviceType
+    // 2. Service type tabs â€” one per categoryKey:serviceType
     const rootCat = detail.business.root_category || "";
     const hasModule = hasServiceModules(rootCat);
     if (hasModule) {
@@ -400,11 +400,11 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         });
       }
     }
-    // 3. Events — always visible for owner
+    // 3. Events â€” always visible for owner
     tabs.push({ key: "events", label: t("events.title", "Events"), icon: "sparkles", count: events.length });
-    // 4. Jobs — always visible for owner
+    // 4. Jobs â€” always visible for owner
     tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
-    // 5. Bookings — always visible for owner
+    // 5. Bookings â€” always visible for owner
     tabs.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: pendingBookingsCount });
     return tabs;
   }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings, canAddItems, pendingBookingsCount]);

@@ -281,6 +281,8 @@ export default function ProfileScreen() {
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
   const [pendingMentionIds, setPendingMentionIds] = useState<string[]>([]);
+  const [pendingActivityId, setPendingActivityId] = useState<string | null>(null);
+  const [pendingListingId, setPendingListingId] = useState<string | null>(null);
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [tagUserDraft, setTagUserDraft] = useState<string>("");
   const [tagBusinessDraft, setTagBusinessDraft] = useState<string>("");
@@ -2183,6 +2185,20 @@ try {
         );
         const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
 
+        // Personal posts must tag a business friend, own activity or own item
+        if (actorIdentity.type !== 'business' && actorIdentity.type !== 'artist' &&
+            !firstBusinessId && !pendingActivityId && !pendingListingId) {
+          Alert.alert(
+            t("editor.businessTagRequiredTitle", "Tag required"),
+            t("editor.businessTagRequired", "Tag a business you are friends with, one of your activities, or one of your items before publishing."),
+          );
+          setShowUploadProgress(false);
+          setUploadProgress(null);
+          postingRef.current = false;
+          setIsPosting(false);
+          return;
+        }
+
         const newPost = await createPost(
             sessionToken,
             text,
@@ -2194,6 +2210,8 @@ try {
             tagUserArray, // tagged_user_ids
             firstBusinessId, // tagged_business_id (MVP: first selection)
             undefined, // tagged_artist_id
+            pendingActivityId ? [pendingActivityId] : null, // tagged_activity_ids
+            pendingListingId ? [pendingListingId] : null,  // tagged_listing_ids
             uploadedImageUrl, // image_url
             uploadedVideoUrl,  // video_url
             null,              // youtube_link
@@ -2210,6 +2228,8 @@ try {
            setUploadProgress(null);
          }
           setPendingMentionIds([]);
+          setPendingActivityId(null);
+          setPendingListingId(null);
 
         // Refresh to get updated profile
         if (actorIdentity.type === 'business') {
@@ -2435,12 +2455,14 @@ try {
   const getFriendName = (id: string) => friends.find(f => f.user_id === id)?.name || friends.find(f => f.user_id === id)?.user_id || id;
   const getBizName = (id: string) => businesses.find(b => b.business_id === id)?.name || id;
 
-  // Inline @ mention autocomplete - combine friends and ALL map businesses for dropdown
+  // Inline @ mention autocomplete - friends, business friends, own activities and items
   const allMentionables = useMemo(() => {
     const friendItems = (friends || []).map(f => ({ id: f.user_id, name: f.name || f.user_id, type: 'user' as const, avatar: f.profile_photo || f.picture }));
     const bizItems = (allMapBusinesses || []).map(b => ({ id: b.business_id, name: b.name, type: 'business' as const, avatar: b.logo_image }));
-    return [...friendItems, ...bizItems];
-  }, [friends, allMapBusinesses]);
+    const actItems = (userActivities || []).map((a: any) => ({ id: a.activity_id, name: a.title || a.activity_id, type: 'activity' as const }));
+    const listItems = (userListings || []).map((l: any) => ({ id: l.listing_id, name: l.title || l.listing_id, type: 'listing' as const }));
+    return [...friendItems, ...bizItems, ...actItems, ...listItems];
+  }, [friends, allMapBusinesses, userActivities, userListings]);
 
   const filteredSuggestions = useMemo(() => {
     if (!mentionQuery) return allMentionables.slice(0, 10);
@@ -2473,7 +2495,7 @@ try {
     setMentionQuery("");
   };
 
-  const selectMention = (item: { id: string; name: string; type: 'user' | 'business' }) => {
+  const selectMention = (item: { id: string; name: string; type: 'user' | 'business' | 'activity' | 'listing' }) => {
     // Build new text with @id replaced by @name format (never "@@name")
     const text = postText;
     const before = text.slice(0, mentionCursorPosition);
@@ -2483,8 +2505,14 @@ try {
     setPostText(newText);
     setShowMentionSuggestions(false);
     setMentionQuery("");
-    // Track tagged IDs
-    setPendingMentionIds(prev => [...prev.filter(id => id !== item.id), item.id]);
+    if (item.type === 'activity') {
+      setPendingActivityId(item.id);
+    } else if (item.type === 'listing') {
+      setPendingListingId(item.id);
+    } else {
+      // Track tagged IDs
+      setPendingMentionIds(prev => [...prev.filter(id => id !== item.id), item.id]);
+    }
   };
 
   const closeTagModal = () => {

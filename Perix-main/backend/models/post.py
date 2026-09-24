@@ -23,6 +23,8 @@ class PostCreate(BaseModel):
     tagged_user_ids: List[str] = []
     tagged_business_ids: List[str] = []
     tagged_artist_ids: List[str] = []
+    tagged_activity_ids: List[str] = []
+    tagged_listing_ids: List[str] = []
     client_request_id: Optional[str] = None
 
 
@@ -72,7 +74,11 @@ class PostResponse(BaseModel):
     tagged_user_ids: List[str] = []
     tagged_business_ids: List[str] = []
     tagged_artist_ids: List[str] = []
+    tagged_activity_ids: List[str] = []
+    tagged_listing_ids: List[str] = []
     tagged_business: Optional[TaggedBusinessInfo] = None
+    tagged_activity: Optional[dict] = None
+    tagged_listing: Optional[dict] = None
     text: str
     image_base64: Optional[str] = None  # Legacy - will be phased out
     image_url: Optional[str] = None     # New - Cloudinary URL
