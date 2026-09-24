@@ -130,6 +130,10 @@ async def create_post(
                 detail="Tag a business you are friends with, one of your activities, or one of your items to publish this post",
             )
 
+        # Public only with a friend-business tag. Tagging an activity or
+        # item alone keeps the post private (visible only to its author).
+        is_public = has_friend_biz
+
         if tagged_biz:
             biz_count = await db.businesses.count_documents(
                 {"business_id": {"$in": tagged_biz}},
@@ -166,6 +170,7 @@ async def create_post(
         "tagged_artist_ids": payload.tagged_artist_ids or [],
         "tagged_activity_ids": payload.tagged_activity_ids or [],
         "tagged_listing_ids": payload.tagged_listing_ids or [],
+        "is_public": is_public if actor["actor_type"] == "user" else True,
         "text": payload.text,
         "image_base64": payload.image_base64,  # Legacy support
         "image_url": payload.image_url,         # New Cloudinary URL

@@ -93,7 +93,12 @@ async def get_home_feed(
                     {"expires_at": {"$exists": False}}
                 ]
             },
-            {"is_hidden": {"$ne": True}}
+            {"is_hidden": {"$ne": True}},
+            # Public posts (friend-business tag) plus the viewer's own posts
+            {"$or": [
+                {"is_public": {"$ne": False}},
+                {"user_id": current_user.user_id if current_user else ""},
+            ]},
         ]
     }
     if excluded_user_ids:

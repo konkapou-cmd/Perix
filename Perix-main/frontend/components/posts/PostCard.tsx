@@ -190,6 +190,11 @@ export function PostCard({
               textStyle={styles.caption}
               taggedUsers={taggedUsers}
               taggedBusinesses={taggedBusinesses}
+              onMentionPress={(id, type) => {
+                skipCardNav.current = true;
+                if (type === "business") router.push(`/business/${id}` as any);
+                else router.push(`/user/${id}` as any);
+              }}
             />
           </View>
         ) : (
@@ -200,6 +205,11 @@ export function PostCard({
               textStyle={styles.textOnlyContent}
               taggedUsers={taggedUsers}
               taggedBusinesses={taggedBusinesses}
+              onMentionPress={(id, type) => {
+                skipCardNav.current = true;
+                if (type === "business") router.push(`/business/${id}` as any);
+                else router.push(`/user/${id}` as any);
+              }}
             />
           </View>
         )
