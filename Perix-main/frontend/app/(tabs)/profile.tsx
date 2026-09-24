@@ -2554,6 +2554,7 @@ try {
         )}
         {activeIdentity?.type === 'user' && user !== null && (
         <UserProfilePremium
+          tagHintText={activeIdentity?.type === 'user' ? t("editor.tagHint") : undefined}
           user={user as User}
           friends={friends}
           galleryImages={galleryImages}
@@ -2646,6 +2647,7 @@ postText={postText}
 
           {activeIdentity?.type === 'business' && businessDetail && (
            <BusinessProfilePremium
+          tagHintText={undefined}
               business={businessDetail}
               sessionToken={sessionToken || ""}
               refreshing={refreshing}

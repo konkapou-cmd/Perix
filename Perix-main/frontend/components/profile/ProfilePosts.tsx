@@ -74,6 +74,7 @@ interface ProfilePostsProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   isScreenFocused?: boolean;
+  tagHintText?: string | null;
 }
 
 const formatDate = (dateStr: string) => {
@@ -138,6 +139,7 @@ pendingMentionIds = [],
   refreshing,
   onRefresh,
   isScreenFocused = true,
+  tagHintText = null,
 }) => {
   const { t } = useTranslation();
   const { sessionToken, activeIdentity } = useAuth();
@@ -335,6 +337,9 @@ pendingMentionIds = [],
           textAlignVertical="top"
         />
       </View>
+      {tagHintText ? (
+        <Text style={[styles.tagHint, { color: textSecondaryColor }]}>{tagHintText}</Text>
+      ) : null}
       {showMentionSuggestions && mentionSuggestions.length > 0 && (
         <View style={styles.mentionDropdown}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -633,6 +638,23 @@ const styles: Record<string, any> = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#6b7280",
+  },
+  mentionBadge: {
+    backgroundColor: "#f3f4f6",
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  mentionBadgeText: {
+    fontSize: 9.5,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  tagHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 8,
+    marginHorizontal: 12,
   },
   mentionName: {
     fontSize: 11,

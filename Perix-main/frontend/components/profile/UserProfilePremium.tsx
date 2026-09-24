@@ -132,6 +132,8 @@ interface UserProfilePremiumProps {
   onToggleMarketplace?: (listing: Listing) => void;
   onDeleteItem?: (listing: Listing) => void;
   initialTab?: "activities" | "posts" | "items";
+  tagHintText?: string | null;
+
 }
 
 export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
@@ -211,6 +213,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   onToggleMarketplace,
   onDeleteItem,
   initialTab,
+  tagHintText = null,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -532,6 +535,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
           isOwnProfile={isOwnProfile}
           onCreateStory={onCreateStory}
           isScreenFocused={isScreenFocused}
+          tagHintText={tagHintText}
           refreshing={refreshing}
           onRefresh={onRefresh}
           initialSavedPostIds={initialSavedPostIds}
@@ -611,6 +615,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
               isOwnProfile={isOwnProfile}
               onCreateStory={onCreateStory}
               isScreenFocused={isScreenFocused}
+          tagHintText={tagHintText}
               refreshing={refreshing}
               onRefresh={onRefresh}
               initialSavedPostIds={initialSavedPostIds}

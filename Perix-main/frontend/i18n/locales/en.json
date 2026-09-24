@@ -1712,7 +1712,8 @@
     "noBusinessFriends": "Nothing to tag yet. Add a business as a friend, or create an activity or item first.",
     "groupBusinesses": "Businesses (friends)",
     "groupActivities": "Your activities",
-    "groupItems": "Your items"
+    "groupItems": "Your items",
+    "tagHint": "To publish: tag a business you are friends with, or one of your own activities or items. Type @ in the text to tag, or use the tag button."
   },
   "camera": {
     "permissionRequired": "Camera Permission Required",

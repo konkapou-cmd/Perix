@@ -440,11 +440,14 @@ export default function MediaEditor() {
                   ) : null}
                 </View>
               ) : (
-                <Pressable style={styles.businessTagBtn} onPress={() => setShowBusinessPicker(true)}>
-                  <Ionicons name="pricetag-outline" size={16} color="#59ABE3" />
-                  <Text style={styles.businessTagBtnText}>{t("editor.tagBusiness", "Tag business, activity or item")}</Text>
-                  <Ionicons name="chevron-forward" size={14} color="#9ca3af" />
-                </Pressable>
+                <>
+                  <Pressable style={styles.businessTagBtn} onPress={() => setShowBusinessPicker(true)}>
+                    <Ionicons name="pricetag-outline" size={16} color="#59ABE3" />
+                    <Text style={styles.businessTagBtnText}>{t("editor.tagBusiness", "Tag business, activity or item")}</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#9ca3af" />
+                  </Pressable>
+                  <Text style={styles.tagHint}>{t("editor.tagHint")}</Text>
+                </>
               )}
             </View>
           )}
@@ -624,6 +627,7 @@ const styles = StyleSheet.create({
   businessChipText: { fontSize: 13, fontWeight: "600", color: "#264348", flexShrink: 1 },
   businessTagBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(89,171,227,0.5)", borderStyle: "dashed", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11 },
   businessTagBtnText: { flex: 1, fontSize: 14, fontWeight: "600", color: "#59ABE3" },
+  tagHint: { fontSize: 12, color: "#8a9aa3", lineHeight: 17, marginTop: 8 },
   pickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 20 },
   pickerCard: { width: "100%", maxWidth: 440, maxHeight: "80%", backgroundColor: "#fff", borderRadius: 18, padding: 16 },
   pickerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },

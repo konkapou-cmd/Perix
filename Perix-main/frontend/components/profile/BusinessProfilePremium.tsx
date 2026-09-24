@@ -167,6 +167,7 @@ interface BusinessProfilePremiumProps {
   addItemsDisabledReason?: string;
   requestedSection?: string | null;
   onRequestedSectionHandled?: () => void;
+  tagHintText?: string | null;
 }
 
 export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
@@ -261,6 +262,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   addItemsDisabledReason,
   requestedSection,
   onRequestedSectionHandled,
+  tagHintText = null,
 }) => {
   const { t } = useTranslation();
   const serviceLabel = (type: string, fallback?: string) => getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? fallback ?? type));
@@ -326,7 +328,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     if (businessListings.filter(l => l.status === "published" && l.is_active).length > 0) {
       tabs.push({ key: "items", label: t("marketplace.items", "Artikel"), icon: "pricetags-outline", count: businessListings.filter(l => l.status === "published" && l.is_active).length });
     }
-    // Service type tabs â€” one per categoryKey:serviceType
+    // Service type tabs Ã¢â‚¬â€ one per categoryKey:serviceType
     const rootCat = detail.business.root_category || "";
     const hasModule = hasServiceModules(rootCat);
     if (hasModule) {
@@ -367,7 +369,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     if (canAddItems || businessListings.length > 0) {
       tabs.push({ key: "items", label: t("marketplace.items", "Shop"), icon: "storefront-outline", count: businessListings.length });
     }
-    // 2. Service type tabs â€” one per categoryKey:serviceType
+    // 2. Service type tabs Ã¢â‚¬â€ one per categoryKey:serviceType
     const rootCat = detail.business.root_category || "";
     const hasModule = hasServiceModules(rootCat);
     if (hasModule) {
@@ -400,11 +402,11 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         });
       }
     }
-    // 3. Events â€” always visible for owner
+    // 3. Events Ã¢â‚¬â€ always visible for owner
     tabs.push({ key: "events", label: t("events.title", "Events"), icon: "sparkles", count: events.length });
-    // 4. Jobs â€” always visible for owner
+    // 4. Jobs Ã¢â‚¬â€ always visible for owner
     tabs.push({ key: "jobs", label: t("jobs.title", "Jobs"), icon: "briefcase", count: jobs.length });
-    // 5. Bookings â€” always visible for owner
+    // 5. Bookings Ã¢â‚¬â€ always visible for owner
     tabs.push({ key: "bookings", label: t("services.myBookings", "My Bookings"), icon: "calendar", count: pendingBookingsCount });
     return tabs;
   }, [businessPosts.length, galleryImages.length, galleryVideos.length, events.length, jobs.length, services, detail.business.enabled_modules, detail.business.root_category, t, businessListings, canAddItems, pendingBookingsCount]);
@@ -801,6 +803,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
             friends={friends}
             businesses={[detail.business]}
             isScreenFocused={isScreenFocused}
+          tagHintText={tagHintText}
             refreshing={refreshing}
             onRefresh={onRefresh}
             initialSavedPostIds={initialSavedPostIds}
@@ -872,6 +875,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
           isOwnProfile={isOwnProfile}
           onCreateStory={onCreateStory}
           isScreenFocused={isScreenFocused}
+          tagHintText={tagHintText}
           refreshing={refreshing}
           onRefresh={onRefresh}
           initialSavedPostIds={initialSavedPostIds}
@@ -948,6 +952,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   friends={friends}
                   businesses={[detail.business]}
                   isScreenFocused={isScreenFocused}
+          tagHintText={tagHintText}
                   refreshing={refreshing}
                   onRefresh={onRefresh}
                   initialSavedPostIds={initialSavedPostIds}
@@ -1001,6 +1006,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
                   isOwnProfile={isOwnProfile}
                   onCreateStory={onCreateStory}
                   isScreenFocused={isScreenFocused}
+          tagHintText={tagHintText}
                   refreshing={refreshing}
                   onRefresh={onRefresh}
                   initialSavedPostIds={initialSavedPostIds}

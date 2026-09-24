@@ -1806,7 +1806,8 @@
     "noBusinessFriends": "Noch nichts zu taggen. Füge zuerst ein Unternehmen als Freund hinzu oder erstelle eine Aktivität bzw. einen Artikel.",
     "groupBusinesses": "Unternehmen (Freunde)",
     "groupActivities": "Deine Aktivitäten",
-    "groupItems": "Deine Artikel"
+    "groupItems": "Deine Artikel",
+    "tagHint": "Zum Veröffentlichen: Tagge ein Unternehmen, mit dem du befreundet bist, oder eine deiner eigenen Aktivitäten bzw. Artikel. Tippe @ im Text oder nutze den Tag-Button."
   },
   "camera": {
     "permissionRequired": "Kameraberechtigung erforderlich",
