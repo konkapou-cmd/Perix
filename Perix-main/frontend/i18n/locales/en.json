@@ -755,7 +755,8 @@
     "homesNearby": "Homes Nearby",
     "personalizeHome": "Personalize your home feed",
     "searchHotels": "Search hotels...",
-    "allCategories": "All"
+    "allCategories": "All",
+    "filterByCategory": "Category"
   },
   "saved": {
     "title": "Saved",

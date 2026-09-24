@@ -633,7 +633,8 @@
     "homesNearby": "Διαμονές κοντά σας",
     "personalizeHome": "Εξατομικεύστε τη ροή σας",
     "searchHotels": "Αναζήτηση ξενοδοχείων...",
-    "allCategories": "Όλα"
+    "allCategories": "Όλα",
+    "filterByCategory": "Κατηγορία"
   },
   "detail": {
     "stay": "Πληροφορίες Διαμονής",

@@ -896,6 +896,41 @@ async def dev_set_block(payload: dict):
     return {"status": "ok", "blocked": blocked, "user_id": user["user_id"]}
 
 
+@router.post("/dev-list-posts")
+async def dev_list_posts(payload: dict):
+    """Dev helper: list the latest posts with visibility info for debugging."""
+    if payload.get("dev_key") != "perix-dev-reset-key-2026":
+        raise HTTPException(status_code=403, detail="Invalid dev key")
+    posts = await db.posts.find({}, {"_id": 0}).sort("created_at", -1).to_list(40)
+    user_ids = list({p.get("user_id") for p in posts if p.get("user_id")})
+    users = {u["user_id"]: u for u in (await db.users.find(
+        {"user_id": {"$in": user_ids}},
+        {"_id": 0, "user_id": 1, "email": 1, "name": 1, "is_deleted": 1,
+         "is_hidden": 1, "latitude": 1, "longitude": 1}).to_list(len(user_ids)))}
+    result = []
+    for p in posts:
+        u = users.get(p.get("user_id")) or {}
+        result.append({
+            "post_id": p.get("post_id"),
+            "user_email": u.get("email"),
+            "user_name": u.get("name"),
+            "user_is_deleted": bool(u.get("is_deleted")),
+            "user_is_hidden": bool(u.get("is_hidden")),
+            "user_lat": u.get("latitude"),
+            "user_lng": u.get("longitude"),
+            "actor_type": p.get("actor_type"),
+            "actor_id": p.get("actor_id"),
+            "business_id": p.get("business_id"),
+            "text": (p.get("text") or "")[:80],
+            "is_hidden": bool(p.get("is_hidden")),
+            "hidden_reason": p.get("hidden_reason"),
+            "tagged_business_ids": p.get("tagged_business_ids", []),
+            "tagged_user_ids": p.get("tagged_user_ids", []),
+            "created_at": p.get("created_at"),
+        })
+    return result
+
+
 @router.post("/dev-list-reports")
 async def dev_list_reports(payload: dict):
     """Dev helper: dump user-target reports with target existence + emails."""

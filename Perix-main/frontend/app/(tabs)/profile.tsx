@@ -476,14 +476,21 @@ const syncEventEndTime = (d: Date, tm: Date) => {
     loadCategoryTree();
   }, [loadCategoryTree]);
 
-  // Load ALL businesses for tagging (appear on map)
+  // Load FRIEND businesses for tagging (only businesses the user is friends
+  // with can be tagged on posts)
   const loadTaggingBusinesses = useCallback(async () => {
     if (!sessionToken) return;
     try {
-      const allBiz = await getBusinesses(sessionToken);
-      setAllMapBusinesses(allBiz || []);
+      const { getMyFriendProfiles } = await import("../../lib/api/social");
+      const profiles = await getMyFriendProfiles(sessionToken);
+      const bizProfiles = (profiles || []).filter((p: any) => p.entity_type === "business");
+      setAllMapBusinesses(bizProfiles.map((p: any) => ({
+        business_id: p.entity_id,
+        name: p.name,
+        logo_image: p.image,
+      })) as Business[]);
     } catch (e) {
-      console.log("Failed to load all businesses for tagging:", e);
+      console.log("Failed to load business friends for tagging:", e);
     }
   }, [sessionToken]);
 
@@ -2222,7 +2229,8 @@ try {
         setPostVideo(null);
         setPostVideoPreview(null);
         console.error("Failed to create post:", error);
-         Alert.alert(t("common.error", "Error"), t("profile.failedCreatePost", "Failed to create post. Please try again."));
+        const errMsg = (error as any)?.message;
+        Alert.alert(t("common.error", "Error"), errMsg || t("profile.failedCreatePost", "Failed to create post. Please try again."));
       } finally {
         postingRef.current = false;
         setIsPosting(false);

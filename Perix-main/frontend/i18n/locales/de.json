@@ -611,7 +611,8 @@
     "homesNearby": "Unterkünfte in der Nähe",
     "personalizeHome": "Passe deinen Home-Feed an",
     "searchHotels": "Hotels suchen...",
-    "allCategories": "Alle"
+    "allCategories": "Alle",
+    "filterByCategory": "Kategorie"
   },
   "brand": {
     "title": "Perix",

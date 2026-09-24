@@ -68,6 +68,7 @@ import ShareContent from "../../components/ShareContent";
 import * as Location from "expo-location";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
+import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 
 const POST_FILTER_CATEGORIES: { slug: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { slug: "food-dining", icon: "restaurant" },
@@ -1367,29 +1368,26 @@ export default function HomeScreen() {
                 <Text style={styles.cardTitle}>{t("home.posts") || "Posts"}</Text>
               </View>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryChipRow} contentContainerStyle={{ gap: 6, paddingHorizontal: 16, paddingBottom: 8 }}>
-              <Pressable
-                style={[styles.categoryChip, !postCategory && styles.categoryChipActive]}
-                onPress={() => setPostCategory(null)}
-              >
-                <Ionicons name="apps" size={12} color={!postCategory ? "#fff" : COLORS.textSecondary} />
-                <Text style={[styles.categoryChipText, !postCategory && { color: "#fff" }]}>
-                  {t("home.allCategories", "All")}
-                </Text>
-              </Pressable>
-              {POST_FILTER_CATEGORIES.map((cat) => (
-                <Pressable
-                  key={cat.slug}
-                  style={[styles.categoryChip, postCategory === cat.slug && styles.categoryChipActive]}
-                  onPress={() => setPostCategory(postCategory === cat.slug ? null : cat.slug)}
-                >
-                  <Ionicons name={cat.icon} size={12} color={postCategory === cat.slug ? "#fff" : COLORS.textSecondary} />
-                  <Text style={[styles.categoryChipText, postCategory === cat.slug && { color: "#fff" }]}>
-                    {translateCategory(cat.slug, t)}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+            <ProgressivePicker
+              label={t("home.filterByCategory", "Kategorie")}
+              value={postCategory ?? ""}
+              options={[
+                { key: "", label: t("home.allCategories", "All"), icon: "apps" },
+                ...POST_FILTER_CATEGORIES.map((cat) => ({
+                  key: cat.slug,
+                  label: translateCategory(cat.slug, t),
+                  icon: cat.icon,
+                })),
+              ]}
+              onChange={(v) => setPostCategory(v === "" ? null : v)}
+              modalTitle={t("home.filterByCategory", "Category")}
+              primaryColor="#59ABE3"
+              textColor="#264348"
+              mutedColor="#264348"
+              backgroundColor={COLORS.background}
+              borderColor="rgba(38,67,72,0.25)"
+              displayValue={postCategory ? translateCategory(postCategory, t) : t("home.allCategories", "All")}
+            />
           </View>
         )}
           {(homeLayout?.favoriteCategories?.length ?? 0) > 0 && (
