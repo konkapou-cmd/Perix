@@ -29,6 +29,7 @@ interface UseFeedDataParams {
   refreshKey?: number;
   friendsOnly?: boolean;
   favoriteCategories?: string[];
+  postCategories?: string[];
 }
 
 interface UseFeedDataResult {
@@ -70,7 +71,7 @@ function computeBounds(
   return null;
 }
 
-export function useFeedData({ sessionToken, mapBounds, userLocation, user, refreshKey, friendsOnly, favoriteCategories }: UseFeedDataParams): UseFeedDataResult {
+export function useFeedData({ sessionToken, mapBounds, userLocation, user, refreshKey, friendsOnly, favoriteCategories, postCategories }: UseFeedDataParams): UseFeedDataResult {
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -93,8 +94,8 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const isInitialRef = useRef(true);
 
-  const paramsRef = useRef({ sessionToken, mapBounds, userLocation, user, friendsOnly, favoriteCategories });
-  paramsRef.current = { sessionToken, mapBounds, userLocation, user, friendsOnly, favoriteCategories };
+  const paramsRef = useRef({ sessionToken, mapBounds, userLocation, user, friendsOnly, favoriteCategories, postCategories });
+  paramsRef.current = { sessionToken, mapBounds, userLocation, user, friendsOnly, favoriteCategories, postCategories };
 
   const loadData = useCallback(async () => {
     const { sessionToken, mapBounds, userLocation, user } = paramsRef.current;
@@ -122,7 +123,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
     try {
       const feedPromise = getHomeFeed(sessionToken ?? "", undefined, undefined, {
         minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng,
-      }, undefined, (paramsRef.current as any).friendsOnly, (paramsRef.current as any).favoriteCategories);
+      }, undefined, (paramsRef.current as any).friendsOnly, (paramsRef.current as any).postCategories || (paramsRef.current as any).favoriteCategories);
       const eventsPromise = getEvents(sessionToken ?? "", undefined, undefined, bounds);
       const activitiesPromise = getActivities(sessionToken ?? "", bounds);
       const bizCat = (favoriteCategories && favoriteCategories.length > 0) ? favoriteCategories[0] : undefined;
@@ -258,7 +259,7 @@ export function useFeedData({ sessionToken, mapBounds, userLocation, user, refre
 
   useEffect(() => {
     loadData();
-  }, [sessionToken, refreshKey]);
+  }, [sessionToken, refreshKey, postCategories, friendsOnly, favoriteCategories]);
 
   return {
     posts, events, businesses, hotels, jobs, rentals, activities, services, storyGroups,

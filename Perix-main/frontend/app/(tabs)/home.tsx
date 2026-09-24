@@ -68,6 +68,23 @@ import ShareContent from "../../components/ShareContent";
 import * as Location from "expo-location";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
+
+const POST_FILTER_CATEGORIES: { slug: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { slug: "food-dining", icon: "restaurant" },
+  { slug: "nightlife-social", icon: "wine" },
+  { slug: "shopping-retail", icon: "bag" },
+  { slug: "fashion-accessories", icon: "shirt" },
+  { slug: "beauty-care", icon: "rose" },
+  { slug: "sports-fitness-wellness", icon: "fitness" },
+  { slug: "healthcare", icon: "medkit" },
+  { slug: "education-creativity", icon: "school" },
+  { slug: "entertainment-events", icon: "ticket" },
+  { slug: "professional-services", icon: "briefcase" },
+  { slug: "automotive", icon: "car" },
+  { slug: "pets", icon: "paw" },
+  { slug: "local-hotels", icon: "bed" },
+  { slug: "rentals", icon: "home" },
+];
 import { getThemeColors } from "../../hooks/useThemeStyles";
 import { SkeletonBox, CarouselCard } from "../../components/shared";
 import { CityAdViewer } from "../../components/stories/CityAdViewer";
@@ -116,7 +133,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsiveLayout();
 
-  const [feedMode, setFeedMode] = useState<"nearby" | "following">("nearby");
+  const [postCategory, setPostCategory] = useState<string | null>(null);
 
   const { homeLayout, toggleSection, setSorting, setFavoriteCategories, collapsedSections, setSectionCollapsed } = useLayoutPreferences();
 
@@ -126,7 +143,8 @@ export default function HomeScreen() {
     userLocation: globalLocation ? { latitude: globalLocation.latitude, longitude: globalLocation.longitude } : null,
     user,
     refreshKey: mapRefreshKey,
-    friendsOnly: feedMode === "following",
+    friendsOnly: false,
+    postCategories: postCategory ? [postCategory] : undefined,
     favoriteCategories: (homeLayout?.favoriteCategories?.length ?? 0) > 0 ? homeLayout.favoriteCategories : undefined,
   });
 
@@ -293,7 +311,7 @@ export default function HomeScreen() {
       const { getHomeFeed } = await import("../../lib/api");
       const moreFeedData = await getHomeFeed(sessionToken, undefined, undefined, {
         minLat: mapBounds.minLat, maxLat: mapBounds.maxLat, minLng: mapBounds.minLng, maxLng: mapBounds.maxLng,
-      }, posts.length, feedMode === "following", (homeLayout?.favoriteCategories?.length ?? 0) > 0 ? homeLayout.favoriteCategories : undefined);
+      }, posts.length, false, (postCategory ? [postCategory] : ((homeLayout?.favoriteCategories?.length ?? 0) > 0 ? homeLayout.favoriteCategories : undefined)));
       if (moreFeedData.posts.length === 0) {
         setHasMorePosts(false);
       } else {
@@ -1348,25 +1366,30 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.cardTitle}>{t("home.posts") || "Posts"}</Text>
               </View>
-              <View style={styles.feedToggle}>
-                <Pressable
-                  style={[styles.feedToggleBtn, feedMode === "nearby" && styles.feedToggleBtnActive]}
-                  onPress={() => setFeedMode("nearby")}
-                >
-                  <Text style={[styles.feedToggleText, feedMode === "nearby" && styles.feedToggleTextActive]}>
-                    {t("home.nearby") || "Nearby"}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.feedToggleBtn, feedMode === "following" && styles.feedToggleBtnActive]}
-                  onPress={() => setFeedMode("following")}
-                >
-                  <Text style={[styles.feedToggleText, feedMode === "following" && styles.feedToggleTextActive]}>
-                    {t("home.friends") || "Friends"}
-                  </Text>
-                </Pressable>
-              </View>
             </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryChipRow} contentContainerStyle={{ gap: 6, paddingHorizontal: 16, paddingBottom: 8 }}>
+              <Pressable
+                style={[styles.categoryChip, !postCategory && styles.categoryChipActive]}
+                onPress={() => setPostCategory(null)}
+              >
+                <Ionicons name="apps" size={12} color={!postCategory ? "#fff" : COLORS.textSecondary} />
+                <Text style={[styles.categoryChipText, !postCategory && { color: "#fff" }]}>
+                  {t("home.allCategories", "All")}
+                </Text>
+              </Pressable>
+              {POST_FILTER_CATEGORIES.map((cat) => (
+                <Pressable
+                  key={cat.slug}
+                  style={[styles.categoryChip, postCategory === cat.slug && styles.categoryChipActive]}
+                  onPress={() => setPostCategory(postCategory === cat.slug ? null : cat.slug)}
+                >
+                  <Ionicons name={cat.icon} size={12} color={postCategory === cat.slug ? "#fff" : COLORS.textSecondary} />
+                  <Text style={[styles.categoryChipText, postCategory === cat.slug && { color: "#fff" }]}>
+                    {translateCategory(cat.slug, t)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
         )}
           {(homeLayout?.favoriteCategories?.length ?? 0) > 0 && (
@@ -1424,7 +1447,7 @@ export default function HomeScreen() {
         removeClippedSubviews={true}
         maxToRenderPerBatch={5}
         windowSize={5}
-        extraData={{ viewportProducts, viewportHomes, feedMode, homeLayout }}
+          extraData={{ viewportProducts, viewportHomes, postCategory, homeLayout }}
       />
 
       <DatePickerModal

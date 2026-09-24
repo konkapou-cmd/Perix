@@ -632,7 +632,8 @@
     "marketplace": "Αγορά",
     "homesNearby": "Διαμονές κοντά σας",
     "personalizeHome": "Εξατομικεύστε τη ροή σας",
-    "searchHotels": "Αναζήτηση ξενοδοχείων..."
+    "searchHotels": "Αναζήτηση ξενοδοχείων...",
+    "allCategories": "Όλα"
   },
   "detail": {
     "stay": "Πληροφορίες Διαμονής",
@@ -1825,7 +1826,14 @@
     "searchLocation": "Αναζήτηση τοποθεσίας",
     "searchUser": "Αναζήτηση χρήστη",
     "stickers": "Στικερ",
-    "story24h": "Story (24ω)"
+    "story24h": "Story (24ω)",
+    "businessTag": "Επιχείρηση",
+    "tagBusiness": "Tag επιχείρηση",
+    "selectBusiness": "Επιλογή επιχείρησης",
+    "searchBusinessPlaceholder": "Γράψε το όνομα της επιχείρησης",
+    "businessTagRequiredTitle": "Απαιτείται tag επιχείρησης",
+    "businessTagRequired": "Κάνε tag την επιχείρηση που αφορά η δημοσίευσή σου πριν δημοσιεύσεις.",
+    "noBusinessFriends": "Δεν έχεις ακόμα επιχειρήσεις ως φίλους. Πρόσθεσε πρώτα την επιχείρηση ως φίλο."
   },
   "camera": {
     "permissionRequired": "Απαιτείται Άδεια Κάμερας",

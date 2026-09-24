@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import {
-  View, Text, StyleSheet, Pressable, Image, TextInput, ScrollView,
+  View, Text, StyleSheet, Pressable, Image, TextInput, ScrollView, Modal,
   Dimensions, Animated, Alert, ActivityIndicator, Platform, KeyboardAvoidingView, FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,6 +10,8 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { createPost, uploadMedia, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL } from "../lib/api";
+import { getMyFriendProfiles } from "../lib/api/social";
+import { translateCategory } from "../lib/categoryTranslation";
 import UploadProgressSheet from "../components/UploadProgressSheet";
 import * as FileSystem from "expo-file-system/legacy";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS } from "../lib/designTokens";
@@ -48,6 +50,34 @@ export default function MediaEditor() {
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
+  // Business tag picker
+  const [allBusinesses, setAllBusinesses] = useState<any[]>([]);
+  const [showBusinessPicker, setShowBusinessPicker] = useState(false);
+  const [businessSearchQuery, setBusinessSearchQuery] = useState("");
+
+  const selectedBusiness = useMemo(() => {
+    const bizId = pendingMentionIds.find(id =>
+      allMentionables.find(m => m.id === id && m.type === "business")
+    );
+    return bizId ? allBusinesses.find(b => b.business_id === bizId) || allMentionables.find(m => m.id === bizId) : null;
+  }, [pendingMentionIds, allMentionables, allBusinesses]);
+
+  const filteredBusinesses = useMemo(() => {
+    const q = businessSearchQuery.trim().toLowerCase();
+    return allBusinesses
+      .filter((b: any) => !q || (b.name || "").toLowerCase().includes(q))
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [allBusinesses, businessSearchQuery]);
+
+  const selectBusinessTag = (business: any) => {
+    setPendingMentionIds(prev => prev.includes(business.business_id) ? prev : [...prev, business.business_id]);
+    setShowBusinessPicker(false);
+    setBusinessSearchQuery("");
+  };
+
+  const removeBusinessTag = () => {
+    setPendingMentionIds(prev => prev.filter(id => id !== selectedBusiness?.business_id));
+  };
 
   // Idempotency key: stable across retries of the same content, new for fresh content.
   const publishReqIdRef = useRef<{ key: string; id: string } | undefined>(undefined);
@@ -97,14 +127,23 @@ export default function MediaEditor() {
     return () => sub.remove();
   }, [player, isVideo]);
 
-  // Load businesses and friends for @-mention tagging
+  // Load business friends (for the mandatory business tag) and user friends
+  // (for @-mention tagging). Only businesses the user is friends with can be
+  // tagged.
   useEffect(() => {
     if (!sessionToken) return;
     Promise.all([
-      getBusinesses(sessionToken).catch(() => []),
+      getMyFriendProfiles(sessionToken).catch(() => []),
       getMyFriends(sessionToken).catch(() => []),
-    ]).then(([businesses, friends]) => {
-      const bizItems = (businesses || []).map((b: any) => ({ id: b.business_id, name: b.name, type: "business" as const, avatar: b.logo_image }));
+    ]).then(([profiles, friends]) => {
+      const bizProfiles = (profiles || []).filter((p: any) => p.entity_type === "business");
+      setAllBusinesses(bizProfiles.map((p: any) => ({
+        business_id: p.entity_id,
+        name: p.name,
+        logo_image: p.image,
+        category: p.category,
+      })));
+      const bizItems = bizProfiles.map((p: any) => ({ id: p.entity_id, name: p.name, type: "business" as const, avatar: p.image }));
       const friendItems = (friends || []).map((f: any) => ({ id: f.user_id, name: f.name || f.user_id, type: "user" as const, avatar: f.profile_photo || f.picture }));
       setAllMentionables([...friendItems, ...bizItems]);
     }).catch(() => {});
@@ -169,6 +208,18 @@ export default function MediaEditor() {
         allMentionables.find(m => m.id === id && m.type === "business")
       );
       const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
+
+      // Personal posts must tag a Perix business before publishing
+      const postingAsBusiness = activeIdentity?.type === "business";
+      const postingAsArtist = activeIdentity?.type === "artist";
+      if (!postingAsBusiness && !postingAsArtist && tagBusinessArray.length === 0) {
+        Alert.alert(
+          t("editor.businessTagRequiredTitle", "Business tag required"),
+          t("editor.businessTagRequired", "Tag the business your post is about before publishing."),
+        );
+        setPublishing(false);
+        return;
+      }
 
       if (isVideo) {
         const isRemote = decodedUri.startsWith("http");
@@ -308,6 +359,32 @@ export default function MediaEditor() {
             <Text style={styles.charCount}>{caption.length}/500</Text>
           </View>
 
+          {/* Business tag (mandatory for personal posts) */}
+          {activeIdentity?.type !== "business" && activeIdentity?.type !== "artist" && (
+            <View style={styles.captionSection}>
+              <Text style={styles.captionLabel}>{t("editor.businessTag", "Business")}</Text>
+              {selectedBusiness ? (
+                <View style={styles.businessChipRow}>
+                  <View style={styles.businessChip}>
+                    <Ionicons name="business" size={15} color="#59ABE3" />
+                    <Text style={styles.businessChipText} numberOfLines={1}>
+                      {(selectedBusiness as any).name || (selectedBusiness as any).id}
+                    </Text>
+                    <Pressable onPress={removeBusinessTag} hitSlop={8}>
+                      <Ionicons name="close-circle" size={17} color="#6b7280" />
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <Pressable style={styles.businessTagBtn} onPress={() => setShowBusinessPicker(true)}>
+                  <Ionicons name="business-outline" size={16} color="#59ABE3" />
+                  <Text style={styles.businessTagBtnText}>{t("editor.tagBusiness", "Tag the business")}</Text>
+                  <Ionicons name="chevron-forward" size={14} color="#9ca3af" />
+                </Pressable>
+              )}
+            </View>
+          )}
+
           {/* @-mention suggestions */}
           {showMentionSuggestions && filteredSuggestions.length > 0 && (
             <View style={styles.mentionContainer}>
@@ -365,6 +442,48 @@ export default function MediaEditor() {
         </View>
       </KeyboardAvoidingView>
 
+      {/* Business tag picker */}
+      <Modal visible={showBusinessPicker} transparent animationType="fade" onRequestClose={() => setShowBusinessPicker(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.pickerOverlay}>
+          <View style={styles.pickerCard}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>{t("editor.selectBusiness", "Select business")}</Text>
+              <Pressable onPress={() => setShowBusinessPicker(false)} hitSlop={10}>
+                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+              </Pressable>
+            </View>
+            <TextInput
+              style={styles.pickerSearch}
+              value={businessSearchQuery}
+              onChangeText={setBusinessSearchQuery}
+              placeholder={t("editor.searchBusinessPlaceholder", "Type the business name")}
+              placeholderTextColor="#9ca3af"
+            />
+            <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
+              {filteredBusinesses.length === 0 ? (
+                <Text style={styles.pickerEmpty}>{t("editor.noBusinessFriends", "You have no business friends yet. Add the business as a friend first.")}</Text>
+              ) : (
+                filteredBusinesses.map((b: any) => (
+                  <Pressable key={b.business_id} style={styles.pickerRow} onPress={() => selectBusinessTag(b)}>
+                    <View style={styles.pickerAvatar}>
+                      {b.logo_image ? (
+                        <Image source={{ uri: b.logo_image }} style={styles.pickerAvatarImg} />
+                      ) : (
+                        <Text style={styles.pickerAvatarText}>{(b.name || "B").charAt(0).toUpperCase()}</Text>
+                      )}
+                    </View>
+                    <View style={styles.pickerInfo}>
+                      <Text style={styles.pickerName} numberOfLines={1}>{b.name}</Text>
+                      {b.category ? <Text style={styles.pickerSub} numberOfLines={1}>{translateCategory(b.category, t)}</Text> : null}
+                    </View>
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={uploadContext === "video" ? "video" : "photo"} />
     </SafeAreaView>
   );
@@ -403,4 +522,24 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e5e7eb" },
   publishBtn: { flex: 1, backgroundColor: "#000", borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   publishText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  businessChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  businessChip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(89,171,227,0.1)", borderWidth: 1, borderColor: "rgba(89,171,227,0.4)", borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7, maxWidth: "100%" },
+  businessChipText: { fontSize: 13, fontWeight: "600", color: "#264348", flexShrink: 1 },
+  businessTagBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(89,171,227,0.5)", borderStyle: "dashed", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11 },
+  businessTagBtnText: { flex: 1, fontSize: 14, fontWeight: "600", color: "#59ABE3" },
+  pickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 20 },
+  pickerCard: { width: "100%", maxWidth: 440, maxHeight: "80%", backgroundColor: "#fff", borderRadius: 18, padding: 16 },
+  pickerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  pickerTitle: { fontSize: 17, fontWeight: "700", color: "#264348" },
+  pickerSearch: { borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: "#264348", marginBottom: 10 },
+  pickerList: { maxHeight: 380 },
+  pickerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#f3f4f6" },
+  pickerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  pickerAvatarImg: { width: "100%", height: "100%" },
+  pickerAvatarText: { fontSize: 15, fontWeight: "700", color: "#264348" },
+  pickerInfo: { flex: 1, minWidth: 0 },
+  pickerName: { fontSize: 14, fontWeight: "600", color: "#264348" },
+  pickerSub: { fontSize: 12, color: "#9ca3af", marginTop: 1 },
+  pickerDistance: { fontSize: 12, fontWeight: "700", color: "#59ABE3" },
+  pickerEmpty: { fontSize: 13, color: "#9ca3af", textAlign: "center", paddingVertical: 20 },
 });

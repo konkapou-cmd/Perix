@@ -96,6 +96,35 @@ async def create_post(
     created_at = now_utc()
     # Posts never expire automatically (2-week rule removed).
 
+    # Personal posts must tag a Perix business the user is friends with.
+    # Business and artist posts are exempt — they represent that
+    # business/artist.
+    if actor["actor_type"] == "user":
+        tagged_biz = payload.tagged_business_ids or []
+        if not tagged_biz:
+            raise HTTPException(
+                status_code=400,
+                detail="Tag a business to publish this post",
+            )
+        friend_biz_ids = {
+            f["entity_id"] for f in (current_user.friends or [])
+            if isinstance(f, dict) and f.get("entity_type") == "business"
+        }
+        invalid = [b for b in tagged_biz if b not in friend_biz_ids]
+        if invalid:
+            raise HTTPException(
+                status_code=400,
+                detail="You can only tag businesses you are friends with",
+            )
+        biz_count = await db.businesses.count_documents(
+            {"business_id": {"$in": tagged_biz}},
+        )
+        if biz_count != len(set(tagged_biz)):
+            raise HTTPException(
+                status_code=400,
+                detail="Tagged business not found",
+            )
+
     # Idempotency: a retried request (e.g. after a network timeout) must not create a duplicate post
     if payload.client_request_id:
         existing = await db.posts.find_one(

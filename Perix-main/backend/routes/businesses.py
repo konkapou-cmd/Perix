@@ -424,7 +424,7 @@ async def get_business(
         db.jobs.find({"business_id": business_id, "is_active": True}, {"_id": 0}).sort("created_at", -1).to_list(100),
         db.services.find({"business_id": business_id, "type": {"$in": list(RENTAL_SERVICE_TYPES)}, "is_active": True}, {"_id": 0}).sort("created_at", -1).to_list(100),
         db.services.find({"business_id": business_id, "is_active": True}, {"_id": 0}).sort("created_at", -1).to_list(100),
-        db.posts.find({"$or": [{"business_id": business_id}, {"actor_type": "business", "actor_id": business_id}]}, {"_id": 0}).sort("created_at", -1).to_list(100),
+        db.posts.find({"$or": [{"business_id": business_id}, {"actor_type": "business", "actor_id": business_id}, {"tagged_business_ids": business_id}]}, {"_id": 0}).sort("created_at", -1).to_list(100),
     )
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")

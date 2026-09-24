@@ -610,7 +610,8 @@
     "marketplace": "Marktplatz",
     "homesNearby": "Unterkünfte in der Nähe",
     "personalizeHome": "Passe deinen Home-Feed an",
-    "searchHotels": "Hotels suchen..."
+    "searchHotels": "Hotels suchen...",
+    "allCategories": "Alle"
   },
   "brand": {
     "title": "Perix",
@@ -1794,7 +1795,14 @@
     "searchLocation": "Standort suchen",
     "searchUser": "Nutzer suchen",
     "stickers": "Stickers",
-    "story24h": "Story (24h)"
+    "story24h": "Story (24h)",
+    "businessTag": "Unternehmen",
+    "tagBusiness": "Unternehmen taggen",
+    "selectBusiness": "Unternehmen wählen",
+    "searchBusinessPlaceholder": "Unternehmensnamen eingeben",
+    "businessTagRequiredTitle": "Unternehmens-Tag erforderlich",
+    "businessTagRequired": "Tagge das Unternehmen, um das es in deinem Beitrag geht, bevor du veröffentlichst.",
+    "noBusinessFriends": "Du hast noch keine Unternehmens-Freunde. Füge das Unternehmen zuerst als Freund hinzu."
   },
   "camera": {
     "permissionRequired": "Kameraberechtigung erforderlich",
