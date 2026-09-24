@@ -390,11 +390,12 @@ const styles = StyleSheet.create({
     }),
   },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  listContent: { paddingBottom: SPACING.section, paddingHorizontal: SPACING.std },
+  listContent: { paddingBottom: SPACING.section },
   card: {
     flexDirection: "row", alignItems: "stretch", backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.md, padding: SPACING.small, gap: SPACING.std,
     marginBottom: SPACING.small,
+    marginHorizontal: SPACING.std,
   },
   cardPhotoWrap: { width: "42%", height: 150, borderRadius: BORDER_RADIUS.md, overflow: "hidden", backgroundColor: "#EDF4FB" },
   cardImage: { width: "100%", height: "100%" },

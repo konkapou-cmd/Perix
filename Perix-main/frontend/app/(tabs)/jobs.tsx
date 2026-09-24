@@ -397,7 +397,7 @@ export default function JobsScreen() {
               muted
             />
           }
-          contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}
 
@@ -526,8 +526,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   mapContainer: {
-    borderRadius: 12,
-    overflow: "hidden",
+    width: "100%",
     backgroundColor: "#ffffff",
   },
   mapPlaceholder: {
@@ -571,6 +570,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     marginBottom: 10,
+    marginHorizontal: 16,
     gap: 12,
   },
   jobImage: {

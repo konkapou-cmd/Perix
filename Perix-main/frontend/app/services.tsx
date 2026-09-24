@@ -352,7 +352,7 @@ export default function ServicesScreen() {
               muted
             />
           }
-          contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}
 
@@ -446,12 +446,12 @@ const styles = StyleSheet.create({
       web: { width: "100%", marginHorizontal: "auto" },
     }),
   },
-  mapContainer: { borderRadius: 12, overflow: "hidden", backgroundColor: "#ffffff" },
+  mapContainer: { width: "100%", backgroundColor: "#ffffff" },
   mapPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   mapPlaceholderText: { fontSize: 16, fontWeight: "600", color: "#264348", marginTop: 8 },
   mapPlaceholderSubtext: { fontSize: 13, color: "#264348", marginTop: 4 },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", paddingHorizontal: 16, marginBottom: 8 },
-  serviceCard: { flexDirection: "row", alignItems: "stretch", backgroundColor: "#fff", padding: 14, borderRadius: 12, marginBottom: 10, gap: 12 },
+  serviceCard: { flexDirection: "row", alignItems: "stretch", backgroundColor: "#fff", padding: 14, borderRadius: 12, marginBottom: 10, marginHorizontal: 16, gap: 12 },
   serviceImage: { width: "38%", height: 136, borderRadius: 12 },
   serviceImagePlaceholder: { backgroundColor: "#EDF4FB", alignItems: "center", justifyContent: "center" },
   serviceInfo: { flex: 1, justifyContent: "center" },
