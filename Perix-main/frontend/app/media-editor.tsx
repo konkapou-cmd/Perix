@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { createPost, uploadMedia, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, BACKEND_URL, getUserActivities } from "../lib/api";
+import { createPost, uploadMedia, uploadVideoMux, UploadProgress, deletePost, getBusinesses, getMyFriends, getMyBusinesses, BACKEND_URL, getUserActivities } from "../lib/api";
 import { getMyFriendProfiles } from "../lib/api/social";
 import { getUserSellerListings } from "../lib/api/listings";
 import { translateCategory } from "../lib/categoryTranslation";
@@ -155,23 +155,26 @@ export default function MediaEditor() {
     return () => sub.remove();
   }, [player, isVideo]);
 
-  // Load business friends (for the mandatory business tag) and user friends
-  // (for @-mention tagging). Only businesses the user is friends with can be
-  // tagged.
+  // Load business friends + own businesses (for the mandatory business tag)
+  // and user friends (for @-mention tagging).
   useEffect(() => {
     if (!sessionToken) return;
     Promise.all([
       getMyFriendProfiles(sessionToken).catch(() => []),
+      getMyBusinesses(sessionToken).catch(() => []),
       getMyFriends(sessionToken).catch(() => []),
-    ]).then(([profiles, friends]) => {
+    ]).then(([profiles, myBiz, friends]) => {
       const bizProfiles = (profiles || []).filter((p: any) => p.entity_type === "business");
-      setAllBusinesses(bizProfiles.map((p: any) => ({
-        business_id: p.entity_id,
-        name: p.name,
-        logo_image: p.image,
-        category: p.category,
-      })));
-      const bizItems = bizProfiles.map((p: any) => ({ id: p.entity_id, name: p.name, type: "business" as const, avatar: p.image }));
+      const ownBiz = (myBiz || []).filter((b: any) => b?.business_id);
+      setAllBusinesses([
+        ...ownBiz.map((b: any) => ({ business_id: b.business_id, name: b.name, logo_image: b.logo_image, category: b.root_category, isOwn: true })),
+        ...bizProfiles.filter((p: any) => !ownBiz.some((o: any) => o.business_id === p.entity_id))
+          .map((p: any) => ({ business_id: p.entity_id, name: p.name, logo_image: p.image, category: p.category, isOwn: false })),
+      ]);
+      const bizItems = ownBiz.map((b: any) => ({ id: b.business_id, name: b.name, type: "business" as const, avatar: b.logo_image }));
+      bizProfiles.forEach((p: any) => {
+        if (!bizItems.some((i) => i.id === p.entity_id)) bizItems.push({ id: p.entity_id, name: p.name, type: "business" as const, avatar: p.image });
+      });
       const friendItems = (friends || []).map((f: any) => ({ id: f.user_id, name: f.name || f.user_id, type: "user" as const, avatar: f.profile_photo || f.picture }));
       setAllMentionables([...friendItems, ...bizItems]);
     }).catch(() => {});
@@ -446,7 +449,13 @@ export default function MediaEditor() {
                     <Text style={styles.businessTagBtnText}>{t("editor.tagBusiness", "Tag business, activity or item")}</Text>
                     <Ionicons name="chevron-forward" size={14} color="#9ca3af" />
                   </Pressable>
-                  <Text style={styles.tagHint}>{t("editor.tagHint")}</Text>
+                  <View style={styles.tagHintBox}>
+                    <Ionicons name="information-circle" size={18} color="#59ABE3" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.tagHintTitle}>{t("editor.tagHintTitle", "How to publish")}</Text>
+                      <Text style={styles.tagHint}>{t("editor.tagHint")}</Text>
+                    </View>
+                  </View>
                 </>
               )}
             </View>
@@ -627,7 +636,20 @@ const styles = StyleSheet.create({
   businessChipText: { fontSize: 13, fontWeight: "600", color: "#264348", flexShrink: 1 },
   businessTagBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(89,171,227,0.5)", borderStyle: "dashed", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11 },
   businessTagBtnText: { flex: 1, fontSize: 14, fontWeight: "600", color: "#59ABE3" },
-  tagHint: { fontSize: 12, color: "#8a9aa3", lineHeight: 17, marginTop: 8 },
+  tagHintBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "rgba(89,171,227,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(89,171,227,0.35)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 10,
+  },
+  tagHintTitle: { fontSize: 12.5, fontWeight: "800", color: "#264348", marginBottom: 2 },
+  tagHint: { fontSize: 12, color: "#4b5a60", lineHeight: 17 },
   pickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 20 },
   pickerCard: { width: "100%", maxWidth: 440, maxHeight: "80%", backgroundColor: "#fff", borderRadius: 18, padding: 16 },
   pickerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },

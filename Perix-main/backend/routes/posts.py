@@ -111,7 +111,11 @@ async def create_post(
             f["entity_id"] for f in (current_user.friends or [])
             if isinstance(f, dict) and f.get("entity_type") == "business"
         }
-        has_friend_biz = any(b in friend_biz_ids for b in tagged_biz)
+        # Businesses the user owns also count as tag targets.
+        owned_biz_ids = {b["business_id"] async for b in db.businesses.find(
+            {"owner_id": current_user.user_id}, {"business_id": 1})}
+        allowed_biz_ids = friend_biz_ids | owned_biz_ids
+        has_friend_biz = any(b in allowed_biz_ids for b in tagged_biz)
 
         own_activity_ids = []
         if tagged_acts:

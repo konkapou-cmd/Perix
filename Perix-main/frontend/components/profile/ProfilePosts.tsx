@@ -338,7 +338,13 @@ pendingMentionIds = [],
         />
       </View>
       {tagHintText ? (
-        <Text style={[styles.tagHint, { color: textSecondaryColor }]}>{tagHintText}</Text>
+        <View style={styles.tagHintBox}>
+          <Ionicons name="information-circle" size={18} color="#59ABE3" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tagHintTitle}>{t("editor.tagHintTitle", "How to publish")}</Text>
+            <Text style={[styles.tagHint, { color: textSecondaryColor }]}>{tagHintText}</Text>
+          </View>
+        </View>
       ) : null}
       {showMentionSuggestions && mentionSuggestions.length > 0 && (
         <View style={styles.mentionDropdown}>
@@ -650,11 +656,23 @@ const styles: Record<string, any> = StyleSheet.create({
     fontWeight: "600",
     color: "#6b7280",
   },
+  tagHintBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "rgba(89,171,227,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(89,171,227,0.35)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 12,
+    marginTop: 8,
+  },
+  tagHintTitle: { fontSize: 12.5, fontWeight: "800", color: "#264348", marginBottom: 2 },
   tagHint: {
     fontSize: 12,
     lineHeight: 17,
-    marginTop: 8,
-    marginHorizontal: 12,
   },
   mentionName: {
     fontSize: 11,

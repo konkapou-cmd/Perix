@@ -478,19 +478,24 @@ const syncEventEndTime = (d: Date, tm: Date) => {
     loadCategoryTree();
   }, [loadCategoryTree]);
 
-  // Load FRIEND businesses for tagging (only businesses the user is friends
-  // with can be tagged on posts)
+  // Load FRIEND businesses + OWN businesses for tagging (only those can be
+  // tagged on posts)
   const loadTaggingBusinesses = useCallback(async () => {
     if (!sessionToken) return;
     try {
       const { getMyFriendProfiles } = await import("../../lib/api/social");
-      const profiles = await getMyFriendProfiles(sessionToken);
+      const [profiles, myBiz] = await Promise.all([
+        getMyFriendProfiles(sessionToken).catch(() => []),
+        getMyBusinesses(sessionToken).catch(() => []),
+      ]);
       const bizProfiles = (profiles || []).filter((p: any) => p.entity_type === "business");
-      setAllMapBusinesses(bizProfiles.map((p: any) => ({
-        business_id: p.entity_id,
-        name: p.name,
-        logo_image: p.image,
-      })) as Business[]);
+      const ownBiz = (myBiz || []).filter((b: any) => b?.business_id);
+      setAllMapBusinesses([
+        ...ownBiz.map((b: any) => ({ business_id: b.business_id, name: b.name, logo_image: b.logo_image })),
+        ...bizProfiles
+          .filter((p: any) => !ownBiz.some((o: any) => o.business_id === p.entity_id))
+          .map((p: any) => ({ business_id: p.entity_id, name: p.name, logo_image: p.image })),
+      ] as Business[]);
     } catch (e) {
       console.log("Failed to load business friends for tagging:", e);
     }
