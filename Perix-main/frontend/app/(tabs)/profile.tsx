@@ -2159,18 +2159,6 @@ const [newListingType, setNewListingType] = useState<ListingType>("product");
      );
      const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
 
-     // Personal posts must tag a business friend, own activity or own item.
-     // Checked BEFORE any upload so the user is not left with a failed,
-     // unexplained upload.
-     if (actorIdentity.type !== 'business' && actorIdentity.type !== 'artist' &&
-         !firstBusinessId && !pendingActivityId && !pendingListingId) {
-       announceSaved(
-         t("editor.businessTagRequiredTitle", "Tag required"),
-         t("editor.businessTagRequired", "Tag a business you are friends with, one of your activities, or one of your items before publishing."),
-       );
-       return;
-     }
-
 try {
         postingRef.current = true;
         setIsPosting(true);

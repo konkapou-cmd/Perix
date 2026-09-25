@@ -253,20 +253,6 @@ export default function MediaEditor() {
       );
       const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
 
-      // Personal posts must tag something the user owns or is friends with
-      const postingAsBusiness = activeIdentity?.type === "business";
-      const postingAsArtist = activeIdentity?.type === "artist";
-      if (!postingAsBusiness && !postingAsArtist && tagBusinessArray.length === 0 && !selectedActivity && !selectedListing) {
-        const msg = t("editor.businessTagRequired", "Tag a business you are friends with, one of your activities, or one of your items before publishing.");
-        if (Platform.OS === "web" && typeof window !== "undefined") {
-          window.alert(`${t("editor.businessTagRequiredTitle", "Tag required")}\n\n${msg}`);
-        } else {
-          Alert.alert(t("editor.businessTagRequiredTitle", "Tag required"), msg);
-        }
-        setPublishing(false);
-        return;
-      }
-
       if (isVideo) {
         const isRemote = decodedUri.startsWith("http");
         if (!isRemote) {

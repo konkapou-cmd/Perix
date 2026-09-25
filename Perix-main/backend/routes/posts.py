@@ -98,14 +98,12 @@ async def create_post(
     created_at = now_utc()
     # Posts never expire automatically (2-week rule removed).
 
-    # Personal posts must tag something the user owns or is friends with:
-    # a business they are friends with, an activity they created, or a
-    # listing/item they posted. Business and artist posts are exempt —
-    # they represent that business/artist.
+    # Personal posts can be published without a tag: they stay on the
+    # author's profile. Tagging a business (a friend's or the user's own)
+    # makes the post public, so it appears in the home feed. Business and
+    # artist posts are always public.
     if actor["actor_type"] == "user":
         tagged_biz = payload.tagged_business_ids or []
-        tagged_acts = payload.tagged_activity_ids or []
-        tagged_lists = payload.tagged_listing_ids or []
 
         friend_biz_ids = {
             f["entity_id"] for f in (current_user.friends or [])
@@ -115,28 +113,8 @@ async def create_post(
         owned_biz_ids = {b["business_id"] async for b in db.businesses.find(
             {"owner_id": current_user.user_id}, {"business_id": 1})}
         allowed_biz_ids = friend_biz_ids | owned_biz_ids
-        has_friend_biz = any(b in allowed_biz_ids for b in tagged_biz)
 
-        own_activity_ids = []
-        if tagged_acts:
-            own_activity_ids = [a["activity_id"] async for a in db.activities.find(
-                {"activity_id": {"$in": tagged_acts}, "creator_id": current_user.user_id},
-                {"activity_id": 1})]
-        own_listing_ids = []
-        if tagged_lists:
-            own_listing_ids = [l["listing_id"] async for l in db.listings.find(
-                {"listing_id": {"$in": tagged_lists}, "owner_id": current_user.user_id},
-                {"listing_id": 1})]
-
-        if not (has_friend_biz or own_activity_ids or own_listing_ids):
-            raise HTTPException(
-                status_code=400,
-                detail="Tag a business you are friends with, one of your activities, or one of your items to publish this post",
-            )
-
-        # Public only with a friend-business tag. Tagging an activity or
-        # item alone keeps the post private (visible only to its author).
-        is_public = has_friend_biz
+        is_public = any(b in allowed_biz_ids for b in tagged_biz)
 
         if tagged_biz:
             biz_count = await db.businesses.count_documents(

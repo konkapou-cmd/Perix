@@ -1810,7 +1810,7 @@
     "groupBusinesses": "Unternehmen (Freunde)",
     "groupActivities": "Deine Aktivitäten",
     "groupItems": "Deine Artikel",
-    "tagHint": "Tagge ein Unternehmen (ein Freund oder dein eigenes), eine deiner Aktivitäten oder einen deiner Artikel. Beiträge, die nur mit deiner Aktivität oder deinem Artikel getaggt sind, sind nur auf deinem Profil sichtbar – für deine Freunde und Besucher.",
+    "tagHint": "Ohne Tag wird dein Beitrag auf deinem Profil veröffentlicht – für deine Freunde und Besucher. Tagge ein Unternehmen (ein Freund oder dein eigenes), um ihn öffentlich im Home-Feed zu machen.",
     "tagHintTitle": "So veröffentlichst du"
   },
   "camera": {

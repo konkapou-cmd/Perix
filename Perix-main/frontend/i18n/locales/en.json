@@ -1714,7 +1714,7 @@
     "groupBusinesses": "Businesses (friends)",
     "groupActivities": "Your activities",
     "groupItems": "Your items",
-    "tagHint": "Tag a business (a friend or your own), one of your activities, or one of your items. Posts tagged only with your activity or item are visible only on your profile — for your friends and visitors.",
+    "tagHint": "Without a tag, your post is published on your profile — for your friends and visitors. Tag a business (a friend's or your own) to make it public on the home feed.",
     "tagHintTitle": "How to publish"
   },
   "camera": {
