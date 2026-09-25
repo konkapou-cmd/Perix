@@ -58,6 +58,9 @@ export default function SettingsScreen() {
   const [loadingPrefs, setLoadingPrefs] = useState(true);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteAck, setDeleteAck] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -168,48 +171,32 @@ export default function SettingsScreen() {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      t("settings.deleteAccount") || "Delete Account",
-      t("settings.deleteAccountWarning") ||
-        "This will permanently delete your account and all associated data. This action cannot be undone.",
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("settings.deleteAccount"),
-          style: "destructive",
-          onPress: () => {
-            Alert.alert(
-              t("settings.deleteAccountFinal") || "Are you absolutely sure?",
-              t("settings.deleteAccountFinalWarning") ||
-                "All your posts, messages, and data will be permanently deleted.",
-              [
-                { text: t("common.cancel"), style: "cancel" },
-                {
-                  text: t("settings.deleteForever"),
-                  style: "destructive",
-                  onPress: async () => {
-                    if (!sessionToken) return;
-                    setDeletingAccount(true);
-                    try {
-                      await deleteUserAccount(sessionToken);
-                      await logout();
-                    } catch (error: any) {
-                      console.error("Delete account failed:", error);
-                      Alert.alert(
-                        t("common.error") || "Error",
-                        error?.message || t("settings.deleteFailed") || "Failed to delete account. Please try again."
-                      );
-                    } finally {
-                      setDeletingAccount(false);
-                    }
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
+    setDeleteConfirmText("");
+    setDeleteAck(false);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!sessionToken || deletingAccount) return;
+    setDeletingAccount(true);
+    try {
+      await deleteUserAccount(sessionToken);
+      setShowDeleteModal(false);
+      await logout();
+    } catch (error: any) {
+      console.error("Delete account failed:", error);
+      setShowDeleteModal(false);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(`${t("common.error") || "Error"}\n\n${error?.message || t("settings.deleteFailed") || "Failed to delete account. Please try again."}`);
+      } else {
+        Alert.alert(
+          t("common.error") || "Error",
+          error?.message || t("settings.deleteFailed") || "Failed to delete account. Please try again."
+        );
+      }
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -433,14 +420,6 @@ export default function SettingsScreen() {
             value={notifPrefs.friendRequests}
             onToggle={() => togglePref("friendRequests")}
           />
-          <ToggleRow
-            icon="megaphone"
-            iconColor="#59ABE3"
-            title={t("settings.notifyMarketing") || "Updates & Tips"}
-            subtitle={t("settings.notifyMarketingDesc") || "New features and helpful tips"}
-            value={notifPrefs.marketing}
-            onToggle={() => togglePref("marketing")}
-          />
         </View>
 
         <SectionHeader title={t("settings.general") || "General"} />
@@ -544,6 +523,57 @@ export default function SettingsScreen() {
         visible={showLanguagePicker}
         onClose={() => setShowLanguagePicker(false)}
       />
+
+      {/* Account deletion (GDPR-compliant, explicit consent) */}
+      <Modal visible={showDeleteModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.deleteModalContent}>
+            <View style={styles.deleteModalHeader}>
+              <Ionicons name="warning" size={22} color="#ef4444" />
+              <Text style={styles.deleteModalTitle}>{t("settings.deleteAccount") || "Delete Account"}</Text>
+            </View>
+            <Text style={styles.deleteModalText}>{t("settings.deleteGdprNotice")}</Text>
+            <Text style={styles.deleteModalBullet}>• {t("settings.deleteGdprProfile")}</Text>
+            <Text style={styles.deleteModalBullet}>• {t("settings.deleteGdprBusiness")}</Text>
+            <Text style={styles.deleteModalBullet}>• {t("settings.deleteGdprRetention")}</Text>
+            <Text style={styles.deleteModalText}>{t("settings.deleteGdprIrreversible")}</Text>
+            <Pressable style={styles.deleteAckRow} onPress={() => setDeleteAck((v) => !v)}>
+              <Ionicons name={deleteAck ? "checkbox" : "square-outline"} size={20} color="#ef4444" />
+              <Text style={styles.deleteAckText}>{t("settings.deleteAck")}</Text>
+            </Pressable>
+            <TextInput
+              style={styles.modalInput}
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              placeholder={t("settings.deleteTypeConfirm", "Type DELETE to confirm")}
+              placeholderTextColor="rgba(38,67,72,0.45)"
+              autoCapitalize="characters"
+            />
+            <View style={styles.deleteModalActions}>
+              <Pressable
+                style={[styles.deleteCancelBtn]}
+                onPress={() => { setShowDeleteModal(false); setDeleteConfirmText(""); setDeleteAck(false); }}
+              >
+                <Text style={styles.deleteCancelText}>{t("common.cancel") || "Cancel"}</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.deleteConfirmBtn,
+                  (!deleteAck || deleteConfirmText.trim().toUpperCase() !== "DELETE" || deletingAccount) && styles.deleteConfirmBtnDisabled,
+                ]}
+                disabled={!deleteAck || deleteConfirmText.trim().toUpperCase() !== "DELETE" || deletingAccount}
+                onPress={confirmDeleteAccount}
+              >
+                {deletingAccount ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.deleteConfirmText}>{t("settings.deleteForever") || "Delete forever"}</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={showPasswordModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -719,6 +749,86 @@ const styles = StyleSheet.create({
     padding: 24,
     width: "100%",
     maxWidth: 400,
+  },
+  deleteModalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 440,
+    maxHeight: "90%",
+  },
+  deleteModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  deleteModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#b91c1c",
+  },
+  deleteModalText: {
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: "#374151",
+    marginBottom: 8,
+  },
+  deleteModalBullet: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#4b5563",
+    marginBottom: 4,
+    paddingLeft: 4,
+  },
+  deleteAckRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  deleteAckText: {
+    flex: 1,
+    fontSize: 13.5,
+    fontWeight: "600",
+    color: "#374151",
+    lineHeight: 18,
+  },
+  deleteModalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+  },
+  deleteCancelBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(38,67,72,0.25)",
+    alignItems: "center",
+  },
+  deleteCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#264348",
+  },
+  deleteConfirmBtn: {
+    flex: 1.4,
+    paddingVertical: 13,
+    borderRadius: 10,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteConfirmBtnDisabled: {
+    opacity: 0.45,
+  },
+  deleteConfirmText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#fff",
   },
   modalTitle: {
     fontSize: 18,

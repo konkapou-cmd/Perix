@@ -2117,7 +2117,14 @@
     "passwordChangeFailed": "Failed to change password",
     "cacheCleared": "Cache cleared successfully",
     "cacheClearFailed": "Failed to clear cache",
-    "blockPolicy": "Blocked accounts cannot see your content, message you or interact with you. Reports are stored securely and reviewed by our team; content with multiple reports is hidden until an administrator decides to restore or remove it. Decisions follow our Terms of Service and applicable data-protection law (GDPR Art. 6(1)(f) and Art. 17)."
+    "blockPolicy": "Blocked accounts cannot see your content, message you or interact with you. Reports are stored securely and reviewed by our team; content with multiple reports is hidden until an administrator decides to restore or remove it. Decisions follow our Terms of Service and applicable data-protection law (GDPR Art. 6(1)(f) and Art. 17).",
+    "deleteGdprNotice": "Perix complies with the EU General Data Protection Regulation (GDPR). Deleting your account permanently erases your personal data:",
+    "deleteGdprProfile": "Your profile, posts, stories, messages, media, listings, activities and events are permanently deleted.",
+    "deleteGdprBusiness": "Business profiles you own are deactivated and their content is removed.",
+    "deleteGdprRetention": "Some data is kept only as long as required by law (e.g. reports, bookings and billing records) and is then deleted automatically.",
+    "deleteGdprIrreversible": "This action is permanent and cannot be undone.",
+    "deleteAck": "I understand that deletion is permanent and cannot be undone.",
+    "deleteTypeConfirm": "Type DELETE to confirm"
   },
   "time": {
     "justNow": "just now"

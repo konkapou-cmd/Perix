@@ -2213,7 +2213,14 @@
     "passwordChangeFailed": "Passwortänderung fehlgeschlagen",
     "cacheCleared": "Cache erfolgreich geleert",
     "cacheClearFailed": "Cache-Leerung fehlgeschlagen",
-    "blockPolicy": "Blockierte Konten können deine Inhalte nicht sehen, dir keine Nachrichten senden oder mit dir interagieren. Meldungen werden sicher gespeichert und von unserem Team geprüft; Inhalte mit mehreren Meldungen werden ausgeblendet, bis die Administration über Wiederherstellung oder Entfernung entscheidet. Entscheidungen folgen unseren Nutzungsbedingungen und geltendem Datenschutzrecht (DSGVO Art. 6 Abs. 1 lit. f und Art. 17)."
+    "blockPolicy": "Blockierte Konten können deine Inhalte nicht sehen, dir keine Nachrichten senden oder mit dir interagieren. Meldungen werden sicher gespeichert und von unserem Team geprüft; Inhalte mit mehreren Meldungen werden ausgeblendet, bis die Administration über Wiederherstellung oder Entfernung entscheidet. Entscheidungen folgen unseren Nutzungsbedingungen und geltendem Datenschutzrecht (DSGVO Art. 6 Abs. 1 lit. f und Art. 17).",
+    "deleteGdprNotice": "Perix entspricht der EU-Datenschutz-Grundverordnung (DSGVO). Das Löschen deines Kontos entfernt deine personenbezogenen Daten dauerhaft:",
+    "deleteGdprProfile": "Dein Profil, Beiträge, Stories, Nachrichten, Medien, Anzeigen, Aktivitäten und Events werden dauerhaft gelöscht.",
+    "deleteGdprBusiness": "Unternehmensprofile, die dir gehören, werden deaktiviert und ihre Inhalte entfernt.",
+    "deleteGdprRetention": "Einige Daten werden nur so lange aufbewahrt, wie gesetzlich vorgeschrieben (z.B. Meldungen, Buchungen und Abrechnungsdaten) und danach automatisch gelöscht.",
+    "deleteGdprIrreversible": "Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.",
+    "deleteAck": "Ich verstehe, dass die Löschung dauerhaft ist und nicht rückgängig gemacht werden kann.",
+    "deleteTypeConfirm": "DELETE eingeben zum Bestätigen"
   },
   "time": {
     "justNow": "gerade eben"

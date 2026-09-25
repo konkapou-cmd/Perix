@@ -188,7 +188,19 @@ async def send_friend_request_notification(
         "requestId": request_id or "",
         "screen": "friend-requests",
     }
-    
+
+    # Browser (web push) notification as well
+    try:
+        from routes.push_web import notify_web_push
+        await notify_web_push(
+            recipient_user_id,
+            "New friend request",
+            f"{sender_name} wants to be your friend",
+            data={"type": "friend_request", "senderId": sender_id, "senderName": sender_name, "screen": "friend-requests"},
+        )
+    except Exception:
+        pass
+
     return await send_push_notification(
         push_tokens=push_tokens,
         title="New Friend Request",
@@ -221,7 +233,19 @@ async def send_friend_accepted_notification(
         "screen": "user",
         "userId": accepter_id,
     }
-    
+
+    # Browser (web push) notification as well
+    try:
+        from routes.push_web import notify_web_push
+        await notify_web_push(
+            recipient_user_id,
+            "Friend request accepted",
+            f"{accepter_name} accepted your friend request",
+            data={"type": "friend_accepted", "userId": accepter_id, "screen": "user"},
+        )
+    except Exception:
+        pass
+
     return await send_push_notification(
         push_tokens=push_tokens,
         title="Friend Request Accepted!",
