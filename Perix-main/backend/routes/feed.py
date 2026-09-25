@@ -94,11 +94,10 @@ async def get_home_feed(
                 ]
             },
             {"is_hidden": {"$ne": True}},
-            # Public posts (friend-business tag) plus the viewer's own posts
-            {"$or": [
-                {"is_public": {"$ne": False}},
-                {"user_id": current_user.user_id if current_user else ""},
-            ]},
+            # Only public posts (friend-business tag) appear in the home
+            # feed. Posts tagged only with the author's own activity/item
+            # are visible on their profile only.
+            {"is_public": {"$ne": False}},
         ]
     }
     if excluded_user_ids:
