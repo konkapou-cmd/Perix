@@ -256,18 +256,17 @@ async def get_home_feed(
                 return True
         return False
 
-    # Filter posts based on map bounds
+    # Filter posts based on map bounds — exactly like events, activities
+    # and jobs: a post appears when its anchor (business address, activity
+    # or listing location, or the author's location) is inside the visible
+    # map area.
     if use_bounds and posts:
         filtered_posts = []
         for post in posts:
             include_post = False
 
-            # The current user's own posts always appear in their feed
-            if current_user and post.get("user_id") == current_user.user_id:
-                include_post = True
-
             # Anchor posts at the business address (actor or tagged)
-            if not include_post and post_location_in_bounds(post):
+            if post_location_in_bounds(post):
                 include_post = True
 
             # Fallback: the post author's own location
