@@ -464,7 +464,9 @@
     "failed": "Η μεταφόρτωση απέτυχε",
     "retry": "Παρακαλώ δοκιμάστε ξανά",
     "videoUploading": "Ανέβασμα βίντεο",
-    "videoProcessingShort": "Επεξεργασία βίντεο"
+    "videoProcessingShort": "Επεξεργασία βίντεο",
+    "creatingPost": "Δημιουργία δημοσίευσης...",
+    "dismiss": "Τέλος"
   },
   "modules": {
     "events": "Εκδηλώσεις",

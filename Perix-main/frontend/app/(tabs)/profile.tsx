@@ -2150,6 +2150,27 @@ const [newListingType, setNewListingType] = useState<ListingType>("product");
          return;
      }
 
+     // Build tagging payload from inline @ mentions
+     const tagUserArray = pendingMentionIds.filter(id => 
+       allMentionables.find(m => m.id === id && m.type === 'user')
+     );
+     const tagBusinessArray = pendingMentionIds.filter(id => 
+       allMentionables.find(m => m.id === id && m.type === 'business')
+     );
+     const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
+
+     // Personal posts must tag a business friend, own activity or own item.
+     // Checked BEFORE any upload so the user is not left with a failed,
+     // unexplained upload.
+     if (actorIdentity.type !== 'business' && actorIdentity.type !== 'artist' &&
+         !firstBusinessId && !pendingActivityId && !pendingListingId) {
+       announceSaved(
+         t("editor.businessTagRequiredTitle", "Tag required"),
+         t("editor.businessTagRequired", "Tag a business you are friends with, one of your activities, or one of your items before publishing."),
+       );
+       return;
+     }
+
 try {
         postingRef.current = true;
         setIsPosting(true);
@@ -2181,29 +2202,6 @@ try {
    
         if (hasMedia) setUploadProgress({ phase: "processing", progress: 90 });
  
-        // Build tagging payload from inline @ mentions
-        const tagUserArray = pendingMentionIds.filter(id => 
-          allMentionables.find(m => m.id === id && m.type === 'user')
-        );
-        const tagBusinessArray = pendingMentionIds.filter(id => 
-          allMentionables.find(m => m.id === id && m.type === 'business')
-        );
-        const firstBusinessId = tagBusinessArray.length > 0 ? tagBusinessArray[0] : null;
-
-        // Personal posts must tag a business friend, own activity or own item
-        if (actorIdentity.type !== 'business' && actorIdentity.type !== 'artist' &&
-            !firstBusinessId && !pendingActivityId && !pendingListingId) {
-          Alert.alert(
-            t("editor.businessTagRequiredTitle", "Tag required"),
-            t("editor.businessTagRequired", "Tag a business you are friends with, one of your activities, or one of your items before publishing."),
-          );
-          setShowUploadProgress(false);
-          setUploadProgress(null);
-          postingRef.current = false;
-          setIsPosting(false);
-          return;
-        }
-
         const newPost = await createPost(
             sessionToken,
             text,
@@ -2255,7 +2253,7 @@ try {
         setPostVideoPreview(null);
         console.error("Failed to create post:", error);
         const errMsg = (error as any)?.message;
-        Alert.alert(t("common.error", "Error"), errMsg || t("profile.failedCreatePost", "Failed to create post. Please try again."));
+        announceSaved(t("common.error", "Error"), errMsg || t("profile.failedCreatePost", "Failed to create post. Please try again."));
       } finally {
         postingRef.current = false;
         setIsPosting(false);

@@ -441,7 +441,9 @@
     "videoTooLongTitle": "Video zu lang",
     "videoTooLongMsg": "Das Video ist zu lang. Bitte kürze es auf maximal 30 Sekunden.",
     "videoUploading": "Video wird hochgeladen",
-    "videoProcessingShort": "Video wird verarbeitet"
+    "videoProcessingShort": "Video wird verarbeitet",
+    "creatingPost": "Beitrag wird erstellt...",
+    "dismiss": "Fertig"
   },
   "modules": {
     "events": "Veranstaltungen",

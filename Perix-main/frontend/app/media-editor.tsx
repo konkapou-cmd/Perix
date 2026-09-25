@@ -257,10 +257,12 @@ export default function MediaEditor() {
       const postingAsBusiness = activeIdentity?.type === "business";
       const postingAsArtist = activeIdentity?.type === "artist";
       if (!postingAsBusiness && !postingAsArtist && tagBusinessArray.length === 0 && !selectedActivity && !selectedListing) {
-        Alert.alert(
-          t("editor.businessTagRequiredTitle", "Tag required"),
-          t("editor.businessTagRequired", "Tag a business you are friends with, one of your activities, or one of your items before publishing."),
-        );
+        const msg = t("editor.businessTagRequired", "Tag a business you are friends with, one of your activities, or one of your items before publishing.");
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          window.alert(`${t("editor.businessTagRequiredTitle", "Tag required")}\n\n${msg}`);
+        } else {
+          Alert.alert(t("editor.businessTagRequiredTitle", "Tag required"), msg);
+        }
         setPublishing(false);
         return;
       }
@@ -338,7 +340,12 @@ export default function MediaEditor() {
       Alert.alert(t("editor.success", "Success!"), t("editor.postPublished", "Your post has been published!"), [{ text: t("common.ok"), onPress: () => router.back() }]);
     } catch (error: any) {
       console.error("[media-editor] publishAsPost failed:", error?.message, error);
-      Alert.alert(t("common.error"), error?.message || t("editor.publishFailed", "Failed to publish"));
+      const msg = error?.message || t("editor.publishFailed", "Failed to publish");
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(`${t("common.error")}\n\n${msg}`);
+      } else {
+        Alert.alert(t("common.error"), msg);
+      }
     } finally {
       setPublishing(false);
       setShowUploadProgress(false);
