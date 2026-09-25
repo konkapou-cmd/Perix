@@ -145,6 +145,7 @@ pendingMentionIds = [],
   const { sessionToken, activeIdentity } = useAuth();
   const router = useRouter();
   const isWeb = Platform.OS === "web";
+  const [tagHintOpen, setTagHintOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [editText, setEditText] = useState("");
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -339,11 +340,16 @@ pendingMentionIds = [],
       </View>
       {tagHintText ? (
         <View style={styles.tagHintBox}>
-          <Ionicons name="information-circle" size={18} color="#59ABE3" />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tagHintTitle}>{t("editor.tagHintTitle", "How to publish")}</Text>
+          <Pressable style={styles.tagHintHeader} onPress={() => setTagHintOpen((v) => !v)}>
+            <View style={styles.tagHintHeaderLeft}>
+              <Ionicons name="information-circle" size={18} color="#59ABE3" />
+              <Text style={styles.tagHintTitle}>{t("editor.tagHintTitle", "How to publish")}</Text>
+            </View>
+            <Ionicons name={tagHintOpen ? "chevron-up" : "chevron-down"} size={16} color="#264348" />
+          </Pressable>
+          {tagHintOpen && (
             <Text style={[styles.tagHint, { color: textSecondaryColor }]}>{tagHintText}</Text>
-          </View>
+          )}
         </View>
       ) : null}
       {showMentionSuggestions && mentionSuggestions.length > 0 && (
@@ -657,22 +663,32 @@ const styles: Record<string, any> = StyleSheet.create({
     color: "#6b7280",
   },
   tagHintBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
     backgroundColor: "rgba(89,171,227,0.08)",
     borderWidth: 1,
     borderColor: "rgba(89,171,227,0.35)",
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     marginHorizontal: 12,
     marginTop: 8,
+    overflow: "hidden",
   },
-  tagHintTitle: { fontSize: 12.5, fontWeight: "800", color: "#264348", marginBottom: 2 },
+  tagHintHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  tagHintHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  tagHintTitle: { fontSize: 12.5, fontWeight: "800", color: "#264348" },
   tagHint: {
     fontSize: 12,
     lineHeight: 17,
+    paddingHorizontal: 12,
+    paddingBottom: 10,
   },
   mentionName: {
     fontSize: 11,

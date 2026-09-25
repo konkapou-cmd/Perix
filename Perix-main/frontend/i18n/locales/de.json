@@ -1808,7 +1808,7 @@
     "groupBusinesses": "Unternehmen (Freunde)",
     "groupActivities": "Deine Aktivitäten",
     "groupItems": "Deine Artikel",
-    "tagHint": "Um öffentlich zu veröffentlichen: Tagge ein Unternehmen, mit dem du befreundet bist. Nur die eigene Aktivität oder den eigenen Artikel zu taggen hält den Beitrag privat (nur für dich sichtbar). Nutze @ im Text oder den Tag-Button.",
+    "tagHint": "Tagge ein Unternehmen (ein Freund oder dein eigenes), eine deiner Aktivitäten oder einen deiner Artikel. Beiträge, die nur mit deiner Aktivität oder deinem Artikel getaggt sind, sind nur auf deinem Profil sichtbar – für deine Freunde und Besucher.",
     "tagHintTitle": "So veröffentlichst du"
   },
   "camera": {

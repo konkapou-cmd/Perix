@@ -1714,7 +1714,7 @@
     "groupBusinesses": "Businesses (friends)",
     "groupActivities": "Your activities",
     "groupItems": "Your items",
-    "tagHint": "To publish publicly: tag a business you are friends with. Tagging only your own activity or item keeps the post private (visible only to you). Use @ in the text or the tag button.",
+    "tagHint": "Tag a business (a friend or your own), one of your activities, or one of your items. Posts tagged only with your activity or item are visible only on your profile — for your friends and visitors.",
     "tagHintTitle": "How to publish"
   },
   "camera": {

@@ -60,6 +60,7 @@ export default function MediaEditor() {
   const [ownListings, setOwnListings] = useState<any[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [selectedListing, setSelectedListing] = useState<any>(null);
+  const [tagHintOpen, setTagHintOpen] = useState(false);
 
   const selectedBusiness = useMemo(() => {
     const bizId = pendingMentionIds.find(id =>
@@ -450,11 +451,16 @@ export default function MediaEditor() {
                     <Ionicons name="chevron-forward" size={14} color="#9ca3af" />
                   </Pressable>
                   <View style={styles.tagHintBox}>
-                    <Ionicons name="information-circle" size={18} color="#59ABE3" />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.tagHintTitle}>{t("editor.tagHintTitle", "How to publish")}</Text>
+                    <Pressable style={styles.tagHintHeader} onPress={() => setTagHintOpen((v) => !v)}>
+                      <View style={styles.tagHintHeaderLeft}>
+                        <Ionicons name="information-circle" size={18} color="#59ABE3" />
+                        <Text style={styles.tagHintTitle}>{t("editor.tagHintTitle", "How to publish")}</Text>
+                      </View>
+                      <Ionicons name={tagHintOpen ? "chevron-up" : "chevron-down"} size={16} color="#264348" />
+                    </Pressable>
+                    {tagHintOpen && (
                       <Text style={styles.tagHint}>{t("editor.tagHint")}</Text>
-                    </View>
+                    )}
                   </View>
                 </>
               )}
@@ -637,19 +643,27 @@ const styles = StyleSheet.create({
   businessTagBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: "rgba(89,171,227,0.5)", borderStyle: "dashed", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11 },
   businessTagBtnText: { flex: 1, fontSize: 14, fontWeight: "600", color: "#59ABE3" },
   tagHintBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
     backgroundColor: "rgba(89,171,227,0.08)",
     borderWidth: 1,
     borderColor: "rgba(89,171,227,0.35)",
     borderRadius: 12,
+    marginTop: 10,
+    overflow: "hidden",
+  },
+  tagHintHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginTop: 10,
   },
-  tagHintTitle: { fontSize: 12.5, fontWeight: "800", color: "#264348", marginBottom: 2 },
-  tagHint: { fontSize: 12, color: "#4b5a60", lineHeight: 17 },
+  tagHintHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  tagHintTitle: { fontSize: 12.5, fontWeight: "800", color: "#264348" },
+  tagHint: { fontSize: 12, color: "#4b5a60", lineHeight: 17, paddingHorizontal: 12, paddingBottom: 10 },
   pickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center", padding: 20 },
   pickerCard: { width: "100%", maxWidth: 440, maxHeight: "80%", backgroundColor: "#fff", borderRadius: 18, padding: 16 },
   pickerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
