@@ -312,7 +312,8 @@ const blockingS = StyleSheet.create({
 const inlineS = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: SPACING.page,
+    // Sit above the bottom tab bar so the progress bar is never covered
+    bottom: 84,
     left: SPACING.compact,
     right: SPACING.compact,
     zIndex: 9999,
