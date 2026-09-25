@@ -30,10 +30,10 @@ export const unregisterPushToken = async (token: string, pushToken: string): Pro
 
 export type NotificationPrefs = {
   messages: boolean;
-  events: boolean;
-  activities: boolean;
+  events?: boolean;
+  activities?: boolean;
   friendRequests: boolean;
-  calls: boolean;
+  calls?: boolean;
   marketing: boolean;
   messages_quiet_hours_mode?: string;
   messages_quiet_hours_start?: string;

@@ -33,10 +33,7 @@ const NOTIF_PREFS_KEY = "@perix_notification_prefs";
 
 interface NotificationPrefs {
   messages: boolean;
-  events: boolean;
-  activities: boolean;
   friendRequests: boolean;
-  calls: boolean;
   marketing: boolean;
   messages_quiet_hours_mode?: string;
   messages_quiet_hours_start?: string;
@@ -45,10 +42,7 @@ interface NotificationPrefs {
 
 const DEFAULT_PREFS: NotificationPrefs = {
   messages: true,
-  events: true,
-  activities: true,
   friendRequests: true,
-  calls: true,
   marketing: false,
   messages_quiet_hours_mode: "off",
   messages_quiet_hours_start: "22:00",
@@ -62,10 +56,6 @@ export default function SettingsScreen() {
 
   const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
   const [loadingPrefs, setLoadingPrefs] = useState(true);
-  const [callAvailability, setCallAvailability] = useState<string>("opening_hours");
-  const [callHours, setCallHours] = useState<Record<string, any>>({});
-  const [callHoursModalVisible, setCallHoursModalVisible] = useState(false);
-  const [savingCallSettings, setSavingCallSettings] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -77,40 +67,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     loadPrefs();
-    loadCallSettings();
   }, []);
-
-  const loadCallSettings = async () => {
-    if (activeIdentity?.type !== "business" || !sessionToken) return;
-    try {
-      const list = await getMyBusinesses(sessionToken);
-      const business: any = list[0];
-      if (business) {
-        setCallAvailability(business.call_availability || "opening_hours");
-        setCallHours(business.call_hours || {});
-      }
-    } catch (e) {
-      console.log("Failed to load call settings:", e);
-    }
-  };
-
-  const saveCallSettings = async (availability: string, hours?: Record<string, any>) => {
-    if (!sessionToken || activeIdentity?.type !== "business" || savingCallSettings) return;
-    const nextAvailability = availability;
-    const nextHours = hours ?? callHours;
-    setCallAvailability(nextAvailability);
-    if (hours) setCallHours(hours);
-    setSavingCallSettings(true);
-    try {
-      await updateBusiness(sessionToken, String(activeIdentity.id), {
-        call_availability: nextAvailability,
-        call_hours: nextAvailability === "custom" ? nextHours : undefined,
-      } as any);
-    } catch (e) {
-      console.log("Failed to save call settings:", e);
-    }
-    setSavingCallSettings(false);
-  };
 
   const loadPrefs = async () => {
     try {
@@ -123,10 +80,7 @@ export default function SettingsScreen() {
           const serverPrefs = await getNotificationPreferences(sessionToken);
           setNotifPrefs({
             messages: serverPrefs.messages ?? true,
-            events: serverPrefs.events ?? true,
-            activities: serverPrefs.activities ?? true,
             friendRequests: serverPrefs.friendRequests ?? true,
-            calls: serverPrefs.calls ?? true,
             marketing: serverPrefs.marketing ?? false,
             messages_quiet_hours_mode: serverPrefs.messages_quiet_hours_mode ?? "off",
             messages_quiet_hours_start: serverPrefs.messages_quiet_hours_start ?? "22:00",
@@ -472,36 +426,12 @@ export default function SettingsScreen() {
             />
           )}
           <ToggleRow
-            icon="calendar"
-            iconColor="#59ABE3"
-            title={t("settings.notifyEvents") || "Events"}
-            subtitle={t("settings.notifyEventsDesc") || "Event reminders and updates"}
-            value={notifPrefs.events}
-            onToggle={() => togglePref("events")}
-          />
-          <ToggleRow
-            icon="people"
-            iconColor="#59ABE3"
-            title={t("settings.notifyActivities") || "Activities"}
-            subtitle={t("settings.notifyActivitiesDesc") || "Activity invitations and updates"}
-            value={notifPrefs.activities}
-            onToggle={() => togglePref("activities")}
-          />
-          <ToggleRow
             icon="person-add"
             iconColor="#59ABE3"
             title={t("settings.notifyFriendRequests") || "Friend Requests"}
             subtitle={t("settings.notifyFriendRequestsDesc") || "New friend requests and acceptances"}
             value={notifPrefs.friendRequests}
             onToggle={() => togglePref("friendRequests")}
-          />
-          <ToggleRow
-            icon="call"
-            iconColor="#59ABE3"
-            title={t("settings.notifyCalls") || "Calls"}
-            subtitle={t("settings.notifyCallsDesc") || "Incoming call notifications"}
-            value={notifPrefs.calls}
-            onToggle={() => togglePref("calls")}
           />
           <ToggleRow
             icon="megaphone"
@@ -512,65 +442,6 @@ export default function SettingsScreen() {
             onToggle={() => togglePref("marketing")}
           />
         </View>
-
-        {activeIdentity?.type === "business" && (
-          <>
-            <SectionHeader title={t("settings.businessCalls", "Business calls")} />
-            <View style={styles.section}>
-              <View style={styles.quietHoursSection}>
-                <View style={styles.quietHoursHeader}>
-                  <View style={styles.quietHoursIcon}>
-                    <Ionicons name="call" size={16} color="#59ABE3" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.quietHoursLabel}>{t("settings.callAvailability", "Call availability")}</Text>
-                    <Text style={styles.quietHoursDesc}>{t("settings.callAvailabilityDesc", "When customers can call your business")}</Text>
-                  </View>
-                </View>
-                <View style={styles.quietHoursModes}>
-                  {[
-                    { key: "always", label: t("settings.callsAlways", "Always") },
-                    { key: "opening_hours", label: t("settings.callsOpeningHours", "Opening hours") },
-                    { key: "custom", label: t("settings.callsCustom", "Selected hours") },
-                  ].map((m) => {
-                    const isActive = callAvailability === m.key;
-                    return (
-                      <Pressable
-                        key={m.key}
-                        style={[
-                          styles.quietHoursModeBtn,
-                          isActive && styles.quietHoursModeBtnActive,
-                        ]}
-                        onPress={() => saveCallSettings(m.key)}
-                      >
-                        <Text
-                          style={[
-                            styles.quietHoursModeText,
-                            isActive && styles.quietHoursModeTextActive,
-                          ]}
-                          numberOfLines={1}
-                          adjustsFontSizeToFit
-                          minimumFontScale={0.8}
-                        >{m.label}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                {callAvailability === "custom" && (
-                  <Pressable
-                    style={styles.editCallHoursBtn}
-                    onPress={() => setCallHoursModalVisible(true)}
-                  >
-                    <Ionicons name="time-outline" size={15} color="#59ABE3" />
-                    <Text style={styles.editCallHoursText}>
-                      {t("settings.editCallHours", "Edit call hours")}
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-            </View>
-          </>
-        )}
 
         <SectionHeader title={t("settings.general") || "General"} />
         <View style={styles.section}>
@@ -673,19 +544,6 @@ export default function SettingsScreen() {
         visible={showLanguagePicker}
         onClose={() => setShowLanguagePicker(false)}
       />
-
-      {activeIdentity?.type === "business" && (
-        <OpeningHoursModal
-          visible={callHoursModalVisible}
-          onClose={() => setCallHoursModalVisible(false)}
-          openingHours={callHours}
-          onHoursChange={setCallHours}
-          onSave={() => {
-            saveCallSettings("custom", callHours);
-            setCallHoursModalVisible(false);
-          }}
-        />
-      )}
 
       <Modal visible={showPasswordModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
