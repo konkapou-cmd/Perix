@@ -76,45 +76,33 @@ export default function UserProfileScreen() {
       setProfile(data);
       
       setUserPosts(data.posts || []);
-      
-      try {
-        const { is_saved } = await checkSaved(sessionToken, "user", id);
-        setIsSaved(is_saved);
-      } catch (e) {
-        console.log("Check saved failed:", e);
-      }
 
-      try {
-        const activities = await getUserActivities(sessionToken, id);
-        setUserActivities(activities);
-      } catch (e) {
-        console.log("Failed to load user activities:", e);
-      }
+      // Load the remaining profile data in parallel for faster rendering
+      const [savedRes, activitiesRes, listingsRes, friendsRes] = await Promise.allSettled([
+        checkSaved(sessionToken, "user", id),
+        getUserActivities(sessionToken, id),
+        getUserSellerListings(id),
+        getUserFriends(sessionToken, id),
+      ]);
 
-      try {
-        const listings = await getUserSellerListings(id);
+      if (savedRes.status === "fulfilled") setIsSaved(savedRes.value.is_saved);
+      if (activitiesRes.status === "fulfilled") setUserActivities(activitiesRes.value);
+      if (listingsRes.status === "fulfilled") {
+        const listings = listingsRes.value;
         if (listingsRequestId === listingsRequestRef.current) {
           setUserListings(listings.filter((l: Listing) => !l.listing_type || l.listing_type === "product"));
           setUserHomeListings(listings.filter((l: Listing) => l.listing_type === "home_rental"));
         }
-      } catch {
-        if (listingsRequestId === listingsRequestRef.current) {
-          setUserListings([]);
-          setUserHomeListings([]);
-        }
+      } else if (listingsRequestId === listingsRequestRef.current) {
+        setUserListings([]);
+        setUserHomeListings([]);
       }
-
-      try {
-        const friendsData = await getUserFriends(sessionToken, id);
-        setFriendProfiles(friendsData);
-      } catch (e) {
-        console.log("Failed to load user friends:", e);
-      }
+      if (friendsRes.status === "fulfilled") setFriendProfiles(friendsRes.value);
       
-      // Track profile view analytics
+      // Track profile view analytics (fire and forget)
       try {
         const { trackProfileView } = await import("../../lib/api");
-        await trackProfileView(sessionToken, id);
+        void trackProfileView(sessionToken, id);
       } catch (e) {
         console.log("Analytics tracking skipped");
       }

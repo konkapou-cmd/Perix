@@ -28,6 +28,28 @@ FREE_MESSAGE_LIMIT = 10
 # In-memory typing status (for real-time, consider using Redis)
 typing_status: Dict[str, Dict[str, str]] = {}  # {user_id: {other_user_id: timestamp}}
 
+# Short-TTL caches for the conversation lists. The clients poll these
+# endpoints every few seconds; caching avoids re-reading hundreds of
+# message documents on every poll.
+import time as _time
+_CONVERSATIONS_CACHE: Dict[str, tuple] = {}
+_CONVERSATIONS_CACHE_TTL = 15  # seconds
+
+
+def _cache_get(key: str):
+    entry = _CONVERSATIONS_CACHE.get(key)
+    if entry and _time.time() - entry[0] < _CONVERSATIONS_CACHE_TTL:
+        return entry[1]
+    return None
+
+
+def _cache_set(key: str, value):
+    _CONVERSATIONS_CACHE[key] = (_time.time(), value)
+    # Prevent unbounded growth
+    if len(_CONVERSATIONS_CACHE) > 500:
+        for k in list(_CONVERSATIONS_CACHE.keys())[:100]:
+            _CONVERSATIONS_CACHE.pop(k, None)
+
 
 class TypingStatus(BaseModel):
     to_user_id: str
@@ -69,6 +91,11 @@ async def get_message_quota(
 
 @router.get("/conversations", response_model=List[ConversationResponse])
 async def list_conversations(current_user: UserPublic = Depends(get_current_user)):
+    cache_key = f"conv:{current_user.user_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     messages = (
         await db.messages.find(
             {
@@ -171,6 +198,7 @@ async def list_conversations(current_user: UserPublic = Depends(get_current_user
             last_message=msg_resp,
         ))
     
+    _cache_set(cache_key, response)
     return response
 
 
@@ -182,6 +210,10 @@ async def list_all_conversations(current_user: UserPublic = Depends(get_current_
     - Activity group chats the user is part of
     - Event group chats the user has RSVPed to
     """
+    cache_key = f"allconv:{current_user.user_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     result = []
     
     # 1. Get direct message conversations
@@ -319,6 +351,7 @@ async def list_all_conversations(current_user: UserPublic = Depends(get_current_
     # Sort all conversations by last message time
     result.sort(key=lambda x: x.get("last_message_time") or "", reverse=True)
     
+    _cache_set(cache_key, result)
     return result
 
 
@@ -609,7 +642,12 @@ async def send_message(
     await ws_broadcast_new_message(current_user.user_id, message_doc)
     await ws_broadcast_conversation_update(to_user_id, {"conversation_id": conversation_id, "last_message": message_doc})
     await ws_broadcast_conversation_update(current_user.user_id, {"conversation_id": conversation_id, "last_message": message_doc})
-    
+    # Invalidate conversation-list caches for both participants
+    _CONVERSATIONS_CACHE.pop(f"conv:{to_user_id}", None)
+    _CONVERSATIONS_CACHE.pop(f"conv:{current_user.user_id}", None)
+    _CONVERSATIONS_CACHE.pop(f"allconv:{to_user_id}", None)
+    _CONVERSATIONS_CACHE.pop(f"allconv:{current_user.user_id}", None)
+
     return MessageResponse(**message_doc)
 
 

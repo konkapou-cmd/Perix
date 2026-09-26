@@ -109,9 +109,6 @@ async def get_home_feed(
                 "$or": [
                     {"actor_type": "business", "actor_id": {"$in": allowed_category_biz_ids}},
                     {"tagged_business_ids": {"$in": allowed_category_biz_ids}},
-                    # The current user's own posts always show, even when a
-                    # category filter is active
-                    {"user_id": current_user.user_id if current_user else ""},
                 ]
             })
         else:

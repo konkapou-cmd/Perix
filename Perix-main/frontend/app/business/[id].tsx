@@ -103,18 +103,15 @@ const [followLoading, setFollowLoading] = useState(false);
       setBusinessDetail(detail);
 
       getBusinessSellerListings(id).then(setBusinessListings).catch(() => {});
+
+      void checkSaved(sessionToken, "business", id)
+        .then(({ is_saved }) => setIsSaved(is_saved))
+        .catch(() => {});
       
-      try {
-        const { is_saved } = await checkSaved(sessionToken, "business", id);
-        setIsSaved(is_saved);
-      } catch (e) {
-        console.log("Check saved failed:", e);
-      }
-      
-      // Track profile view analytics
+      // Track profile view analytics (fire and forget)
       try {
         const { trackProfileView } = await import("../../lib/api");
-        await trackProfileView(sessionToken, undefined, undefined, id);
+        void trackProfileView(sessionToken, undefined, undefined, id);
       } catch (e) {
         console.log("Analytics tracking skipped");
       }
