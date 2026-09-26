@@ -1025,7 +1025,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.eventAccent,
   },
   directAvatar: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#59ABE3",
   },
   chatHeaderRow: {
     flexDirection: "row",
