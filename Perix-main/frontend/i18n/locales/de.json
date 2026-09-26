@@ -1532,7 +1532,8 @@
     "shareBusinessMessage": "Schau dir {name} an - {category} in {address}",
     "viewHere": "Hier ansehen",
     "searchLocation": "Standort suchen...",
-    "selectCategoryFirst": "Bitte wähle zuerst eine Kategorie"
+    "selectCategoryFirst": "Bitte wähle zuerst eine Kategorie",
+    "locationDenied": "Standortberechtigung verweigert. Erlaube den Standortzugriff, um deine genaue Position zu verwenden."
   },
   "eventDetail": {
     "back": "Zurück",

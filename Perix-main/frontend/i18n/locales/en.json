@@ -1436,7 +1436,8 @@
     "discoverNearby": "Discover nearby",
     "near": "Near:",
     "searchLocation": "Search location...",
-    "selectCategoryFirst": "Please select a category first"
+    "selectCategoryFirst": "Please select a category first",
+    "locationDenied": "Location permission denied. Enable location access to use your exact position."
   },
   "eventDetail": {
     "back": "Back",

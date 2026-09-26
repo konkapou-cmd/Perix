@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   Linking,
@@ -26,6 +27,7 @@ import LocatorHeader from "../../components/locator/LocatorHeader";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
+import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -85,6 +87,9 @@ export default function LocatorScreen() {
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
   const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
   const { location: contextLocation, setManualLocation, radiusKm } = useLocation();
+  const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locateToken, setLocateToken] = useState(0);
+  const [locating, setLocating] = useState(false);
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
@@ -436,6 +441,38 @@ export default function LocatorScreen() {
     });
   }, [setGlobalMapBounds, sessionToken, radiusKm]);
 
+  // "Locate me": use the device's exact GPS position (not the searched
+  // city/point) and fly the map there.
+  const handleLocateMe = useCallback(async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const loc = await getCurrentPositionWithPermission();
+      if (loc) {
+        setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
+        setLocateToken((t) => t + 1);
+        setManualLocation(loc.latitude, loc.longitude);
+        const d = 0.02;
+        setGlobalMapBounds({
+          minLat: loc.latitude - d / 2,
+          maxLat: loc.latitude + d / 2,
+          minLng: loc.longitude - d / 2,
+          maxLng: loc.longitude + d / 2,
+          centerLat: loc.latitude,
+          centerLng: loc.longitude,
+        });
+      } else if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(t("common.error") + "\n\n" + (t("locator.locationDenied") || "Location permission denied"));
+      } else {
+        Alert.alert(t("common.error"), t("locator.locationDenied") || "Location permission denied");
+      }
+    } catch (e) {
+      console.warn("locate me failed:", e);
+    } finally {
+      setLocating(false);
+    }
+  }, [locating, setManualLocation, setGlobalMapBounds, t]);
+
   const requestIdRef = useRef(0);
   const loadIdRef = useRef(0);
 
@@ -758,6 +795,8 @@ export default function LocatorScreen() {
           <View style={styles.mapSection}>
         <BusinessMap
           location={contextLocation || { latitude: mapBounds?.centerLat || 52.52, longitude: mapBounds?.centerLng || 13.405 }}
+          focusRegion={locateFocus ? { latitude: locateFocus.latitude, longitude: locateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
+          focusToken={locateToken || undefined}
           businesses={activeTab === "businesses" ? visibleBusinesses : activeTab === "hotels" ? visibleHotels : []}
           events={activeTab === "events" ? events : []}
           activities={activeTab === "activities" ? activities : []}
@@ -810,6 +849,9 @@ export default function LocatorScreen() {
             }
           }) as any}
         />
+        <Pressable style={styles.locateMeButton} onPress={handleLocateMe} disabled={locating}>
+          <Ionicons name={locating ? "hourglass-outline" : "locate"} size={20} color="#096BFF" />
+        </Pressable>
       </View>
 
       {/* Segment Tabs */}
@@ -2568,6 +2610,24 @@ const styles = StyleSheet.create({
   },
   mapSection: {
     width: "100%",
+    position: "relative",
+  },
+  locateMeButton: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    zIndex: 20,
   },
   locationChip: {
     flexDirection: "row",

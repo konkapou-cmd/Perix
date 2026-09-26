@@ -134,7 +134,11 @@ export default function MessagesScreen() {
   const loadConversations = useCallback(async () => {
     if (!sessionToken) return false;
     try {
-      const data = await getConversations(sessionToken);
+      // Load direct conversations and group conversations in parallel
+      const [data, allData] = await Promise.all([
+        getConversations(sessionToken),
+        getAllConversations(sessionToken).catch(() => [] as any[]),
+      ]);
       
       // Check for new unread messages and trigger notifications
       const newUnreadMap: Record<string, number> = {};
@@ -159,14 +163,7 @@ export default function MessagesScreen() {
       lastUnreadMapRef.current = newUnreadMap;
       
       setConversations(data);
-      
-      // Also load all conversations including group chats
-      try {
-        const allData = await getAllConversations(sessionToken);
-        setAllConversations(allData);
-      } catch (e) {
-        console.log("Failed to load all conversations:", e);
-      }
+      setAllConversations(allData);
       return true;
     } catch (error) {
       // Never let a failed poll (e.g. tab was frozen and the network died)
