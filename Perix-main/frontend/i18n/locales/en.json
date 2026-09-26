@@ -584,7 +584,9 @@
     "friendRequests": "Friend Requests",
     "whatsNew": "What's new?",
     "completeYourProfile": "Complete your profile",
-    "viewProfile": "View profile"
+    "viewProfile": "View profile",
+    "showMore": "Show more",
+    "showLess": "Show less"
   },
   "modules": {
     "events": "Events",

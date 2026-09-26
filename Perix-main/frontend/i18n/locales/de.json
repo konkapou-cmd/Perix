@@ -767,7 +767,9 @@
       "directions": "Route"
     },
     "completeYourProfile": "Profil vervollständigen",
-    "viewProfile": "Profil ansehen"
+    "viewProfile": "Profil ansehen",
+    "showMore": "Mehr anzeigen",
+    "showLess": "Weniger anzeigen"
   },
   "saved": {
     "title": "Gespeichert",

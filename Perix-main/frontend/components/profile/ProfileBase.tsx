@@ -252,6 +252,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const { t } = useTranslation();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [bioExpanded, setBioExpanded] = useState(false);
 
   const handleCopyLink = async () => {
     if (slug) {
@@ -350,9 +351,20 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         )}
 
         {bio && (
-          <Text style={[styles.bioText, { color: textColor }, themeStyles as TextStyle]} numberOfLines={3}>
-            {bio}
-          </Text>
+          <Pressable onPress={() => setBioExpanded((v) => !v)}>
+            <Text
+              style={[styles.bioText, { color: textColor }, themeStyles as TextStyle]}
+              numberOfLines={bioExpanded ? undefined : 3}
+            >
+              {bio}
+            </Text>
+            <View style={styles.bioToggleRow}>
+              <Text style={[styles.bioToggleText, { color: primaryColor }]}>
+                {bioExpanded ? (t("profile.showLess", "Show less") || "Show less") : (t("profile.showMore", "Show more") || "Show more")}
+              </Text>
+              <Ionicons name={bioExpanded ? "chevron-up" : "chevron-down"} size={13} color={primaryColor} />
+            </View>
+          </Pressable>
         )}
       </View>
 
@@ -707,6 +719,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginTop: 4,
+  },
+  bioToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  bioToggleText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   statsRow: {
     flexDirection: "row",

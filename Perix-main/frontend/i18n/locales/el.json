@@ -799,7 +799,9 @@
       "directions": "Οδηγίες"
     },
     "completeYourProfile": "Ολοκληρώστε το προφίλ σας",
-    "viewProfile": "Προφίλ"
+    "viewProfile": "Προφίλ",
+    "showMore": "Περισσότερα",
+    "showLess": "Λιγότερα"
   },
   "saved": {
     "title": "Αποθηκευμένα",
