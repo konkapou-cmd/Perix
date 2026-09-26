@@ -19,6 +19,11 @@ export default function PrivacyPolicyScreen() {
 
   const sections = [
     {
+      title: t("privacy.controllerTitle") || "Data Controller",
+      content: t("privacy.controllerContent") ||
+        "The data controller responsible for your personal data is Perix (app.perixapp.com), operated by the Perix team.\n\nYou can contact us at any time:\n\n• Data protection: privacy@perix.app\n• General support: support@perix.app"
+    },
+    {
       title: t("privacy.dataCollection") || "Data Collection",
       content: t("privacy.dataCollectionContent") || 
         "We collect information you provide directly to us, such as when you create an account, update your profile, post content, or contact us for support. This includes your name, email address, phone number, profile photos, and any other information you choose to provide."
@@ -27,6 +32,11 @@ export default function PrivacyPolicyScreen() {
       title: t("privacy.dataUsage") || "How We Use Your Data",
       content: t("privacy.dataUsageContent") || 
         "We use the information we collect to:\n\n• Provide, maintain, and improve our services\n• Process transactions and send related information\n• Send you technical notices, updates, and support messages\n• Respond to your comments, questions, and requests\n• Monitor and analyze trends, usage, and activities\n• Detect, investigate, and prevent fraudulent transactions and other illegal activities"
+    },
+    {
+      title: t("privacy.legalBasisTitle") || "Legal Basis (GDPR Art. 6)",
+      content: t("privacy.legalBasisContent") ||
+        "We process your personal data only on the following legal bases:\n\n• Performance of a contract (Art. 6(1)(b)) — providing your account and the app's features\n• Legitimate interests (Art. 6(1)(f)) — keeping the service secure, preventing fraud and abuse, moderating content and protecting users\n• Consent (Art. 6(1)(a)) — where you have given consent, e.g. for optional notifications\n• Legal obligations (Art. 6(1)(c)) — tax, accounting and law-enforcement requirements\n\nYou may withdraw consent at any time without affecting the lawfulness of earlier processing."
     },
     {
       title: t("privacy.dataSharing") || "Information Sharing",
@@ -39,6 +49,16 @@ export default function PrivacyPolicyScreen() {
         "We take reasonable measures to help protect information about you from loss, theft, misuse, unauthorized access, disclosure, alteration, and destruction. All data is encrypted in transit and at rest."
     },
     {
+      title: t("privacy.retentionTitle") || "Data Retention",
+      content: t("privacy.retentionContent") ||
+        "We keep your personal data only as long as necessary for the purposes described in this policy:\n\n• Account data — while your account exists, then deleted (or anonymised) within 30 days of deletion\n• Content (posts, messages, media) — while your account exists, then permanently deleted\n• Booking, payment and subscription records — as long as required by tax and financial law\n• Technical identifiers for abuse/fraud prevention — up to 12 months\n• Reports — kept for moderation without unnecessary personal details"
+    },
+    {
+      title: t("privacy.transfersTitle") || "International Transfers",
+      content: t("privacy.transfersContent") ||
+        "Your data is stored on servers within the European Union. Some processors (e.g. media hosting and video encoding providers) may process data outside the EEA; in such cases we rely on standard contractual clauses or equivalent safeguards under GDPR Chapter V."
+    },
+    {
       title: t("privacy.cookies") || "Cookies & Tracking",
       content: t("privacy.cookiesContent") || 
         "We use cookies and similar tracking technologies to track activity on our service and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent."
@@ -46,7 +66,17 @@ export default function PrivacyPolicyScreen() {
     {
       title: t("privacy.userRights") || "Your Rights",
       content: t("privacy.userRightsContent") || 
-        "You have the right to:\n\n• Access your personal data\n• Correct inaccurate data\n• Request deletion of your data\n• Object to processing of your data\n• Request data portability\n• Withdraw consent at any time\n\nTo exercise these rights, contact us through the app or via email."
+        "You have the right to:\n\n• Access your personal data (Art. 15)\n• Correct inaccurate data (Art. 16)\n• Request deletion of your data (Art. 17)\n• Restrict processing (Art. 18)\n• Data portability (Art. 20)\n• Object to processing (Art. 21)\n• Withdraw consent at any time (Art. 7(3))\n\nTo exercise these rights, contact us through the app or via email. We respond within one month."
+    },
+    {
+      title: t("privacy.complaintTitle") || "Complaints",
+      content: t("privacy.complaintContent") ||
+        "If you believe your data has been processed unlawfully, you have the right to lodge a complaint with your national data-protection supervisory authority in the EU, without prejudice to any other legal remedy."
+    },
+    {
+      title: t("privacy.automatedTitle") || "Automated Decisions",
+      content: t("privacy.automatedContent") ||
+        "We do not make decisions with legal or similarly significant effects based solely on automated processing. Content flagged by automated moderation is always reviewed by a human before any final action."
     },
     {
       title: t("privacy.accountDeletion") || "Account Deletion",
@@ -82,7 +112,7 @@ export default function PrivacyPolicyScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Last Updated */}
         <Text style={styles.lastUpdated}>
-          {t("privacy.lastUpdated") || "Last updated"}: December 2025
+          {t("privacy.lastUpdated") || "Last updated"}: September 2026
         </Text>
 
         {/* Introduction */}

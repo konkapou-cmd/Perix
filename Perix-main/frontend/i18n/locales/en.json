@@ -1886,7 +1886,19 @@
     "contact": "Contact Us",
     "contactContent": "If you have any questions about this Privacy Policy, please contact us through the app's support feature.",
     "gdprTitle": "GDPR Compliance",
-    "gdprContent": "We comply with the General Data Protection Regulation (GDPR) for users in the European Union."
+    "gdprContent": "We comply with the General Data Protection Regulation (GDPR) for users in the European Union.",
+    "controllerTitle": "Data Controller",
+    "controllerContent": "The data controller responsible for your personal data is Perix (app.perixapp.com), operated by the Perix team.\n\nYou can contact us at any time:\n\n• Data protection: privacy@perix.app\n• General support: support@perix.app",
+    "legalBasisTitle": "Legal Basis (GDPR Art. 6)",
+    "legalBasisContent": "We process your personal data only on the following legal bases:\n\n• Performance of a contract (Art. 6(1)(b)) — providing your account and the app's features\n• Legitimate interests (Art. 6(1)(f)) — keeping the service secure, preventing fraud and abuse, moderating content and protecting users\n• Consent (Art. 6(1)(a)) — where you have given consent, e.g. for optional notifications\n• Legal obligations (Art. 6(1)(c)) — tax, accounting and law-enforcement requirements\n\nYou may withdraw consent at any time without affecting the lawfulness of earlier processing.",
+    "retentionTitle": "Data Retention",
+    "retentionContent": "We keep your personal data only as long as necessary for the purposes described in this policy:\n\n• Account data — while your account exists, then deleted (or anonymised) within 30 days of deletion\n• Content (posts, messages, media) — while your account exists, then permanently deleted\n• Booking, payment and subscription records — as long as required by tax and financial law\n• Technical identifiers for abuse/fraud prevention — up to 12 months\n• Reports — kept for moderation without unnecessary personal details",
+    "transfersTitle": "International Transfers",
+    "transfersContent": "Your data is stored on servers within the European Union. Some processors (e.g. media hosting and video encoding providers) may process data outside the EEA; in such cases we rely on standard contractual clauses or equivalent safeguards under GDPR Chapter V.",
+    "complaintTitle": "Complaints",
+    "complaintContent": "If you believe your data has been processed unlawfully, you have the right to lodge a complaint with your national data-protection supervisory authority in the EU, without prejudice to any other legal remedy.",
+    "automatedTitle": "Automated Decisions",
+    "automatedContent": "We do not make decisions with legal or similarly significant effects based solely on automated processing. Content flagged by automated moderation is always reviewed by a human before any final action."
   },
   "promoter": {
     "title": "Promoter Program",
@@ -2678,7 +2690,15 @@
     "changes": "Changes to Terms",
     "changesContent": "We reserve the right to modify these terms at any time. We will notify you of material changes by posting the updated terms on this page. Continued use of the service after changes constitutes acceptance.",
     "contact": "Contact",
-    "contactContent": "For questions about these Terms, contact us at:\n\n• Within the app via Settings → Help & Support\n• By email at support@perix.app"
+    "contactContent": "For questions about these Terms, contact us at:\n\n• Within the app via Settings → Help & Support\n• By email at support@perix.app",
+    "platformRoleTitle": "Our Role — Platform Only",
+    "platformRoleContent": "Perix is a neutral platform that connects users and businesses. Perix is NOT a party to any transactions, agreements or payments between users or between users and businesses. All arrangements and payments happen directly between the parties. Perix does not guarantee the quality, safety or legality of any item, service, booking or content and is not liable for them.",
+    "moderationTitle": "Content Moderation",
+    "moderationContent": "To keep Perix safe and lawful, we may at any time, at our sole discretion: remove, hide or restrict content; suspend or terminate accounts; and process reports from users. Content hidden by automated systems is reviewed by a human. Our moderation rules are described in the app (Blocked Users → Moderation & reporting rules) and at /api/reports/policy.",
+    "indemnificationTitle": "Indemnification",
+    "indemnificationContent": "You agree to indemnify and hold harmless Perix, its team and affiliates from any claims, damages, losses and costs (including reasonable legal fees) arising from your use of the service, your content, or your violation of these Terms or of third-party rights.",
+    "euConsumersTitle": "EU Consumers",
+    "euConsumersContent": "If you are a consumer in the European Union, you benefit from the mandatory consumer-protection provisions of the law of your country of residence. Nothing in these Terms removes those rights. For online disputes you may also use the EU Online Dispute Resolution platform at ec.europa.eu/consumers/odr. The Digital Services Act (EU 2022/2065) point of contact is support@perix.app."
   },
   "marketplace": {
     "publishedMessage": "Your listing has been published.",

@@ -20,12 +20,20 @@ export default function TermsOfServiceScreen() {
       content: t("terms.eligibilityContent") || "You must be at least 16 years old to use Perix. By creating an account, you represent that you meet this age requirement."
     },
     {
+      title: t("terms.platformRoleTitle") || "Our Role — Platform Only",
+      content: t("terms.platformRoleContent") || "Perix is a neutral platform that connects users and businesses. Perix is NOT a party to any transactions, agreements or payments between users or between users and businesses. All arrangements and payments happen directly between the parties. Perix does not guarantee the quality, safety or legality of any item, service, booking or content and is not liable for them."
+    },
+    {
       title: t("terms.userContent") || "User Content",
-      content: t("terms.userContentContent") || "You retain ownership of the content you post on Perix. By posting content, you grant us a worldwide, non-exclusive license to display and distribute your content within the platform. You are responsible for the content you post and must ensure it complies with applicable laws."
+      content: t("terms.userContentContent") || "You retain ownership of the content you post on Perix. By posting content, you grant us a worldwide, non-exclusive, transferable license to host, display, distribute and adapt your content within the platform, including for the operation and promotion of the service. You are responsible for the content you post and must ensure it complies with applicable laws."
     },
     {
       title: t("terms.acceptableUse") || "Acceptable Use",
       content: t("terms.acceptableUseContent") || "You agree not to:\n\n• Post harmful, abusive, or illegal content\n• Impersonate others or provide false information\n• Interfere with the operation of the service\n• Use the service for spam or unauthorized advertising\n• Violate any applicable laws or regulations"
+    },
+    {
+      title: t("terms.moderationTitle") || "Content Moderation",
+      content: t("terms.moderationContent") || "To keep Perix safe and lawful, we may at any time, at our sole discretion: remove, hide or restrict content; suspend or terminate accounts; and process reports from users. Content hidden by automated systems is reviewed by a human. Our moderation rules are described in the app (Blocked Users → Moderation & reporting rules) and at /api/reports/policy."
     },
     {
       title: t("terms.intellectualProperty") || "Intellectual Property",
@@ -33,19 +41,27 @@ export default function TermsOfServiceScreen() {
     },
     {
       title: t("terms.termination") || "Termination",
-      content: t("terms.terminationContent") || "We may terminate or suspend your account at any time, without prior notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties."
+      content: t("terms.terminationContent") || "You may stop using the service and delete your account at any time (Settings → Delete Account). We may also suspend or terminate your account without prior notice for conduct that violates these Terms or is harmful to other users, us, or third parties."
     },
     {
       title: t("terms.disclaimers") || "Disclaimers",
-      content: t("terms.disclaimersContent") || "Perix is provided on an 'as is' basis. We make no warranties, expressed or implied, regarding the accuracy, reliability, or availability of the service. Your use of the service is at your sole risk."
+      content: t("terms.disclaimersContent") || "Perix is provided on an 'as is' basis. We make no warranties, expressed or implied, regarding the accuracy, reliability, or availability of the service or any content, product or service offered by third parties. Your use of the service is at your sole risk."
     },
     {
       title: t("terms.liability") || "Limitation of Liability",
-      content: t("terms.liabilityContent") || "To the maximum extent permitted by law, Perix shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your use of the service."
+      content: t("terms.liabilityContent") || "To the maximum extent permitted by law:\n\n• Perix shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your use of the service.\n• Perix is not liable for the acts, content, products or services of other users or businesses.\n• Perix's total liability is limited to the greater of €100 or the amounts you paid us in the 12 months before the claim.\n\nNothing in these Terms limits liability that cannot be limited by law (e.g. for intent or gross negligence)."
+    },
+    {
+      title: t("terms.indemnificationTitle") || "Indemnification",
+      content: t("terms.indemnificationContent") || "You agree to indemnify and hold harmless Perix, its team and affiliates from any claims, damages, losses and costs (including reasonable legal fees) arising from your use of the service, your content, or your violation of these Terms or of third-party rights."
     },
     {
       title: t("terms.governingLaw") || "Governing Law",
       content: t("terms.governingLawContent") || "These Terms shall be governed by and construed in accordance with the laws of Germany, without regard to its conflict of law provisions. Any disputes shall be resolved in the courts of Magdeburg, Germany."
+    },
+    {
+      title: t("terms.euConsumersTitle") || "EU Consumers",
+      content: t("terms.euConsumersContent") || "If you are a consumer in the European Union, you benefit from the mandatory consumer-protection provisions of the law of your country of residence. Nothing in these Terms removes those rights. For online disputes you may also use the EU Online Dispute Resolution platform at ec.europa.eu/consumers/odr. The Digital Services Act (EU 2022/2065) point of contact is support@perix.app."
     },
     {
       title: t("terms.changes") || "Changes to Terms",
@@ -65,7 +81,7 @@ export default function TermsOfServiceScreen() {
         <View style={{ width: 40 }} />
       </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>{t("terms.lastUpdated") || "Last updated: June 2026"}</Text>
+        <Text style={styles.lastUpdated}>{t("terms.lastUpdated") || "Last updated: September 2026"}</Text>
         {sections.map((s, i) => (
           <View key={i} style={styles.card}>
             <Text style={styles.cardTitle}>{s.title}</Text>

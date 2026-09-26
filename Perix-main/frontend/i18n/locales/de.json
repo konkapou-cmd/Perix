@@ -1855,7 +1855,19 @@
     "contact": "Kontakt",
     "contactContent": "Bei Fragen zu dieser Datenschutzrichtlinie kontaktieren Sie uns über die App.",
     "gdprTitle": "DSGVO-Konformität",
-    "gdprContent": "Wir entsprechen der Datenschutz-Grundverordnung (DSGVO) für Nutzer in der Europäischen Union."
+    "gdprContent": "Wir entsprechen der Datenschutz-Grundverordnung (DSGVO) für Nutzer in der Europäischen Union.",
+    "controllerTitle": "Verantwortlicher",
+    "controllerContent": "Verantwortlicher für deine personenbezogenen Daten ist Perix (app.perixapp.com), betrieben vom Perix-Team.\n\nDu erreichst uns jederzeit:\n\n• Datenschutz: privacy@perix.app\n• Allgemeiner Support: support@perix.app",
+    "legalBasisTitle": "Rechtsgrundlagen (DSGVO Art. 6)",
+    "legalBasisContent": "Wir verarbeiten deine personenbezogenen Daten nur auf folgenden Rechtsgrundlagen:\n\n• Vertragserfüllung (Art. 6 Abs. 1 lit. b) — Bereitstellung deines Kontos und der App-Funktionen\n• Berechtigte Interessen (Art. 6 Abs. 1 lit. f) — Sicherheit des Dienstes, Betrugs- und Missbrauchsprävention, Moderation und Schutz der Nutzer\n• Einwilligung (Art. 6 Abs. 1 lit. a) — wo du eingewilligt hast, z.B. für optionale Benachrichtigungen\n• Rechtliche Verpflichtungen (Art. 6 Abs. 1 lit. c) — Steuer-, Buchhaltungs- und Behördenanforderungen\n\nDu kannst eine Einwilligung jederzeit widerrufen, ohne dass die Rechtmäßigkeit der bisherigen Verarbeitung berührt wird.",
+    "retentionTitle": "Speicherdauer",
+    "retentionContent": "Wir speichern deine personenbezogenen Daten nur so lange wie für die Zwecke dieser Richtlinie erforderlich:\n\n• Kontodaten — solange das Konto besteht, danach innerhalb von 30 Tagen gelöscht (oder anonymisiert)\n• Inhalte (Beiträge, Nachrichten, Medien) — solange das Konto besteht, danach dauerhaft gelöscht\n• Buchungs-, Zahlungs- und Abonnementdaten — solange steuer- und finanzrechtlich vorgeschrieben\n• Technische Kennungen zur Missbrauchsprävention — bis zu 12 Monate\n• Meldungen — für die Moderation ohne unnötige personenbezogene Details",
+    "transfersTitle": "Internationale Übermittlungen",
+    "transfersContent": "Deine Daten werden auf Servern innerhalb der Europäischen Union gespeichert. Einige Auftragsverarbeiter (z.B. Medien-Hosting und Video-Encoding) können Daten außerhalb des EWR verarbeiten; in solchen Fällen stützen wir uns auf Standardvertragsklauseln oder gleichwertige Garantien nach DSGVO Kapitel V.",
+    "complaintTitle": "Beschwerden",
+    "complaintContent": "Wenn du glaubst, dass deine Daten unrechtmäßig verarbeitet wurden, hast du das Recht, bei deiner nationalen Datenschutz-Aufsichtsbehörde in der EU Beschwerde einzulegen, unbeschadet anderer Rechtsbehelfe.",
+    "automatedTitle": "Automatisierte Entscheidungen",
+    "automatedContent": "Wir treffen keine Entscheidungen mit rechtlicher oder ähnlich erheblicher Wirkung, die ausschließlich auf automatisierter Verarbeitung beruhen. Inhalte, die von automatischer Moderation markiert wurden, werden vor einer endgültigen Maßnahme immer von einem Menschen geprüft."
   },
   "promoter": {
     "title": "Partner-Programm",
@@ -2778,7 +2790,15 @@
     "changes": "Änderungen der Bedingungen",
     "changesContent": "Wir behalten uns das Recht vor, diese Bedingungen jederzeit zu ändern. Über wesentliche Änderungen informieren wir dich. Die fortgesetzte Nutzung gilt als Zustimmung.",
     "contact": "Kontakt",
-    "contactContent": "Bei Fragen zu diesen Bedingungen kontaktiere uns:\n\n• In der App über Einstellungen → Hilfe & Support\n• Per E-Mail an support@perix.app"
+    "contactContent": "Bei Fragen zu diesen Bedingungen kontaktiere uns:\n\n• In der App über Einstellungen → Hilfe & Support\n• Per E-Mail an support@perix.app",
+    "platformRoleTitle": "Unsere Rolle – Nur Plattform",
+    "platformRoleContent": "Perix ist eine neutrale Plattform, die Nutzer und Unternehmen verbindet. Perix ist KEINE Partei von Transaktionen, Vereinbarungen oder Zahlungen zwischen Nutzern oder zwischen Nutzern und Unternehmen. Alle Vereinbarungen und Zahlungen erfolgen direkt zwischen den Parteien. Perix garantiert nicht die Qualität, Sicherheit oder Rechtmäßigkeit von Artikeln, Dienstleistungen, Buchungen oder Inhalten und haftet nicht dafür.",
+    "moderationTitle": "Inhalte-Moderation",
+    "moderationContent": "Um Perix sicher und rechtmäßig zu halten, können wir jederzeit nach eigenem Ermessen Inhalte entfernen, ausblenden oder einschränken, Konten sperren oder kündigen und Meldungen von Nutzern bearbeiten. Durch automatische Systeme ausgeblendete Inhalte werden von einem Menschen geprüft. Unsere Moderationsregeln findest du in der App (Blockierte Nutzer → Moderations- & Melderegeln) und unter /api/reports/policy.",
+    "indemnificationTitle": "Freistellung",
+    "indemnificationContent": "Du verpflichtest dich, Perix, sein Team und verbundene Unternehmen von allen Ansprüchen, Schäden, Verlusten und Kosten (einschließlich angemessener Anwaltskosten) freizustellen, die aus deiner Nutzung des Dienstes, deinen Inhalten oder deinem Verstoß gegen diese Bedingungen oder Rechte Dritter entstehen.",
+    "euConsumersTitle": "EU-Verbraucher",
+    "euConsumersContent": "Wenn du Verbraucher in der Europäischen Union bist, gelten für dich die zwingenden Verbraucherschutzvorschriften deines Wohnsitzlandes. Nichts in diesen Bedingungen hebt diese Rechte auf. Für Online-Streitigkeiten kannst du auch die EU-Plattform zur Online-Streitbeilegung unter ec.europa.eu/consumers/odr nutzen. Die Kontaktstelle nach dem Digital Services Act (EU 2022/2065) ist support@perix.app."
   },
   "navigation": {
     "section": "Bereich",

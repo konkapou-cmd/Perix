@@ -66,7 +66,6 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState<"start" | "end" | null>(null);
 
   useEffect(() => {
     loadPrefs();
@@ -123,30 +122,6 @@ export default function SettingsScreen() {
 
   const togglePref = (key: keyof NotificationPrefs) => {
     savePrefs({ ...notifPrefs, [key]: !notifPrefs[key] });
-  };
-
-  const setQuietHoursMode = (mode: string) => {
-    savePrefs({ ...notifPrefs, messages_quiet_hours_mode: mode });
-  };
-
-  const setQuietHoursTime = (field: "start" | "end", date: Date) => {
-    const timeStr = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-    if (field === "start") {
-      savePrefs({ ...notifPrefs, messages_quiet_hours_start: timeStr });
-    } else {
-      savePrefs({ ...notifPrefs, messages_quiet_hours_end: timeStr });
-    }
-    setShowTimePicker(null);
-  };
-
-  const parseTime = (timeStr?: string): Date => {
-    const fallback = new Date();
-    if (!timeStr) return fallback;
-    const parts = timeStr.split(":");
-    if (parts.length !== 2) return fallback;
-    const d = new Date();
-    d.setHours(parseInt(parts[0], 10) || 0, parseInt(parts[1], 10) || 0, 0, 0);
-    return d;
   };
 
   const handleLogout = async () => {
@@ -334,84 +309,6 @@ export default function SettingsScreen() {
             value={notifPrefs.messages}
             onToggle={() => togglePref("messages")}
           />
-          {/* Quiet Hours for Messages */}
-          <View style={styles.quietHoursSection}>
-            <View style={styles.quietHoursHeader}>
-              <View style={styles.quietHoursIcon}>
-                <Ionicons name="moon" size={16} color="#59ABE3" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.quietHoursLabel}>{t("settings.quietHours") || "Quiet Hours"}</Text>
-                <Text style={styles.quietHoursDesc}>{t("settings.quietHoursDesc") || "Suppress message notifications during set hours"}</Text>
-              </View>
-            </View>
-            <View style={styles.quietHoursModes}>
-              {["off", "business_hours", "custom"].map((mode) => {
-                const isActive = (notifPrefs.messages_quiet_hours_mode || "off") === mode;
-                const label = mode === "off"
-                  ? (t("settings.quietHoursOff") || "Off")
-                  : mode === "business_hours"
-                    ? (t("settings.quietHoursBusiness") || "Business Hours")
-                    : (t("settings.quietHoursCustom") || "Custom");
-                return (
-                  <Pressable
-                    key={mode}
-                    style={[
-                      styles.quietHoursModeBtn,
-                      isActive && styles.quietHoursModeBtnActive,
-                    ]}
-                    onPress={() => setQuietHoursMode(mode)}
-                  >
-                    <Text
-                      style={[
-                        styles.quietHoursModeText,
-                        isActive && styles.quietHoursModeTextActive,
-                      ]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.8}
-                    >{label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            {(notifPrefs.messages_quiet_hours_mode || "off") === "custom" && (
-              <View style={styles.quietHoursTimeRow}>
-                <Pressable
-                  style={styles.quietHoursTimeBtn}
-                  onPress={() => setShowTimePicker("start")}
-                >
-                  <Ionicons name="time-outline" size={15} color="#59ABE3" />
-                  <View style={styles.quietHoursTimeTextWrap}>
-                    <Text style={styles.quietHoursTimeLabel}>{t("settings.quietHoursStart") || "Start"}</Text>
-                    <Text style={styles.quietHoursTimeValue}>{notifPrefs.messages_quiet_hours_start || "22:00"}</Text>
-                  </View>
-                </Pressable>
-                <Text style={styles.quietHoursSeparator}>{t("settings.to") || "to"}</Text>
-                <Pressable
-                  style={styles.quietHoursTimeBtn}
-                  onPress={() => setShowTimePicker("end")}
-                >
-                  <Ionicons name="time-outline" size={15} color="#59ABE3" />
-                  <View style={styles.quietHoursTimeTextWrap}>
-                    <Text style={styles.quietHoursTimeLabel}>{t("settings.quietHoursEnd") || "End"}</Text>
-                    <Text style={styles.quietHoursTimeValue}>{notifPrefs.messages_quiet_hours_end || "08:00"}</Text>
-                  </View>
-                </Pressable>
-              </View>
-            )}
-          </View>
-          {showTimePicker && (
-            <DateTimePicker
-              value={parseTime(showTimePicker === "start" ? notifPrefs.messages_quiet_hours_start : notifPrefs.messages_quiet_hours_end)}
-              mode="time"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={(_event: any, date?: Date) => {
-                if (date) setQuietHoursTime(showTimePicker, date);
-                else setShowTimePicker(null);
-              }}
-            />
-          )}
           <ToggleRow
             icon="person-add"
             iconColor="#59ABE3"
