@@ -67,6 +67,8 @@ class RegisterInput(BaseModel):
     root_category: Optional[str] = None
     subcategory: Optional[str] = None
     business_name: Optional[str] = None
+    accepted_terms: bool = False
+    age_confirmed: bool = False
 
 
 class LoginInput(BaseModel):

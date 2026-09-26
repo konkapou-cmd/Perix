@@ -52,6 +52,14 @@ async def register_user(payload: RegisterInput, response: Response):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # EU compliance: explicit acceptance of the Terms of Service and
+    # confirmation that the user is at least 16 years old.
+    if not payload.accepted_terms or not payload.age_confirmed:
+        raise HTTPException(
+            status_code=400,
+            detail="You must accept the Terms of Service and confirm that you are at least 16 years old",
+        )
+
     user_doc = {
         "user_id": generate_id("user"),
         "email": payload.email,
@@ -59,6 +67,8 @@ async def register_user(payload: RegisterInput, response: Response):
         "picture": None,
         "password_hash": pwd_context.hash(payload.password),
         "created_at": now_utc(),
+        "accepted_terms_at": now_utc(),
+        "age_confirmed_at": now_utc(),
         "gallery_images": [],
         "gallery_videos": [],
         "profile_photo": None,

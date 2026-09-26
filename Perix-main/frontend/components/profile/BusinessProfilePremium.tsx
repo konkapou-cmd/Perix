@@ -168,6 +168,7 @@ interface BusinessProfilePremiumProps {
   requestedSection?: string | null;
   onRequestedSectionHandled?: () => void;
   tagHintText?: string | null;
+  profileViews?: number | null;
 }
 
 export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
@@ -263,6 +264,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   requestedSection,
   onRequestedSectionHandled,
   tagHintText = null,
+  profileViews = null,
 }) => {
   const { t } = useTranslation();
   const serviceLabel = (type: string, fallback?: string) => getServiceModuleLabel(type, (k: string, fb?: string) => t(k, fb ?? fallback ?? type));
@@ -560,6 +562,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
         friendStatus={friendStatus || "none"}
         stats={[
           { label: t("profile.friends", "Friends"), count: detail.business.friends_count ?? friends.length, onPress: onViewFriends },
+          ...(detail.business.followers_count ? [{ label: t("profile.followers", "Followers"), count: detail.business.followers_count }] : []),
+          ...(profileViews != null ? [{ label: t("profile.profileViews", "Profile views"), count: profileViews }] : []),
         ]}
         completenessItems={
           !readOnly

@@ -491,7 +491,11 @@
     "subcategory": "Unterkategorie (z.B. italienisch)",
     "firstName": "Vorname",
     "lastName": "Nachname",
-    "city": "Stadt"
+    "city": "Stadt",
+    "acceptTermsRequired": "Du musst die Nutzungsbedingungen akzeptieren und bestätigen, dass du mindestens 16 Jahre alt bist.",
+    "termsAcceptance": "Ich bin mindestens 16 Jahre alt und akzeptiere die",
+    "termsLink": "Nutzungsbedingungen",
+    "privacyLink": "Datenschutzerklärung"
   },
   "tabs": {
     "home": "Startseite",
@@ -769,7 +773,8 @@
     "completeYourProfile": "Profil vervollständigen",
     "viewProfile": "Profil ansehen",
     "showMore": "Mehr anzeigen",
-    "showLess": "Weniger anzeigen"
+    "showLess": "Weniger anzeigen",
+    "profileViews": "Profilaufrufe"
   },
   "saved": {
     "title": "Gespeichert",
@@ -1844,7 +1849,7 @@
     "dataSharing": "Weitergabe von Informationen",
     "dataSharingContent": "Wir verkaufen Ihre persönlichen Daten nicht. Wir können Informationen mit Ihrer Zustimmung oder mit Dienstanbietern teilen.",
     "dataSecurity": "Datensicherheit",
-    "dataSecurityContent": "Wir ergreifen angemessene Maßnahmen zum Schutz Ihrer Informationen vor Verlust, Diebstahl und unbefugtem Zugriff.",
+    "dataSecurityContent": "Wir ergreifen angemessene technische und organisatorische Maßnahmen, um deine Daten vor Verlust, Diebstahl, Missbrauch, unbefugtem Zugriff, Offenlegung, Veränderung und Zerstörung zu schützen. Daten werden bei der Übertragung verschlüsselt (HTTPS/TLS). Ruhende Daten liegen auf Cloud-Infrastruktur mit verschlüsseltem Speicher unseres Hosting-Anbieters.",
     "cookies": "Cookies & Tracking",
     "cookiesContent": "Wir verwenden Cookies und ähnliche Technologien zur Verfolgung von Aktivitäten in unserem Dienst.",
     "userRights": "Ihre Rechte",

@@ -115,9 +115,9 @@ def is_trial_active(business_doc: Dict) -> bool:
 
 
 def is_subscription_active(business_doc: Dict) -> bool:
-    if business_doc.get("subscription_status") == "active":
-        return True
-    return is_trial_active(business_doc)
+    # Payments were removed — every business has full access. This function
+    # stays as a no-op gate so callers keep working unchanged.
+    return True
 
 
 @router.post("", response_model=BusinessResponse)

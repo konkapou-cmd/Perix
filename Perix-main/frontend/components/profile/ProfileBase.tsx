@@ -429,13 +429,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 color="#1F4788"
               />
             )}
-            {onPlan && (
-              <ProfileActionButton
-                icon="star-outline"
-                variant="secondaryIcon"
-                onPress={onPlan}
-              />
-            )}
+            {onPlan && null /* payments removed */}
             <ProfileActionButton
               icon="bookmark-outline"
               variant="secondaryIcon"

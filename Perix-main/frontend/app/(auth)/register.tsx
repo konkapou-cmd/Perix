@@ -46,6 +46,7 @@ export default function RegisterScreen() {
   const [rootCategory, setRootCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
@@ -79,6 +80,10 @@ export default function RegisterScreen() {
       setErrorMessage(t("auth.passwordTooShort", "Password must be at least 4 characters"));
       return;
     }
+    if (!acceptedTerms) {
+      setErrorMessage(t("auth.acceptTermsRequired", "You must accept the Terms of Service and confirm that you are at least 16 years old."));
+      return;
+    }
     try {
       setLoading(true);
       setErrorMessage("");
@@ -93,7 +98,8 @@ export default function RegisterScreen() {
         subcategory || undefined,
         businessName || undefined,
         cityLat,
-        cityLng
+        cityLng,
+        true
       );
       const title = t("auth.accountCreated", "Account created!");
       const message = t("auth.verifyEmailSent", "We sent a verification email to your inbox. Please verify your email to enable password recovery.");
@@ -284,6 +290,40 @@ export default function RegisterScreen() {
               onSelectCity={handleCitySelect}
               placeholder={t("auth.city", "City")}
             />
+
+            <Pressable
+              style={styles.termsRow}
+              onPress={() => setAcceptedTerms((v) => !v)}
+              testID="terms-checkbox"
+            >
+              <Ionicons
+                name={acceptedTerms ? "checkbox" : "square-outline"}
+                size={20}
+                color={acceptedTerms ? "#59ABE3" : "#6b7280"}
+              />
+              <Text style={styles.termsText}>
+                {t("auth.termsAcceptance")}{" "}
+                <Text
+                  style={styles.termsLink}
+                  onPress={(e) => {
+                    (e as any).stopPropagation?.();
+                    router.push("/terms-of-service" as any);
+                  }}
+                >
+                  {t("auth.termsLink", "Terms of Service")}
+                </Text>
+                {" " + t("common.and", "and") + " "}
+                <Text
+                  style={styles.termsLink}
+                  onPress={(e) => {
+                    (e as any).stopPropagation?.();
+                    router.push("/privacy-policy" as any);
+                  }}
+                >
+                  {t("auth.privacyLink", "Privacy Policy")}
+                </Text>
+              </Text>
+            </Pressable>
 
             <Pressable
               style={[styles.primaryButton, loading && styles.buttonDisabled]}
@@ -535,6 +575,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 48,
     marginTop: 6,
+  },
+  termsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 4,
+    paddingHorizontal: 2,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#4b5563",
+  },
+  termsLink: {
+    color: "#59ABE3",
+    fontWeight: "700",
   },
   primaryButtonText: {
     color: "#fff",

@@ -133,6 +133,7 @@ interface UserProfilePremiumProps {
   onDeleteItem?: (listing: Listing) => void;
   initialTab?: "activities" | "posts" | "items";
   tagHintText?: string | null;
+  profileViews?: number | null;
 
 }
 
@@ -214,6 +215,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   onDeleteItem,
   initialTab,
   tagHintText = null,
+  profileViews = null,
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -360,6 +362,7 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
         isBlocked={isBlocked}
         stats={[
           { label: t("profile.friends", "Friends"), count: friends.length, onPress: onViewFriends },
+          ...(profileViews != null ? [{ label: t("profile.profileViews", "Profile views"), count: profileViews }] : []),
         ]}
         completenessItems={
           !readOnly

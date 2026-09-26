@@ -41,12 +41,8 @@ import {
   Business,
   createBusiness,
   CategoryGroup,
-  createSubscription,
   getCategoryTree,
   getNearbyBusinesses,
-  getSubscriptionPlans,
-  getSubscriptionStatus,
-  SubscriptionPlans,
   EventItem,
   getEvents,
   ActivityItem,
@@ -119,14 +115,6 @@ export default function LocatorScreen() {
     { description: string; place_id: string }[]
   >([]);
   const [suggesting, setSuggesting] = useState(false);
-  const [subscriptionModal, setSubscriptionModal] = useState(false);
-  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
-  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlans | null>(null);
-  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
-  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
-  const [subscriptionSession, setSubscriptionSession] = useState<
-    { subscription_id: string; approval_url: string; status: string } | null
-  >(null);
 
   const [activeTab, setActiveTab] = useState<TabType>("businesses");
   const [businessAvailabilityFilter, setBusinessAvailabilityFilter] = useState<"all" | "open_now">("all");
@@ -363,13 +351,8 @@ export default function LocatorScreen() {
   }, [form.subcategory, t]);
 
   const formatSubscriptionStatus = (business: Business) => {
-    if (business.subscription_status === "trial" && business.trial_expires_at) {
-      const diff = new Date(business.trial_expires_at).getTime() - Date.now();
-      const days = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-      return `${t('locator.trial')} (${days} ${t('locator.daysLeft')})`;
-    }
-    if (business.subscription_status === "active") return t('locator.active');
-    return t('locator.inactive');
+    // Payments removed — all businesses are active.
+    return t('locator.active');
   };
 
   const loadCategories = useCallback(async () => {
@@ -564,18 +547,6 @@ export default function LocatorScreen() {
     }
   };
 
-  const loadSubscriptionPlans = useCallback(async () => {
-    if (!sessionToken) return;
-    const plans = await getSubscriptionPlans(sessionToken);
-    setSubscriptionPlans(plans);
-  }, [sessionToken]);
-
-    useEffect(() => {
-      if (subscriptionModal && sessionToken) {
-        loadSubscriptionPlans();
-      }
-    }, [subscriptionModal, sessionToken, loadSubscriptionPlans]);
-
   // WhatsApp share for business
   const shareBusinessToWhatsApp = async (business: Business) => {
     const businessUrl = `${BACKEND_URL?.replace('/api', '')}/business/${business.business_id}`;
@@ -655,29 +626,6 @@ export default function LocatorScreen() {
     } catch (error) {
       return;
     }
-  };
-
-  const handleCreateSubscription = async () => {
-    if (!sessionToken || !selectedBusiness) return;
-    try {
-      setSubscriptionLoading(true);
-      const session = await createSubscription(sessionToken, {
-        business_id: selectedBusiness.business_id,
-        plan_type: selectedPlan,
-      });
-      setSubscriptionSession(session);
-      if (session.approval_url) {
-        await WebBrowser.openBrowserAsync(session.approval_url);
-      }
-    } finally {
-      setSubscriptionLoading(false);
-    }
-  };
-
-  const handleCheckSubscription = async () => {
-    if (!sessionToken || !subscriptionSession) return;
-    await getSubscriptionStatus(sessionToken, subscriptionSession.subscription_id);
-    await loadBusinesses(mapBounds!.centerLat, mapBounds!.centerLng);
   };
 
   if (loading) {
@@ -1384,62 +1332,7 @@ export default function LocatorScreen() {
         </View>
       </Modal>
 
-      <Modal visible={subscriptionModal} animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('locator.businessSubscription')}</Text>
-            <Pressable onPress={() => setSubscriptionModal(false)}>
-              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
-            </Pressable>
-          </View>
-          <View style={styles.modalBody}>
-            <Text style={styles.businessName}>{selectedBusiness?.name}</Text>
-            <Text style={styles.modalSubtitle}>
-              {t('locator.trialInfo')}
-            </Text>
-            {subscriptionPlans ? (
-              <View style={styles.planRow}>
-                <Pressable
-                  style={[
-                    styles.planCard,
-                    selectedPlan === "monthly" && styles.planCardActive,
-                  ]}
-                  onPress={() => setSelectedPlan("monthly")}
-                >
-                  <Text style={styles.planTitle}>{t('locator.monthly')}</Text>
-                  <Text style={styles.planPrice}>${subscriptionPlans.monthly_price}</Text>
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.planCard,
-                    selectedPlan === "yearly" && styles.planCardActive,
-                  ]}
-                  onPress={() => setSelectedPlan("yearly")}
-                >
-                  <Text style={styles.planTitle}>{t('locator.yearly')}</Text>
-                  <Text style={styles.planPrice}>${subscriptionPlans.yearly_price}</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <ActivityIndicator color={COLORS.primaryDark} />
-            )}
-            <Pressable
-              style={[styles.primaryButton, subscriptionLoading && styles.buttonDisabled]}
-              onPress={handleCreateSubscription}
-              disabled={subscriptionLoading}
-            >
-              <Text style={styles.primaryButtonText}>
-                {subscriptionSession ? t('locator.openPayPalAgain') : t('locator.continueToPayPal')}
-              </Text>
-            </Pressable>
-            {subscriptionSession ? (
-              <Pressable style={styles.secondaryButton} onPress={handleCheckSubscription}>
-                <Text style={styles.secondaryButtonText}>{t('locator.checkStatus')}</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
+      
       </View>
     </SafeAreaView>
   );

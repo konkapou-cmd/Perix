@@ -144,10 +144,7 @@ from routes.account_deletion import (
 
 @app.get("/account-deletion", include_in_schema=False)
 async def account_deletion_page():
-    return HTMLResponse(deletion_request_page_html())
-
-
-@app.get("/account-deletion/confirm", include_in_schema=False)
+    return HTMLResponse(deletion_request_page_html())@app.get("/account-deletion/confirm", include_in_schema=False)
 async def account_deletion_confirm_page(token: str = ""):
     user = await resolve_deletion_token(token.strip())
     if user is None:
@@ -157,6 +154,25 @@ async def account_deletion_confirm_page(token: str = ""):
             )
         )
     return HTMLResponse(deletion_confirm_page_html(token.strip(), user=user))
+
+# --- Public legal pages (GDPR / DSA) ---
+from routes.legal import privacy_page_html, terms_page_html, impressum_page_html
+
+
+@app.get("/privacy", include_in_schema=False)
+async def privacy_page(lang: str = "en"):
+    return HTMLResponse(privacy_page_html(lang))
+
+
+@app.get("/terms", include_in_schema=False)
+async def terms_page(lang: str = "en"):
+    return HTMLResponse(terms_page_html(lang))
+
+
+@app.get("/impressum", include_in_schema=False)
+async def impressum_page(lang: str = "en"):
+    return HTMLResponse(impressum_page_html(lang))
+
 
 # --- Web app static hosting (SPA) ---
 WEB_DIST = Path(__file__).parent / "webdist"

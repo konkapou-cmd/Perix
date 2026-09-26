@@ -9,7 +9,6 @@ from routes.artists import router as artists_router
 from routes.events import router as events_router
 from routes.activities import router as activities_router
 from routes.profiles import router as profiles_router
-from routes.subscriptions import router as subscriptions_router
 from routes.feed import router as feed_router
 from routes.notifications import router as notifications_router
 from routes.media import router as media_router
@@ -23,7 +22,6 @@ from routes.friend_requests import router as friend_requests_router
 from routes.contacts import router as contacts_router
 from routes.analytics import router as analytics_router
 from routes.preview import router as preview_router
-from routes.stripe_subscriptions import router as stripe_router
 from routes.saved import router as saved_router
 from routes.stories import router as stories_router
 from routes.story_analytics import router as story_analytics_router
@@ -50,7 +48,6 @@ api_router.include_router(artists_router)
 api_router.include_router(events_router)
 api_router.include_router(activities_router)
 api_router.include_router(profiles_router)
-api_router.include_router(subscriptions_router)
 api_router.include_router(feed_router)
 api_router.include_router(notifications_router)
 api_router.include_router(media_router)
@@ -64,7 +61,6 @@ api_router.include_router(friend_requests_router)
 api_router.include_router(contacts_router)
 api_router.include_router(analytics_router)
 api_router.include_router(preview_router)
-api_router.include_router(stripe_router)
 api_router.include_router(saved_router)
 api_router.include_router(stories_router)
 api_router.include_router(story_analytics_router)

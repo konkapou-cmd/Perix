@@ -111,7 +111,6 @@ export * from "./api/mux";
 export { reportBusiness } from "./api/businesses";
 export * from "./api/social";
 export * from "./api/notifications";
-export * from "./api/subscriptions";
 export * from "./api/admin";
 export * from "./api/analytics";
 export * from "./api/search";

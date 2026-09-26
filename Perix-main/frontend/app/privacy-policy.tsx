@@ -46,7 +46,7 @@ export default function PrivacyPolicyScreen() {
     {
       title: t("privacy.dataSecurity") || "Data Security",
       content: t("privacy.dataSecurityContent") || 
-        "We take reasonable measures to help protect information about you from loss, theft, misuse, unauthorized access, disclosure, alteration, and destruction. All data is encrypted in transit and at rest."
+        "We take reasonable technical and organisational measures to help protect information about you from loss, theft, misuse, unauthorized access, disclosure, alteration, and destruction. Data is encrypted in transit (HTTPS/TLS). Data at rest is stored on cloud infrastructure with encrypted storage managed by our hosting provider."
     },
     {
       title: t("privacy.retentionTitle") || "Data Retention",

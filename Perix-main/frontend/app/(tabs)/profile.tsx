@@ -90,6 +90,7 @@ import {
   ActivityItem,
 } from "../../lib/api";
 import { getMuxAssetStatus } from "../../lib/api/mux";
+import { getUserAnalytics, getBusinessAnalytics } from "../../lib/api/analytics";
 import { getArtists } from "../../lib/api/artists";
 import { MEDIA_LIMITS, normalizeDurationSeconds } from "../../lib/constants/mediaLimits";
 import { validateMedia } from "../../lib/media/mediaValidation";
@@ -713,6 +714,14 @@ const syncEventEndTime = (d: Date, tm: Date) => {
       if (requestId !== userListingsRequestRef.current) return;
       setUserListings(listings.filter(l => !l.listing_type || l.listing_type === "product"));
       setUserHomeListings(listings.filter(l => l.listing_type === "home_rental"));
+
+      // Profile analytics (own profile): views + growth
+      try {
+        const analytics = await getUserAnalytics(sessionToken);
+        setProfileViewsCount(analytics?.total_profile_views ?? null);
+      } catch {
+        setProfileViewsCount(null);
+      }
     } catch {
       if (requestId === userListingsRequestRef.current) {
         setUserListings([]);
@@ -1413,6 +1422,7 @@ const handleUpdateSlug = async (newSlug: string) => {
   const [requestedSection, setRequestedSection] = useState<string | null>(null);
   const [userInitialTab, setUserInitialTab] = useState<"activities" | "posts" | "items" | null>(null);
   const [userListings, setUserListings] = useState<Listing[]>([]);
+  const [profileViewsCount, setProfileViewsCount] = useState<number | null>(null);
   const [userHomeListings, setUserHomeListings] = useState<Listing[]>([]);
   const bizListingsRequestRef = useRef(0);
   const userListingsRequestRef = useRef(0);
@@ -1497,6 +1507,13 @@ const [newListingType, setNewListingType] = useState<ListingType>("product");
     );
 
     setBusinessAllowedTaxonomy({});
+    // Business analytics (own profile): views + followers
+    try {
+      const analytics = await getBusinessAnalytics(sessionToken, bizId);
+      setProfileViewsCount(analytics?.total_profile_views ?? null);
+    } catch {
+      setProfileViewsCount(null);
+    }
     setBusinessPermsLoading(true);
     setBusinessProductsEnabled(false);
     try {
@@ -2545,6 +2562,7 @@ try {
         )}
         {activeIdentity?.type === 'user' && user !== null && (
         <UserProfilePremium
+          profileViews={profileViewsCount}
           tagHintText={activeIdentity?.type === 'user' ? t("editor.tagHint") : undefined}
           user={user as User}
           friends={friends}
@@ -2638,6 +2656,7 @@ postText={postText}
 
           {activeIdentity?.type === 'business' && businessDetail && (
            <BusinessProfilePremium
+          profileViews={profileViewsCount}
           tagHintText={undefined}
               business={businessDetail}
               sessionToken={sessionToken || ""}
@@ -2894,15 +2913,7 @@ currentUserId={businessDetail?.business?.business_id}
                       Alert.alert(t("common.error"), "Failed to create city ad");
                     }
                   }}
-                  onPlan={() => {
-                    const biz = businessDetail?.business;
-                    if (biz) {
-                      router.push({
-                        pathname: "/plan",
-                        params: { businessId: biz.business_id }
-                      });
-                    }
-                  }}
+                  onPlan={undefined}
                   services={bizServices}
                   onAddService={businessDetail?.business.root_category && hasServiceModules(businessDetail.business.root_category) ? handleAddService : undefined}
                   handleEditService={handleEditService}

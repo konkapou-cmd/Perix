@@ -495,7 +495,7 @@
     "friends": "Friends",
     "posts": "Posts",
     "activities": "Activities",
-    "followers": "Friends",
+    "followers": "Followers",
     "following": "Friends",
     "displayName": "Display name",
     "shortBio": "Short bio",
@@ -586,7 +586,8 @@
     "completeYourProfile": "Complete your profile",
     "viewProfile": "View profile",
     "showMore": "Show more",
-    "showLess": "Show less"
+    "showLess": "Show less",
+    "profileViews": "Profile views"
   },
   "modules": {
     "events": "Events",
@@ -634,7 +635,11 @@
     "subcategory": "Subcategory slug (e.g. italian)",
     "firstName": "First Name",
     "lastName": "Last Name",
-    "city": "City"
+    "city": "City",
+    "acceptTermsRequired": "You must accept the Terms of Service and confirm that you are at least 16 years old.",
+    "termsAcceptance": "I am at least 16 years old and I accept the",
+    "termsLink": "Terms of Service",
+    "privacyLink": "Privacy Policy"
   },
   "tabs": {
     "home": "Home",
@@ -1875,7 +1880,7 @@
     "dataSharing": "Information Sharing",
     "dataSharingContent": "We do not sell your personal information. We may share information with your consent, with service providers, in response to legal requests, or to protect rights and safety.",
     "dataSecurity": "Data Security",
-    "dataSecurityContent": "We take reasonable measures to help protect information about you from loss, theft, misuse, unauthorized access, disclosure, alteration, and destruction.",
+    "dataSecurityContent": "We take reasonable technical and organisational measures to help protect information about you from loss, theft, misuse, unauthorized access, disclosure, alteration, and destruction. Data is encrypted in transit (HTTPS/TLS). Data at rest is stored on cloud infrastructure with encrypted storage managed by our hosting provider.",
     "cookies": "Cookies & Tracking",
     "cookiesContent": "We use cookies and similar tracking technologies to track activity on our service and hold certain information.",
     "userRights": "Your Rights",

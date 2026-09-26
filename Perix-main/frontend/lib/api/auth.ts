@@ -11,13 +11,16 @@ export const registerUser = async (
   subcategory?: string,
   businessName?: string,
   latitude?: number,
-  longitude?: number
+  longitude?: number,
+  acceptedTerms: boolean = false
 ): Promise<AuthResponse> => {
   const body: Record<string, unknown> = {
     name: `${firstName} ${lastName}`.trim(),
     email,
     password,
     role,
+    accepted_terms: acceptedTerms,
+    age_confirmed: acceptedTerms,
   };
   if (city) body.city = city;
   if (rootCategory) body.root_category = rootCategory;
