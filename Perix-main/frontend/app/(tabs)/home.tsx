@@ -69,6 +69,7 @@ import * as Location from "expo-location";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
+import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 
 const POST_FILTER_CATEGORIES: { slug: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { slug: "food-dining", icon: "restaurant" },
@@ -210,6 +211,7 @@ export default function HomeScreen() {
   }, [mapBounds]);
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [exactLocation, setExactLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");
   const [activitiesFilter, setActivitiesFilter] = useState<"all" | "attending" | "mine">("all");
   const [showNoLocationMessage, setShowNoLocationMessage] = useState(false);
@@ -278,6 +280,16 @@ export default function HomeScreen() {
     if (globalLocation) setUserLocation({ latitude: globalLocation.latitude, longitude: globalLocation.longitude });
   }, [globalLocation]);
 
+  // Fetch the device's exact GPS position for the "you are here" pin.
+  // The pin is shown at the exact location, independent of the searched city.
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentPositionWithPermission()
+      .then((loc) => { if (!cancelled && loc) setExactLocation({ latitude: loc.latitude, longitude: loc.longitude }); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => {
     if (isMapInitialized) return;
     if (user?.latitude && user?.longitude) {
@@ -299,6 +311,7 @@ export default function HomeScreen() {
         const d = 0.09;
         setMapBounds({ minLat: loc.coords.latitude - d / 2, maxLat: loc.coords.latitude + d / 2, minLng: loc.coords.longitude - d / 2, maxLng: loc.coords.longitude + d / 2, centerLat: loc.coords.latitude, centerLng: loc.coords.longitude });
         setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+        setExactLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
         setManualLocation(loc.coords.latitude, loc.coords.longitude);
         setMapFocusToken((t) => t + 1);
       }
@@ -961,6 +974,7 @@ export default function HomeScreen() {
             products={viewportProducts}
             ownerHomes={viewportHomes}
             userLocation={userLocation}
+            pinLocation={exactLocation}
             userPinImage={
               activeIdentity?.type === "business"
                 ? (myBusinesses.find((b) => b.business_id === activeIdentity.id)?.logo_image || undefined)

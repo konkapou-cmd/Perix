@@ -53,6 +53,7 @@ type Props = {
   extraMarkers?: MapMarker[];
   showUserLocation?: boolean;
   userPinImage?: string | null;
+  pinLocation?: { latitude: number; longitude: number } | null;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onMarkerPress?: (markerId: string) => void;
@@ -118,6 +119,7 @@ export default function BusinessMap({
   extraMarkers,
   showUserLocation,
   userPinImage,
+  pinLocation,
   onRegionChange,
   onRegionChangeComplete,
   onMarkerPress,
@@ -527,8 +529,9 @@ export default function BusinessMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReadyRef.current) return;
-    const key = showUserLocation && location
-      ? `${location.latitude.toFixed(6)}_${location.longitude.toFixed(6)}`
+    const pinPos = pinLocation ?? location;
+    const key = showUserLocation && pinPos
+      ? `${pinPos.latitude.toFixed(6)}_${pinPos.longitude.toFixed(6)}_${userPinImage || ""}`
       : null;
     if (key === userLocKeyRef.current) return;
     userLocKeyRef.current = key;
@@ -536,7 +539,7 @@ export default function BusinessMap({
       try { userLocationOverlayRef.current.setMap(null); } catch (e) {}
       userLocationOverlayRef.current = null;
     }
-    if (!key || !location) return;
+    if (!key || !pinPos) return;
     const google = (window as any).google;
 
     const container = document.createElement("div");
@@ -601,14 +604,14 @@ export default function BusinessMap({
       }
     }
 
-    const overlay = new UserOverlay(container, { lat: location.latitude, lng: location.longitude });
+    const overlay = new UserOverlay(container, { lat: pinPos.latitude, lng: pinPos.longitude });
     overlay.setMap(map);
     userLocationOverlayRef.current = overlay;
     return () => {
       try { overlay.setMap(null); } catch (e) {}
       if (userLocationOverlayRef.current === overlay) userLocationOverlayRef.current = null;
     };
-  }, [location, showUserLocation, mapReady, userPinImage]);
+  }, [location, showUserLocation, mapReady, userPinImage, pinLocation]);
 
   // Pan when the initialRegion-based center changes (e.g. home map bounds updates)
   useEffect(() => {

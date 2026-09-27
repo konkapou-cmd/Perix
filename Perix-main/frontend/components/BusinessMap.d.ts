@@ -47,6 +47,7 @@ type Props = {
   extraMarkers?: MapMarker[];
   showUserLocation?: boolean;
   userPinImage?: string | null;
+  pinLocation?: { latitude: number; longitude: number } | null;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onMarkerPress?: (markerId: string) => void;
