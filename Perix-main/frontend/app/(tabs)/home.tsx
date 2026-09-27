@@ -212,6 +212,8 @@ export default function HomeScreen() {
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [exactLocation, setExactLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const globalLocationRef = useRef<any>(null);
+  useEffect(() => { globalLocationRef.current = globalLocation; }, [globalLocation]);
   const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");
   const [activitiesFilter, setActivitiesFilter] = useState<"all" | "attending" | "mine">("all");
   const [showNoLocationMessage, setShowNoLocationMessage] = useState(false);
@@ -283,12 +285,33 @@ export default function HomeScreen() {
   // Fetch the device's exact GPS position for the "you are here" pin.
   // The pin is shown at the exact location, independent of the searched city.
   // Refreshed on focus and every few minutes so it follows the user.
+  // When the user has NOT manually searched a city, the map is centered on
+  // the current location so the pin is visible.
   useEffect(() => {
     let cancelled = false;
     const refresh = () => {
       getCurrentPositionWithPermission()
-        .then((loc) => { if (!cancelled && loc) setExactLocation({ latitude: loc.latitude, longitude: loc.longitude }); })
-        .catch(() => {});
+        .then((loc) => {
+          if (cancelled) return;
+          if (loc) {
+            setExactLocation({ latitude: loc.latitude, longitude: loc.longitude });
+            // Center the map on the live position unless the user has
+            // manually searched a city.
+            const locCtx = globalLocationRef.current as any;
+            const isManual = locCtx && !locCtx.isLiveLocation;
+            if (!isManual) {
+              const d = 0.09;
+              setMapBounds({ minLat: loc.latitude - d / 2, maxLat: loc.latitude + d / 2, minLng: loc.longitude - d / 2, maxLng: loc.longitude + d / 2, centerLat: loc.latitude, centerLng: loc.longitude });
+              setUserLocation({ latitude: loc.latitude, longitude: loc.longitude });
+              setMapFocusToken((t) => t + 1);
+            }
+          } else {
+            // A fresh fix failed — hide the stale pin instead of showing
+            // a wrong location.
+            setExactLocation(null);
+          }
+        })
+        .catch(() => { if (!cancelled) setExactLocation(null); });
     };
     refresh();
     const interval = setInterval(refresh, 3 * 60 * 1000);

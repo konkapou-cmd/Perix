@@ -62,8 +62,11 @@ export async function getCurrentPositionWithPermission(): Promise<{
   try {
     const loc = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
+      // Force a fresh fix instead of a stale/cached position
+      maximumAge: 0 as any,
+      timeout: 15000,
       mayShowUserSettingsDialog: true,
-    });
+    } as any);
     return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
   } catch (e) {
     console.warn("getCurrentPosition failed:", e);
