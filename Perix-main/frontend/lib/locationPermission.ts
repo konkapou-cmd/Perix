@@ -60,7 +60,10 @@ export async function getCurrentPositionWithPermission(): Promise<{
   const granted = await ensureLocationPermission();
   if (!granted) return null;
   try {
-    const loc = await Location.getCurrentPositionAsync({});
+    const loc = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+      mayShowUserSettingsDialog: true,
+    });
     return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
   } catch (e) {
     console.warn("getCurrentPosition failed:", e);

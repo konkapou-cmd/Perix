@@ -79,7 +79,7 @@ interface DateFilter {
 export default function LocatorScreen() {
   const { t } = useTranslation();
   const { isDesktop } = useResponsiveLayout();
-  const { sessionToken, user } = useAuth();
+  const { sessionToken, user, activeIdentity } = useAuth();
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
   const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
   const { location: contextLocation, setManualLocation, radiusKm } = useLocation();
@@ -754,6 +754,8 @@ export default function LocatorScreen() {
           <View style={styles.mapSection}>
         <BusinessMap
           location={contextLocation || { latitude: mapBounds?.centerLat || 52.52, longitude: mapBounds?.centerLng || 13.405 }}
+          pinLocation={locateFocus}
+          userPinImage={activeIdentity?.type === "business" ? (activeIdentity as any).avatar || undefined : (user?.profile_photo || user?.picture || undefined)}
           focusRegion={locateFocus ? { latitude: locateFocus.latitude, longitude: locateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
           focusToken={locateToken || undefined}
           businesses={activeTab === "businesses" ? visibleBusinesses : activeTab === "hotels" ? visibleHotels : []}

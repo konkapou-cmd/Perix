@@ -529,7 +529,9 @@ export default function BusinessMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReadyRef.current) return;
-    const pinPos = pinLocation ?? location;
+    // The "you are here" pin only shows at the exact device location.
+    // The searched city/viewport never gets a pin.
+    const pinPos = pinLocation;
     const key = showUserLocation && pinPos
       ? `${pinPos.latitude.toFixed(6)}_${pinPos.longitude.toFixed(6)}_${userPinImage || ""}`
       : null;
