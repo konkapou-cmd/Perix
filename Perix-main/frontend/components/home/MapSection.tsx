@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
+import { getCurrentPositionWithPermission, isCoarsePosition, showCoarseLocationNotice } from "../../lib/locationPermission";
 import BusinessMap from "../../components/BusinessMap";
 import { MapBounds } from "../../context/MapBoundsContext";
 import { Business, EventItem, ActivityItem, Rental, Service } from "../../lib/api";
@@ -93,6 +93,10 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
 
   const handleRecenter = async () => {
     const loc = await getCurrentPositionWithPermission();
+    if (loc && isCoarsePosition(loc.accuracy)) {
+      showCoarseLocationNotice();
+      return;
+    }
     if (loc) {
       onRecenter?.(loc.latitude, loc.longitude);
     }

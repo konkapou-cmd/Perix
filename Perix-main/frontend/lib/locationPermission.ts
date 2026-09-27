@@ -50,34 +50,143 @@ export async function ensureLocationPermission(): Promise<boolean> {
   return false;
 }
 
-/**
- * Get the current position after ensuring permission.
- */
-export async function getCurrentPositionWithPermission(): Promise<{
+export interface FreshPosition {
   latitude: number;
   longitude: number;
-} | null> {
+  /** Reported accuracy radius in meters. Coarse (>~500m) fixes are
+   *  network-based or come from an "approximate location" permission and
+   *  are often visibly wrong (another street/city). */
+  accuracy: number;
+}
+
+/** Fixes with a larger accuracy radius are treated as unreliable. */
+export const TRUSTED_ACCURACY_METERS = 500;
+
+export function isCoarsePosition(accuracy: number | undefined | null): boolean {
+  return typeof accuracy !== "number" || accuracy > TRUSTED_ACCURACY_METERS;
+}
+
+/**
+ * Show a short notice when the browser only provides an approximate
+ * location (e.g. Android/iOS "approximate location" permission). Kept
+ * trilingual so it works without the i18n context.
+ */
+export function showCoarseLocationNotice() {
+  const text =
+    "Your browser reports only an approximate location.\n" +
+    "Enable precise location (high accuracy) for the Perix site to show your exact position.\n\n" +
+    "Ο browser σου δίνει μόνο κατά προσέγγιση τοποθεσία.\n" +
+    "Ενεργοποίησε την ακριβή τοποθεσία (υψηλή ακρίβεια) για να δείχνει το Perix την ακριβή θέση σου.\n\n" +
+    "Dein Browser meldet nur einen ungefähren Standort.\n" +
+    "Aktiviere die genaue Standortbestimmung (hohe Genauigkeit), damit Perix deine exakte Position anzeigt.";
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    window.alert(text);
+  } else {
+    Alert.alert("Location", text);
+  }
+}
+
+/**
+ * Get the current position after ensuring permission.
+ *
+ * Uses a fresh fix only (maximumAge: 0, high accuracy, long timeout) and
+ * never returns a cached/stale position. When the first fix is coarse
+ * (network-based or "approximate" permission), it keeps watching for a few
+ * seconds in case the GPS delivers a precise fix, and returns the most
+ * accurate position seen.
+ */
+export async function getCurrentPositionWithPermission(): Promise<FreshPosition | null> {
   const granted = await ensureLocationPermission();
   if (!granted) return null;
-  const attempt = async () => {
-    const loc = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-      // Force a fresh fix instead of a stale/cached position
-      maximumAge: 0 as any,
-      timeout: 30000,
-      mayShowUserSettingsDialog: true,
-    } as any);
-    return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-  };
+
+  const oneShot = () =>
+    new Promise<FreshPosition>((resolve, reject) => {
+      if (
+        Platform.OS === "web" &&
+        typeof navigator !== "undefined" &&
+        navigator.geolocation
+      ) {
+        navigator.geolocation.getCurrentPosition(
+          (p) =>
+            resolve({
+              latitude: p.coords.latitude,
+              longitude: p.coords.longitude,
+              accuracy: p.coords.accuracy ?? 99999,
+            }),
+          (e) => reject(e),
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
+        );
+      } else {
+        Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+          maximumAge: 0 as any,
+          timeout: 30000,
+        } as any)
+          .then((loc) =>
+            resolve({
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              accuracy: (loc.coords as any).accuracy ?? 30,
+            })
+          )
+          .catch(reject);
+      }
+    });
+
   try {
-    return await attempt();
+    const first = await oneShot();
+    if (!isCoarsePosition(first.accuracy)) return first;
+
+    // Coarse first fix - watch briefly in case GPS warms up and gives a
+    // precise fix.
+    return await new Promise<FreshPosition | null>((resolve) => {
+      if (
+        Platform.OS !== "web" ||
+        typeof navigator === "undefined" ||
+        !navigator.geolocation
+      ) {
+        resolve(first);
+        return;
+      }
+      let best: FreshPosition = first;
+      let settled = false;
+      let watchId: number | null = null;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        if (watchId !== null) {
+          try {
+            navigator.geolocation.clearWatch(watchId);
+          } catch {}
+        }
+        resolve(best);
+      };
+      try {
+        watchId = navigator.geolocation.watchPosition(
+          (p) => {
+            const cand: FreshPosition = {
+              latitude: p.coords.latitude,
+              longitude: p.coords.longitude,
+              accuracy: p.coords.accuracy ?? 99999,
+            };
+            if (cand.accuracy < best.accuracy) best = cand;
+            if (!isCoarsePosition(cand.accuracy)) finish();
+          },
+          () => {},
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 }
+        );
+      } catch {
+        finish();
+      }
+      setTimeout(finish, 20000);
+    });
   } catch (e) {
     console.warn("getCurrentPosition failed (first attempt):", e);
     // GPS on phones can take a while (e.g. indoors). Give it one more
     // chance before falling back, so we never show an old position.
     try {
       await new Promise((r) => setTimeout(r, 2500));
-      return await attempt();
+      return await oneShot();
     } catch (e2) {
       console.warn("getCurrentPosition failed (retry):", e2);
       return null;

@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { getCurrentPositionWithPermission } from "../lib/locationPermission";
+import { getCurrentPositionWithPermission, isCoarsePosition, showCoarseLocationNotice } from "../lib/locationPermission";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
@@ -67,6 +67,7 @@ export default function RentalsScreen() {
   const [locateToken, setLocateToken] = useState(0);
   const handleLocateMe = async () => {
     const loc = await getCurrentPositionWithPermission();
+    if (loc && isCoarsePosition(loc.accuracy)) { showCoarseLocationNotice(); return; }
     if (loc) { setExactLoc({ latitude: loc.latitude, longitude: loc.longitude }); setLocateToken((t) => t + 1); }
   };
   const [categories, setCategories] = useState<CategoryGroup[]>([]);

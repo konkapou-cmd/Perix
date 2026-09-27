@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getCurrentPositionWithPermission } from "../lib/locationPermission";
+import { getCurrentPositionWithPermission, isCoarsePosition } from "../lib/locationPermission";
 
 interface LocationData {
   latitude: number;
@@ -48,7 +48,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         // restore saved coordinates from a previous session - they point at
         // places the user visited Perix from in the past, which is wrong.
         const fresh = await getCurrentPositionWithPermission();
-        if (fresh) {
+        if (fresh && !isCoarsePosition(fresh.accuracy)) {
           const newLocation: LocationData = {
             latitude: fresh.latitude,
             longitude: fresh.longitude,
@@ -81,7 +81,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
       // Fresh fix only (maximumAge: 0) - never reuse a stale/cached position.
       const current = await getCurrentPositionWithPermission();
-      if (!current) {
+      if (!current || isCoarsePosition(current.accuracy)) {
         setError("Could not get location");
         setLoading(false);
         return;

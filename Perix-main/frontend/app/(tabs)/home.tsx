@@ -68,7 +68,7 @@ import ShareContent from "../../components/ShareContent";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
-import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
+import { getCurrentPositionWithPermission, isCoarsePosition, showCoarseLocationNotice } from "../../lib/locationPermission";
 
 const POST_FILTER_CATEGORIES: { slug: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { slug: "food-dining", icon: "restaurant" },
@@ -295,7 +295,7 @@ export default function HomeScreen() {
       getCurrentPositionWithPermission()
         .then((loc) => {
           if (cancelled) return;
-          if (loc) {
+          if (loc && !isCoarsePosition(loc.accuracy)) {
             setExactLocation({ latitude: loc.latitude, longitude: loc.longitude });
             // Center the map on the live position unless the user has
             // manually searched a city.
@@ -365,6 +365,10 @@ export default function HomeScreen() {
   const handleRecenterOnMe = async () => {
     try {
       const loc = await getCurrentPositionWithPermission();
+      if (loc && isCoarsePosition(loc.accuracy)) {
+        showCoarseLocationNotice();
+        return;
+      }
       if (loc) {
         const d = 0.09;
         setMapBounds({ minLat: loc.latitude - d / 2, maxLat: loc.latitude + d / 2, minLng: loc.longitude - d / 2, maxLng: loc.longitude + d / 2, centerLat: loc.latitude, centerLng: loc.longitude });
