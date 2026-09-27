@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
-import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ensureLocationPermission } from "../lib/locationPermission";
+import { getCurrentPositionWithPermission } from "../lib/locationPermission";
 
 interface LocationData {
   latitude: number;
@@ -45,23 +44,34 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         if (savedRadius) {
           setRadiusKmState(parseInt(savedRadius, 10));
         }
-        
-        if (savedLocation) {
+
+        // Always try to get a FRESH current position on startup. A manual
+        // city search persisted from a previous session must not stick -
+        // otherwise the map keeps opening on an old city instead of where
+        // the user actually is right now.
+        const fresh = await getCurrentPositionWithPermission();
+        if (fresh) {
+          const newLocation: LocationData = {
+            latitude: fresh.latitude,
+            longitude: fresh.longitude,
+            isLiveLocation: true,
+          };
+          setLocation(newLocation);
+          await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
+        } else if (savedLocation) {
+          // Fresh fix failed (e.g. permission denied) - fall back to the
+          // saved location (live or manual).
           const parsed = JSON.parse(savedLocation);
-          // If it was live location, refresh it
-          if (parsed.isLiveLocation) {
-            await requestLiveLocation();
-          } else {
-            setLocation(parsed);
-          }
-        } else {
-          // Default to live location
-          await requestLiveLocation();
+          setLocation(parsed);
         }
       } catch (e) {
         console.error("Error loading saved location:", e);
-        // Try to get live location as fallback
-        await requestLiveLocation();
+        const saved = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
+        if (saved) {
+          try {
+            setLocation(JSON.parse(saved));
+          } catch {}
+        }
       } finally {
         setLoading(false);
       }
@@ -74,21 +84,18 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      
-      const granted = await ensureLocationPermission();
-      if (!granted) {
-        setError("Location permission denied");
+
+      // Fresh fix only (maximumAge: 0) - never reuse a stale/cached position.
+      const current = await getCurrentPositionWithPermission();
+      if (!current) {
+        setError("Could not get location");
         setLoading(false);
         return;
       }
       
-      const current = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      
       const newLocation: LocationData = {
-        latitude: current.coords.latitude,
-        longitude: current.coords.longitude,
+        latitude: current.latitude,
+        longitude: current.longitude,
         name: undefined,
         isLiveLocation: true,
       };
