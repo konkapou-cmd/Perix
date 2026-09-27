@@ -298,6 +298,8 @@ export default function HomeScreen() {
         const loc = await Location.getCurrentPositionAsync({});
         const d = 0.09;
         setMapBounds({ minLat: loc.coords.latitude - d / 2, maxLat: loc.coords.latitude + d / 2, minLng: loc.coords.longitude - d / 2, maxLng: loc.coords.longitude + d / 2, centerLat: loc.coords.latitude, centerLng: loc.coords.longitude });
+        setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+        setManualLocation(loc.coords.latitude, loc.coords.longitude);
         setMapFocusToken((t) => t + 1);
       }
     } catch (error) {
@@ -959,6 +961,11 @@ export default function HomeScreen() {
             products={viewportProducts}
             ownerHomes={viewportHomes}
             userLocation={userLocation}
+            userPinImage={
+              activeIdentity?.type === "business"
+                ? (myBusinesses.find((b) => b.business_id === activeIdentity.id)?.logo_image || undefined)
+                : (user?.profile_photo || user?.picture || undefined)
+            }
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
             }}

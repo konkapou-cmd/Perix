@@ -23,12 +23,13 @@ interface MapSectionProps {
   products?: Listing[];
   ownerHomes?: Listing[];
   userLocation?: { latitude: number; longitude: number } | null;
+  userPinImage?: string | null;
   onRegionChange: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
   onRecenter?: (lat: number, lng: number) => void;
   focusToken?: number;
 }
 
-export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, userPinImage, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -102,6 +103,7 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
         <BusinessMap
           location={userLocation ?? undefined}
           showUserLocation
+          userPinImage={userPinImage ?? undefined}
           initialRegion={{
             latitude: mapBounds.centerLat,
             longitude: mapBounds.centerLng,

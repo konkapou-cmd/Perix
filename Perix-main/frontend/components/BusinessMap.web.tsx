@@ -52,6 +52,7 @@ type Props = {
   markers?: MapMarker[];
   extraMarkers?: MapMarker[];
   showUserLocation?: boolean;
+  userPinImage?: string | null;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onMarkerPress?: (markerId: string) => void;
@@ -116,6 +117,7 @@ export default function BusinessMap({
   markers,
   extraMarkers,
   showUserLocation,
+  userPinImage,
   onRegionChange,
   onRegionChangeComplete,
   onMarkerPress,
@@ -541,16 +543,39 @@ export default function BusinessMap({
     container.style.position = "absolute";
     container.style.pointerEvents = "none";
 
-    const dot = document.createElement("div");
-    dot.style.width = "16px";
-    dot.style.height = "16px";
-    dot.style.borderRadius = "50%";
-    dot.style.backgroundColor = "#59ABE3";
-    dot.style.border = "3px solid #ffffff";
-    dot.style.boxShadow = "0 1px 5px rgba(0,0,0,0.4)";
-    dot.style.transform = "translate(-50%, -50%)";
-    dot.style.boxSizing = "border-box";
-    container.appendChild(dot);
+    if (userPinImage) {
+      // User pin with the profile photo (user or business avatar)
+      const pin = document.createElement("div");
+      pin.style.width = "34px";
+      pin.style.height = "34px";
+      pin.style.borderRadius = "50%";
+      pin.style.border = "3px solid #ffffff";
+      pin.style.boxShadow = "0 1px 6px rgba(0,0,0,0.45)";
+      pin.style.backgroundColor = "#59ABE3";
+      pin.style.overflow = "hidden";
+      pin.style.transform = "translate(-50%, -50%)";
+      pin.style.boxSizing = "border-box";
+      const img = document.createElement("img");
+      img.src = userPinImage;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "50%";
+      img.onerror = () => { img.style.display = "none"; };
+      pin.appendChild(img);
+      container.appendChild(pin);
+    } else {
+      const dot = document.createElement("div");
+      dot.style.width = "16px";
+      dot.style.height = "16px";
+      dot.style.borderRadius = "50%";
+      dot.style.backgroundColor = "#59ABE3";
+      dot.style.border = "3px solid #ffffff";
+      dot.style.boxShadow = "0 1px 5px rgba(0,0,0,0.4)";
+      dot.style.transform = "translate(-50%, -50%)";
+      dot.style.boxSizing = "border-box";
+      container.appendChild(dot);
+    }
 
     class UserOverlay extends google.maps.OverlayView {
       div: HTMLDivElement;
@@ -583,7 +608,7 @@ export default function BusinessMap({
       try { overlay.setMap(null); } catch (e) {}
       if (userLocationOverlayRef.current === overlay) userLocationOverlayRef.current = null;
     };
-  }, [location, showUserLocation, mapReady]);
+  }, [location, showUserLocation, mapReady, userPinImage]);
 
   // Pan when the initialRegion-based center changes (e.g. home map bounds updates)
   useEffect(() => {
