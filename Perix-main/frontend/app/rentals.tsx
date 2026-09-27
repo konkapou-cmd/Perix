@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import { getCurrentPositionWithPermission } from "../lib/locationPermission";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntityAlert } from "../lib/navigation/entityRoutes";
@@ -62,6 +63,12 @@ export default function RentalsScreen() {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [exactLoc, setExactLoc] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locateToken, setLocateToken] = useState(0);
+  const handleLocateMe = async () => {
+    const loc = await getCurrentPositionWithPermission();
+    if (loc) { setExactLoc({ latitude: loc.latitude, longitude: loc.longitude }); setLocateToken((t) => t + 1); }
+  };
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
 
   const rootCategory = "";
@@ -286,6 +293,9 @@ export default function RentalsScreen() {
           <BusinessMap
             location={location}
             showUserLocation
+            pinLocation={exactLoc}
+            focusRegion={exactLoc ? { latitude: exactLoc.latitude, longitude: exactLoc.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
+            focusToken={locateToken || undefined}
             markers={filteredRentals
               .filter((r: any) => r.latitude && r.longitude)
               .map((r) => ({

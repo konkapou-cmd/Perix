@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 
@@ -67,6 +68,12 @@ export default function JobsScreen() {
   const [subcategoryModalVisible, setSubcategoryModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [jobsOffset, setJobsOffset] = useState(0);
+  const [exactLoc, setExactLoc] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locateToken, setLocateToken] = useState(0);
+  const handleLocateMe = async () => {
+    const loc = await getCurrentPositionWithPermission();
+    if (loc) { setExactLoc({ latitude: loc.latitude, longitude: loc.longitude }); setLocateToken((t) => t + 1); }
+  };
   const [jobsTotal, setJobsTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -256,10 +263,16 @@ export default function JobsScreen() {
 
               {/* Map */}
               <View style={styles.mapContainer}>
+                <Pressable style={styles.locateMeBtn} onPress={handleLocateMe}>
+                  <Ionicons name="locate" size={20} color="#096BFF" />
+                </Pressable>
                 {location ? (
                   <BusinessMap
                     location={location}
                     showUserLocation
+                    pinLocation={exactLoc}
+                    focusRegion={exactLoc ? { latitude: exactLoc.latitude, longitude: exactLoc.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
+                    focusToken={locateToken || undefined}
                     markers={(jobs || [])
                       .filter((job: any) => job.latitude && job.longitude)
                       .map((job) => ({
@@ -528,6 +541,11 @@ const styles = StyleSheet.create({
   mapContainer: {
     width: "100%",
     backgroundColor: "#ffffff",
+  },
+  locateMeBtn: {
+    position: "absolute", bottom: 12, right: 12, width: 42, height: 42, borderRadius: 21,
+    backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
+    elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, zIndex: 20,
   },
   mapPlaceholder: {
     flex: 1,
