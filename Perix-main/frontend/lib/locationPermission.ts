@@ -87,6 +87,73 @@ export function showCoarseLocationNotice() {
 }
 
 /**
+ * Continuously watch the device position and invoke the callback with
+ * every fix (callers filter by accuracy). Browsers deliver progressively
+ * better fixes this way (especially after user interaction, when
+ * high-accuracy requests are honored), so the pin appears as soon as a
+ * precise fix is available. Returns a stop function.
+ */
+export function watchPrecisePosition(
+  onPosition: (pos: FreshPosition) => void
+): () => void {
+  if (
+    Platform.OS === "web" &&
+    typeof navigator !== "undefined" &&
+    navigator.geolocation
+  ) {
+    let watchId: number;
+    try {
+      watchId = navigator.geolocation.watchPosition(
+        (p) =>
+          onPosition({
+            latitude: p.coords.latitude,
+            longitude: p.coords.longitude,
+            accuracy: p.coords.accuracy ?? 99999,
+          }),
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 60000 }
+      );
+    } catch {
+      return () => {};
+    }
+    return () => {
+      try {
+        navigator.geolocation.clearWatch(watchId);
+      } catch {}
+    };
+  }
+  let cancelled = false;
+  let subscription: { remove: () => void } | null = null;
+  Location.watchPositionAsync(
+    { accuracy: Location.Accuracy.High, distanceInterval: 5 } as any,
+    (loc) => {
+      if (cancelled) return;
+      onPosition({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        accuracy: (loc.coords as any).accuracy ?? 30,
+      });
+    }
+  ).then((sub) => {
+    if (cancelled) {
+      try {
+        sub.remove();
+      } catch {}
+    } else {
+      subscription = sub;
+    }
+  });
+  return () => {
+    cancelled = true;
+    if (subscription) {
+      try {
+        subscription.remove();
+      } catch {}
+    }
+  };
+}
+
+/**
  * Get the current position after ensuring permission.
  *
  * Uses a fresh fix only (maximumAge: 0, high accuracy, long timeout) and
