@@ -38,17 +38,15 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadSavedLocation = async () => {
       try {
-        const savedLocation = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
         const savedRadius = await AsyncStorage.getItem(RADIUS_STORAGE_KEY);
         
         if (savedRadius) {
           setRadiusKmState(parseInt(savedRadius, 10));
         }
 
-        // Always try to get a FRESH current position on startup. A manual
-        // city search persisted from a previous session must not stick -
-        // otherwise the map keeps opening on an old city instead of where
-        // the user actually is right now.
+        // Always try to get a FRESH current position on startup. Never
+        // restore saved coordinates from a previous session - they point at
+        // places the user visited Perix from in the past, which is wrong.
         const fresh = await getCurrentPositionWithPermission();
         if (fresh) {
           const newLocation: LocationData = {
@@ -58,20 +56,16 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
           };
           setLocation(newLocation);
           await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
-        } else if (savedLocation) {
-          // Fresh fix failed (e.g. permission denied) - fall back to the
-          // saved location (live or manual).
-          const parsed = JSON.parse(savedLocation);
-          setLocation(parsed);
+        } else {
+          // Fresh fix failed (e.g. permission denied or GPS timeout).
+          // Do NOT show an old location - stay empty and let the UI ask
+          // the user to set the area / retry.
+          setError("Could not get location");
+          await AsyncStorage.removeItem(LOCATION_STORAGE_KEY);
         }
       } catch (e) {
         console.error("Error loading saved location:", e);
-        const saved = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
-        if (saved) {
-          try {
-            setLocation(JSON.parse(saved));
-          } catch {}
-        }
+        setError("Could not get location");
       } finally {
         setLoading(false);
       }

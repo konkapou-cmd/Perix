@@ -59,17 +59,28 @@ export async function getCurrentPositionWithPermission(): Promise<{
 } | null> {
   const granted = await ensureLocationPermission();
   if (!granted) return null;
-  try {
+  const attempt = async () => {
     const loc = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
       // Force a fresh fix instead of a stale/cached position
       maximumAge: 0 as any,
-      timeout: 15000,
+      timeout: 30000,
       mayShowUserSettingsDialog: true,
     } as any);
     return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+  };
+  try {
+    return await attempt();
   } catch (e) {
-    console.warn("getCurrentPosition failed:", e);
-    return null;
+    console.warn("getCurrentPosition failed (first attempt):", e);
+    // GPS on phones can take a while (e.g. indoors). Give it one more
+    // chance before falling back, so we never show an old position.
+    try {
+      await new Promise((r) => setTimeout(r, 2500));
+      return await attempt();
+    } catch (e2) {
+      console.warn("getCurrentPosition failed (retry):", e2);
+      return null;
+    }
   }
 }

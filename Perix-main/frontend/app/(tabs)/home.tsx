@@ -65,7 +65,6 @@ import { COLORS } from "../../lib/designTokens";
 import { formatEventDate, formatEventTime } from "../../lib/formatDate";
 import { isBusinessOpen } from "../../lib/openingHours";
 import ShareContent from "../../components/ShareContent";
-import * as Location from "expo-location";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
@@ -214,6 +213,9 @@ export default function HomeScreen() {
   const [exactLocation, setExactLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const globalLocationRef = useRef<any>(null);
   useEffect(() => { globalLocationRef.current = globalLocation; }, [globalLocation]);
+  const lastProfilePersistRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const sessionTokenRef = useRef<string | null>(null);
+  useEffect(() => { sessionTokenRef.current = sessionToken; }, [sessionToken]);
   const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");
   const [activitiesFilter, setActivitiesFilter] = useState<"all" | "attending" | "mine">("all");
   const [showNoLocationMessage, setShowNoLocationMessage] = useState(false);
@@ -305,6 +307,18 @@ export default function HomeScreen() {
               setUserLocation({ latitude: loc.latitude, longitude: loc.longitude });
               setMapFocusToken((t) => t + 1);
             }
+            // Persist the fresh position to the profile so the app never
+            // opens on coordinates from old sessions (old places the user
+            // visited Perix from). Only when it moved enough to matter.
+            const prev = lastProfilePersistRef.current;
+            const movedEnough = !prev || Math.hypot(loc.latitude - prev.latitude, loc.longitude - prev.longitude) > 0.003;
+            if (movedEnough && sessionTokenRef.current && !isManual) {
+              lastProfilePersistRef.current = { latitude: loc.latitude, longitude: loc.longitude };
+              const token = sessionTokenRef.current;
+              import("../../lib/api").then(({ updateProfileInfo }) => {
+                updateProfileInfo(token, { latitude: loc.latitude, longitude: loc.longitude }).catch(() => {});
+              });
+            }
           } else {
             // A fresh fix failed — hide the stale pin instead of showing
             // a wrong location.
@@ -334,27 +348,28 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (isMapInitialized) return;
-    if (user?.latitude && user?.longitude) {
-      const d = 0.09;
-      setMapBounds({ minLat: user.latitude - d / 2, maxLat: user.latitude + d / 2, minLng: user.longitude - d / 2, maxLng: user.longitude + d / 2, centerLat: user.latitude, centerLng: user.longitude });
-      return;
-    }
+    // Prefer the fresh location from the location context. The profile
+    // coordinates can be from an old session (a place the user visited
+    // Perix from in the past) - only use them as a last resort.
     if (globalLocation) {
       const d = 0.09;
       setMapBounds({ minLat: globalLocation.latitude - d / 2, maxLat: globalLocation.latitude + d / 2, minLng: globalLocation.longitude - d / 2, maxLng: globalLocation.longitude + d / 2, centerLat: globalLocation.latitude, centerLng: globalLocation.longitude });
+      return;
+    }
+    if (user?.latitude && user?.longitude) {
+      const d = 0.09;
+      setMapBounds({ minLat: user.latitude - d / 2, maxLat: user.latitude + d / 2, minLng: user.longitude - d / 2, maxLng: user.longitude + d / 2, centerLat: user.latitude, centerLng: user.longitude });
     }
   }, [user, globalLocation, isMapInitialized, setMapBounds]);
 
   const handleRecenterOnMe = async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const loc = await Location.getCurrentPositionAsync({});
+      const loc = await getCurrentPositionWithPermission();
+      if (loc) {
         const d = 0.09;
-        setMapBounds({ minLat: loc.coords.latitude - d / 2, maxLat: loc.coords.latitude + d / 2, minLng: loc.coords.longitude - d / 2, maxLng: loc.coords.longitude + d / 2, centerLat: loc.coords.latitude, centerLng: loc.coords.longitude });
-        setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-        setExactLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-        setManualLocation(loc.coords.latitude, loc.coords.longitude);
+        setMapBounds({ minLat: loc.latitude - d / 2, maxLat: loc.latitude + d / 2, minLng: loc.longitude - d / 2, maxLng: loc.longitude + d / 2, centerLat: loc.latitude, centerLng: loc.longitude });
+        setUserLocation({ latitude: loc.latitude, longitude: loc.longitude });
+        setExactLocation({ latitude: loc.latitude, longitude: loc.longitude });
         setMapFocusToken((t) => t + 1);
       }
     } catch (error) {
