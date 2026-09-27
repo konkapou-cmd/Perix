@@ -17,7 +17,7 @@ type AuthContextValue = {
   sessionToken: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (firstName: string, lastName: string, email: string, password: string, city: string, role: string, rootCategory?: string, subcategory?: string, businessName?: string, latitude?: number, longitude?: number, acceptedTerms?: boolean) => Promise<void>;
+  register: (firstName: string, lastName: string, email: string, password: string, city: string, role: string, rootCategory?: string, subcategory?: string, businessName?: string, latitude?: number, longitude?: number, acceptedTerms?: boolean, accessCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   activeIdentity: {
@@ -149,8 +149,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  const register = async (firstName: string, lastName: string, email: string, password: string, city: string, role: string, rootCategory?: string, subcategory?: string, businessName?: string, latitude?: number, longitude?: number, acceptedTerms: boolean = false) => {
-    const response = await registerUser(firstName, lastName, email, password, city, role, rootCategory, subcategory, businessName, latitude, longitude, acceptedTerms);
+  const register = async (firstName: string, lastName: string, email: string, password: string, city: string, role: string, rootCategory?: string, subcategory?: string, businessName?: string, latitude?: number, longitude?: number, acceptedTerms: boolean = false, accessCode?: string) => {
+    const response = await registerUser(firstName, lastName, email, password, city, role, rootCategory, subcategory, businessName, latitude, longitude, acceptedTerms, accessCode);
     setUser(response.user);
     await persistSession(response.session_token);
     try {

@@ -23,6 +23,7 @@ class BusinessCreate(BaseModel):
     name: str
     root_category: str
     subcategory: str
+    access_code: Optional[str] = None
     subcategories: Optional[List[str]] = None
     description: Optional[str] = None
     logo_image: Optional[str] = None

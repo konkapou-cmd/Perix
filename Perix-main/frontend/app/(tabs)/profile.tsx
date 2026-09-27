@@ -349,6 +349,7 @@ export default function ProfileScreen() {
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [pickerRoot, setPickerRoot] = useState("");
+  const [pickerAccessCode, setPickerAccessCode] = useState("");
   const [pickerSub, setPickerSub] = useState("");
   const [pickerSubs, setPickerSubs] = useState<string[]>([]);
   const creatingBusinessRef = useRef(false);
@@ -2392,6 +2393,14 @@ try {
   const handleCreateNewBusiness = async () => {
     if (!sessionToken || !user || !pickerRoot || pickerSubs.length === 0) return;
     if (creatingBusinessRef.current) return;
+    if (pickerAccessCode.trim().toLowerCase() !== "perix pro") {
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.alert(t("business.accessCodeInvalid", "Invalid access code. The business access code is required to create a business profile."));
+      } else {
+        Alert.alert(t("common.error", "Error"), t("business.accessCodeInvalid", "Invalid access code. The business access code is required to create a business profile."));
+      }
+      return;
+    }
     const hasAddress = user.location && user.location !== "Not set" && user.latitude && user.longitude;
     if (!hasAddress) {
       const ok = await confirmAction({
@@ -2413,6 +2422,7 @@ try {
         name: user.name + " Business",
         description: "",
         address: "",
+        access_code: pickerAccessCode.trim(),
         ...(hasAddress && user.latitude != null && user.longitude != null
           ? { latitude: user.latitude, longitude: user.longitude }
           : {}),
@@ -2425,6 +2435,7 @@ try {
       refreshMyBusinesses();
       setShowCategoryPicker(false);
       setPickerRoot("");
+      setPickerAccessCode("");
       setPickerSub("");
       setPickerSubs([]);
       refreshUser();
@@ -3602,6 +3613,14 @@ currentUserId={businessDetail?.business?.business_id}
             )}
           </ScrollView>
           <View style={{ padding: 16, paddingBottom: 16 + insets.bottom, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e5e7eb" }}>
+            <Text style={{ fontSize: 13, color: "#6b7280", marginBottom: 8 }}>{t("business.accessCodeHint", "Enter the business access code to create your business (free for founders).")}</Text>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: COLORS.textPrimary, marginBottom: 12 }}
+              value={pickerAccessCode}
+              onChangeText={setPickerAccessCode}
+              placeholder={t("business.accessCodeLabel", "Business access code")}
+              placeholderTextColor="#9ca3af"
+            />
             <Pressable
               style={{ backgroundColor: pickerRoot && pickerSubs.length > 0 ? COLORS.textPrimary : "#d1d5db", borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
               disabled={!pickerRoot || pickerSubs.length === 0}

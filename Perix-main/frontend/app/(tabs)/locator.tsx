@@ -107,6 +107,7 @@ export default function LocatorScreen() {
     subcategory: "",
     address: "",
     description: "",
+    access_code: "",
     latitude: null as number | null,
     longitude: null as number | null,
   });
@@ -574,6 +575,14 @@ export default function LocatorScreen() {
   const handleAddBusiness = async () => {
      if (!sessionToken || !contextLocation) return;
      if (!form.name || !form.root_category || !form.subcategory || !form.address) return;
+     if (form.access_code.trim().toLowerCase() !== "perix pro") {
+       if (Platform.OS === "web" && typeof window !== "undefined") {
+         window.alert(t("business.accessCodeInvalid", "Invalid access code. The business access code is required to create a business profile."));
+       } else {
+         Alert.alert(t("common.error", "Error"), t("business.accessCodeInvalid", "Invalid access code. The business access code is required to create a business profile."));
+       }
+       return;
+     }
      const latitude = form.latitude ?? contextLocation.latitude;
      const longitude = form.longitude ?? contextLocation.longitude;
     const newBusiness = await createBusiness(sessionToken, {
@@ -582,6 +591,7 @@ export default function LocatorScreen() {
       subcategory: form.subcategory,
       description: form.description,
       address: form.address,
+      access_code: form.access_code.trim(),
       latitude,
       longitude,
     });
@@ -592,6 +602,7 @@ export default function LocatorScreen() {
       subcategory: "",
       address: "",
       description: "",
+      access_code: "",
       latitude: null,
       longitude: null,
     });
@@ -1324,6 +1335,13 @@ export default function LocatorScreen() {
               onChangeText={(value) => setForm({ ...form, description: value })}
               style={[styles.input, { minHeight: 90, textAlignVertical: "top" }]}
               multiline
+            />
+            <TextInput
+              style={styles.input}
+              value={form.access_code}
+              onChangeText={(v) => setForm((prev) => ({ ...prev, access_code: v }))}
+              placeholder={t("business.accessCodeLabel", "Business access code")}
+              placeholderTextColor="#9ca3af"
             />
             <Pressable style={styles.primaryButton} onPress={handleAddBusiness}>
               <Text style={styles.primaryButtonText}>{t('locator.saveBusiness')}</Text>

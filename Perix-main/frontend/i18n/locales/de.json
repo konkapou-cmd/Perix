@@ -942,7 +942,10 @@
     "manage": "Verwalten",
     "createJob": "Job erstellen",
     "categoryChangeTitle": "Geschäftskategorie ändern?",
-    "categoryChangeMessage": "Wenn du die Kategorie änderst, werden alle Dienste, Jobs, Events, Buchungen und Medien dieses Unternehmens dauerhaft gelöscht."
+    "categoryChangeMessage": "Wenn du die Kategorie änderst, werden alle Dienste, Jobs, Events, Buchungen und Medien dieses Unternehmens dauerhaft gelöscht.",
+    "accessCodeLabel": "Zugangscode für Unternehmen",
+    "accessCodeHint": "Gib den Zugangscode ein, um dein Unternehmen zu erstellen (für Gründer kostenlos).",
+    "accessCodeInvalid": "Ungültiger Zugangscode. Der Zugangscode ist erforderlich, um ein Unternehmensprofil zu erstellen."
   },
   "businessProfile": {
     "basicInfo": "Basisinformationen",

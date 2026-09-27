@@ -95,6 +95,14 @@ async def register_user(payload: RegisterInput, response: Response):
 
     business = None
     if payload.role == "business":
+        # Founder access: creating a business requires the invite code.
+        # Founder businesses stay free; a paid plan may come later.
+        from routes.businesses import BUSINESS_ACCESS_CODE, _valid_access_code
+        if not _valid_access_code(payload.access_code):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid access code. The business access code is required to create a business profile.",
+            )
         import database as db_module
         cat_info = db_module.CATEGORY_LOOKUP.get(payload.subcategory or "", {})
         business_name = payload.business_name or f"{payload.name}'s Business"
@@ -116,8 +124,11 @@ async def register_user(payload: RegisterInput, response: Response):
             "phone": None,
             "website": None,
             "email": payload.email,
-            "subscription_status": "trial",
-            "trial_expires_at": now_utc() + timedelta(days=90),
+            "subscription_status": "active",
+            "plan_type": "founder",
+            "access_code_used": "Perix Pro",
+            "free_until": now_utc() + timedelta(days=365),
+            "trial_expires_at": now_utc() + timedelta(days=365),
             "created_at": now_utc(),
             "gallery_images": [],
             "gallery_videos": [],
@@ -238,6 +249,13 @@ async def upgrade_to_business(
     """Upgrade a user account to a business account."""
     if current_user.role == "business":
         raise HTTPException(status_code=400, detail="Account is already a business")
+
+    from routes.businesses import _valid_access_code
+    if not _valid_access_code(payload.access_code):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid access code. The business access code is required to create a business profile.",
+        )
 
     existing_count = await db.businesses.count_documents({"owner_id": current_user.user_id})
     if existing_count >= 1:

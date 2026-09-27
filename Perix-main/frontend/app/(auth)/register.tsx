@@ -46,6 +46,7 @@ export default function RegisterScreen() {
   const [rootCategory, setRootCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
@@ -84,6 +85,10 @@ export default function RegisterScreen() {
       setErrorMessage(t("auth.acceptTermsRequired", "You must accept the Terms of Service and confirm that you are at least 16 years old."));
       return;
     }
+    if (role === "business" && accessCode.trim().toLowerCase() !== "perix pro") {
+      setErrorMessage(t("business.accessCodeInvalid", "Invalid access code. The business access code is required to create a business profile."));
+      return;
+    }
     try {
       setLoading(true);
       setErrorMessage("");
@@ -99,7 +104,8 @@ export default function RegisterScreen() {
         businessName || undefined,
         cityLat,
         cityLng,
-        true
+        true,
+        role === "business" ? accessCode.trim() : undefined
       );
       const title = t("auth.accountCreated", "Account created!");
       const message = t("auth.verifyEmailSent", "We sent a verification email to your inbox. Please verify your email to enable password recovery.");
@@ -212,6 +218,18 @@ export default function RegisterScreen() {
                   </Text>
                   <Ionicons name="chevron-down" size={16} color="#264348" />
                 </Pressable>
+                <View style={styles.inputRow}>
+                  <Ionicons name="key-outline" size={20} color="#264348" />
+                  <TextInput
+                    value={accessCode}
+                    onChangeText={setAccessCode}
+                    placeholder={t("business.accessCodeLabel", "Business access code")}
+                    style={styles.input}
+                  />
+                </View>
+                <Text style={styles.accessCodeHint}>
+                  {t("business.accessCodeHint", "Enter the business access code to create your business (free for founders).")}
+                </Text>
               </>
             )}
 
@@ -593,6 +611,12 @@ const styles = StyleSheet.create({
   termsLink: {
     color: "#59ABE3",
     fontWeight: "700",
+  },
+  accessCodeHint: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 6,
+    lineHeight: 17,
   },
   primaryButtonText: {
     color: "#fff",

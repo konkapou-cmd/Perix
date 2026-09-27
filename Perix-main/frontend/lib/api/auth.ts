@@ -12,7 +12,8 @@ export const registerUser = async (
   businessName?: string,
   latitude?: number,
   longitude?: number,
-  acceptedTerms: boolean = false
+  acceptedTerms: boolean = false,
+  accessCode?: string
 ): Promise<AuthResponse> => {
   const body: Record<string, unknown> = {
     name: `${firstName} ${lastName}`.trim(),
@@ -28,6 +29,7 @@ export const registerUser = async (
   if (businessName) body.business_name = businessName;
   if (latitude != null) body.latitude = latitude;
   if (longitude != null) body.longitude = longitude;
+  if (accessCode) body.access_code = accessCode;
   return apiRequest<AuthResponse>("/auth/register", "POST", null, body);
 };
 

@@ -120,10 +120,25 @@ def is_subscription_active(business_doc: Dict) -> bool:
     return True
 
 
+# Invite code required to create a business profile during the free
+# founder period. Founder businesses stay free; a paid plan may be
+# introduced later and founder businesses remain free for one year.
+BUSINESS_ACCESS_CODE = "Perix Pro"
+
+
+def _valid_access_code(code: Optional[str]) -> bool:
+    return (code or "").strip().casefold() == BUSINESS_ACCESS_CODE.casefold()
+
+
 @router.post("", response_model=BusinessResponse)
 async def create_business(
     payload: BusinessCreate, current_user: UserPublic = Depends(get_current_user)
 ):
+    if not _valid_access_code(payload.access_code):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid access code. The business access code is required to create a business profile.",
+        )
     existing_count = await db.businesses.count_documents(
         {"owner_id": current_user.user_id}
     )
@@ -133,7 +148,7 @@ async def create_business(
     infos = _resolve_subcategories(payload.root_category, requested_subs)
     category_info = infos[0]
 
-    trial_expires_at = now_utc() + timedelta(days=90)
+    trial_expires_at = now_utc() + timedelta(days=365)
     modules = category_info.get("modules", {})
     business_doc = {
         "business_id": generate_id("biz"),
@@ -165,9 +180,11 @@ async def create_business(
         },
         "created_at": now_utc(),
         "enabled_modules": modules,
-        "subscription_status": "trial",
+        "subscription_status": "active",
+        "plan_type": "founder",
+        "access_code_used": BUSINESS_ACCESS_CODE,
+        "free_until": now_utc() + timedelta(days=365),
         "trial_expires_at": trial_expires_at,
-        "plan_type": None,
         "subscription_expires_at": None,
         "favorites": [],
     }

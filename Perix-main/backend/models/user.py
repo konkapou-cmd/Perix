@@ -67,6 +67,7 @@ class RegisterInput(BaseModel):
     root_category: Optional[str] = None
     subcategory: Optional[str] = None
     business_name: Optional[str] = None
+    access_code: Optional[str] = None
     accepted_terms: bool = False
     age_confirmed: bool = False
 
@@ -80,6 +81,7 @@ class UpgradeToBusinessInput(BaseModel):
     root_category: str
     subcategory: str
     business_name: Optional[str] = None
+    access_code: Optional[str] = None
 
 
 class ChangePasswordInput(BaseModel):

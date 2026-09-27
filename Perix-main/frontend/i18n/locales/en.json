@@ -933,7 +933,10 @@
     "create": "Create",
     "manage": "Manage",
     "categoryChangeTitle": "Change business category?",
-    "categoryChangeMessage": "Changing your category will permanently delete all services, jobs, events, bookings and media of this business."
+    "categoryChangeMessage": "Changing your category will permanently delete all services, jobs, events, bookings and media of this business.",
+    "accessCodeLabel": "Business access code",
+    "accessCodeHint": "Enter the business access code to create your business (free for founders).",
+    "accessCodeInvalid": "Invalid access code. The business access code is required to create a business profile."
   },
   "businessProfile": {
     "editProfile": "Edit Profile",
