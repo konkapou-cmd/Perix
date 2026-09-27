@@ -282,12 +282,31 @@ export default function HomeScreen() {
 
   // Fetch the device's exact GPS position for the "you are here" pin.
   // The pin is shown at the exact location, independent of the searched city.
+  // Refreshed on focus and every few minutes so it follows the user.
   useEffect(() => {
     let cancelled = false;
-    getCurrentPositionWithPermission()
-      .then((loc) => { if (!cancelled && loc) setExactLocation({ latitude: loc.latitude, longitude: loc.longitude }); })
-      .catch(() => {});
-    return () => { cancelled = true; };
+    const refresh = () => {
+      getCurrentPositionWithPermission()
+        .then((loc) => { if (!cancelled && loc) setExactLocation({ latitude: loc.latitude, longitude: loc.longitude }); })
+        .catch(() => {});
+    };
+    refresh();
+    const interval = setInterval(refresh, 3 * 60 * 1000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    if (Platform.OS === "web" && typeof window !== "undefined" && typeof document !== "undefined") {
+      window.addEventListener("focus", refresh);
+      document.addEventListener("visibilitychange", onVisibility);
+    }
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      if (Platform.OS === "web" && typeof window !== "undefined" && typeof document !== "undefined") {
+        window.removeEventListener("focus", refresh);
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
+    };
   }, []);
 
   useEffect(() => {

@@ -113,7 +113,7 @@ async def register_user(payload: RegisterInput, response: Response):
             "name": business_name,
             "root_category": payload.root_category or "",
             "subcategory": payload.subcategory or "",
-            "category": cat_info.get("name", payload.subcategory or "") if cat_info else payload.subcategory,
+            "category": (cat_info.get("name") if cat_info else None) or payload.subcategory or "Business",
             "description": "",
             "address": payload.city or "",
             "latitude": payload.latitude,

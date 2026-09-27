@@ -71,9 +71,9 @@ class BusinessResponse(BaseModel):
     business_id: str
     owner_id: str
     name: str
-    category: str
-    root_category: str
-    subcategory: str
+    category: Optional[str] = None
+    root_category: Optional[str] = None
+    subcategory: Optional[str] = None
     subcategories: List[str] = []
     description: Optional[str] = None
     logo_image: Optional[str] = None

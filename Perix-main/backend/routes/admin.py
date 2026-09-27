@@ -922,6 +922,28 @@ async def dev_dbg_feed(payload: dict):
     }
 
 
+@router.post("/dev-fix-invalid-businesses")
+async def dev_fix_invalid_businesses(payload: dict):
+    """Dev helper: repair businesses with missing category/subcategory."""
+    if payload.get("dev_key") != "perix-dev-reset-key-2026":
+        raise HTTPException(status_code=403, detail="Invalid dev key")
+    count = 0
+    async for b in db.businesses.find(
+        {"$or": [{"category": None}, {"category": {"$exists": False}}]},
+        {"business_id": 1, "root_category": 1},
+    ):
+        await db.businesses.update_one(
+            {"business_id": b["business_id"]},
+            {"$set": {
+                "category": b.get("root_category") or "Business",
+                "subcategory": "other",
+                "root_category": b.get("root_category") or "other",
+            }},
+        )
+        count += 1
+    return {"status": "fixed", "count": count}
+
+
 @router.post("/dev-list-posts")
 async def dev_list_posts(payload: dict):
     """Dev helper: list the latest posts with visibility info for debugging."""
