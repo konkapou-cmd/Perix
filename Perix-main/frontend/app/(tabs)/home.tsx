@@ -68,7 +68,7 @@ import ShareContent from "../../components/ShareContent";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
-import { getCurrentPositionWithPermission, isCoarsePosition, showCoarseLocationNotice, watchPrecisePosition } from "../../lib/locationPermission";
+import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 
 const POST_FILTER_CATEGORIES: { slug: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { slug: "food-dining", icon: "restaurant" },
@@ -211,11 +211,6 @@ export default function HomeScreen() {
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [exactLocation, setExactLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const globalLocationRef = useRef<any>(null);
-  useEffect(() => { globalLocationRef.current = globalLocation; }, [globalLocation]);
-  const lastProfilePersistRef = useRef<{ latitude: number; longitude: number } | null>(null);
-  const sessionTokenRef = useRef<string | null>(null);
-  useEffect(() => { sessionTokenRef.current = sessionToken; }, [sessionToken]);
   const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");
   const [activitiesFilter, setActivitiesFilter] = useState<"all" | "attending" | "mine">("all");
   const [showNoLocationMessage, setShowNoLocationMessage] = useState(false);
@@ -284,60 +279,26 @@ export default function HomeScreen() {
     if (globalLocation) setUserLocation({ latitude: globalLocation.latitude, longitude: globalLocation.longitude });
   }, [globalLocation]);
 
-  // Fetch the device's exact GPS position for the "you are here" pin.
-  // The pin is shown at the exact location, independent of the searched city.
-  // Refreshed on focus and every few minutes so it follows the user.
-  // When the user has NOT manually searched a city, the map is centered on
-  // the current location so the pin is visible.
-  //
-  // A coarse fix (browsers downgrade non-gesture requests / approximate
-  // location) never erases an existing precise pin - the pin only moves
-  // when a better fix arrives.
-  const hasPinnedRef = useRef(false);
-  const autoCenteredRef = useRef(false);
+  // "You are here" pin: the device's fresh GPS position when available.
+  // When the browser cannot give a fix, the pin falls back to the map
+  // area (the searched city / the area the map already shows). No
+  // auto-centering, no accuracy gymnastics - the map stays where the
+  // user put it and the pin simply shows the best known position.
+  // Refreshed on focus and every few minutes.
   useEffect(() => {
     let cancelled = false;
-    const applyPrecise = (loc: { latitude: number; longitude: number; accuracy: number }) => {
-      if (cancelled || isCoarsePosition(loc.accuracy)) return;
-      setExactLocation({ latitude: loc.latitude, longitude: loc.longitude });
-      hasPinnedRef.current = true;
-      // Center the map on the live position unless the user has
-      // manually searched a city. Only auto-center once so browsing
-      // is not interrupted by later fixes.
-      const locCtx = globalLocationRef.current as any;
-      const isManual = locCtx && !locCtx.isLiveLocation;
-      if (!isManual && !autoCenteredRef.current) {
-        autoCenteredRef.current = true;
-        const d = 0.09;
-        setMapBounds({ minLat: loc.latitude - d / 2, maxLat: loc.latitude + d / 2, minLng: loc.longitude - d / 2, maxLng: loc.longitude + d / 2, centerLat: loc.latitude, centerLng: loc.longitude });
-        setUserLocation({ latitude: loc.latitude, longitude: loc.longitude });
-        setMapFocusToken((t) => t + 1);
-      }
-      // Persist the fresh position to the profile so the app never
-      // opens on coordinates from old sessions (old places the user
-      // visited Perix from). Only when it moved enough to matter.
-      const prev = lastProfilePersistRef.current;
-      const movedEnough = !prev || Math.hypot(loc.latitude - prev.latitude, loc.longitude - prev.longitude) > 0.003;
-      if (movedEnough && sessionTokenRef.current && !isManual) {
-        lastProfilePersistRef.current = { latitude: loc.latitude, longitude: loc.longitude };
-        const token = sessionTokenRef.current;
-        import("../../lib/api").then(({ updateProfileInfo }) => {
-          updateProfileInfo(token, { latitude: loc.latitude, longitude: loc.longitude }).catch(() => {});
-        });
-      }
-    };
     const refresh = () => {
-      getCurrentPositionWithPermission().then((loc) => {
-        if (cancelled || !loc) return;
-        applyPrecise(loc);
-      }).catch(() => {});
+      getCurrentPositionWithPermission()
+        .then((loc) => {
+          if (cancelled) return;
+          if (loc) {
+            setExactLocation({ latitude: loc.latitude, longitude: loc.longitude });
+          } else {
+            setExactLocation(null);
+          }
+        })
+        .catch(() => { if (!cancelled) setExactLocation(null); });
     };
-    // Keep watching: phones often deliver a precise fix only later (e.g.
-    // after user interaction, when the browser honors high accuracy).
-    const stopWatch = watchPrecisePosition((pos) => {
-      if (cancelled) return;
-      applyPrecise(pos);
-    });
     refresh();
     const interval = setInterval(refresh, 3 * 60 * 1000);
     const onVisibility = () => {
@@ -350,13 +311,21 @@ export default function HomeScreen() {
     return () => {
       cancelled = true;
       clearInterval(interval);
-      stopWatch();
       if (Platform.OS === "web" && typeof window !== "undefined" && typeof document !== "undefined") {
         window.removeEventListener("focus", refresh);
         document.removeEventListener("visibilitychange", onVisibility);
       }
     };
   }, []);
+
+  // Fallback pin position: the searched area when set, otherwise the
+  // user's saved coordinates. This is where the map opens anyway.
+  const fallbackPinLocation = useMemo(() => {
+    if (globalLocation) return { latitude: globalLocation.latitude, longitude: globalLocation.longitude };
+    if (user?.latitude && user?.longitude) return { latitude: user.latitude, longitude: user.longitude };
+    return null;
+  }, [globalLocation, user?.latitude, user?.longitude]);
+  const pinLocation = exactLocation ?? fallbackPinLocation;
 
   useEffect(() => {
     if (isMapInitialized) return;
@@ -377,10 +346,6 @@ export default function HomeScreen() {
   const handleRecenterOnMe = async () => {
     try {
       const loc = await getCurrentPositionWithPermission();
-      if (loc && isCoarsePosition(loc.accuracy)) {
-        showCoarseLocationNotice();
-        return;
-      }
       if (loc) {
         const d = 0.09;
         setMapBounds({ minLat: loc.latitude - d / 2, maxLat: loc.latitude + d / 2, minLng: loc.longitude - d / 2, maxLng: loc.longitude + d / 2, centerLat: loc.latitude, centerLng: loc.longitude });
@@ -1034,17 +999,6 @@ export default function HomeScreen() {
           activeIdentity={activeIdentity}
         />
 
-        {!exactLocation && mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
-          <Pressable style={styles.locateHint} onPress={handleRecenterOnMe}>
-            <Ionicons name="locate" size={18} color="#59ABE3" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.locateHintTitle}>{t("home.locateHintTitle", { defaultValue: "Can't see your pin?" })}</Text>
-              <Text style={styles.locateHintText}>{t("home.locateHintText", { defaultValue: "Tap the locate button on the map so we can get your precise position." })}</Text>
-            </View>
-            <Text style={styles.locateHintAction}>{t("home.locateNow", { defaultValue: "Locate me" })}</Text>
-          </Pressable>
-        )}
-
         {mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
           <MapSection
             mapBounds={mapBounds}
@@ -1058,7 +1012,7 @@ export default function HomeScreen() {
             products={viewportProducts}
             ownerHomes={viewportHomes}
             userLocation={userLocation}
-            pinLocation={exactLocation}
+            pinLocation={pinLocation}
             userPinImage={
               activeIdentity?.type === "business"
                 ? (myBusinesses.find((b) => b.business_id === activeIdentity.id)?.logo_image || undefined)
@@ -1072,7 +1026,6 @@ export default function HomeScreen() {
               setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
               setUserLocation({ latitude: lat, longitude: lng });
               setExactLocation({ latitude: lat, longitude: lng });
-              hasPinnedRef.current = true;
               setMapFocusToken((t) => t + 1);
             }}
             focusToken={mapFocusToken}
@@ -1787,10 +1740,6 @@ const styles = StyleSheet.create({
   mapPromptButtonText: { color: COLORS.background, fontSize: 16, fontWeight: "700" },
   mapPromptButtonSecondary: { backgroundColor: COLORS.background, borderWidth: 2, borderColor: COLORS.primaryDark, marginTop: 10 },
   mapPromptButtonTextSecondary: { color: COLORS.primaryDark },
-  locateHint: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 12, marginBottom: 12, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: "#EAF4FC", borderRadius: 14, borderWidth: 1, borderColor: "#59ABE3" },
-  locateHintTitle: { fontSize: 13, fontWeight: "700", color: COLORS.textPrimary },
-  locateHintText: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
-  locateHintAction: { color: "#59ABE3", fontSize: 13, fontWeight: "700" },
   header: { padding: 20 },
   headerTitle: { fontSize: 24, fontWeight: "700", color: COLORS.textPrimary },
   headerSubtitle: { marginTop: 6, color: COLORS.textMuted },

@@ -27,7 +27,7 @@ import LocatorHeader from "../../components/locator/LocatorHeader";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
-import { getCurrentPositionWithPermission, isCoarsePosition, showCoarseLocationNotice } from "../../lib/locationPermission";
+import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -432,10 +432,6 @@ export default function LocatorScreen() {
     setLocating(true);
     try {
       const loc = await getCurrentPositionWithPermission();
-      if (loc && isCoarsePosition(loc.accuracy)) {
-        showCoarseLocationNotice();
-        return;
-      }
       if (loc) {
         setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
         setLocateToken((t) => t + 1);
