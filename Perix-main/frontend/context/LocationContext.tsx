@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getCurrentPositionWithPermission, isCoarsePosition } from "../lib/locationPermission";
+import { getCurrentPositionWithPermission, isCoarsePosition, watchPrecisePosition, FreshPosition } from "../lib/locationPermission";
 
 interface LocationData {
   latitude: number;
@@ -12,6 +12,8 @@ interface LocationData {
 
 interface LocationContextType {
   location: LocationData | null;
+  /** Latest GPS fix for the "you are here" pin (independent of the searched area). */
+  livePosition: FreshPosition | null;
   loading: boolean;
   error: string | null;
   setManualLocation: (lat: number, lng: number, name?: string) => void;
@@ -29,6 +31,10 @@ const DEFAULT_RADIUS = 10; // 10km default
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useState<LocationData | null>(null);
+  // Live "you are here" position: the single source of truth for the pin.
+  // Updated by the continuous watch and by re-fixes on focus. Junk fixes
+  // with city-level accuracy are ignored so the pin never jumps away.
+  const [livePosition, setLivePosition] = useState<FreshPosition | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [radiusKm, setRadiusKmState] = useState(DEFAULT_RADIUS);
@@ -55,6 +61,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
             isLiveLocation: true,
           };
           setLocation(newLocation);
+          setLivePosition({ latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy });
           await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
         } else {
           // Fresh fix failed (e.g. permission denied or GPS timeout).
@@ -95,6 +102,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       };
       
       setLocation(newLocation);
+      setLivePosition({ latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy });
       await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
     } catch (e) {
       console.error("Error getting live location:", e);
@@ -135,29 +143,48 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     setRefreshKey(prev => prev + 1);
   }, []);
 
-  // Keep the "you are here" pin accurate: re-fix the live location every few
-  // minutes and whenever the app/tab returns to the foreground. Stale fixes
-  // (e.g. a coarse first browser fix) otherwise stay on the map forever.
-  const refreshingLiveRef = useRef(false);
   const locationRef = useRef(location);
   locationRef.current = location;
+  const liveRef = useRef(livePosition);
+  liveRef.current = livePosition;
 
-  const silentLiveRefresh = useCallback(async () => {
-    if (refreshingLiveRef.current) return;
+  const applyFix = useCallback((pos: FreshPosition) => {
+    if (isCoarsePosition(pos.accuracy)) return;
+    setLivePosition({ latitude: pos.latitude, longitude: pos.longitude, accuracy: pos.accuracy });
     if (locationRef.current && !locationRef.current.isLiveLocation) return;
-    refreshingLiveRef.current = true;
-    try {
-      await requestLiveLocation();
-    } finally {
-      refreshingLiveRef.current = false;
-    }
+    // When the area is live, it follows the user.
+    setLocation({
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+      name: undefined,
+      isLiveLocation: true,
+    });
+    void AsyncStorage.setItem(
+      LOCATION_STORAGE_KEY,
+      JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude, isLiveLocation: true })
+    );
   }, []);
 
+  // Keep the pin accurate: re-fix on foreground/focus, and watch
+  // continuously so the pin follows the user live (Google Maps style).
   useEffect(() => {
-    const interval = setInterval(() => {
-      void silentLiveRefresh();
-    }, 3 * 60 * 1000);
-    const onResume = () => void silentLiveRefresh();
+    let stopWatch: (() => void) | null = null;
+    const oneShot = () => {
+      getCurrentPositionWithPermission()
+        .then((loc) => {
+          if (loc) applyFix(loc);
+        })
+        .catch(() => {});
+    };
+    // The watch needs the permission granted first (the one-shot does it).
+    oneShot();
+    setTimeout(() => {
+      stopWatch = watchPrecisePosition((pos) => {
+        applyFix(pos);
+      });
+    }, 400);
+    const interval = setInterval(oneShot, 3 * 60 * 1000);
+    const onResume = () => oneShot();
     if (Platform.OS === "web" && typeof window !== "undefined") {
       const onVisibility = () => {
         if (document.visibilityState === "visible") onResume();
@@ -166,6 +193,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       document.addEventListener("visibilitychange", onVisibility);
       return () => {
         clearInterval(interval);
+        if (stopWatch) stopWatch();
         window.removeEventListener("focus", onResume);
         document.removeEventListener("visibilitychange", onVisibility);
       };
@@ -175,14 +203,16 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     });
     return () => {
       clearInterval(interval);
+      if (stopWatch) stopWatch();
       sub.remove();
     };
-  }, [silentLiveRefresh]);
+  }, [applyFix]);
 
   return (
     <LocationContext.Provider
       value={{
         location,
+        livePosition,
         loading,
         error,
         setManualLocation,

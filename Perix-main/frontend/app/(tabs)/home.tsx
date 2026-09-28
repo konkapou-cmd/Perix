@@ -68,7 +68,7 @@ import ShareContent from "../../components/ShareContent";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
-import { getCurrentPositionWithPermission, watchPrecisePosition } from "../../lib/locationPermission";
+import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 
 const POST_FILTER_CATEGORIES: { slug: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { slug: "food-dining", icon: "restaurant" },
@@ -128,7 +128,7 @@ export default function HomeScreen() {
   const { user, sessionToken, activeIdentity, setActiveIdentity } = useAuth();
   const { unreadMessageCount } = useBadge();
   const { openCreateSheet, openBizActions } = React.useContext(CreateFlowContext);
-  const { location: globalLocation, setManualLocation } = useLocation();
+  const { location: globalLocation, livePosition, setManualLocation } = useLocation();
   const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -210,7 +210,6 @@ export default function HomeScreen() {
   }, [mapBounds]);
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [exactLocation, setExactLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [eventsFilter, setEventsFilter] = useState<"all" | "attending" | "mine">("all");
   const [activitiesFilter, setActivitiesFilter] = useState<"all" | "attending" | "mine">("all");
   const [showNoLocationMessage, setShowNoLocationMessage] = useState(false);
@@ -279,61 +278,16 @@ export default function HomeScreen() {
     if (globalLocation) setUserLocation({ latitude: globalLocation.latitude, longitude: globalLocation.longitude });
   }, [globalLocation]);
 
-  // "You are here" pin: the device's fresh GPS position when available.
-  // When the browser cannot give a fix, the pin falls back to the map
-  // area (the searched city / the area the map already shows). No
-  // auto-centering - the map stays where the user put it and the pin
-  // simply shows the best known position.
-  // Live tracking: the position is also watched continuously so the pin
-  // follows the user in real time (Google Maps style). Junk fixes with
-  // city-level accuracy are ignored.
-  useEffect(() => {
-    let cancelled = false;
-    const refresh = () => {
-      getCurrentPositionWithPermission()
-        .then((loc) => {
-          if (cancelled) return;
-          if (loc) {
-            setExactLocation({ latitude: loc.latitude, longitude: loc.longitude });
-          } else {
-            setExactLocation(null);
-          }
-        })
-        .catch(() => { if (!cancelled) setExactLocation(null); });
-    };
-    const stopWatch = watchPrecisePosition((pos) => {
-      if (cancelled) return;
-      if (typeof pos.accuracy === "number" && pos.accuracy > 800) return;
-      setExactLocation({ latitude: pos.latitude, longitude: pos.longitude });
-    });
-    refresh();
-    const interval = setInterval(refresh, 3 * 60 * 1000);
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    if (Platform.OS === "web" && typeof window !== "undefined" && typeof document !== "undefined") {
-      window.addEventListener("focus", refresh);
-      document.addEventListener("visibilitychange", onVisibility);
-    }
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-      stopWatch();
-      if (Platform.OS === "web" && typeof window !== "undefined" && typeof document !== "undefined") {
-        window.removeEventListener("focus", refresh);
-        document.removeEventListener("visibilitychange", onVisibility);
-      }
-    };
-  }, []);
-
-  // Fallback pin position: the searched area when set, otherwise the
-  // user's saved coordinates. This is where the map opens anyway.
+  // "You are here" pin: the latest GPS fix from the location context
+  // (single source of truth - watched live there). When there is no GPS
+  // fix, the pin falls back to the map area (the searched city / the area
+  // the map already shows).
   const fallbackPinLocation = useMemo(() => {
     if (globalLocation) return { latitude: globalLocation.latitude, longitude: globalLocation.longitude };
     if (user?.latitude && user?.longitude) return { latitude: user.latitude, longitude: user.longitude };
     return null;
   }, [globalLocation, user?.latitude, user?.longitude]);
-  const pinLocation = exactLocation ?? fallbackPinLocation;
+  const pinLocation = livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : fallbackPinLocation;
 
   useEffect(() => {
     if (isMapInitialized) return;
@@ -358,7 +312,6 @@ export default function HomeScreen() {
         const d = 0.09;
         setMapBounds({ minLat: loc.latitude - d / 2, maxLat: loc.latitude + d / 2, minLng: loc.longitude - d / 2, maxLng: loc.longitude + d / 2, centerLat: loc.latitude, centerLng: loc.longitude });
         setUserLocation({ latitude: loc.latitude, longitude: loc.longitude });
-        setExactLocation({ latitude: loc.latitude, longitude: loc.longitude });
         setMapFocusToken((t) => t + 1);
       }
     } catch (error) {
@@ -1033,7 +986,6 @@ export default function HomeScreen() {
               const d = 0.09;
               setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
               setUserLocation({ latitude: lat, longitude: lng });
-              setExactLocation({ latitude: lat, longitude: lng });
               setMapFocusToken((t) => t + 1);
             }}
             focusToken={mapFocusToken}

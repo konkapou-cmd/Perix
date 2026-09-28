@@ -30,7 +30,7 @@ interface MapSectionProps {
   focusToken?: number;
 }
 
-export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, userPinImage, pinLocation, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation: _userLocation, userPinImage, pinLocation, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -102,7 +102,6 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
     <View style={styles.container}>
       <View style={styles.mapWrapper}>
         <BusinessMap
-          location={userLocation ?? undefined}
           showUserLocation
           userPinImage={userPinImage ?? undefined}
           pinLocation={pinLocation}
