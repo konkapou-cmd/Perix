@@ -25,7 +25,7 @@ export default function UpdateBanner() {
     return null;
   };
 
-  const checkVersion = async () => {
+  const checkVersion = async (autoReload = false) => {
     if (Platform.OS !== "web" || checkingRef.current) return;
     if (!currentHashRef.current) currentHashRef.current = getCurrentEntryHash();
     if (!currentHashRef.current) return;
@@ -35,6 +35,14 @@ export default function UpdateBanner() {
       const html = await res.text();
       const m = html.match(/entry-([a-f0-9]+)\.js/);
       if (m && m[1] !== currentHashRef.current) {
+        if (autoReload) {
+          // The app was just (re)opened - silently reload so it always
+          // runs the latest deployment instead of stale in-memory code.
+          try {
+            window.location.reload();
+          } catch {}
+          return;
+        }
         setNewVersion(true);
       }
     } catch {
@@ -47,15 +55,19 @@ export default function UpdateBanner() {
   useEffect(() => {
     if (Platform.OS !== "web") return;
     const interval = setInterval(() => {
-      void checkVersion();
+      void checkVersion(false);
     }, 60000);
     const onVisible = () => {
-      if (document.visibilityState === "visible") void checkVersion();
+      if (document.visibilityState === "visible") void checkVersion(true);
     };
     window.addEventListener("focus", onVisible);
     document.addEventListener("visibilitychange", onVisible);
+    const initial = setTimeout(() => {
+      void checkVersion(true);
+    }, 2500);
     return () => {
       clearInterval(interval);
+      clearTimeout(initial);
       window.removeEventListener("focus", onVisible);
       document.removeEventListener("visibilitychange", onVisible);
     };

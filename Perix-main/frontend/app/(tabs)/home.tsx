@@ -68,7 +68,7 @@ import ShareContent from "../../components/ShareContent";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
-import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
+import { getCurrentPositionWithPermission, watchPrecisePosition } from "../../lib/locationPermission";
 
 const POST_FILTER_CATEGORIES: { slug: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { slug: "food-dining", icon: "restaurant" },
@@ -282,9 +282,11 @@ export default function HomeScreen() {
   // "You are here" pin: the device's fresh GPS position when available.
   // When the browser cannot give a fix, the pin falls back to the map
   // area (the searched city / the area the map already shows). No
-  // auto-centering, no accuracy gymnastics - the map stays where the
-  // user put it and the pin simply shows the best known position.
-  // Refreshed on focus and every few minutes.
+  // auto-centering - the map stays where the user put it and the pin
+  // simply shows the best known position.
+  // Live tracking: the position is also watched continuously so the pin
+  // follows the user in real time (Google Maps style). Junk fixes with
+  // city-level accuracy are ignored.
   useEffect(() => {
     let cancelled = false;
     const refresh = () => {
@@ -299,6 +301,11 @@ export default function HomeScreen() {
         })
         .catch(() => { if (!cancelled) setExactLocation(null); });
     };
+    const stopWatch = watchPrecisePosition((pos) => {
+      if (cancelled) return;
+      if (typeof pos.accuracy === "number" && pos.accuracy > 800) return;
+      setExactLocation({ latitude: pos.latitude, longitude: pos.longitude });
+    });
     refresh();
     const interval = setInterval(refresh, 3 * 60 * 1000);
     const onVisibility = () => {
@@ -311,6 +318,7 @@ export default function HomeScreen() {
     return () => {
       cancelled = true;
       clearInterval(interval);
+      stopWatch();
       if (Platform.OS === "web" && typeof window !== "undefined" && typeof document !== "undefined") {
         window.removeEventListener("focus", refresh);
         document.removeEventListener("visibilitychange", onVisibility);

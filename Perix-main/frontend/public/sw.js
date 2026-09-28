@@ -7,7 +7,17 @@ self.addEventListener("install", () => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // The app shell is never cached; drop any legacy caches so an
+      // installed PWA always serves the latest deployment.
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      } catch (e) {}
+      await self.clients.claim();
+    })()
+  );
 });
 
 async function broadcastToClients(message) {
