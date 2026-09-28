@@ -250,6 +250,15 @@ if WEB_DIST.exists():
             return FileResponse(p, media_type="application/javascript", headers={"Cache-Control": "no-cache"})
         raise HTTPException(status_code=404, detail="Service worker not found")
 
+    @app.get("/service-worker", include_in_schema=False)
+    async def web_service_worker_nocache():
+        # Extensionless path so CDNs don't apply their static-file caching
+        # policy - the service worker must always revalidate.
+        p = WEB_DIST / "sw.js"
+        if p.exists():
+            return FileResponse(p, media_type="application/javascript", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+        raise HTTPException(status_code=404, detail="Service worker not found")
+
     @app.get("/favicon.ico", include_in_schema=False)
     async def web_favicon():
         return FileResponse(WEB_DIST / "favicon.ico")

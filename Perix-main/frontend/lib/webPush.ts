@@ -32,7 +32,12 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   if (!isWebPushSupported()) return null;
   if (swRegistration) return swRegistration;
   try {
-    swRegistration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    // Extensionless URL so CDN edge caches don't delay service worker
+    // updates (the .js extension gets a long max-age on the CDN).
+    swRegistration = await navigator.serviceWorker.register("/service-worker", {
+      scope: "/",
+      updateViaCache: "none" as any,
+    });
     await navigator.serviceWorker.ready;
     return swRegistration;
   } catch (e) {
