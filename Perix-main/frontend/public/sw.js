@@ -16,6 +16,19 @@ self.addEventListener("activate", (event) => {
         await Promise.all(keys.map((k) => caches.delete(k)));
       } catch (e) {}
       await self.clients.claim();
+      // Force-reload any open windows once per service worker update so
+      // stale in-memory bundles never stick around.
+      try {
+        const clients = await self.clients.matchAll({
+          type: "window",
+          includeUncontrolled: true,
+        });
+        for (const client of clients) {
+          try {
+            client.navigate(client.url);
+          } catch (e) {}
+        }
+      } catch (e) {}
     })()
   );
 });
