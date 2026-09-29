@@ -2,7 +2,7 @@ import React from "react";
 import { Modal, View, Text, Pressable, StyleSheet, Share, Platform, Linking, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import Constants from "expo-constants";
+import { APP_URL } from "../lib/api";
 
 interface InviteFriendsModalProps {
   visible: boolean;
@@ -11,8 +11,6 @@ interface InviteFriendsModalProps {
   userName?: string;
 }
 
-const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || "http://10.208.154.177:8000";
-const APP_URL = BACKEND_URL.replace('/api', '').replace('api.', '');
 
 export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
   visible,

@@ -53,11 +53,8 @@ import {
   isUpcomingEvent,
   toggleSaved,
   checkSaved,
+  APP_URL,
 } from "../../lib/api";
-
-const BACKEND_URL =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
-  process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function EventDetailPage() {
   const { t } = useTranslation();
@@ -334,7 +331,7 @@ export default function EventDetailPage() {
     const eventTime = formatEventTime(event.start_time);
     const organizer = event.artist?.name || event.business?.name || "";
     const location = event.location || "";
-    const eventUrl = `${BACKEND_URL?.replace('/api', '')}/share/event/${event.event_id}`;
+    const eventUrl = `${APP_URL}/event/${event.event_id}`;
     const message = `${theme.emoji} ${event.title}\n\n${t("events.by")} ${organizer}\n${eventDate} ${t("common.at")} ${eventTime}\n${location}\n\n${t("events.rsvpHere")}: ${eventUrl}`;
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
     try {
@@ -349,7 +346,7 @@ export default function EventDetailPage() {
     const eventDate = formatEventDate(event.start_time);
     const eventTime = formatEventTime(event.start_time);
     const organizer = event.artist?.name || event.business?.name || "";
-    const eventUrl = `${BACKEND_URL?.replace('/api', '')}/share/event/${event.event_id}`;
+    const eventUrl = `${APP_URL}/event/${event.event_id}`;
     const message = `${theme.emoji} ${event.title}\n${t("events.by")} ${organizer}\n${eventDate} ${t("common.at")} ${eventTime}\n${event.location || ""}\n\n${eventUrl}`;
     await Share.share({ message });
   };

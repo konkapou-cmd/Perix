@@ -52,12 +52,9 @@ import {
   Business,
   isUpcomingActivity,
   uploadMedia,
+  APP_URL,
 } from "../lib/api";
 import { MEDIA_LIMITS } from "../lib/constants/mediaLimits";
-
-const BACKEND_URL =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
-  process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function ActivitiesScreen() {
   const { t } = useTranslation();
@@ -382,7 +379,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
     const location = activity.location || "";
     
     // Use /share/ prefix for public deep links
-    const activityUrl = `${BACKEND_URL?.replace('/api', '')}/share/activity/${activity.activity_id}`;
+    const activityUrl = `${APP_URL}/activity/${activity.activity_id}`;
     
     const message = `${t("activities.invitationMessage", { 
       title: activity.title, 

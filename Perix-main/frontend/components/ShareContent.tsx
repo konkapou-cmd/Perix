@@ -15,16 +15,9 @@ import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
+import { APP_URL } from "../lib/api/core";
 
-const BACKEND_URL =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
-  process.env.EXPO_PUBLIC_BACKEND_URL;
-
-// Get the web app URL (without /api)
-const getWebUrl = () => {
-  if (!BACKEND_URL) return "https://perixapp.com";
-  return BACKEND_URL.replace("/api", "").replace("api.", "app.");
-};
+const getWebUrl = () => APP_URL;
 
 export type ShareableContentType =
   | "profile"

@@ -60,12 +60,8 @@ import { sortCategoriesByLabel } from "../../lib/categoryTranslation";
 import { isUpcomingEvent, isUpcomingActivity, EVENT_THEMES } from "../../lib/api/events";
 import { formatDate } from "../../lib/formatDate";
 import { isBusinessOpen } from "../../lib/openingHours";
-import { ACTIVITY_CATEGORIES, ACTIVITY_TYPES } from "../../lib/api";
+import { ACTIVITY_CATEGORIES, ACTIVITY_TYPES, APP_URL } from "../../lib/api";
    import { toLocalISODate, addDays } from "../../lib/booking/dateRange";
-
-const BACKEND_URL =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
-  process.env.EXPO_PUBLIC_BACKEND_URL;
 
 const itemWidth = (Dimensions.get("window").width - 48) / 3;
 
@@ -550,7 +546,7 @@ export default function LocatorScreen() {
 
   // WhatsApp share for business
   const shareBusinessToWhatsApp = async (business: Business) => {
-    const businessUrl = `${BACKEND_URL?.replace('/api', '')}/business/${business.business_id}`;
+    const businessUrl = `${APP_URL}/business/${business.business_id}`;
     
     const message = `${t("locator.shareBusinessMessage", { 
       name: business.name, 

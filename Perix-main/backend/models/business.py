@@ -71,6 +71,7 @@ class BusinessResponse(BaseModel):
     business_id: str
     owner_id: str
     name: str
+    slug: Optional[str] = None
     category: Optional[str] = None
     root_category: Optional[str] = None
     subcategory: Optional[str] = None

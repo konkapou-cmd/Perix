@@ -14,11 +14,8 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SectionHeader } from "./shared/SectionHeader";
 import { COLORS } from "../lib/designTokens";
-import { FriendProfile } from "../lib/api";
+import { FriendProfile, APP_URL } from "../lib/api";
 import Constants from "expo-constants";
-
-const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || 
-  process.env.EXPO_PUBLIC_BACKEND_URL;
 
 interface FriendsCarouselProps {
   friends: FriendProfile[];
@@ -40,8 +37,8 @@ export default function FriendsCarousel({
 
   const handleShareInvite = async () => {
     const profileUrl = currentUserId 
-      ? `${BACKEND_URL?.replace('/api', '')}/share/user/${currentUserId}`
-      : `${BACKEND_URL?.replace('/api', '')}/share/app`;
+      ? `${APP_URL}/user/${currentUserId}`
+      : `${APP_URL}`;
     
     const message = t("friends.inviteMessage", { name: currentUserName || "a friend" }) ||
       `Join me on Perix! ${profileUrl}`;

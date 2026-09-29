@@ -20,7 +20,7 @@ if (__DEV__) {
 export const APP_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_APP_URL ||
   process.env.EXPO_PUBLIC_APP_URL ||
-  "https://perix.app";
+  "https://app.perixapp.com";
 
 export type FocalPoint = { x: number; y: number };
 
@@ -656,6 +656,7 @@ export type Business = {
   business_id: string;
   owner_id: string;
   name: string;
+  slug?: string | null;
   category: string;
   root_category: string;
   subcategory: string;

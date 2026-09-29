@@ -46,13 +46,10 @@ import {
   isUpcomingActivity,
   toggleSaved,
   checkSaved,
+  APP_URL,
 } from "../../lib/api";
 import ShareContent from "../../components/ShareContent";
 import ChatSection from "../../components/shared/ChatSection";
-
-const BACKEND_URL =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
-  process.env.EXPO_PUBLIC_BACKEND_URL;
 
 const PAGE_ACCENT = "#FF9F1C";
 
@@ -93,7 +90,7 @@ export default function ActivityDetailPage() {
 
   const shareActivity = async () => {
     try {
-      const activityUrl = `${BACKEND_URL?.replace('/api', '')}/share/activity/${activity?.activity_id || ""}`;
+      const activityUrl = `${APP_URL}/activity/${activity?.activity_id || ""}`;
       await Share.share({
         message: `${activity?.title} - ${activity?.date} ${activity?.time}${activity?.location ? ` @ ${activity.location}` : ""}\n\n${activityUrl}`,
       });
@@ -237,7 +234,7 @@ export default function ActivityDetailPage() {
     if (activity.is_private && activity.invitation_code) {
       message += `\n\n${t("activities.useCodeToJoin") || "Code"}: ${activity.invitation_code}`;
     }
-    const activityUrl = `${BACKEND_URL?.replace('/api', '')}/share/activity/${activity.activity_id}`;
+    const activityUrl = `${APP_URL}/activity/${activity.activity_id}`;
     message += `\n\n${t("activities.rsvpHere")}: ${activityUrl}`;
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
     try {

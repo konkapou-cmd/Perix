@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Post, BACKEND_URL } from "../../lib/api";
+import { Post, BACKEND_URL, APP_URL } from "../../lib/api";
 import { COLORS, SPACING, BORDER_RADIUS } from "../../lib/designTokens";
 import { Share } from "react-native";
 import { useRouter } from "expo-router";
@@ -97,7 +97,7 @@ export function PostCard({
     skipCardNav.current = true;
     if (onShare) { onShare(); return; }
     const message = `Check out ${displayName}'s post on Perix!`;
-    const url = `${BACKEND_URL?.replace("/api", "")}/share/post/${post.post_id}`;
+    const url = `${APP_URL}/post/${post.post_id}`;
     await Share.share({ message: `${message}\n\n${url}` });
   };
 

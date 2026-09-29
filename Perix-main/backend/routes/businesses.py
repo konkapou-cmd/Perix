@@ -1,5 +1,7 @@
 """Business routes."""
 import asyncio
+import re
+import unicodedata
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional, Dict, Any
 from datetime import timedelta
@@ -23,6 +25,42 @@ from routes.dependencies import get_current_user, get_current_user_optional, bui
 
 
 router = APIRouter(prefix="/businesses", tags=["Businesses"])
+
+# Greek -> latin transliteration so store names become readable slugs
+_GREEK_MAP = {
+    "α": "a", "ά": "a", "β": "b", "γ": "g", "δ": "d", "ε": "e", "έ": "e",
+    "ζ": "z", "η": "i", "ή": "i", "θ": "th", "ι": "i", "ί": "i", "κ": "k",
+    "λ": "l", "μ": "m", "ν": "n", "ξ": "x", "ο": "o", "ό": "o", "π": "p",
+    "ρ": "r", "σ": "s", "ς": "s", "τ": "t", "υ": "y", "ύ": "y", "φ": "f",
+    "χ": "ch", "ψ": "ps", "ω": "o", "ώ": "o", "Α": "a", "Β": "b", "Γ": "g",
+    "Δ": "d", "Ε": "e", "Ζ": "z", "Η": "i", "Θ": "th", "Ι": "i", "Κ": "k",
+    "Λ": "l", "Μ": "m", "Ν": "n", "Ξ": "x", "Ο": "o", "Π": "p", "Ρ": "r",
+    "Σ": "s", "Τ": "t", "Υ": "y", "Φ": "f", "Χ": "ch", "Ψ": "ps", "Ω": "o",
+}
+
+
+def _slugify_name(name: str) -> str:
+    s = unicodedata.normalize("NFKD", name or "")
+    s = "".join(_GREEK_MAP.get(ch, ch) for ch in s)
+    s = s.replace("&", " and ")
+    s = re.sub(r"[^a-zA-Z0-9]+", "-", s).strip("-").lower()
+    return (s[:60] or "store")
+
+
+async def _unique_business_slug(name: str, exclude_business_id: Optional[str] = None) -> str:
+    """Name-based slug; on collision append -2, -3, ... so every store gets
+    its own link."""
+    base = _slugify_name(name)
+    slug = base
+    counter = 2
+    while True:
+        query = {"slug": slug}
+        if exclude_business_id:
+            query["business_id"] = {"$ne": exclude_business_id}
+        if await db.businesses.count_documents(query) == 0:
+            return slug
+        slug = f"{base}-{counter}"
+        counter += 1
 
 
 def build_business_response(business_doc: Dict) -> BusinessResponse:
@@ -64,6 +102,7 @@ def build_business_response(business_doc: Dict) -> BusinessResponse:
         "theme": business_doc.get("theme"),
         "call_availability": business_doc.get("call_availability", "opening_hours"),
         "call_hours": business_doc.get("call_hours"),
+        "slug": business_doc.get("slug"),
     }
     for key, value in defaults.items():
         business_doc.setdefault(key, value)
@@ -154,6 +193,7 @@ async def create_business(
         "business_id": generate_id("biz"),
         "owner_id": current_user.user_id,
         "name": payload.name,
+        "slug": await _unique_business_slug(payload.name),
         "category": category_info["name"],
         "root_category": category_info["root_slug"],
         "subcategory": category_info["slug"],
@@ -206,6 +246,13 @@ async def update_business(
     if not is_subscription_active(business):
         raise HTTPException(status_code=403, detail="Active subscription required to edit business profile")
     update_data = {key: value for key, value in payload.dict().items() if value is not None}
+
+    # Every business gets a name-based link. Keep an existing slug stable;
+    # only generate one when the business has none yet (renames don't break
+    # old links, and owners can set a custom slug via the slug endpoint).
+    if not business.get("slug"):
+        new_name = update_data.get("name") or business.get("name")
+        update_data["slug"] = await _unique_business_slug(new_name)
     
     if "subcategories" in update_data or "subcategory" in update_data:
         requested_subs = update_data.pop("subcategories", None)
@@ -429,6 +476,43 @@ async def get_product_permissions(business_id: str):
         "policy_version": 1,
         "allowed": permission.to_response(),
     }
+
+
+@router.get("/slug/{slug}")
+async def get_business_by_slug(
+    slug: str, current_user: UserPublic = Depends(get_current_user)
+):
+    """Resolve a business by its name-based slug (for share links)."""
+    business = await db.businesses.find_one({"slug": slug}, {"_id": 0})
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+    return build_business_response(business)
+
+
+@router.put("/{business_id}/slug")
+async def update_business_slug(
+    business_id: str,
+    slug_data: dict,
+    current_user: UserPublic = Depends(get_current_user),
+):
+    business = await db.businesses.find_one(
+        {"business_id": business_id, "owner_id": current_user.user_id}, {"_id": 0}
+    )
+    if not business:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    raw = str(slug_data.get("slug", "")).strip()
+    new_slug = _slugify_name(raw)
+    if not new_slug:
+        raise HTTPException(status_code=400, detail="Invalid slug")
+    existing = await db.businesses.find_one(
+        {"slug": new_slug, "business_id": {"$ne": business_id}}
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="Slug already taken")
+    await db.businesses.update_one(
+        {"business_id": business_id}, {"$set": {"slug": new_slug}}
+    )
+    return {"slug": new_slug}
 
 
 @router.get("/{business_id}", response_model=BusinessDetail)

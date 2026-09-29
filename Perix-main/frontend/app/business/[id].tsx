@@ -99,19 +99,37 @@ const [followLoading, setFollowLoading] = useState(false);
     if (!sessionToken || !id) return;
     setLoading(true);
     try {
-      const detail = await getBusinessDetail(sessionToken, id);
+      let resolvedId = id;
+      let detail = null;
+      // Name-based slug links (/business/vera-bar-2) resolve through the
+      // slug endpoint; plain business ids load directly.
+      if (!String(id).startsWith("biz_")) {
+        try {
+          const { getBusinessBySlug } = await import("../../lib/api/slugs");
+          const bySlug = await getBusinessBySlug(sessionToken, String(id));
+          resolvedId = bySlug?.business_id || id;
+        } catch (e) {
+          console.log("Slug resolution skipped:", (e as any)?.message || e);
+        }
+      }
+      try {
+        detail = await getBusinessDetail(sessionToken, resolvedId);
+      } catch (e) {
+        // Fall back to a direct attempt (ids with different prefixes)
+        detail = await getBusinessDetail(sessionToken, id);
+      }
       setBusinessDetail(detail);
 
-      getBusinessSellerListings(id).then(setBusinessListings).catch(() => {});
+      getBusinessSellerListings(detail?.business?.business_id || resolvedId).then(setBusinessListings).catch(() => {});
 
-      void checkSaved(sessionToken, "business", id)
+      void checkSaved(sessionToken, "business", detail?.business?.business_id || resolvedId)
         .then(({ is_saved }) => setIsSaved(is_saved))
         .catch(() => {});
-      
+
       // Track profile view analytics (fire and forget)
       try {
         const { trackProfileView } = await import("../../lib/api");
-        void trackProfileView(sessionToken, undefined, undefined, id);
+        void trackProfileView(sessionToken, undefined, undefined, detail?.business?.business_id || resolvedId);
       } catch (e) {
         console.log("Analytics tracking skipped");
       }
@@ -458,7 +476,7 @@ const [followLoading, setFollowLoading] = useState(false);
           showMessageButton={true}
           onMessagePress={handleOpenChat}
           onShare={handleShareBusiness}
-          slug={id}
+          slug={businessDetail?.business?.slug || undefined}
           friendStatus={friendStatus}
           onFollowPress={handleFollowPress}
           onSavePress={handleToggleSave}
