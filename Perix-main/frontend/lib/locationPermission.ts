@@ -108,12 +108,17 @@ export function watchPrecisePosition(
     let watchId: number;
     try {
       watchId = navigator.geolocation.watchPosition(
-        (p) =>
+        (p) => {
+          // Some browsers (notably iOS Safari) ignore maximumAge and can
+          // deliver a cached position - never let an old fix through.
+          const ageMs = Date.now() - (p.timestamp ?? 0);
+          if (typeof p.timestamp === "number" && ageMs > 90000) return;
           onPosition({
             latitude: p.coords.latitude,
             longitude: p.coords.longitude,
             accuracy: p.coords.accuracy ?? 99999,
-          }),
+          });
+        },
         () => {},
         { enableHighAccuracy: true, maximumAge: 0, timeout: 60000 }
       );
@@ -181,12 +186,20 @@ export async function getCurrentPositionWithPermission(
         navigator.geolocation
       ) {
         navigator.geolocation.getCurrentPosition(
-          (p) =>
+          (p) => {
+            // Reject stale fixes (iOS Safari can return a cached position
+            // even with maximumAge: 0) - never show an old place as live.
+            const ageMs = Date.now() - (p.timestamp ?? 0);
+            if (typeof p.timestamp === "number" && ageMs > 90000) {
+              reject(new Error("stale position"));
+              return;
+            }
             resolve({
               latitude: p.coords.latitude,
               longitude: p.coords.longitude,
               accuracy: p.coords.accuracy ?? 99999,
-            }),
+            });
+          },
           (e) => reject(e),
           { enableHighAccuracy: useHighAccuracy, maximumAge: 0, timeout }
         );

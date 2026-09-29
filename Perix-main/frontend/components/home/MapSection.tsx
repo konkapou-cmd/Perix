@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Alert, Platform, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -27,10 +27,11 @@ interface MapSectionProps {
   pinLocation?: { latitude: number; longitude: number } | null;
   onRegionChange: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
   onRecenter?: (lat?: number, lng?: number) => void;
+  recentering?: boolean;
   focusToken?: number;
 }
 
-export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, userPinImage, pinLocation, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, userPinImage, pinLocation, onRegionChange, onRecenter, recentering, focusToken }: MapSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -146,8 +147,12 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
           extraMarkers={extraMarkers}
           disabled={false}
         />
-        <Pressable style={styles.recenterButton} onPress={handleRecenter}>
-          <Ionicons name="locate" size={22} color={COLORS.primary} />
+        <Pressable style={styles.recenterButton} onPress={handleRecenter} disabled={recentering}>
+          {recentering ? (
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : (
+            <Ionicons name="locate" size={22} color={COLORS.primary} />
+          )}
         </Pressable>
       </View>
     </View>

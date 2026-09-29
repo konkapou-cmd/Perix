@@ -283,6 +283,12 @@ export default function HomeScreen() {
   // remembered from previous sessions is ever shown as live.
   const pinLocation = livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null;
 
+  // Once the watch delivers a precise live fix, any previous "couldn't
+  // locate" error is stale - clear it.
+  useEffect(() => {
+    if (livePosition) setLocateFailed(false);
+  }, [livePosition]);
+
   useEffect(() => {
     if (isMapInitialized) return;
     // Start at the live location. No stored/profile fallbacks - a previous
@@ -977,6 +983,15 @@ export default function HomeScreen() {
           activeIdentity={activeIdentity}
         />
 
+        {locateFailed && mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
+          <View style={styles.locateErrorPill}>
+            <Ionicons name="alert-circle" size={16} color={COLORS.errorText} />
+            <Text style={styles.locateErrorText}>
+              {t("home.locateFailed", { defaultValue: "Couldn't get your precise location. Allow location access and try again." })}
+            </Text>
+          </View>
+        )}
+
         {mapBounds && homeLayout.sections.find(s => s.id === "map")?.enabled !== false && (
           <MapSection
             mapBounds={mapBounds}
@@ -1011,6 +1026,7 @@ export default function HomeScreen() {
                 handleRecenterOnMe();
               }
             }}
+            recentering={locatingMe}
             focusToken={mapFocusToken}
           />
         )}
@@ -1725,6 +1741,8 @@ const styles = StyleSheet.create({
   mapPromptButtonSecondary: { backgroundColor: COLORS.background, borderWidth: 1.5, borderColor: COLORS.borderLight, marginTop: SPACING.compact, shadowOpacity: 0 },
   mapPromptButtonTextSecondary: { color: COLORS.primary },
   mapPromptError: { marginTop: SPACING.compact, fontSize: FONT_SIZES.small, color: COLORS.errorText, textAlign: "center", lineHeight: 18, paddingHorizontal: SPACING.small },
+  locateErrorPill: { flexDirection: "row", alignItems: "center", gap: SPACING.small, marginHorizontal: SPACING.std, marginBottom: SPACING.small, paddingHorizontal: SPACING.compact, paddingVertical: SPACING.small, backgroundColor: COLORS.errorBg, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.errorBorder },
+  locateErrorText: { flex: 1, fontSize: FONT_SIZES.small, color: COLORS.errorDark, lineHeight: 18 },
   header: { padding: 20 },
   headerTitle: { fontSize: 24, fontWeight: "700", color: COLORS.textPrimary },
   headerSubtitle: { marginTop: 6, color: COLORS.textMuted },
