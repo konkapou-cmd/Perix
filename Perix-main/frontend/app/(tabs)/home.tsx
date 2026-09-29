@@ -68,7 +68,6 @@ import ShareContent from "../../components/ShareContent";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
-import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 
 const POST_FILTER_CATEGORIES: { slug: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { slug: "food-dining", icon: "restaurant" },
@@ -128,7 +127,7 @@ export default function HomeScreen() {
   const { user, sessionToken, activeIdentity, setActiveIdentity } = useAuth();
   const { unreadMessageCount } = useBadge();
   const { openCreateSheet, openBizActions } = React.useContext(CreateFlowContext);
-  const { location: globalLocation, livePosition, setManualLocation } = useLocation();
+  const { location: globalLocation, livePosition, setManualLocation, useLiveLocation } = useLocation();
   const { mapBounds, isMapInitialized, refreshKey: mapRefreshKey, setMapBounds } = useMapBounds();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -294,7 +293,9 @@ export default function HomeScreen() {
 
   const handleRecenterOnMe = async () => {
     try {
-      const loc = await getCurrentPositionWithPermission();
+      // Context does the fresh fix AND updates the live pin position, so
+      // the pin appears at exactly the spot the map centers on.
+      const loc = await useLiveLocation();
       if (loc) {
         const d = 0.09;
         setMapBounds({ minLat: loc.latitude - d / 2, maxLat: loc.latitude + d / 2, minLng: loc.longitude - d / 2, maxLng: loc.longitude + d / 2, centerLat: loc.latitude, centerLng: loc.longitude });
@@ -969,12 +970,7 @@ export default function HomeScreen() {
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
             }}
-            onRecenter={(lat, lng) => {
-              const d = 0.09;
-              setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
-              setUserLocation({ latitude: lat, longitude: lng });
-              setMapFocusToken((t) => t + 1);
-            }}
+            onRecenter={handleRecenterOnMe}
             focusToken={mapFocusToken}
           />
         )}

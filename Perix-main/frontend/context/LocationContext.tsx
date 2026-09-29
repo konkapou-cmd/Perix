@@ -19,7 +19,7 @@ interface LocationContextType {
   loading: boolean;
   error: string | null;
   setManualLocation: (lat: number, lng: number, name?: string) => void;
-  useLiveLocation: () => Promise<void>;
+  useLiveLocation: () => Promise<FreshPosition | null>;
   radiusKm: number;
   setRadiusKm: (km: number) => void;
   refreshLocation: () => void;
@@ -74,7 +74,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     load();
   }, []);
 
-  const requestLiveLocation = async () => {
+  const requestLiveLocation = async (): Promise<FreshPosition | null> => {
     try {
       setLoading(true);
       setError(null);
@@ -82,7 +82,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       if (!current) {
         setError("Could not get location");
         setLoading(false);
-        return;
+        return null;
       }
       liveRef.current = { latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy };
       setLocation({
@@ -92,9 +92,11 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         isLiveLocation: true,
       });
       setLivePosition({ latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy });
+      return { latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy };
     } catch (e) {
       console.error("Error getting live location:", e);
       setError("Could not get location");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -111,9 +113,10 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     setRefreshKey((prev) => prev + 1);
   }, []);
 
-  const useLiveLocation = useCallback(async () => {
-    await requestLiveLocation();
+  const useLiveLocation = useCallback(async (): Promise<FreshPosition | null> => {
+    const pos = await requestLiveLocation();
     setRefreshKey((prev) => prev + 1);
+    return pos;
   }, []);
 
   const setRadiusKm = useCallback(async (km: number) => {

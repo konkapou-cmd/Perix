@@ -134,10 +134,10 @@ export async function getCurrentPositionWithPermission(
   const granted = await ensureLocationPermission();
   if (!granted) return null;
 
-  const timeout = options?.timeoutMs ?? 30000;
+  const timeout = options?.timeoutMs ?? 8000;
   const highAccuracy = options?.highAccuracy !== false;
 
-  const oneShot = () =>
+  const oneShot = (useHighAccuracy: boolean) =>
     new Promise<FreshPosition>((resolve, reject) => {
       if (
         Platform.OS === "web" &&
@@ -152,11 +152,11 @@ export async function getCurrentPositionWithPermission(
               accuracy: p.coords.accuracy ?? 99999,
             }),
           (e) => reject(e),
-          { enableHighAccuracy: highAccuracy, maximumAge: 0, timeout }
+          { enableHighAccuracy: useHighAccuracy, maximumAge: 0, timeout }
         );
       } else {
         Location.getCurrentPositionAsync({
-          accuracy: highAccuracy ? Location.Accuracy.High : Location.Accuracy.Balanced,
+          accuracy: useHighAccuracy ? Location.Accuracy.High : Location.Accuracy.Balanced,
           maximumAge: 0 as any,
           timeout,
         } as any)
@@ -171,15 +171,18 @@ export async function getCurrentPositionWithPermission(
       }
     });
 
+  // High accuracy first. If the GPS cannot deliver quickly, fall back to a
+  // fast network-based fix so the pin/map never waits long; the continuous
+  // watch improves the accuracy afterwards.
   try {
-    return await oneShot();
+    return await oneShot(highAccuracy);
   } catch (e) {
-    console.warn("getCurrentPosition failed (first attempt):", e);
+    console.warn("getCurrentPosition failed (high accuracy):", e);
     try {
-      await new Promise((r) => setTimeout(r, 2500));
-      return await oneShot();
+      await new Promise((r) => setTimeout(r, 1000));
+      return await oneShot(false);
     } catch (e2) {
-      console.warn("getCurrentPosition failed (retry):", e2);
+      console.warn("getCurrentPosition failed (fallback):", e2);
       return null;
     }
   }
