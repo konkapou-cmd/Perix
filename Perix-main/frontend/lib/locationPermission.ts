@@ -58,6 +58,18 @@ export interface FreshPosition {
 }
 
 /**
+ * Fixes with a larger accuracy radius than this are treated as
+ * unreliable: they usually come from a stale WiFi/IP database (the
+ * router's old address) and would pin the user in a wrong place.
+ * The continuous watch delivers the precise GPS fix afterwards.
+ */
+export const LIVE_MIN_ACCURACY_METERS = 800;
+
+export function isReliablePosition(accuracy: number | undefined | null): boolean {
+  return typeof accuracy === "number" && accuracy <= LIVE_MIN_ACCURACY_METERS;
+}
+
+/**
  * Continuously watch the device position and invoke the callback with
  * every fix, like Google Maps' live blue dot. Returns a stop function.
  */
@@ -134,7 +146,7 @@ export async function getCurrentPositionWithPermission(
   const granted = await ensureLocationPermission();
   if (!granted) return null;
 
-  const timeout = options?.timeoutMs ?? 8000;
+  const timeout = options?.timeoutMs ?? 12000;
   const highAccuracy = options?.highAccuracy !== false;
 
   const oneShot = (useHighAccuracy: boolean) =>
@@ -171,16 +183,21 @@ export async function getCurrentPositionWithPermission(
       }
     });
 
-  // High accuracy first. If the GPS cannot deliver quickly, fall back to a
-  // fast network-based fix so the pin/map never waits long; the continuous
-  // watch improves the accuracy afterwards.
+  // High accuracy first. If the GPS cannot deliver quickly, try a fast
+  // network-based fix - but ONLY accept it when it is reasonably accurate.
+  // Network fixes can come from a stale WiFi database (e.g. the router's
+  // old address) and would otherwise pin the user in a wrong place; the
+  // continuous watch improves the position afterwards.
   try {
-    return await oneShot(highAccuracy);
+    const precise = await oneShot(highAccuracy);
+    return precise;
   } catch (e) {
     console.warn("getCurrentPosition failed (high accuracy):", e);
     try {
       await new Promise((r) => setTimeout(r, 1000));
-      return await oneShot(false);
+      const coarse = await oneShot(false);
+      if (coarse.accuracy > LIVE_MIN_ACCURACY_METERS) return null;
+      return coarse;
     } catch (e2) {
       console.warn("getCurrentPosition failed (fallback):", e2);
       return null;

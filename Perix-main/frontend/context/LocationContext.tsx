@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getCurrentPositionWithPermission, watchPrecisePosition, FreshPosition } from "../lib/locationPermission";
+import { getCurrentPositionWithPermission, watchPrecisePosition, FreshPosition, isReliablePosition } from "../lib/locationPermission";
 
 interface LocationData {
   latitude: number;
@@ -57,7 +57,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         }
       } catch {}
       const fresh = await getCurrentPositionWithPermission({ timeoutMs: 12000 });
-      if (fresh) {
+      if (fresh && isReliablePosition(fresh.accuracy)) {
         setLocation({
           latitude: fresh.latitude,
           longitude: fresh.longitude,
@@ -79,7 +79,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
       const current = await getCurrentPositionWithPermission();
-      if (!current) {
+      if (!current || !isReliablePosition(current.accuracy)) {
         setError("Could not get location");
         setLoading(false);
         return null;
@@ -133,8 +133,11 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
   // Debounced live updates: only move the pin/area when the position
   // actually changed (~30m) or the accuracy improved a lot. GPS noise
-  // otherwise makes the pin flicker back and forth.
+  // otherwise makes the pin flicker back and forth. Unreliable fixes
+  // (stale WiFi/IP database, city-level accuracy) are ignored entirely -
+  // a wrong position must never be shown as live.
   const applyFix = useCallback((pos: FreshPosition) => {
+    if (!isReliablePosition(pos.accuracy)) return;
     const cur = liveRef.current;
     if (cur) {
       const moved = Math.hypot(pos.latitude - cur.latitude, pos.longitude - cur.longitude);
