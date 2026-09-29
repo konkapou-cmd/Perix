@@ -59,30 +59,75 @@ function currentTimeInZone(timezone?: string): { dayIndex: number; minutes: numb
 
 /** Determine whether a business is currently open based on its opening_hours schedule. */
 export function isBusinessOpen(business: Business): boolean {
-  const openingHours = business.opening_hours as OpeningHours | undefined;
-  if (!openingHours?.schedule) return false; // No registered hours -> treated as closed
+  const openingHours = business.opening_hours as any;
+  if (!openingHours) return false; // No registered hours -> treated as closed
+  const schedule = unpackOpeningHoursSchedule(openingHours);
+  if (!schedule) return false;
+  return isOpenNowForSchedule(schedule, (openingHours as any)?.timezone);
+}
 
-  const { dayIndex, minutes: currentMinutes } = currentTimeInZone(openingHours.timezone);
+function parseMinutes(value: string | undefined, fallback: number): number {
+  const parts = String(value || "").split(":").map(Number);
+  const h = Number.isFinite(parts[0]) ? parts[0] % 24 : Math.floor(fallback / 60);
+  const m = Number.isFinite(parts[1]) ? parts[1] : fallback % 60;
+  return h * 60 + m;
+}
+
+/** Now (minutes) within an open..close period. Handles overnight periods
+ *  (close <= open means the period crosses midnight) and 24h (open==close). */
+function withinPeriod(now: number, open: number, close: number): boolean {
+  if (open === close) return true; // 24h
+  if (open < close) return now >= open && now < close;
+  return now >= open || now < close; // crosses midnight
+}
+
+/** Only the midnight-crossing part of yesterday's periods can cover now. */
+function withinPrevDaySpillover(now: number, open: number, close: number): boolean {
+  if (open === close) return true;
+  if (open < close) return false;
+  return now < close;
+}
+
+/**
+ * Whether the schedule is open right now, honoring the business timezone
+ * and overnight periods (e.g. a bar open 20:00-02:00 must show as open
+ * at 23:00 AND at 01:00).
+ */
+export function isOpenNowForSchedule(
+  schedule: Record<string, { enabled: boolean; periods: { open: string; close: string }[] }>,
+  timezone?: string
+): boolean {
+  if (!schedule) return false;
+  const { dayIndex, minutes } = currentTimeInZone(timezone);
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const dayName = days[dayIndex];
-  const candidates = [
-    openingHours.schedule[dayName],
-    openingHours.schedule[dayName.toLowerCase()],
-  ].filter((s): s is NonNullable<typeof s> => !!s);
+  const prevDayName = days[(dayIndex + 6) % 7];
 
-  if (candidates.length === 0) return false;
+  const candidates = [
+    schedule[dayName],
+    schedule[dayName.toLowerCase()],
+  ].filter((s): s is NonNullable<typeof s> => !!s);
+  const prevCandidates = [
+    schedule[prevDayName],
+    schedule[prevDayName.toLowerCase()],
+  ].filter((s): s is NonNullable<typeof s> => !!s);
 
   for (const daySchedule of candidates) {
     if (!daySchedule.enabled) continue;
     const periods = Array.isArray(daySchedule.periods) ? daySchedule.periods : [];
     for (const period of periods) {
-      const [openHour, openMin] = String(period.open || "09:00").split(":").map(Number);
-      const [closeHour, closeMin] = String(period.close || "18:00").split(":").map(Number);
-      const openMinutes = (openHour || 0) * 60 + (openMin || 0);
-      const closeMinutes = (closeHour || 0) * 60 + (closeMin || 0);
-      if (currentMinutes >= openMinutes && currentMinutes <= closeMinutes) {
-        return true;
-      }
+      const open = parseMinutes(period.open, 9 * 60);
+      const close = parseMinutes(period.close, 18 * 60);
+      if (withinPeriod(minutes, open, close)) return true;
+    }
+  }
+  for (const daySchedule of prevCandidates) {
+    if (!daySchedule.enabled) continue;
+    const periods = Array.isArray(daySchedule.periods) ? daySchedule.periods : [];
+    for (const period of periods) {
+      const open = parseMinutes(period.open, 9 * 60);
+      const close = parseMinutes(period.close, 18 * 60);
+      if (withinPrevDaySpillover(minutes, open, close)) return true;
     }
   }
   return false;

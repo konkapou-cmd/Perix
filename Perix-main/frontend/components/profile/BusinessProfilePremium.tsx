@@ -49,7 +49,7 @@ import { ProfileMedia } from "./ProfileMedia";
 import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE_COLORS } from "./ProfileDesign";
-import { unpackOpeningHoursSchedule } from "../../lib/openingHours";
+import { unpackOpeningHoursSchedule, isOpenNowForSchedule } from "../../lib/openingHours";
 import { COLORS, resolveCategory } from "../../lib/designTokens";
 import { hasServiceModules, getAllowedModules, getDefaultModule, getCategoryIcon } from "../../lib/config/serviceCategoryMatrix";
 import { getServiceModuleIcon, getServiceModuleLabel, getServiceModuleTabLabel } from "../../lib/config/serviceModules";
@@ -491,20 +491,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
     openingHours: transformedHours,
     isOpen: (() => {
       try {
-        const now = new Date();
-        const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-        const todayKey = dayNames[now.getDay()];
-        const todayData = normalizedHours[todayKey];
-        if (!todayData || !todayData.enabled || !todayData.periods?.[0]) return false;
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        for (const period of todayData.periods) {
-          const [oH, oM] = (period.open || "09:00").split(":").map(Number);
-          const [cH, cM] = (period.close || "18:00").split(":").map(Number);
-          const openMin = oH * 60 + oM;
-          const closeMin = cH * 60 + cM;
-          if (currentMinutes >= openMin && currentMinutes <= closeMin) return true;
-        }
-        return false;
+        return isOpenNowForSchedule(normalizedHours, (openingHours as any)?.timezone);
       } catch { return false; }
     })(),
   };

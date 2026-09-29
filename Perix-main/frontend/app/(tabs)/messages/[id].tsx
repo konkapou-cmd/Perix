@@ -696,7 +696,16 @@ export default function ChatScreen() {
         <View style={styles.header}>
         <HeaderBackButton onPress={() => router.back()} tintColor="#264348" />
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{name || t("messages.chat")}</Text>
+          <Pressable
+            onPress={() => {
+              if (!id) return;
+              if (convEntityType === "business") router.push(`/business/${id}` as any);
+              else if (convEntityType === "artist") router.push(`/artist/${id}` as any);
+              else router.push(`/user/${id}` as any);
+            }}
+          >
+            <Text style={styles.headerTitle}>{name || t("messages.chat")}</Text>
+          </Pressable>
         </View>
         {id !== user?.user_id && (
           <>

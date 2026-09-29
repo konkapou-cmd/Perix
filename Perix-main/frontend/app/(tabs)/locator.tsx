@@ -77,7 +77,7 @@ interface DateFilter {
 }
 
 export default function LocatorScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isDesktop } = useResponsiveLayout();
   const { sessionToken, user, activeIdentity } = useAuth();
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
@@ -537,7 +537,7 @@ export default function LocatorScreen() {
       setSuggesting(true);
       const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
         query
-      )}&key=${googleKey}`;
+      )}&key=${googleKey}&language=${encodeURIComponent(i18n.language || "en")}`;
       const response = await fetch(url);
       const data = await response.json();
       setSuggestions(data.predictions || []);
@@ -622,7 +622,7 @@ export default function LocatorScreen() {
     try {
       const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
         suggestion.place_id
-      )}&key=${googleKey}`;
+      )}&key=${googleKey}&language=${encodeURIComponent(i18n.language || "en")}`;
       const response = await fetch(url);
       const data = await response.json();
       const location = data.result?.geometry?.location;

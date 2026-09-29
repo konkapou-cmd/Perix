@@ -23,7 +23,7 @@ interface LocationSearchOverlayProps {
 }
 
 export function LocationSearchOverlay({ visible, sessionToken, nearLat, nearLng, onClose, onSelectPlace }: LocationSearchOverlayProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,7 +51,7 @@ export function LocationSearchOverlay({ visible, sessionToken, nearLat, nearLng,
     const requestId = ++requestIdRef.current;
     debounceRef.current = setTimeout(async () => {
       try {
-        let url = `/places/autocomplete?input=${encodeURIComponent(text)}`;
+        let url = `/places/autocomplete?input=${encodeURIComponent(text)}&lang=${encodeURIComponent(i18n.language || "en")}`;
         if (nearLat != null && nearLng != null) {
           url += `&near_lat=${nearLat}&near_lng=${nearLng}`;
         }

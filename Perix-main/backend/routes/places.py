@@ -36,16 +36,18 @@ async def places_autocomplete(
     input: str = Query(..., min_length=2),
     near_lat: Optional[float] = Query(None),
     near_lng: Optional[float] = Query(None),
+    lang: str = Query("en"),
     current_user: UserPublic = Depends(get_current_user),
 ):
     global _last_nominatim_request
+    accept_lang = lang if lang in ("en", "de", "el") else "en"
     try:
         params: dict = {
             "q": input,
             "format": "jsonv2",
             "limit": 10,
             "addressdetails": 1,
-            "accept-language": "en",
+            "accept-language": accept_lang,
             "dedupe": 1,
         }
         if near_lat is not None and near_lng is not None:

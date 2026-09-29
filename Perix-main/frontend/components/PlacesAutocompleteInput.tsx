@@ -11,6 +11,7 @@ import {
   Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { apiRequest } from "../lib/api/core";
 
 type Props = {
@@ -48,6 +49,7 @@ export default function PlacesAutocompleteInput({
   locked,
   sessionToken,
 }: Props) {
+  const { i18n } = useTranslation();
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [searching, setSearching] = useState(false);
   const [showPredictions, setShowPredictions] = useState(false);
@@ -68,7 +70,7 @@ export default function PlacesAutocompleteInput({
       let data: any;
 
       if (sessionToken) {
-        let url = `/places/autocomplete?input=${encodeURIComponent(query)}`;
+        let url = `/places/autocomplete?input=${encodeURIComponent(query)}&lang=${encodeURIComponent(i18n.language || "en")}`;
         if (nearLat != null && nearLng != null) {
           url += `&near_lat=${nearLat}&near_lng=${nearLng}`;
         }
@@ -77,7 +79,7 @@ export default function PlacesAutocompleteInput({
       } else {
         let nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
           query
-        )}&limit=8&addressdetails=1`;
+        )}&limit=8&addressdetails=1&accept-language=${encodeURIComponent(i18n.language || "en")}`;
         if (nearLat != null && nearLng != null) {
           nominatimUrl += `&lat=${nearLat}&lon=${nearLng}`;
           const vbLatDelta = 0.5;
