@@ -1,5 +1,6 @@
 import { Alert, Linking, Platform } from "react-native";
 import * as Location from "expo-location";
+import Constants from "expo-constants";
 
 /**
  * Request foreground location permission. When denied, explain what happened
@@ -10,7 +11,31 @@ import * as Location from "expo-location";
  * it in settings and comes back).
  */
 export async function ensureLocationPermission(): Promise<boolean> {
-  const { status, canAskAgain } = await Location.requestForegroundPermissionsAsync();
+  let status: string = "undetermined";
+  let canAskAgain = true;
+  try {
+    const res = await Location.requestForegroundPermissionsAsync();
+    status = res.status;
+    canAskAgain = res.canAskAgain ?? true;
+  } catch (e) {
+    // Some browsers (older iOS Safari, certain webviews) lack the
+    // navigator.permissions API that expo-location needs. Fall back to a
+    // direct geolocation call, which prompts for permission on its own.
+    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.geolocation) {
+      try {
+        return await new Promise<boolean>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            () => resolve(true),
+            () => resolve(false),
+            { maximumAge: 0, timeout: 20000 }
+          );
+        });
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
   if (status === "granted") return true;
 
   const title = "Location permission needed";
@@ -67,6 +92,45 @@ export const LIVE_MIN_ACCURACY_METERS = 800;
 
 export function isReliablePosition(accuracy: number | undefined | null): boolean {
   return typeof accuracy === "number" && accuracy <= LIVE_MIN_ACCURACY_METERS;
+}
+
+/**
+ * Network-based position via the Google Geolocation API (IP/WiFi), called
+ * directly over HTTP so it works in EVERY browser - no browser geolocation
+ * permission involved. Accuracy is city-level (~1-5km), so it is used only
+ * as an AREA fallback (never as the exact "you are here" pin).
+ */
+export async function networkGeolocate(): Promise<FreshPosition | null> {
+  const key =
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_GEO_KEY ||
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    process.env.EXPO_PUBLIC_GEO_KEY ||
+    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    "";
+  if (!key) return null;
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/geolocation/v1/geolocate?key=${key}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ considerIp: true }),
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.location?.lat != null && data?.location?.lng != null) {
+      return {
+        latitude: data.location.lat,
+        longitude: data.location.lng,
+        accuracy: typeof data.accuracy === "number" ? data.accuracy : 5000,
+      };
+    }
+    return null;
+  } catch (e) {
+    console.warn("networkGeolocate failed:", e);
+    return null;
+  }
 }
 
 /**
