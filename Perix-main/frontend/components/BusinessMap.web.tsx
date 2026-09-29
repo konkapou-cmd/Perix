@@ -6,6 +6,7 @@ import { formatEventDate } from "../lib/formatDate";
 import { translateCategory } from "../lib/categoryTranslation";
 import { COLORS } from "../lib/designTokens";
 import { useTranslation } from "react-i18next";
+import { getCurrentLanguageSync } from "../i18n";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 
@@ -90,7 +91,7 @@ function loadGoogleScript() {
     // Classic (non-async) loader: everything loads in one script, so
     // `google.maps.Map` is available on onload — avoids the async bootstrap
     // chunks that Brave/ad-blockers intercept (causing "Map is not a constructor").
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleKey}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleKey}&language=${encodeURIComponent(getCurrentLanguageSync())}`;
     script.async = true;
     script.onload = () => {
       if (!(window as any).google?.maps?.Map) {

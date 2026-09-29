@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../lib/designTokens";
 import Constants from "expo-constants";
+import { getCurrentLanguageSync } from "../i18n";
 import { openInMaps } from "../lib/utils/openMapUrl";
 
 type Props = {
@@ -147,7 +148,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
       return () => clearInterval(wait);
     }
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&language=${encodeURIComponent(getCurrentLanguageSync())}`;
     script.async = true;
     script.onload = () => initMap();
     script.onerror = () => setMapError("Map failed to load");
@@ -179,7 +180,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
     setSearching(true);
     try {
       const corsProxy = "https://corsproxy.io/?";
-      const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&types=geocode`;
+      const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&types=geocode&language=${encodeURIComponent(getCurrentLanguageSync())}`;
       
       const response = await fetch(corsProxy + encodeURIComponent(apiUrl));
       const data = await response.json();
@@ -190,7 +191,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
     } catch (error) {
       console.error("Places search error:", error);
       try {
-        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10&addressdetails=1`;
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10&addressdetails=1&accept-language=${encodeURIComponent(getCurrentLanguageSync())}`;
         const response = await fetch(nominatimUrl, {
           headers: { "User-Agent": "Perix App" }
         });
@@ -227,7 +228,7 @@ export default function LocationPickerMap({ location, onLocationChange }: Props)
 
     try {
       const corsProxy = "https://corsproxy.io/?";
-      const apiUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,formatted_address&key=${GOOGLE_MAPS_API_KEY}`;
+      const apiUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,formatted_address&key=${GOOGLE_MAPS_API_KEY}&language=${encodeURIComponent(getCurrentLanguageSync())}`;
       
       const response = await fetch(corsProxy + encodeURIComponent(apiUrl));
       const data = await response.json();

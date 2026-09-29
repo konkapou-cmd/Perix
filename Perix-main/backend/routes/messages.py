@@ -33,7 +33,7 @@ typing_status: Dict[str, Dict[str, str]] = {}  # {user_id: {other_user_id: times
 # message documents on every poll.
 import time as _time
 _CONVERSATIONS_CACHE: Dict[str, tuple] = {}
-_CONVERSATIONS_CACHE_TTL = 15  # seconds
+_CONVERSATIONS_CACHE_TTL = 30  # seconds (WS events invalidate on new messages)
 
 
 def _cache_get(key: str):

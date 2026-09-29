@@ -124,6 +124,9 @@ async def create_indexes():
     await db.messages.create_index([("from_user_id", 1), ("to_user_id", 1)])
     await db.messages.create_index([("to_user_id", 1), ("read", 1)])
     await db.messages.create_index([("created_at", -1)])
+    # Conversation-list queries sort by created_at per participant
+    await _safe_create_index(db.messages, [("from_user_id", 1), ("created_at", -1)])
+    await _safe_create_index(db.messages, [("to_user_id", 1), ("created_at", -1)])
     
     # Businesses collection indexes
     await db.businesses.create_index("business_id", unique=True)

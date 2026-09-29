@@ -51,6 +51,32 @@ export const getStoredLanguage = async (): Promise<string | null> => {
   }
 };
 
+/**
+ * Synchronous best-effort language (used before i18n finishes async init,
+ * e.g. for the Google Maps script URL). Prefers the stored language, then
+ * the device locale.
+ */
+export function getCurrentLanguageSync(): string {
+  if (i18n.isInitialized && i18n.language && i18n.language !== "undefined") {
+    return i18n.language;
+  }
+  if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+    try {
+      const saved = localStorage.getItem(LANGUAGE_KEY);
+      if (saved) return saved;
+    } catch {}
+  }
+  try {
+    const locales = Localization.getLocales?.();
+    const deviceLocale = (locales?.[0]?.languageCode || "en") as string;
+    return ["en", "de", "el", "es", "sq", "fr", "it", "sr", "pl", "ru"].includes(deviceLocale)
+      ? deviceLocale
+      : "en";
+  } catch {
+    return "en";
+  }
+}
+
 export const setStoredLanguage = async (language: string): Promise<void> => {
   try {
     await AsyncStorage.setItem(LANGUAGE_KEY, language);
