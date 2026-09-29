@@ -8,6 +8,7 @@ import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/us
 import type { Business, EventItem, ActivityItem } from "../../lib/api";
 import { formatEventDate, formatDate } from "../../lib/formatDate";
 import AdaptiveVideo from "../AdaptiveVideo";
+import { useLocalizedAddress } from "../../lib/localizedAddress";
 
 type BusinessCardProps = {
   type: "business";
@@ -46,6 +47,9 @@ function BusinessCard({ data, distance, isOpen, onPress, videoUrl }: BusinessCar
   const primaryColor = themeColors.primaryColor;
   const photo = data.cover_image || data.logo_image || data.profile_photo;
   const showVideo = !!videoUrl && !data.cover_image;
+  // Re-localize "Next to X street" addresses saved under a different app
+  // language into the current one.
+  const localizedAddress = useLocalizedAddress(data.address, data.latitude, data.longitude);
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
@@ -74,10 +78,10 @@ function BusinessCard({ data, distance, isOpen, onPress, videoUrl }: BusinessCar
               ? (data as any).subcategories.map((s: string) => translateCategory(s, t)).join(" / ")
               : translateCategory(data.subcategory, t)} · {translateCategory(data.root_category || data.category, t)}
           </Text>
-          {data.address ? (
+          {localizedAddress ? (
             <View style={styles.cardMetaRow}>
               <Ionicons name="location-outline" size={12} color="#264348" />
-              <Text style={styles.cardMetaText} numberOfLines={1}>{data.address}</Text>
+              <Text style={styles.cardMetaText} numberOfLines={1}>{localizedAddress}</Text>
             </View>
           ) : null}
           <View style={styles.cardBottomRow}>

@@ -50,6 +50,7 @@ import { ProfileAboutData } from "./ProfileAbout";
 import { ProfileAboutInline } from "./ProfileAboutInline";
 import { PROFILE_COLORS } from "./ProfileDesign";
 import { unpackOpeningHoursSchedule, isOpenNowForSchedule } from "../../lib/openingHours";
+import { useLocalizedAddress } from "../../lib/localizedAddress";
 import { COLORS, resolveCategory } from "../../lib/designTokens";
 import { hasServiceModules, getAllowedModules, getDefaultModule, getCategoryIcon } from "../../lib/config/serviceCategoryMatrix";
 import { getServiceModuleIcon, getServiceModuleLabel, getServiceModuleTabLabel } from "../../lib/config/serviceModules";
@@ -459,6 +460,14 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 
   const ALL_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   
+  // Re-localize "Next to X street" addresses saved under a different app
+  // language into the current one.
+  const localizedLocation = useLocalizedAddress(
+    detail.business.address,
+    detail.business.latitude,
+    detail.business.longitude
+  );
+
   const transformedHours: Record<string, { open: string; close: string; enabled?: boolean }> = {};
   const normalizedHours = unpackOpeningHoursSchedule(openingHours);
   
@@ -483,7 +492,7 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const aboutData: ProfileAboutData = {
     type: "business",
     bio: detail.business.description,
-    location: detail.business.address,
+    location: localizedLocation,
     website: isOwnProfile ? undefined : detail.business.website,
     email: isOwnProfile ? undefined : detail.business.email,
     phone: isOwnProfile ? undefined : detail.business.phone,

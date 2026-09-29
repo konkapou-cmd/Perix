@@ -134,23 +134,24 @@ export default function MessagesScreen() {
   const loadConversations = useCallback(async () => {
     if (!sessionToken) return false;
     try {
-      // Load direct conversations and group conversations in parallel
-      const [data, allData] = await Promise.all([
-        getConversations(sessionToken),
-        getAllConversations(sessionToken).catch(() => [] as any[]),
-      ]);
-      
+      // Direct conversations render immediately; group chats fill in
+      // afterwards (they are slower and must not delay the screen).
+      const data = await getConversations(sessionToken);
+      getAllConversations(sessionToken)
+        .then(setAllConversations)
+        .catch(() => {});
+
       // Check for new unread messages and trigger notifications
       const newUnreadMap: Record<string, number> = {};
       data.forEach((conv: Conversation) => {
         if (!conv.other_user) return;
         newUnreadMap[conv.other_user.user_id] = conv.unread_count || 0;
-        
+
         // If unread count increased, show notification
         const prevCount = lastUnreadMapRef.current[conv.other_user.user_id] || 0;
         if (conv.unread_count && conv.unread_count > prevCount && prevCount >= 0) {
           // last_message can be a string or Message object
-          const messagePreview = typeof conv.last_message === 'string' 
+          const messagePreview = typeof conv.last_message === 'string'
             ? conv.last_message.substring(0, 100)
             : (conv.last_message as any)?.text?.substring(0, 100) || "";
           showLocalNotification(
@@ -161,9 +162,8 @@ export default function MessagesScreen() {
         }
       });
       lastUnreadMapRef.current = newUnreadMap;
-      
+
       setConversations(data);
-      setAllConversations(allData);
       return true;
     } catch (error) {
       // Never let a failed poll (e.g. tab was frozen and the network died)
@@ -225,7 +225,11 @@ export default function MessagesScreen() {
   useEffect(() => {
     if (!sessionToken) return;
     setLoading(true);
-    Promise.allSettled([loadConversations(), loadFriends(), loadFriendRequests()]).finally(() => setLoading(false));
+    // Show the conversation list as soon as it arrives - friends and
+    // friend requests fill in on their own without blocking the screen.
+    loadConversations().finally(() => setLoading(false));
+    void loadFriends();
+    void loadFriendRequests();
   }, [loadConversations, loadFriends, loadFriendRequests, sessionToken]);
 
   // Use WebSocket for real-time conversation updates, fallback to polling

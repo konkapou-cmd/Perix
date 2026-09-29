@@ -68,6 +68,7 @@ import ShareContent from "../../components/ShareContent";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 import { translateCategory, translateServiceType, translateJobType } from "../../lib/categoryTranslation";
 import ProgressivePicker from "../../components/navigation/ProgressivePicker";
+import { useLocalizedAddressMap } from "../../lib/localizedAddress";
 
 const POST_FILTER_CATEGORIES: { slug: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { slug: "food-dining", icon: "restaurant" },
@@ -274,6 +275,13 @@ export default function HomeScreen() {
   const shuffledHotels = useMemo(() => shuffle(sortedHotels), [sortedHotels]);
   const shuffledServices = useMemo(() => shuffle(sortedServices), [sortedServices]);
   const shuffledJobs = useMemo(() => shuffle(sortedJobs), [sortedJobs]);
+
+  // Re-localize "Next to X street" addresses (saved under an older app
+  // language) into the current language for the carousel cards.
+  const localizedAddressMap = useLocalizedAddressMap([
+    ...businesses.map((b) => ({ id: b.business_id, address: b.address, latitude: b.latitude, longitude: b.longitude })),
+    ...hotels.map((h) => ({ id: h.business_id, address: h.address, latitude: h.latitude, longitude: h.longitude })),
+  ]);
 
   useEffect(() => {
     if (!globalLocation) return;
@@ -1195,7 +1203,7 @@ export default function HomeScreen() {
                   imageUrl={bizImg}
                   title={business.name}
                   subtitle={translateCategory(business.subcategory, t)}
-                  thirdLine={business.address || ""}
+                  thirdLine={(localizedAddressMap.get(business.business_id) ?? business.address) || ""}
                   onPress={() => router.push(`/business/${business.business_id}`)}
                   isSaved={savedBusinessIds.has(business.business_id)}
                   textColor={primaryColor}
@@ -1233,7 +1241,7 @@ export default function HomeScreen() {
                   imageUrl={hotelImg}
                   title={hotel.name}
                   subtitle={translateCategory(hotel.subcategory, t)}
-                  thirdLine={hotel.address || ""}
+                  thirdLine={(localizedAddressMap.get(hotel.business_id) ?? hotel.address) || ""}
                   onPress={() => router.push(`/business/${hotel.business_id}`)}
                   isSaved={savedHotelIds.has(hotel.business_id)}
                   textColor={primaryColor}
