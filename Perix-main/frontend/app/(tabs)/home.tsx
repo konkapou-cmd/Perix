@@ -999,7 +999,18 @@ export default function HomeScreen() {
             onRegionChange={(bounds) => {
               setMapBounds({ ...bounds, centerLat: (bounds.minLat + bounds.maxLat) / 2, centerLng: (bounds.minLng + bounds.maxLng) / 2 });
             }}
-            onRecenter={handleRecenterOnMe}
+            onRecenter={(lat, lng) => {
+              if (typeof lat === "number" && typeof lng === "number") {
+                // Native path: the position came from the map button's own
+                // GPS fetch - center the map there.
+                const d = 0.09;
+                setMapBounds({ minLat: lat - d / 2, maxLat: lat + d / 2, minLng: lng - d / 2, maxLng: lng + d / 2, centerLat: lat, centerLng: lng });
+                setUserLocation({ latitude: lat, longitude: lng });
+                setMapFocusToken((t) => t + 1);
+              } else {
+                handleRecenterOnMe();
+              }
+            }}
             focusToken={mapFocusToken}
           />
         )}

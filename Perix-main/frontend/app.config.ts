@@ -86,6 +86,13 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     [
+      "expo-location",
+      {
+        locationWhenInUsePermission:
+          "Perix uses your location to show nearby businesses, events and rentals.",
+      },
+    ],
+    [
       "expo-splash-screen",
       {
         image: "./assets/images/prx-logo.png",

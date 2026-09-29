@@ -1,8 +1,9 @@
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 import BusinessMap from "../../components/BusinessMap";
 import { MapBounds } from "../../context/MapBoundsContext";
 import { Business, EventItem, ActivityItem, Rental, Service } from "../../lib/api";
@@ -25,11 +26,11 @@ interface MapSectionProps {
   userPinImage?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;
   onRegionChange: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
-  onRecenter?: () => void;
+  onRecenter?: (lat?: number, lng?: number) => void;
   focusToken?: number;
 }
 
-export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation: _userLocation, userPinImage, pinLocation, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
+export function MapSection({ mapBounds, businesses, hotels, events, activities, rentals, jobs, services, products, ownerHomes, userLocation, userPinImage, pinLocation, onRegionChange, onRecenter, focusToken }: MapSectionProps) {
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -91,6 +92,20 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
   };
 
   const handleRecenter = async () => {
+    if (Platform.OS !== "web") {
+      // Native: fetch the current position here and tell the parent so the
+      // map can animate to it (initialRegion alone never moves an open map).
+      const loc = await getCurrentPositionWithPermission();
+      if (loc) {
+        onRecenter?.(loc.latitude, loc.longitude);
+      } else {
+        Alert.alert(
+          t("common.error") || "Error",
+          t("locator.locationDenied") || "Location permission denied"
+        );
+      }
+      return;
+    }
     onRecenter?.();
   };
 
@@ -98,6 +113,10 @@ export function MapSection({ mapBounds, businesses, hotels, events, activities, 
     <View style={styles.container}>
       <View style={styles.mapWrapper}>
         <BusinessMap
+          // Native: the map animates to `location` when it changes (the
+          // recenter button lands here). Web: omit it - the web map stays
+          // put unless explicitly focused, so live GPS never yanks it.
+          location={Platform.OS === "web" ? undefined : userLocation ?? undefined}
           showUserLocation
           userPinImage={userPinImage ?? undefined}
           pinLocation={pinLocation}

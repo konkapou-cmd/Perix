@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import MapView, { Marker, Region } from "react-native-maps";
-import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
@@ -321,9 +321,18 @@ export default function BusinessMap({
               if (status === "granted") {
                 const position = await Location.getCurrentPositionAsync({});
                 onMapPress(position.coords.latitude, position.coords.longitude);
+              } else {
+                Alert.alert(
+                  t("common.error") || "Error",
+                  t("locator.locationDenied") || "Location permission denied"
+                );
               }
             } catch (error) {
               console.error("Failed to get location:", error);
+              Alert.alert(
+                t("common.error") || "Error",
+                t("locator.locationDenied") || "Location permission denied"
+              );
             } finally {
               enablingRef.current = false;
               setEnabling(false);
