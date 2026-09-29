@@ -391,6 +391,16 @@ export default function RootLayout() {
     }
   }, []);
 
+  // Preload the Google Maps script on web so the first map opens instantly
+  // instead of waiting for the script to load when the map mounts.
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      import("../components/BusinessMap.web")
+        .then((m) => m.preloadGoogleMaps?.())
+        .catch(() => {});
+    }
+  }, []);
+
   return (
     <AppFontGate>
     <WebErrorOverlay>

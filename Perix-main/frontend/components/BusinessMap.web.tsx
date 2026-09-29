@@ -74,6 +74,13 @@ const googleKey =
 let googleScriptLoaded = false;
 let googleScriptPromise: Promise<void> | null = null;
 
+/** Kick off the Google Maps script load early (before a map mounts) so the
+ *  first map opens immediately instead of waiting for the script. */
+export function preloadGoogleMaps() {
+  if (Platform.OS !== "web") return;
+  void loadGoogleScript().catch(() => {});
+}
+
 function loadGoogleScript() {
   if (googleScriptLoaded && (window as any).google?.maps?.Map) return Promise.resolve();
   if (googleScriptPromise) return googleScriptPromise;

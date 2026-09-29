@@ -276,7 +276,18 @@ export default function HomeScreen() {
   const shuffledJobs = useMemo(() => shuffle(sortedJobs), [sortedJobs]);
 
   useEffect(() => {
-    if (globalLocation) setUserLocation({ latitude: globalLocation.latitude, longitude: globalLocation.longitude });
+    if (!globalLocation) return;
+    // Only update when the live position actually moved (~30m) - otherwise
+    // every GPS tick re-renders the whole home screen and the map.
+    setUserLocation((prev) => {
+      if (
+        prev &&
+        Math.hypot(globalLocation.latitude - prev.latitude, globalLocation.longitude - prev.longitude) < 0.0003
+      ) {
+        return prev;
+      }
+      return { latitude: globalLocation.latitude, longitude: globalLocation.longitude };
+    });
   }, [globalLocation]);
 
   // "You are here" pin: the live GPS fix only. Nothing stored or
