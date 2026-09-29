@@ -758,6 +758,8 @@
     "noActivitiesYet": "No activities yet",
     "showAllCategories": "Show all categories",
     "useMyLocation": "Use My Location",
+    "locating": "Locating...",
+    "locateFailed": "Couldn't get your precise location. Allow location access and try again.",
     "rentals": "Rentals",
     "marketplace": "Marketplace",
     "homesNearby": "Homes Nearby",

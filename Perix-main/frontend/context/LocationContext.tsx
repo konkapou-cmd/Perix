@@ -19,7 +19,7 @@ interface LocationContextType {
   loading: boolean;
   error: string | null;
   setManualLocation: (lat: number, lng: number, name?: string) => void;
-  useLiveLocation: () => Promise<FreshPosition | null>;
+  useLiveLocation: (timeoutMs?: number) => Promise<FreshPosition | null>;
   radiusKm: number;
   setRadiusKm: (km: number) => void;
   refreshLocation: () => void;
@@ -74,11 +74,11 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     load();
   }, []);
 
-  const requestLiveLocation = async (): Promise<FreshPosition | null> => {
+  const requestLiveLocation = async (timeoutMs?: number): Promise<FreshPosition | null> => {
     try {
       setLoading(true);
       setError(null);
-      const current = await getCurrentPositionWithPermission();
+      const current = await getCurrentPositionWithPermission(timeoutMs ? { timeoutMs } : undefined);
       if (!current || !isReliablePosition(current.accuracy)) {
         setError("Could not get location");
         setLoading(false);
@@ -113,8 +113,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     setRefreshKey((prev) => prev + 1);
   }, []);
 
-  const useLiveLocation = useCallback(async (): Promise<FreshPosition | null> => {
-    const pos = await requestLiveLocation();
+  const useLiveLocation = useCallback(async (timeoutMs?: number): Promise<FreshPosition | null> => {
+    const pos = await requestLiveLocation(timeoutMs);
     setRefreshKey((prev) => prev + 1);
     return pos;
   }, []);

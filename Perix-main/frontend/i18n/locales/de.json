@@ -613,6 +613,8 @@
     "noActivitiesYet": "Noch keine Aktivitäten",
     "showAllCategories": "Alle Kategorien anzeigen",
     "useMyLocation": "Meinen Standort verwenden",
+    "locating": "Standort wird gesucht...",
+    "locateFailed": "Dein genauer Standort konnte nicht ermittelt werden. Erlaube den Standortzugriff und versuche es erneut.",
     "rentals": "Vermietungen",
     "marketplace": "Marktplatz",
     "homesNearby": "Unterkünfte in der Nähe",

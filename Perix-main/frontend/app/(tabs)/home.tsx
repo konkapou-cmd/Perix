@@ -216,6 +216,8 @@ export default function HomeScreen() {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
+  const [locatingMe, setLocatingMe] = useState(false);
+  const [locateFailed, setLocateFailed] = useState(false);
   const [mapFocusToken, setMapFocusToken] = useState(0);
   const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
   const scrollRef = useRef<FlatList<Post>>(null);
@@ -292,18 +294,27 @@ export default function HomeScreen() {
   }, [globalLocation, isMapInitialized, setMapBounds]);
 
   const handleRecenterOnMe = async () => {
+    if (locatingMe) return;
+    setLocatingMe(true);
+    setLocateFailed(false);
     try {
       // Context does the fresh fix AND updates the live pin position, so
-      // the pin appears at exactly the spot the map centers on.
-      const loc = await useLiveLocation();
+      // the pin appears at exactly the spot the map centers on. A user
+      // gesture unlocks high accuracy, so allow a longer GPS window.
+      const loc = await useLiveLocation(25000);
       if (loc) {
         const d = 0.09;
         setMapBounds({ minLat: loc.latitude - d / 2, maxLat: loc.latitude + d / 2, minLng: loc.longitude - d / 2, maxLng: loc.longitude + d / 2, centerLat: loc.latitude, centerLng: loc.longitude });
         setUserLocation({ latitude: loc.latitude, longitude: loc.longitude });
         setMapFocusToken((t) => t + 1);
+      } else {
+        setLocateFailed(true);
       }
     } catch (error) {
       console.error("Failed to get location:", error);
+      setLocateFailed(true);
+    } finally {
+      setLocatingMe(false);
     }
   };
 
@@ -922,18 +933,36 @@ export default function HomeScreen() {
           <View style={styles.mapPromptContainer}>
             <View style={styles.mapPromptCard}>
               <View style={styles.mapPromptIconContainer}>
-                <Ionicons name="map" size={48} color={COLORS.primaryDark} />
+                <Ionicons name="map" size={40} color={COLORS.primary} />
               </View>
               <Text style={styles.mapPromptTitle}>{t("home.setLocationTitle", { defaultValue: "Set Your Area" })}</Text>
               <Text style={styles.mapPromptText}>{t("home.setLocationDescription", { defaultValue: "To see content from nearby businesses, please first set your location area on the map." })}</Text>
-              <Pressable style={styles.mapPromptButton} onPress={handleRecenterOnMe} data-testid="recenter-btn">
-                <Ionicons name="locate" size={20} color={COLORS.textLight} />
-                <Text style={styles.mapPromptButtonText}>{t("home.useMyLocation", { defaultValue: "Use My Location" })}</Text>
+              <Pressable
+                style={[styles.mapPromptButton, locatingMe && styles.mapPromptButtonDisabled]}
+                onPress={handleRecenterOnMe}
+                data-testid="recenter-btn"
+                disabled={locatingMe}
+              >
+                {locatingMe ? (
+                  <ActivityIndicator size="small" color={COLORS.textLight} />
+                ) : (
+                  <Ionicons name="locate" size={20} color={COLORS.textLight} />
+                )}
+                <Text style={styles.mapPromptButtonText}>
+                  {locatingMe
+                    ? t("home.locating", { defaultValue: "Locating..." })
+                    : t("home.useMyLocation", { defaultValue: "Use My Location" })}
+                </Text>
               </Pressable>
               <Pressable style={[styles.mapPromptButton, styles.mapPromptButtonSecondary]} onPress={() => router.navigate("/(tabs)/locator" as any)} data-testid="go-to-map-btn">
-                <Ionicons name="navigate" size={20} color={COLORS.primaryDark} />
+                <Ionicons name="navigate" size={20} color={COLORS.primary} />
                 <Text style={[styles.mapPromptButtonText, styles.mapPromptButtonTextSecondary]}>{t("home.goToMap", { defaultValue: "Go to Map" })}</Text>
               </Pressable>
+              {locateFailed && (
+                <Text style={styles.mapPromptError}>
+                  {t("home.locateFailed", { defaultValue: "Couldn't get your precise location. Allow location access and try again." })}
+                </Text>
+              )}
             </View>
           </View>
         )}
@@ -1674,15 +1703,17 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  mapPromptContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 40, alignItems: "center" },
-  mapPromptCard: { backgroundColor: COLORS.background, borderRadius: 24, padding: 32, alignItems: "center", width: "100%", shadowColor: COLORS.primaryDark, shadowOpacity: 0.15, shadowRadius: 24, elevation: 8 },
-  mapPromptIconContainer: { width: 96, height: 96, borderRadius: 48, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center", marginBottom: 24 },
-  mapPromptTitle: { fontSize: 22, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 12, textAlign: "center" },
-  mapPromptText: { fontSize: 15, color: COLORS.textMuted, textAlign: "center", lineHeight: 22, marginBottom: 24, paddingHorizontal: 8 },
-  mapPromptButton: { flexDirection: "row", alignItems: "center", backgroundColor: COLORS.primary, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 24, gap: 10, shadowColor: COLORS.primaryDark, shadowOpacity: 0.4, shadowRadius: 12, elevation: 4 },
-  mapPromptButtonText: { color: COLORS.background, fontSize: 16, fontWeight: "700" },
-  mapPromptButtonSecondary: { backgroundColor: COLORS.background, borderWidth: 2, borderColor: COLORS.primaryDark, marginTop: 10 },
-  mapPromptButtonTextSecondary: { color: COLORS.primaryDark },
+  mapPromptContainer: { paddingHorizontal: SPACING.std, paddingTop: SPACING.section, paddingBottom: SPACING.small },
+  mapPromptCard: { backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.card, paddingVertical: SPACING.large, paddingHorizontal: SPACING.page, alignItems: "center", width: "100%", borderWidth: 1, borderColor: COLORS.border, shadowColor: "#0A143C", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 20, elevation: 3 },
+  mapPromptIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center", marginBottom: SPACING.std },
+  mapPromptTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.bold, color: COLORS.textPrimary, marginBottom: SPACING.small, textAlign: "center" },
+  mapPromptText: { fontSize: FONT_SIZES.bodySmall, color: COLORS.textMuted, textAlign: "center", lineHeight: 22, marginBottom: SPACING.page, paddingHorizontal: SPACING.small },
+  mapPromptButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: COLORS.primary, paddingHorizontal: SPACING.page, paddingVertical: 13, borderRadius: BORDER_RADIUS.button, gap: SPACING.gap, minWidth: 220, shadowColor: COLORS.primary, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
+  mapPromptButtonDisabled: { opacity: 0.75 },
+  mapPromptButtonText: { color: COLORS.textLight, fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.bold },
+  mapPromptButtonSecondary: { backgroundColor: COLORS.background, borderWidth: 1.5, borderColor: COLORS.borderLight, marginTop: SPACING.compact, shadowOpacity: 0 },
+  mapPromptButtonTextSecondary: { color: COLORS.primary },
+  mapPromptError: { marginTop: SPACING.compact, fontSize: FONT_SIZES.small, color: COLORS.errorText, textAlign: "center", lineHeight: 18, paddingHorizontal: SPACING.small },
   header: { padding: 20 },
   headerTitle: { fontSize: 24, fontWeight: "700", color: COLORS.textPrimary },
   headerSubtitle: { marginTop: 6, color: COLORS.textMuted },
