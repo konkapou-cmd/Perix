@@ -1,15 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getCurrentPositionWithPermission, watchPrecisePosition, networkGeolocate, FreshPosition, isReliablePosition } from "../lib/locationPermission";
+import { getCurrentPositionWithPermission, watchPrecisePosition, FreshPosition, isReliablePosition } from "../lib/locationPermission";
 
 interface LocationData {
   latitude: number;
   longitude: number;
   name?: string;
   isLiveLocation: boolean;
-  /** Area came from a network/IP estimate (city-level) - never shown as the pin. */
-  approximate?: boolean;
 }
 
 interface LocationContextType {
@@ -68,20 +66,12 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         liveRef.current = { latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy };
         setLivePosition({ latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy });
       } else {
-        // No precise fix - fall back to a network estimate so the map
-        // still opens near the user's city (never as the exact pin). The
-        // watch keeps trying and upgrades to the precise GPS position.
-        const approx = await networkGeolocate();
-        if (approx) {
-          setLocation({
-            latitude: approx.latitude,
-            longitude: approx.longitude,
-            isLiveLocation: true,
-            approximate: true,
-          });
-        } else {
-          setError("Could not get location");
-        }
+        // No precise fix on a fresh session. Never auto-open the map at a
+        // network/IP estimate (that lands on an unrelated city) - keep the
+        // area empty so the app ASKS for the location via the prompt card.
+        // The watch keeps trying and the locate button triggers a fresh
+        // permission request with high accuracy.
+        setError("Could not get location");
       }
       setLoading(false);
     };
@@ -105,19 +95,9 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         setLivePosition({ latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy });
         return { latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy };
       }
-      // No precise fix - fall back to a network estimate so the button
-      // still works in every browser. The pin only appears when the
-      // precise GPS position arrives via the watch.
-      const approx = await networkGeolocate();
-      if (approx) {
-        setLocation({
-          latitude: approx.latitude,
-          longitude: approx.longitude,
-          isLiveLocation: true,
-          approximate: true,
-        });
-        return approx;
-      }
+      // No precise fix: stay honest - the UI asks for the location /
+      // shows the failure message. Never open the map at an unrelated
+      // network/IP estimate.
       setError("Could not get location");
       return null;
     } catch (e) {
