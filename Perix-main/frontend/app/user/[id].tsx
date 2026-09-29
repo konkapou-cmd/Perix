@@ -74,10 +74,11 @@ export default function UserProfileScreen() {
     try {
       const data = await getUserPublicProfile(sessionToken, id);
       setProfile(data);
-      
       setUserPosts(data.posts || []);
+      // Render the profile immediately - the remaining tab data loads in
+      // the background and fills in as it arrives.
+      setLoading(false);
 
-      // Load the remaining profile data in parallel for faster rendering
       const [savedRes, activitiesRes, listingsRes, friendsRes] = await Promise.allSettled([
         checkSaved(sessionToken, "user", id),
         getUserActivities(sessionToken, id),
@@ -110,7 +111,6 @@ export default function UserProfileScreen() {
       console.error("Failed to load user profile:", error);
       setError(t("userProfile.failedToLoad"));
       setProfile(null);
-    } finally {
       setLoading(false);
     }
   }, [sessionToken, id, t]);

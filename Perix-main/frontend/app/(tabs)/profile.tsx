@@ -436,25 +436,25 @@ const syncEventEndTime = (d: Date, tm: Date) => {
 
   const loadData = useCallback(async () => {
     if (!sessionToken) return;
-    try {
-      const adminRes = await checkAdminStatus(sessionToken);
-      setIsAdmin(adminRes.is_admin);
-    } catch (_) {
+    const [adminRes, bizRes, friendRes] = await Promise.allSettled([
+      checkAdminStatus(sessionToken).catch(() => null),
+      getMyBusinesses(sessionToken).catch(() => null),
+      getMyFriendProfiles(sessionToken).catch(() => null),
+    ]);
+    if (adminRes.status === "fulfilled" && adminRes.value) {
+      setIsAdmin(adminRes.value.is_admin);
+    } else {
       console.log("Failed to load admin status");
     }
-
-    try {
-      const bizRes = await getMyBusinesses(sessionToken);
-      setBusinesses(bizRes);
-    } catch (e) {
-      console.log("Failed to load businesses:", (e as any)?.message || e);
+    if (bizRes.status === "fulfilled" && bizRes.value) {
+      setBusinesses(bizRes.value);
+    } else {
+      console.log("Failed to load businesses");
     }
-
-    try {
-      const friendRes = await getMyFriendProfiles(sessionToken);
-      setFriends(friendRes);
-    } catch (e) {
-      console.log("Failed to load friends:", (e as any)?.message || e);
+    if (friendRes.status === "fulfilled" && friendRes.value) {
+      setFriends(friendRes.value);
+    } else {
+      console.log("Failed to load friends");
     }
   }, [sessionToken]);
 
@@ -707,27 +707,27 @@ const syncEventEndTime = (d: Date, tm: Date) => {
   const loadUserProfile = async () => {
     if (!sessionToken || !user) return;
     const requestId = ++userListingsRequestRef.current;
-    try {
-      const data = await getUserPublicProfile(sessionToken, user.user_id);
-      setUserPosts(data.posts || []);
-
-      const listings = await getManageListings(sessionToken);
-      if (requestId !== userListingsRequestRef.current) return;
+    const [dataResult, listingsResult, analyticsResult] = await Promise.allSettled([
+      getUserPublicProfile(sessionToken, user.user_id).catch(() => null),
+      getManageListings(sessionToken).catch(() => null),
+      getUserAnalytics(sessionToken).catch(() => null),
+    ]);
+    if (requestId !== userListingsRequestRef.current) return;
+    if (dataResult.status === "fulfilled" && dataResult.value) {
+      setUserPosts(dataResult.value.posts || []);
+    }
+    if (listingsResult.status === "fulfilled" && listingsResult.value) {
+      const listings = listingsResult.value;
       setUserListings(listings.filter(l => !l.listing_type || l.listing_type === "product"));
       setUserHomeListings(listings.filter(l => l.listing_type === "home_rental"));
-
-      // Profile analytics (own profile): views + growth
-      try {
-        const analytics = await getUserAnalytics(sessionToken);
-        setProfileViewsCount(analytics?.total_profile_views ?? null);
-      } catch {
-        setProfileViewsCount(null);
-      }
-    } catch {
-      if (requestId === userListingsRequestRef.current) {
-        setUserListings([]);
-        setUserHomeListings([]);
-      }
+    } else {
+      setUserListings([]);
+      setUserHomeListings([]);
+    }
+    if (analyticsResult.status === "fulfilled" && analyticsResult.value) {
+      setProfileViewsCount(analyticsResult.value.total_profile_views ?? null);
+    } else {
+      setProfileViewsCount(null);
     }
   };
 
@@ -1473,12 +1473,18 @@ const [newListingType, setNewListingType] = useState<ListingType>("product");
     setBusinessDetail(null);
     setBusinessListings([]);
     setBusinessHomeListings([]);
-    const [detailResult, listingsResult] = await Promise.allSettled([
-      getBusinessDetail(sessionToken, bizId),
-      getManageListings(sessionToken, "business", bizId),
+    setBusinessPermsLoading(true);
+    setBusinessProductsEnabled(false);
+    // Load everything in parallel: the profile must never wait for the
+    // slowest tab's data sequentially.
+    const [detailResult, listingsResult, analyticsResult, permsResult] = await Promise.allSettled([
+      getBusinessDetail(sessionToken, bizId).catch(() => null),
+      getManageListings(sessionToken, "business", bizId).catch(() => null),
+      getBusinessAnalytics(sessionToken, bizId).catch(() => null),
+      getProductPermissions(bizId).catch(() => null),
     ]);
     if (requestId !== bizListingsRequestRef.current) return;
-    if (detailResult.status === "fulfilled") {
+    if (detailResult.status === "fulfilled" && detailResult.value) {
       const data = detailResult.value;
       setBusinessDetail(data);
       setBizEvents(data.events || []);
@@ -1497,44 +1503,37 @@ const [newListingType, setNewListingType] = useState<ListingType>("product");
       setBizServices([]);
     }
     setBusinessListings(
-      listingsResult.status === "fulfilled"
+      listingsResult.status === "fulfilled" && listingsResult.value
         ? listingsResult.value.filter(l => l.listing_type === "product")
         : [],
     );
     setBusinessHomeListings(
-      listingsResult.status === "fulfilled"
+      listingsResult.status === "fulfilled" && listingsResult.value
         ? listingsResult.value.filter(l => l.listing_type === "home_rental")
         : [],
     );
 
-    setBusinessAllowedTaxonomy({});
     // Business analytics (own profile): views + followers
-    try {
-      const analytics = await getBusinessAnalytics(sessionToken, bizId);
-      setProfileViewsCount(analytics?.total_profile_views ?? null);
-    } catch {
-      setProfileViewsCount(null);
-    }
-    setBusinessPermsLoading(true);
+    setProfileViewsCount(
+      analyticsResult.status === "fulfilled" && analyticsResult.value
+        ? analyticsResult.value.total_profile_views ?? null
+        : null,
+    );
+
+    setBusinessPermsLoading(false);
     setBusinessProductsEnabled(false);
-    try {
-      const perms = await getProductPermissions(bizId);
-      if (requestId !== bizListingsRequestRef.current) return;
+    if (permsResult.status === "fulfilled" && permsResult.value) {
+      const perms = permsResult.value;
       setBusinessAllowedTaxonomy(
         Object.fromEntries(
           perms.allowed.map((p) => [p.category, p.unrestricted ? ("*" as const) : p.subcategories]),
         ),
       );
       setBusinessProductsEnabled(perms.enabled);
-    } catch {
-      if (requestId !== bizListingsRequestRef.current) return;
+    } else {
       setBusinessAllowedTaxonomy({});
       setBusinessProductsEnabled(false);
-    } finally {
-      if (requestId === bizListingsRequestRef.current) {
-        setBusinessPermsLoading(false);
-      }
-    };
+    }
   };
 
   const isFocused = useIsFocused();
