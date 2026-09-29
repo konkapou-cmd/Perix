@@ -524,24 +524,34 @@ export default function BusinessMap({
 
   // User location dot — glued to the map
   const userLocationOverlayRef = useRef<any>(null);
-  const userLocKeyRef = useRef<string | null>(null);
+  const userLocImageRef = useRef<string | null>(null);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReadyRef.current) return;
-    // The "you are here" pin only shows at the exact device location.
-    // The searched city/viewport never gets a pin.
+    // The "you are here" pin only shows at the live device location.
     const pinPos = pinLocation;
-    const key = showUserLocation && pinPos
-      ? `${pinPos.latitude.toFixed(6)}_${pinPos.longitude.toFixed(6)}_${userPinImage || ""}`
-      : null;
-    if (key === userLocKeyRef.current) return;
-    userLocKeyRef.current = key;
-    if (userLocationOverlayRef.current) {
-      try { userLocationOverlayRef.current.setMap(null); } catch (e) {}
+    const imageKey = userPinImage || "";
+    if (!showUserLocation || !pinPos) {
+      if (userLocationOverlayRef.current) {
+        try { userLocationOverlayRef.current.setMap(null); } catch (e) {}
+        userLocationOverlayRef.current = null;
+        userLocImageRef.current = null;
+      }
+      return;
+    }
+    // Same pin, new position: move it in place instead of recreating it
+    // (recreating flashes on every GPS update).
+    const existing = userLocationOverlayRef.current;
+    if (existing && userLocImageRef.current === imageKey) {
+      existing.pos = { lat: pinPos.latitude, lng: pinPos.longitude };
+      try { existing.draw(); } catch (e) {}
+      return;
+    }
+    if (existing) {
+      try { existing.setMap(null); } catch (e) {}
       userLocationOverlayRef.current = null;
     }
-    if (!key || !pinPos) return;
     const google = (window as any).google;
 
     const container = document.createElement("div");
@@ -609,10 +619,7 @@ export default function BusinessMap({
     const overlay = new UserOverlay(container, { lat: pinPos.latitude, lng: pinPos.longitude });
     overlay.setMap(map);
     userLocationOverlayRef.current = overlay;
-    return () => {
-      try { overlay.setMap(null); } catch (e) {}
-      if (userLocationOverlayRef.current === overlay) userLocationOverlayRef.current = null;
-    };
+    userLocImageRef.current = imageKey;
   }, [location, showUserLocation, mapReady, userPinImage, pinLocation]);
 
   // Pan when the initialRegion-based center changes (e.g. home map bounds updates)

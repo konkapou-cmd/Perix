@@ -40,9 +40,14 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [radiusKm, setRadiusKmState] = useState(DEFAULT_RADIUS);
   const [refreshKey, setRefreshKey] = useState(0);
+  const locationRef = useRef(location);
+  locationRef.current = location;
+  const liveRef = useRef<FreshPosition | null>(null);
+  liveRef.current = livePosition;
 
   // On startup: only a FRESH live fix. Never restore a saved location -
   // a previous session's coordinates must never be shown as live.
+  // Runs in the background: the UI never waits for the GPS.
   useEffect(() => {
     const load = async () => {
       try {
@@ -51,19 +56,21 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
           setRadiusKmState(parseInt(savedRadius, 10));
         }
       } catch {}
-      const fresh = await getCurrentPositionWithPermission();
+      const fresh = await getCurrentPositionWithPermission({ timeoutMs: 12000 });
       if (fresh) {
         setLocation({
           latitude: fresh.latitude,
           longitude: fresh.longitude,
           isLiveLocation: true,
         });
+        liveRef.current = { latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy };
         setLivePosition({ latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy });
       } else {
         setError("Could not get location");
       }
       setLoading(false);
     };
+    setLoading(true);
     load();
   }, []);
 
@@ -77,6 +84,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         return;
       }
+      liveRef.current = { latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy };
       setLocation({
         latitude: current.latitude,
         longitude: current.longitude,
@@ -120,10 +128,17 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     setRefreshKey((prev) => prev + 1);
   }, []);
 
-  const locationRef = useRef(location);
-  locationRef.current = location;
-
+  // Debounced live updates: only move the pin/area when the position
+  // actually changed (~30m) or the accuracy improved a lot. GPS noise
+  // otherwise makes the pin flicker back and forth.
   const applyFix = useCallback((pos: FreshPosition) => {
+    const cur = liveRef.current;
+    if (cur) {
+      const moved = Math.hypot(pos.latitude - cur.latitude, pos.longitude - cur.longitude);
+      const accuracyImproved = pos.accuracy < cur.accuracy * 0.6;
+      if (moved < 0.0003 && !accuracyImproved) return;
+    }
+    liveRef.current = { latitude: pos.latitude, longitude: pos.longitude, accuracy: pos.accuracy };
     setLivePosition({ latitude: pos.latitude, longitude: pos.longitude, accuracy: pos.accuracy });
     if (locationRef.current && !locationRef.current.isLiveLocation) return;
     // When the area is live, it follows the user.
@@ -140,7 +155,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let stopWatch: (() => void) | null = null;
     const oneShot = () => {
-      getCurrentPositionWithPermission()
+      getCurrentPositionWithPermission({ timeoutMs: 15000 })
         .then((loc) => {
           if (loc) applyFix(loc);
         })
@@ -148,11 +163,9 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     };
     // The watch needs the permission granted first (the one-shot does it).
     oneShot();
-    setTimeout(() => {
-      stopWatch = watchPrecisePosition((pos) => {
-        applyFix(pos);
-      });
-    }, 400);
+    stopWatch = watchPrecisePosition((pos) => {
+      applyFix(pos);
+    });
     const interval = setInterval(oneShot, 3 * 60 * 1000);
     const onResume = () => oneShot();
     if (Platform.OS === "web" && typeof window !== "undefined") {

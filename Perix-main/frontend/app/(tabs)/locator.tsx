@@ -82,7 +82,7 @@ export default function LocatorScreen() {
   const { sessionToken, user, activeIdentity } = useAuth();
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
   const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
-  const { location: contextLocation, setManualLocation, radiusKm } = useLocation();
+  const { location: contextLocation, livePosition, setManualLocation, radiusKm } = useLocation();
   const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locateToken, setLocateToken] = useState(0);
   const [locating, setLocating] = useState(false);
@@ -753,8 +753,13 @@ export default function LocatorScreen() {
           {/* Map Section */}
           <View style={styles.mapSection}>
         <BusinessMap
-          location={contextLocation || { latitude: mapBounds?.centerLat || 52.52, longitude: mapBounds?.centerLng || 13.405 }}
-          pinLocation={locateFocus}
+          initialRegion={{
+            latitude: mapBounds?.centerLat ?? contextLocation?.latitude ?? 52.52,
+            longitude: mapBounds?.centerLng ?? contextLocation?.longitude ?? 13.405,
+            latitudeDelta: mapBounds ? (mapBounds.maxLat - mapBounds.minLat) : 0.05,
+            longitudeDelta: mapBounds ? (mapBounds.maxLng - mapBounds.minLng) : 0.05,
+          }}
+          pinLocation={locateFocus ?? (livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null)}
           userPinImage={activeIdentity?.type === "business" ? (activeIdentity as any).avatar || undefined : (user?.profile_photo || user?.picture || undefined)}
           focusRegion={locateFocus ? { latitude: locateFocus.latitude, longitude: locateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
           focusToken={locateToken || undefined}

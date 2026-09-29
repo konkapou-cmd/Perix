@@ -128,9 +128,14 @@ export function watchPrecisePosition(
  * stale/cached position is never returned. One retry on failure, since
  * GPS on phones can take a while (e.g. indoors).
  */
-export async function getCurrentPositionWithPermission(): Promise<FreshPosition | null> {
+export async function getCurrentPositionWithPermission(
+  options?: { timeoutMs?: number; highAccuracy?: boolean }
+): Promise<FreshPosition | null> {
   const granted = await ensureLocationPermission();
   if (!granted) return null;
+
+  const timeout = options?.timeoutMs ?? 30000;
+  const highAccuracy = options?.highAccuracy !== false;
 
   const oneShot = () =>
     new Promise<FreshPosition>((resolve, reject) => {
@@ -147,13 +152,13 @@ export async function getCurrentPositionWithPermission(): Promise<FreshPosition 
               accuracy: p.coords.accuracy ?? 99999,
             }),
           (e) => reject(e),
-          { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
+          { enableHighAccuracy: highAccuracy, maximumAge: 0, timeout }
         );
       } else {
         Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
+          accuracy: highAccuracy ? Location.Accuracy.High : Location.Accuracy.Balanced,
           maximumAge: 0 as any,
-          timeout: 30000,
+          timeout,
         } as any)
           .then((loc) =>
             resolve({
