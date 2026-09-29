@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getCurrentPositionWithPermission, isCoarsePosition, watchPrecisePosition, FreshPosition } from "../lib/locationPermission";
+import { getCurrentPositionWithPermission, watchPrecisePosition, FreshPosition } from "../lib/locationPermission";
 
 interface LocationData {
   latitude: number;
@@ -11,8 +11,10 @@ interface LocationData {
 }
 
 interface LocationContextType {
+  /** The map area: the live device position, or a manually picked explore
+   *  point. NEVER restored from storage - always fresh for this session. */
   location: LocationData | null;
-  /** Latest GPS fix for the "you are here" pin (independent of the searched area). */
+  /** Latest GPS fix for the "you are here" pin (independent of the area). */
   livePosition: FreshPosition | null;
   loading: boolean;
   error: string | null;
@@ -25,85 +27,63 @@ interface LocationContextType {
 
 const LocationContext = createContext<LocationContextType | null>(null);
 
-const LOCATION_STORAGE_KEY = "@perix_location";
 const RADIUS_STORAGE_KEY = "@perix_radius";
 const DEFAULT_RADIUS = 10; // 10km default
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useState<LocationData | null>(null);
   // Live "you are here" position: the single source of truth for the pin.
-  // Updated by the continuous watch and by re-fixes on focus. Junk fixes
-  // with city-level accuracy are ignored so the pin never jumps away.
+  // Updated by the continuous watch and by re-fixes on focus. Only live
+  // positions are ever shown - nothing stored or remembered from before.
   const [livePosition, setLivePosition] = useState<FreshPosition | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [radiusKm, setRadiusKmState] = useState(DEFAULT_RADIUS);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Load saved location on mount
+  // On startup: only a FRESH live fix. Never restore a saved location -
+  // a previous session's coordinates must never be shown as live.
   useEffect(() => {
-    const loadSavedLocation = async () => {
+    const load = async () => {
       try {
         const savedRadius = await AsyncStorage.getItem(RADIUS_STORAGE_KEY);
-        
         if (savedRadius) {
           setRadiusKmState(parseInt(savedRadius, 10));
         }
-
-        // Always try to get a FRESH current position on startup. Never
-        // restore saved coordinates from a previous session - they point at
-        // places the user visited Perix from in the past, which is wrong.
-        const fresh = await getCurrentPositionWithPermission();
-        if (fresh && !isCoarsePosition(fresh.accuracy)) {
-          const newLocation: LocationData = {
-            latitude: fresh.latitude,
-            longitude: fresh.longitude,
-            isLiveLocation: true,
-          };
-          setLocation(newLocation);
-          setLivePosition({ latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy });
-          await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
-        } else {
-          // Fresh fix failed (e.g. permission denied or GPS timeout).
-          // Do NOT show an old location - stay empty and let the UI ask
-          // the user to set the area / retry.
-          setError("Could not get location");
-          await AsyncStorage.removeItem(LOCATION_STORAGE_KEY);
-        }
-      } catch (e) {
-        console.error("Error loading saved location:", e);
+      } catch {}
+      const fresh = await getCurrentPositionWithPermission();
+      if (fresh) {
+        setLocation({
+          latitude: fresh.latitude,
+          longitude: fresh.longitude,
+          isLiveLocation: true,
+        });
+        setLivePosition({ latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy });
+      } else {
         setError("Could not get location");
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
-    
-    loadSavedLocation();
+    load();
   }, []);
 
   const requestLiveLocation = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      // Fresh fix only (maximumAge: 0) - never reuse a stale/cached position.
       const current = await getCurrentPositionWithPermission();
-      if (!current || isCoarsePosition(current.accuracy)) {
+      if (!current) {
         setError("Could not get location");
         setLoading(false);
         return;
       }
-      
-      const newLocation: LocationData = {
+      setLocation({
         latitude: current.latitude,
         longitude: current.longitude,
         name: undefined,
         isLiveLocation: true,
-      };
-      
-      setLocation(newLocation);
+      });
       setLivePosition({ latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy });
-      await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
     } catch (e) {
       console.error("Error getting live location:", e);
       setError("Could not get location");
@@ -112,44 +92,38 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const setManualLocation = useCallback(async (lat: number, lng: number, name?: string) => {
-    const newLocation: LocationData = {
+  const setManualLocation = useCallback((lat: number, lng: number, name?: string) => {
+    // In-memory explore point only - never persisted, never treated as live.
+    setLocation({
       latitude: lat,
       longitude: lng,
       name: name,
       isLiveLocation: false,
-    };
-    
-    setLocation(newLocation);
-    await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
-    // Trigger refresh for all listeners
-    setRefreshKey(prev => prev + 1);
+    });
+    setRefreshKey((prev) => prev + 1);
   }, []);
 
   const useLiveLocation = useCallback(async () => {
     await requestLiveLocation();
-    // Trigger refresh for all listeners
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   }, []);
 
   const setRadiusKm = useCallback(async (km: number) => {
     setRadiusKmState(km);
-    await AsyncStorage.setItem(RADIUS_STORAGE_KEY, km.toString());
-    // Trigger refresh for all listeners
-    setRefreshKey(prev => prev + 1);
+    try {
+      await AsyncStorage.setItem(RADIUS_STORAGE_KEY, km.toString());
+    } catch {}
+    setRefreshKey((prev) => prev + 1);
   }, []);
 
   const refreshLocation = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   }, []);
 
   const locationRef = useRef(location);
   locationRef.current = location;
-  const liveRef = useRef(livePosition);
-  liveRef.current = livePosition;
 
   const applyFix = useCallback((pos: FreshPosition) => {
-    if (isCoarsePosition(pos.accuracy)) return;
     setLivePosition({ latitude: pos.latitude, longitude: pos.longitude, accuracy: pos.accuracy });
     if (locationRef.current && !locationRef.current.isLiveLocation) return;
     // When the area is live, it follows the user.
@@ -159,10 +133,6 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       name: undefined,
       isLiveLocation: true,
     });
-    void AsyncStorage.setItem(
-      LOCATION_STORAGE_KEY,
-      JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude, isLiveLocation: true })
-    );
   }, []);
 
   // Keep the pin accurate: re-fix on foreground/focus, and watch

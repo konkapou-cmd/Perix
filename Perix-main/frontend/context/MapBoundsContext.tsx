@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useState, useCallback, useRef } from "react";
 
 export interface MapBounds {
   minLat: number;
@@ -21,34 +20,17 @@ interface MapBoundsContextType {
 
 const MapBoundsContext = createContext<MapBoundsContextType | null>(null);
 
-const MAP_BOUNDS_STORAGE_KEY = "@perix_map_bounds";
-
 export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
+  // One shared, in-memory map area for every screen (home, locator, jobs,
+  // services, rentals...). Never persisted: the app always starts fresh
+  // from the live location - a previous session's area is never restored.
   const [mapBounds, setMapBoundsState] = useState<MapBounds | null>(null);
   const [isMapInitialized, setIsMapInitialized] = useState(false);
-  const [isMapBoundsHydrated, setIsMapBoundsHydrated] = useState(false);
+  const [isMapBoundsHydrated, setIsMapBoundsHydrated] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const prevBoundsRef = useRef<MapBounds | null>(null);
 
-  useEffect(() => {
-    const loadSavedBounds = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(MAP_BOUNDS_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setMapBoundsState(parsed);
-          setIsMapInitialized(true);
-        }
-      } catch (e) {
-        console.error("Error loading saved map bounds:", e);
-      } finally {
-        setIsMapBoundsHydrated(true);
-      }
-    };
-    loadSavedBounds();
-  }, []);
-
-  const setMapBounds = useCallback(async (bounds: MapBounds) => {
+  const setMapBounds = useCallback((bounds: MapBounds) => {
     setMapBoundsState(bounds);
     setIsMapInitialized(true);
 
@@ -66,23 +48,12 @@ export function MapBoundsProvider({ children }: { children: React.ReactNode }) {
     if (changed) {
       setRefreshKey((prev) => prev + 1);
     }
-
-    try {
-      await AsyncStorage.setItem(MAP_BOUNDS_STORAGE_KEY, JSON.stringify(bounds));
-    } catch (e) {
-      console.error("Error saving map bounds:", e);
-    }
   }, []);
 
-  const clearMapBounds = useCallback(async () => {
+  const clearMapBounds = useCallback(() => {
     setMapBoundsState(null);
     setIsMapInitialized(false);
     setRefreshKey((prev) => prev + 1);
-    try {
-      await AsyncStorage.removeItem(MAP_BOUNDS_STORAGE_KEY);
-    } catch (e) {
-      console.error("Error clearing map bounds:", e);
-    }
   }, []);
 
   return (

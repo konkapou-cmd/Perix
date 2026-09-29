@@ -221,22 +221,20 @@ export default function MarketplaceItemsPage() {
         <Pressable
           style={styles.locationBtn}
           onPress={() => {
-            import("expo-location").then((Location) => {
-              Location.requestForegroundPermissionsAsync().then(({ status }) => {
-                if (status === "granted") {
-                  Location.getCurrentPositionAsync({}).then((loc) => {
-                    const bnds = {
-                      minLat: loc.coords.latitude - 0.045,
-                      maxLat: loc.coords.latitude + 0.045,
-                      minLng: loc.coords.longitude - 0.045,
-                      maxLng: loc.coords.longitude + 0.045,
-                      centerLat: loc.coords.latitude,
-                      centerLng: loc.coords.longitude,
-                    };
-                    setMapBounds(bnds);
-                    setVisibleBounds(bnds);
-                    setCommittedBounds(bnds);
-                  });
+            import("../../lib/locationPermission").then(({ getCurrentPositionWithPermission }) => {
+              getCurrentPositionWithPermission().then((loc) => {
+                if (loc) {
+                  const bnds = {
+                    minLat: loc.latitude - 0.045,
+                    maxLat: loc.latitude + 0.045,
+                    minLng: loc.longitude - 0.045,
+                    maxLng: loc.longitude + 0.045,
+                    centerLat: loc.latitude,
+                    centerLng: loc.longitude,
+                  };
+                  setMapBounds(bnds);
+                  setVisibleBounds(bnds);
+                  setCommittedBounds(bnds);
                 }
               });
             });

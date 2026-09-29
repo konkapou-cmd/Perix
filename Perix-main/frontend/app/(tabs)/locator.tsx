@@ -34,7 +34,7 @@ import Constants from "expo-constants";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { useMapBounds, MapBounds } from "../../context/MapBoundsContext";
+import { useMapBounds } from "../../context/MapBoundsContext";
 import { getThemeColors, getThemeStyles, applyThemeToText } from "../../hooks/useThemeStyles";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import {
@@ -81,26 +81,8 @@ export default function LocatorScreen() {
   const { isDesktop } = useResponsiveLayout();
   const { sessionToken, user, activeIdentity } = useAuth();
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
-  const { mapBounds: sharedMapBounds } = useMapBounds();
+  const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
   const { location: contextLocation, setManualLocation, radiusKm } = useLocation();
-  // The locator keeps its OWN map bounds. Sharing one bounds state with
-  // the home map caused the two maps to fight over region changes (the
-  // locator map broke whenever home moved).
-  const [localBounds, setLocalBounds] = useState<MapBounds | null>(null);
-  useEffect(() => {
-    if (localBounds) return;
-    if (sharedMapBounds) {
-      setLocalBounds(sharedMapBounds);
-      return;
-    }
-    if (contextLocation) {
-      const d = 0.05;
-      setLocalBounds({ minLat: contextLocation.latitude - d, maxLat: contextLocation.latitude + d, minLng: contextLocation.longitude - d, maxLng: contextLocation.longitude + d, centerLat: contextLocation.latitude, centerLng: contextLocation.longitude });
-      return;
-    }
-    const d = 0.05;
-    setLocalBounds({ minLat: 52.52 - d, maxLat: 52.52 + d, minLng: 13.405 - d, maxLng: 13.405 + d, centerLat: 52.52, centerLng: 13.405 });
-  }, [localBounds, sharedMapBounds, contextLocation]);
   const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locateToken, setLocateToken] = useState(0);
   const [locating, setLocating] = useState(false);
@@ -197,13 +179,13 @@ export default function LocatorScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    if (sessionToken && localBounds) {
-      const centerLat = localBounds.centerLat;
-      const centerLng = localBounds.centerLng;
+    if (sessionToken && mapBounds) {
+      const centerLat = mapBounds.centerLat;
+      const centerLng = mapBounds.centerLng;
       try {
-        await loadBusinesses(centerLat, centerLng, localBounds);
-        if (activeTab === "events") await loadEvents(localBounds);
-        if (activeTab === "activities") await loadActivities(localBounds);
+        await loadBusinesses(centerLat, centerLng, mapBounds);
+        if (activeTab === "events") await loadEvents(mapBounds);
+        if (activeTab === "activities") await loadActivities(mapBounds);
       } catch (e) { console.warn("Refresh failed:", e); }
     }
     setRefreshing(false);
@@ -433,7 +415,7 @@ export default function LocatorScreen() {
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
     const centerLng = (bounds.minLng + bounds.maxLng) / 2;
 
-    setLocalBounds({
+    setGlobalMapBounds({
       minLat: bounds.minLat,
       maxLat: bounds.maxLat,
       minLng: bounds.minLng,
@@ -441,7 +423,7 @@ export default function LocatorScreen() {
       centerLat,
       centerLng,
     });
-  }, [sessionToken, radiusKm]);
+  }, [setGlobalMapBounds, sessionToken, radiusKm]);
 
   // "Locate me": use the device's exact GPS position (not the searched
   // city/point) and fly the map there.
@@ -455,7 +437,7 @@ export default function LocatorScreen() {
         setLocateToken((t) => t + 1);
         setManualLocation(loc.latitude, loc.longitude);
         const d = 0.02;
-        setLocalBounds({
+        setGlobalMapBounds({
           minLat: loc.latitude - d / 2,
           maxLat: loc.latitude + d / 2,
           minLng: loc.longitude - d / 2,
@@ -473,36 +455,36 @@ export default function LocatorScreen() {
     } finally {
       setLocating(false);
     }
-  }, [locating, setManualLocation, t]);
+  }, [locating, setManualLocation, setGlobalMapBounds, t]);
 
   const requestIdRef = useRef(0);
   const loadIdRef = useRef(0);
 
   useEffect(() => {
-    if (!localBounds) return;
+    if (!mapBounds) return;
     const currentRequestId = ++requestIdRef.current;
     const loadId = ++loadIdRef.current;
     const timer = setTimeout(() => {
       if (currentRequestId !== requestIdRef.current) return;
-      loadBusinesses(localBounds.centerLat, localBounds.centerLng, localBounds, undefined, loadId);
+      loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds, undefined, loadId);
       if (activeTab === "businesses" && selectedRoot === "rental-real-estate") {
-        loadRentals(localBounds, rentalTypeFilter, loadId);
+        loadRentals(mapBounds, rentalTypeFilter, loadId);
       }
       if (activeTab === "rentals") {
-        loadRentals(localBounds, rentalTypeFilter, loadId);
+        loadRentals(mapBounds, rentalTypeFilter, loadId);
       }
       if (activeTab === "jobs") {
-        loadJobs(localBounds, loadId);
+        loadJobs(mapBounds, loadId);
       }
       if (activeTab === "events") {
-        loadEvents(localBounds, loadId);
+        loadEvents(mapBounds, loadId);
       }
       if (activeTab === "activities") {
-        loadActivities(localBounds, loadId);
+        loadActivities(mapBounds, loadId);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [localBounds, sessionToken, selectedRoot, selectedSubcategory, activeTab, rentalTypeFilter, dateFilter, loadEvents, loadActivities, loadJobs, loadRentals]);
+  }, [mapBounds, sessionToken, refreshKey, selectedRoot, selectedSubcategory, activeTab, rentalTypeFilter, dateFilter, loadEvents, loadActivities, loadJobs, loadRentals]);
 
 
 
@@ -531,16 +513,16 @@ export default function LocatorScreen() {
   }, [contextLocation]);
 
   useEffect(() => {
-    if (!localBounds) return;
+    if (!mapBounds) return;
     // Immediately reload when the availability filter changes (both directions)
-    loadBusinesses(localBounds.centerLat, localBounds.centerLng, localBounds);
+    loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
     // While "Open now" is active, keep refreshing periodically since open state changes over time
     if (businessAvailabilityFilter !== "open_now") return;
     const interval = setInterval(() => {
-      loadBusinesses(localBounds.centerLat, localBounds.centerLng, localBounds);
+      loadBusinesses(mapBounds.centerLat, mapBounds.centerLng, mapBounds);
     }, 60000);
     return () => clearInterval(interval);
-  }, [businessAvailabilityFilter, localBounds, loadBusinesses]);
+  }, [businessAvailabilityFilter, mapBounds, loadBusinesses]);
 
   // Don't auto-request location on mount - wait for user to tap the map
   // Location will only be set when user explicitly taps the disabled map overlay
@@ -771,7 +753,7 @@ export default function LocatorScreen() {
           {/* Map Section */}
           <View style={styles.mapSection}>
         <BusinessMap
-          location={contextLocation || { latitude: localBounds?.centerLat || 52.52, longitude: localBounds?.centerLng || 13.405 }}
+          location={contextLocation || { latitude: mapBounds?.centerLat || 52.52, longitude: mapBounds?.centerLng || 13.405 }}
           pinLocation={locateFocus}
           userPinImage={activeIdentity?.type === "business" ? (activeIdentity as any).avatar || undefined : (user?.profile_photo || user?.picture || undefined)}
           focusRegion={locateFocus ? { latitude: locateFocus.latitude, longitude: locateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
@@ -809,24 +791,6 @@ export default function LocatorScreen() {
             if (activeTab === "events") { router.push(`/event/${id}` as any); return; }
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
           }}
-          disabled={!contextLocation}
-          disabledHint="Tap to enable location"
-          onMapPress={contextLocation ? undefined : ((lat?: number, lng?: number) => {
-            if (typeof lat === "number" && typeof lng === "number") {
-              setManualLocation(lat, lng);
-              // Update the map bounds immediately so the nearby lists load
-              // right away instead of waiting for a slow region-change event
-              const d = 0.05;
-              setLocalBounds({
-                minLat: lat - d,
-                maxLat: lat + d,
-                minLng: lng - d,
-                maxLng: lng + d,
-                centerLat: lat,
-                centerLng: lng,
-              });
-            }
-          }) as any}
         />
         <Pressable style={styles.locateMeButton} onPress={handleLocateMe} disabled={locating}>
           <Ionicons name={locating ? "hourglass-outline" : "locate"} size={20} color="#096BFF" />

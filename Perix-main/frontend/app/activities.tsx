@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as Location from "expo-location";
+import { getCurrentPositionWithPermission } from "../lib/locationPermission";
 import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -201,12 +201,11 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
   useEffect(() => {
     if (globalLocation) return; // Skip if global location is available
     const loadLocation = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-      const position = await Location.getCurrentPositionAsync({});
+      const position = await getCurrentPositionWithPermission();
+      if (!position) return;
       const newLoc = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
+        latitude: position.latitude,
+        longitude: position.longitude,
       };
       setLocation(newLoc);
       if (!mapCenter) {

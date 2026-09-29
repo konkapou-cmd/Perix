@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -139,12 +138,11 @@ export default function JobsScreen() {
   };
 
   const requestLocation = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status === "granted") {
-      const loc = await Location.getCurrentPositionAsync({});
+    const loc = await getCurrentPositionWithPermission();
+    if (loc) {
       const newLocation = {
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
       };
       setLocation(newLocation);
       setMapBounds({

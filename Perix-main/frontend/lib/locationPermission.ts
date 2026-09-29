@@ -57,14 +57,6 @@ export interface FreshPosition {
   accuracy: number;
 }
 
-/** Fixes with a larger accuracy radius are treated as unreliable for
- *  centering the map (kept for the location context, not for the pin). */
-export const TRUSTED_ACCURACY_METERS = 500;
-
-export function isCoarsePosition(accuracy: number | undefined | null): boolean {
-  return typeof accuracy !== "number" || accuracy > TRUSTED_ACCURACY_METERS;
-}
-
 /**
  * Continuously watch the device position and invoke the callback with
  * every fix, like Google Maps' live blue dot. Returns a stop function.

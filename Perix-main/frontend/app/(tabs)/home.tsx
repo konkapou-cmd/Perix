@@ -278,32 +278,19 @@ export default function HomeScreen() {
     if (globalLocation) setUserLocation({ latitude: globalLocation.latitude, longitude: globalLocation.longitude });
   }, [globalLocation]);
 
-  // "You are here" pin: the latest GPS fix from the location context
-  // (single source of truth - watched live there). When there is no GPS
-  // fix, the pin falls back to the map area (the searched city / the area
-  // the map already shows).
-  const fallbackPinLocation = useMemo(() => {
-    if (globalLocation) return { latitude: globalLocation.latitude, longitude: globalLocation.longitude };
-    if (user?.latitude && user?.longitude) return { latitude: user.latitude, longitude: user.longitude };
-    return null;
-  }, [globalLocation, user?.latitude, user?.longitude]);
-  const pinLocation = livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : fallbackPinLocation;
+  // "You are here" pin: the live GPS fix only. Nothing stored or
+  // remembered from previous sessions is ever shown as live.
+  const pinLocation = livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null;
 
   useEffect(() => {
     if (isMapInitialized) return;
-    // Prefer the fresh location from the location context. The profile
-    // coordinates can be from an old session (a place the user visited
-    // Perix from in the past) - only use them as a last resort.
+    // Start at the live location. No stored/profile fallbacks - a previous
+    // session's coordinates must never be shown as live.
     if (globalLocation) {
       const d = 0.09;
       setMapBounds({ minLat: globalLocation.latitude - d / 2, maxLat: globalLocation.latitude + d / 2, minLng: globalLocation.longitude - d / 2, maxLng: globalLocation.longitude + d / 2, centerLat: globalLocation.latitude, centerLng: globalLocation.longitude });
-      return;
     }
-    if (user?.latitude && user?.longitude) {
-      const d = 0.09;
-      setMapBounds({ minLat: user.latitude - d / 2, maxLat: user.latitude + d / 2, minLng: user.longitude - d / 2, maxLng: user.longitude + d / 2, centerLat: user.latitude, centerLng: user.longitude });
-    }
-  }, [user, globalLocation, isMapInitialized, setMapBounds]);
+  }, [globalLocation, isMapInitialized, setMapBounds]);
 
   const handleRecenterOnMe = async () => {
     try {
