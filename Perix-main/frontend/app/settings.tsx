@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     ...Platform.select({
-      web: { maxWidth: 1280, width: "100%", marginHorizontal: "auto" },
+      web: { maxWidth: 1080, width: "100%", marginHorizontal: "auto" },
     }),
   },
   content: {

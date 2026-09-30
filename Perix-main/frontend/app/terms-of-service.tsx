@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, Linking, Pressable } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Linking, Pressable, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -113,7 +113,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#264348" },
-  content: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    ...Platform.select({
+      web: { maxWidth: 900, width: "100%", marginHorizontal: "auto" },
+    }),
+  },
   updatedPill: {
     flexDirection: "row",
     alignItems: "center",
