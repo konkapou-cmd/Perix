@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, TaxiRequest, TaxiPricing } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -89,6 +89,13 @@ export default function LocatorScreen() {
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
   const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string } | null>(null);
   const [servingBuses, setServingBuses] = useState<ServingBus[]>([]);
+  const [taxiDestAddress, setTaxiDestAddress] = useState("");
+  const [taxiDestLat, setTaxiDestLat] = useState<number | null>(null);
+  const [taxiDestLng, setTaxiDestLng] = useState<number | null>(null);
+  const [taxiDestSuggestions, setTaxiDestSuggestions] = useState<any[]>([]);
+  const [taxiPricing, setTaxiPricingState] = useState<TaxiPricing | null>(null);
+  const [myTaxiReq, setMyTaxiReq] = useState<TaxiRequest | null>(null);
+  const [taxiRequesting, setTaxiRequesting] = useState(false);
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
@@ -528,6 +535,136 @@ export default function LocatorScreen() {
       clearInterval(interval);
     };
   }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude]);
+
+  // Taxi mode: load pricing and poll my active request
+  useEffect(() => {
+    if (activeTab !== "mobility" || mobilityMode !== "taxi" || !sessionToken) return;
+    let cancelled = false;
+    getTaxiPricing(sessionToken)
+      .then((p) => {
+        if (!cancelled) setTaxiPricingState(p);
+      })
+      .catch(() => {});
+    const loadMine = () => {
+      myTaxiRequests(sessionToken)
+        .then((list) => {
+          if (cancelled) return;
+          const active = list.find((r) => r.status === "requested" || r.status === "accepted");
+          setMyTaxiReq(active || null);
+        })
+        .catch(() => {});
+    };
+    loadMine();
+    const interval = setInterval(loadMine, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeTab, mobilityMode, sessionToken]);
+
+  // Taxi destination suggestions (Google autocomplete)
+  useEffect(() => {
+    if (activeTab !== "mobility" || mobilityMode !== "taxi" || taxiDestAddress.trim().length < 3) {
+      setTaxiDestSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+          taxiDestAddress.trim()
+        )}&key=${googleKey}&language=${encodeURIComponent(i18n.language || "en")}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!cancelled) setTaxiDestSuggestions(data.predictions || []);
+      } catch {
+        if (!cancelled) setTaxiDestSuggestions([]);
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [activeTab, mobilityMode, taxiDestAddress, googleKey, i18n.language]);
+
+  const selectTaxiDestination = async (suggestion: { description: string; place_id: string }) => {
+    setTaxiDestAddress(suggestion.description);
+    setTaxiDestSuggestions([]);
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
+        suggestion.place_id
+      )}&key=${googleKey}&language=${encodeURIComponent(i18n.language || "en")}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const loc = data.result?.geometry?.location;
+      if (loc) {
+        setTaxiDestLat(loc.lat);
+        setTaxiDestLng(loc.lng);
+      }
+    } catch {}
+  };
+
+  const submitTaxiRequest = async () => {
+    if (
+      !sessionToken ||
+      taxiRequesting ||
+      contextLocation == null ||
+      taxiDestLat == null ||
+      taxiDestLng == null
+    ) {
+      return;
+    }
+    setTaxiRequesting(true);
+    try {
+      const req = await createTaxiRequest(sessionToken, {
+        pickup_address: locationName || undefined,
+        pickup_lat: contextLocation.latitude,
+        pickup_lng: contextLocation.longitude,
+        destination_address: taxiDestAddress || undefined,
+        destination_lat: taxiDestLat,
+        destination_lng: taxiDestLng,
+      });
+      setMyTaxiReq(req);
+    } catch (e) {
+      console.warn("taxi request failed:", e);
+    } finally {
+      setTaxiRequesting(false);
+    }
+  };
+
+  const cancelMyTaxiReq = async () => {
+    if (!sessionToken || !myTaxiReq) return;
+    try {
+      await cancelTaxiRequest(sessionToken, myTaxiReq.request_id);
+      setMyTaxiReq({ ...myTaxiReq, status: "cancelled" });
+    } catch (e) {
+      console.warn("cancel failed:", e);
+    }
+  };
+
+  const taxiEstimate = useMemo(() => {
+    if (
+      contextLocation == null ||
+      taxiDestLat == null ||
+      taxiDestLng == null ||
+      !taxiPricing
+    ) {
+      return null;
+    }
+    const R = 6371;
+    const dLat = ((taxiDestLat - contextLocation.latitude) * Math.PI) / 180;
+    const dLng = ((taxiDestLng - contextLocation.longitude) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((contextLocation.latitude * Math.PI) / 180) *
+        Math.cos((taxiDestLat * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
+    const straight = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const roadKm = straight * 1.3;
+    const duration = Math.max(3, Math.round((roadKm / 25) * 60));
+    const fare = Math.max(taxiPricing.minimum, taxiPricing.base_fare + roadKm * taxiPricing.per_km);
+    return { distanceKm: roadKm, durationMin: duration, fareMin: fare, fareMax: fare * 1.15 };
+  }, [contextLocation, taxiDestLat, taxiDestLng, taxiPricing]);
 
   const requestIdRef = useRef(0);
   const loadIdRef = useRef(0);
@@ -1016,6 +1153,95 @@ export default function LocatorScreen() {
             </View>
           ) : (
             <>
+          {mobilityMode === "taxi" && (
+            <View style={styles.taxiCard}>
+              <View style={styles.taxiRow}>
+                <Ionicons name="person" size={16} color="#22C55E" />
+                <Text style={styles.taxiField} numberOfLines={1}>
+                  {t("mobility.taxiPickup", "Pickup")}: {locationName || t("mobility.taxiMyLocation", "My location")}
+                </Text>
+              </View>
+              <View style={styles.taxiRow}>
+                <Ionicons name="navigate" size={16} color="#EF4444" />
+                <TextInput
+                  style={styles.taxiInput}
+                  value={taxiDestAddress}
+                  onChangeText={(text) => {
+                    setTaxiDestAddress(text);
+                    setTaxiDestLat(null);
+                    setTaxiDestLng(null);
+                  }}
+                  placeholder={t("mobility.taxiDestination", "Where to?")}
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+              {taxiDestSuggestions.length > 0 && (
+                <View style={styles.busSuggestions}>
+                  {taxiDestSuggestions.map((s) => (
+                    <Pressable
+                      key={s.place_id}
+                      style={styles.busSuggestionRow}
+                      onPress={() => selectTaxiDestination(s)}
+                    >
+                      <Ionicons name="location-outline" size={14} color="#FFC400" />
+                      <Text style={styles.busSuggestionName} numberOfLines={1}>
+                        {s.description}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              {taxiEstimate && (
+                <Text style={styles.taxiEstimate}>
+                  {t("mobility.taxiApprox", "Approx.")} {taxiEstimate.distanceKm.toFixed(1)} km · ~{taxiEstimate.durationMin} min ·{" "}
+                  {taxiPricing?.currency === "EUR" ? "€" : ""}
+                  {taxiEstimate.fareMin.toFixed(0)}–{taxiEstimate.fareMax.toFixed(0)}
+                </Text>
+              )}
+              <Text style={styles.taxiHint}>
+                {t("mobility.taxiNoPayment", "No payment through Perix - the final fare is set by the taxi meter / operator tariff.")}
+              </Text>
+              <Pressable
+                style={[styles.taxiRequestButton, (taxiRequesting || taxiDestLat == null) && { opacity: 0.6 }]}
+                onPress={submitTaxiRequest}
+                disabled={taxiRequesting || taxiDestLat == null}
+              >
+                {taxiRequesting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.taxiRequestButtonText}>{t("mobility.taxiRequest", "Request taxi")}</Text>
+                )}
+              </Pressable>
+            </View>
+          )}
+
+          {myTaxiReq && (
+            <View style={[styles.taxiCard, styles.taxiStatusCard]}>
+              <Text style={styles.taxiStatusTitle}>
+                {myTaxiReq.status === "requested"
+                  ? t("mobility.taxiRequested", "Request sent - waiting for confirmation...")
+                  : myTaxiReq.status === "accepted"
+                  ? t("mobility.taxiAccepted", "Taxi confirmed ✓")
+                  : myTaxiReq.status === "declined"
+                  ? t("mobility.taxiDeclined", "The company could not accept your request")
+                  : t("mobility.taxiCancelled", "Request cancelled")}
+              </Text>
+              {myTaxiReq.status === "accepted" && (
+                <Text style={styles.taxiStatusSub}>
+                  🚕 {t("mobility.taxiArriving", "Taxi arriving in ~{{n}} min", { n: myTaxiReq.vehicle_eta_minutes ?? "…" })}
+                  {myTaxiReq.vehicle_distance_m != null
+                    ? ` · ${myTaxiReq.vehicle_distance_m < 1000 ? myTaxiReq.vehicle_distance_m + " m" : (myTaxiReq.vehicle_distance_m / 1000).toFixed(1) + " km"}`
+                    : ""}
+                </Text>
+              )}
+              {(myTaxiReq.status === "requested" || myTaxiReq.status === "accepted") && (
+                <Pressable style={styles.taxiCancelButton} onPress={cancelMyTaxiReq}>
+                  <Text style={styles.taxiCancelButtonText}>{t("common.cancel", "Cancel")}</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+
           {liveVehicles.filter((v) => v.mode === mobilityMode).length === 0 ? (
             <View style={styles.mobilityEmpty}>
               <Ionicons name={mobilityMode === "bus" ? "bus-outline" : "car-outline"} size={32} color="#9ca3af" />
@@ -2835,6 +3061,40 @@ const styles = StyleSheet.create({
   },
   busSuggestionName: { fontSize: 14, fontWeight: "600", color: "#264348" },
   busSuggestionRoutes: { fontSize: 12, color: "#59ABE3", marginTop: 1 },
+  taxiCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E7EAF0",
+    padding: 14,
+    marginBottom: 10,
+    gap: 8,
+  },
+  taxiRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  taxiField: { flex: 1, fontSize: 14, color: "#264348", fontWeight: "600" },
+  taxiInput: { flex: 1, fontSize: 14, color: "#264348" },
+  taxiEstimate: { fontSize: 15, fontWeight: "700", color: "#264348" },
+  taxiHint: { fontSize: 11, color: "#9CA3AF", lineHeight: 15 },
+  taxiRequestButton: {
+    backgroundColor: "#FFC400",
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  taxiRequestButtonText: { color: "#264348", fontSize: 15, fontWeight: "800" },
+  taxiStatusCard: { backgroundColor: "#EAF5FF", borderColor: "#BFDFF7" },
+  taxiStatusTitle: { fontSize: 15, fontWeight: "700", color: "#264348" },
+  taxiStatusSub: { fontSize: 14, color: "#264348", marginTop: 2 },
+  taxiCancelButton: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "#EF4444",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginTop: 6,
+  },
+  taxiCancelButtonText: { color: "#EF4444", fontSize: 13, fontWeight: "700" },
   locateMeButton: {
     position: "absolute",
     bottom: 12,

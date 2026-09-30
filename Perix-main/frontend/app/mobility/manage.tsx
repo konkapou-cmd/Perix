@@ -24,6 +24,13 @@ import {
   getBusNetwork,
   importBusNetwork,
   activateBusNetwork,
+  getTaxiPricing,
+  setTaxiPricing,
+  listTaxiRequests,
+  acceptTaxiRequest,
+  declineTaxiRequest,
+  completeTaxiRequest,
+  TaxiRequest,
   BusNetwork,
   LiveVehicle,
 } from "../../lib/api/mobility";
@@ -52,6 +59,13 @@ export default function MobilityManageScreen() {
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ version_id: string; diff: any } | null>(null);
+  const [taxiBaseFare, setTaxiBaseFare] = useState("4.5");
+  const [taxiPerKm, setTaxiPerKm] = useState("2.6");
+  const [taxiMinimum, setTaxiMinimum] = useState("8.0");
+  const [savingPricing, setSavingPricing] = useState(false);
+  const [taxiRequests, setTaxiRequests] = useState<TaxiRequest[]>([]);
+  const [assignVehicleFor, setAssignVehicleFor] = useState<string | null>(null);
+  const [assignVehicleId, setAssignVehicleId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!sessionToken) return;
@@ -118,6 +132,43 @@ export default function MobilityManageScreen() {
       console.warn("activate failed:", e);
     }
   };
+
+  const savePricing = async () => {
+    if (!sessionToken || savingPricing) return;
+    setSavingPricing(true);
+    try {
+      await setTaxiPricing(sessionToken, {
+        base_fare: parseFloat(taxiBaseFare) || 4.5,
+        per_km: parseFloat(taxiPerKm) || 2.6,
+        minimum: parseFloat(taxiMinimum) || 8.0,
+      });
+      const p = await getTaxiPricing(sessionToken);
+      setTaxiBaseFare(String(p.base_fare));
+      setTaxiPerKm(String(p.per_km));
+      setTaxiMinimum(String(p.minimum));
+    } catch (e) {
+      console.warn("save pricing failed:", e);
+    } finally {
+      setSavingPricing(false);
+    }
+  };
+
+  const loadTaxiRequests = useCallback(async () => {
+    if (!sessionToken || operatorRole !== "taxi_operator") return;
+    try {
+      const list = await listTaxiRequests(sessionToken);
+      setTaxiRequests(list);
+    } catch (e) {
+      console.warn("load taxi requests failed:", e);
+    }
+  }, [sessionToken, operatorRole]);
+
+  useEffect(() => {
+    if (operatorRole !== "taxi_operator") return;
+    loadTaxiRequests();
+    const interval = setInterval(loadTaxiRequests, 10000);
+    return () => clearInterval(interval);
+  }, [operatorRole, loadTaxiRequests]);
 
   const addVehicle = async () => {
     if (!sessionToken || !fleetNumber.trim() || adding) return;
@@ -305,6 +356,130 @@ export default function MobilityManageScreen() {
             </View>
           )}
         </View>
+
+        {/* Taxi: pricing + incoming requests */}
+        {operatorRole === "taxi_operator" && (
+          <>
+            <Text style={styles.sectionTitle}>{t("mobility.taxiPricing", "Taxi pricing")}</Text>
+            <View style={styles.card}>
+              <View style={styles.pricingRow}>
+                <Text style={styles.pricingLabel}>{t("mobility.taxiBaseFare", "Base fare")}</Text>
+                <TextInput
+                  style={[styles.input, styles.pricingInput]}
+                  value={taxiBaseFare}
+                  onChangeText={setTaxiBaseFare}
+                  keyboardType="decimal-pad"
+                />
+                <Text style={styles.pricingLabel}>{t("mobility.taxiPerKm", "Per km")}</Text>
+                <TextInput
+                  style={[styles.input, styles.pricingInput]}
+                  value={taxiPerKm}
+                  onChangeText={setTaxiPerKm}
+                  keyboardType="decimal-pad"
+                />
+                <Text style={styles.pricingLabel}>{t("mobility.taxiMinimum", "Minimum")}</Text>
+                <TextInput
+                  style={[styles.input, styles.pricingInput]}
+                  value={taxiMinimum}
+                  onChangeText={setTaxiMinimum}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <Pressable style={styles.importButton} onPress={savePricing} disabled={savingPricing}>
+                {savingPricing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.importButtonText}>{t("common.save", "Save")}</Text>
+                )}
+              </Pressable>
+            </View>
+
+            <Text style={styles.sectionTitle}>{t("mobility.taxiRequests", "Taxi requests")}</Text>
+            {taxiRequests.length === 0 ? (
+              <Text style={styles.emptyText}>{t("mobility.taxiNoRequests", "No requests yet")}</Text>
+            ) : (
+              taxiRequests.map((r) => (
+                <View key={r.request_id} style={styles.vehicleRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.vehicleName}>
+                      {r.client_name} · {r.pickup_address || "Pickup"} → {r.destination_address || "Destination"}
+                    </Text>
+                    <Text style={styles.vehicleSub}>
+                      {r.distance_km} km · ~{r.duration_minutes} min · €{r.fare_min}–{r.fare_max} ·{" "}
+                      {t("mobility.status." + r.status, r.status)}
+                    </Text>
+                  </View>
+                  {r.status === "requested" && (
+                    assignVehicleFor === r.request_id ? (
+                      <View style={styles.assignBox}>
+                        {live.filter((v) => v.mode === "taxi").map((v) => (
+                          <Pressable
+                            key={v.vehicle_id}
+                            style={styles.assignOption}
+                            onPress={() => setAssignVehicleId(v.vehicle_id)}
+                          >
+                            <Ionicons
+                              name={assignVehicleId === v.vehicle_id ? "radio-button-on" : "radio-button-off"}
+                              size={14}
+                              color="#59ABE3"
+                            />
+                            <Text style={styles.assignOptionText}>{v.name}</Text>
+                          </Pressable>
+                        ))}
+                        <Pressable
+                          style={styles.assignConfirm}
+                          onPress={async () => {
+                            if (!sessionToken || !assignVehicleId) return;
+                            await acceptTaxiRequest(sessionToken, r.request_id, assignVehicleId);
+                            setAssignVehicleFor(null);
+                            setAssignVehicleId(null);
+                            loadTaxiRequests();
+                          }}
+                        >
+                          <Text style={styles.assignConfirmText}>{t("mobility.taxiAssign", "Assign")}</Text>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Pressable
+                        style={styles.codeButton}
+                        onPress={() => {
+                          setAssignVehicleFor(r.request_id);
+                          setAssignVehicleId(null);
+                        }}
+                      >
+                        <Text style={styles.codeButtonText}>{t("mobility.taxiAcceptAssign", "Accept & assign")}</Text>
+                      </Pressable>
+                    )
+                  )}
+                  {r.status === "requested" && (
+                    <Pressable
+                      style={styles.declineButton}
+                      onPress={async () => {
+                        if (!sessionToken) return;
+                        await declineTaxiRequest(sessionToken, r.request_id);
+                        loadTaxiRequests();
+                      }}
+                    >
+                      <Text style={styles.declineButtonText}>{t("mobility.taxiDecline", "Decline")}</Text>
+                    </Pressable>
+                  )}
+                  {r.status === "accepted" && (
+                    <Pressable
+                      style={styles.codeButton}
+                      onPress={async () => {
+                        if (!sessionToken) return;
+                        await completeTaxiRequest(sessionToken, r.request_id);
+                        loadTaxiRequests();
+                      }}
+                    >
+                      <Text style={styles.codeButtonText}>{t("mobility.taxiComplete", "Complete")}</Text>
+                    </Pressable>
+                  )}
+                </View>
+              ))
+            )}
+          </>
+        )}
         </>
         )}
       </ScrollView>
@@ -470,4 +645,35 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   activateButtonText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  pricingRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 10 },
+  pricingLabel: { fontSize: 13, color: "#264348", fontWeight: "600" },
+  pricingInput: { width: 70, paddingVertical: 8, textAlign: "center" },
+  assignBox: { width: "100%", marginTop: 6, gap: 6 },
+  assignOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E7EAF0",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  assignOptionText: { fontSize: 13, color: "#264348", fontWeight: "600" },
+  assignConfirm: {
+    backgroundColor: "#22C55E",
+    borderRadius: 10,
+    paddingVertical: 9,
+    alignItems: "center",
+  },
+  assignConfirmText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  declineButton: {
+    borderWidth: 1,
+    borderColor: "#EF4444",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  declineButtonText: { color: "#EF4444", fontSize: 12, fontWeight: "700" },
 });

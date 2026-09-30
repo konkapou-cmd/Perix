@@ -32,3 +32,13 @@ class DriverStatusUpdate(BaseModel):
 class NetworkImportRequest(BaseModel):
     name: Optional[str] = None
     routes: list  # [{route_number, name, stops: [{stop_id, name, lat, lng, scheduled?}]}]
+
+
+class TaxiRequestCreate(BaseModel):
+    business_id: Optional[str] = None
+    pickup_address: Optional[str] = None
+    pickup_lat: float
+    pickup_lng: float
+    destination_address: Optional[str] = None
+    destination_lat: float
+    destination_lng: float

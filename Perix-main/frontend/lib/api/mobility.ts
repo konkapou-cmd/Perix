@@ -157,3 +157,77 @@ export const getBusesServing = (
     "GET",
     token || undefined
   );
+
+// ---------------------------------------------------------------------------
+// Taxi: pricing, passenger requests, company assignment
+// ---------------------------------------------------------------------------
+
+export type TaxiPricing = {
+  business_id: string;
+  base_fare: number;
+  per_km: number;
+  minimum: number;
+  currency: string;
+};
+
+export type TaxiRequest = {
+  request_id: string;
+  business_id: string;
+  business_name: string;
+  client_id: string;
+  client_name: string;
+  pickup_address: string | null;
+  pickup_lat: number;
+  pickup_lng: number;
+  destination_address: string | null;
+  destination_lat: number;
+  destination_lng: number;
+  distance_km: number;
+  duration_minutes: number;
+  fare_min: number;
+  fare_max: number;
+  currency: string;
+  assigned_vehicle_id: string | null;
+  status: "requested" | "accepted" | "declined" | "cancelled" | "completed";
+  created_at: string;
+  vehicle_eta_minutes: number | null;
+  vehicle_distance_m: number | null;
+};
+
+export const getTaxiPricing = (token: string) =>
+  apiRequest<TaxiPricing>("/mobility/taxi/pricing", "GET", token);
+
+export const setTaxiPricing = (token: string, pricing: Partial<TaxiPricing>) =>
+  apiRequest<TaxiPricing>("/mobility/taxi/pricing", "PUT", token, pricing);
+
+export const createTaxiRequest = (
+  token: string,
+  payload: {
+    pickup_address?: string;
+    pickup_lat: number;
+    pickup_lng: number;
+    destination_address?: string;
+    destination_lat: number;
+    destination_lng: number;
+  }
+) => apiRequest<TaxiRequest>("/mobility/taxi/request", "POST", token, payload);
+
+export const myTaxiRequests = (token: string) =>
+  apiRequest<TaxiRequest[]>("/mobility/taxi/requests/mine", "GET", token);
+
+export const cancelTaxiRequest = (token: string, requestId: string) =>
+  apiRequest(`/mobility/taxi/requests/${requestId}/cancel`, "POST", token);
+
+export const listTaxiRequests = (token: string) =>
+  apiRequest<TaxiRequest[]>("/mobility/taxi/requests", "GET", token);
+
+export const acceptTaxiRequest = (token: string, requestId: string, vehicleId: string) =>
+  apiRequest(`/mobility/taxi/requests/${requestId}/accept`, "POST", token, {
+    vehicle_id: vehicleId,
+  });
+
+export const declineTaxiRequest = (token: string, requestId: string) =>
+  apiRequest(`/mobility/taxi/requests/${requestId}/decline`, "POST", token);
+
+export const completeTaxiRequest = (token: string, requestId: string) =>
+  apiRequest(`/mobility/taxi/requests/${requestId}/complete`, "POST", token);

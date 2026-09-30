@@ -17,6 +17,7 @@ from models.mobility import (
     DriverLocationUpdate,
     DriverStatusUpdate,
     NetworkImportRequest,
+    TaxiRequestCreate,
 )
 from routes.dependencies import get_current_user, get_current_user_optional
 from routes.ws import ws_broadcast_channel_message
@@ -516,6 +517,228 @@ async def buses_serving_stop(
         )
     results.sort(key=lambda x: x["eta_minutes"])
     return results
+
+
+# ---------------------------------------------------------------------------
+# Taxi: pricing, passenger requests and company assignment. No payments -
+# the final fare is always set by the taxi meter / operator tariff.
+# ---------------------------------------------------------------------------
+
+_DEFAULT_TAXI_PRICING = {"base_fare": 4.5, "per_km": 2.6, "minimum": 8.0, "currency": "EUR"}
+
+
+async def _taxi_operator_business(business_id: Optional[str] = None) -> Optional[dict]:
+    query = {"mobility_role": "taxi_operator"}
+    if business_id:
+        query["business_id"] = business_id
+    return await db.businesses.find_one(query, {"_id": 0})
+
+
+def _estimate_trip(pickup_lat, pickup_lng, dest_lat, dest_lng, pricing: dict) -> dict:
+    straight_km = _haversine_km(pickup_lat, pickup_lng, dest_lat, dest_lng)
+    road_km = round(straight_km * 1.3, 1)
+    duration_min = max(3, round(road_km / 25.0 * 60))
+    fare = max(
+        float(pricing.get("minimum", _DEFAULT_TAXI_PRICING["minimum"])),
+        float(pricing.get("base_fare", _DEFAULT_TAXI_PRICING["base_fare"]))
+        + road_km * float(pricing.get("per_km", _DEFAULT_TAXI_PRICING["per_km"])),
+    )
+    return {
+        "distance_km": road_km,
+        "duration_minutes": duration_min,
+        "fare_min": round(fare, 2),
+        "fare_max": round(fare * 1.15, 2),
+        "currency": pricing.get("currency", "EUR"),
+    }
+
+
+@router.get("/taxi/pricing")
+async def get_taxi_pricing(current_user: UserPublic = Depends(get_current_user)):
+    operator = await _require_operator(current_user)
+    doc = await db.mobility_taxi_settings.find_one(
+        {"business_id": operator["business_id"]}, {"_id": 0}
+    )
+    return doc or {"business_id": operator["business_id"], **_DEFAULT_TAXI_PRICING}
+
+
+@router.put("/taxi/pricing")
+async def set_taxi_pricing(payload: dict, current_user: UserPublic = Depends(get_current_user)):
+    operator = await _require_operator(current_user)
+    if operator.get("mobility_role") != "taxi_operator":
+        raise HTTPException(status_code=403, detail="Taxi operator required")
+    doc = {
+        "business_id": operator["business_id"],
+        "base_fare": float(payload.get("base_fare", _DEFAULT_TAXI_PRICING["base_fare"])),
+        "per_km": float(payload.get("per_km", _DEFAULT_TAXI_PRICING["per_km"])),
+        "minimum": float(payload.get("minimum", _DEFAULT_TAXI_PRICING["minimum"])),
+        "currency": payload.get("currency", "EUR"),
+    }
+    await db.mobility_taxi_settings.replace_one(
+        {"business_id": operator["business_id"]}, doc, upsert=True
+    )
+    return doc
+
+
+@router.post("/taxi/request")
+async def create_taxi_request(payload: TaxiRequestCreate, current_user: UserPublic = Depends(get_current_user)):
+    operator = await _taxi_operator_business(payload.business_id)
+    if not operator:
+        raise HTTPException(status_code=404, detail="No taxi operator available")
+    pricing = (
+        await db.mobility_taxi_settings.find_one(
+            {"business_id": operator["business_id"]}, {"_id": 0}
+        )
+        or dict(_DEFAULT_TAXI_PRICING)
+    )
+    estimate = _estimate_trip(
+        payload.pickup_lat, payload.pickup_lng,
+        payload.destination_lat, payload.destination_lng,
+        pricing,
+    )
+    doc = {
+        "request_id": generate_id("txr"),
+        "business_id": operator["business_id"],
+        "business_name": operator.get("name", ""),
+        "client_id": current_user.user_id,
+        "client_name": current_user.name,
+        "pickup_address": payload.pickup_address,
+        "pickup_lat": payload.pickup_lat,
+        "pickup_lng": payload.pickup_lng,
+        "destination_address": payload.destination_address,
+        "destination_lat": payload.destination_lat,
+        "destination_lng": payload.destination_lng,
+        **estimate,
+        "assigned_vehicle_id": None,
+        "status": "requested",
+        "created_at": now_utc().isoformat(),
+    }
+    await db.mobility_taxi_requests.insert_one(doc)
+    _broadcast({"type": "taxi_request_new", "request": doc, "channel": f"mobility:taxi:{operator['business_id']}"})
+    return doc
+
+
+def _request_public(doc: dict, vehicle: Optional[dict] = None) -> dict:
+    out = {k: doc.get(k) for k in (
+        "request_id", "business_id", "business_name", "client_id", "client_name",
+        "pickup_address", "pickup_lat", "pickup_lng",
+        "destination_address", "destination_lat", "destination_lng",
+        "distance_km", "duration_minutes", "fare_min", "fare_max", "currency",
+        "assigned_vehicle_id", "status", "created_at",
+    )}
+    out["vehicle_eta_minutes"] = None
+    out["vehicle_distance_m"] = None
+    if vehicle and vehicle.get("latitude") is not None:
+        km = _haversine_km(vehicle["latitude"], vehicle["longitude"], doc["pickup_lat"], doc["pickup_lng"])
+        out["vehicle_distance_m"] = round(km * 1000)
+        out["vehicle_eta_minutes"] = max(1, round(km / 25.0 * 60))
+    return out
+
+
+@router.get("/taxi/requests/mine")
+async def my_taxi_requests(current_user: UserPublic = Depends(get_current_user)):
+    requests = (
+        await db.mobility_taxi_requests.find({"client_id": current_user.user_id}, {"_id": 0})
+        .sort("created_at", -1)
+        .to_list(20)
+    )
+    result = []
+    for r in requests:
+        vehicle = None
+        if r.get("assigned_vehicle_id"):
+            vehicle = await db.mobility_live.find_one(
+                {"vehicle_id": r["assigned_vehicle_id"]}, {"_id": 0}
+            )
+        result.append(_request_public(r, vehicle))
+    return result
+
+
+@router.post("/taxi/requests/{request_id}/cancel")
+async def cancel_taxi_request(request_id: str, current_user: UserPublic = Depends(get_current_user)):
+    doc = await db.mobility_taxi_requests.find_one({"request_id": request_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if doc["client_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if doc["status"] not in ("requested", "accepted"):
+        raise HTTPException(status_code=400, detail="Cannot cancel this request")
+    await db.mobility_taxi_requests.update_one(
+        {"request_id": request_id}, {"$set": {"status": "cancelled"}}
+    )
+    _broadcast({"type": "taxi_request_cancelled", "request_id": request_id, "channel": f"mobility:taxi:{doc['business_id']}"})
+    return {"ok": True}
+
+
+@router.get("/taxi/requests")
+async def list_taxi_requests(current_user: UserPublic = Depends(get_current_user)):
+    operator = await _require_operator(current_user)
+    requests = (
+        await db.mobility_taxi_requests.find({"business_id": operator["business_id"]}, {"_id": 0})
+        .sort("created_at", -1)
+        .to_list(50)
+    )
+    result = []
+    for r in requests:
+        vehicle = None
+        if r.get("assigned_vehicle_id"):
+            vehicle = await db.mobility_live.find_one(
+                {"vehicle_id": r["assigned_vehicle_id"]}, {"_id": 0}
+            )
+        result.append(_request_public(r, vehicle))
+    return result
+
+
+@router.post("/taxi/requests/{request_id}/accept")
+async def accept_taxi_request(request_id: str, payload: dict, current_user: UserPublic = Depends(get_current_user)):
+    operator = await _require_operator(current_user)
+    doc = await db.mobility_taxi_requests.find_one({"request_id": request_id})
+    if not doc or doc["business_id"] != operator["business_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    vehicle = await db.mobility_vehicles.find_one(
+        {"vehicle_id": payload.get("vehicle_id"), "business_id": operator["business_id"], "mode": "taxi"}
+    )
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Taxi not found")
+    await db.mobility_taxi_requests.update_one(
+        {"request_id": request_id},
+        {"$set": {"status": "accepted", "assigned_vehicle_id": vehicle["vehicle_id"], "accepted_at": now_utc().isoformat()}},
+    )
+    live = await db.mobility_live.find_one({"vehicle_id": vehicle["vehicle_id"]})
+    if live:
+        await db.mobility_live.update_one(
+            {"vehicle_id": vehicle["vehicle_id"]}, {"$set": {"status": "busy"}}
+        )
+    _broadcast({"type": "taxi_request_accepted", "request_id": request_id, "vehicle_id": vehicle["vehicle_id"], "channel": f"mobility:user:{doc['client_id']}"})
+    return {"ok": True}
+
+
+@router.post("/taxi/requests/{request_id}/decline")
+async def decline_taxi_request(request_id: str, current_user: UserPublic = Depends(get_current_user)):
+    operator = await _require_operator(current_user)
+    doc = await db.mobility_taxi_requests.find_one({"request_id": request_id})
+    if not doc or doc["business_id"] != operator["business_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    await db.mobility_taxi_requests.update_one(
+        {"request_id": request_id}, {"$set": {"status": "declined"}}
+    )
+    _broadcast({"type": "taxi_request_declined", "request_id": request_id, "channel": f"mobility:user:{doc['client_id']}"})
+    return {"ok": True}
+
+
+@router.post("/taxi/requests/{request_id}/complete")
+async def complete_taxi_request(request_id: str, current_user: UserPublic = Depends(get_current_user)):
+    operator = await _require_operator(current_user)
+    doc = await db.mobility_taxi_requests.find_one({"request_id": request_id})
+    if not doc or doc["business_id"] != operator["business_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    await db.mobility_taxi_requests.update_one(
+        {"request_id": request_id}, {"$set": {"status": "completed"}}
+    )
+    if doc.get("assigned_vehicle_id"):
+        await db.mobility_live.update_one(
+            {"vehicle_id": doc["assigned_vehicle_id"]}, {"$set": {"status": "available"}}
+        )
+    _broadcast({"type": "taxi_request_completed", "request_id": request_id, "channel": f"mobility:user:{doc['client_id']}"})
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
