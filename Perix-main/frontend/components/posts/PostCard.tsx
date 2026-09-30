@@ -97,7 +97,7 @@ export function PostCard({
     skipCardNav.current = true;
     if (onShare) { onShare(); return; }
     const message = `Check out ${displayName}'s post on Perix!`;
-    const url = `${APP_URL}/post/${post.post_id}`;
+    const url = `${APP_URL}/share/item?type=post&id=${post.post_id}`;
     await Share.share({ message: `${message}\n\n${url}` });
   };
 

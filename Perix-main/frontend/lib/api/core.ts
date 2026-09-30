@@ -17,10 +17,23 @@ if (__DEV__) {
   console.log(`[API] BACKEND_URL=${BACKEND_URL} (resolved from: ${resolvedFrom})`);
 }
 
-export const APP_URL =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_APP_URL ||
-  process.env.EXPO_PUBLIC_APP_URL ||
-  "https://app.perixapp.com";
+export const APP_URL = (() => {
+  const configured =
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_APP_URL ||
+    process.env.EXPO_PUBLIC_APP_URL;
+  if (configured) return configured;
+  // On web, build links on the CURRENT domain so they work identically on
+  // app.perixapp.com, perixapp.com and any other deployment.
+  if (
+    typeof window !== "undefined" &&
+    window.location?.origin &&
+    !window.location.origin.includes("localhost") &&
+    !window.location.origin.includes("127.0.0.1")
+  ) {
+    return window.location.origin;
+  }
+  return "https://app.perixapp.com";
+})();
 
 export type FocalPoint = { x: number; y: number };
 

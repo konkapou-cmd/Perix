@@ -546,7 +546,7 @@ export default function LocatorScreen() {
 
   // WhatsApp share for business
   const shareBusinessToWhatsApp = async (business: Business) => {
-    const businessUrl = `${APP_URL}/business/${business.business_id}`;
+    const businessUrl = `${APP_URL}/share/business/${(business as any).slug || business.business_id}`;
     
     const message = `${t("locator.shareBusinessMessage", { 
       name: business.name, 

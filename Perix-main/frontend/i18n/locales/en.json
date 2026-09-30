@@ -515,6 +515,10 @@
     "description": "Description",
     "selectCategory": "Select category",
     "profileUpdated": "Profile updated successfully!",
+    "profileLink": "Profile Link",
+    "slugPlaceholder": "your-store-name",
+    "slugHint": "Choose your custom link. Only lowercase letters, numbers and dashes.",
+    "slugTaken": "This link is already taken",
     "updateFailed": "Failed to update profile. Please try again.",
     "selectSubcategory": "Select subcategory",
     "saveArtist": "Save Artist",
@@ -966,7 +970,12 @@
     "permissionDenied": "Permission denied",
     "locationPermissionRequired": "Location permission is required to set your business location.",
     "failedCurrentLocation": "Failed to get current location.",
-    "searchPlaceholder": "Search city or location..."
+    "searchPlaceholder": "Search city or location...",
+    "permissionTitle": "Location permission needed",
+    "permissionMessage": "Perix uses your location to show nearby businesses, events and rentals. Please allow location access.",
+    "permissionDeniedMessage": "Location access is turned off for Perix. Enable it in your device settings to find things nearby.",
+    "openSettingsQuestion": "Open settings?",
+    "openSettings": "Open Settings"
   },
   "events": {
     "publishedMessage": "Your event has been published.",

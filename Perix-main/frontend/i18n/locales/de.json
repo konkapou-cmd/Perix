@@ -696,6 +696,10 @@
     "description": "Beschreibung",
     "selectCategory": "Kategorie wählen",
     "profileUpdated": "Profil erfolgreich aktualisiert!",
+    "profileLink": "Profil-Link",
+    "slugPlaceholder": "dein-laden-name",
+    "slugHint": "Wähle deinen eigenen Link. Nur Kleinbuchstaben, Zahlen und Bindestriche.",
+    "slugTaken": "Dieser Link ist bereits vergeben",
     "updateFailed": "Fehler beim Aktualisieren des Profils. Bitte erneut versuchen.",
     "selectSubcategory": "Unterkategorie wählen",
     "saveArtist": "Künstler speichern",
@@ -996,7 +1000,12 @@
     "permissionDenied": "Berechtigung verweigert",
     "locationPermissionRequired": "Standortberechtigung ist erforderlich, um Ihren Geschäftsstandort festzulegen.",
     "failedCurrentLocation": "Aktueller Standort konnte nicht abgerufen werden.",
-    "searchPlaceholder": "Stadt oder Ort suchen..."
+    "searchPlaceholder": "Stadt oder Ort suchen...",
+    "permissionTitle": "Standortberechtigung erforderlich",
+    "permissionMessage": "Perix verwendet deinen Standort, um Unternehmen, Veranstaltungen und Mietangebote in deiner Nähe anzuzeigen. Bitte erlaube den Standortzugriff.",
+    "permissionDeniedMessage": "Der Standortzugriff ist für Perix deaktiviert. Aktiviere ihn in deinen Geräteeinstellungen, um Inhalte in deiner Nähe zu finden.",
+    "openSettingsQuestion": "Einstellungen öffnen?",
+    "openSettings": "Einstellungen öffnen"
   },
   "events": {
     "publishedMessage": "Deine Veranstaltung wurde veröffentlicht.",

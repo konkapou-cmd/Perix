@@ -88,6 +88,7 @@ import {
   updateProfileTheme,
   getUserPublicProfile,
   ActivityItem,
+  APP_URL,
 } from "../../lib/api";
 import { getMuxAssetStatus } from "../../lib/api/mux";
 import { getUserAnalytics, getBusinessAnalytics } from "../../lib/api/analytics";
@@ -305,7 +306,7 @@ export default function ProfileScreen() {
   // -- BUSINESS EDIT MODAL STATE --
   const [bizEditModalVisible, setBizEditModalVisible] = useState(false);
   const [bizLocationPickerVisible, setBizLocationPickerVisible] = useState(false);
-  const [bizEditForm, setBizEditForm] = useState({ name: "", description: "", phone: "", website: "", email: "", tags: "", address: "", latitude: null as number | null, longitude: null as number | null, opening_hours: null as DayHours | null, root_category: "", subcategory: "" });
+  const [bizEditForm, setBizEditForm] = useState({ name: "", description: "", phone: "", website: "", email: "", tags: "", address: "", latitude: null as number | null, longitude: null as number | null, opening_hours: null as DayHours | null, root_category: "", subcategory: "", slug: "" });
   const [bizLogoNew, setBizLogoNew] = useState<string | null>(null);
   const [bizCoverNew, setBizCoverNew] = useState<string | null>(null);
   const [bizSaving, setBizSaving] = useState(false);
@@ -1178,6 +1179,7 @@ const syncEventEndTime = (d: Date, tm: Date) => {
       opening_hours: businessOpeningHours as any,
       root_category: b.root_category || "",
       subcategory: b.subcategory || "",
+      slug: (b as any).slug || "",
     });
     setBizSubcategories(
       (b as any).subcategories?.length ? (b as any).subcategories : b.subcategory ? [b.subcategory] : []
@@ -1237,6 +1239,16 @@ const syncEventEndTime = (d: Date, tm: Date) => {
       if (bizLogoNew) payload.logo_image = bizLogoNew;
       if (bizCoverNew) payload.cover_image = bizCoverNew;
       await updateBusiness(sessionToken, businessDetail.business.business_id, payload);
+      // Custom link (slug): only update when the owner changed it.
+      const newSlug = (bizEditForm.slug || "").trim();
+      const prevSlug = (businessDetail.business as any)?.slug || "";
+      if (newSlug && newSlug !== prevSlug) {
+        try {
+          await updateBusinessSlug(sessionToken, businessDetail.business.business_id, newSlug);
+        } catch (e) {
+          Alert.alert(t('common.error'), t('profile.slugTaken', 'This link is already taken'));
+        }
+      }
       await loadBusinessFullData(businessDetail.business.business_id);
       setBizEditModalVisible(false);
       Alert.alert(t('common.success'), t('profile.profileUpdated'));
@@ -3316,6 +3328,21 @@ currentUserId={businessDetail?.business?.business_id}
           <ScrollView ref={bizEditScrollRef} contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
             <Text style={styles.inputLabel}>{t("business.name", "Business Name")}</Text>
             <TextInput style={styles.input} value={bizEditForm.name} onChangeText={(text) => setBizEditForm((prev) => ({ ...prev, name: text }))} placeholder={t("business.name", "Business Name")} />
+            <Text style={styles.inputLabel}>{t("profile.profileLink", "Profile Link")}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>{APP_URL}/business/</Text>
+              <TextInput
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                value={bizEditForm.slug}
+                onChangeText={(text) => setBizEditForm((prev) => ({ ...prev, slug: text }))}
+                placeholder={t("profile.slugPlaceholder", "your-store-name")}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            <Text style={{ fontSize: 11, color: "#9ca3af", marginBottom: 12 }}>
+              {t("profile.slugHint", "Choose your custom link. Only lowercase letters, numbers and dashes.")}
+            </Text>
             <Text style={styles.inputLabel}>{t("profile.description", "Description")}</Text>
             <TextInput style={[styles.input, styles.textArea]} value={bizEditForm.description} onChangeText={(text) => setBizEditForm((prev) => ({ ...prev, description: text }))} placeholder={t("profile.description", "Description")} multiline numberOfLines={4} />
             <Text style={styles.inputLabel}>{t("business.category", "Category")}</Text>

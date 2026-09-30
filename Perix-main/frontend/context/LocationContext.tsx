@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getCurrentPositionWithPermission, watchPrecisePosition, FreshPosition, isReliablePosition } from "../lib/locationPermission";
+import { useAuth } from "./AuthContext";
 
 interface LocationData {
   latitude: number;
@@ -45,10 +46,18 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const liveRef = useRef<FreshPosition | null>(null);
   liveRef.current = livePosition;
 
+  // Location is only requested for signed-in users - the login screen must
+  // never trigger a browser location prompt.
+  const { sessionToken } = useAuth();
+
   // On startup: only a FRESH live fix. Never restore a saved location -
   // a previous session's coordinates must never be shown as live.
   // Runs in the background: the UI never waits for the GPS.
   useEffect(() => {
+    if (!sessionToken) {
+      setLoading(false);
+      return;
+    }
     const load = async () => {
       try {
         const savedRadius = await AsyncStorage.getItem(RADIUS_STORAGE_KEY);
@@ -77,7 +86,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     };
     setLoading(true);
     load();
-  }, []);
+  }, [sessionToken]);
 
   const requestLiveLocation = async (timeoutMs?: number): Promise<FreshPosition | null> => {
     try {
@@ -166,6 +175,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   // Keep the pin accurate: re-fix on foreground/focus, and watch
   // continuously so the pin follows the user live (Google Maps style).
   useEffect(() => {
+    if (!sessionToken) return;
     let stopWatch: (() => void) | null = null;
     const oneShot = () => {
       getCurrentPositionWithPermission({ timeoutMs: 15000 })
@@ -202,7 +212,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       if (stopWatch) stopWatch();
       sub.remove();
     };
-  }, [applyFix]);
+  }, [applyFix, sessionToken]);
 
   return (
     <LocationContext.Provider

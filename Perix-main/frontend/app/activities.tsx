@@ -379,7 +379,7 @@ const [location, setLocation] = useState<{ latitude: number; longitude: number }
     const location = activity.location || "";
     
     // Use /share/ prefix for public deep links
-    const activityUrl = `${APP_URL}/activity/${activity.activity_id}`;
+    const activityUrl = `${APP_URL}/share/activity/${activity.activity_id}`;
     
     const message = `${t("activities.invitationMessage", { 
       title: activity.title, 

@@ -37,7 +37,7 @@ export default function FriendsCarousel({
 
   const handleShareInvite = async () => {
     const profileUrl = currentUserId 
-      ? `${APP_URL}/user/${currentUserId}`
+      ? `${APP_URL}/share/user/${currentUserId}`
       : `${APP_URL}`;
     
     const message = t("friends.inviteMessage", { name: currentUserName || "a friend" }) ||

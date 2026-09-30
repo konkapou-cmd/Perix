@@ -490,6 +490,12 @@ async def startup_db():
     await run_cleanup()
     # Backfill legacy services with missing status
     await migrate_service_status()
+    # Assign name-based slugs to businesses missing one (share links)
+    try:
+        from routes.businesses import backfill_business_slugs
+        await backfill_business_slugs()
+    except Exception as e:
+        print(f"[Startup] Business slug backfill failed: {e}")
     # Start background cleanup scheduler (runs every 6 hours)
     asyncio.create_task(start_cleanup_scheduler(interval_hours=6))
 

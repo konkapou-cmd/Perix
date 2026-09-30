@@ -1,5 +1,10 @@
 import { Alert, Linking, Platform } from "react-native";
 import * as Location from "expo-location";
+import i18n from "../i18n";
+
+// Show the custom denied dialog at most once per session - the browser
+// permission prompt already appears first and we must not nag.
+let _permissionDialogShown = false;
 
 /**
  * Request foreground location permission. When denied, explain what happened
@@ -37,10 +42,19 @@ export async function ensureLocationPermission(): Promise<boolean> {
   }
   if (status === "granted") return true;
 
-  const title = "Location permission needed";
+  // Already explained once this session - don't nag again.
+  if (_permissionDialogShown) return false;
+
+  const title = i18n.t("location.permissionTitle", "Location permission needed");
   const message = canAskAgain
-    ? "Perix uses your location to show nearby businesses, events and rentals. Please allow location access."
-    : "Location access is turned off for Perix. Enable it in your device settings to find things nearby.";
+    ? i18n.t(
+        "location.permissionMessage",
+        "Perix uses your location to show nearby businesses, events and rentals. Please allow location access."
+      )
+    : i18n.t(
+        "location.permissionDeniedMessage",
+        "Location access is turned off for Perix. Enable it in your device settings to find things nearby."
+      );
 
   const openSettings = () => {
     try {
@@ -49,11 +63,15 @@ export async function ensureLocationPermission(): Promise<boolean> {
   };
 
   if (Platform.OS === "web" && typeof window !== "undefined") {
-    const ok = window.confirm(`${title}\n\n${message}\n\nOpen settings?`);
+    _permissionDialogShown = true;
+    const ok = window.confirm(
+      `${title}\n\n${message}\n\n${i18n.t("location.openSettingsQuestion", "Open settings?")}`
+    );
     if (ok) openSettings();
     return false;
   }
 
+  _permissionDialogShown = true;
   await new Promise<void>((resolve) => {
     Alert.alert(
       title,
@@ -61,7 +79,7 @@ export async function ensureLocationPermission(): Promise<boolean> {
       [
         { text: "Cancel", style: "cancel", onPress: () => resolve() },
         {
-          text: "Open Settings",
+          text: i18n.t("location.openSettings", "Open Settings"),
           onPress: () => {
             openSettings();
             resolve();

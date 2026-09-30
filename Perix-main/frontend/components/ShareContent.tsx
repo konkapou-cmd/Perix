@@ -78,28 +78,29 @@ export default function ShareContent({
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
-  // Generate the shareable URL
+  // Generate the shareable URL - always a PUBLIC landing page that opens
+  // immediately without login.
   const getShareUrl = () => {
-    const baseUrl = getWebUrl();
+    const baseUrl = APP_URL;
     switch (contentType) {
       case "profile":
-        return `${baseUrl}/user/${contentId}`;
+        return `${baseUrl}/share/user/${contentId}`;
       case "event":
-        return `${baseUrl}/event/${contentId}`;
+        return `${baseUrl}/share/event/${contentId}`;
       case "activity":
-        return `${baseUrl}/activity/${contentId}`;
+        return `${baseUrl}/share/activity/${contentId}`;
       case "business":
-        return `${baseUrl}/business/${contentId}`;
+        return `${baseUrl}/share/business/${contentId}`;
       case "post":
-        return `${baseUrl}/post/${contentId}`;
+        return `${baseUrl}/share/item?type=post&id=${contentId}`;
       case "job":
-        return `${baseUrl}/job/${contentId}`;
+        return `${baseUrl}/share/item?type=job&id=${contentId}`;
       case "service":
-        return `${baseUrl}/service/${contentId}`;
+        return `${baseUrl}/share/item?type=service&id=${contentId}`;
       case "listing":
-        return `${baseUrl}/listing/${contentId}`;
+        return `${baseUrl}/share/item?type=listing&id=${contentId}`;
       case "rental":
-        return `${baseUrl}/rental/${contentId}`;
+        return `${baseUrl}/share/item?type=rental&id=${contentId}`;
       default:
         return baseUrl;
     }
@@ -282,7 +283,6 @@ export default function ShareContent({
         default: {
           await Share.share({
             message,
-            url: shareUrl,
             title,
           });
           break;

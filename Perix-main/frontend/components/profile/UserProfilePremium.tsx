@@ -278,7 +278,9 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
   const borderColor = "rgba(38,67,72,0.15)";
   const resolvedUserId = userId || user.user_id;
 
-  const slugUrl = slug ? `${APP_URL}/user/${slug}` : undefined;
+  const slugUrl = slug
+    ? `${APP_URL}/share/user/${slug}`
+    : `${APP_URL}/share/user/${resolvedUserId}`;
 
   const handleCopyLink = async () => {
     if (slugUrl) {
@@ -290,10 +292,8 @@ export const UserProfilePremium: React.FC<UserProfilePremiumProps> = ({
 
   const handleShare = () => {
     const name = user?.name || "this profile";
-    const url = slugUrl || `${APP_URL}/user/${user?.user_id || ""}`;
     Share.share({
-      message: `Check out ${name} on Perix!\n${url}`,
-      url,
+      message: `${name}\n${slugUrl}`,
     });
   };
 

@@ -63,6 +63,25 @@ async def _unique_business_slug(name: str, exclude_business_id: Optional[str] = 
         counter += 1
 
 
+async def backfill_business_slugs() -> int:
+    """Assign name-based slugs to businesses that don't have one yet, so
+    every existing store gets a proper share link."""
+    missing = await db.businesses.find({"slug": {"$exists": False}}).to_list(1000)
+    count = 0
+    for b in missing:
+        try:
+            slug = await _unique_business_slug(b.get("name", ""))
+            await db.businesses.update_one(
+                {"business_id": b["business_id"]}, {"$set": {"slug": slug}}
+            )
+            count += 1
+        except Exception as e:
+            logger.warning(f"slug backfill failed for {b.get('business_id')}: {e}")
+    if count:
+        logger.info(f"Backfilled {count} business slugs")
+    return count
+
+
 def build_business_response(business_doc: Dict) -> BusinessResponse:
     defaults = {
         "description": None,

@@ -437,7 +437,9 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
   const cardColor = "#FFFFFF";
   const borderColor = "rgba(38,67,72,0.15)";
 
-  const slugUrl = slug ? `${APP_URL}/business/${slug}` : undefined;
+  const slugUrl = slug
+    ? `${APP_URL}/share/business/${slug}`
+    : `${APP_URL}/share/business/${detail?.business?.business_id || ""}`;
 
   const handleCopyLink = async () => {
     if (slugUrl) {
@@ -447,10 +449,8 @@ export const BusinessProfilePremium: React.FC<BusinessProfilePremiumProps> = ({
 
   const handleShare = () => {
     const name = detail?.business?.name || "this business";
-    const url = slugUrl || `${APP_URL}/business/${detail?.business?.business_id || ""}`;
     Share.share({
-      message: `Check out ${name} on Perix!\n${url}`,
-      url,
+      message: `${name}\n${slugUrl}`,
     });
   };
 

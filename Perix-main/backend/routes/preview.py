@@ -102,6 +102,9 @@ async def get_user_preview(user_id: str):
     """Get public preview of a user profile for shared links."""
     user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
     
+    if not user:
+        user = await db.users.find_one({"slug": user_id}, {"_id": 0, "password_hash": 0})
+    
     if not user and is_valid_object_id(user_id):
         user = await db.users.find_one({"_id": ObjectId(user_id)}, {"password_hash": 0})
         if user:
@@ -166,6 +169,10 @@ async def get_artist_preview(artist_id: str):
 async def get_business_preview(business_id: str):
     """Get public preview of a business profile for shared links."""
     business = await db.businesses.find_one({"business_id": business_id}, {"_id": 0})
+
+    if not business:
+        # Name-based share links (/business/vera-mpar) resolve via slug.
+        business = await db.businesses.find_one({"slug": business_id}, {"_id": 0})
     
     if not business and is_valid_object_id(business_id):
         business = await db.businesses.find_one({"_id": ObjectId(business_id)})
@@ -181,6 +188,7 @@ async def get_business_preview(business_id: str):
     return {
         "business_id": business.get("business_id", ""),
         "name": business.get("name", ""),
+        "slug": business.get("slug"),
         "profile_image": business.get("logo_image") or business.get("profile_photo"),
         "cover_image": business.get("cover_image"),
         "description": business.get("description"),
@@ -188,4 +196,43 @@ async def get_business_preview(business_id: str):
         "category": business.get("root_category"),
         "subcategory": business.get("subcategory"),
         "follower_count": follower_count,
+    }
+
+
+@router.get("/generic/{entity_type}/{entity_id}")
+async def get_generic_preview(entity_type: str, entity_id: str):
+    """Public preview for any entity type (post, job, service, listing,
+    rental, artist, user, business...). Used by the generic share page."""
+    collection_map = {
+        "post": ("posts", "post_id"),
+        "job": ("jobs", "job_id"),
+        "service": ("services", "service_id"),
+        "listing": ("listings", "listing_id"),
+        "rental": ("listings", "listing_id"),
+        "artist": ("artists", "artist_id"),
+        "user": ("users", "user_id"),
+        "business": ("businesses", "business_id"),
+    }
+    entry = collection_map.get(entity_type)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Not found")
+    collection_name, id_field = entry
+    collection = getattr(db, collection_name)
+    doc = await collection.find_one({id_field: entity_id}, {"_id": 0})
+    if not doc:
+        if collection_name == "businesses":
+            doc = await db.businesses.find_one({"slug": entity_id}, {"_id": 0})
+        elif collection_name == "users":
+            doc = await db.users.find_one({"slug": entity_id}, {"_id": 0, "password_hash": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Not found")
+    return {
+        "type": entity_type,
+        "id": doc.get(id_field, entity_id),
+        "name": doc.get("name") or doc.get("title") or "",
+        "description": doc.get("description") or doc.get("bio") or doc.get("text"),
+        "image": doc.get("logo_image") or doc.get("profile_photo") or doc.get("cover_image")
+                 or (doc.get("image_urls", [None])[0] if doc.get("image_urls") else None),
+        "address": doc.get("address") or doc.get("location"),
+        "category": doc.get("category") or doc.get("root_category") or doc.get("subcategory"),
     }
