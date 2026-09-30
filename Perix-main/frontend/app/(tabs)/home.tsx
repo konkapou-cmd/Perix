@@ -813,6 +813,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      {!(isDesktop && Platform.OS === "web") && (
       <View style={styles.stickyHeader}>
         <View style={styles.brandWrap}>
           <Animated.Text style={[styles.stickyHeaderBrand, { opacity: brandOpacity }]}>Perıx</Animated.Text>
@@ -888,6 +889,20 @@ export default function HomeScreen() {
           )}
         </View>
       </View>
+      )}
+
+      {/* Desktop: the global navbar covers Home/Explore and actions; the
+          home keeps only the location search pill, matching the locator. */}
+      {isDesktop && Platform.OS === "web" && (
+        <View style={styles.desktopLocationRow}>
+          <Pressable style={[styles.locationSearchPill, styles.desktopLocationPill]} onPress={() => setShowLocationSearch(true)}>
+            <Ionicons name="location-outline" size={13} color="#264348" />
+            <Text style={styles.locationSearchPillText} numberOfLines={1}>
+              {globalLocation?.name || t("location.searchPlaceholder", "Search city or location...")}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       <LocationSearchOverlay
         visible={showLocationSearch}
@@ -1826,6 +1841,27 @@ const styles = StyleSheet.create({
   stickyHeaderBrand: { fontSize: 22, fontWeight: "800", color: COLORS.primary, letterSpacing: -0.5 },
   stickyHeaderSub: { fontSize: 14, color: COLORS.textMuted },
   locationSearchPill: { flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: "transparent" },
+  desktopLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  desktopLocationPill: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 24,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minWidth: 220,
+    maxWidth: 340,
+    flexShrink: 1,
+  },
   locationSearchPillText: { fontSize: 12.5, color: "#264348" },
   homeNavLink: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
   homeNavLinkText: { fontSize: 14, fontWeight: "700", color: "#264348" },

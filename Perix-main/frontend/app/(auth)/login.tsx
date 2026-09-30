@@ -39,6 +39,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const currentLanguage = LANGUAGES.find((lang) => lang.code === i18n.language) || LANGUAGES[0];
 
@@ -49,6 +50,10 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) return;
+    if (!acceptedTerms) {
+      setErrorMessage(t("auth.acceptTermsRequired", "You must accept the Terms of Service and confirm that you are at least 16 years old."));
+      return;
+    }
     try {
       setLoading(true);
       setErrorMessage("");
@@ -91,6 +96,23 @@ export default function LoginScreen() {
 
           <View style={styles.formCard}>
           <Text style={styles.sectionTitle}>{t("auth.signInTitle")}</Text>
+
+          {/* Login / Register choice comes first - before any input */}
+          <View style={styles.modeToggle}>
+            <Pressable style={[styles.modeOption, styles.modeOptionActive]} disabled>
+              <Text style={[styles.modeOptionText, styles.modeOptionTextActive]}>
+                {t("auth.signIn")}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={styles.modeOption}
+              onPress={() => router.push("/register" as any)}
+              data-testid="goto-register"
+            >
+              <Text style={styles.modeOptionText}>{t("auth.createAccount")}</Text>
+            </Pressable>
+          </View>
+
           <View style={styles.inputRow}>
             <Ionicons name="mail-outline" size={20} color="#264348" />
             <TextInput
@@ -140,6 +162,40 @@ export default function LoginScreen() {
           </Pressable>
 
           {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+          <Pressable
+            style={styles.termsRow}
+            onPress={() => setAcceptedTerms((v) => !v)}
+            testID="login-terms-checkbox"
+          >
+            <Ionicons
+              name={acceptedTerms ? "checkbox" : "square-outline"}
+              size={20}
+              color={acceptedTerms ? "#59ABE3" : "#6b7280"}
+            />
+            <Text style={styles.termsText}>
+              {t("auth.termsAcceptance")}{" "}
+              <Text
+                style={styles.termsLink}
+                onPress={(e) => {
+                  (e as any).stopPropagation?.();
+                  router.push("/terms-of-service" as any);
+                }}
+              >
+                {t("auth.termsLink", "Terms of Service")}
+              </Text>
+              {" " + t("common.and", "and") + " "}
+              <Text
+                style={styles.termsLink}
+                onPress={(e) => {
+                  (e as any).stopPropagation?.();
+                  router.push("/privacy-policy" as any);
+                }}
+              >
+                {t("auth.privacyLink", "Privacy Policy")}
+              </Text>
+            </Text>
+          </Pressable>
 
           <Link href="/forgot-password" style={styles.forgotLink}>
             {t("auth.forgotPassword", "Passwort vergessen?")}
@@ -263,6 +319,55 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#264348",
     marginBottom: 16,
+  },
+  modeToggle: {
+    flexDirection: "row",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  modeOption: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modeOptionActive: {
+    backgroundColor: "#ffffff",
+    shadowColor: "#0A143C",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  modeOptionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  modeOptionTextActive: {
+    color: "#264348",
+    fontWeight: "700",
+  },
+  termsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 4,
+    paddingHorizontal: 2,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#4b5563",
+  },
+  termsLink: {
+    color: "#59ABE3",
+    fontWeight: "700",
   },
   inputRow: {
     flexDirection: "row",
