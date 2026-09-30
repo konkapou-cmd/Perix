@@ -172,6 +172,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       if (sessionToken) {
         await logoutUser(sessionToken);
+        // Disconnect web push so the account stops receiving notifications
+        // on this device.
+        if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+          const { removeWebPushSubscription } = await import("../lib/webPush");
+          await removeWebPushSubscription(sessionToken).catch(() => {});
+        }
       }
     } catch {
       // Ignore API error — always clear local session

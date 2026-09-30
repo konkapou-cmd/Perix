@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Linking,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -104,26 +105,31 @@ export default function PrivacyPolicyScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <HeaderBackButton onPress={() => router.back()} tintColor={COLORS.textLight} />
+        <HeaderBackButton onPress={() => router.back()} tintColor="#264348" />
         <Text style={styles.headerTitle}>{t("privacy.title") || "Privacy Policy"}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Last Updated */}
-        <Text style={styles.lastUpdated}>
-          {t("privacy.lastUpdated") || "Last updated"}: September 2026
-        </Text>
+        <View style={styles.updatedPill}>
+          <Ionicons name="time-outline" size={13} color="#6b7280" />
+          <Text style={styles.lastUpdated}>
+            {t("privacy.lastUpdated") || "Last updated"}: September 2026
+          </Text>
+        </View>
 
         {/* Introduction */}
-        <Text style={styles.intro}>
-          {t("privacy.intro") || 
-            "Perix (\"we\", \"our\", or \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application."}
-        </Text>
+        <View style={styles.card}>
+          <Text style={styles.intro}>
+            {t("privacy.intro") || 
+              "Perix (\"we\", \"our\", or \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application."}
+          </Text>
+        </View>
 
         {/* Sections */}
         {sections.map((section, index) => (
-          <View key={index} style={styles.section}>
+          <View key={index} style={styles.card}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             <Text style={styles.sectionContent}>{section.content}</Text>
           </View>
@@ -131,7 +137,7 @@ export default function PrivacyPolicyScreen() {
 
         {/* GDPR Notice */}
         <View style={styles.gdprNotice}>
-          <Ionicons name="shield-checkmark" size={24} color={COLORS.primaryDark} />
+          <Ionicons name="shield-checkmark" size={24} color="#096BFF" />
           <View style={styles.gdprText}>
             <Text style={styles.gdprTitle}>
               {t("privacy.gdprTitle") || "GDPR Compliance"}
@@ -143,6 +149,15 @@ export default function PrivacyPolicyScreen() {
           </View>
         </View>
 
+        {/* Contact button */}
+        <Pressable
+          style={styles.contactButton}
+          onPress={() => Linking.openURL("mailto:privacy@perix.app")}
+        >
+          <Ionicons name="mail-outline" size={18} color="#fff" />
+          <Text style={styles.contactButtonText}>privacy@perix.app</Text>
+        </Pressable>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -152,7 +167,7 @@ export default function PrivacyPolicyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0a0a0a",
+    backgroundColor: COLORS.backgroundPage,
   },
   header: {
     flexDirection: "row",
@@ -160,64 +175,99 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: COLORS.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
+    borderBottomColor: COLORS.border,
   },
   headerTitle: {
-    color: "#fff",
+    color: "#264348",
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  updatedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#EAF5FF",
+    alignSelf: "center",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 14,
   },
   lastUpdated: {
-    color: "#6b7280",
-    fontSize: 13,
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  intro: {
-    color: "#d1d5db",
-    fontSize: 15,
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    color: "#fff",
-    fontSize: 17,
+    color: "#264348",
+    fontSize: 12,
     fontWeight: "600",
+  },
+  card: {
+    backgroundColor: COLORS.background,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
     marginBottom: 10,
   },
+  intro: {
+    color: "#374151",
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  sectionTitle: {
+    color: "#264348",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
   sectionContent: {
-    color: "#9ca3af",
+    color: "#4b5563",
     fontSize: 14,
     lineHeight: 22,
   },
   gdprNotice: {
     flexDirection: "row",
-    backgroundColor: "rgba(76, 111, 255, 0.1)",
+    backgroundColor: "#EAF5FF",
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#BFDFF7",
     padding: 16,
     marginTop: 8,
+    marginBottom: 14,
     gap: 12,
   },
   gdprText: {
     flex: 1,
   },
   gdprTitle: {
-    color: COLORS.primaryDark,
+    color: "#096BFF",
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
     marginBottom: 4,
   },
   gdprContent: {
-    color: "#9ca3af",
+    color: "#4b5563",
     fontSize: 13,
     lineHeight: 20,
+  },
+  contactButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#096BFF",
+    borderRadius: 14,
+    paddingVertical: 13,
+    marginBottom: 8,
+  },
+  contactButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
   },
 });

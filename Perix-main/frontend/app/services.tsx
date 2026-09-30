@@ -451,7 +451,7 @@ export default function ServicesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#ffffff" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   pageLimit: {
     ...Platform.select({
       web: { width: "100%", marginHorizontal: "auto" },
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   mapPlaceholderText: { fontSize: 16, fontWeight: "600", color: "#264348", marginTop: 8 },
   mapPlaceholderSubtext: { fontSize: 13, color: "#264348", marginTop: 4 },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#264348", paddingHorizontal: 16, marginBottom: 8 },
-  serviceCard: { flexDirection: "row", alignItems: "stretch", backgroundColor: "#fff", padding: 14, borderRadius: 12, marginBottom: 10, marginHorizontal: 16, gap: 12 },
+  serviceCard: { flexDirection: "row", alignItems: "stretch", backgroundColor: "#fff", padding: 14, borderRadius: 14, marginBottom: 10, marginHorizontal: 16, gap: 12, borderWidth: 1, borderColor: COLORS.border, shadowColor: "#0A143C", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   serviceImage: { width: "38%", height: 136, borderRadius: 12 },
   serviceImagePlaceholder: { backgroundColor: "#EDF4FB", alignItems: "center", justifyContent: "center" },
   serviceInfo: { flex: 1, justifyContent: "center" },

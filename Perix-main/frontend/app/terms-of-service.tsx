@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Linking, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { COLORS } from "../lib/designTokens";
@@ -76,18 +77,28 @@ export default function TermsOfServiceScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <HeaderBackButton onPress={() => router.back()} tintColor={COLORS.textLight} />
+        <HeaderBackButton onPress={() => router.back()} tintColor="#264348" />
         <Text style={styles.headerTitle}>{t("terms.title") || "Terms of Service"}</Text>
         <View style={{ width: 40 }} />
       </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.lastUpdated}>{t("terms.lastUpdated") || "Last updated: September 2026"}</Text>
+        <View style={styles.updatedPill}>
+          <Ionicons name="time-outline" size={13} color="#6b7280" />
+          <Text style={styles.lastUpdated}>{t("terms.lastUpdated") || "Last updated: September 2026"}</Text>
+        </View>
         {sections.map((s, i) => (
           <View key={i} style={styles.card}>
             <Text style={styles.cardTitle}>{s.title}</Text>
             <Text style={styles.cardContent}>{s.content}</Text>
           </View>
         ))}
+        <Pressable
+          style={styles.contactButton}
+          onPress={() => Linking.openURL("mailto:support@perix.app")}
+        >
+          <Ionicons name="mail-outline" size={18} color="#fff" />
+          <Text style={styles.contactButtonText}>support@perix.app</Text>
+        </Pressable>
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -98,12 +109,48 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#000",
+    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: COLORS.background,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#fff" },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#264348" },
   content: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
-  lastUpdated: { fontSize: 13, color: "#9ca3af", marginBottom: 16, textAlign: "center" },
-  card: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 10 },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 8 },
-  cardContent: { fontSize: 14, lineHeight: 22, color: "#374151" },
+  updatedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#EAF5FF",
+    alignSelf: "center",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 14,
+  },
+  lastUpdated: { fontSize: 12, fontWeight: "600", color: "#264348" },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    marginBottom: 10,
+  },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: "#264348", marginBottom: 8 },
+  cardContent: { fontSize: 14, lineHeight: 22, color: "#4b5563" },
+  contactButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#096BFF",
+    borderRadius: 14,
+    paddingVertical: 13,
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  contactButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
 });

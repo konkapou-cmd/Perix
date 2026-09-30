@@ -102,6 +102,32 @@ async function reportSubscription(sessionToken: string, subscription: PushSubscr
   }
 }
 
+/**
+ * Fully disconnect web push for the current session: unsubscribe the local
+ * browser subscription and remove it server-side so the account stops
+ * receiving notifications on this device after logout.
+ */
+export async function removeWebPushSubscription(sessionToken: string): Promise<void> {
+  try {
+    const registration = await navigator.serviceWorker?.getRegistration?.();
+    const subscription = await registration?.pushManager?.getSubscription?.();
+    if (subscription) {
+      try {
+        await fetch(`${API_BASE}/push/unsubscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionToken}` },
+          body: JSON.stringify({ subscription: subscription.toJSON() }),
+        });
+      } catch {}
+      try {
+        await subscription.unsubscribe();
+      } catch {}
+    }
+  } catch (e) {
+    console.warn("[WebPush] unsubscribe failed:", e);
+  }
+}
+
 export async function updateIconBadge(count: number): Promise<void> {
   const nav = navigator as any;
   if (!("setAppBadge" in nav)) return;
