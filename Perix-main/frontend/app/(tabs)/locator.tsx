@@ -427,7 +427,12 @@ export default function LocatorScreen() {
     if (locating) return;
     setLocating(true);
     try {
-      const loc = await getCurrentPositionWithPermission();
+      // Safety timeout: never leave the button spinning forever (some
+      // browsers hang the prompt / GPS indefinitely).
+      const loc = await Promise.race([
+        getCurrentPositionWithPermission(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
+      ]);
       if (loc) {
         setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
         setLocateToken((t) => t + 1);

@@ -17,30 +17,45 @@ let _permissionDialogShown = false;
 export async function ensureLocationPermission(): Promise<boolean> {
   let status: string = "undetermined";
   let canAskAgain = true;
+
+  const directAttempt = () =>
+    new Promise<boolean>((resolve) => {
+      if (
+        Platform.OS !== "web" ||
+        typeof navigator === "undefined" ||
+        !navigator.geolocation
+      ) {
+        resolve(false);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        () => resolve(true),
+        () => resolve(false),
+        { maximumAge: 0, timeout: 20000 }
+      );
+    });
+
   try {
-    const res = await Location.requestForegroundPermissionsAsync();
+    // The expo permission call can hang forever when the browser prompt is
+    // pending (its internal geolocation call has no timeout) - race it.
+    const res = await Promise.race([
+      Location.requestForegroundPermissionsAsync(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("permission timeout")), 8000)),
+    ]);
     status = res.status;
     canAskAgain = res.canAskAgain ?? true;
   } catch (e) {
-    // Some browsers (older iOS Safari, certain webviews) lack the
-    // navigator.permissions API that expo-location needs. Fall back to a
-    // direct geolocation call, which prompts for permission on its own.
-    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.geolocation) {
-      try {
-        return await new Promise<boolean>((resolve) => {
-          navigator.geolocation.getCurrentPosition(
-            () => resolve(true),
-            () => resolve(false),
-            { maximumAge: 0, timeout: 20000 }
-          );
-        });
-      } catch {
-        return false;
-      }
-    }
-    return false;
+    // Permission API missing (older iOS Safari/webviews) or the prompt hung:
+    // fall back to a direct geolocation call, which prompts on its own.
+    return await directAttempt();
   }
   if (status === "granted") return true;
+
+  // When undetermined (prompt pending) and the expo path timed out or
+  // returned without a decision, try the direct prompt once.
+  if (status === "undetermined") {
+    return await directAttempt();
+  }
 
   // Already explained once this session - don't nag again.
   if (_permissionDialogShown) return false;
