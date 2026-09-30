@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,7 +80,7 @@ export const LanguagePicker: React.FC<LanguagePickerProps> = ({ visible, onClose
               </View>
               {currentLanguage === lang.code && (
                 <View style={styles.checkmark}>
-                  <Ionicons name="checkmark-circle" size={24} color={COLORS.primaryDark} />
+                  <Ionicons name="checkmark-circle" size={24} color="#59ABE3" />
                 </View>
               )}
             </Pressable>
@@ -93,7 +94,7 @@ export const LanguagePicker: React.FC<LanguagePickerProps> = ({ visible, onClose
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.backgroundPage,
   },
   header: {
     flexDirection: 'row',
@@ -102,13 +103,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: COLORS.border,
     backgroundColor: '#fff',
+    ...Platform.select({
+      web: { maxWidth: 640, width: '100%', marginHorizontal: 'auto' },
+    }),
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: '#264348',
   },
   closeButton: {
     padding: 8,
@@ -116,6 +120,9 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     paddingVertical: 8,
+    ...Platform.select({
+      web: { maxWidth: 640, width: '100%', marginHorizontal: 'auto' },
+    }),
   },
   languageItem: {
     flexDirection: 'row',
@@ -128,11 +135,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: COLORS.border,
   },
   languageItemSelected: {
     backgroundColor: COLORS.primaryLight,
-    borderColor: '#000000',
+    borderColor: '#59ABE3',
   },
   languageContent: {
     flex: 1,
@@ -140,7 +147,7 @@ const styles = StyleSheet.create({
   languageName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#264348',
     marginBottom: 2,
   },
   languageSubtitle: {
