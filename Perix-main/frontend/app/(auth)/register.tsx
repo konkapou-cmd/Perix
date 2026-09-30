@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 24,
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.backgroundPage,
     justifyContent: "center",
   },
   innerContainer: {
@@ -520,8 +520,10 @@ const styles = StyleSheet.create({
   },
   formCard: {
     backgroundColor: "#ffffff",
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     shadowColor: "#264348",
     shadowOpacity: 0.08,
     shadowRadius: 18,
@@ -576,8 +578,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: Platform.select({ ios: 12, android: 4 }),
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    backgroundColor: "#ffffff",
     marginBottom: 12,
   },
   input: {
