@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.backgroundPage },
   pageLimit: {
     ...Platform.select({
-      web: { width: "100%", marginHorizontal: "auto" },
+      web: { maxWidth: 1280, width: "100%", marginHorizontal: "auto" },
     }),
   },
   mapContainer: { width: "100%", backgroundColor: "#ffffff" },

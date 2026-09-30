@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   pageLimit: {
     flex: 1,
     ...Platform.select({
-      web: { width: "100%", marginHorizontal: "auto" },
+      web: { maxWidth: 1280, width: "100%", marginHorizontal: "auto" },
     }),
   },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
