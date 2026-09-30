@@ -555,6 +555,22 @@ def build_category_tree() -> None:
             ],
         },
         {
+            "name": "🚌 Mobility & Transport",
+            "slug": "mobility-transport",
+            "groups": [
+                {
+                    "name": "Public Transport",
+                    "slug": "public-transport",
+                    "subcategories": ["public-transport"],
+                },
+                {
+                    "name": "Taxis",
+                    "slug": "taxi-services",
+                    "subcategories": ["taxi-services"],
+                },
+            ],
+        },
+        {
             "name": "🏥 Healthcare",
             "slug": "healthcare",
             "groups": [

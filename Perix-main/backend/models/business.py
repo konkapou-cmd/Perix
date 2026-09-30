@@ -72,6 +72,7 @@ class BusinessResponse(BaseModel):
     owner_id: str
     name: str
     slug: Optional[str] = None
+    mobility_role: Optional[str] = None  # "bus_operator" | "taxi_operator" | None
     category: Optional[str] = None
     root_category: Optional[str] = None
     subcategory: Optional[str] = None

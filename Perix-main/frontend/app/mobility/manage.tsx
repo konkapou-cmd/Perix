@@ -20,6 +20,7 @@ import {
   createMobilityVehicle,
   generateDriverCode,
   getLiveVehicles,
+  getMobilityOperatorInfo,
   LiveVehicle,
 } from "../../lib/api/mobility";
 
@@ -41,6 +42,8 @@ export default function MobilityManageScreen() {
   const [routeDirection, setRouteDirection] = useState("");
   const [codes, setCodes] = useState<Record<string, { code: string; expires_at: string }>>({});
   const [codeLoading, setCodeLoading] = useState<string | null>(null);
+  const [operatorRole, setOperatorRole] = useState<string | null>(null);
+  const [roleChecked, setRoleChecked] = useState(false);
 
   const load = useCallback(async () => {
     if (!sessionToken) return;
@@ -63,12 +66,20 @@ export default function MobilityManageScreen() {
       router.replace("/login" as any);
       return;
     }
+    getMobilityOperatorInfo(sessionToken)
+      .then((info) => setOperatorRole(info.mobility_role))
+      .catch(() => setOperatorRole(null))
+      .finally(() => setRoleChecked(true));
+  }, [sessionToken]);
+
+  useEffect(() => {
+    if (!sessionToken || !operatorRole) return;
     load();
     const interval = setInterval(() => {
       getLiveVehicles(sessionToken).then(setLive).catch(() => {});
     }, 10000);
     return () => clearInterval(interval);
-  }, [sessionToken, load]);
+  }, [sessionToken, operatorRole, load]);
 
   const addVehicle = async () => {
     if (!sessionToken || !fleetNumber.trim() || adding) return;
@@ -114,6 +125,17 @@ export default function MobilityManageScreen() {
         <View style={{ width: 40 }} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
+        {roleChecked && !operatorRole && (
+          <View style={styles.noticeCard}>
+            <Ionicons name="information-circle-outline" size={28} color="#59ABE3" />
+            <Text style={styles.noticeText}>
+              {t("mobility.operatorRequired", "Mobility management is available for transport operator businesses (Public Transport / Taxis).")}
+            </Text>
+          </View>
+        )}
+
+        {operatorRole && (
+        <>
         {/* Live fleet */}
         <Text style={styles.sectionTitle}>{t("mobility.manageLive", "Live now")}</Text>
         <View style={styles.liveRow}>
@@ -195,6 +217,8 @@ export default function MobilityManageScreen() {
             )}
           </View>
         ))}
+        </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -312,4 +336,15 @@ const styles = StyleSheet.create({
   codeDisplay: { width: "100%", marginTop: 6 },
   codeValue: { fontSize: 22, fontWeight: "800", color: "#264348", letterSpacing: 4 },
   codeHint: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  noticeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#EAF5FF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#BFDFF7",
+    padding: 14,
+  },
+  noticeText: { flex: 1, fontSize: 14, color: "#264348", lineHeight: 20 },
 });

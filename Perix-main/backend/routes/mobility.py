@@ -73,8 +73,33 @@ def _live_doc(vehicle: dict, token_doc: Optional[dict] = None) -> dict:
 # ---------------------------------------------------------------------------
 
 
+async def _require_operator(current_user: UserPublic):
+    """Only owners of a mobility business (bus/taxi operator) may manage
+    vehicles and driver codes."""
+    biz = await db.businesses.find_one(
+        {
+            "owner_id": current_user.user_id,
+            "mobility_role": {"$in": ["bus_operator", "taxi_operator"]},
+        },
+        {"_id": 0},
+    )
+    if not biz:
+        raise HTTPException(status_code=403, detail="Mobility operator business required")
+    return biz
+
+
+@router.get("/me")
+async def mobility_me(current_user: UserPublic = Depends(get_current_user)):
+    biz = await db.businesses.find_one({"owner_id": current_user.user_id}, {"_id": 0})
+    return {
+        "business_id": (biz or {}).get("business_id"),
+        "mobility_role": (biz or {}).get("mobility_role"),
+    }
+
+
 @router.post("/vehicles")
 async def create_vehicle(payload: VehicleCreate, current_user: UserPublic = Depends(get_current_user)):
+    operator = await _require_operator(current_user)
     mode = payload.mode.lower()
     if mode not in ("bus", "taxi"):
         raise HTTPException(status_code=400, detail="mode must be bus or taxi")
@@ -82,7 +107,7 @@ async def create_vehicle(payload: VehicleCreate, current_user: UserPublic = Depe
         raise HTTPException(status_code=400, detail="fleet_number is required")
     vehicle = {
         "vehicle_id": generate_id("veh"),
-        "business_id": current_user.user_id,
+        "business_id": operator["business_id"],
         "mode": mode,
         "fleet_number": payload.fleet_number.strip(),
         "name": payload.name,
@@ -98,8 +123,9 @@ async def create_vehicle(payload: VehicleCreate, current_user: UserPublic = Depe
 
 @router.get("/vehicles")
 async def list_vehicles(current_user: UserPublic = Depends(get_current_user)):
+    operator = await _require_operator(current_user)
     vehicles = (
-        await db.mobility_vehicles.find({"business_id": current_user.user_id}, {"_id": 0})
+        await db.mobility_vehicles.find({"business_id": operator["business_id"]}, {"_id": 0})
         .to_list(500)
     )
     return vehicles
@@ -107,8 +133,9 @@ async def list_vehicles(current_user: UserPublic = Depends(get_current_user)):
 
 @router.post("/vehicles/{vehicle_id}/code")
 async def generate_driver_code(vehicle_id: str, current_user: UserPublic = Depends(get_current_user)):
+    operator = await _require_operator(current_user)
     vehicle = await db.mobility_vehicles.find_one(
-        {"vehicle_id": vehicle_id, "business_id": current_user.user_id}, {"_id": 0}
+        {"vehicle_id": vehicle_id, "business_id": operator["business_id"]}, {"_id": 0}
     )
     if not vehicle:
         raise HTTPException(status_code=403, detail="Not authorized")

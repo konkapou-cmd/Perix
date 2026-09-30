@@ -34,6 +34,13 @@ export type DriverSession = {
 export const getLiveVehicles = (token?: string | null) =>
   apiRequest<LiveVehicle[]>("/mobility/live", "GET", token || undefined);
 
+export const getMobilityOperatorInfo = (token: string) =>
+  apiRequest<{ business_id: string | null; mobility_role: string | null }>(
+    "/mobility/me",
+    "GET",
+    token
+  );
+
 export const createMobilityVehicle = (
   token: string,
   payload: {

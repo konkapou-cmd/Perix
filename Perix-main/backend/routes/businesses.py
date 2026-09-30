@@ -63,6 +63,21 @@ async def _unique_business_slug(name: str, exclude_business_id: Optional[str] = 
         counter += 1
 
 
+# Mobility operator roles derived from the business subcategory.
+MOBILITY_ROLE_BY_SUBCATEGORY = {
+    "public-transport": "bus_operator",
+    "taxi-services": "taxi_operator",
+}
+
+
+def _mobility_role_for(infos: List[dict]) -> Optional[str]:
+    for info in infos:
+        role = MOBILITY_ROLE_BY_SUBCATEGORY.get(info.get("slug"))
+        if role:
+            return role
+    return None
+
+
 async def backfill_business_slugs() -> int:
     """Assign name-based slugs to businesses that don't have one yet, so
     every existing store gets a proper share link."""
@@ -122,6 +137,7 @@ def build_business_response(business_doc: Dict) -> BusinessResponse:
         "call_availability": business_doc.get("call_availability", "opening_hours"),
         "call_hours": business_doc.get("call_hours"),
         "slug": business_doc.get("slug"),
+        "mobility_role": business_doc.get("mobility_role"),
     }
     for key, value in defaults.items():
         business_doc.setdefault(key, value)
@@ -213,6 +229,7 @@ async def create_business(
         "owner_id": current_user.user_id,
         "name": payload.name,
         "slug": await _unique_business_slug(payload.name),
+        "mobility_role": _mobility_role_for(infos),
         "category": category_info["name"],
         "root_category": category_info["root_slug"],
         "subcategory": category_info["slug"],
@@ -286,6 +303,7 @@ async def update_business(
             update_data["category"] = infos[0]["name"]
             update_data["enabled_modules"] = infos[0].get("modules", {})
             update_data["service_types"] = infos[0].get("service_types", [])
+            update_data["mobility_role"] = _mobility_role_for(infos)
     
     if "latitude" in update_data or "longitude" in update_data:
         latitude = update_data.get("latitude", business.get("latitude"))

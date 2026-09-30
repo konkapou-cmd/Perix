@@ -247,6 +247,13 @@ const FALLBACK_CATEGORY_TREE: CategoryGroup[] = [
     ],
   },
   {
+    name: "🚌 Mobility & Transport", slug: "mobility-transport",
+    groups: [
+      { name: "Public Transport", slug: "public-transport", subcategories: ["public-transport"].map(s => sub(s)) },
+      { name: "Taxis", slug: "taxi-services", subcategories: ["taxi-services"].map(s => sub(s)) },
+    ],
+  },
+  {
     name: "🏥 Healthcare", slug: "healthcare",
     groups: [
       { name: "Healthcare", slug: "healthcare", subcategories: ["doctors","dentists","clinics","pharmacies","mental-health"].map(s => sub(s)) },
