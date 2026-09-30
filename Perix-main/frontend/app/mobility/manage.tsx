@@ -21,6 +21,10 @@ import {
   generateDriverCode,
   getLiveVehicles,
   getMobilityOperatorInfo,
+  getBusNetwork,
+  importBusNetwork,
+  activateBusNetwork,
+  BusNetwork,
   LiveVehicle,
 } from "../../lib/api/mobility";
 
@@ -44,6 +48,10 @@ export default function MobilityManageScreen() {
   const [codeLoading, setCodeLoading] = useState<string | null>(null);
   const [operatorRole, setOperatorRole] = useState<string | null>(null);
   const [roleChecked, setRoleChecked] = useState(false);
+  const [network, setNetwork] = useState<BusNetwork | null>(null);
+  const [importText, setImportText] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ version_id: string; diff: any } | null>(null);
 
   const load = useCallback(async () => {
     if (!sessionToken) return;
@@ -75,11 +83,41 @@ export default function MobilityManageScreen() {
   useEffect(() => {
     if (!sessionToken || !operatorRole) return;
     load();
+    getBusNetwork(sessionToken).then(setNetwork).catch(() => {});
     const interval = setInterval(() => {
       getLiveVehicles(sessionToken).then(setLive).catch(() => {});
     }, 10000);
     return () => clearInterval(interval);
   }, [sessionToken, operatorRole, load]);
+
+  const doImport = async () => {
+    if (!sessionToken || importing || !importText.trim()) return;
+    setImporting(true);
+    try {
+      const parsed = JSON.parse(importText);
+      const routes = Array.isArray(parsed) ? parsed : parsed.routes;
+      if (!Array.isArray(routes)) throw new Error("routes array required");
+      const res = await importBusNetwork(sessionToken, parsed.name || undefined, routes);
+      setImportResult(res);
+    } catch (e: any) {
+      alert("Import failed: " + (e?.message || "invalid JSON"));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const doActivate = async () => {
+    if (!sessionToken || !importResult) return;
+    try {
+      await activateBusNetwork(sessionToken, importResult.version_id);
+      setImportResult(null);
+      setImportText("");
+      const net = await getBusNetwork(sessionToken);
+      setNetwork(net);
+    } catch (e) {
+      console.warn("activate failed:", e);
+    }
+  };
 
   const addVehicle = async () => {
     if (!sessionToken || !fleetNumber.trim() || adding) return;
@@ -217,6 +255,56 @@ export default function MobilityManageScreen() {
             )}
           </View>
         ))}
+
+        {/* Bus network: routes & stops */}
+        <Text style={styles.sectionTitle}>{t("mobility.routesStops", "Routes & Stops")}</Text>
+        <View style={styles.card}>
+          <Text style={styles.networkInfo}>
+            {network && network.version_id
+              ? `${t("mobility.activeNetwork", "Active network")}: ${network.name || network.version_id} · ${network.routes.length} ${t("mobility.routesCount", "routes")}`
+              : t("mobility.noNetwork", "No network imported yet")}
+          </Text>
+          {network && network.routes.length > 0 && (
+            <View style={styles.routeChips}>
+              {network.routes.map((r) => (
+                <View key={r.route_number} style={styles.routeChip}>
+                  <Text style={styles.routeChipText}>
+                    {r.route_number} · {r.stops.length} stops
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+          <TextInput
+            style={[styles.input, styles.importInput]}
+            value={importText}
+            onChangeText={setImportText}
+            placeholder={t("mobility.importJsonHint", 'Paste network JSON: {"name": "...", "routes": [{"route_number": "52", "name": "...", "stops": [{"stop_id": "A", "name": "...", "lat": 52.1, "lng": 11.6, "scheduled": "18:42"}]}]}')}
+            placeholderTextColor="#9CA3AF"
+            multiline
+            numberOfLines={5}
+          />
+          <Pressable style={styles.importButton} onPress={doImport} disabled={importing}>
+            {importing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.importButtonText}>{t("mobility.importNetwork", "Import network")}</Text>
+            )}
+          </Pressable>
+          {importResult && (
+            <View style={styles.diffCard}>
+              <Text style={styles.diffTitle}>{t("mobility.importPreview", "Import preview")}</Text>
+              <Text style={styles.diffText}>
+                {t("mobility.addedRoutes", "Added routes")}: {(importResult.diff.added_routes || []).join(", ") || "—"}{"\n"}
+                {t("mobility.changedRoutes", "Changed routes")}: {(importResult.diff.changed_routes || []).join(", ") || "—"}{"\n"}
+                {t("mobility.removedRoutes", "Removed routes")}: {(importResult.diff.removed_routes || []).join(", ") || "—"}
+              </Text>
+              <Pressable style={styles.activateButton} onPress={doActivate}>
+                <Text style={styles.activateButtonText}>{t("mobility.activateNetwork", "Activate new network")}</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
         </>
         )}
       </ScrollView>
@@ -347,4 +435,39 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   noticeText: { flex: 1, fontSize: 14, color: "#264348", lineHeight: 20 },
+  networkInfo: { fontSize: 14, color: "#264348", fontWeight: "600" },
+  routeChips: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  routeChip: {
+    backgroundColor: "#EAF5FF",
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  routeChipText: { fontSize: 12, color: "#264348", fontWeight: "600" },
+  importInput: { minHeight: 90, textAlignVertical: "top" },
+  importButton: {
+    backgroundColor: "#59ABE3",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  importButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  diffCard: {
+    backgroundColor: "#EAF5FF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#BFDFF7",
+    padding: 12,
+    marginTop: 10,
+  },
+  diffTitle: { fontSize: 14, fontWeight: "700", color: "#264348", marginBottom: 4 },
+  diffText: { fontSize: 13, color: "#264348", lineHeight: 20 },
+  activateButton: {
+    backgroundColor: "#22C55E",
+    borderRadius: 12,
+    paddingVertical: 11,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  activateButtonText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 });

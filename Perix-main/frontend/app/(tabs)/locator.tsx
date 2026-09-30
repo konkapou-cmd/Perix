@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -85,6 +85,10 @@ export default function LocatorScreen() {
   const [locating, setLocating] = useState(false);
   const [mobilityMode, setMobilityMode] = useState<"bus" | "taxi">("bus");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
+  const [busQuery, setBusQuery] = useState("");
+  const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
+  const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string } | null>(null);
+  const [servingBuses, setServingBuses] = useState<ServingBus[]>([]);
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
@@ -480,6 +484,50 @@ export default function LocatorScreen() {
       clearInterval(interval);
     };
   }, [activeTab, sessionToken]);
+
+  // Bus destination search (debounced)
+  useEffect(() => {
+    if (activeTab !== "mobility" || mobilityMode !== "bus" || busQuery.trim().length < 2) {
+      setBusSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      searchBusStops(sessionToken, busQuery.trim())
+        .then((res) => {
+          if (!cancelled) setBusSuggestions(res || []);
+        })
+        .catch(() => {});
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [activeTab, mobilityMode, busQuery, sessionToken]);
+
+  // Refresh the serving-bus list while a destination is selected
+  useEffect(() => {
+    if (activeTab !== "mobility" || mobilityMode !== "bus" || !selectedStop) return;
+    let cancelled = false;
+    const load = () => {
+      getBusesServing(
+        sessionToken,
+        selectedStop.stop_id,
+        contextLocation?.latitude ?? null,
+        contextLocation?.longitude ?? null
+      )
+        .then((res) => {
+          if (!cancelled) setServingBuses(res || []);
+        })
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude]);
 
   const requestIdRef = useRef(0);
   const loadIdRef = useRef(0);
@@ -879,6 +927,95 @@ export default function LocatorScreen() {
             </Pressable>
           </View>
 
+          {mobilityMode === "bus" && (
+            <View style={styles.busSearchWrap}>
+              <View style={styles.busSearchBar}>
+                <Ionicons name="search" size={16} color="#264348" />
+                <TextInput
+                  style={styles.busSearchInput}
+                  value={busQuery}
+                  onChangeText={(text) => {
+                    setBusQuery(text);
+                    if (selectedStop) {
+                      setSelectedStop(null);
+                      setServingBuses([]);
+                    }
+                  }}
+                  placeholder={t("mobility.whereToGo", "Where do you want to go?")}
+                  placeholderTextColor="#9CA3AF"
+                />
+                {selectedStop ? (
+                  <Pressable
+                    onPress={() => {
+                      setSelectedStop(null);
+                      setServingBuses([]);
+                      setBusQuery("");
+                    }}
+                  >
+                    <Ionicons name="close-circle" size={16} color="#264348" />
+                  </Pressable>
+                ) : null}
+              </View>
+              {busSuggestions.length > 0 && !selectedStop && (
+                <View style={styles.busSuggestions}>
+                  {busSuggestions.map((s) => (
+                    <Pressable
+                      key={s.stop_id}
+                      style={styles.busSuggestionRow}
+                      onPress={() => {
+                        setSelectedStop({ stop_id: s.stop_id, name: s.name });
+                        setBusQuery(s.name);
+                        setBusSuggestions([]);
+                      }}
+                    >
+                      <Ionicons name="location-outline" size={14} color="#59ABE3" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.busSuggestionName}>{s.name}</Text>
+                        <Text style={styles.busSuggestionRoutes}>
+                          {s.routes.map((r: any) => r.route_number).join(", ")}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {selectedStop && mobilityMode === "bus" ? (
+            <View>
+              <Text style={styles.mobilityHeading}>
+                {t("mobility.toward", "Buses going toward")} {selectedStop.name}
+              </Text>
+              {servingBuses.length === 0 ? (
+                <Text style={styles.mobilityEmptyText}>
+                  {t("mobility.noBusesServing", "No live buses on this route right now")}
+                </Text>
+              ) : (
+                servingBuses.map((b) => (
+                  <View key={b.vehicle_id} style={styles.mobilityRow}>
+                    <View style={[styles.mobilityRowIcon, { backgroundColor: "#59ABE3" }]}>
+                      <Ionicons name="bus" size={16} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.mobilityRowTitle}>
+                        {b.route_number} → {b.route_direction}
+                      </Text>
+                      <Text style={styles.mobilityRowSub}>
+                        {b.distance_to_bus_m != null
+                          ? `${b.distance_to_bus_m < 1000 ? b.distance_to_bus_m + " m" : (b.distance_to_bus_m / 1000).toFixed(1) + " km"} · `
+                          : ""}
+                        {t("mobility.eta", "Arrives ~{{n}} min", { n: b.eta_minutes })}
+                        {b.delay_minutes > 0 ? ` · ${t("mobility.delay", "+{{n}} min", { n: b.delay_minutes })}` : ""}
+                      </Text>
+                    </View>
+                    <Text style={styles.mobilityEta}>{b.eta_minutes}′</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          ) : (
+            <>
           {liveVehicles.filter((v) => v.mode === mobilityMode).length === 0 ? (
             <View style={styles.mobilityEmpty}>
               <Ionicons name={mobilityMode === "bus" ? "bus-outline" : "car-outline"} size={32} color="#9ca3af" />
@@ -914,6 +1051,8 @@ export default function LocatorScreen() {
                   </View>
                 );
               })
+          )}
+            </>
           )}
         </View>
       )}
@@ -2662,6 +2801,40 @@ const styles = StyleSheet.create({
   },
   mobilityRowTitle: { fontSize: 15, fontWeight: "700", color: "#264348" },
   mobilityRowSub: { fontSize: 13, color: "#6b7280", marginTop: 2 },
+  mobilityEta: { fontSize: 18, fontWeight: "800", color: "#59ABE3" },
+  mobilityHeading: { fontSize: 14, fontWeight: "700", color: "#264348", marginBottom: 8 },
+  busSearchWrap: { marginBottom: 10 },
+  busSearchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E7EAF0",
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  busSearchInput: { flex: 1, fontSize: 15, color: "#264348" },
+  busSuggestions: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E7EAF0",
+    marginTop: 6,
+    overflow: "hidden",
+  },
+  busSuggestionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E7EAF0",
+  },
+  busSuggestionName: { fontSize: 14, fontWeight: "600", color: "#264348" },
+  busSuggestionRoutes: { fontSize: 12, color: "#59ABE3", marginTop: 1 },
   locateMeButton: {
     position: "absolute",
     bottom: 12,

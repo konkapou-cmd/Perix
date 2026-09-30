@@ -27,3 +27,8 @@ class DriverLocationUpdate(BaseModel):
 class DriverStatusUpdate(BaseModel):
     token: str
     status: str  # bus: good|traffic|stau|problem  taxi: available|busy|offline
+
+
+class NetworkImportRequest(BaseModel):
+    name: Optional[str] = None
+    routes: list  # [{route_number, name, stops: [{stop_id, name, lat, lng, scheduled?}]}]

@@ -86,3 +86,74 @@ export const driverStatus = (token: string, status: string) =>
 
 export const driverEnd = (token: string) =>
   apiRequest("/mobility/driver/end", "POST", undefined, { code: token });
+
+// ---------------------------------------------------------------------------
+// Bus network (routes/stops/timetable) + passenger destination search
+// ---------------------------------------------------------------------------
+
+export type BusStop = {
+  stop_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  scheduled?: string;
+};
+
+export type BusRoute = {
+  route_number: string;
+  name: string;
+  stops: BusStop[];
+};
+
+export type BusNetwork = {
+  version_id: string | null;
+  name: string | null;
+  imported_at: string | null;
+  routes: BusRoute[];
+};
+
+export type ServingBus = {
+  vehicle_id: string;
+  route_number: string;
+  route_direction: string;
+  status: string;
+  delay_minutes: number;
+  eta_minutes: number;
+  distance_to_bus_m: number | null;
+  distance_to_stop_m: number;
+};
+
+export const getBusNetwork = (token?: string | null) =>
+  apiRequest<BusNetwork>("/mobility/network", "GET", token || undefined);
+
+export const importBusNetwork = (token: string, name: string, routes: BusRoute[]) =>
+  apiRequest<{ version_id: string; diff: any }>("/mobility/network/import", "POST", token, {
+    name,
+    routes,
+  });
+
+export const activateBusNetwork = (token: string, versionId: string) =>
+  apiRequest<{ active: string }>("/mobility/network/activate", "POST", token, {
+    version_id: versionId,
+  });
+
+export const searchBusStops = (token: string | null | undefined, q: string) =>
+  apiRequest<{ stop_id: string; name: string; lat: number; lng: number; routes: { route_number: string; headsign: string }[] }[]>(
+    `/mobility/buses/search?q=${encodeURIComponent(q)}`,
+    "GET",
+    token || undefined
+  );
+
+export const getBusesServing = (
+  token: string | null | undefined,
+  stopId: string,
+  lat?: number | null,
+  lng?: number | null
+) =>
+  apiRequest<ServingBus[]>(
+    `/mobility/buses/serving?stop_id=${encodeURIComponent(stopId)}${
+      lat != null && lng != null ? `&lat=${lat}&lng=${lng}` : ""
+    }`,
+    "GET",
+    token || undefined
+  );
