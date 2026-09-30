@@ -3030,6 +3030,34 @@
     "pickLocation": "Pick Location",
     "dragPinHint": "Drag the pin to set your exact location"
   },
+  "mobility": {
+    "bus": "Bus",
+    "taxi": "Taxi",
+    "noVehicles": "No live vehicles right now",
+    "status": {
+      "good": "All good",
+      "traffic": "Traffic",
+      "stau": "Heavy traffic",
+      "problem": "Problem",
+      "available": "Available",
+      "busy": "Busy",
+      "offline": "Offline",
+      "active": "Active"
+    },
+    "driverTitle": "Vehicle location",
+    "driverCodePlaceholder": "Enter vehicle code",
+    "driverStart": "Start",
+    "driverLocationActive": "Location active",
+    "driverEnd": "End",
+    "driverInvalidCode": "Invalid or expired code",
+    "manageTitle": "Mobility",
+    "manageAddVehicle": "Add vehicle",
+    "manageVehicles": "Vehicles",
+    "manageLive": "Live now",
+    "manageCode": "Driver code",
+    "manageGenerateCode": "Generate code",
+    "manageCodeHint": "Give this code to the driver - it expires after 12 hours."
+  },
   "slotManager": {
     "selectTime": "Set start and end times",
     "selectDays": "Select at least one day",

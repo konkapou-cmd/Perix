@@ -28,6 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
+import { getLiveVehicles, LiveVehicle } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -65,7 +66,7 @@ import { ACTIVITY_CATEGORIES, ACTIVITY_TYPES, APP_URL } from "../../lib/api";
 
 const itemWidth = (Dimensions.get("window").width - 48) / 3;
 
-type TabType = "hotels" | "businesses" | "events" | "activities" | "rentals" | "jobs";
+type TabType = "hotels" | "businesses" | "events" | "activities" | "rentals" | "jobs" | "mobility";
 
 interface DateFilter {
   startDate: string | null;
@@ -82,6 +83,8 @@ export default function LocatorScreen() {
   const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locateToken, setLocateToken] = useState(0);
   const [locating, setLocating] = useState(false);
+  const [mobilityMode, setMobilityMode] = useState<"bus" | "taxi">("bus");
+  const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
@@ -188,7 +191,7 @@ export default function LocatorScreen() {
   };
 
   useEffect(() => {
-    if (params.tab && ["hotels", "events", "activities", "businesses", "rentals", "jobs"].includes(params.tab)) {
+    if (params.tab && ["hotels", "events", "activities", "businesses", "rentals", "jobs", "mobility"].includes(params.tab)) {
       setActiveTab(params.tab as TabType);
     }
     if (params.root_category) {
@@ -458,11 +461,33 @@ export default function LocatorScreen() {
     }
   }, [locating, setManualLocation, setGlobalMapBounds, t]);
 
+  // Live mobility vehicles (buses/taxis) - polled while the Mobility tab
+  // is open. The WebSocket channel integration can replace polling later.
+  useEffect(() => {
+    if (activeTab !== "mobility") return;
+    let cancelled = false;
+    const load = () => {
+      getLiveVehicles(sessionToken)
+        .then((vehicles) => {
+          if (!cancelled) setLiveVehicles(vehicles || []);
+        })
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeTab, sessionToken]);
+
   const requestIdRef = useRef(0);
   const loadIdRef = useRef(0);
 
   useEffect(() => {
     if (!mapBounds) return;
+    // Mobility doesn't load business/event data - it polls live vehicles.
+    if (activeTab === "mobility") return;
     const currentRequestId = ++requestIdRef.current;
     const loadId = ++loadIdRef.current;
     const timer = setTimeout(() => {
@@ -774,9 +799,28 @@ export default function LocatorScreen() {
               : []
           }
           jobs={activeTab === "jobs" ? jobs : []}
+          extraMarkers={
+            activeTab === "mobility"
+              ? liveVehicles
+                  .filter((v) => v.mode === mobilityMode && v.latitude != null && v.longitude != null)
+                  .map((v) => ({
+                    id: v.vehicle_id,
+                    latitude: v.latitude!,
+                    longitude: v.longitude!,
+                    title:
+                      v.mode === "bus"
+                        ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
+                        : v.name,
+                    description: v.status,
+                    type: v.mode as "bus" | "taxi",
+                    pinColor: v.mode === "bus" ? "#59ABE3" : "#FFC400",
+                  }))
+              : undefined
+          }
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
+            if (activeTab === "mobility") return;
             if (activeTab === "businesses") {
               const rental = rentals.find(r => r.rental_id === id);
               if (rental) {
@@ -810,6 +854,69 @@ export default function LocatorScreen() {
         locationName={locationName}
         t={t}
       />
+
+      {/* Mobility: Bus/Taxi live view */}
+      {activeTab === "mobility" && (
+        <View style={styles.mobilityPanel}>
+          <View style={styles.mobilityToggle}>
+            <Pressable
+              style={[styles.mobilityToggleOption, mobilityMode === "bus" && styles.mobilityToggleOptionActive]}
+              onPress={() => setMobilityMode("bus")}
+            >
+              <Ionicons name="bus" size={16} color={mobilityMode === "bus" ? "#fff" : "#264348"} />
+              <Text style={[styles.mobilityToggleText, mobilityMode === "bus" && styles.mobilityToggleTextActive]}>
+                {t("mobility.bus", "Bus")}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.mobilityToggleOption, mobilityMode === "taxi" && styles.mobilityToggleOptionActive]}
+              onPress={() => setMobilityMode("taxi")}
+            >
+              <Ionicons name="car" size={16} color={mobilityMode === "taxi" ? "#fff" : "#264348"} />
+              <Text style={[styles.mobilityToggleText, mobilityMode === "taxi" && styles.mobilityToggleTextActive]}>
+                {t("mobility.taxi", "Taxi")}
+              </Text>
+            </Pressable>
+          </View>
+
+          {liveVehicles.filter((v) => v.mode === mobilityMode).length === 0 ? (
+            <View style={styles.mobilityEmpty}>
+              <Ionicons name={mobilityMode === "bus" ? "bus-outline" : "car-outline"} size={32} color="#9ca3af" />
+              <Text style={styles.mobilityEmptyText}>
+                {t("mobility.noVehicles", "No live vehicles right now")}
+              </Text>
+            </View>
+          ) : (
+            liveVehicles
+              .filter((v) => v.mode === mobilityMode)
+              .map((v) => {
+                const dist =
+                  contextLocation && v.latitude != null && v.longitude != null
+                    ? haversineDistance(contextLocation.latitude, contextLocation.longitude, v.latitude, v.longitude)
+                    : null;
+                return (
+                  <View key={v.vehicle_id} style={styles.mobilityRow}>
+                    <View style={[styles.mobilityRowIcon, { backgroundColor: v.mode === "bus" ? "#59ABE3" : "#FFC400" }]}>
+                      <Ionicons name={v.mode === "bus" ? "bus" : "car"} size={16} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.mobilityRowTitle}>
+                        {v.mode === "bus"
+                          ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
+                          : v.name}
+                      </Text>
+                      <Text style={styles.mobilityRowSub}>
+                        {dist != null
+                          ? `${dist < 1 ? Math.round(dist * 1000) + " m" : dist.toFixed(1) + " km"} · ${t("mobility.status." + v.status, v.status)}`
+                          : t("mobility.status." + v.status, v.status)}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+          )}
+        </View>
+      )}
 
       {/* Filter Picker Rows */}
       {activeTab === "businesses" && (
@@ -2513,6 +2620,48 @@ const styles = StyleSheet.create({
     width: "100%",
     position: "relative",
   },
+  mobilityPanel: { paddingHorizontal: 16, paddingBottom: 12 },
+  mobilityToggle: {
+    flexDirection: "row",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 10,
+  },
+  mobilityToggleOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 9,
+  },
+  mobilityToggleOptionActive: { backgroundColor: "#264348" },
+  mobilityToggleText: { fontSize: 14, fontWeight: "600", color: "#264348" },
+  mobilityToggleTextActive: { color: "#fff" },
+  mobilityEmpty: { alignItems: "center", paddingVertical: 28, gap: 8 },
+  mobilityEmptyText: { fontSize: 14, color: "#6b7280" },
+  mobilityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E7EAF0",
+    padding: 12,
+    marginBottom: 8,
+  },
+  mobilityRowIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mobilityRowTitle: { fontSize: 15, fontWeight: "700", color: "#264348" },
+  mobilityRowSub: { fontSize: 13, color: "#6b7280", marginTop: 2 },
   locateMeButton: {
     position: "absolute",
     bottom: 12,

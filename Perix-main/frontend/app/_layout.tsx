@@ -177,7 +177,7 @@ function AuthGuard() {
     }
     // Guest browsing: allow the auth group, email verification/reset pages,
     // and the public home + locator tabs. Everything else requires login.
-    const publicTopLevel = ["verify-email", "reset-password", "forgot-password", "privacy-policy", "terms-of-service", "share"];
+    const publicTopLevel = ["verify-email", "reset-password", "forgot-password", "privacy-policy", "terms-of-service", "share", "mobility"];
     const isTopLevelPublic = segs.length > 0 && publicTopLevel.includes(segs[0]);
     const isPublicTab =
       segs[0] === "(tabs)" &&

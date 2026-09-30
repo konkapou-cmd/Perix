@@ -3058,6 +3058,34 @@
     "pickLocation": "Επιλογή τοποθεσίας",
     "dragPinHint": "Σύρε την καρφίτσα για την ακριβή τοποθεσία"
   },
+  "mobility": {
+    "bus": "Λεωφορείο",
+    "taxi": "Ταξί",
+    "noVehicles": "Δεν υπάρχουν ζωντανά οχήματα αυτή τη στιγμή",
+    "status": {
+      "good": "Όλα καλά",
+      "traffic": "Κίνηση",
+      "stau": "Μποτιλιάρισμα",
+      "problem": "Πρόβλημα",
+      "available": "Διαθέσιμο",
+      "busy": "Απασχολημένο",
+      "offline": "Εκτός",
+      "active": "Ενεργό"
+    },
+    "driverTitle": "Τοποθεσία οχήματος",
+    "driverCodePlaceholder": "Εισάγετε κωδικό οχήματος",
+    "driverStart": "Έναρξη",
+    "driverLocationActive": "Η τοποθεσία είναι ενεργή",
+    "driverEnd": "Τέλος",
+    "driverInvalidCode": "Μη έγκυρος ή ληγμένος κωδικός",
+    "manageTitle": "Mobility",
+    "manageAddVehicle": "Προσθήκη οχήματος",
+    "manageVehicles": "Οχήματα",
+    "manageLive": "Ζωντανά τώρα",
+    "manageCode": "Κωδικός οδηγού",
+    "manageGenerateCode": "Δημιουργία κωδικού",
+    "manageCodeHint": "Δώσε αυτόν τον κωδικό στον οδηγό - λήγει μετά από 12 ώρες."
+  },
   "slotManager": {
     "selectTime": "Ορίστε ώρα έναρξης και λήξης",
     "selectDays": "Επιλέξτε τουλάχιστον μία ημέρα",

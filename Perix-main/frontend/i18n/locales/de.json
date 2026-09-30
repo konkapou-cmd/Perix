@@ -3130,6 +3130,34 @@
     "pickLocation": "Standort wählen",
     "dragPinHint": "Ziehe den Pin an deinen genauen Standort"
   },
+  "mobility": {
+    "bus": "Bus",
+    "taxi": "Taxi",
+    "noVehicles": "Gerade keine Live-Fahrzeuge",
+    "status": {
+      "good": "Alles gut",
+      "traffic": "Verkehr",
+      "stau": "Stau",
+      "problem": "Problem",
+      "available": "Verfügbar",
+      "busy": "Besetzt",
+      "offline": "Offline",
+      "active": "Aktiv"
+    },
+    "driverTitle": "Fahrzeug-Standort",
+    "driverCodePlaceholder": "Fahrzeug-Code eingeben",
+    "driverStart": "Start",
+    "driverLocationActive": "Standort aktiv",
+    "driverEnd": "Ende",
+    "driverInvalidCode": "Ungültiger oder abgelaufener Code",
+    "manageTitle": "Mobilität",
+    "manageAddVehicle": "Fahrzeug hinzufügen",
+    "manageVehicles": "Fahrzeuge",
+    "manageLive": "Jetzt live",
+    "manageCode": "Fahrer-Code",
+    "manageGenerateCode": "Code generieren",
+    "manageCodeHint": "Gib diesen Code dem Fahrer - er läuft nach 12 Stunden ab."
+  },
   "slotManager": {
     "selectTime": "Start- und Endzeit festlegen",
     "selectDays": "Mindestens einen Tag auswählen",
