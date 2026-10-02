@@ -112,18 +112,24 @@ async def _static_worker():
 
     while True:
         try:
-            async with httpx.AsyncClient(timeout=180) as client:
-                resp = await client.get(STATIC_GTFS_URL)
-                resp.raise_for_status()
-                content = resp.content
-            sha = hashlib.sha256(content).hexdigest()
+            # Stream to disk (the nationwide feed is ~270MB - never hold it in RAM)
+            tmp_path = "/tmp/perix_gtfs.zip"
+            with open(tmp_path, "wb") as out:
+                async with httpx.AsyncClient(timeout=300) as client:
+                    async with client.stream("GET", STATIC_GTFS_URL) as resp:
+                        resp.raise_for_status()
+                        sha = hashlib.sha256()
+                        async for chunk in resp.aiter_bytes():
+                            out.write(chunk)
+                            sha.update(chunk)
+            sha = sha.hexdigest()
             state = await db.mobility_sync_state.find_one({"key": "static_sha256"}) or {}
             if state.get("value") == sha:
                 logger.info("[mobility-static] feed unchanged")
             else:
-                from utils.gtfs import parse_gtfs_zip
+                from utils.gtfs import parse_gtfs_zip_path
 
-                payload = parse_gtfs_zip(content)
+                payload = parse_gtfs_zip_path(tmp_path)
                 routes = payload.get("routes", [])
                 trips = sum(len(r.get("trips", [])) for r in routes)
                 lines = len(routes)

@@ -24,6 +24,18 @@ def _rows(zf: zipfile.ZipFile, name: str) -> list:
     return list(csv.DictReader(text))
 
 
+def _iter_rows(zf: zipfile.ZipFile, name: str):
+    """Streaming row iterator for huge files (stop_times/shapes) - never
+    materializes the whole file in memory."""
+    names = {n.lower(): n for n in zf.namelist()}
+    actual = names.get(name.lower())
+    if not actual:
+        return iter(())
+    raw = zf.open(actual, "r")
+    text = io.TextIOWrapper(raw, encoding="utf-8-sig", newline="")
+    return csv.DictReader(text)
+
+
 def _gtfs_date(s: str) -> date:
     return datetime.strptime(s, "%Y%m%d").date()
 
@@ -64,6 +76,16 @@ def _active_service_ids(zf: zipfile.ZipFile, service_date: date) -> set:
 def parse_gtfs_zip(content: bytes, service_date: Optional[str] = None, agency_regex: str = r"Magdeburger Verkehrsbetriebe|\bMVB\b") -> dict:
     """Returns the Perix network payload {name, source, service_date,
     timezone, routes: [...]} with bus/tram routes for the requested date."""
+    return _parse_zip(io.BytesIO(content), service_date, agency_regex)
+
+
+def parse_gtfs_zip_path(path, service_date: Optional[str] = None, agency_regex: str = r"Magdeburger Verkehrsbetriebe|\bMVB\b") -> dict:
+    """Same as parse_gtfs_zip but reads the zip from disk (memory-safe for
+    large nationwide feeds)."""
+    return _parse_zip(path, service_date, agency_regex)
+
+
+def _parse_zip(source, service_date, agency_regex) -> dict:
     import re
 
     sd = (
@@ -73,7 +95,7 @@ def parse_gtfs_zip(content: bytes, service_date: Optional[str] = None, agency_re
     )
     agency_re = re.compile(agency_regex, re.I)
 
-    with zipfile.ZipFile(io.BytesIO(content)) as zf:
+    with zipfile.ZipFile(source) as zf:
         agencies = _rows(zf, "agency.txt")
         agency_ids = {
             r.get("agency_id", "") for r in agencies if agency_re.search(r.get("agency_name", "") or "")
@@ -124,7 +146,8 @@ def parse_gtfs_zip(content: bytes, service_date: Optional[str] = None, agency_re
             except Exception:
                 continue
 
-        for r in _rows(zf, "stop_times.txt"):
+        # Stop times (streaming - the nationwide file has millions of rows)
+        for r in _iter_rows(zf, "stop_times.txt"):
             tid = r.get("trip_id")
             if tid not in trips or r.get("stop_id") not in stops:
                 continue
@@ -133,10 +156,15 @@ def parse_gtfs_zip(content: bytes, service_date: Optional[str] = None, agency_re
                 continue
             trips[tid]["times"].append((int(r.get("stop_sequence") or 0), r["stop_id"], _hhmm(raw)))
 
+        # Shapes (streaming, keep only shapes referenced by the selected trips)
+        needed_shape_ids = {t["shape_id"] for t in trips.values() if t.get("shape_id")}
         shapes = defaultdict(list)
-        for r in _rows(zf, "shapes.txt"):
+        for r in _iter_rows(zf, "shapes.txt"):
+            sid = r.get("shape_id")
+            if sid not in needed_shape_ids:
+                continue
             try:
-                shapes[r.get("shape_id")].append(
+                shapes[sid].append(
                     (int(r.get("shape_pt_sequence") or 0), float(r["shape_pt_lat"]), float(r["shape_pt_lon"]))
                 )
             except Exception:

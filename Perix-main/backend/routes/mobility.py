@@ -408,7 +408,7 @@ def _position_along_shape(shape: List[list], from_idx: int, to_idx: int, frac: f
     return {"lat": shape[to_idx][0], "lng": shape[to_idx][1]}
 
 
-async def _bearing(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+def _bearing(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Bearing in degrees (0 = north, clockwise)."""
     import math
 
@@ -419,7 +419,7 @@ async def _bearing(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     return (math.degrees(math.atan2(y, x)) + 360) % 360
 
 
-async def _estimate_trip_position(route: dict, trip: dict, now_sec: int) -> Optional[dict]:
+def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
     """Estimated position of a running trip along the route shape (or stop
     polyline), interpolated between scheduled stop times. Returns None when
     the trip is not running right now."""
@@ -469,9 +469,7 @@ async def _estimate_trip_position(route: dict, trip: dict, now_sec: int) -> Opti
                 "lng": prev["stop"]["lng"] + (nxt["stop"]["lng"] - prev["stop"]["lng"]) * frac,
             }
     # Realtime delay (GTFS-RT TripUpdates pushed by the sync service)
-    realtime = None
-    if trip.get("trip_id"):
-        realtime = await db.mobility_realtime.find_one({"trip_id": trip["trip_id"]})
+    realtime = delays.get(trip.get("trip_id")) if trip.get("trip_id") else None
     delay_minutes = 0
     position_source = "SCHEDULE_ESTIMATE"
     if realtime and realtime.get("delay_seconds"):
@@ -505,6 +503,19 @@ async def _estimated_transit_vehicles() -> List[dict]:
     }
     now_sec = _now_service_seconds()
     estimates: List[dict] = []
+    trip_ids = [
+        t.get("trip_id")
+        for route in network.get("routes", [])
+        for t in route.get("trips", [])
+        if t.get("trip_id")
+    ]
+    # One batched query for all realtime delays (not one per trip)
+    delays = {}
+    if trip_ids:
+        docs = await db.mobility_realtime.find(
+            {"trip_id": {"$in": trip_ids}}, {"_id": 0}
+        ).to_list(len(trip_ids))
+        delays = {d["trip_id"]: d for d in docs}
     for route in network.get("routes", []):
         route_number = str(route.get("route_number"))
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
@@ -512,7 +523,7 @@ async def _estimated_transit_vehicles() -> List[dict]:
             headsign = str(trip.get("headsign") or route.get("name") or "")
             if (route_number, headsign) in covered or (route_number, "") in covered:
                 continue
-            pos = await _estimate_trip_position(route, trip, now_sec)
+            pos = _estimate_trip_position(route, trip, now_sec, delays)
             if not pos:
                 continue
             estimates.append(

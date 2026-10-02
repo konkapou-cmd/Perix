@@ -177,6 +177,8 @@ export default function BusinessMap({
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const transitContainersRef = useRef<HTMLDivElement[]>([]);
+  const transitContainers = transitContainersRef.current;
   const [mapReady, setMapReady] = useState(false);
   const mapReadyRef = useRef(false);
   const [mapError, setMapError] = useState(false);
@@ -381,6 +383,20 @@ export default function BusinessMap({
           });
         });
 
+        // Smooth glide for transit vehicles: pause CSS transitions while
+        // the user drags/pans the map (so icons stick to the map), then
+        // re-enable them on idle.
+        map.addListener("dragstart", () => {
+          transitContainers.forEach((c) => {
+            c.style.transition = "none";
+          });
+        });
+        map.addListener("idle", () => {
+          transitContainers.forEach((c) => {
+            c.style.transition = "left 9s linear, top 9s linear";
+          });
+        });
+
         if (cancelled) return;
         mapRef.current = map;
         mapReadyRef.current = true;
@@ -403,9 +419,16 @@ export default function BusinessMap({
     }
     const google = (window as any).google;
 
-    // remove previous overlays
+    // Preserve transit vehicle overlays so estimated positions animate
+    // smoothly between polls instead of jumping (CSS transitions on the
+    // same DOM node). Everything else is rebuilt.
+    const existingTransit = new Map<string, any>();
     markersRef.current.forEach((rec: any) => {
-      try { rec?.overlay?.setMap(null); } catch (e) {}
+      if (rec?.vehicleId) {
+        existingTransit.set(rec.vehicleId, rec);
+      } else {
+        try { rec?.overlay?.setMap(null); } catch (e) {}
+      }
     });
     markersRef.current = [];
 
@@ -425,31 +448,76 @@ export default function BusinessMap({
       const fontSize = Math.min(17, baseFont * zoomScale);
       const pinColor = group.pinColor || "#264348";
 
+      const isTransit = group.count === 1 && (group.type === "bus" || group.type === "tram");
+      const heading = typeof group.heading === "number" ? group.heading : 0;
+
+      // Reuse an existing transit overlay: only update its position and
+      // rotation - the CSS transition makes the vehicle glide smoothly.
+      if (isTransit && existingTransit.has(group.items[0].id)) {
+        const rec = existingTransit.get(group.items[0].id);
+        rec.overlay.pos = { lat: group.latitude, lng: group.longitude };
+        rec.inner.style.transform = `rotate(${heading - 90}deg)`;
+        rec.inner.style.opacity = group.estimated ? "0.72" : "1";
+        try { rec.overlay.draw(); } catch (e) {}
+        markersRef.current.push(rec);
+        return;
+      }
+
       // Container div (positioned by OverlayView)
       const container = document.createElement("div");
       container.style.position = "absolute";
       container.style.cursor = "pointer";
       container.style.userSelect = "none";
 
-      const isTransit = group.count === 1 && (group.type === "bus" || group.type === "tram");
-
       if (isTransit) {
-        // Cartoon vehicle icon that shows its facing direction
+        // Cartoon vehicle icon that shows its facing direction. The
+        // container animates left/top (9s ≈ poll interval) for smooth
+        // glide between estimated positions.
+        container.style.transition = "left 9s linear, top 9s linear";
         const rotWrap = document.createElement("div");
         rotWrap.style.position = "absolute";
         rotWrap.style.transform = "translate(-50%, -50%)";
         rotWrap.style.pointerEvents = "none";
         const inner = document.createElement("div");
-        const heading = typeof group.heading === "number" ? group.heading : 0;
         inner.style.transform = `rotate(${heading - 90}deg)`;
         inner.style.transformOrigin = "center center";
-        inner.style.transition = "transform 0.6s ease";
+        inner.style.transition = "transform 9s linear";
         inner.innerHTML = group.type === "bus" ? BUS_SVG : TRAM_SVG;
         if (group.estimated) inner.style.opacity = "0.72";
         rotWrap.appendChild(inner);
         container.appendChild(rotWrap);
-        const resize = () => {};
-        markersRef.current.push({ overlay: null as any, resize });
+        const overlay = new (class extends google.maps.OverlayView {
+          div: HTMLDivElement;
+          pos: { lat: number; lng: number };
+          constructor(div: HTMLDivElement, pos: { lat: number; lng: number }) {
+            super();
+            this.div = div;
+            this.pos = pos;
+          }
+          onAdd(this: any) {
+            this.getPanes().overlayMouseTarget.appendChild(this.div);
+          }
+          draw(this: any) {
+            const overlayProjection = this.getProjection();
+            const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
+            if (point) {
+              this.div.style.left = point.x + "px";
+              this.div.style.top = point.y + "px";
+            }
+          }
+          onRemove(this: any) {
+            if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
+          }
+        })(container, { lat: group.latitude, lng: group.longitude });
+        overlay.setMap(mapRef.current);
+        markersRef.current.push({
+          overlay,
+          resize: () => {},
+          vehicleId: group.items[0].id,
+          inner,
+        });
+        transitContainers.push(container);
+        return;
       } else {
       const pin = document.createElement("div");
       pin.style.width = sizePx + "px";
@@ -577,6 +645,22 @@ export default function BusinessMap({
 
       const record = markersRef.current[markersRef.current.length - 1];
       if (record) record.overlay = overlay;
+    });
+
+    // Remove transit overlays whose vehicle is no longer active
+    const reusedIds = new Set(
+      markersRef.current.map((r: any) => r?.vehicleId).filter(Boolean)
+    );
+    existingTransit.forEach((rec, id) => {
+      if (!reusedIds.has(id)) {
+        try { rec.overlay.setMap(null); } catch (e) {}
+      }
+    });
+    transitContainers.length = 0;
+    markersRef.current.forEach((r: any) => {
+      if (r?.vehicleId && r?.overlay?.div) {
+        transitContainers.push(r.overlay.div);
+      }
     });
   }, [groupedMarkers, mapReady]);
 
