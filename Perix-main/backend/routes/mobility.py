@@ -6,6 +6,7 @@ import math
 import random
 from datetime import datetime, timedelta
 from typing import List, Optional
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -258,7 +259,7 @@ async def driver_location(payload: DriverLocationUpdate):
                     live["passed_stop_id"] = passed.get("stop_id")
                     scheduled = _time_to_seconds(passed.get("scheduled", ""))
                     if scheduled is not None:
-                        now_sec = datetime.now().hour * 3600 + datetime.now().minute * 60 + datetime.now().second
+                        now_sec = _now_service_seconds()
                         live["delay_minutes"] = max(0, round((now_sec - scheduled) / 60))
 
     await db.mobility_live.replace_one({"vehicle_id": vehicle["vehicle_id"]}, live, upsert=True)
@@ -319,6 +320,7 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 
 def _time_to_seconds(value: str) -> Optional[int]:
+    """Parse HH:MM; hours >= 24 (GTFS service-day times) are preserved."""
     try:
         h, m = str(value).split(":")
         return int(h) * 3600 + int(m) * 60
@@ -326,15 +328,61 @@ def _time_to_seconds(value: str) -> Optional[int]:
         return None
 
 
-def _now_seconds() -> int:
-    n = datetime.now()
-    return n.hour * 3600 + n.minute * 60 + n.second
+# GTFS service days run from ~04:00 to ~28:00 (04:00 next day). The whole
+# engine works in "service-day seconds" so trips crossing midnight work.
+SERVICE_DAY_START_HOUR = 4
 
 
-def _estimate_trip_position(route: dict, trip: dict, now_sec: int) -> Optional[dict]:
-    """Estimated position of a running trip along the route polyline,
-    interpolated between scheduled stop times. Returns None when the trip
-    is not running right now."""
+def _now_service_seconds() -> int:
+    """Current time in Europe/Berlin expressed in service-day seconds
+    (e.g. 01:30 at night = 25:30 of yesterday's service day)."""
+    now = datetime.now(ZoneInfo("Europe/Berlin"))
+    sec = now.hour * 3600 + now.minute * 60 + now.second
+    if now.hour < SERVICE_DAY_START_HOUR:
+        sec += 24 * 3600
+    return sec
+
+
+def _berlin_now() -> datetime:
+    return datetime.now(ZoneInfo("Europe/Berlin"))
+
+
+def _shape_index_for(shape: List[list], lat: float, lng: float) -> int:
+    best_i, best_d = 0, float("inf")
+    for i, pt in enumerate(shape):
+        d = _haversine_km(lat, lng, pt[0], pt[1])
+        if d < best_d:
+            best_d, best_i = d, i
+    return best_i
+
+
+def _position_along_shape(shape: List[list], from_idx: int, to_idx: int, frac: float) -> dict:
+    """Point at `frac` (0..1) of the cumulative path along shape[from_idx..to_idx]."""
+    if from_idx == to_idx:
+        return {"lat": shape[from_idx][0], "lng": shape[from_idx][1]}
+    segs = []
+    total = 0.0
+    for i in range(from_idx, to_idx):
+        d = _haversine_km(shape[i][0], shape[i][1], shape[i + 1][0], shape[i + 1][1])
+        segs.append(d)
+        total += d
+    target = total * frac
+    acc = 0.0
+    for i, d in enumerate(segs):
+        if acc + d >= target and d > 0:
+            f = (target - acc) / d
+            return {
+                "lat": shape[from_idx + i][0] + (shape[from_idx + i + 1][0] - shape[from_idx + i][0]) * f,
+                "lng": shape[from_idx + i][1] + (shape[from_idx + i + 1][1] - shape[from_idx + i][1]) * f,
+            }
+        acc += d
+    return {"lat": shape[to_idx][0], "lng": shape[to_idx][1]}
+
+
+async def _estimate_trip_position(route: dict, trip: dict, now_sec: int) -> Optional[dict]:
+    """Estimated position of a running trip along the route shape (or stop
+    polyline), interpolated between scheduled stop times. Returns None when
+    the trip is not running right now."""
     start = _time_to_seconds(trip.get("start", ""))
     end = _time_to_seconds(trip.get("end", ""))
     if start is None or end is None:
@@ -369,15 +417,31 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int) -> Optional[d
     else:
         span = max(1, nxt["t"] - prev["t"])
         frac = min(1.0, max(0.0, (now_sec - prev["t"]) / span))
-        pos = {
-            "lat": prev["stop"]["lat"] + (nxt["stop"]["lat"] - prev["stop"]["lat"]) * frac,
-            "lng": prev["stop"]["lng"] + (nxt["stop"]["lng"] - prev["stop"]["lng"]) * frac,
-        }
+        shape = route.get("shape") or []
+        if isinstance(shape, list) and len(shape) > 2:
+            # Move along the real GTFS shape instead of a straight line.
+            from_idx = _shape_index_for(shape, prev["stop"]["lat"], prev["stop"]["lng"])
+            to_idx = _shape_index_for(shape, nxt["stop"]["lat"], nxt["stop"]["lng"])
+            pos = _position_along_shape(shape, from_idx, to_idx, frac)
+        else:
+            pos = {
+                "lat": prev["stop"]["lat"] + (nxt["stop"]["lat"] - prev["stop"]["lat"]) * frac,
+                "lng": prev["stop"]["lng"] + (nxt["stop"]["lng"] - prev["stop"]["lng"]) * frac,
+            }
+    # Realtime delay (GTFS-RT TripUpdates pushed by the sync service)
+    realtime = None
+    if trip.get("trip_id"):
+        realtime = await db.mobility_realtime.find_one({"trip_id": trip["trip_id"]})
+    delay_minutes = 0
+    position_source = "SCHEDULE_ESTIMATE"
+    if realtime and realtime.get("delay_seconds"):
+        delay_minutes = max(0, round(realtime["delay_seconds"] / 60))
+        position_source = "REALTIME_ESTIMATE"
     return {
         "latitude": pos["lat"],
         "longitude": pos["lng"],
-        "delay_minutes": 0,
-        "position_source": "SCHEDULE_ESTIMATE",
+        "delay_minutes": delay_minutes,
+        "position_source": position_source,
     }
 
 
@@ -394,7 +458,7 @@ async def _estimated_transit_vehicles() -> List[dict]:
     covered = {
         (str(v.get("route_number")), str(v.get("route_direction") or "")) for v in live
     }
-    now_sec = _now_seconds()
+    now_sec = _now_service_seconds()
     estimates: List[dict] = []
     for route in network.get("routes", []):
         route_number = str(route.get("route_number"))
@@ -403,7 +467,7 @@ async def _estimated_transit_vehicles() -> List[dict]:
             headsign = str(trip.get("headsign") or route.get("name") or "")
             if (route_number, headsign) in covered or (route_number, "") in covered:
                 continue
-            pos = _estimate_trip_position(route, trip, now_sec)
+            pos = await _estimate_trip_position(route, trip, now_sec)
             if not pos:
                 continue
             estimates.append(
@@ -553,6 +617,37 @@ async def activate_network(payload: dict, current_user: UserPublic = Depends(get
     await db.bus_network_versions.update_one({"version_id": version_id}, {"$set": {"active": True}})
     _broadcast({"type": "network_activated", "version_id": version_id})
     return {"active": version_id}
+
+
+@router.post("/network/realtime")
+async def push_realtime_updates(payload: dict, current_user: UserPublic = Depends(get_current_user)):
+    """GTFS-Realtime TripUpdates from the mobility sync service. Updates are
+    keyed by trip_id and consumed by the position estimator
+    (REALTIME_ESTIMATE)."""
+    await _require_operator(current_user)
+    updates = payload.get("updates") or []
+    if not isinstance(updates, list):
+        raise HTTPException(status_code=400, detail="updates array required")
+    now = _berlin_now().isoformat()
+    for u in updates:
+        trip_id = u.get("trip_id")
+        if not trip_id:
+            continue
+        delay_seconds = u.get("delay_seconds")
+        if delay_seconds is None:
+            continue
+        await db.mobility_realtime.replace_one(
+            {"trip_id": trip_id},
+            {
+                "trip_id": trip_id,
+                "delay_seconds": int(delay_seconds),
+                "updated_at": now,
+                "source": u.get("source", "GTFS_RT"),
+            },
+            upsert=True,
+        )
+    _broadcast({"type": "realtime_updates", "count": len(updates)})
+    return {"ok": True, "count": len(updates)}
 
 
 @router.get("/buses/search")

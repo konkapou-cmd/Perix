@@ -148,6 +148,15 @@ export const activateBusNetwork = (token: string, versionId: string) =>
     version_id: versionId,
   });
 
+/** GTFS-Realtime TripUpdates (used by the external mobility sync service). */
+export const pushRealtimeUpdates = (
+  token: string,
+  updates: { trip_id: string; delay_seconds: number; source?: string }[]
+) =>
+  apiRequest<{ ok: boolean; count: number }>("/mobility/network/realtime", "POST", token, {
+    updates,
+  });
+
 export const searchBusStops = (token: string | null | undefined, q: string) =>
   apiRequest<{ stop_id: string; name: string; lat: number; lng: number; routes: { route_number: string; headsign: string }[] }[]>(
     `/mobility/buses/search?q=${encodeURIComponent(q)}`,
