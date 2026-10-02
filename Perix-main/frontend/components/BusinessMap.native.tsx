@@ -18,7 +18,9 @@ type MapMarker = {
   isOpen?: boolean;
   pinColor?: string;
   pinInnerColor?: string;
-  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "taxi";
+  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
+  heading?: number | null;
+  estimated?: boolean;
 };
 
 type MapBounds = {
@@ -52,6 +54,7 @@ type Props = {
   services?: Service[];
   markers?: MapMarker[];
   extraMarkers?: MapMarker[];
+  transitLines?: { points: { latitude: number; longitude: number }[]; color: string }[];
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;

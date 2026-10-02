@@ -18,7 +18,9 @@ type MapMarker = {
   description?: string;
   pinColor?: string;
   pinInnerColor?: string;
-  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "taxi";
+  type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
+  heading?: number | null;
+  estimated?: boolean;
 };
 
 type MapBounds = {
@@ -52,6 +54,8 @@ type Props = {
   services?: Service[];
   markers?: MapMarker[];
   extraMarkers?: MapMarker[];
+  /** Thin transit route lines drawn under the markers (bus/tram networks). */
+  transitLines?: { points: { latitude: number; longitude: number }[]; color: string }[];
   showUserLocation?: boolean;
   userPinImage?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;
@@ -71,6 +75,37 @@ const googleKey =
   process.env.EXPO_PUBLIC_GEO_KEY ||
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
   "";
+
+// Cartoon transit icons (SVG). Bus: white + light blue. Tram: white + dark
+// green. Both face right; rotation = heading - 90deg.
+const BUS_SVG = `<svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1.2" y="3" width="43.6" height="17" rx="5.5" fill="#ffffff" stroke="#1E3A8A" stroke-width="2"/>
+  <rect x="4" y="6" width="7" height="6" rx="1.6" fill="#59ABE3"/>
+  <rect x="13" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
+  <rect x="21" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
+  <rect x="29" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
+  <rect x="36.5" y="1" width="7" height="3.4" rx="1.7" fill="#59ABE3"/>
+  <circle cx="11" cy="20.5" r="3.4" fill="#1E3A8A"/>
+  <circle cx="35" cy="20.5" r="3.4" fill="#1E3A8A"/>
+  <circle cx="11" cy="20.5" r="1.4" fill="#ffffff"/>
+  <circle cx="35" cy="20.5" r="1.4" fill="#ffffff"/>
+</svg>`;
+
+const TRAM_SVG = `<svg width="50" height="34" viewBox="0 0 50 34" xmlns="http://www.w3.org/2000/svg">
+  <line x1="12" y1="3" x2="12" y2="10" stroke="#166534" stroke-width="2.4"/>
+  <line x1="4" y1="3" x2="34" y2="3" stroke="#166534" stroke-width="1.8"/>
+  <rect x="1.2" y="10" width="47.6" height="15" rx="5" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <rect x="4" y="12.4" width="6" height="5" rx="1.5" fill="#BFE3C8"/>
+  <rect x="12" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
+  <rect x="19" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
+  <rect x="26" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
+  <rect x="33" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
+  <rect x="1.2" y="15.4" width="47.6" height="3" fill="#166534"/>
+  <circle cx="12" cy="27" r="3.6" fill="#166534"/>
+  <circle cx="38" cy="27" r="3.6" fill="#166534"/>
+  <circle cx="12" cy="27" r="1.5" fill="#ffffff"/>
+  <circle cx="38" cy="27" r="1.5" fill="#ffffff"/>
+</svg>`;
 
 let googleScriptLoaded = false;
 let googleScriptPromise: Promise<void> | null = null;
@@ -125,6 +160,7 @@ export default function BusinessMap({
   services = [],
   markers,
   extraMarkers,
+  transitLines,
   showUserLocation,
   userPinImage,
   pinLocation,
@@ -271,6 +307,8 @@ export default function BusinessMap({
         pinInnerColor: items.length === 1 ? items[0].pinInnerColor : undefined,
         memberColors: items.length > 1 ? uniqueColors.slice(0, 4) : [],
         type: items[0].type,
+        heading: items[0].heading ?? null,
+        estimated: items[0].estimated ?? false,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -393,6 +431,26 @@ export default function BusinessMap({
       container.style.cursor = "pointer";
       container.style.userSelect = "none";
 
+      const isTransit = group.count === 1 && (group.type === "bus" || group.type === "tram");
+
+      if (isTransit) {
+        // Cartoon vehicle icon that shows its facing direction
+        const rotWrap = document.createElement("div");
+        rotWrap.style.position = "absolute";
+        rotWrap.style.transform = "translate(-50%, -50%)";
+        rotWrap.style.pointerEvents = "none";
+        const inner = document.createElement("div");
+        const heading = typeof group.heading === "number" ? group.heading : 0;
+        inner.style.transform = `rotate(${heading - 90}deg)`;
+        inner.style.transformOrigin = "center center";
+        inner.style.transition = "transform 0.6s ease";
+        inner.innerHTML = group.type === "bus" ? BUS_SVG : TRAM_SVG;
+        if (group.estimated) inner.style.opacity = "0.72";
+        rotWrap.appendChild(inner);
+        container.appendChild(rotWrap);
+        const resize = () => {};
+        markersRef.current.push({ overlay: null as any, resize });
+      } else {
       const pin = document.createElement("div");
       pin.style.width = sizePx + "px";
       pin.style.height = sizePx + "px";
@@ -477,6 +535,7 @@ export default function BusinessMap({
         };
         markersRef.current.push({ overlay: null as any, resize });
       }
+      }
 
       class PinOverlay extends google.maps.OverlayView {
         div: HTMLDivElement;
@@ -520,6 +579,29 @@ export default function BusinessMap({
       if (record) record.overlay = overlay;
     });
   }, [groupedMarkers, mapReady]);
+
+  // Transit route lines (thin polylines under the vehicle markers)
+  const transitLinesRef = useRef<any[]>([]);
+  useEffect(() => {
+    if (!mapRef.current || !mapReadyRef.current) return;
+    transitLinesRef.current.forEach((p) => {
+      try { p.setMap(null); } catch (e) {}
+    });
+    transitLinesRef.current = [];
+    const google = (window as any).google;
+    (transitLines || []).forEach((line) => {
+      if (!line.points || line.points.length < 2) return;
+      const poly = new google.maps.Polyline({
+        path: line.points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
+        strokeColor: line.color,
+        strokeWeight: 2,
+        strokeOpacity: 0.45,
+        zIndex: 1,
+      });
+      poly.setMap(mapRef.current);
+      transitLinesRef.current.push(poly);
+    });
+  }, [transitLines, mapReady]);
 
   // Fly to location
   useEffect(() => {

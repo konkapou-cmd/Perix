@@ -408,6 +408,17 @@ def _position_along_shape(shape: List[list], from_idx: int, to_idx: int, frac: f
     return {"lat": shape[to_idx][0], "lng": shape[to_idx][1]}
 
 
+async def _bearing(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Bearing in degrees (0 = north, clockwise)."""
+    import math
+
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    d_lng = math.radians(lng2 - lng1)
+    y = math.sin(d_lng) * math.cos(phi2)
+    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(d_lng)
+    return (math.degrees(math.atan2(y, x)) + 360) % 360
+
+
 async def _estimate_trip_position(route: dict, trip: dict, now_sec: int) -> Optional[dict]:
     """Estimated position of a running trip along the route shape (or stop
     polyline), interpolated between scheduled stop times. Returns None when
@@ -466,9 +477,14 @@ async def _estimate_trip_position(route: dict, trip: dict, now_sec: int) -> Opti
     if realtime and realtime.get("delay_seconds"):
         delay_minutes = max(0, round(realtime["delay_seconds"] / 60))
         position_source = "REALTIME_ESTIMATE"
+    # Facing direction: toward the next scheduled stop
+    heading = None
+    if prev is not None and nxt is not None and nxt is not prev:
+        heading = _bearing(prev["stop"]["lat"], prev["stop"]["lng"], nxt["stop"]["lat"], nxt["stop"]["lng"])
     return {
         "latitude": pos["lat"],
         "longitude": pos["lng"],
+        "heading": heading,
         "delay_minutes": delay_minutes,
         "position_source": position_source,
     }
@@ -510,6 +526,7 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     "route_direction": headsign,
                     "latitude": pos["latitude"],
                     "longitude": pos["longitude"],
+                    "heading": pos.get("heading"),
                     "status": "estimated",
                     "delay_minutes": pos["delay_minutes"],
                     "position_source": pos["position_source"],

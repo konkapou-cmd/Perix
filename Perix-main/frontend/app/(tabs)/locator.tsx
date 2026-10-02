@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, TaxiRequest, TaxiPricing } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, BusNetwork, TaxiRequest, TaxiPricing } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -96,6 +96,7 @@ export default function LocatorScreen() {
   const [taxiPricing, setTaxiPricingState] = useState<TaxiPricing | null>(null);
   const [myTaxiReq, setMyTaxiReq] = useState<TaxiRequest | null>(null);
   const [taxiRequesting, setTaxiRequesting] = useState(false);
+  const [transitNetwork, setTransitNetwork] = useState<BusNetwork | null>(null);
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
@@ -491,6 +492,32 @@ export default function LocatorScreen() {
       clearInterval(interval);
     };
   }, [activeTab, sessionToken]);
+
+  // Active transit network -> thin route lines on the map
+  useEffect(() => {
+    if (activeTab !== "mobility") return;
+    let cancelled = false;
+    getBusNetwork(sessionToken)
+      .then((net) => {
+        if (!cancelled) setTransitNetwork(net);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, sessionToken]);
+
+  // Tram: deep red, Bus: dark blue
+  const transitLines = useMemo(() => {
+    if (!transitNetwork) return [];
+    return transitNetwork.routes.map((r) => ({
+      color: r.mode === "tram" ? "#8B0000" : "#1E3A8A",
+      points:
+        Array.isArray((r as any).shape) && (r as any).shape.length > 2
+          ? (r as any).shape.map((p: any) => ({ latitude: p[0], longitude: p[1] }))
+          : r.stops.map((s) => ({ latitude: s.lat, longitude: s.lng })),
+    }));
+  }, [transitNetwork]);
 
   // Bus destination search (debounced)
   useEffect(() => {
@@ -989,8 +1016,6 @@ export default function LocatorScreen() {
               ? liveVehicles
                   .filter((v) => v.mode === mobilityMode && v.latitude != null && v.longitude != null)
                   .map((v) => {
-                    const baseColor = v.mode === "bus" ? "#59ABE3" : v.mode === "tram" ? "#7B3FF2" : "#FFC400";
-                    const pinColor = v.estimated ? (v.mode === "bus" ? "#A8D3EF" : v.mode === "tram" ? "#C5B3F2" : "#FFE08A") : baseColor;
                     return {
                       id: v.vehicle_id,
                       latitude: v.latitude!,
@@ -1001,11 +1026,14 @@ export default function LocatorScreen() {
                           : v.name,
                       description: v.estimated ? "Estimated" : v.status,
                       type: (v.mode === "taxi" ? "taxi" : "bus") as "bus" | "taxi",
-                      pinColor,
+                      pinColor: v.mode === "bus" ? "#1E3A8A" : v.mode === "tram" ? "#8B0000" : "#FFC400",
+                      heading: v.heading ?? null,
+                      estimated: v.estimated ?? false,
                     };
                   })
               : undefined
           }
+          transitLines={activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram") ? transitLines : undefined}
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
