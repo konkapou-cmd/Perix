@@ -393,7 +393,7 @@ export default function BusinessMap({
         });
         map.addListener("idle", () => {
           transitContainers.forEach((c) => {
-            c.style.transition = "left 9s linear, top 9s linear";
+            c.style.transition = "left 0.8s ease-out, top 0.8s ease-out";
           });
         });
 
@@ -470,10 +470,10 @@ export default function BusinessMap({
       container.style.userSelect = "none";
 
       if (isTransit) {
-        // Cartoon vehicle icon that shows its facing direction. The
-        // container animates left/top (9s ≈ poll interval) for smooth
-        // glide between estimated positions.
-        container.style.transition = "left 9s linear, top 9s linear";
+        // Cartoon vehicle icon that shows its facing direction. A very
+        // short transition smooths the small steps between frequent polls
+        // without making the icon "swim" across the map.
+        container.style.transition = "left 0.8s ease-out, top 0.8s ease-out";
         const rotWrap = document.createElement("div");
         rotWrap.style.position = "absolute";
         rotWrap.style.transform = "translate(-50%, -50%)";
@@ -481,7 +481,7 @@ export default function BusinessMap({
         const inner = document.createElement("div");
         inner.style.transform = `rotate(${heading - 90}deg)`;
         inner.style.transformOrigin = "center center";
-        inner.style.transition = "transform 9s linear";
+        inner.style.transition = "transform 0.8s ease-out";
         inner.innerHTML = group.type === "bus" ? BUS_SVG : TRAM_SVG;
         if (group.estimated) inner.style.opacity = "0.72";
         rotWrap.appendChild(inner);

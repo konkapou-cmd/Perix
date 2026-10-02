@@ -488,10 +488,20 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
     }
 
 
+# Short-lived cache for the estimated vehicles so fast client polling
+# doesn't recompute the whole trip graph on every request.
+_ESTIMATES_CACHE = {"at": 0.0, "data": []}
+
+
 async def _estimated_transit_vehicles() -> List[dict]:
     """Virtual vehicles for every currently running trip of the active
     network (bus/tram), unless a real vehicle already covers that route
     and direction."""
+    import time
+
+    now_ts = time.time()
+    if now_ts - _ESTIMATES_CACHE["at"] < 3:
+        return _ESTIMATES_CACHE["data"]
     network = await _get_active_network()
     if not network:
         return []
@@ -545,6 +555,8 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     "updated_at": datetime.now().isoformat(),
                 }
             )
+    _ESTIMATES_CACHE["at"] = time.time()
+    _ESTIMATES_CACHE["data"] = estimates
     return estimates
 
 

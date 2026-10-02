@@ -486,7 +486,7 @@ export default function LocatorScreen() {
         .catch(() => {});
     };
     load();
-    const interval = setInterval(load, 10000);
+    const interval = setInterval(load, 4000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -556,7 +556,7 @@ export default function LocatorScreen() {
         .catch(() => {});
     };
     load();
-    const interval = setInterval(load, 10000);
+    const interval = setInterval(load, 5000);
     return () => {
       cancelled = true;
       clearInterval(interval);
