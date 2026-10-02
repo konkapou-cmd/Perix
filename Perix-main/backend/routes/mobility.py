@@ -3,12 +3,13 @@ vehicle management for operators. Drivers never need Perix accounts."""
 import asyncio
 import logging
 import math
+import os
 import random
 from datetime import datetime, timedelta
 from typing import List, Optional
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
 from database import db
 from models.user import UserPublic
@@ -31,6 +32,11 @@ router = APIRouter(prefix="/mobility", tags=["Mobility"])
 MOBILITY_CHANNEL = "mobility:magdeburg"
 SESSION_HOURS = 12
 CODE_HOURS = 12
+
+# Restricted service credential for the external mobility sync worker.
+# Scope: network write + realtime write ONLY - never user data.
+MOBILITY_SYNC_API_KEY = os.getenv("MOBILITY_SYNC_API_KEY", "")
+MOBILITY_SYNC_BUSINESS_ID = os.getenv("MOBILITY_SYNC_BUSINESS_ID", "")
 
 
 def _broadcast(payload: dict) -> None:
@@ -90,6 +96,29 @@ async def _require_operator(current_user: UserPublic):
     if not biz:
         raise HTTPException(status_code=403, detail="Mobility operator business required")
     return biz
+
+
+async def _authorize_sync_or_operator(
+    request: Request,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Accepts either an authenticated operator OR the restricted mobility
+    sync API key (X-Perix-Sync-Key). The key only unlocks network/realtime
+    writes - nothing else."""
+    key = request.headers.get("X-Perix-Sync-Key", "")
+    if MOBILITY_SYNC_API_KEY and key and key == MOBILITY_SYNC_API_KEY:
+        query = (
+            {"business_id": MOBILITY_SYNC_BUSINESS_ID}
+            if MOBILITY_SYNC_BUSINESS_ID
+            else {"mobility_role": {"$in": ["bus_operator", "taxi_operator"]}}
+        )
+        biz = await db.businesses.find_one(query, {"_id": 0})
+        if not biz:
+            raise HTTPException(status_code=403, detail="Sync business not configured")
+        return biz
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return await _require_operator(current_user)
 
 
 @router.get("/me")
@@ -603,8 +632,10 @@ async def _create_network_version(routes: List[dict], name: str) -> dict:
 
 
 @router.post("/network/import")
-async def import_network(payload: NetworkImportRequest, current_user: UserPublic = Depends(get_current_user)):
-    await _require_operator(current_user)
+async def import_network(
+    payload: NetworkImportRequest,
+    operator: dict = Depends(_authorize_sync_or_operator),
+):
     routes = payload.routes or []
     if not routes:
         raise HTTPException(status_code=400, detail="routes are required")
@@ -615,12 +646,11 @@ async def import_network(payload: NetworkImportRequest, current_user: UserPublic
 async def import_gtfs_zip(
     file: UploadFile = File(...),
     date: Optional[str] = Form(None),
-    current_user: UserPublic = Depends(get_current_user),
+    operator: dict = Depends(_authorize_sync_or_operator),
 ):
     """Upload the official GTFS zip directly - the backend converts it into
     the bus/tram network for the requested service date (default: today in
     Europe/Berlin)."""
-    await _require_operator(current_user)
     content = await file.read()
     if len(content) > 50 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="GTFS file too large (max 50MB)")
@@ -645,8 +675,7 @@ async def import_gtfs_zip(
 
 
 @router.post("/network/activate")
-async def activate_network(payload: dict, current_user: UserPublic = Depends(get_current_user)):
-    await _require_operator(current_user)
+async def activate_network(payload: dict, operator: dict = Depends(_authorize_sync_or_operator)):
     version_id = payload.get("version_id")
     version = await db.bus_network_versions.find_one({"version_id": version_id})
     if not version:
@@ -658,11 +687,10 @@ async def activate_network(payload: dict, current_user: UserPublic = Depends(get
 
 
 @router.post("/network/realtime")
-async def push_realtime_updates(payload: dict, current_user: UserPublic = Depends(get_current_user)):
+async def push_realtime_updates(payload: dict, operator: dict = Depends(_authorize_sync_or_operator)):
     """GTFS-Realtime TripUpdates from the mobility sync service. Updates are
     keyed by trip_id and consumed by the position estimator
     (REALTIME_ESTIMATE)."""
-    await _require_operator(current_user)
     updates = payload.get("updates") or []
     if not isinstance(updates, list):
         raise HTTPException(status_code=400, detail="updates array required")

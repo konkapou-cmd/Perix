@@ -1,6 +1,6 @@
 {
   "perix_api": "https://app.perixapp.com/api",
-  "sync_token": "session_...",
+  "sync_api_key": "mobility-sync-key",
   "gtfs_url": "https://www.govdata.de/dl-de/by-2-0/....zip",
   "state_file": ".last_sha256",
   "min_trips": 500,

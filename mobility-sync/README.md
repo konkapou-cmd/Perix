@@ -1,43 +1,51 @@
 # Perix Mobility Sync
 
-Στατικός GTFS sync worker για το Magdeburg (MVB).
+Αυτόματο sync για το Magdeburg (MVB): στατικό GTFS + GTFS-Realtime.
 
-## Ροή
+## Ασφάλεια
 
-```
-MVB GTFS zip (GovData / GTFS.de)
-        │
-        ▼
-static_sync.py
-   │  download → SHA256 (skip αν δεν άλλαξε)
-   │  upload στο Perix: POST /mobility/network/import-gtfs
-   │  health checks (min γραμμές/δρομολόγια)
-   ▼
-Perix → νέα network version → [auto-activate αν υγιές]
-```
+Τα scripts ΔΕΝ χρησιμοποιούν user session tokens. Χρησιμοποιούν το
+**περιορισμένο service credential** `MOBILITY_SYNC_API_KEY` (header
+`X-Perix-Sync-Key`) που ξεκλειδώνει ΜΟΝΟ:
+- `POST /mobility/network/import` / `import-gtfs` / `activate`
+- `POST /mobility/network/realtime`
 
-## Χρήση
+Το key ορίζεται σαν environment variable στον backend (Railway):
+`MOBILITY_SYNC_API_KEY=...` (+ προαιρετικό `MOBILITY_SYNC_BUSINESS_ID`).
+
+## Static
 
 ```bash
-cp config.example.json config.json   # βάλε sync_token + gtfs_url
+cp config.example.json config.json
 python static_sync.py --config config.json [--date YYYY-MM-DD]
 ```
 
-Σε production: cron κάθε 1-6 ώρες:
+- Κατεβάζει το GTFS zip → SHA256 (skip αν δεν άλλαξε)
+- Το ανεβάζει στο Perix (`/mobility/network/import-gtfs` — το backend κάνει τη μετατροπή)
+- Health checks (min γραμμές/δρομολόγια) → auto-activate αν υγιές
 
+Cron: `0 */3 * * * cd /opt/perix/mobility-sync && python static_sync.py >> sync.log 2>&1`
+
+## Realtime
+
+```bash
+pip install gtfs-realtime-bindings
+python realtime_sync.py --config config.json
 ```
-0 */3 * * * cd /opt/perix/mobility-sync && python static_sync.py --config config.json >> sync.log 2>&1
-```
 
-## Realtime (GTFS-RT)
+- Polls `https://realtime.gtfs.de/realtime-free.pb` κάθε ~10s
+- Φιλτράρει MVB trips (βάσει του ενεργού δικτύου)
+- Σπρώχνει delays στο `/mobility/network/realtime` → τα markers γίνονται
+  `REALTIME_ESTIMATE` με πραγματική καθυστέρηση
 
-Το Perix δέχεται TripUpdates στο `POST /mobility/network/realtime`
-(`{ updates: [{ trip_id, delay_seconds, source }] }`). Μόλις η MVB/NASA
-διαθέσει το RT feed, ένα `realtime_sync.py` στέλνει εκεί τις καθυστερήσεις
-κάθε ~10s και τα estimated markers γίνονται `REALTIME_ESTIMATE`.
+## Πηγές
+
+- Static MVB: GovData/Mobilithek offer `620651164804734976`
+  (https://mobilithek.info/offers/620651164804734976)
+- Fallback static: GTFS.de nationwide feed + MVB φιλτράρισμα
+- Realtime: https://realtime.gtfs.de/realtime-free.pb (SIRI Sachsen-Anhalt)
 
 ## Σημειώσεις
 
-- Το `sync_token` είναι session token ενός Mobility operator account.
-- Sanity check: ~9 tram + 14 bus γραμμές για το MVB.
-- Με μεγάλες αλλαγές (>25% γραμμές) το `auto_activate` πρέπει να μένει false.
+- Sanity check: ~9 tram + 14 bus γραμμές MVB.
+- Με μεγάλες αλλαγές (>25% γραμμές) το `auto_activate` πρέπει να είναι false.

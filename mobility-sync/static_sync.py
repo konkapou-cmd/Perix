@@ -12,10 +12,10 @@ Usage:
 Config (config.json):
 {
   "perix_api": "https://app.perixapp.com/api",
-  "sync_token": "session_...",            # operator session token
-  "gtfs_url": "https://.../mvb_gtfs.zip", # or the GTFS.de nationwide feed
+  "sync_api_key": "mobility-sync-key",      # restricted service credential
+  "gtfs_url": "https://.../mvb_gtfs.zip",   # or the GTFS.de nationwide feed
   "state_file": ".last_sha256",
-  "min_trips": 500,                        # sanity check before auto-activate
+  "min_trips": 500,                         # sanity check before auto-activate
   "min_lines": 10,
   "auto_activate": true
 }
@@ -67,7 +67,7 @@ def main():
         data=body,
         method="POST",
         headers={
-            "Authorization": f"Bearer {cfg['sync_token']}",
+            "X-Perix-Sync-Key": cfg["sync_api_key"],
             "Content-Type": f"multipart/form-data; boundary={boundary}",
         },
     )
@@ -93,7 +93,7 @@ def main():
             f"{cfg['perix_api']}/mobility/network/activate",
             data=activate_body,
             method="POST",
-            headers={"Authorization": f"Bearer {cfg['sync_token']}", "Content-Type": "application/json"},
+            headers={"X-Perix-Sync-Key": cfg["sync_api_key"], "Content-Type": "application/json"},
         )
         try:
             urllib.request.urlopen(req2, timeout=60)
