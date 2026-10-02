@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from database import db
 from models.user import UserPublic
@@ -571,12 +571,8 @@ async def get_network(current_user: Optional[UserPublic] = Depends(get_current_u
     }
 
 
-@router.post("/network/import")
-async def import_network(payload: NetworkImportRequest, current_user: UserPublic = Depends(get_current_user)):
-    await _require_operator(current_user)
-    routes = payload.routes or []
-    if not routes:
-        raise HTTPException(status_code=400, detail="routes are required")
+async def _create_network_version(routes: List[dict], name: str) -> dict:
+    """Create an inactive network version and diff it against the active one."""
     active = await _get_active_network()
     old_routes = {str(r.get("route_number")): r for r in (active or {}).get("routes", [])}
     new_routes = {str(r.get("route_number")): r for r in routes}
@@ -590,7 +586,7 @@ async def import_network(payload: NetworkImportRequest, current_user: UserPublic
             changed_routes.append(num)
     version = {
         "version_id": generate_id("net"),
-        "name": payload.name or f"Network {now_utc().strftime('%Y-%m-%d %H:%M')}",
+        "name": name,
         "routes": routes,
         "imported_at": now_utc().isoformat(),
         "active": False,
@@ -604,6 +600,48 @@ async def import_network(payload: NetworkImportRequest, current_user: UserPublic
     }
     _broadcast({"type": "network_imported", "version_id": version["version_id"], "diff": diff})
     return {"version_id": version["version_id"], "name": version["name"], "diff": diff}
+
+
+@router.post("/network/import")
+async def import_network(payload: NetworkImportRequest, current_user: UserPublic = Depends(get_current_user)):
+    await _require_operator(current_user)
+    routes = payload.routes or []
+    if not routes:
+        raise HTTPException(status_code=400, detail="routes are required")
+    return await _create_network_version(routes, payload.name or f"Network {now_utc().strftime('%Y-%m-%d %H:%M')}")
+
+
+@router.post("/network/import-gtfs")
+async def import_gtfs_zip(
+    file: UploadFile = File(...),
+    date: Optional[str] = Form(None),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Upload the official GTFS zip directly - the backend converts it into
+    the bus/tram network for the requested service date (default: today in
+    Europe/Berlin)."""
+    await _require_operator(current_user)
+    content = await file.read()
+    if len(content) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="GTFS file too large (max 50MB)")
+    try:
+        from utils.gtfs import parse_gtfs_zip
+
+        payload = parse_gtfs_zip(content, date)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"GTFS parse failed: {e}")
+    if not payload.get("routes"):
+        raise HTTPException(status_code=400, detail="No bus/tram routes found in the feed")
+    result = await _create_network_version(
+        payload["routes"], payload.get("name") or f"GTFS {date or 'today'}"
+    )
+    result["summary"] = {
+        "bus_lines": sum(1 for r in payload["routes"] if r.get("mode") == "bus"),
+        "tram_lines": sum(1 for r in payload["routes"] if r.get("mode") == "tram"),
+        "trips": sum(len(r.get("trips", [])) for r in payload["routes"]),
+        "service_date": payload.get("service_date"),
+    }
+    return result
 
 
 @router.post("/network/activate")

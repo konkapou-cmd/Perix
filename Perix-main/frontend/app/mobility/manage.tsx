@@ -23,6 +23,7 @@ import {
   getMobilityOperatorInfo,
   getBusNetwork,
   importBusNetwork,
+  importGtfsZip,
   activateBusNetwork,
   getTaxiPricing,
   setTaxiPricing,
@@ -58,7 +59,7 @@ export default function MobilityManageScreen() {
   const [network, setNetwork] = useState<BusNetwork | null>(null);
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ version_id: string; diff: any } | null>(null);
+  const [importResult, setImportResult] = useState<{ version_id: string; diff: any; summary?: any } | null>(null);
   const [taxiBaseFare, setTaxiBaseFare] = useState("4.5");
   const [taxiPerKm, setTaxiPerKm] = useState("2.6");
   const [taxiMinimum, setTaxiMinimum] = useState("8.0");
@@ -131,6 +132,27 @@ export default function MobilityManageScreen() {
     } catch (e) {
       console.warn("activate failed:", e);
     }
+  };
+
+  const pickGtfsFile = () => {
+    if (typeof document === "undefined") return;
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".zip,application/zip";
+    input.onchange = async () => {
+      const f = input.files?.[0];
+      if (!f || !sessionToken || importing) return;
+      setImporting(true);
+      try {
+        const res = await importGtfsZip(sessionToken, f, f.name);
+        setImportResult(res as any);
+      } catch (e: any) {
+        alert(t("mobility.importFailed", "GTFS import failed") + ": " + (e?.message || ""));
+      } finally {
+        setImporting(false);
+      }
+    };
+    input.click();
   };
 
   const savePricing = async () => {
@@ -349,9 +371,21 @@ export default function MobilityManageScreen() {
               <Text style={styles.importButtonText}>{t("mobility.importNetwork", "Import network")}</Text>
             )}
           </Pressable>
+          <Pressable style={styles.uploadButton} onPress={pickGtfsFile} disabled={importing}>
+            <Ionicons name="cloud-upload-outline" size={16} color="#59ABE3" />
+            <Text style={styles.uploadButtonText}>{t("mobility.uploadGtfs", "Upload GTFS (.zip)")}</Text>
+          </Pressable>
           {importResult && (
             <View style={styles.diffCard}>
               <Text style={styles.diffTitle}>{t("mobility.importPreview", "Import preview")}</Text>
+              {importResult.summary && (
+                <Text style={styles.diffText}>
+                  {t("mobility.busLines", "Bus lines")}: {importResult.summary.bus_lines} ·{" "}
+                  {t("mobility.tramLines", "Tram lines")}: {importResult.summary.tram_lines} ·{" "}
+                  {t("mobility.tripCount", "Trips")}: {importResult.summary.trips}{"\n"}
+                  {t("mobility.serviceDate", "Service date")}: {importResult.summary.service_date}
+                </Text>
+              )}
               <Text style={styles.diffText}>
                 {t("mobility.addedRoutes", "Added routes")}: {(importResult.diff.added_routes || []).join(", ") || "—"}{"\n"}
                 {t("mobility.changedRoutes", "Changed routes")}: {(importResult.diff.changed_routes || []).join(", ") || "—"}{"\n"}
@@ -634,6 +668,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   importButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  uploadButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#59ABE3",
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  uploadButtonText: { color: "#59ABE3", fontSize: 14, fontWeight: "700" },
   diffCard: {
     backgroundColor: "#EAF5FF",
     borderRadius: 12,

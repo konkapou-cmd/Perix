@@ -1,4 +1,4 @@
-import { apiRequest } from "./core";
+import { apiRequest, API_BASE } from "./core";
 
 export type MobilityMode = "bus" | "tram" | "taxi";
 
@@ -156,6 +156,30 @@ export const pushRealtimeUpdates = (
   apiRequest<{ ok: boolean; count: number }>("/mobility/network/realtime", "POST", token, {
     updates,
   });
+
+/** Upload a GTFS zip - the backend converts it into the bus/tram network. */
+export const importGtfsZip = async (token: string, file: Blob, fileName: string) => {
+  const form = new FormData();
+  form.append("file", file, fileName);
+  const res = await fetch(`${API_BASE}/mobility/network/import-gtfs`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    let detail = "GTFS import failed";
+    try {
+      const body = await res.json();
+      detail = body?.detail || detail;
+    } catch {}
+    throw new Error(detail);
+  }
+  return res.json() as Promise<{
+    version_id: string;
+    diff: any;
+    summary?: { bus_lines: number; tram_lines: number; trips: number; service_date: string };
+  }>;
+};
 
 export const searchBusStops = (token: string | null | undefined, q: string) =>
   apiRequest<{ stop_id: string; name: string; lat: number; lng: number; routes: { route_number: string; headsign: string }[] }[]>(
