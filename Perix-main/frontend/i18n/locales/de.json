@@ -3135,7 +3135,9 @@
   },
   "mobility": {
     "bus": "Bus",
+    "tram": "Tram",
     "taxi": "Taxi",
+    "estimated": "Geschätzt",
     "noVehicles": "Gerade keine Live-Fahrzeuge",
     "status": {
       "good": "Alles gut",
@@ -3145,7 +3147,8 @@
       "available": "Verfügbar",
       "busy": "Besetzt",
       "offline": "Offline",
-      "active": "Aktiv"
+      "active": "Aktiv",
+      "estimated": "Geschätzt"
     },
     "driverTitle": "Fahrzeug-Standort",
     "driverCodePlaceholder": "Fahrzeug-Code eingeben",

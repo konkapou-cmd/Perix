@@ -104,8 +104,8 @@ async def mobility_me(current_user: UserPublic = Depends(get_current_user)):
 async def create_vehicle(payload: VehicleCreate, current_user: UserPublic = Depends(get_current_user)):
     operator = await _require_operator(current_user)
     mode = payload.mode.lower()
-    if mode not in ("bus", "taxi"):
-        raise HTTPException(status_code=400, detail="mode must be bus or taxi")
+    if mode not in ("bus", "tram", "taxi"):
+        raise HTTPException(status_code=400, detail="mode must be bus, tram or taxi")
     if not payload.fleet_number.strip():
         raise HTTPException(status_code=400, detail="fleet_number is required")
     vehicle = {
@@ -326,6 +326,117 @@ def _time_to_seconds(value: str) -> Optional[int]:
         return None
 
 
+def _now_seconds() -> int:
+    n = datetime.now()
+    return n.hour * 3600 + n.minute * 60 + n.second
+
+
+def _estimate_trip_position(route: dict, trip: dict, now_sec: int) -> Optional[dict]:
+    """Estimated position of a running trip along the route polyline,
+    interpolated between scheduled stop times. Returns None when the trip
+    is not running right now."""
+    start = _time_to_seconds(trip.get("start", ""))
+    end = _time_to_seconds(trip.get("end", ""))
+    if start is None or end is None:
+        return None
+    if now_sec < start or now_sec > end:
+        return None
+    stop_times = trip.get("stop_times") or {}
+    stops = route.get("stops") or []
+    if not stops:
+        return None
+    # Order scheduled stops by time
+    scheduled = []
+    for s in stops:
+        t = _time_to_seconds(stop_times.get(s.get("stop_id"), ""))
+        if t is None and s.get("scheduled"):
+            t = _time_to_seconds(s.get("scheduled"))
+        if t is not None:
+            scheduled.append({"stop": s, "t": t})
+    scheduled.sort(key=lambda x: x["t"])
+    if not scheduled:
+        return None
+    prev, nxt = None, None
+    for i, entry in enumerate(scheduled):
+        if entry["t"] <= now_sec:
+            prev = entry
+        if entry["t"] >= now_sec and nxt is None:
+            nxt = entry
+    if prev is None:
+        pos = scheduled[0]["stop"]
+    elif nxt is None or nxt is prev:
+        pos = scheduled[-1]["stop"]
+    else:
+        span = max(1, nxt["t"] - prev["t"])
+        frac = min(1.0, max(0.0, (now_sec - prev["t"]) / span))
+        pos = {
+            "lat": prev["stop"]["lat"] + (nxt["stop"]["lat"] - prev["stop"]["lat"]) * frac,
+            "lng": prev["stop"]["lng"] + (nxt["stop"]["lng"] - prev["stop"]["lng"]) * frac,
+        }
+    return {
+        "latitude": pos["lat"],
+        "longitude": pos["lng"],
+        "delay_minutes": 0,
+        "position_source": "SCHEDULE_ESTIMATE",
+    }
+
+
+async def _estimated_transit_vehicles() -> List[dict]:
+    """Virtual vehicles for every currently running trip of the active
+    network (bus/tram), unless a real vehicle already covers that route
+    and direction."""
+    network = await _get_active_network()
+    if not network:
+        return []
+    live = await db.mobility_live.find(
+        {"mode": {"$in": ["bus", "tram"]}, "latitude": {"$ne": None}}, {"_id": 0}
+    ).to_list(500)
+    covered = {
+        (str(v.get("route_number")), str(v.get("route_direction") or "")) for v in live
+    }
+    now_sec = _now_seconds()
+    estimates: List[dict] = []
+    for route in network.get("routes", []):
+        route_number = str(route.get("route_number"))
+        mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
+        for trip in route.get("trips", []):
+            headsign = str(trip.get("headsign") or route.get("name") or "")
+            if (route_number, headsign) in covered or (route_number, "") in covered:
+                continue
+            pos = _estimate_trip_position(route, trip, now_sec)
+            if not pos:
+                continue
+            estimates.append(
+                {
+                    "vehicle_id": f"est_{route_number}_{trip.get('trip_id', '')}",
+                    "business_id": network.get("business_id") or "mvb",
+                    "mode": mode,
+                    "fleet_number": route_number,
+                    "name": f"{route_number} {headsign}".strip(),
+                    "route_number": route_number,
+                    "route_direction": headsign,
+                    "latitude": pos["latitude"],
+                    "longitude": pos["longitude"],
+                    "status": "estimated",
+                    "delay_minutes": pos["delay_minutes"],
+                    "position_source": pos["position_source"],
+                    "estimated": True,
+                    "updated_at": datetime.now().isoformat(),
+                }
+            )
+    return estimates
+
+
+async def _all_active_vehicles() -> List[dict]:
+    live = (
+        await db.mobility_live.find(
+            {"updated_at": {"$gt": (now_utc() - timedelta(minutes=5)).isoformat()}},
+            {"_id": 0},
+        ).to_list(500)
+    )
+    return live + await _estimated_transit_vehicles()
+
+
 async def _get_active_network() -> Optional[dict]:
     return await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
 
@@ -483,11 +594,11 @@ async def buses_serving_stop(
         if any(s.get("stop_id") == stop_id for s in r.get("stops", []))
     ]
     route_numbers = {str(r.get("route_number")) for r in serving_routes}
-    live = (
-        await db.mobility_live.find(
-            {"mode": "bus", "route_number": {"$in": list(route_numbers)}}, {"_id": 0}
-        ).to_list(200)
-    )
+    live = [
+        v
+        for v in await _all_active_vehicles()
+        if v.get("mode") in ("bus", "tram") and str(v.get("route_number")) in route_numbers
+    ]
     results = []
     for bus in live:
         if bus.get("latitude") is None or bus.get("longitude") is None:
@@ -748,11 +859,5 @@ async def complete_taxi_request(request_id: str, current_user: UserPublic = Depe
 
 @router.get("/live")
 async def live_vehicles(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    vehicles = (
-        await db.mobility_live.find(
-            {"updated_at": {"$gt": (now_utc() - timedelta(minutes=5)).isoformat()}},
-            {"_id": 0},
-        )
-        .to_list(500)
-    )
+    vehicles = await _all_active_vehicles()
     return vehicles

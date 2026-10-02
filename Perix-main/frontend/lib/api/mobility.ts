@@ -1,6 +1,6 @@
 import { apiRequest } from "./core";
 
-export type MobilityMode = "bus" | "taxi";
+export type MobilityMode = "bus" | "tram" | "taxi";
 
 export type LiveVehicle = {
   vehicle_id: string;
@@ -17,6 +17,9 @@ export type LiveVehicle = {
   speed?: number | null;
   status: string;
   updated_at: string;
+  estimated?: boolean;
+  position_source?: string;
+  delay_minutes?: number;
 };
 
 export type DriverSession = {
@@ -102,7 +105,15 @@ export type BusStop = {
 export type BusRoute = {
   route_number: string;
   name: string;
+  mode?: "bus" | "tram";
   stops: BusStop[];
+  trips?: {
+    trip_id: string;
+    headsign?: string;
+    start: string;
+    end: string;
+    stop_times?: Record<string, string>;
+  }[];
 };
 
 export type BusNetwork = {

@@ -83,7 +83,7 @@ export default function LocatorScreen() {
   const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locateToken, setLocateToken] = useState(0);
   const [locating, setLocating] = useState(false);
-  const [mobilityMode, setMobilityMode] = useState<"bus" | "taxi">("bus");
+  const [mobilityMode, setMobilityMode] = useState<"bus" | "tram" | "taxi">("bus");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
   const [busQuery, setBusQuery] = useState("");
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
@@ -494,7 +494,7 @@ export default function LocatorScreen() {
 
   // Bus destination search (debounced)
   useEffect(() => {
-    if (activeTab !== "mobility" || mobilityMode !== "bus" || busQuery.trim().length < 2) {
+    if (activeTab !== "mobility" || (mobilityMode !== "bus" && mobilityMode !== "tram") || busQuery.trim().length < 2) {
       setBusSuggestions([]);
       return;
     }
@@ -514,7 +514,7 @@ export default function LocatorScreen() {
 
   // Refresh the serving-bus list while a destination is selected
   useEffect(() => {
-    if (activeTab !== "mobility" || mobilityMode !== "bus" || !selectedStop) return;
+    if (activeTab !== "mobility" || (mobilityMode !== "bus" && mobilityMode !== "tram") || !selectedStop) return;
     let cancelled = false;
     const load = () => {
       getBusesServing(
@@ -988,18 +988,22 @@ export default function LocatorScreen() {
             activeTab === "mobility"
               ? liveVehicles
                   .filter((v) => v.mode === mobilityMode && v.latitude != null && v.longitude != null)
-                  .map((v) => ({
-                    id: v.vehicle_id,
-                    latitude: v.latitude!,
-                    longitude: v.longitude!,
-                    title:
-                      v.mode === "bus"
-                        ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
-                        : v.name,
-                    description: v.status,
-                    type: v.mode as "bus" | "taxi",
-                    pinColor: v.mode === "bus" ? "#59ABE3" : "#FFC400",
-                  }))
+                  .map((v) => {
+                    const baseColor = v.mode === "bus" ? "#59ABE3" : v.mode === "tram" ? "#7B3FF2" : "#FFC400";
+                    const pinColor = v.estimated ? (v.mode === "bus" ? "#A8D3EF" : v.mode === "tram" ? "#C5B3F2" : "#FFE08A") : baseColor;
+                    return {
+                      id: v.vehicle_id,
+                      latitude: v.latitude!,
+                      longitude: v.longitude!,
+                      title:
+                        v.mode !== "taxi"
+                          ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
+                          : v.name,
+                      description: v.estimated ? "Estimated" : v.status,
+                      type: (v.mode === "taxi" ? "taxi" : "bus") as "bus" | "taxi",
+                      pinColor,
+                    };
+                  })
               : undefined
           }
           showUserLocation
@@ -1054,6 +1058,15 @@ export default function LocatorScreen() {
               </Text>
             </Pressable>
             <Pressable
+              style={[styles.mobilityToggleOption, mobilityMode === "tram" && styles.mobilityToggleOptionActive]}
+              onPress={() => setMobilityMode("tram")}
+            >
+              <Ionicons name="train" size={16} color={mobilityMode === "tram" ? "#fff" : "#264348"} />
+              <Text style={[styles.mobilityToggleText, mobilityMode === "tram" && styles.mobilityToggleTextActive]}>
+                {t("mobility.tram", "Tram")}
+              </Text>
+            </Pressable>
+            <Pressable
               style={[styles.mobilityToggleOption, mobilityMode === "taxi" && styles.mobilityToggleOptionActive]}
               onPress={() => setMobilityMode("taxi")}
             >
@@ -1064,7 +1077,7 @@ export default function LocatorScreen() {
             </Pressable>
           </View>
 
-          {mobilityMode === "bus" && (
+          {(mobilityMode === "bus" || mobilityMode === "tram") && (
             <View style={styles.busSearchWrap}>
               <View style={styles.busSearchBar}>
                 <Ionicons name="search" size={16} color="#264348" />
@@ -1119,7 +1132,7 @@ export default function LocatorScreen() {
             </View>
           )}
 
-          {selectedStop && mobilityMode === "bus" ? (
+          {selectedStop && (mobilityMode === "bus" || mobilityMode === "tram") ? (
             <View>
               <Text style={styles.mobilityHeading}>
                 {t("mobility.toward", "Buses going toward")} {selectedStop.name}
@@ -1144,6 +1157,8 @@ export default function LocatorScreen() {
                           : ""}
                         {t("mobility.eta", "Arrives ~{{n}} min", { n: b.eta_minutes })}
                         {b.delay_minutes > 0 ? ` · ${t("mobility.delay", "+{{n}} min", { n: b.delay_minutes })}` : ""}
+                        {" · "}
+                        {t("mobility.estimated", "Estimated")}
                       </Text>
                     </View>
                     <Text style={styles.mobilityEta}>{b.eta_minutes}′</Text>
@@ -1244,7 +1259,11 @@ export default function LocatorScreen() {
 
           {liveVehicles.filter((v) => v.mode === mobilityMode).length === 0 ? (
             <View style={styles.mobilityEmpty}>
-              <Ionicons name={mobilityMode === "bus" ? "bus-outline" : "car-outline"} size={32} color="#9ca3af" />
+              <Ionicons
+                name={mobilityMode === "bus" ? "bus-outline" : mobilityMode === "tram" ? "train-outline" : "car-outline"}
+                size={32}
+                color="#9ca3af"
+              />
               <Text style={styles.mobilityEmptyText}>
                 {t("mobility.noVehicles", "No live vehicles right now")}
               </Text>
@@ -1257,20 +1276,25 @@ export default function LocatorScreen() {
                   contextLocation && v.latitude != null && v.longitude != null
                     ? haversineDistance(contextLocation.latitude, contextLocation.longitude, v.latitude, v.longitude)
                     : null;
+                const color = v.mode === "bus" ? "#59ABE3" : v.mode === "tram" ? "#7B3FF2" : "#FFC400";
+                const icon = v.mode === "bus" ? "bus" : v.mode === "tram" ? "train" : "car";
                 return (
                   <View key={v.vehicle_id} style={styles.mobilityRow}>
-                    <View style={[styles.mobilityRowIcon, { backgroundColor: v.mode === "bus" ? "#59ABE3" : "#FFC400" }]}>
-                      <Ionicons name={v.mode === "bus" ? "bus" : "car"} size={16} color="#fff" />
+                    <View style={[styles.mobilityRowIcon, { backgroundColor: v.estimated ? "#C8CBD1" : color }]}>
+                      <Ionicons name={icon as any} size={16} color="#fff" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.mobilityRowTitle}>
-                        {v.mode === "bus"
+                        {v.mode !== "taxi"
                           ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
                           : v.name}
                       </Text>
                       <Text style={styles.mobilityRowSub}>
                         {dist != null
-                          ? `${dist < 1 ? Math.round(dist * 1000) + " m" : dist.toFixed(1) + " km"} · ${t("mobility.status." + v.status, v.status)}`
+                          ? `${dist < 1 ? Math.round(dist * 1000) + " m" : dist.toFixed(1) + " km"} · `
+                          : ""}
+                        {v.estimated
+                          ? t("mobility.estimated", "Estimated")
                           : t("mobility.status." + v.status, v.status)}
                       </Text>
                     </View>

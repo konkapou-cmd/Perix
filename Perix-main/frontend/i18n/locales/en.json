@@ -3035,7 +3035,9 @@
   },
   "mobility": {
     "bus": "Bus",
+    "tram": "Tram",
     "taxi": "Taxi",
+    "estimated": "Estimated",
     "noVehicles": "No live vehicles right now",
     "status": {
       "good": "All good",
@@ -3045,7 +3047,8 @@
       "available": "Available",
       "busy": "Busy",
       "offline": "Offline",
-      "active": "Active"
+      "active": "Active",
+      "estimated": "Estimated"
     },
     "driverTitle": "Vehicle location",
     "driverCodePlaceholder": "Enter vehicle code",

@@ -131,10 +131,14 @@ export default function MobilityDriverScreen() {
           ) : (
             <>
               <View style={styles.vehicleCard}>
-                <Ionicons name={session.mode === "bus" ? "bus" : "car"} size={26} color="#59ABE3" />
+                <Ionicons
+                  name={session.mode === "bus" ? "bus" : session.mode === "tram" ? "train" : "car"}
+                  size={26}
+                  color="#59ABE3"
+                />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.vehicleTitle}>
-                    {session.mode === "bus"
+                    {session.mode !== "taxi"
                       ? `${session.route_number || session.fleet_number} → ${session.route_direction || ""}`
                       : session.name}
                   </Text>
@@ -149,9 +153,9 @@ export default function MobilityDriverScreen() {
               </View>
 
               <Text style={styles.hint}>
-                {session.mode === "bus" ? "ROAD" : "STATUS"}
+                {session.mode === "taxi" ? "STATUS" : "ROAD"}
               </Text>
-              {(session.mode === "bus" ? busStatuses : taxiStatuses).map((s) => (
+              {(session.mode === "taxi" ? taxiStatuses : busStatuses).map((s) => (
                 <Pressable
                   key={s.key}
                   style={[styles.statusButton, status === s.key && { borderColor: s.color, backgroundColor: s.color + "1A" }]}

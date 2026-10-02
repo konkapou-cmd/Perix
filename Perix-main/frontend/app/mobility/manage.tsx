@@ -46,7 +46,7 @@ export default function MobilityManageScreen() {
   const [live, setLive] = useState<LiveVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [mode, setMode] = useState<"bus" | "taxi">("bus");
+  const [mode, setMode] = useState<"bus" | "tram" | "taxi">("bus");
   const [fleetNumber, setFleetNumber] = useState("");
   const [name, setName] = useState("");
   const [routeNumber, setRouteNumber] = useState("");
@@ -233,9 +233,9 @@ export default function MobilityManageScreen() {
           ) : (
             live.map((v) => (
               <View key={v.vehicle_id} style={styles.liveChip}>
-                <Ionicons name={v.mode === "bus" ? "bus" : "car"} size={14} color="#59ABE3" />
+                <Ionicons name={v.mode === "bus" ? "bus" : v.mode === "tram" ? "train" : "car"} size={14} color="#59ABE3" />
                 <Text style={styles.liveChipText}>
-                  {v.mode === "bus" ? v.route_number || v.fleet_number : v.name} · {t("mobility.status." + v.status, v.status)}
+                  {v.mode !== "taxi" ? v.route_number || v.fleet_number : v.name} · {t("mobility.status." + v.status, v.status)}
                 </Text>
               </View>
             ))
@@ -254,6 +254,13 @@ export default function MobilityManageScreen() {
               <Text style={[styles.modeText, mode === "bus" && { color: "#fff" }]}>{t("mobility.bus", "Bus")}</Text>
             </Pressable>
             <Pressable
+              style={[styles.modeOption, mode === "tram" && styles.modeOptionActive]}
+              onPress={() => setMode("tram")}
+            >
+              <Ionicons name="train" size={15} color={mode === "tram" ? "#fff" : "#264348"} />
+              <Text style={[styles.modeText, mode === "tram" && { color: "#fff" }]}>{t("mobility.tram", "Tram")}</Text>
+            </Pressable>
+            <Pressable
               style={[styles.modeOption, mode === "taxi" && styles.modeOptionActive]}
               onPress={() => setMode("taxi")}
             >
@@ -263,7 +270,7 @@ export default function MobilityManageScreen() {
           </View>
           <TextInput style={styles.input} value={fleetNumber} onChangeText={setFleetNumber} placeholder="Fleet number (e.g. 1204)" placeholderTextColor="#9CA3AF" />
           <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Name (e.g. Taxi 14)" placeholderTextColor="#9CA3AF" />
-          {mode === "bus" && (
+          {(mode === "bus" || mode === "tram") && (
             <>
               <TextInput style={styles.input} value={routeNumber} onChangeText={setRouteNumber} placeholder="Line (e.g. 52)" placeholderTextColor="#9CA3AF" />
               <TextInput style={styles.input} value={routeDirection} onChangeText={setRouteDirection} placeholder="Direction (e.g. Braunlager Straße)" placeholderTextColor="#9CA3AF" />
@@ -279,11 +286,11 @@ export default function MobilityManageScreen() {
         {vehicles.map((v) => (
           <View key={v.vehicle_id} style={styles.vehicleRow}>
             <View style={styles.vehicleIcon}>
-              <Ionicons name={v.mode === "bus" ? "bus" : "car"} size={16} color="#fff" />
+              <Ionicons name={v.mode === "bus" ? "bus" : v.mode === "tram" ? "train" : "car"} size={16} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.vehicleName}>
-                {v.mode === "bus" ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}` : v.name || v.fleet_number}
+                {v.mode !== "taxi" ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}` : v.name || v.fleet_number}
               </Text>
               <Text style={styles.vehicleSub}>{v.fleet_number}</Text>
             </View>
