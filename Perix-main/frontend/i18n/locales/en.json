@@ -3101,6 +3101,8 @@
     "taxiDecline": "Decline",
     "taxiComplete": "Complete",
     "manageTitle": "Mobility",
+    "manageSubtitle": "Network, live vehicles and driver codes",
+    "manageSubtitleTaxi": "Live taxis, requests and pricing",
     "manageAddVehicle": "Add vehicle",
     "manageVehicles": "Vehicles",
     "manageLive": "Live now",

@@ -3129,6 +3129,8 @@
     "taxiDecline": "Απόρριψη",
     "taxiComplete": "Ολοκλήρωση",
     "manageTitle": "Mobility",
+    "manageSubtitle": "Δίκτυο, ζωντανά οχήματα και κωδικοί οδηγών",
+    "manageSubtitleTaxi": "Ζωντανά ταξί, αιτήματα και τιμολόγηση",
     "manageAddVehicle": "Προσθήκη οχήματος",
     "manageVehicles": "Οχήματα",
     "manageLive": "Ζωντανά τώρα",

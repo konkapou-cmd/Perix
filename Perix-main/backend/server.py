@@ -502,6 +502,10 @@ async def startup_db():
     # Start Mux asset resolver so processing videos become playable automatically
     from utils.mux_resolver import start_mux_resolver
     start_mux_resolver()
+
+    # Mobility sync workers (static GTFS + GTFS-Realtime) run in-process
+    from utils.mobility_workers import start_mobility_workers
+    start_mobility_workers()
     
     # Start the reminder scheduler (runs every minute)
     scheduler.add_job(

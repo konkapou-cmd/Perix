@@ -3201,6 +3201,8 @@
     "taxiDecline": "Ablehnen",
     "taxiComplete": "Abschließen",
     "manageTitle": "Mobilität",
+    "manageSubtitle": "Netz, Live-Fahrzeuge und Fahrer-Codes",
+    "manageSubtitleTaxi": "Live-Taxis, Anfragen und Preise",
     "manageAddVehicle": "Fahrzeug hinzufügen",
     "manageVehicles": "Fahrzeuge",
     "manageLive": "Jetzt live",

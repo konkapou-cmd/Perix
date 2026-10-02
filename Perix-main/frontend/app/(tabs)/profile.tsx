@@ -2684,7 +2684,39 @@ postText={postText}
                )}
 
           {activeIdentity?.type === 'business' && businessDetail && (
-           <BusinessProfilePremium
+            <>
+            {/* Mobility module entry - only for transport operator businesses */}
+            {(businessDetail.business as any)?.mobility_role && (
+              <Pressable
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  marginHorizontal: 16,
+                  marginBottom: 12,
+                  backgroundColor: "#EAF5FF",
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: "#BFDFF7",
+                  padding: 14,
+                }}
+                onPress={() => router.push("/mobility/manage" as any)}
+              >
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#59ABE3", alignItems: "center", justifyContent: "center" }}>
+                  <Ionicons name="bus" size={20} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: "#264348" }}>{t("mobility.manageTitle", "Mobility")}</Text>
+                  <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 1 }}>
+                    {(businessDetail.business as any).mobility_role === "taxi_operator"
+                      ? t("mobility.manageSubtitleTaxi", "Live taxis, requests and pricing")
+                      : t("mobility.manageSubtitle", "Network, live vehicles and driver codes")}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#59ABE3" />
+              </Pressable>
+            )}
+            <BusinessProfilePremium
           profileViews={profileViewsCount}
           tagHintText={undefined}
               business={businessDetail}
@@ -2970,7 +3002,8 @@ currentUserId={businessDetail?.business?.business_id}
                   requestedSection={requestedSection}
                   onRequestedSectionHandled={() => setRequestedSection(null)}
                 />
-              )}
+            </>
+          )}
         </View>
       <UploadProgressSheet visible={showUploadProgress} progress={uploadProgress} context={uploadContext} mode="inline" onDismiss={() => { setShowUploadProgress(false); setUploadProgress(null); }} />
       <ListingModal
