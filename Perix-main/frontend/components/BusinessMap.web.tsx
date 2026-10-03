@@ -593,33 +593,42 @@ export default function BusinessMap({
     const clusterOf = new Map<string, string>();
     const membersByRep = new Map<string, MapMarker[]>();
     const projection = mapRef.current.getProjection();
-    if (projection) {
-      const placed: { x: number; y: number; id: string; w: number; h: number }[] = [];
-      for (const m of sortedTransit) {
-        const pt = projection.fromLatLngToDivPixel(new google.maps.LatLng(m.latitude, m.longitude));
-        if (!pt) continue;
-        const w = (m.type === "tram" ? 66 : 46) * vScale;
-        const h = (m.type === "tram" ? 30 : 26) * vScale;
-        let owner: string | null = null;
-        let best = Infinity;
-        for (const pl of placed) {
-          const dx = Math.abs(pt.x - pl.x);
-          const dy = Math.abs(pt.y - pl.y);
-          if (dx < ((w + pl.w) / 2) * 0.9 && dy < ((h + pl.h) / 2) * 0.9) {
-            const d = (pt.x - pl.x) ** 2 + (pt.y - pl.y) ** 2;
-            if (d < best) {
-              best = d;
-              owner = pl.id;
+    try {
+      if (projection) {
+        const placed: { x: number; y: number; id: string; w: number; h: number }[] = [];
+        for (const m of sortedTransit) {
+          // Map.getProjection() returns a plain Projection: it only has
+          // fromLatLngToPoint (world pixels). Differences between points
+          // equal screen pixel distances, which is all we need here.
+          const pt = projection.fromLatLngToPoint(new google.maps.LatLng(m.latitude, m.longitude));
+          if (!pt) continue;
+          const w = (m.type === "tram" ? 66 : 46) * vScale;
+          const h = (m.type === "tram" ? 30 : 26) * vScale;
+          let owner: string | null = null;
+          let best = Infinity;
+          for (const pl of placed) {
+            const dx = Math.abs(pt.x - pl.x);
+            const dy = Math.abs(pt.y - pl.y);
+            if (dx < ((w + pl.w) / 2) * 0.9 && dy < ((h + pl.h) / 2) * 0.9) {
+              const d = (pt.x - pl.x) ** 2 + (pt.y - pl.y) ** 2;
+              if (d < best) {
+                best = d;
+                owner = pl.id;
+              }
             }
           }
+          const repId = owner || m.id;
+          clusterOf.set(m.id, repId);
+          if (!membersByRep.has(repId)) membersByRep.set(repId, []);
+          membersByRep.get(repId)!.push(m);
+          if (!owner) placed.push({ x: pt.x, y: pt.y, id: m.id, w, h });
         }
-        const repId = owner || m.id;
-        clusterOf.set(m.id, repId);
-        if (!membersByRep.has(repId)) membersByRep.set(repId, []);
-        membersByRep.get(repId)!.push(m);
-        if (!owner) placed.push({ x: pt.x, y: pt.y, id: m.id, w, h });
+      } else {
+        throw new Error("no projection");
       }
-    } else {
+    } catch (e) {
+      console.warn("[WebMap] collision layout failed, falling back", e);
+      membersByRep.clear();
       sortedTransit.forEach((m) => {
         clusterOf.set(m.id, m.id);
         membersByRep.set(m.id, [m]);
