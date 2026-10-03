@@ -30,14 +30,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/mobility", tags=["Mobility"])
 
-MOBILITY_CHANNEL = "mobility:magdeburg"
+MOBILITY_CHANNEL = "mobility:live"
 SESSION_HOURS = 12
 CODE_HOURS = 12
-
-# Restricted service credential for the external mobility sync worker.
-# Scope: network write + realtime write ONLY - never user data.
-MOBILITY_SYNC_API_KEY = os.getenv("MOBILITY_SYNC_API_KEY", "")
-MOBILITY_SYNC_BUSINESS_ID = os.getenv("MOBILITY_SYNC_BUSINESS_ID", "")
 
 
 def _broadcast(payload: dict) -> None:
@@ -97,29 +92,6 @@ async def _require_operator(current_user: UserPublic):
     if not biz:
         raise HTTPException(status_code=403, detail="Mobility operator business required")
     return biz
-
-
-async def _authorize_sync_or_operator(
-    request: Request,
-    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
-):
-    """Accepts either an authenticated operator OR the restricted mobility
-    sync API key (X-Perix-Sync-Key). The key only unlocks network/realtime
-    writes - nothing else."""
-    key = request.headers.get("X-Perix-Sync-Key", "")
-    if MOBILITY_SYNC_API_KEY and key and key == MOBILITY_SYNC_API_KEY:
-        query = (
-            {"business_id": MOBILITY_SYNC_BUSINESS_ID}
-            if MOBILITY_SYNC_BUSINESS_ID
-            else {"mobility_role": {"$in": ["bus_operator", "taxi_operator"]}}
-        )
-        biz = await db.businesses.find_one(query, {"_id": 0})
-        if not biz:
-            raise HTTPException(status_code=403, detail="Sync business not configured")
-        return biz
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    return await _require_operator(current_user)
 
 
 @router.get("/me")
@@ -686,7 +658,7 @@ async def _create_network_version(routes: List[dict], name: str) -> dict:
 @router.post("/network/import")
 async def import_network(
     payload: NetworkImportRequest,
-    operator: dict = Depends(_authorize_sync_or_operator),
+    operator: dict = Depends(_require_operator),
 ):
     routes = payload.routes or []
     if not routes:
@@ -698,7 +670,7 @@ async def import_network(
 async def import_gtfs_zip(
     file: UploadFile = File(...),
     date: Optional[str] = Form(None),
-    operator: dict = Depends(_authorize_sync_or_operator),
+    operator: dict = Depends(_require_operator),
 ):
     """Upload the official GTFS zip directly - the backend converts it into
     the bus/tram network for the requested service date (default: today in
@@ -727,7 +699,7 @@ async def import_gtfs_zip(
 
 
 @router.post("/network/activate")
-async def activate_network(payload: dict, operator: dict = Depends(_authorize_sync_or_operator)):
+async def activate_network(payload: dict, operator: dict = Depends(_require_operator)):
     version_id = payload.get("version_id")
     version = await db.bus_network_versions.find_one({"version_id": version_id})
     if not version:
@@ -736,36 +708,6 @@ async def activate_network(payload: dict, operator: dict = Depends(_authorize_sy
     await db.bus_network_versions.update_one({"version_id": version_id}, {"$set": {"active": True}})
     _broadcast({"type": "network_activated", "version_id": version_id})
     return {"active": version_id}
-
-
-@router.post("/network/realtime")
-async def push_realtime_updates(payload: dict, operator: dict = Depends(_authorize_sync_or_operator)):
-    """GTFS-Realtime TripUpdates from the mobility sync service. Updates are
-    keyed by trip_id and consumed by the position estimator
-    (REALTIME_ESTIMATE)."""
-    updates = payload.get("updates") or []
-    if not isinstance(updates, list):
-        raise HTTPException(status_code=400, detail="updates array required")
-    now = _berlin_now().isoformat()
-    for u in updates:
-        trip_id = u.get("trip_id")
-        if not trip_id:
-            continue
-        delay_seconds = u.get("delay_seconds")
-        if delay_seconds is None:
-            continue
-        await db.mobility_realtime.replace_one(
-            {"trip_id": trip_id},
-            {
-                "trip_id": trip_id,
-                "delay_seconds": int(delay_seconds),
-                "updated_at": now,
-                "source": u.get("source", "GTFS_RT"),
-            },
-            upsert=True,
-        )
-    _broadcast({"type": "realtime_updates", "count": len(updates)})
-    return {"ok": True, "count": len(updates)}
 
 
 @router.get("/buses/search")

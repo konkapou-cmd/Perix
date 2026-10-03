@@ -226,7 +226,7 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
             routes_out.append(route)
 
         return {
-            "name": f"MVB Magdeburg {sd.isoformat()}",
+            "name": f"Magdeburg transit {sd.isoformat()}",
             "source": "GTFS",
             "service_date": sd.isoformat(),
             "timezone": "Europe/Berlin",

@@ -83,6 +83,10 @@ const googleKey =
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
   "";
 
+// Vehicle icon scale: smaller, proportional city vehicles. zoom 10 -> 0.35,
+// zoom 14 -> 0.78, zoom 16 -> 0.89, zoom 18+ -> 1.05.
+const vehicleScale = (zoom: number) => 0.78 * Math.max(0.45, Math.min(1.35, zoom / 14));
+
 // Cartoon transit icons (SVG). Bus: white + light blue. Tram: white + dark
 // green. Both face right; rotation = heading - 90deg.
 const BUS_SVG = `<svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://www.w3.org/2000/svg">
@@ -213,6 +217,8 @@ export default function BusinessMap({
   const lastBoundsRef = useRef<string>("");
   const prevCenterRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const zoomLayoutDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [layoutTick, setLayoutTick] = useState(0);
   const prevLocationRef = useRef<string>("");
   const businessesRef = useRef(businesses);
   businessesRef.current = businesses;
@@ -400,9 +406,14 @@ export default function BusinessMap({
         map.addListener("zoom_changed", () => {
           const zoom = map.getZoom() || 14;
           const scale = Math.max(0.8, Math.min(1.7, zoom / 12));
+          const vscale = vehicleScale(zoom);
           markersRef.current.forEach((rec: any) => {
-            try { rec?.resize?.(scale); } catch (e) {}
+            try { rec?.resize?.(scale, vscale); } catch (e) {}
           });
+          // Collision resolution depends on screen distances - re-layout
+          // after the zoom gesture settles.
+          if (zoomLayoutDebounceRef.current) clearTimeout(zoomLayoutDebounceRef.current);
+          zoomLayoutDebounceRef.current = setTimeout(() => setLayoutTick((n) => n + 1), 180);
         });
 
         if (cancelled) return;
@@ -440,12 +451,87 @@ export default function BusinessMap({
     });
     markersRef.current = [];
 
-    const initialZoom = mapRef.current?.getZoom?.() || 14;
-    const zoomScale = Math.max(0.8, Math.min(1.7, initialZoom / 12));
+    const zoom = mapRef.current?.getZoom?.() || 14;
+    const zoomScale = Math.max(0.8, Math.min(1.7, zoom / 12));
+    const vScale = vehicleScale(zoom);
 
-    console.log("[WebMap] markers: groups=" + groupedMarkers.length + " zoomScale=" + zoomScale.toFixed(2));
-
+    // Split transit vehicles from the static pins. Transit markers are laid
+    // out separately with pixel-space collision resolution so vehicles never
+    // overlap each other on screen.
+    const pinGroups: typeof groupedMarkers = [];
+    const transitMarkers: MapMarker[] = [];
     groupedMarkers.forEach((group) => {
+      const transitItems = group.items.filter((i) => i.type === "bus" || i.type === "tram");
+      if (transitItems.length > 0 && transitItems.length === group.items.length) {
+        transitItems.forEach((m) => transitMarkers.push(m));
+        return;
+      }
+      pinGroups.push(group);
+    });
+
+    // Deterministic priority: real positions before estimates, then by id
+    const sortedTransit = [...transitMarkers].sort((a, b) => {
+      const pa = a.estimated ? 1 : 0;
+      const pb = b.estimated ? 1 : 0;
+      if (pa !== pb) return pa - pb;
+      return (a.id || "").localeCompare(b.id || "");
+    });
+
+    // Pixel-space collision resolution: each vehicle occupies a screen box
+    // (its icon footprint). Overlapping vehicles collapse into one cluster
+    // with a "+N" badge; tapping a cluster cycles through its members.
+    const clusterOf = new Map<string, string>();
+    const membersByRep = new Map<string, MapMarker[]>();
+    const projection = mapRef.current.getProjection();
+    if (projection) {
+      const placed: { x: number; y: number; id: string; w: number; h: number }[] = [];
+      for (const m of sortedTransit) {
+        const pt = projection.fromLatLngToDivPixel(new google.maps.LatLng(m.latitude, m.longitude));
+        if (!pt) continue;
+        const w = (m.type === "tram" ? 50 : 46) * vScale;
+        const h = (m.type === "tram" ? 34 : 26) * vScale;
+        let owner: string | null = null;
+        let best = Infinity;
+        for (const pl of placed) {
+          const dx = Math.abs(pt.x - pl.x);
+          const dy = Math.abs(pt.y - pl.y);
+          if (dx < ((w + pl.w) / 2) * 0.9 && dy < ((h + pl.h) / 2) * 0.9) {
+            const d = (pt.x - pl.x) ** 2 + (pt.y - pl.y) ** 2;
+            if (d < best) {
+              best = d;
+              owner = pl.id;
+            }
+          }
+        }
+        const repId = owner || m.id;
+        clusterOf.set(m.id, repId);
+        if (!membersByRep.has(repId)) membersByRep.set(repId, []);
+        membersByRep.get(repId)!.push(m);
+        if (!owner) placed.push({ x: pt.x, y: pt.y, id: m.id, w, h });
+      }
+    } else {
+      sortedTransit.forEach((m) => {
+        clusterOf.set(m.id, m.id);
+        membersByRep.set(m.id, [m]);
+      });
+    }
+
+    console.log(
+      "[WebMap] markers: pins=" + pinGroups.length + " transit=" + transitMarkers.length +
+      " reps=" + membersByRep.size + " vScale=" + vScale.toFixed(2)
+    );
+
+    const setBadge = (rec: any, extra: number) => {
+      if (!rec.badge) return;
+      if (extra <= 0) {
+        rec.badge.style.display = "none";
+        return;
+      }
+      rec.badge.style.display = "flex";
+      rec.badge.textContent = "+" + extra;
+    };
+
+    pinGroups.forEach((group) => {
       const isGroup = group.count > 1;
       const baseSize = isGroup
         ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40)
@@ -456,88 +542,12 @@ export default function BusinessMap({
       const fontSize = Math.min(17, baseFont * zoomScale);
       const pinColor = group.pinColor || "#264348";
 
-      const isTransit = group.count === 1 && (group.type === "bus" || group.type === "tram");
-      const heading = typeof group.heading === "number" ? group.heading : 0;
-
-      // Reuse an existing transit overlay: only update its position and
-      // rotation - no CSS transition on position, so map pans never make
-      // vehicles lag behind and snap back.
-      if (isTransit && existingTransit.has(group.items[0].id)) {
-        const rec = existingTransit.get(group.items[0].id);
-        rec.overlay.pos = { lat: group.latitude, lng: group.longitude };
-        rec.heading = heading;
-        rec.inner.style.transform = `rotate(${heading - 90}deg) scale(${rec.scale})`;
-        rec.inner.style.opacity = group.estimated ? "0.72" : "1";
-        try { rec.overlay.draw(); } catch (e) {}
-        markersRef.current.push(rec);
-        return;
-      }
-
       // Container div (positioned by OverlayView)
       const container = document.createElement("div");
       container.style.position = "absolute";
       container.style.cursor = "pointer";
       container.style.userSelect = "none";
 
-      if (isTransit) {
-        // Cartoon vehicle icon showing its facing direction. Zoom-aware:
-        // zoomed out -> small vehicles "circulating" in the city.
-        const rotWrap = document.createElement("div");
-        rotWrap.style.position = "absolute";
-        rotWrap.style.transform = "translate(-50%, -50%)";
-        rotWrap.style.pointerEvents = "none";
-        const inner = document.createElement("div");
-        const zoomScaleNow = zoomScale || 1;
-        const s = Math.max(0.45, Math.min(1.5, zoomScaleNow * 0.85));
-        inner.style.transform = `rotate(${heading - 90}deg) scale(${s})`;
-        inner.style.transformOrigin = "center center";
-        inner.style.transition = "transform 0.4s ease-out";
-        inner.innerHTML = group.type === "bus" ? BUS_SVG : TRAM_SVG;
-        if (group.estimated) inner.style.opacity = "0.72";
-        rotWrap.appendChild(inner);
-        container.appendChild(rotWrap);
-        const overlay = new (class extends google.maps.OverlayView {
-          div: HTMLDivElement;
-          pos: { lat: number; lng: number };
-          constructor(div: HTMLDivElement, pos: { lat: number; lng: number }) {
-            super();
-            this.div = div;
-            this.pos = pos;
-          }
-          onAdd(this: any) {
-            this.getPanes().overlayMouseTarget.appendChild(this.div);
-          }
-          draw(this: any) {
-            const overlayProjection = this.getProjection();
-            const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
-            if (point) {
-              this.div.style.left = point.x + "px";
-              this.div.style.top = point.y + "px";
-            }
-          }
-          onRemove(this: any) {
-            if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
-          }
-        })(container, { lat: group.latitude, lng: group.longitude });
-        overlay.setMap(mapRef.current);
-        container.addEventListener("click", (e: any) => {
-          e.stopPropagation();
-          onMarkerPress?.(group.items[0].id);
-        });
-        markersRef.current.push({
-          overlay,
-          resize: (zoomScaleArg: number) => {
-            const newS = Math.max(0.45, Math.min(1.5, zoomScaleArg * 0.85));
-            inner.style.transform = `rotate(${heading - 90}deg) scale(${newS})`;
-          },
-          vehicleId: group.items[0].id,
-          inner,
-          heading,
-          scale: s,
-        });
-        transitContainers.push(container);
-        return;
-      } else {
       const pin = document.createElement("div");
       pin.style.width = sizePx + "px";
       pin.style.height = sizePx + "px";
@@ -622,7 +632,6 @@ export default function BusinessMap({
         };
         markersRef.current.push({ overlay: null as any, resize });
       }
-      }
 
       class PinOverlay extends google.maps.OverlayView {
         div: HTMLDivElement;
@@ -666,6 +675,138 @@ export default function BusinessMap({
       if (record) record.overlay = overlay;
     });
 
+    // Transit vehicles: one overlay per cluster (representative icon + badge)
+    membersByRep.forEach((members, repId) => {
+      const rep = members[0];
+      if (!rep) return;
+      const heading = typeof rep.heading === "number" ? rep.heading : 0;
+      const w = (rep.type === "tram" ? 50 : 46) * vScale;
+      const h = (rep.type === "tram" ? 34 : 26) * vScale;
+
+      // Reuse an existing transit overlay: only update its position and
+      // rotation - no CSS transition on position, so map pans never make
+      // vehicles lag behind and snap back.
+      const existing = existingTransit.get(repId);
+      if (existing) {
+        const rec = existing;
+        rec.overlay.pos = { lat: rep.latitude, lng: rep.longitude };
+        rec.heading = heading;
+        rec.scale = vScale;
+        rec.inner.innerHTML = rep.type === "bus" ? BUS_SVG : TRAM_SVG;
+        rec.inner.style.transform = `rotate(${heading - 90}deg) scale(${vScale})`;
+        rec.inner.style.opacity = rep.estimated ? "0.72" : "1";
+        rec.clusterIds = members.map((m) => m.id);
+        if (!rec.clusterIds[rec.clusterIdx % rec.clusterIds.length]) rec.clusterIdx = 0;
+        setBadge(rec, members.length - 1);
+        try { rec.overlay.draw(); } catch (e) {}
+        markersRef.current.push(rec);
+        return;
+      }
+
+      // Container div (positioned by OverlayView)
+      const container = document.createElement("div");
+      container.style.position = "absolute";
+      container.style.cursor = "pointer";
+      container.style.userSelect = "none";
+
+      // Cartoon vehicle icon showing its facing direction. Zoom-aware:
+      // zoomed out -> small vehicles "circulating" in the city.
+      const rotWrap = document.createElement("div");
+      rotWrap.style.position = "absolute";
+      rotWrap.style.transform = "translate(-50%, -50%)";
+      rotWrap.style.pointerEvents = "none";
+      const inner = document.createElement("div");
+      inner.style.transform = `rotate(${heading - 90}deg) scale(${vScale})`;
+      inner.style.transformOrigin = "center center";
+      inner.style.transition = "transform 0.4s ease-out";
+      inner.innerHTML = rep.type === "bus" ? BUS_SVG : TRAM_SVG;
+      if (rep.estimated) inner.style.opacity = "0.72";
+      rotWrap.appendChild(inner);
+      container.appendChild(rotWrap);
+
+      let badge: HTMLDivElement | null = null;
+      if (members.length > 1) {
+        badge = document.createElement("div");
+        badge.textContent = "+" + (members.length - 1);
+        badge.style.position = "absolute";
+        badge.style.left = (w / 2 + 4) + "px";
+        badge.style.top = (-h / 2 - 4) + "px";
+        badge.style.transform = "translate(-50%, -50%)";
+        badge.style.backgroundColor = "#264348";
+        badge.style.color = "#ffffff";
+        badge.style.fontSize = "10px";
+        badge.style.fontWeight = "800";
+        badge.style.fontFamily = "Arial, sans-serif";
+        badge.style.borderRadius = "50%";
+        badge.style.minWidth = "18px";
+        badge.style.height = "18px";
+        badge.style.display = "flex";
+        badge.style.alignItems = "center";
+        badge.style.justifyContent = "center";
+        badge.style.padding = "0 3px";
+        badge.style.border = "2px solid #ffffff";
+        badge.style.boxShadow = "0 1px 3px rgba(0,0,0,0.4)";
+        badge.style.boxSizing = "border-box";
+        container.appendChild(badge);
+      }
+
+      const overlay = new (class extends google.maps.OverlayView {
+        div: HTMLDivElement;
+        pos: { lat: number; lng: number };
+        constructor(div: HTMLDivElement, pos: { lat: number; lng: number }) {
+          super();
+          this.div = div;
+          this.pos = pos;
+        }
+        onAdd(this: any) {
+          this.getPanes().overlayMouseTarget.appendChild(this.div);
+        }
+        draw(this: any) {
+          const overlayProjection = this.getProjection();
+          const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
+          if (point) {
+            this.div.style.left = point.x + "px";
+            this.div.style.top = point.y + "px";
+          }
+        }
+        onRemove(this: any) {
+          if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
+        }
+      })(container, { lat: rep.latitude, lng: rep.longitude });
+      overlay.setMap(mapRef.current);
+
+      const rec: any = {
+        overlay,
+        resize: (_zoomScaleArg: number, vScaleArg?: number) => {
+          const ns = vScaleArg ?? vehicleScale(mapRef.current?.getZoom?.() || 14);
+          rec.scale = ns;
+          rec.inner.style.transform = `rotate(${rec.heading - 90}deg) scale(${ns})`;
+        },
+        vehicleId: repId,
+        inner,
+        heading,
+        scale: vScale,
+        clusterIds: members.map((m) => m.id),
+        clusterIdx: 0,
+        badge,
+      };
+
+      // Tapping a cluster cycles through the vehicles stacked there.
+      container.addEventListener("click", (e: any) => {
+        e.stopPropagation();
+        rec.clusterIdx = (rec.clusterIdx + 1) % rec.clusterIds.length;
+        const target = members.find((m) => m.id === rec.clusterIds[rec.clusterIdx]) || members[0];
+        rec.heading = typeof target.heading === "number" ? target.heading : 0;
+        rec.inner.innerHTML = target.type === "bus" ? BUS_SVG : TRAM_SVG;
+        rec.inner.style.transform = `rotate(${rec.heading - 90}deg) scale(${rec.scale})`;
+        rec.inner.style.opacity = target.estimated ? "0.72" : "1";
+        onMarkerPress?.(target.id);
+      });
+
+      markersRef.current.push(rec);
+      transitContainers.push(container);
+    });
+
     // Remove transit overlays whose vehicle is no longer active
     const reusedIds = new Set(
       markersRef.current.map((r: any) => r?.vehicleId).filter(Boolean)
@@ -681,7 +822,7 @@ export default function BusinessMap({
         transitContainers.push(r.overlay.div);
       }
     });
-  }, [groupedMarkers, mapReady]);
+  }, [groupedMarkers, mapReady, layoutTick]);
 
   // Transit route lines (thin polylines under the vehicle markers)
   const transitLinesRef = useRef<any[]>([]);
