@@ -21,6 +21,7 @@ type MapMarker = {
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
   heading?: number | null;
   estimated?: boolean;
+  label?: string | null;
 };
 
 type MapBounds = {
@@ -87,9 +88,22 @@ const googleKey =
 // zoom 14 -> 0.78, zoom 16 -> 0.89, zoom 18+ -> 1.05.
 const vehicleScale = (zoom: number) => 0.78 * Math.max(0.45, Math.min(1.35, zoom / 14));
 
-// Cartoon transit icons (SVG). Bus: white + light blue. Tram: white + dark
-// green. Both face right; rotation = heading - 90deg.
-const BUS_SVG = `<svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://www.w3.org/2000/svg">
+// Cartoon transit icons (SVG) with the route number on a side plate.
+// Bus: white + light blue. Tram: white + dark green, articulated in two
+// segments with pantograph and doors. Both face right; rotation = heading - 90deg.
+const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+
+const routePlateText = (num: string, fontSize: number, y: number) =>
+  `<text x="50%" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="${fontSize}" fill="#ffffff">${escapeHtml(num)}</text>`;
+
+const busSvg = (label?: string | null) => {
+  const num = (label || "").trim();
+  const plate = num
+    ? `<rect x="32.2" y="6" width="8" height="6.2" rx="1.6" fill="#1E3A8A"/>` +
+      routePlateText(num, num.length > 2 ? 3.4 : 4.6, 10.7)
+    : "";
+  return `<svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="bs" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/>
@@ -97,10 +111,12 @@ const BUS_SVG = `<svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://w
   </defs>
   <g filter="url(#bs)">
     <rect x="1.2" y="3" width="43.6" height="17" rx="5.5" fill="#ffffff" stroke="#1E3A8A" stroke-width="2"/>
-    <rect x="4" y="6" width="7" height="6" rx="1.6" fill="#59ABE3"/>
-    <rect x="13" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
-    <rect x="21" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
-    <rect x="29" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
+    <rect x="4" y="6" width="6" height="6" rx="1.5" fill="#59ABE3"/>
+    <rect x="12" y="6" width="5.5" height="6" rx="1.5" fill="#BFDFF7"/>
+    <rect x="19" y="6" width="5.5" height="6" rx="1.5" fill="#BFDFF7"/>
+    <rect x="26" y="6" width="5.5" height="6" rx="1.5" fill="#BFDFF7"/>
+    ${plate}
+    <rect x="40.5" y="6.2" width="4.2" height="6" rx="1.4" fill="#59ABE3"/>
     <rect x="36.5" y="1" width="7" height="3.4" rx="1.7" fill="#59ABE3"/>
     <circle cx="11" cy="20.5" r="3.4" fill="#1E3A8A"/>
     <circle cx="35" cy="20.5" r="3.4" fill="#1E3A8A"/>
@@ -108,29 +124,46 @@ const BUS_SVG = `<svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://w
     <circle cx="35" cy="20.5" r="1.4" fill="#ffffff"/>
   </g>
 </svg>`;
+};
 
-const TRAM_SVG = `<svg width="50" height="34" viewBox="0 0 50 34" xmlns="http://www.w3.org/2000/svg">
+const tramSvg = (label?: string | null) => {
+  const num = (label || "").trim();
+  const plate = num
+    ? `<rect x="8.2" y="10.8" width="11" height="6.8" rx="1.6" fill="#166534"/>` +
+      routePlateText(num, num.length > 2 ? 3.9 : 5.2, 15.9)
+    : "";
+  return `<svg width="66" height="30" viewBox="0 0 66 30" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="ts" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/>
     </filter>
   </defs>
   <g filter="url(#ts)">
-    <line x1="12" y1="3" x2="12" y2="10" stroke="#166534" stroke-width="2.4"/>
-    <line x1="4" y1="3" x2="34" y2="3" stroke="#166534" stroke-width="1.8"/>
-    <rect x="1.2" y="10" width="47.6" height="15" rx="5" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-    <rect x="4" y="12.4" width="6" height="5" rx="1.5" fill="#BFE3C8"/>
-    <rect x="12" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
-    <rect x="19" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
-    <rect x="26" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
-    <rect x="33" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
-    <rect x="1.2" y="15.4" width="47.6" height="3" fill="#166534"/>
-    <circle cx="12" cy="27" r="3.6" fill="#166534"/>
-    <circle cx="38" cy="27" r="3.6" fill="#166534"/>
-    <circle cx="12" cy="27" r="1.5" fill="#ffffff"/>
-    <circle cx="38" cy="27" r="1.5" fill="#ffffff"/>
+    <line x1="8" y1="1.5" x2="8" y2="9" stroke="#166534" stroke-width="2.2"/>
+    <line x1="3" y1="1.5" x2="26" y2="1.5" stroke="#166534" stroke-width="1.7"/>
+    <rect x="1.2" y="9" width="29" height="13" rx="4" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+    <rect x="35.8" y="9" width="29" height="13" rx="4" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+    <rect x="30.3" y="12.2" width="5.5" height="6" rx="2" fill="#0E4022"/>
+    <rect x="1.8" y="10.8" width="4.6" height="7" rx="1.8" fill="#BFE3C8"/>
+    <rect x="21.5" y="11.5" width="4.5" height="5" rx="1.3" fill="#BFE3C8"/>
+    <rect x="39" y="11.5" width="4.5" height="5" rx="1.3" fill="#BFE3C8"/>
+    <rect x="45.5" y="11.5" width="4.5" height="5" rx="1.3" fill="#BFE3C8"/>
+    <rect x="52" y="11.5" width="4.5" height="5" rx="1.3" fill="#BFE3C8"/>
+    <rect x="58" y="10.8" width="4.6" height="7" rx="1.8" fill="#BFE3C8"/>
+    <rect x="26.6" y="15.8" width="3.8" height="6" rx="0.9" fill="#0E4022"/>
+    <rect x="46.5" y="16.2" width="4.6" height="5.4" rx="1" fill="#0E4022"/>
+    ${plate}
+    <circle cx="8" cy="23.5" r="3" fill="#166534"/>
+    <circle cx="22.5" cy="23.5" r="3" fill="#166534"/>
+    <circle cx="43.5" cy="23.5" r="3" fill="#166534"/>
+    <circle cx="57.5" cy="23.5" r="3" fill="#166534"/>
+    <circle cx="8" cy="23.5" r="1.2" fill="#ffffff"/>
+    <circle cx="22.5" cy="23.5" r="1.2" fill="#ffffff"/>
+    <circle cx="43.5" cy="23.5" r="1.2" fill="#ffffff"/>
+    <circle cx="57.5" cy="23.5" r="1.2" fill="#ffffff"/>
   </g>
 </svg>`;
+};
 
 let googleScriptLoaded = false;
 let googleScriptPromise: Promise<void> | null = null;
@@ -488,8 +521,8 @@ export default function BusinessMap({
       for (const m of sortedTransit) {
         const pt = projection.fromLatLngToDivPixel(new google.maps.LatLng(m.latitude, m.longitude));
         if (!pt) continue;
-        const w = (m.type === "tram" ? 50 : 46) * vScale;
-        const h = (m.type === "tram" ? 34 : 26) * vScale;
+        const w = (m.type === "tram" ? 66 : 46) * vScale;
+        const h = (m.type === "tram" ? 30 : 26) * vScale;
         let owner: string | null = null;
         let best = Infinity;
         for (const pl of placed) {
@@ -680,8 +713,8 @@ export default function BusinessMap({
       const rep = members[0];
       if (!rep) return;
       const heading = typeof rep.heading === "number" ? rep.heading : 0;
-      const w = (rep.type === "tram" ? 50 : 46) * vScale;
-      const h = (rep.type === "tram" ? 34 : 26) * vScale;
+      const w = (rep.type === "tram" ? 66 : 46) * vScale;
+      const h = (rep.type === "tram" ? 30 : 26) * vScale;
 
       // Reuse an existing transit overlay: only update its position and
       // rotation - no CSS transition on position, so map pans never make
@@ -692,7 +725,7 @@ export default function BusinessMap({
         rec.overlay.pos = { lat: rep.latitude, lng: rep.longitude };
         rec.heading = heading;
         rec.scale = vScale;
-        rec.inner.innerHTML = rep.type === "bus" ? BUS_SVG : TRAM_SVG;
+        rec.inner.innerHTML = rep.type === "bus" ? busSvg(rep.label) : tramSvg(rep.label);
         rec.inner.style.transform = `rotate(${heading - 90}deg) scale(${vScale})`;
         rec.inner.style.opacity = rep.estimated ? "0.72" : "1";
         rec.clusterIds = members.map((m) => m.id);
@@ -719,7 +752,7 @@ export default function BusinessMap({
       inner.style.transform = `rotate(${heading - 90}deg) scale(${vScale})`;
       inner.style.transformOrigin = "center center";
       inner.style.transition = "transform 0.4s ease-out";
-      inner.innerHTML = rep.type === "bus" ? BUS_SVG : TRAM_SVG;
+      inner.innerHTML = rep.type === "bus" ? busSvg(rep.label) : tramSvg(rep.label);
       if (rep.estimated) inner.style.opacity = "0.72";
       rotWrap.appendChild(inner);
       container.appendChild(rotWrap);
@@ -797,7 +830,7 @@ export default function BusinessMap({
         rec.clusterIdx = (rec.clusterIdx + 1) % rec.clusterIds.length;
         const target = members.find((m) => m.id === rec.clusterIds[rec.clusterIdx]) || members[0];
         rec.heading = typeof target.heading === "number" ? target.heading : 0;
-        rec.inner.innerHTML = target.type === "bus" ? BUS_SVG : TRAM_SVG;
+        rec.inner.innerHTML = target.type === "bus" ? busSvg(target.label) : tramSvg(target.label);
         rec.inner.style.transform = `rotate(${rec.heading - 90}deg) scale(${rec.scale})`;
         rec.inner.style.opacity = target.estimated ? "0.72" : "1";
         onMarkerPress?.(target.id);

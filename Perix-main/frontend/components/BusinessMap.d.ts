@@ -12,6 +12,7 @@ type MapMarker = {
   type?: "business" | "event" | "activity" | "artist" | "job" | "rental" | "service" | "product" | "bus" | "tram" | "taxi";
   heading?: number | null;
   estimated?: boolean;
+  label?: string | null;
 };
 
 type MapBounds = {

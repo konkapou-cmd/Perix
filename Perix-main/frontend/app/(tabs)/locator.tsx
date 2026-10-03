@@ -1138,7 +1138,8 @@ export default function LocatorScreen() {
                           ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
                           : v.name,
                       description: v.estimated ? "Estimated" : v.status,
-                      type: (v.mode === "taxi" ? "taxi" : "bus") as "bus" | "taxi",
+                      type: (v.mode === "bus" ? "bus" : v.mode === "tram" ? "tram" : "taxi") as "bus" | "tram" | "taxi",
+                      label: v.route_number || undefined,
                       pinColor: v.mode === "bus" ? "#1E3A8A" : v.mode === "tram" ? "#8B0000" : "#FFC400",
                       heading: v.heading ?? null,
                       estimated: v.estimated ?? false,
