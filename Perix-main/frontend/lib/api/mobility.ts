@@ -204,8 +204,16 @@ export type StopSuggestion = {
   lng: number;
 };
 
+export type StreetSuggestion = {
+  name: string;
+  address?: string;
+  lat: number;
+  lng: number;
+  type?: string;
+};
+
 export const searchPlaces = (token: string | null | undefined, q: string) =>
-  apiRequest<{ places: PlaceSuggestion[]; stops: StopSuggestion[] }>(
+  apiRequest<{ places: PlaceSuggestion[]; stops: StopSuggestion[]; streets: StreetSuggestion[] }>(
     `/mobility/places/search?q=${encodeURIComponent(q)}`,
     "GET",
     token || undefined

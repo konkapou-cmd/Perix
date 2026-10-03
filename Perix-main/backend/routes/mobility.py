@@ -443,18 +443,27 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
         pos = scheduled[-1]["stop"]
     else:
         span = max(1, nxt["t"] - prev["t"])
-        frac = min(1.0, max(0.0, (now_sec - prev["t"]) / span))
-        shape = route.get("shape") or []
-        if isinstance(shape, list) and len(shape) > 2:
-            # Move along the real route shape instead of a straight line.
-            from_idx = _shape_index_for(shape, prev["stop"]["lat"], prev["stop"]["lng"])
-            to_idx = _shape_index_for(shape, nxt["stop"]["lat"], nxt["stop"]["lng"])
-            pos = _position_along_shape(shape, from_idx, to_idx, frac)
+        # Real vehicles dwell at each stop (open doors, board passengers).
+        # While dwelling the vehicle sits at the stop, then departs and
+        # covers the segment in the remaining time - stop-and-go motion
+        # instead of a constant drift.
+        dwell = min(25, max(0, int(span * 0.3)))
+        dep_t = prev["t"] + dwell
+        if now_sec < dep_t:
+            pos = {"lat": prev["stop"]["lat"], "lng": prev["stop"]["lng"]}
         else:
-            pos = {
-                "lat": prev["stop"]["lat"] + (nxt["stop"]["lat"] - prev["stop"]["lat"]) * frac,
-                "lng": prev["stop"]["lng"] + (nxt["stop"]["lng"] - prev["stop"]["lng"]) * frac,
-            }
+            frac = min(1.0, max(0.0, (now_sec - dep_t) / max(1, nxt["t"] - dep_t)))
+            shape = route.get("shape") or []
+            if isinstance(shape, list) and len(shape) > 2:
+                # Move along the real route shape instead of a straight line.
+                from_idx = _shape_index_for(shape, prev["stop"]["lat"], prev["stop"]["lng"])
+                to_idx = _shape_index_for(shape, nxt["stop"]["lat"], nxt["stop"]["lng"])
+                pos = _position_along_shape(shape, from_idx, to_idx, frac)
+            else:
+                pos = {
+                    "lat": prev["stop"]["lat"] + (nxt["stop"]["lat"] - prev["stop"]["lat"]) * frac,
+                    "lng": prev["stop"]["lng"] + (nxt["stop"]["lng"] - prev["stop"]["lng"]) * frac,
+                }
     delay_minutes = 0
     position_source = "SCHEDULE_ESTIMATE"
     if trip_delay > 0:
@@ -713,11 +722,11 @@ async def activate_network(payload: dict, operator: dict = Depends(_require_oper
 
 @router.get("/places/search")
 async def search_places(q: str = "", current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    """Destination suggestions from Perix's own map: businesses/venues and
-    transit stops (no external geocoding)."""
+    """Destination suggestions: Perix businesses, transit stops and real
+    streets/addresses (OpenStreetMap Nominatim, scoped to the city)."""
     q = (q or "").strip()
     if not q:
-        return {"places": [], "stops": []}
+        return {"places": [], "stops": [], "streets": []}
     needle = re.escape(q.lower())
     places = []
     cursor = db.businesses.find(
@@ -755,7 +764,41 @@ async def search_places(q: str = "", current_user: Optional[UserPublic] = Depend
                     break
             if len(stops) >= 8:
                 break
-    return {"places": places, "stops": stops}
+    streets = []
+    try:
+        import httpx as _httpx
+
+        # Magdeburg area viewbox: south, west, north, east
+        async with _httpx.AsyncClient(timeout=8, headers={"User-Agent": "PerixMobility/1.0 (app.perixapp.com)"}) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={
+                    "format": "json",
+                    "q": q,
+                    "addressdetails": 0,
+                    "limit": 6,
+                    "accept-language": "de",
+                    "viewbox": "11.55,52.02,11.72,52.20",
+                    "bounded": 1,
+                },
+            )
+            if resp.status_code == 200:
+                for item in resp.json():
+                    lat = float(item.get("lat") or 0)
+                    lng = float(item.get("lon") or 0)
+                    if lat and lng:
+                        streets.append(
+                            {
+                                "name": item.get("display_name", "").split(",")[0].strip(),
+                                "address": item.get("display_name", ""),
+                                "lat": lat,
+                                "lng": lng,
+                                "type": item.get("type", ""),
+                            }
+                        )
+    except Exception:
+        streets = []
+    return {"places": places, "stops": stops, "streets": streets}
 
 
 @router.get("/buses/search")
@@ -1154,7 +1197,7 @@ async def plan_journey(
         return (km * 1.35) / 4.5 * 3600
 
     # Nearest origin/destination stops
-    def near_stops(lat, lng, radius_km=0.8, limit=6):
+    def near_stops(lat, lng, radius_km=0.9, limit=6):
         out = []
         for sid, s in stops.items():
             d = _haversine_km(lat, lng, s["lat"], s["lng"])
@@ -1164,7 +1207,11 @@ async def plan_journey(
         return out[:limit]
 
     origin_candidates = near_stops(from_lat, from_lng)
+    if len(origin_candidates) < 2:
+        origin_candidates = near_stops(from_lat, from_lng, radius_km=1.6)
     dest_candidates = near_stops(to_lat, to_lng)
+    if len(dest_candidates) < 2:
+        dest_candidates = near_stops(to_lat, to_lng, radius_km=1.6)
     if not origin_candidates or not dest_candidates:
         return {"itineraries": [], "note": "no stops nearby"}
 

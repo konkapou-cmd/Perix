@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, getVehicleTrip, VehicleTripProgress, BusNetwork, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, getVehicleTrip, VehicleTripProgress, BusNetwork, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion, StreetSuggestion } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -94,10 +94,12 @@ export default function LocatorScreen() {
   const [transitDestLng, setTransitDestLng] = useState<number | null>(null);
   const [transitPlaceSuggestions, setTransitPlaceSuggestions] = useState<PlaceSuggestion[]>([]);
   const [transitStopSuggestions, setTransitStopSuggestions] = useState<StopSuggestion[]>([]);
+  const [transitStreetSuggestions, setTransitStreetSuggestions] = useState<StreetSuggestion[]>([]);
   const [journeyPlans, setJourneyPlans] = useState<JourneyPlan[]>([]);
   const [planLoading, setPlanLoading] = useState(false);
   const [planNote, setPlanNote] = useState<string | null>(null);
   const [planPicking, setPlanPicking] = useState(false);
+  const [planExpanded, setPlanExpanded] = useState(false);
   const [taxiDestAddress, setTaxiDestAddress] = useState("");
   const [taxiDestLat, setTaxiDestLat] = useState<number | null>(null);
   const [taxiDestLng, setTaxiDestLng] = useState<number | null>(null);
@@ -623,7 +625,8 @@ export default function LocatorScreen() {
     };
   }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude]);
 
-  // Transit "any area" destination suggestions (Perix's own map: venues + stops)
+  // Transit "any area" destination suggestions (Perix's own map: venues,
+  // stops and real streets from OpenStreetMap)
   useEffect(() => {
     if (
       activeTab !== "mobility" ||
@@ -632,6 +635,7 @@ export default function LocatorScreen() {
     ) {
       setTransitPlaceSuggestions([]);
       setTransitStopSuggestions([]);
+      setTransitStreetSuggestions([]);
       return;
     }
     let cancelled = false;
@@ -641,11 +645,13 @@ export default function LocatorScreen() {
           if (cancelled) return;
           setTransitPlaceSuggestions(res.places || []);
           setTransitStopSuggestions(res.stops || []);
+          setTransitStreetSuggestions(res.streets || []);
         })
         .catch(() => {
           if (cancelled) {
             setTransitPlaceSuggestions([]);
             setTransitStopSuggestions([]);
+            setTransitStreetSuggestions([]);
           }
         });
     }, 350);
@@ -658,6 +664,7 @@ export default function LocatorScreen() {
   const clearTransitSuggestions = () => {
     setTransitPlaceSuggestions([]);
     setTransitStopSuggestions([]);
+    setTransitStreetSuggestions([]);
   };
 
   const runPlan = async (destLat: number, destLng: number) => {
@@ -671,6 +678,7 @@ export default function LocatorScreen() {
     setPlanLoading(true);
     setPlanNote(null);
     setJourneyPlans([]);
+    setPlanExpanded(false);
     setSelectedStop(null);
     setServingBuses([]);
     try {
@@ -701,6 +709,16 @@ export default function LocatorScreen() {
       setTransitDestLat(stop.lat);
       setTransitDestLng(stop.lng);
       runPlan(stop.lat, stop.lng);
+    }
+  };
+
+  const selectTransitStreet = (street: StreetSuggestion) => {
+    setTransitDestAddress(street.address || street.name);
+    clearTransitSuggestions();
+    if (street.lat != null && street.lng != null) {
+      setTransitDestLat(street.lat);
+      setTransitDestLng(street.lng);
+      runPlan(street.lat, street.lng);
     }
   };
 
@@ -1394,8 +1412,27 @@ export default function LocatorScreen() {
                   {t("mobility.pickOnMapHint", "Tap anywhere on the map to choose your destination")}
                 </Text>
               )}
-              {(transitPlaceSuggestions.length > 0 || transitStopSuggestions.length > 0) && (
+              {(transitPlaceSuggestions.length > 0 || transitStopSuggestions.length > 0 || transitStreetSuggestions.length > 0) && (
                 <View style={styles.busSuggestions}>
+                  {transitStreetSuggestions.map((s, i) => (
+                    <Pressable
+                      key={"st_" + i}
+                      style={styles.busSuggestionRow}
+                      onPress={() => selectTransitStreet(s)}
+                    >
+                      <Ionicons name="navigate-outline" size={14} color="#264348" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.busSuggestionName} numberOfLines={1}>
+                          {s.name}
+                        </Text>
+                        {s.address ? (
+                          <Text style={styles.busSuggestionRoutes} numberOfLines={1}>
+                            {s.address}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  ))}
                   {transitPlaceSuggestions.map((s) => (
                     <Pressable
                       key={"p_" + s.id}
@@ -1445,7 +1482,7 @@ export default function LocatorScreen() {
           )}
 
           {!planLoading && journeyPlans.length > 0 && (mobilityMode === "bus" || mobilityMode === "tram") && (
-            <View style={styles.journeyCard}>
+            <Pressable style={styles.journeyCard} onPress={() => setPlanExpanded((e) => !e)}>
               <View style={styles.journeyHeaderRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.journeyTitle}>
@@ -1456,66 +1493,108 @@ export default function LocatorScreen() {
                     {t("mobility.planWalking", "{{n}} min walking", { n: journeyPlans[0].walking_minutes })}
                   </Text>
                 </View>
+                <Ionicons name={planExpanded ? "chevron-up" : "chevron-down"} size={20} color="#264348" />
                 <Pressable
                   onPress={() => {
                     setJourneyPlans([]);
                     setTransitDestAddress("");
+                    setPlanExpanded(false);
                   }}
                   hitSlop={8}
                 >
                   <Ionicons name="close-circle" size={22} color="#264348" />
                 </Pressable>
               </View>
-              {journeyPlans[0].legs.map((leg, i) => (
-                <View key={i} style={styles.planLegRow}>
-                  <View
-                    style={[
-                      styles.planLegIcon,
-                      leg.type === "walk" || leg.type === "walk_transfer"
-                        ? { backgroundColor: "#EAF5FF" }
-                        : leg.mode === "tram"
-                        ? { backgroundColor: "#166534" }
-                        : { backgroundColor: "#1E3A8A" },
-                    ]}
-                  >
-                    {leg.type === "walk" || leg.type === "walk_transfer" ? (
-                      <Ionicons name="walk" size={15} color="#264348" />
-                    ) : (
-                      <Ionicons name={leg.mode === "tram" ? "train" : "bus"} size={15} color="#fff" />
-                    )}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    {leg.type === "ride" ? (
-                      <>
-                        <Text style={styles.planLegTitle}>
-                          {leg.route_number}
-                          {leg.direction ? ` → ${leg.direction}` : ""}
-                        </Text>
-                        <Text style={styles.planLegSub}>
-                          {leg.depart} · {leg.board} → {leg.arrive} · {leg.alight}
-                        </Text>
-                      </>
-                    ) : (
-                      <>
-                        <Text style={styles.planLegTitle}>
-                          {t("mobility.planWalk", "Walk")} {leg.minutes}′
-                        </Text>
-                        <Text style={styles.planLegSub}>
-                          {leg.type === "walk_transfer"
-                            ? t("mobility.planTransfer", "Transfer to") + " " + leg.label
-                            : leg.label === "destination"
-                            ? t("mobility.planToDestination", "to your destination")
-                            : t("mobility.planToStop", "to") + " " + leg.label}
-                        </Text>
-                      </>
-                    )}
-                  </View>
-                  {leg.type === "ride" ? (
-                    <Text style={styles.mobilityEta}>{leg.minutes}′</Text>
-                  ) : null}
-                </View>
-              ))}
-            </View>
+              {!planExpanded ? (
+                <>
+                  {journeyPlans[0].legs.map((leg, i) => (
+                    <View key={i} style={styles.planLegRow}>
+                      <View
+                        style={[
+                          styles.planLegIcon,
+                          leg.type === "walk" || leg.type === "walk_transfer"
+                            ? { backgroundColor: "#EAF5FF" }
+                            : leg.mode === "tram"
+                            ? { backgroundColor: "#166534" }
+                            : { backgroundColor: "#1E3A8A" },
+                        ]}
+                      >
+                        {leg.type === "walk" || leg.type === "walk_transfer" ? (
+                          <Ionicons name="walk" size={15} color="#264348" />
+                        ) : (
+                          <Ionicons name={leg.mode === "tram" ? "train" : "bus"} size={15} color="#fff" />
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        {leg.type === "ride" ? (
+                          <>
+                            <Text style={styles.planLegTitle}>
+                              {leg.route_number}
+                              {leg.direction ? ` → ${leg.direction}` : ""}
+                            </Text>
+                            <Text style={styles.planLegSub}>
+                              {leg.depart} · {leg.board} → {leg.arrive} · {leg.alight}
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Text style={styles.planLegTitle}>
+                              {t("mobility.planWalk", "Walk")} {leg.minutes}′
+                            </Text>
+                            <Text style={styles.planLegSub}>
+                              {leg.type === "walk_transfer"
+                                ? t("mobility.planTransfer", "Transfer to") + " " + leg.label
+                                : leg.label === "destination"
+                                ? t("mobility.planToDestination", "to your destination")
+                                : t("mobility.planToStop", "to") + " " + leg.label}
+                            </Text>
+                          </>
+                        )}
+                      </View>
+                      {leg.type === "ride" ? (
+                        <Text style={styles.mobilityEta}>{leg.minutes}′</Text>
+                      ) : null}
+                    </View>
+                  ))}
+                  <Text style={styles.journeyHint}>
+                    {t("mobility.planTapDirections", "Tap for step-by-step directions")}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.journeyDirectionsTitle}>
+                    {t("mobility.planDirectionsTitle", "Step-by-step directions")}
+                  </Text>
+                  {journeyPlans[0].legs.map((leg, i) => {
+                    let text = "";
+                    if (leg.type === "walk_transfer") {
+                      text = t("mobility.planStepTransfer", "Transfer: walk {{n}}′ to {{label}}", { n: leg.minutes, label: leg.label });
+                    } else if (leg.type === "walk" && leg.label === "destination") {
+                      text = t("mobility.planStepDest", "Walk {{n}}′ to your destination (arrival {{time}})", { n: leg.minutes, time: journeyPlans[0].arrival });
+                    } else if (leg.type === "walk") {
+                      text = t("mobility.planStepWalk", "Walk {{n}}′ to {{label}}", { n: leg.minutes, label: leg.label });
+                    } else {
+                      text = t("mobility.planStepRide", "{{line}} → {{direction}}: board at {{depart}} ({{board}}), alight at {{arrive}} ({{alight}})", {
+                        line: leg.route_number,
+                        direction: leg.direction,
+                        depart: leg.depart,
+                        board: leg.board,
+                        arrive: leg.arrive,
+                        alight: leg.alight,
+                      });
+                    }
+                    return (
+                      <View key={i} style={styles.planStepRow}>
+                        <View style={styles.planStepNum}>
+                          <Text style={styles.planStepNumText}>{i + 1}</Text>
+                        </View>
+                        <Text style={styles.planStepText}>{text}</Text>
+                      </View>
+                    );
+                  })}
+                </>
+              )}
+            </Pressable>
           )}
 
           {planNote && (mobilityMode === "bus" || mobilityMode === "tram") && (
@@ -3564,6 +3643,20 @@ const styles = StyleSheet.create({
   },
   planLegTitle: { fontSize: 14, fontWeight: "700", color: "#264348" },
   planLegSub: { fontSize: 12, color: "#6B7280", marginTop: 1 },
+  journeyHint: { fontSize: 11, color: "#9CA3AF", marginTop: 6, textAlign: "center" },
+  journeyDirectionsTitle: { fontSize: 13, fontWeight: "800", color: "#264348", marginTop: 4, marginBottom: 6 },
+  planStepRow: { flexDirection: "row", gap: 10, paddingVertical: 6 },
+  planStepNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#264348",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  planStepNumText: { color: "#fff", fontSize: 12, fontWeight: "800" },
+  planStepText: { flex: 1, fontSize: 13, color: "#264348", lineHeight: 18 },
   linePanel: {
     backgroundColor: "#fff",
     borderRadius: 14,
