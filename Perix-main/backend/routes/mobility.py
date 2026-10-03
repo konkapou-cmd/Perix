@@ -1052,14 +1052,13 @@ async def vehicle_trip_progress(vehicle_id: str, current_user: Optional[UserPubl
     for i, (s, t) in enumerate(ordered):
         delay = int(stop_delays.get(s.get("stop_id"), trip_delay))
         predicted = t + delay
-        h, m = divmod(predicted % (24 * 3600), 3600)
         stops_out.append(
             {
                 "stop_id": s.get("stop_id"),
                 "name": s.get("name"),
                 "scheduled": trip.get("stop_times", {}).get(s.get("stop_id")),
                 "delay_seconds": delay,
-                "predicted": f"{h:02d}:{m:02d}",
+                "predicted": _fmt_service_time(predicted),
                 "passed": predicted <= now_sec,
             }
         )

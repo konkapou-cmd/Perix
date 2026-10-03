@@ -88,6 +88,16 @@ const googleKey =
 // zoom 14 -> 0.78, zoom 16 -> 0.89, zoom 18+ -> 1.05.
 const vehicleScale = (zoom: number) => 0.78 * Math.max(0.45, Math.min(1.35, zoom / 14));
 
+const haversineMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const R = 6371000;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+};
+
 // Cartoon transit icons (SVG) with the route number on a side plate.
 // Bus: white + light blue. Tram: white + dark green, articulated in two
 // segments with pantograph and doors. Both face right; rotation = heading - 90deg.
@@ -252,6 +262,73 @@ export default function BusinessMap({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const zoomLayoutDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [layoutTick, setLayoutTick] = useState(0);
+
+  // Continuous vehicle motion: positions are interpolated in GEOGRAPHIC
+  // space between polls (requestAnimationFrame), so vehicles glide along
+  // their routes instead of jumping every 4s. Zooming in makes the same
+  // geographic step cover more pixels - motion appears faster naturally.
+  const animRunningRef = useRef(false);
+  const animRafRef = useRef<number | null>(null);
+  const loopTick = () => {
+    let active = false;
+    const now = Date.now();
+    markersRef.current.forEach((rec: any) => {
+      if (!rec || rec.animStart == null || !rec.geoTo) return;
+      const t = Math.min(1, (now - rec.animStart) / rec.animDuration);
+      const lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * t;
+      const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * t;
+      rec.overlay.pos = { lat, lng };
+      try { rec.overlay.draw(); } catch (e) {}
+      if (t >= 1) rec.animStart = null;
+      else active = true;
+    });
+    if (active) {
+      animRafRef.current = requestAnimationFrame(loopTick);
+    } else {
+      animRunningRef.current = false;
+      animRafRef.current = null;
+    }
+  };
+  const kickAnim = () => {
+    if (animRunningRef.current) return;
+    animRunningRef.current = true;
+    animRafRef.current = requestAnimationFrame(loopTick);
+  };
+  const setVehicleTarget = (rec: any, pos: { lat: number; lng: number }, nowTs: number) => {
+    let cur = rec.overlay.pos || pos;
+    if (rec.animStart != null && rec.geoTo) {
+      const t = Math.min(1, (nowTs - rec.animStart) / rec.animDuration);
+      cur = {
+        lat: rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * t,
+        lng: rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * t,
+      };
+    }
+    const d = haversineMeters(cur, pos);
+    const dt = rec.lastTs ? nowTs - rec.lastTs : 0;
+    rec.lastTs = nowTs;
+    if (d > 250 || dt <= 0 || dt > 30000) {
+      // Snap: brand-new vehicle, trip change, or a stale update.
+      rec.geoFrom = pos;
+      rec.geoTo = null;
+      rec.animStart = null;
+      rec.overlay.pos = pos;
+    } else {
+      rec.geoFrom = cur;
+      rec.geoTo = pos;
+      rec.animDuration = Math.max(1500, Math.min(9000, dt));
+      rec.animStart = nowTs;
+    }
+    kickAnim();
+  };
+
+  // Stop the animation loop when the map unmounts
+  useEffect(() => {
+    return () => {
+      if (animRafRef.current != null) cancelAnimationFrame(animRafRef.current);
+      animRunningRef.current = false;
+      animRafRef.current = null;
+    };
+  }, []);
   const prevLocationRef = useRef<string>("");
   const businessesRef = useRef(businesses);
   businessesRef.current = businesses;
@@ -722,7 +799,7 @@ export default function BusinessMap({
       const existing = existingTransit.get(repId);
       if (existing) {
         const rec = existing;
-        rec.overlay.pos = { lat: rep.latitude, lng: rep.longitude };
+        setVehicleTarget(rec, { lat: rep.latitude, lng: rep.longitude }, Date.now());
         rec.heading = heading;
         rec.scale = vScale;
         rec.inner.innerHTML = rep.type === "bus" ? busSvg(rep.label) : tramSvg(rep.label);
@@ -822,6 +899,10 @@ export default function BusinessMap({
         clusterIds: members.map((m) => m.id),
         clusterIdx: 0,
         badge,
+        geoFrom: { lat: rep.latitude, lng: rep.longitude },
+        geoTo: null,
+        animStart: null,
+        lastTs: Date.now(),
       };
 
       // Tapping a cluster cycles through the vehicles stacked there.
