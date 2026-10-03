@@ -97,6 +97,7 @@ export default function LocatorScreen() {
   const [myTaxiReq, setMyTaxiReq] = useState<TaxiRequest | null>(null);
   const [taxiRequesting, setTaxiRequesting] = useState(false);
   const [transitNetwork, setTransitNetwork] = useState<BusNetwork | null>(null);
+  const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
@@ -507,17 +508,26 @@ export default function LocatorScreen() {
     };
   }, [activeTab, sessionToken]);
 
-  // Tram: deep red, Bus: dark blue
+  // Tram: deep red, Bus: dark blue. A selected line is highlighted while
+  // the others fade out.
   const transitLines = useMemo(() => {
     if (!transitNetwork) return [];
     return transitNetwork.routes.map((r) => ({
+      routeNumber: r.route_number,
       color: r.mode === "tram" ? "#8B0000" : "#1E3A8A",
+      opacity: selectedLine ? (r.route_number === selectedLine ? 0.9 : 0.07) : 0.45,
+      weight: selectedLine === r.route_number ? 3 : 2,
       points:
         Array.isArray((r as any).shape) && (r as any).shape.length > 2
           ? (r as any).shape.map((p: any) => ({ latitude: p[0], longitude: p[1] }))
           : r.stops.map((s) => ({ latitude: s.lat, longitude: s.lng })),
     }));
-  }, [transitNetwork]);
+  }, [transitNetwork, selectedLine]);
+
+  const selectedRoute = useMemo(() => {
+    if (!transitNetwork || !selectedLine) return null;
+    return transitNetwork.routes.find((r) => r.route_number === selectedLine) || null;
+  }, [transitNetwork, selectedLine]);
 
   // Bus destination search (debounced)
   useEffect(() => {
@@ -1034,6 +1044,9 @@ export default function LocatorScreen() {
               : undefined
           }
           transitLines={activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram") ? transitLines : undefined}
+          onTransitLineClick={(routeNumber) => {
+            setSelectedLine((prev) => (prev === routeNumber ? null : routeNumber));
+          }}
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
@@ -1104,6 +1117,43 @@ export default function LocatorScreen() {
               </Text>
             </Pressable>
           </View>
+
+          {selectedRoute && (mobilityMode === "bus" || mobilityMode === "tram") && (
+            <View style={styles.linePanel}>
+              <View style={styles.linePanelHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linePanelTitle}>
+                    {selectedRoute.route_number} · {selectedRoute.name}
+                  </Text>
+                  <Text style={styles.linePanelHint}>
+                    {t("mobility.lineStopsHint", "Tap a stop to see live arrivals")}
+                  </Text>
+                </View>
+                <Pressable onPress={() => setSelectedLine(null)} hitSlop={8}>
+                  <Ionicons name="close-circle" size={22} color="#264348" />
+                </Pressable>
+              </View>
+              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                {selectedRoute.stops.map((s, i) => (
+                  <Pressable
+                    key={`${s.stop_id}-${i}`}
+                    style={styles.lineStopRow}
+                    onPress={() => {
+                      setSelectedStop({ stop_id: s.stop_id, name: s.name });
+                      setBusQuery(s.name);
+                      setBusSuggestions([]);
+                    }}
+                  >
+                    <View style={styles.lineStopNum}>
+                      <Text style={styles.lineStopNumText}>{i + 1}</Text>
+                    </View>
+                    <Text style={styles.lineStopName} numberOfLines={1}>{s.name}</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {(mobilityMode === "bus" || mobilityMode === "tram") && (
             <View style={styles.busSearchWrap}>
@@ -3113,6 +3163,36 @@ const styles = StyleSheet.create({
   },
   busSuggestionName: { fontSize: 14, fontWeight: "600", color: "#264348" },
   busSuggestionRoutes: { fontSize: 12, color: "#59ABE3", marginTop: 1 },
+  linePanel: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E7EAF0",
+    padding: 12,
+    marginBottom: 10,
+    maxHeight: 260,
+  },
+  linePanelHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  linePanelTitle: { fontSize: 15, fontWeight: "700", color: "#264348" },
+  linePanelHint: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  lineStopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E7EAF0",
+  },
+  lineStopNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#EAF5FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lineStopNumText: { fontSize: 11, fontWeight: "700", color: "#264348" },
+  lineStopName: { flex: 1, fontSize: 14, color: "#264348" },
   taxiCard: {
     backgroundColor: "#fff",
     borderRadius: 14,

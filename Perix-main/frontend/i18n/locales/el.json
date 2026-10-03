@@ -3101,6 +3101,7 @@
     "changedRoutes": "Αλλαγμένες γραμμές",
     "removedRoutes": "Αφαιρεμένες γραμμές",
     "activateNetwork": "Ενεργοποίηση νέου δικτύου",
+    "lineStopsHint": "Πάτησε μια στάση για ζωντανές αφίξεις",
     "uploadGtfs": "Ανέβασμα GTFS (.zip)",
     "importFailed": "Η εισαγωγή GTFS απέτυχε",
     "busLines": "Γραμμές λεωφορείων",

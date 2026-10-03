@@ -3173,6 +3173,7 @@
     "changedRoutes": "Geänderte Linien",
     "removedRoutes": "Entfernte Linien",
     "activateNetwork": "Neues Netz aktivieren",
+    "lineStopsHint": "Tippe eine Haltestelle für Live-Abfahrten an",
     "uploadGtfs": "GTFS hochladen (.zip)",
     "importFailed": "GTFS-Import fehlgeschlagen",
     "busLines": "Buslinien",

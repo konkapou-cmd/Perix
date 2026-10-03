@@ -47,7 +47,14 @@ type Props = {
   services?: Service[];
   markers?: MapMarker[];
   extraMarkers?: MapMarker[];
-  transitLines?: { points: { latitude: number; longitude: number }[]; color: string }[];
+  transitLines?: {
+    points: { latitude: number; longitude: number }[];
+    color: string;
+    opacity?: number;
+    weight?: number;
+    routeNumber?: string;
+  }[];
+  onTransitLineClick?: (routeNumber: string) => void;
   showUserLocation?: boolean;
   userPinImage?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;

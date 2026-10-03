@@ -55,7 +55,14 @@ type Props = {
   markers?: MapMarker[];
   extraMarkers?: MapMarker[];
   /** Thin transit route lines drawn under the markers (bus/tram networks). */
-  transitLines?: { points: { latitude: number; longitude: number }[]; color: string }[];
+  transitLines?: {
+    points: { latitude: number; longitude: number }[];
+    color: string;
+    opacity?: number;
+    weight?: number;
+    routeNumber?: string;
+  }[];
+  onTransitLineClick?: (routeNumber: string) => void;
   showUserLocation?: boolean;
   userPinImage?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;
@@ -161,6 +168,7 @@ export default function BusinessMap({
   markers,
   extraMarkers,
   transitLines,
+  onTransitLineClick,
   showUserLocation,
   userPinImage,
   pinLocation,
@@ -678,10 +686,15 @@ export default function BusinessMap({
       const poly = new google.maps.Polyline({
         path: line.points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
         strokeColor: line.color,
-        strokeWeight: 2,
-        strokeOpacity: 0.45,
+        strokeWeight: line.weight ?? 2,
+        strokeOpacity: line.opacity ?? 0.45,
         zIndex: 1,
       });
+      if (onTransitLineClick && line.routeNumber) {
+        poly.addListener("click", () => {
+          onTransitLineClick(line.routeNumber as string);
+        });
+      }
       poly.setMap(mapRef.current);
       transitLinesRef.current.push(poly);
     });

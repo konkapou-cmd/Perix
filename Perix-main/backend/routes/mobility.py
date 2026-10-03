@@ -386,23 +386,30 @@ def _shape_index_for(shape: List[list], lat: float, lng: float) -> int:
 
 
 def _position_along_shape(shape: List[list], from_idx: int, to_idx: int, frac: float) -> dict:
-    """Point at `frac` (0..1) of the cumulative path along shape[from_idx..to_idx]."""
+    """Point at `frac` (0..1) of the cumulative path along the shape between
+    the two indices (handles both directions)."""
     if from_idx == to_idx:
         return {"lat": shape[from_idx][0], "lng": shape[from_idx][1]}
+    reverse = from_idx > to_idx
+    lo, hi = (to_idx, from_idx) if reverse else (from_idx, to_idx)
     segs = []
     total = 0.0
-    for i in range(from_idx, to_idx):
+    for i in range(lo, hi):
         d = _haversine_km(shape[i][0], shape[i][1], shape[i + 1][0], shape[i + 1][1])
         segs.append(d)
         total += d
-    target = total * frac
+    if total == 0:
+        return {"lat": shape[from_idx][0], "lng": shape[from_idx][1]}
+    target = total * (1.0 - frac if reverse else frac)
     acc = 0.0
     for i, d in enumerate(segs):
         if acc + d >= target and d > 0:
             f = (target - acc) / d
+            a = lo + i
+            b = a + 1
             return {
-                "lat": shape[from_idx + i][0] + (shape[from_idx + i + 1][0] - shape[from_idx + i][0]) * f,
-                "lng": shape[from_idx + i][1] + (shape[from_idx + i + 1][1] - shape[from_idx + i][1]) * f,
+                "lat": shape[a][0] + (shape[b][0] - shape[a][0]) * f,
+                "lng": shape[a][1] + (shape[b][1] - shape[a][1]) * f,
             }
         acc += d
     return {"lat": shape[to_idx][0], "lng": shape[to_idx][1]}
