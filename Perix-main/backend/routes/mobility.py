@@ -429,7 +429,10 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
         return None
     start = scheduled[0]["t"]
     end = scheduled[-1]["t"]
-    if now_sec < start or now_sec > end:
+    # Grace windows keep the vehicle visible: waiting at the first stop up
+    # to 60s before departure and lingering at the terminal up to 3 min
+    # after arrival (otherwise vehicles blink in/out between trips).
+    if now_sec < start - 60 or now_sec > end + 180:
         return None
     prev, nxt = None, None
     for i, entry in enumerate(scheduled):
@@ -438,8 +441,10 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
         if entry["t"] >= now_sec and nxt is None:
             nxt = entry
     if prev is None:
+        # Not departed yet - stand at the first stop
         pos = scheduled[0]["stop"]
     elif nxt is None or nxt is prev:
+        # Trip finished - hold at the last stop
         pos = scheduled[-1]["stop"]
     else:
         span = max(1, nxt["t"] - prev["t"])
@@ -473,6 +478,16 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
     heading = None
     if prev is not None and nxt is not None and nxt is not prev:
         heading = _bearing(prev["stop"]["lat"], prev["stop"]["lng"], nxt["stop"]["lat"], nxt["stop"]["lng"])
+    elif prev is None and len(scheduled) > 1:
+        heading = _bearing(
+            scheduled[0]["stop"]["lat"], scheduled[0]["stop"]["lng"],
+            scheduled[1]["stop"]["lat"], scheduled[1]["stop"]["lng"],
+        )
+    elif (nxt is None or nxt is prev) and len(scheduled) > 1:
+        heading = _bearing(
+            scheduled[-2]["stop"]["lat"], scheduled[-2]["stop"]["lng"],
+            scheduled[-1]["stop"]["lat"], scheduled[-1]["stop"]["lng"],
+        )
     return {
         "latitude": pos["lat"],
         "longitude": pos["lng"],
@@ -1324,9 +1339,34 @@ async def plan_journey(
     final_walk_km = _haversine_km(to_lat, to_lng, stops[reached[1]]["lat"], stops[reached[1]]["lng"])
     legs.append(("walk_dest", {"minutes": round(walk_sec(final_walk_km) / 60), "to_lat": to_lat, "to_lng": to_lng}, reached[1], None))
 
+    # Route shape lookup per route number for ride polylines
+    shapes_by_num = {}
+    for route in network.get("routes", []):
+        sh = route.get("shape") or []
+        if isinstance(sh, list) and len(sh) > 2:
+            shapes_by_num[str(route.get("route_number"))] = (route, sh)
+
+    def _shape_slice(route_num, from_stop_id, to_stop_id):
+        """Slice of the route shape between two stops (either direction)."""
+        entry = shapes_by_num.get(str(route_num))
+        if not entry:
+            return None
+        route, sh = entry
+        a = next((s for s in route.get("stops", []) if s.get("stop_id") == from_stop_id), None)
+        b = next((s for s in route.get("stops", []) if s.get("stop_id") == to_stop_id), None)
+        if not a or not b:
+            return None
+        ia = _shape_index_for(sh, a.get("lat"), a.get("lng"))
+        ib = _shape_index_for(sh, b.get("lat"), b.get("lng"))
+        lo, hi = (ia, ib) if ia <= ib else (ib, ia)
+        if hi - lo < 1:
+            return None
+        seg = [[p[0], p[1]] for p in sh[lo : hi + 1]]
+        return seg[::-1] if ia > ib else seg
+
     itinerary_legs = []
     walking_total = 0
-    for kind, payload, _prev, _cur in legs:
+    for kind, payload, prev_sid, cur_sid in legs:
         if kind == "walk_origin":
             s = stops[payload["stop"]]
             itinerary_legs.append({
@@ -1335,9 +1375,11 @@ async def plan_journey(
                 "label": s["name"],
                 "lat": s["lat"],
                 "lng": s["lng"],
+                "points": [[from_lat, from_lng], [s["lat"], s["lng"]]],
             })
             walking_total += payload["minutes"]
         elif kind == "ride":
+            shape_slice = _shape_slice(payload["route_number"], payload["board"], payload["alight"])
             itinerary_legs.append({
                 "type": "ride",
                 "route_number": payload["route_number"],
@@ -1348,12 +1390,35 @@ async def plan_journey(
                 "depart": _fmt_service_time(payload["depart"]),
                 "arrive": _fmt_service_time(payload["arrive"]),
                 "minutes": round((payload["arrive"] - payload["depart"]) / 60),
+                "points": shape_slice or [
+                    [stops.get(payload["board"], {}).get("lat"), stops.get(payload["board"], {}).get("lng")],
+                    [stops.get(payload["alight"], {}).get("lat"), stops.get(payload["alight"], {}).get("lng")],
+                ],
             })
         elif kind == "walk":
-            itinerary_legs.append({"type": "walk_transfer", "minutes": payload["minutes"], "label": stops.get(_cur, {}).get("name", "")})
+            p_stop = stops.get(prev_sid)
+            c_stop = stops.get(cur_sid)
+            itinerary_legs.append({
+                "type": "walk_transfer",
+                "minutes": payload["minutes"],
+                "label": c_stop.get("name", "") if c_stop else "",
+                "points": [
+                    [p_stop.get("lat"), p_stop.get("lng")] if p_stop else None,
+                    [c_stop.get("lat"), c_stop.get("lng")] if c_stop else None,
+                ],
+            })
             walking_total += payload["minutes"]
         elif kind == "walk_dest":
-            itinerary_legs.append({"type": "walk", "minutes": payload["minutes"], "label": "destination"})
+            p_stop = stops.get(prev_sid)
+            itinerary_legs.append({
+                "type": "walk",
+                "minutes": payload["minutes"],
+                "label": "destination",
+                "points": [
+                    [p_stop.get("lat"), p_stop.get("lng")] if p_stop else None,
+                    [to_lat, to_lng],
+                ],
+            })
             walking_total += payload["minutes"]
 
     duration = round((reached[0] + walk_sec(final_walk_km) - now_sec) / 60)

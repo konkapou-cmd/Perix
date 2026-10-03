@@ -545,6 +545,47 @@ export default function LocatorScreen() {
     return transitNetwork.routes.find((r) => r.route_number === selectedLine) || null;
   }, [transitNetwork, selectedLine]);
 
+  // Stops drawn on the map: the selected line's stops, or every stop of the
+  // network (exact GTFS positions) when no line is isolated.
+  const transitStops = useMemo(() => {
+    if (!transitNetwork) return [];
+    if (selectedLine) {
+      const route = transitNetwork.routes.find((r) => r.route_number === selectedLine);
+      return (route?.stops || [])
+        .filter((s) => s.lat != null && s.lng != null)
+        .map((s) => ({ latitude: s.lat, longitude: s.lng }));
+    }
+    const seen = new Set<string>();
+    const out: { latitude: number; longitude: number }[] = [];
+    for (const route of transitNetwork.routes) {
+      for (const s of route.stops || []) {
+        if (s.lat == null || s.lng == null) continue;
+        const key = `${s.lat.toFixed(5)}_${s.lng.toFixed(5)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ latitude: s.lat, longitude: s.lng });
+      }
+    }
+    return out;
+  }, [transitNetwork, selectedLine]);
+
+  // Journey-plan route on the map: walking light blue, tram green, bus blue.
+  const planLines = useMemo(() => {
+    if (!journeyPlans.length) return [];
+    const colors: Record<string, string> = { tram: "#166534", bus: "#1E3A8A" };
+    return journeyPlans[0].legs
+      .filter((leg) => Array.isArray(leg.points) && (leg.points as any[]).length >= 2)
+      .map((leg) => ({
+        points: (leg.points as any[])
+          .filter((p: any) => Array.isArray(p) && p.length === 2 && p[0] != null && p[1] != null)
+          .map((p: any) => ({ latitude: p[0], longitude: p[1] })),
+        color: leg.type === "ride" ? colors[leg.mode || "bus"] || "#1E3A8A" : "#59ABE3",
+        weight: leg.type === "ride" ? 6 : 5,
+        opacity: 0.9,
+      }))
+      .filter((l) => l.points.length >= 2);
+  }, [journeyPlans]);
+
   // Nearest vehicles first: the list serves the user standing at their
   // location, so order by distance to them (cap to the closest 20).
   const nearbyVehicles = useMemo(() => {
@@ -1194,6 +1235,16 @@ export default function LocatorScreen() {
               : undefined
           }
           transitLines={activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram") ? transitLines : undefined}
+          transitStops={
+            activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram")
+              ? transitStops
+              : undefined
+          }
+          planLines={
+            activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram")
+              ? planLines
+              : undefined
+          }
           onTransitLineClick={(routeNumber) => {
             setSelectedLine((prev) => (prev === routeNumber ? null : routeNumber));
           }}

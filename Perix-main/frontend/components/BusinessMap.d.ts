@@ -56,6 +56,13 @@ type Props = {
     routeNumber?: string;
   }[];
   onTransitLineClick?: (routeNumber: string) => void;
+  transitStops?: { latitude: number; longitude: number }[];
+  planLines?: {
+    points: { latitude: number; longitude: number }[];
+    color: string;
+    weight?: number;
+    opacity?: number;
+  }[];
   showUserLocation?: boolean;
   userPinImage?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;

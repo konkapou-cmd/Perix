@@ -277,6 +277,7 @@ export type PlanLeg = {
   alight?: string;
   depart?: string;
   arrive?: string;
+  points?: (number[] | null)[];
 };
 
 export type JourneyPlan = {

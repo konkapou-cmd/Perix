@@ -64,6 +64,15 @@ type Props = {
     routeNumber?: string;
   }[];
   onTransitLineClick?: (routeNumber: string) => void;
+  /** Transit stops rendered as small dots (exact GTFS positions). */
+  transitStops?: { latitude: number; longitude: number }[];
+  /** Journey-plan route: walking legs light blue, tram green, bus blue. */
+  planLines?: {
+    points: { latitude: number; longitude: number }[];
+    color: string;
+    weight?: number;
+    opacity?: number;
+  }[];
   showUserLocation?: boolean;
   userPinImage?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;
@@ -104,14 +113,14 @@ const haversineMeters = (a: { lat: number; lng: number }, b: { lat: number; lng:
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 
-const routePlateText = (num: string, fontSize: number, y: number) =>
-  `<text x="50%" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="${fontSize}" fill="#ffffff">${escapeHtml(num)}</text>`;
+const routePlateText = (num: string, x: number, fontSize: number, y: number) =>
+  `<text x="${x}" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="${fontSize}" fill="#ffffff">${escapeHtml(num)}</text>`;
 
 const busSvg = (label?: string | null) => {
   const num = (label || "").trim();
   const plate = num
     ? `<rect x="32.2" y="6" width="8" height="6.2" rx="1.6" fill="#1E3A8A"/>` +
-      routePlateText(num, num.length > 2 ? 3.4 : 4.6, 10.7)
+      routePlateText(num, 36.2, num.length > 2 ? 3.4 : 4.6, 10.7)
     : "";
   return `<svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -140,7 +149,7 @@ const tramSvg = (label?: string | null) => {
   const num = (label || "").trim();
   const plate = num
     ? `<rect x="8.2" y="10.8" width="11" height="6.8" rx="1.6" fill="#166534"/>` +
-      routePlateText(num, num.length > 2 ? 3.9 : 5.2, 15.9)
+      routePlateText(num, 13.7, num.length > 2 ? 3.9 : 5.2, 15.9)
     : "";
   return `<svg width="66" height="30" viewBox="0 0 66 30" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -230,6 +239,8 @@ export default function BusinessMap({
   extraMarkers,
   transitLines,
   onTransitLineClick,
+  transitStops,
+  planLines,
   showUserLocation,
   userPinImage,
   pinLocation,
@@ -976,6 +987,93 @@ export default function BusinessMap({
       transitLinesRef.current.push(poly);
     });
   }, [transitLines, mapReady]);
+
+  // Journey-plan route (walking light blue, tram green, bus blue) drawn on
+  // top of the network lines so the passenger can follow the itinerary.
+  const planLinesRef = useRef<any[]>([]);
+  useEffect(() => {
+    if (!mapRef.current || !mapReadyRef.current) return;
+    planLinesRef.current.forEach((p) => {
+      try { p.setMap(null); } catch (e) {}
+    });
+    planLinesRef.current = [];
+    const google = (window as any).google;
+    (planLines || []).forEach((line) => {
+      if (!line.points || line.points.length < 2) return;
+      const poly = new google.maps.Polyline({
+        path: line.points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
+        strokeColor: line.color,
+        strokeWeight: line.weight ?? 5,
+        strokeOpacity: line.opacity ?? 0.9,
+        zIndex: 2,
+      });
+      poly.setMap(mapRef.current);
+      planLinesRef.current.push(poly);
+    });
+  }, [planLines, mapReady]);
+
+  // Transit stops as small dots on their exact positions (visible when
+  // zoomed in; capped so the map stays responsive).
+  const transitStopsRef = useRef<any[]>([]);
+  useEffect(() => {
+    if (!mapRef.current || !mapReadyRef.current) return;
+    transitStopsRef.current.forEach((o) => {
+      try { o.setMap(null); } catch (e) {}
+    });
+    transitStopsRef.current = [];
+    const zoom = mapRef.current?.getZoom?.() || 14;
+    if (!transitStops || transitStops.length === 0 || zoom < 12.5) return;
+    const google = (window as any).google;
+    const bounds = mapRef.current.getBounds();
+    const list = (transitStops || []).filter(
+      (s) =>
+        !bounds ||
+        (s.latitude >= bounds.getSouthWest().lat() && s.latitude <= bounds.getNorthEast().lat() &&
+         s.longitude >= bounds.getSouthWest().lng() && s.longitude <= bounds.getNorthEast().lng())
+    );
+    // Cap the dots at 300 (skip evenly) to avoid DOM overload
+    const stride = Math.max(1, Math.ceil(list.length / 300));
+    class StopOverlay extends google.maps.OverlayView {
+      div: HTMLDivElement;
+      pos: { lat: number; lng: number };
+      constructor(div: HTMLDivElement, pos: { lat: number; lng: number }) {
+        super();
+        this.div = div;
+        this.pos = pos;
+      }
+      onAdd(this: any) {
+        this.getPanes().overlayMouseTarget.appendChild(this.div);
+      }
+      draw(this: any) {
+        const overlayProjection = this.getProjection();
+        const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
+        if (point) {
+          this.div.style.left = point.x + "px";
+          this.div.style.top = point.y + "px";
+        }
+      }
+      onRemove(this: any) {
+        if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
+      }
+    }
+    list.forEach((s, i) => {
+      if (i % stride !== 0) return;
+      const div = document.createElement("div");
+      div.style.position = "absolute";
+      div.style.width = "7px";
+      div.style.height = "7px";
+      div.style.borderRadius = "50%";
+      div.style.backgroundColor = "#264348";
+      div.style.border = "2px solid #ffffff";
+      div.style.boxShadow = "0 0 2px rgba(0,0,0,0.4)";
+      div.style.transform = "translate(-50%, -50%)";
+      div.style.boxSizing = "border-box";
+      div.style.pointerEvents = "none";
+      const overlay = new StopOverlay(div, { lat: s.latitude, lng: s.longitude });
+      overlay.setMap(mapRef.current);
+      transitStopsRef.current.push(overlay);
+    });
+  }, [transitStops, mapReady, layoutTick]);
 
   // Fly to location
   useEffect(() => {
