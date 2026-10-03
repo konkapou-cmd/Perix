@@ -188,6 +188,29 @@ export const searchBusStops = (token: string | null | undefined, q: string) =>
     token || undefined
   );
 
+export type PlaceSuggestion = {
+  id?: string;
+  name: string;
+  address?: string;
+  lat: number;
+  lng: number;
+  category?: string;
+};
+
+export type StopSuggestion = {
+  stop_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+};
+
+export const searchPlaces = (token: string | null | undefined, q: string) =>
+  apiRequest<{ places: PlaceSuggestion[]; stops: StopSuggestion[] }>(
+    `/mobility/places/search?q=${encodeURIComponent(q)}`,
+    "GET",
+    token || undefined
+  );
+
 export const getBusesServing = (
   token: string | null | undefined,
   stopId: string,

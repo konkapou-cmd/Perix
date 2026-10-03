@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, getVehicleTrip, VehicleTripProgress, BusNetwork, TaxiRequest, TaxiPricing, planJourney, JourneyPlan } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, getVehicleTrip, VehicleTripProgress, BusNetwork, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -92,7 +92,8 @@ export default function LocatorScreen() {
   const [transitDestAddress, setTransitDestAddress] = useState("");
   const [transitDestLat, setTransitDestLat] = useState<number | null>(null);
   const [transitDestLng, setTransitDestLng] = useState<number | null>(null);
-  const [transitDestSuggestions, setTransitDestSuggestions] = useState<any[]>([]);
+  const [transitPlaceSuggestions, setTransitPlaceSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [transitStopSuggestions, setTransitStopSuggestions] = useState<StopSuggestion[]>([]);
   const [journeyPlans, setJourneyPlans] = useState<JourneyPlan[]>([]);
   const [planLoading, setPlanLoading] = useState(false);
   const [planNote, setPlanNote] = useState<string | null>(null);
@@ -542,6 +543,23 @@ export default function LocatorScreen() {
     return transitNetwork.routes.find((r) => r.route_number === selectedLine) || null;
   }, [transitNetwork, selectedLine]);
 
+  // Nearest vehicles first: the list serves the user standing at their
+  // location, so order by distance to them (cap to the closest 20).
+  const nearbyVehicles = useMemo(() => {
+    const list = liveVehicles.filter((v) => v.mode === mobilityMode);
+    if (!contextLocation) return list.slice(0, 24);
+    const withDist = list
+      .map((v) => ({
+        v,
+        d:
+          v.latitude != null && v.longitude != null
+            ? haversineDistance(contextLocation.latitude, contextLocation.longitude, v.latitude, v.longitude)
+            : null,
+      }))
+      .sort((a, b) => (a.d ?? Infinity) - (b.d ?? Infinity));
+    return withDist.map((x) => x.v).slice(0, 20);
+  }, [liveVehicles, mobilityMode, contextLocation?.latitude, contextLocation?.longitude]);
+
   // Selected vehicle trip progress (passed stops + arrival times)
   useEffect(() => {
     if (activeTab !== "mobility" || !selectedVehicle) return;
@@ -605,34 +623,42 @@ export default function LocatorScreen() {
     };
   }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude]);
 
-  // Transit "any area" destination suggestions (Google autocomplete)
+  // Transit "any area" destination suggestions (Perix's own map: venues + stops)
   useEffect(() => {
     if (
       activeTab !== "mobility" ||
       (mobilityMode !== "bus" && mobilityMode !== "tram") ||
-      transitDestAddress.trim().length < 3
+      transitDestAddress.trim().length < 2
     ) {
-      setTransitDestSuggestions([]);
+      setTransitPlaceSuggestions([]);
+      setTransitStopSuggestions([]);
       return;
     }
     let cancelled = false;
-    const timer = setTimeout(async () => {
-      try {
-        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-          transitDestAddress.trim()
-        )}&key=${googleKey}&language=${encodeURIComponent(i18n.language || "en")}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (!cancelled) setTransitDestSuggestions(data.predictions || []);
-      } catch {
-        if (!cancelled) setTransitDestSuggestions([]);
-      }
+    const timer = setTimeout(() => {
+      searchPlaces(sessionToken, transitDestAddress.trim())
+        .then((res) => {
+          if (cancelled) return;
+          setTransitPlaceSuggestions(res.places || []);
+          setTransitStopSuggestions(res.stops || []);
+        })
+        .catch(() => {
+          if (cancelled) {
+            setTransitPlaceSuggestions([]);
+            setTransitStopSuggestions([]);
+          }
+        });
     }, 350);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [activeTab, mobilityMode, transitDestAddress, googleKey, i18n.language]);
+  }, [activeTab, mobilityMode, transitDestAddress, sessionToken]);
+
+  const clearTransitSuggestions = () => {
+    setTransitPlaceSuggestions([]);
+    setTransitStopSuggestions([]);
+  };
 
   const runPlan = async (destLat: number, destLng: number) => {
     const originLat = contextLocation?.latitude ?? livePosition?.latitude ?? locateFocus?.latitude;
@@ -658,22 +684,24 @@ export default function LocatorScreen() {
     }
   };
 
-  const selectTransitDestination = async (suggestion: { description: string; place_id: string }) => {
-    setTransitDestAddress(suggestion.description);
-    setTransitDestSuggestions([]);
-    try {
-      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
-        suggestion.place_id
-      )}&key=${googleKey}&language=${encodeURIComponent(i18n.language || "en")}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const loc = data.result?.geometry?.location;
-      if (loc) {
-        setTransitDestLat(loc.lat);
-        setTransitDestLng(loc.lng);
-        runPlan(loc.lat, loc.lng);
-      }
-    } catch {}
+  const selectTransitPlace = (place: PlaceSuggestion) => {
+    setTransitDestAddress(place.name);
+    clearTransitSuggestions();
+    if (place.lat != null && place.lng != null) {
+      setTransitDestLat(place.lat);
+      setTransitDestLng(place.lng);
+      runPlan(place.lat, place.lng);
+    }
+  };
+
+  const selectTransitStop = (stop: StopSuggestion) => {
+    setTransitDestAddress(stop.name);
+    clearTransitSuggestions();
+    if (stop.lat != null && stop.lng != null) {
+      setTransitDestLat(stop.lat);
+      setTransitDestLng(stop.lng);
+      runPlan(stop.lat, stop.lng);
+    }
   };
 
   // Taxi mode: load pricing and poll my active request
@@ -1352,7 +1380,7 @@ export default function LocatorScreen() {
                   <Pressable
                     onPress={() => {
                       setTransitDestAddress("");
-                      setTransitDestSuggestions([]);
+                      clearTransitSuggestions();
                       setJourneyPlans([]);
                       setPlanPicking(false);
                     }}
@@ -1366,18 +1394,42 @@ export default function LocatorScreen() {
                   {t("mobility.pickOnMapHint", "Tap anywhere on the map to choose your destination")}
                 </Text>
               )}
-              {transitDestSuggestions.length > 0 && (
+              {(transitPlaceSuggestions.length > 0 || transitStopSuggestions.length > 0) && (
                 <View style={styles.busSuggestions}>
-                  {transitDestSuggestions.map((s) => (
+                  {transitPlaceSuggestions.map((s) => (
                     <Pressable
-                      key={s.place_id}
+                      key={"p_" + s.id}
                       style={styles.busSuggestionRow}
-                      onPress={() => selectTransitDestination(s)}
+                      onPress={() => selectTransitPlace(s)}
                     >
                       <Ionicons name="location-outline" size={14} color="#FFC400" />
-                      <Text style={styles.busSuggestionName} numberOfLines={1}>
-                        {s.description}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.busSuggestionName} numberOfLines={1}>
+                          {s.name}
+                        </Text>
+                        {s.address ? (
+                          <Text style={styles.busSuggestionRoutes} numberOfLines={1}>
+                            {s.address}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  ))}
+                  {transitStopSuggestions.map((s) => (
+                    <Pressable
+                      key={"s_" + s.stop_id}
+                      style={styles.busSuggestionRow}
+                      onPress={() => selectTransitStop(s)}
+                    >
+                      <Ionicons name="bus-outline" size={14} color="#59ABE3" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.busSuggestionName} numberOfLines={1}>
+                          {s.name}
+                        </Text>
+                        <Text style={styles.busSuggestionRoutes}>
+                          {t("mobility.stopSuggest", "Stop")}
+                        </Text>
+                      </View>
                     </Pressable>
                   ))}
                 </View>
@@ -1652,7 +1704,7 @@ export default function LocatorScreen() {
             </View>
           )}
 
-          {liveVehicles.filter((v) => v.mode === mobilityMode).length === 0 ? (
+          {nearbyVehicles.length === 0 ? (
             <View style={styles.mobilityEmpty}>
               <Ionicons
                 name={mobilityMode === "bus" ? "bus-outline" : mobilityMode === "tram" ? "train-outline" : "car-outline"}
@@ -1664,9 +1716,7 @@ export default function LocatorScreen() {
               </Text>
             </View>
           ) : (
-            liveVehicles
-              .filter((v) => v.mode === mobilityMode)
-              .map((v) => {
+            nearbyVehicles.map((v) => {
                 const dist =
                   contextLocation && v.latitude != null && v.longitude != null
                     ? haversineDistance(contextLocation.latitude, contextLocation.longitude, v.latitude, v.longitude)

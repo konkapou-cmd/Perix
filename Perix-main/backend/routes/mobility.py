@@ -6,6 +6,7 @@ import logging
 import math
 import os
 import random
+import re
 from datetime import datetime, timedelta
 from typing import List, Optional
 from zoneinfo import ZoneInfo
@@ -708,6 +709,53 @@ async def activate_network(payload: dict, operator: dict = Depends(_require_oper
     await db.bus_network_versions.update_one({"version_id": version_id}, {"$set": {"active": True}})
     _broadcast({"type": "network_activated", "version_id": version_id})
     return {"active": version_id}
+
+
+@router.get("/places/search")
+async def search_places(q: str = "", current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Destination suggestions from Perix's own map: businesses/venues and
+    transit stops (no external geocoding)."""
+    q = (q or "").strip()
+    if not q:
+        return {"places": [], "stops": []}
+    needle = re.escape(q.lower())
+    places = []
+    cursor = db.businesses.find(
+        {
+            "name": {"$regex": needle, "$options": "i"},
+            "latitude": {"$ne": None},
+            "longitude": {"$ne": None},
+        },
+        {"_id": 0},
+    ).limit(8)
+    async for b in cursor:
+        places.append(
+            {
+                "id": b.get("business_id"),
+                "name": b.get("name"),
+                "address": b.get("address") or "",
+                "lat": b.get("latitude"),
+                "lng": b.get("longitude"),
+                "category": b.get("subcategory") or b.get("root_category") or "",
+            }
+        )
+    stops = []
+    seen = set()
+    network = await _get_active_network()
+    if network:
+        for route in network.get("routes", []):
+            for s in route.get("stops", []):
+                name = str(s.get("name", ""))
+                sid = s.get("stop_id")
+                if sid in seen or q.lower() not in name.lower():
+                    continue
+                seen.add(sid)
+                stops.append({"stop_id": sid, "name": name, "lat": s.get("lat"), "lng": s.get("lng")})
+                if len(stops) >= 8:
+                    break
+            if len(stops) >= 8:
+                break
+    return {"places": places, "stops": stops}
 
 
 @router.get("/buses/search")

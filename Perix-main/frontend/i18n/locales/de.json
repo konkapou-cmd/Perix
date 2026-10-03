@@ -3158,6 +3158,7 @@
     "driverInvalidCode": "Ungültiger oder abgelaufener Code",
     "operatorRequired": "Mobilitätsverwaltung ist für Verkehrsbetriebe verfügbar (ÖPNV / Taxis).",
     "whereToGo": "Wohin möchtest du?",
+    "stopSuggest": "Haltestelle",
     "findStop": "Oder Haltestelle suchen…",
     "pickOnMap": "Karte",
     "pickOnMapHint": "Tippe irgendwo auf die Karte, um dein Ziel zu wählen",

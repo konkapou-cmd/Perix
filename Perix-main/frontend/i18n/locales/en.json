@@ -3058,6 +3058,7 @@
     "driverInvalidCode": "Invalid or expired code",
     "operatorRequired": "Mobility management is available for transport operator businesses (Public Transport / Taxis).",
     "whereToGo": "Where do you want to go?",
+    "stopSuggest": "Stop",
     "findStop": "Or find a stop by name…",
     "pickOnMap": "Map",
     "pickOnMapHint": "Tap anywhere on the map to choose your destination",
