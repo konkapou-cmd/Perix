@@ -74,24 +74,29 @@ async def _realtime_worker():
                 if trip_id not in trip_ids:
                     continue
                 delay = 0
+                stop_delays = {}
                 for stu in tu.stop_time_update:
                     d = None
                     if stu.HasField("departure") and stu.departure.HasField("delay"):
                         d = stu.departure.delay
                     elif stu.HasField("arrival") and stu.arrival.HasField("delay"):
                         d = stu.arrival.delay
-                    if d is not None and d > delay:
-                        delay = d
-                updates.append((trip_id, max(0, int(delay))))
+                    if d is not None:
+                        if d > delay:
+                            delay = d
+                        if stu.stop_id:
+                            stop_delays[stu.stop_id] = int(d)
+                updates.append((trip_id, max(0, int(delay)), stop_delays))
             from routes.mobility import _berlin_now
 
             now_iso = _berlin_now().isoformat()
-            for trip_id, delay in updates:
+            for trip_id, delay, stop_delays in updates:
                 await db.mobility_realtime.replace_one(
                     {"trip_id": trip_id},
                     {
                         "trip_id": trip_id,
                         "delay_seconds": delay,
+                        "stop_delays": stop_delays,
                         "updated_at": now_iso,
                         "source": "GTFS_RT",
                     },

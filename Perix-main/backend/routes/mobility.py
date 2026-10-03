@@ -421,28 +421,34 @@ def _bearing(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
     """Estimated position of a running trip along the route shape (or stop
-    polyline), interpolated between scheduled stop times. Returns None when
-    the trip is not running right now."""
-    start = _time_to_seconds(trip.get("start", ""))
-    end = _time_to_seconds(trip.get("end", ""))
-    if start is None or end is None:
-        return None
-    if now_sec < start or now_sec > end:
-        return None
+    polyline), interpolated between scheduled stop times, corrected with
+    GTFS-Realtime per-stop delays so a delayed vehicle sits where it
+    actually is. Returns None when the trip is not running right now."""
+    # Realtime state for this trip
+    realtime = delays.get(trip.get("trip_id")) if trip.get("trip_id") else None
+    trip_delay = int(realtime.get("delay_seconds") or 0) if realtime else 0
+    stop_delays = realtime.get("stop_delays") or {} if realtime else {}
+
     stop_times = trip.get("stop_times") or {}
     stops = route.get("stops") or []
     if not stops:
         return None
-    # Order scheduled stops by time
+    # Effective (delay-corrected) stop times
     scheduled = []
     for s in stops:
         t = _time_to_seconds(stop_times.get(s.get("stop_id"), ""))
         if t is None and s.get("scheduled"):
             t = _time_to_seconds(s.get("scheduled"))
-        if t is not None:
-            scheduled.append({"stop": s, "t": t})
+        if t is None:
+            continue
+        d = int(stop_delays.get(s.get("stop_id"), trip_delay))
+        scheduled.append({"stop": s, "t": t + d})
     scheduled.sort(key=lambda x: x["t"])
     if not scheduled:
+        return None
+    start = scheduled[0]["t"]
+    end = scheduled[-1]["t"]
+    if now_sec < start or now_sec > end:
         return None
     prev, nxt = None, None
     for i, entry in enumerate(scheduled):
@@ -459,7 +465,7 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
         frac = min(1.0, max(0.0, (now_sec - prev["t"]) / span))
         shape = route.get("shape") or []
         if isinstance(shape, list) and len(shape) > 2:
-            # Move along the real GTFS shape instead of a straight line.
+            # Move along the real route shape instead of a straight line.
             from_idx = _shape_index_for(shape, prev["stop"]["lat"], prev["stop"]["lng"])
             to_idx = _shape_index_for(shape, nxt["stop"]["lat"], nxt["stop"]["lng"])
             pos = _position_along_shape(shape, from_idx, to_idx, frac)
@@ -468,12 +474,10 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
                 "lat": prev["stop"]["lat"] + (nxt["stop"]["lat"] - prev["stop"]["lat"]) * frac,
                 "lng": prev["stop"]["lng"] + (nxt["stop"]["lng"] - prev["stop"]["lng"]) * frac,
             }
-    # Realtime delay (GTFS-RT TripUpdates pushed by the sync service)
-    realtime = delays.get(trip.get("trip_id")) if trip.get("trip_id") else None
     delay_minutes = 0
     position_source = "SCHEDULE_ESTIMATE"
-    if realtime and realtime.get("delay_seconds"):
-        delay_minutes = max(0, round(realtime["delay_seconds"] / 60))
+    if trip_delay > 0:
+        delay_minutes = max(0, round(trip_delay / 60))
         position_source = "REALTIME_ESTIMATE"
     # Facing direction: toward the next scheduled stop
     heading = None
