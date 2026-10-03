@@ -1064,6 +1064,74 @@ async def complete_taxi_request(request_id: str, current_user: UserPublic = Depe
     return {"ok": True}
 
 
+@router.get("/vehicles/{vehicle_id}/trip")
+async def vehicle_trip_progress(vehicle_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Per-stop progress for one vehicle/trip: which stops are already
+    passed and the predicted arrival time at every remaining stop."""
+    vehicle = await db.mobility_live.find_one({"vehicle_id": vehicle_id}, {"_id": 0})
+    if not vehicle and vehicle_id.startswith("est_"):
+        for v in await _all_active_vehicles():
+            if v.get("vehicle_id") == vehicle_id:
+                vehicle = v
+                break
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    route = await _network_route(vehicle.get("route_number"))
+    if not route:
+        raise HTTPException(status_code=404, detail="Route not found")
+    trips = route.get("trips", [])
+    trip = None
+    if vehicle_id.startswith("est_"):
+        parts = vehicle_id.split("_", 2)
+        if len(parts) >= 3:
+            trip_id = parts[2]
+            trip = next((t for t in trips if t.get("trip_id") == trip_id), None)
+    if trip is None:
+        trip = next(
+            (t for t in trips if str(t.get("headsign") or "") == str(vehicle.get("route_direction") or "")),
+            None,
+        ) or (trips[0] if trips else None)
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    stop_times = trip.get("stop_times") or {}
+    realtime = await db.mobility_realtime.find_one({"trip_id": trip.get("trip_id")})
+    trip_delay = int(realtime.get("delay_seconds") or 0) if realtime else 0
+    stop_delays = (realtime.get("stop_delays") or {}) if realtime else {}
+    now_sec = _now_service_seconds()
+    stops_out = []
+    ordered = []
+    for s in route.get("stops", []):
+        t = _time_to_seconds(stop_times.get(s.get("stop_id"), ""))
+        if t is None:
+            continue
+        ordered.append((s, t))
+    ordered.sort(key=lambda x: x[1])
+    for i, (s, t) in enumerate(ordered):
+        delay = int(stop_delays.get(s.get("stop_id"), trip_delay))
+        predicted = t + delay
+        h, m = divmod(predicted % (24 * 3600), 3600)
+        stops_out.append(
+            {
+                "stop_id": s.get("stop_id"),
+                "name": s.get("name"),
+                "scheduled": trip.get("stop_times", {}).get(s.get("stop_id")),
+                "delay_seconds": delay,
+                "predicted": f"{h:02d}:{m:02d}",
+                "passed": predicted <= now_sec,
+            }
+        )
+    return {
+        "vehicle_id": vehicle.get("vehicle_id"),
+        "route_number": vehicle.get("route_number"),
+        "route_direction": vehicle.get("route_direction") or trip.get("headsign"),
+        "mode": vehicle.get("mode"),
+        "delay_minutes": max(0, round(trip_delay / 60)),
+        "position_source": vehicle.get("position_source", "VEHICLE_GPS"),
+        "estimated": bool(vehicle.get("estimated")),
+        "stops": stops_out,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Passenger endpoint
 # ---------------------------------------------------------------------------

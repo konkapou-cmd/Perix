@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, BusNetwork, TaxiRequest, TaxiPricing } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, getVehicleTrip, VehicleTripProgress, BusNetwork, TaxiRequest, TaxiPricing } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -98,6 +98,8 @@ export default function LocatorScreen() {
   const [taxiRequesting, setTaxiRequesting] = useState(false);
   const [transitNetwork, setTransitNetwork] = useState<BusNetwork | null>(null);
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+  const [tripProgress, setTripProgress] = useState<VehicleTripProgress | null>(null);
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
@@ -508,26 +510,48 @@ export default function LocatorScreen() {
     };
   }, [activeTab, sessionToken]);
 
-  // Tram: deep red, Bus: dark blue. A selected line is highlighted while
-  // the others fade out.
+  // Tram: deep red, Bus: dark blue. Lines stay hidden until one is
+  // clicked - then only that line shows (isolated view).
   const transitLines = useMemo(() => {
     if (!transitNetwork) return [];
-    return transitNetwork.routes.map((r) => ({
-      routeNumber: r.route_number,
-      color: r.mode === "tram" ? "#8B0000" : "#1E3A8A",
-      opacity: selectedLine ? (r.route_number === selectedLine ? 0.9 : 0.07) : 0.45,
-      weight: selectedLine === r.route_number ? 3 : 2,
-      points:
-        Array.isArray((r as any).shape) && (r as any).shape.length > 2
-          ? (r as any).shape.map((p: any) => ({ latitude: p[0], longitude: p[1] }))
-          : r.stops.map((s) => ({ latitude: s.lat, longitude: s.lng })),
-    }));
+    if (!selectedLine) return [];
+    return transitNetwork.routes
+      .filter((r) => r.route_number === selectedLine)
+      .map((r) => ({
+        routeNumber: r.route_number,
+        color: r.mode === "tram" ? "#8B0000" : "#1E3A8A",
+        opacity: 0.85,
+        weight: 3,
+        points:
+          Array.isArray((r as any).shape) && (r as any).shape.length > 2
+            ? (r as any).shape.map((p: any) => ({ latitude: p[0], longitude: p[1] }))
+            : r.stops.map((s) => ({ latitude: s.lat, longitude: s.lng })),
+      }));
   }, [transitNetwork, selectedLine]);
 
   const selectedRoute = useMemo(() => {
     if (!transitNetwork || !selectedLine) return null;
     return transitNetwork.routes.find((r) => r.route_number === selectedLine) || null;
   }, [transitNetwork, selectedLine]);
+
+  // Selected vehicle trip progress (passed stops + arrival times)
+  useEffect(() => {
+    if (activeTab !== "mobility" || !selectedVehicle) return;
+    let cancelled = false;
+    const load = () => {
+      getVehicleTrip(sessionToken, selectedVehicle)
+        .then((t) => {
+          if (!cancelled) setTripProgress(t);
+        })
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeTab, selectedVehicle, sessionToken]);
 
   // Bus destination search (debounced)
   useEffect(() => {
@@ -1047,10 +1071,18 @@ export default function LocatorScreen() {
           onTransitLineClick={(routeNumber) => {
             setSelectedLine((prev) => (prev === routeNumber ? null : routeNumber));
           }}
+          onMapPress={() => {
+            if (selectedLine) setSelectedLine(null);
+          }}
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
-            if (activeTab === "mobility") return;
+            if (activeTab === "mobility") {
+              if (mobilityMode === "taxi") return;
+              setSelectedVehicle((prev) => (prev === id ? null : id));
+              setTripProgress(null);
+              return;
+            }
             if (activeTab === "businesses") {
               const rental = rentals.find(r => r.rental_id === id);
               if (rental) {
@@ -1118,7 +1150,54 @@ export default function LocatorScreen() {
             </Pressable>
           </View>
 
-          {selectedRoute && (mobilityMode === "bus" || mobilityMode === "tram") && (
+          {selectedVehicle && tripProgress && (mobilityMode === "bus" || mobilityMode === "tram") && (
+            <View style={styles.linePanel}>
+              <View style={styles.linePanelHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linePanelTitle}>
+                    {tripProgress.mode === "tram" ? "🚋" : "🚌"} {tripProgress.route_number} → {tripProgress.route_direction}
+                  </Text>
+                  <Text style={styles.linePanelHint}>
+                    {tripProgress.estimated
+                      ? t("mobility.estimated", "Estimated")
+                      : t("mobility.status." + "active", "Live")}
+                    {tripProgress.delay_minutes > 0
+                      ? ` · ${t("mobility.delay", "+{{n}} min", { n: tripProgress.delay_minutes })}`
+                      : ""}
+                  </Text>
+                </View>
+                <Pressable onPress={() => { setSelectedVehicle(null); setTripProgress(null); }} hitSlop={8}>
+                  <Ionicons name="close-circle" size={22} color="#264348" />
+                </Pressable>
+              </View>
+              <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                {tripProgress.stops.map((s, i) => (
+                  <View key={`${s.stop_id}-${i}`} style={[styles.lineStopRow, s.passed && { opacity: 0.45 }]}>
+                    <View style={[styles.lineStopNum, s.passed && { backgroundColor: "#D1FAE5" }]}>
+                      <Ionicons
+                        name={s.passed ? "checkmark" : "ellipse-outline"}
+                        size={11}
+                        color={s.passed ? "#166534" : "#264348"}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.lineStopName, s.passed && { textDecorationLine: "line-through" }]} numberOfLines={1}>
+                        {s.name}
+                      </Text>
+                      {!s.passed && (
+                        <Text style={styles.stopTimeText}>
+                          {t("mobility.arrival", "Arrival")} {s.predicted}
+                          {s.delay_seconds > 0 ? ` (+${Math.round(s.delay_seconds / 60)}′)` : ""}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {selectedRoute && !selectedVehicle && (mobilityMode === "bus" || mobilityMode === "tram") && (
             <View style={styles.linePanel}>
               <View style={styles.linePanelHeader}>
                 <View style={{ flex: 1 }}>
@@ -3193,6 +3272,7 @@ const styles = StyleSheet.create({
   },
   lineStopNumText: { fontSize: 11, fontWeight: "700", color: "#264348" },
   lineStopName: { flex: 1, fontSize: 14, color: "#264348" },
+  stopTimeText: { fontSize: 12, color: "#166534", marginTop: 1, fontWeight: "600" },
   taxiCard: {
     backgroundColor: "#fff",
     borderRadius: 14,

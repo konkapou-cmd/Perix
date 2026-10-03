@@ -3074,6 +3074,7 @@
     "removedRoutes": "Removed routes",
     "activateNetwork": "Activate new network",
     "lineStopsHint": "Tap a stop to see live arrivals",
+    "arrival": "Arrival",
     "uploadGtfs": "Upload GTFS (.zip)",
     "importFailed": "GTFS import failed",
     "busLines": "Bus lines",

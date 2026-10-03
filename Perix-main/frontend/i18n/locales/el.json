@@ -3102,6 +3102,7 @@
     "removedRoutes": "Αφαιρεμένες γραμμές",
     "activateNetwork": "Ενεργοποίηση νέου δικτύου",
     "lineStopsHint": "Πάτησε μια στάση για ζωντανές αφίξεις",
+    "arrival": "Άφιξη",
     "uploadGtfs": "Ανέβασμα GTFS (.zip)",
     "importFailed": "Η εισαγωγή GTFS απέτυχε",
     "busLines": "Γραμμές λεωφορείων",

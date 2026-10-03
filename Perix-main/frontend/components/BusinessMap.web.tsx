@@ -86,32 +86,46 @@ const googleKey =
 // Cartoon transit icons (SVG). Bus: white + light blue. Tram: white + dark
 // green. Both face right; rotation = heading - 90deg.
 const BUS_SVG = `<svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://www.w3.org/2000/svg">
-  <rect x="1.2" y="3" width="43.6" height="17" rx="5.5" fill="#ffffff" stroke="#1E3A8A" stroke-width="2"/>
-  <rect x="4" y="6" width="7" height="6" rx="1.6" fill="#59ABE3"/>
-  <rect x="13" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
-  <rect x="21" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
-  <rect x="29" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
-  <rect x="36.5" y="1" width="7" height="3.4" rx="1.7" fill="#59ABE3"/>
-  <circle cx="11" cy="20.5" r="3.4" fill="#1E3A8A"/>
-  <circle cx="35" cy="20.5" r="3.4" fill="#1E3A8A"/>
-  <circle cx="11" cy="20.5" r="1.4" fill="#ffffff"/>
-  <circle cx="35" cy="20.5" r="1.4" fill="#ffffff"/>
+  <defs>
+    <filter id="bs" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <g filter="url(#bs)">
+    <rect x="1.2" y="3" width="43.6" height="17" rx="5.5" fill="#ffffff" stroke="#1E3A8A" stroke-width="2"/>
+    <rect x="4" y="6" width="7" height="6" rx="1.6" fill="#59ABE3"/>
+    <rect x="13" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
+    <rect x="21" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
+    <rect x="29" y="6" width="6" height="6" rx="1.6" fill="#BFDFF7"/>
+    <rect x="36.5" y="1" width="7" height="3.4" rx="1.7" fill="#59ABE3"/>
+    <circle cx="11" cy="20.5" r="3.4" fill="#1E3A8A"/>
+    <circle cx="35" cy="20.5" r="3.4" fill="#1E3A8A"/>
+    <circle cx="11" cy="20.5" r="1.4" fill="#ffffff"/>
+    <circle cx="35" cy="20.5" r="1.4" fill="#ffffff"/>
+  </g>
 </svg>`;
 
 const TRAM_SVG = `<svg width="50" height="34" viewBox="0 0 50 34" xmlns="http://www.w3.org/2000/svg">
-  <line x1="12" y1="3" x2="12" y2="10" stroke="#166534" stroke-width="2.4"/>
-  <line x1="4" y1="3" x2="34" y2="3" stroke="#166534" stroke-width="1.8"/>
-  <rect x="1.2" y="10" width="47.6" height="15" rx="5" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <rect x="4" y="12.4" width="6" height="5" rx="1.5" fill="#BFE3C8"/>
-  <rect x="12" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
-  <rect x="19" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
-  <rect x="26" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
-  <rect x="33" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
-  <rect x="1.2" y="15.4" width="47.6" height="3" fill="#166534"/>
-  <circle cx="12" cy="27" r="3.6" fill="#166534"/>
-  <circle cx="38" cy="27" r="3.6" fill="#166534"/>
-  <circle cx="12" cy="27" r="1.5" fill="#ffffff"/>
-  <circle cx="38" cy="27" r="1.5" fill="#ffffff"/>
+  <defs>
+    <filter id="ts" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <g filter="url(#ts)">
+    <line x1="12" y1="3" x2="12" y2="10" stroke="#166534" stroke-width="2.4"/>
+    <line x1="4" y1="3" x2="34" y2="3" stroke="#166534" stroke-width="1.8"/>
+    <rect x="1.2" y="10" width="47.6" height="15" rx="5" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+    <rect x="4" y="12.4" width="6" height="5" rx="1.5" fill="#BFE3C8"/>
+    <rect x="12" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
+    <rect x="19" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
+    <rect x="26" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
+    <rect x="33" y="12.4" width="5" height="5" rx="1.5" fill="#BFE3C8"/>
+    <rect x="1.2" y="15.4" width="47.6" height="3" fill="#166534"/>
+    <circle cx="12" cy="27" r="3.6" fill="#166534"/>
+    <circle cx="38" cy="27" r="3.6" fill="#166534"/>
+    <circle cx="12" cy="27" r="1.5" fill="#ffffff"/>
+    <circle cx="38" cy="27" r="1.5" fill="#ffffff"/>
+  </g>
 </svg>`;
 
 let googleScriptLoaded = false;
@@ -391,20 +405,6 @@ export default function BusinessMap({
           });
         });
 
-        // Smooth glide for transit vehicles: pause CSS transitions while
-        // the user drags/pans the map (so icons stick to the map), then
-        // re-enable them on idle.
-        map.addListener("dragstart", () => {
-          transitContainers.forEach((c) => {
-            c.style.transition = "none";
-          });
-        });
-        map.addListener("idle", () => {
-          transitContainers.forEach((c) => {
-            c.style.transition = "left 0.8s ease-out, top 0.8s ease-out";
-          });
-        });
-
         if (cancelled) return;
         mapRef.current = map;
         mapReadyRef.current = true;
@@ -460,11 +460,13 @@ export default function BusinessMap({
       const heading = typeof group.heading === "number" ? group.heading : 0;
 
       // Reuse an existing transit overlay: only update its position and
-      // rotation - the CSS transition makes the vehicle glide smoothly.
+      // rotation - no CSS transition on position, so map pans never make
+      // vehicles lag behind and snap back.
       if (isTransit && existingTransit.has(group.items[0].id)) {
         const rec = existingTransit.get(group.items[0].id);
         rec.overlay.pos = { lat: group.latitude, lng: group.longitude };
-        rec.inner.style.transform = `rotate(${heading - 90}deg)`;
+        rec.heading = heading;
+        rec.inner.style.transform = `rotate(${heading - 90}deg) scale(${rec.scale})`;
         rec.inner.style.opacity = group.estimated ? "0.72" : "1";
         try { rec.overlay.draw(); } catch (e) {}
         markersRef.current.push(rec);
@@ -478,18 +480,18 @@ export default function BusinessMap({
       container.style.userSelect = "none";
 
       if (isTransit) {
-        // Cartoon vehicle icon that shows its facing direction. A very
-        // short transition smooths the small steps between frequent polls
-        // without making the icon "swim" across the map.
-        container.style.transition = "left 0.8s ease-out, top 0.8s ease-out";
+        // Cartoon vehicle icon showing its facing direction. Zoom-aware:
+        // zoomed out -> small vehicles "circulating" in the city.
         const rotWrap = document.createElement("div");
         rotWrap.style.position = "absolute";
         rotWrap.style.transform = "translate(-50%, -50%)";
         rotWrap.style.pointerEvents = "none";
         const inner = document.createElement("div");
-        inner.style.transform = `rotate(${heading - 90}deg)`;
+        const zoomScaleNow = zoomScale || 1;
+        const s = Math.max(0.45, Math.min(1.5, zoomScaleNow * 0.85));
+        inner.style.transform = `rotate(${heading - 90}deg) scale(${s})`;
         inner.style.transformOrigin = "center center";
-        inner.style.transition = "transform 0.8s ease-out";
+        inner.style.transition = "transform 0.4s ease-out";
         inner.innerHTML = group.type === "bus" ? BUS_SVG : TRAM_SVG;
         if (group.estimated) inner.style.opacity = "0.72";
         rotWrap.appendChild(inner);
@@ -518,11 +520,20 @@ export default function BusinessMap({
           }
         })(container, { lat: group.latitude, lng: group.longitude });
         overlay.setMap(mapRef.current);
+        container.addEventListener("click", (e: any) => {
+          e.stopPropagation();
+          onMarkerPress?.(group.items[0].id);
+        });
         markersRef.current.push({
           overlay,
-          resize: () => {},
+          resize: (zoomScaleArg: number) => {
+            const newS = Math.max(0.45, Math.min(1.5, zoomScaleArg * 0.85));
+            inner.style.transform = `rotate(${heading - 90}deg) scale(${newS})`;
+          },
           vehicleId: group.items[0].id,
           inner,
+          heading,
+          scale: s,
         });
         transitContainers.push(container);
         return;

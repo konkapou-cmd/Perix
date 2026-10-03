@@ -202,6 +202,33 @@ export const getBusesServing = (
     token || undefined
   );
 
+export type TripStopProgress = {
+  stop_id: string;
+  name: string;
+  scheduled: string | null;
+  delay_seconds: number;
+  predicted: string;
+  passed: boolean;
+};
+
+export type VehicleTripProgress = {
+  vehicle_id: string;
+  route_number: string;
+  route_direction: string;
+  mode: string;
+  delay_minutes: number;
+  position_source: string;
+  estimated: boolean;
+  stops: TripStopProgress[];
+};
+
+export const getVehicleTrip = (token: string | null | undefined, vehicleId: string) =>
+  apiRequest<VehicleTripProgress>(
+    `/mobility/vehicles/${encodeURIComponent(vehicleId)}/trip`,
+    "GET",
+    token || undefined
+  );
+
 // ---------------------------------------------------------------------------
 // Taxi: pricing, passenger requests, company assignment
 // ---------------------------------------------------------------------------
