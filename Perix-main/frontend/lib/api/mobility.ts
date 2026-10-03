@@ -230,6 +230,46 @@ export const getVehicleTrip = (token: string | null | undefined, vehicleId: stri
   );
 
 // ---------------------------------------------------------------------------
+// Journey planning (point-to-point, transfers + walking)
+// ---------------------------------------------------------------------------
+
+export type PlanLeg = {
+  type: "walk" | "walk_transfer" | "ride";
+  minutes: number;
+  label?: string;
+  lat?: number;
+  lng?: number;
+  route_number?: string;
+  mode?: string;
+  direction?: string;
+  board?: string;
+  alight?: string;
+  depart?: string;
+  arrive?: string;
+};
+
+export type JourneyPlan = {
+  duration_minutes: number;
+  walking_minutes: number;
+  departure: string;
+  arrival: string;
+  legs: PlanLeg[];
+};
+
+export const planJourney = (
+  token: string | null | undefined,
+  fromLat: number,
+  fromLng: number,
+  toLat: number,
+  toLng: number
+) =>
+  apiRequest<{ itineraries: JourneyPlan[]; note?: string }>(
+    `/mobility/plan?from_lat=${fromLat}&from_lng=${fromLng}&to_lat=${toLat}&to_lng=${toLng}`,
+    "GET",
+    token || undefined
+  );
+
+// ---------------------------------------------------------------------------
 // Taxi: pricing, passenger requests, company assignment
 // ---------------------------------------------------------------------------
 

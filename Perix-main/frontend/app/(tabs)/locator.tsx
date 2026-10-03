@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, getVehicleTrip, VehicleTripProgress, BusNetwork, TaxiRequest, TaxiPricing } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, getVehicleTrip, VehicleTripProgress, BusNetwork, TaxiRequest, TaxiPricing, planJourney, JourneyPlan } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -89,6 +89,14 @@ export default function LocatorScreen() {
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
   const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string } | null>(null);
   const [servingBuses, setServingBuses] = useState<ServingBus[]>([]);
+  const [transitDestAddress, setTransitDestAddress] = useState("");
+  const [transitDestLat, setTransitDestLat] = useState<number | null>(null);
+  const [transitDestLng, setTransitDestLng] = useState<number | null>(null);
+  const [transitDestSuggestions, setTransitDestSuggestions] = useState<any[]>([]);
+  const [journeyPlans, setJourneyPlans] = useState<JourneyPlan[]>([]);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planNote, setPlanNote] = useState<string | null>(null);
+  const [planPicking, setPlanPicking] = useState(false);
   const [taxiDestAddress, setTaxiDestAddress] = useState("");
   const [taxiDestLat, setTaxiDestLat] = useState<number | null>(null);
   const [taxiDestLng, setTaxiDestLng] = useState<number | null>(null);
@@ -597,6 +605,77 @@ export default function LocatorScreen() {
     };
   }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude]);
 
+  // Transit "any area" destination suggestions (Google autocomplete)
+  useEffect(() => {
+    if (
+      activeTab !== "mobility" ||
+      (mobilityMode !== "bus" && mobilityMode !== "tram") ||
+      transitDestAddress.trim().length < 3
+    ) {
+      setTransitDestSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+          transitDestAddress.trim()
+        )}&key=${googleKey}&language=${encodeURIComponent(i18n.language || "en")}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!cancelled) setTransitDestSuggestions(data.predictions || []);
+      } catch {
+        if (!cancelled) setTransitDestSuggestions([]);
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [activeTab, mobilityMode, transitDestAddress, googleKey, i18n.language]);
+
+  const runPlan = async (destLat: number, destLng: number) => {
+    const originLat = contextLocation?.latitude ?? livePosition?.latitude ?? locateFocus?.latitude;
+    const originLng = contextLocation?.longitude ?? livePosition?.longitude ?? locateFocus?.longitude;
+    if (originLat == null || originLng == null) {
+      setJourneyPlans([]);
+      setPlanNote(t("mobility.planNoLocation", "Enable location to plan a journey from where you are."));
+      return;
+    }
+    setPlanLoading(true);
+    setPlanNote(null);
+    setJourneyPlans([]);
+    setSelectedStop(null);
+    setServingBuses([]);
+    try {
+      const res = await planJourney(sessionToken, originLat, originLng, destLat, destLng);
+      setJourneyPlans(res.itineraries || []);
+      if (res.note && (!res.itineraries || res.itineraries.length === 0)) setPlanNote(res.note);
+    } catch {
+      setPlanNote(t("mobility.planError", "Could not plan a journey right now."));
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  const selectTransitDestination = async (suggestion: { description: string; place_id: string }) => {
+    setTransitDestAddress(suggestion.description);
+    setTransitDestSuggestions([]);
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
+        suggestion.place_id
+      )}&key=${googleKey}&language=${encodeURIComponent(i18n.language || "en")}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const loc = data.result?.geometry?.location;
+      if (loc) {
+        setTransitDestLat(loc.lat);
+        setTransitDestLng(loc.lng);
+        runPlan(loc.lat, loc.lng);
+      }
+    } catch {}
+  };
+
   // Taxi mode: load pricing and poll my active request
   useEffect(() => {
     if (activeTab !== "mobility" || mobilityMode !== "taxi" || !sessionToken) return;
@@ -1071,7 +1150,15 @@ export default function LocatorScreen() {
           onTransitLineClick={(routeNumber) => {
             setSelectedLine((prev) => (prev === routeNumber ? null : routeNumber));
           }}
-          onMapPress={() => {
+          onMapPress={(lat, lng) => {
+            if (activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram") && planPicking) {
+              setPlanPicking(false);
+              setTransitDestLat(lat);
+              setTransitDestLng(lng);
+              setTransitDestAddress("");
+              runPlan(lat, lng);
+              return;
+            }
             if (selectedLine) setSelectedLine(null);
           }}
           showUserLocation
@@ -1240,6 +1327,156 @@ export default function LocatorScreen() {
                 <Ionicons name="search" size={16} color="#264348" />
                 <TextInput
                   style={styles.busSearchInput}
+                  value={transitDestAddress}
+                  onChangeText={(text) => {
+                    setTransitDestAddress(text);
+                    setTransitDestLat(null);
+                    setTransitDestLng(null);
+                    setJourneyPlans([]);
+                  }}
+                  placeholder={t("mobility.whereToGo", "Where do you want to go?")}
+                  placeholderTextColor="#9CA3AF"
+                />
+                <Pressable
+                  onPress={() => setPlanPicking((p) => !p)}
+                  style={[styles.planPickButton, planPicking && styles.planPickButtonActive]}
+                  hitSlop={8}
+                >
+                  <Ionicons name="navigate" size={15} color={planPicking ? "#fff" : "#264348"} />
+                  <Text style={[styles.planPickText, planPicking && { color: "#fff" }]}>
+                    {t("mobility.pickOnMap", "Map")}
+                  </Text>
+                </Pressable>
+                {transitDestAddress.length > 0 ? (
+                  <Pressable
+                    onPress={() => {
+                      setTransitDestAddress("");
+                      setTransitDestSuggestions([]);
+                      setJourneyPlans([]);
+                      setPlanPicking(false);
+                    }}
+                  >
+                    <Ionicons name="close-circle" size={16} color="#264348" />
+                  </Pressable>
+                ) : null}
+              </View>
+              {planPicking && (
+                <Text style={styles.planPickHint}>
+                  {t("mobility.pickOnMapHint", "Tap anywhere on the map to choose your destination")}
+                </Text>
+              )}
+              {transitDestSuggestions.length > 0 && (
+                <View style={styles.busSuggestions}>
+                  {transitDestSuggestions.map((s) => (
+                    <Pressable
+                      key={s.place_id}
+                      style={styles.busSuggestionRow}
+                      onPress={() => selectTransitDestination(s)}
+                    >
+                      <Ionicons name="location-outline" size={14} color="#FFC400" />
+                      <Text style={styles.busSuggestionName} numberOfLines={1}>
+                        {s.description}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {planLoading && (mobilityMode === "bus" || mobilityMode === "tram") && (
+            <View style={styles.journeyCard}>
+              <ActivityIndicator color="#59ABE3" />
+              <Text style={styles.journeyMeta}>{t("mobility.planning", "Finding the best connection…")}</Text>
+            </View>
+          )}
+
+          {!planLoading && journeyPlans.length > 0 && (mobilityMode === "bus" || mobilityMode === "tram") && (
+            <View style={styles.journeyCard}>
+              <View style={styles.journeyHeaderRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.journeyTitle}>
+                    {journeyPlans[0].departure} → {journeyPlans[0].arrival}
+                  </Text>
+                  <Text style={styles.journeyMeta}>
+                    {t("mobility.planTotal", "{{n}} min", { n: journeyPlans[0].duration_minutes })} ·{" "}
+                    {t("mobility.planWalking", "{{n}} min walking", { n: journeyPlans[0].walking_minutes })}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    setJourneyPlans([]);
+                    setTransitDestAddress("");
+                  }}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close-circle" size={22} color="#264348" />
+                </Pressable>
+              </View>
+              {journeyPlans[0].legs.map((leg, i) => (
+                <View key={i} style={styles.planLegRow}>
+                  <View
+                    style={[
+                      styles.planLegIcon,
+                      leg.type === "walk" || leg.type === "walk_transfer"
+                        ? { backgroundColor: "#EAF5FF" }
+                        : leg.mode === "tram"
+                        ? { backgroundColor: "#166534" }
+                        : { backgroundColor: "#1E3A8A" },
+                    ]}
+                  >
+                    {leg.type === "walk" || leg.type === "walk_transfer" ? (
+                      <Ionicons name="walk" size={15} color="#264348" />
+                    ) : (
+                      <Ionicons name={leg.mode === "tram" ? "train" : "bus"} size={15} color="#fff" />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    {leg.type === "ride" ? (
+                      <>
+                        <Text style={styles.planLegTitle}>
+                          {leg.route_number}
+                          {leg.direction ? ` → ${leg.direction}` : ""}
+                        </Text>
+                        <Text style={styles.planLegSub}>
+                          {leg.depart} · {leg.board} → {leg.arrive} · {leg.alight}
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={styles.planLegTitle}>
+                          {t("mobility.planWalk", "Walk")} {leg.minutes}′
+                        </Text>
+                        <Text style={styles.planLegSub}>
+                          {leg.type === "walk_transfer"
+                            ? t("mobility.planTransfer", "Transfer to") + " " + leg.label
+                            : leg.label === "destination"
+                            ? t("mobility.planToDestination", "to your destination")
+                            : t("mobility.planToStop", "to") + " " + leg.label}
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                  {leg.type === "ride" ? (
+                    <Text style={styles.mobilityEta}>{leg.minutes}′</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {planNote && (mobilityMode === "bus" || mobilityMode === "tram") && (
+            <View style={styles.journeyCard}>
+              <Text style={styles.mobilityEmptyText}>{planNote}</Text>
+            </View>
+          )}
+
+          {(mobilityMode === "bus" || mobilityMode === "tram") && (
+            <View style={styles.busSearchWrap}>
+              <View style={styles.busSearchBar}>
+                <Ionicons name="bus" size={16} color="#264348" />
+                <TextInput
+                  style={styles.busSearchInput}
                   value={busQuery}
                   onChangeText={(text) => {
                     setBusQuery(text);
@@ -1248,7 +1485,7 @@ export default function LocatorScreen() {
                       setServingBuses([]);
                     }
                   }}
-                  placeholder={t("mobility.whereToGo", "Where do you want to go?")}
+                  placeholder={t("mobility.findStop", "Or find a stop by name…")}
                   placeholderTextColor="#9CA3AF"
                 />
                 {selectedStop ? (
@@ -3242,6 +3479,40 @@ const styles = StyleSheet.create({
   },
   busSuggestionName: { fontSize: 14, fontWeight: "600", color: "#264348" },
   busSuggestionRoutes: { fontSize: 12, color: "#59ABE3", marginTop: 1 },
+  planPickButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    borderWidth: 1,
+    borderColor: "#264348",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  planPickButtonActive: { backgroundColor: "#264348" },
+  planPickText: { fontSize: 12, fontWeight: "700", color: "#264348" },
+  planPickHint: { fontSize: 12, color: "#6B7280", marginTop: 6, marginLeft: 4 },
+  journeyCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E7EAF0",
+    padding: 12,
+    marginBottom: 10,
+  },
+  journeyHeaderRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
+  journeyTitle: { fontSize: 16, fontWeight: "800", color: "#264348" },
+  journeyMeta: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  planLegRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E7EAF0" },
+  planLegIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  planLegTitle: { fontSize: 14, fontWeight: "700", color: "#264348" },
+  planLegSub: { fontSize: 12, color: "#6B7280", marginTop: 1 },
   linePanel: {
     backgroundColor: "#fff",
     borderRadius: 14,

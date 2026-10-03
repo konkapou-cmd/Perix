@@ -1,6 +1,7 @@
 """Mobility routes: live vehicles (buses/taxis), driver-code sessions and
 vehicle management for operators. Drivers never need Perix accounts."""
 import asyncio
+import heapq
 import logging
 import math
 import os
@@ -1135,6 +1136,206 @@ async def vehicle_trip_progress(vehicle_id: str, current_user: Optional[UserPubl
 # ---------------------------------------------------------------------------
 # Passenger endpoint
 # ---------------------------------------------------------------------------
+
+
+@router.get("/plan")
+async def plan_journey(
+    from_lat: float,
+    from_lng: float,
+    to_lat: float,
+    to_lng: float,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Point-to-point transit planning: nearest stops, line combinations
+    with transfers and walking (Google Maps style, minimal walking + time)."""
+    network = await _get_active_network()
+    if not network:
+        return {"itineraries": []}
+    now_sec = _now_service_seconds()
+
+    stops = {}
+    for route in network.get("routes", []):
+        for s in route.get("stops", []):
+            sid = s.get("stop_id")
+            if sid not in stops:
+                stops[sid] = {"id": sid, "name": s.get("name"), "lat": s.get("lat"), "lng": s.get("lng")}
+
+    # Walking time in seconds for a straight distance, with a road factor
+    def walk_sec(km):
+        return (km * 1.35) / 4.5 * 3600
+
+    # Nearest origin/destination stops
+    def near_stops(lat, lng, radius_km=0.8, limit=6):
+        out = []
+        for sid, s in stops.items():
+            d = _haversine_km(lat, lng, s["lat"], s["lng"])
+            if d <= radius_km:
+                out.append((sid, d))
+        out.sort(key=lambda x: x[1])
+        return out[:limit]
+
+    origin_candidates = near_stops(from_lat, from_lng)
+    dest_candidates = near_stops(to_lat, to_lng)
+    if not origin_candidates or not dest_candidates:
+        return {"itineraries": [], "note": "no stops nearby"}
+
+    # Walking transfer map between stops (<= 350m)
+    stop_list = list(stops.values())
+    transfer = {}
+    for i, a in enumerate(stop_list):
+        neigh = []
+        for b in stop_list:
+            if a["id"] == b["id"]:
+                continue
+            d = _haversine_km(a["lat"], a["lng"], b["lat"], b["lng"])
+            if d <= 0.35:
+                neigh.append((b["id"], walk_sec(d)))
+        transfer[a["id"]] = neigh
+
+    # Trips as ordered segments; also stop -> sorted departures for boarding
+    trips = []
+    for route in network.get("routes", []):
+        mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
+        for trip in route.get("trips", []):
+            seq = []
+            for sid, t in (trip.get("stop_times") or {}).items():
+                tsec = _time_to_seconds(t)
+                if tsec is not None and sid in stops:
+                    seq.append((sid, tsec))
+            seq.sort(key=lambda x: x[1])
+            if len(seq) < 2:
+                continue
+            segments = []
+            for i in range(len(seq) - 1):
+                segments.append((seq[i][0], seq[i][1], seq[i + 1][0], seq[i + 1][1]))
+            trips.append(
+                {
+                    "route_number": route.get("route_number"),
+                    "mode": mode,
+                    "direction": trip.get("headsign") or route.get("name") or "",
+                    "segments": segments,
+                }
+            )
+
+    boardings = {}
+    for ti, trip in enumerate(trips):
+        for pos, seg in enumerate(trip["segments"]):
+            boardings.setdefault(seg[0], []).append((seg[1], ti, pos))
+    for sid in boardings:
+        boardings[sid].sort(key=lambda x: x[0])
+
+    dest_ids = {sid for sid, _ in dest_candidates}
+
+    # Time-dependent earliest-arrival search (multi-label per stop, capped)
+    best = {}  # stop_id -> min arrival
+    heap = []
+    parent = {}  # (stop_id) -> (prev_stop, kind, payload)
+    for sid, d in origin_candidates:
+        arr = now_sec + walk_sec(d)
+        heapq.heappush(heap, (arr, sid))
+        best[sid] = arr
+        parent[sid] = (None, "walk_origin", {"minutes": round(walk_sec(d) / 60), "stop": sid, "from_lat": from_lat, "from_lng": from_lng})
+
+    reached = None
+    while heap:
+        arr, sid = heapq.heappop(heap)
+        if arr > best.get(sid, float("inf")):
+            continue
+        if sid in dest_ids:
+            reached = (arr, sid)
+            break
+        # Board trips
+        for dep, ti, pos in boardings.get(sid, []):
+            if dep < arr:
+                continue
+            trip = trips[ti]
+            for k in range(pos, len(trip["segments"])):
+                segk = trip["segments"][k]
+                nxt2 = segk[2]
+                narr2 = segk[3]
+                if narr2 < best.get(nxt2, float("inf")):
+                    best[nxt2] = narr2
+                    parent[nxt2] = (sid, "ride", {
+                        "route_number": trip["route_number"],
+                        "mode": trip["mode"],
+                        "direction": trip["direction"],
+                        "board": sid,
+                        "alight": nxt2,
+                        "depart": trip["segments"][pos][1],
+                        "arrive": segk[3],
+                    })
+                    heapq.heappush(heap, (narr2, nxt2))
+        # Transfers
+        for nid, wsec in transfer.get(sid, []):
+            narr = arr + wsec
+            if narr < best.get(nid, float("inf")):
+                best[nid] = narr
+                parent[nid] = (sid, "walk", {"minutes": round(wsec / 60)})
+                heapq.heappush(heap, (narr, nid))
+
+    if not reached:
+        return {"itineraries": [], "note": "no connection found"}
+
+    # Reconstruct the single best itinerary
+    legs = []
+    cur = reached[1]
+    while parent.get(cur):
+        prev, kind, payload = parent[cur]
+        legs.append((kind, payload, prev, cur))
+        cur = prev
+    legs.reverse()
+
+    final_walk_km = _haversine_km(to_lat, to_lng, stops[reached[1]]["lat"], stops[reached[1]]["lng"])
+    legs.append(("walk_dest", {"minutes": round(walk_sec(final_walk_km) / 60), "to_lat": to_lat, "to_lng": to_lng}, reached[1], None))
+
+    itinerary_legs = []
+    walking_total = 0
+    for kind, payload, _prev, _cur in legs:
+        if kind == "walk_origin":
+            s = stops[payload["stop"]]
+            itinerary_legs.append({
+                "type": "walk",
+                "minutes": payload["minutes"],
+                "label": s["name"],
+                "lat": s["lat"],
+                "lng": s["lng"],
+            })
+            walking_total += payload["minutes"]
+        elif kind == "ride":
+            itinerary_legs.append({
+                "type": "ride",
+                "route_number": payload["route_number"],
+                "mode": payload["mode"],
+                "direction": payload["direction"],
+                "board": stops.get(payload["board"], {}).get("name", ""),
+                "alight": stops.get(payload["alight"], {}).get("name", ""),
+                "depart": _fmt_service_time(payload["depart"]),
+                "arrive": _fmt_service_time(payload["arrive"]),
+                "minutes": round((payload["arrive"] - payload["depart"]) / 60),
+            })
+        elif kind == "walk":
+            itinerary_legs.append({"type": "walk_transfer", "minutes": payload["minutes"], "label": stops.get(_cur, {}).get("name", "")})
+            walking_total += payload["minutes"]
+        elif kind == "walk_dest":
+            itinerary_legs.append({"type": "walk", "minutes": payload["minutes"], "label": "destination"})
+            walking_total += payload["minutes"]
+
+    duration = round((reached[0] + walk_sec(final_walk_km) - now_sec) / 60)
+    itinerary = {
+        "duration_minutes": duration,
+        "walking_minutes": walking_total,
+        "departure": _fmt_service_time(now_sec),
+        "arrival": _fmt_service_time(reached[0] + walk_sec(final_walk_km)),
+        "legs": itinerary_legs,
+    }
+    return {"itineraries": [itinerary]}
+
+
+def _fmt_service_time(sec: float) -> str:
+    sec = int(sec) % (24 * 3600)
+    h = sec // 3600
+    m = (sec % 3600) // 60
+    return f"{h:02d}:{m:02d}"
 
 
 @router.get("/live")
