@@ -207,7 +207,12 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
                     "headsign": headsign,
                     "start": seqs[0][2],
                     "end": seqs[-1][2],
+                    # Exact GTFS stop_sequence order for THIS trip.
+                    # route.stops below is only a union for discovery/UI
+                    # and must not define direction or progress.
+                    "stop_ids": [sid for _seq, sid, _hhmm_value in seqs],
                     "stop_times": stop_times,
+                    "shape_id": t["shape_id"] or None,
                 }
             )
 
@@ -220,6 +225,18 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
                 "stops": [stops[sid] for sid in g["_stop_ids"] if sid in stops],
                 "trips": sorted(g["trips"], key=lambda t: (t["start"], t["headsign"], t["trip_id"])),
             }
+            # Preserve every geometry referenced by this public line.
+            # Opposite directions/branches often use different shape_id
+            # values even though route_number is identical.
+            shape_ids = {
+                t.get("shape_id")
+                for t in g["trips"]
+                if t.get("shape_id") and shapes.get(t.get("shape_id"))
+            }
+            if shape_ids:
+                route["shapes"] = {sid: shapes[sid] for sid in sorted(shape_ids)}
+
+            # Backward-compatible representative geometry for older clients.
             shape = shapes.get(g["shape_id"] or "")
             if shape:
                 route["shape"] = [[lat, lng] for lat, lng in shape]

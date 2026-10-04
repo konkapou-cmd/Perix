@@ -443,160 +443,366 @@ def _heading_on_shape(shape: List[list], from_idx: int, to_idx: int, frac: Optio
     return _bearing(shape[a][0], shape[a][1], shape[b][0], shape[b][1])
 
 
-def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
-    """Estimated position of a running trip along the route shape (or stop
-    polyline), interpolated between scheduled stop times, corrected with
-    GTFS-Realtime per-stop delays so a delayed vehicle sits where it
-    actually is. Returns None when the trip is not running right now."""
-    # Realtime state for this trip
-    realtime = delays.get(trip.get("trip_id")) if trip.get("trip_id") else None
-    trip_delay = int(realtime.get("delay_seconds") or 0) if realtime else 0
+def _trip_stops(route: dict, trip: dict) -> List[dict]:
+    """Exact ordered stops for one GTFS trip.
+
+    New network versions carry trip.stop_ids from GTFS stop_sequence.
+    Old versions fall back to sorting the trip's stop_times, so this code
+    remains compatible with an already-active legacy network.
+    """
+    route_stops = route.get("stops") or []
+    by_id = {
+        str(s.get("stop_id")): s
+        for s in route_stops
+        if s.get("stop_id") is not None
+    }
+
+    stop_ids = trip.get("stop_ids") or []
+    if stop_ids:
+        ordered = [by_id[str(sid)] for sid in stop_ids if str(sid) in by_id]
+        if len(ordered) >= 2:
+            return ordered
 
     stop_times = trip.get("stop_times") or {}
-    stops = route.get("stops") or []
-    if not stops:
-        return None
-    # Effective (delay-corrected) stop times. The vehicle position uses the
-    # UNIFORM trip-level delay (monotonically smoothed): the whole trip
-    # shifts by the same amount, so the position moves strictly forward and
-    # never flickers backwards as per-stop values oscillate.
-    scheduled = []
-    for s in stops:
+    fallback = []
+    for s in route_stops:
         t = _time_to_seconds(stop_times.get(s.get("stop_id"), ""))
-        if t is None and s.get("scheduled"):
-            t = _time_to_seconds(s.get("scheduled"))
-        if t is None:
-            continue
-        scheduled.append({"stop": s, "t": t + trip_delay})
-    scheduled.sort(key=lambda x: x["t"])
-    if not scheduled:
+        if t is not None:
+            fallback.append((t, s))
+    fallback.sort(key=lambda x: x[0])
+    return [s for _t, s in fallback]
+
+
+def _trip_shape(route: dict, trip: dict) -> List[list]:
+    """Geometry for this exact trip/direction, with legacy fallback."""
+    shape_id = trip.get("shape_id")
+    shapes = route.get("shapes") or {}
+    if shape_id:
+        shape = shapes.get(shape_id)
+        if isinstance(shape, list) and len(shape) > 2:
+            return shape
+    shape = route.get("shape") or []
+    return shape if isinstance(shape, list) else []
+
+
+_TRIP_PATH_CACHE: dict = {}
+_DISPLAY_PROGRESS = {"date": None, "trips": {}}
+
+
+def _service_date_key() -> str:
+    now = _berlin_now()
+    if now.hour < SERVICE_DAY_START_HOUR:
+        now = now - timedelta(days=1)
+    return now.date().isoformat()
+
+
+def _epoch_to_service_seconds(epoch_value) -> Optional[int]:
+    """Convert a GTFS-RT Unix timestamp to Perix service-day seconds."""
+    try:
+        tz = ZoneInfo("Europe/Berlin")
+        dt = datetime.fromtimestamp(int(epoch_value), tz)
+        now = _berlin_now()
+        service_date = now.date() if now.hour >= SERVICE_DAY_START_HOUR else (now - timedelta(days=1)).date()
+        base = datetime(service_date.year, service_date.month, service_date.day, tzinfo=tz)
+        return int((dt - base).total_seconds())
+    except Exception:
         return None
-    start = scheduled[0]["t"]
-    end = scheduled[-1]["t"]
-    # Grace windows keep the vehicle visible: waiting at the first stop up
-    # to 60s before departure and lingering at the terminal up to 3 min
-    # after arrival (otherwise vehicles blink in/out between trips).
+
+
+def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) -> List[dict]:
+    """One canonical predicted timeline for marker, ETA and trip progress."""
+    realtime = realtime or {}
+    trip_rel = str(realtime.get("trip_schedule_relationship") or "SCHEDULED").upper()
+    if trip_rel in ("CANCELED", "DELETED"):
+        return []
+
+    stop_times = trip.get("stop_times") or {}
+    stop_delays = realtime.get("stop_delays") or {}
+    stop_predictions = realtime.get("stop_predictions") or {}
+    stop_relationships = realtime.get("stop_relationships") or {}
+    trip_delay = int(realtime.get("delay_seconds") or 0)
+
+    timeline: List[dict] = []
+    previous_departure = None
+
+    for stop in _trip_stops(route, trip):
+        sid = stop.get("stop_id")
+        if sid is None:
+            continue
+        scheduled = _time_to_seconds(stop_times.get(sid, ""))
+        if scheduled is None:
+            continue
+
+        sid_key = str(sid)
+        rel = str(stop_relationships.get(sid_key) or stop_relationships.get(sid) or "SCHEDULED").upper()
+        prediction = stop_predictions.get(sid_key) or stop_predictions.get(sid) or {}
+
+        use_rt = rel != "NO_DATA"
+        arrival = None
+        departure = None
+
+        if use_rt:
+            arrival = _epoch_to_service_seconds(prediction.get("arrival_epoch"))
+            departure = _epoch_to_service_seconds(prediction.get("departure_epoch"))
+
+        if arrival is None:
+            delay = int(stop_delays.get(sid_key, stop_delays.get(sid, trip_delay))) if use_rt else 0
+            arrival = scheduled + delay
+        if departure is None:
+            departure = arrival
+
+        if previous_departure is not None and arrival < previous_departure:
+            arrival = previous_departure
+        if departure < arrival:
+            departure = arrival
+
+        timeline.append(
+            {
+                "stop": stop,
+                "stop_id": sid,
+                "scheduled": scheduled,
+                "predicted_arrival": arrival,
+                "predicted_departure": departure,
+                "delay_seconds": int(arrival - scheduled),
+                "relationship": rel,
+            }
+        )
+        previous_departure = departure
+
+    return timeline
+
+
+def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> dict:
+    """Travel-ordered path, cumulative meters and stop progress."""
+    key = f"{_service_date_key()}:{trip.get('trip_id')}:{trip.get('shape_id') or 'legacy'}"
+    cached = _TRIP_PATH_CACHE.get(key)
+    if cached:
+        return cached
+
+    shape = _trip_shape(route, trip)
+    if isinstance(shape, list) and len(shape) > 2:
+        points = [[float(p[0]), float(p[1])] for p in shape]
+        cumulative = [0.0]
+        for i in range(len(points) - 1):
+            cumulative.append(
+                cumulative[-1]
+                + _haversine_km(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]) * 1000.0
+            )
+
+        stop_progress = []
+        cursor = 0
+        for entry in timeline:
+            s = entry["stop"]
+            best_i = cursor
+            best_d = float("inf")
+            for i in range(cursor, len(points)):
+                d = _haversine_km(s.get("lat"), s.get("lng"), points[i][0], points[i][1])
+                if d < best_d:
+                    best_d = d
+                    best_i = i
+            cursor = best_i
+            stop_progress.append(cumulative[best_i])
+    else:
+        points = [
+            [float(entry["stop"]["lat"]), float(entry["stop"]["lng"])]
+            for entry in timeline
+        ]
+        cumulative = [0.0]
+        for i in range(len(points) - 1):
+            cumulative.append(
+                cumulative[-1]
+                + _haversine_km(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]) * 1000.0
+            )
+        stop_progress = list(cumulative)
+
+    result = {
+        "points": points,
+        "cumulative": cumulative,
+        "stop_progress": stop_progress,
+        "total_m": cumulative[-1] if cumulative else 0.0,
+    }
+    _TRIP_PATH_CACHE[key] = result
+    return result
+
+
+def _raw_timeline_progress(timeline: List[dict], stop_progress: List[float], now_sec: int) -> float:
+    """Target progress implied by current predicted arrivals."""
+    if not timeline or not stop_progress:
+        return 0.0
+    if now_sec <= timeline[0]["predicted_arrival"]:
+        return stop_progress[0]
+    if now_sec >= timeline[-1]["predicted_arrival"]:
+        return stop_progress[-1]
+
+    for i in range(len(timeline) - 1):
+        prev = timeline[i]
+        nxt = timeline[i + 1]
+        next_arrival = nxt["predicted_arrival"]
+        if now_sec > next_arrival:
+            continue
+
+        dep = prev["predicted_departure"]
+        if dep <= prev["predicted_arrival"] and prev["relationship"] != "SKIPPED":
+            span = max(1, next_arrival - prev["predicted_arrival"])
+            dep = prev["predicted_arrival"] + min(25, max(0, int(span * 0.3)))
+
+        if now_sec <= dep:
+            return stop_progress[i]
+
+        frac = min(1.0, max(0.0, (now_sec - dep) / max(1, next_arrival - dep)))
+        return stop_progress[i] + (stop_progress[i + 1] - stop_progress[i]) * frac
+
+    return stop_progress[-1]
+
+
+def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: float, mode: str) -> float:
+    """Forward-only ETA-constrained display progress."""
+    import time
+
+    service_date = _service_date_key()
+    if _DISPLAY_PROGRESS.get("date") != service_date:
+        _DISPLAY_PROGRESS["date"] = service_date
+        _DISPLAY_PROGRESS["trips"] = {}
+
+    states = _DISPLAY_PROGRESS["trips"]
+    now_mono = time.monotonic()
+
+    for key, value in list(states.items()):
+        if now_mono - float(value.get("at", now_mono)) > 1800:
+            states.pop(key, None)
+
+    state = states.get(trip_id)
+    if not state:
+        shown = max(0.0, min(total_m, raw_progress_m))
+    else:
+        dt = max(0.0, now_mono - float(state.get("at", now_mono)))
+        previous = float(state.get("progress_m", 0.0))
+
+        if dt > 180:
+            shown = max(0.0, min(total_m, raw_progress_m))
+        elif raw_progress_m <= previous:
+            # Delay got worse: hold/slow, never reverse.
+            shown = previous
+        else:
+            # Delay improved: catch up forward, no teleport.
+            max_kmh = 60.0 if mode == "tram" else 70.0
+            max_step = (max_kmh / 3.6) * min(dt, 30.0)
+            shown = min(raw_progress_m, previous + max_step)
+
+    shown = max(0.0, min(total_m, shown))
+    states[trip_id] = {"progress_m": shown, "at": now_mono, "total_m": total_m}
+    return shown
+
+
+def _point_heading_at_progress(path: dict, progress_m: float) -> tuple:
+    points = path.get("points") or []
+    cumulative = path.get("cumulative") or []
+    if not points:
+        return None, None
+    if len(points) == 1 or len(cumulative) < 2:
+        return {"lat": points[0][0], "lng": points[0][1]}, None
+
+    progress_m = max(0.0, min(float(cumulative[-1]), float(progress_m)))
+    for i in range(len(cumulative) - 1):
+        if cumulative[i + 1] < progress_m:
+            continue
+        span = max(0.001, cumulative[i + 1] - cumulative[i])
+        frac = min(1.0, max(0.0, (progress_m - cumulative[i]) / span))
+        a = points[i]
+        b = points[i + 1]
+        pos = {
+            "lat": a[0] + (b[0] - a[0]) * frac,
+            "lng": a[1] + (b[1] - a[1]) * frac,
+        }
+        return pos, _bearing(a[0], a[1], b[0], b[1])
+
+    last = points[-1]
+    return (
+        {"lat": last[0], "lng": last[1]},
+        _bearing(points[-2][0], points[-2][1], last[0], last[1]),
+    )
+
+
+def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
+    """ETA-constrained, forward-only estimated position."""
+    trip_id = str(trip.get("trip_id") or "")
+    realtime = delays.get(trip_id) if trip_id else None
+    timeline = _predicted_stop_timeline(route, trip, realtime)
+    if len(timeline) < 2:
+        return None
+
+    start = timeline[0]["predicted_arrival"]
+    end = timeline[-1]["predicted_arrival"]
     if now_sec < start - 60 or now_sec > end + 180:
         return None
-    prev, nxt = None, None
-    for i, entry in enumerate(scheduled):
-        if entry["t"] <= now_sec:
-            prev = entry
-        if entry["t"] >= now_sec and nxt is None:
-            nxt = entry
-    shape = route.get("shape") or []
-    has_shape = isinstance(shape, list) and len(shape) > 2
-    heading = None
-    if prev is None:
-        # Not departed yet - stand at the first stop, facing along the line
-        pos = scheduled[0]["stop"]
-        if has_shape and len(scheduled) > 1:
-            ia = _shape_index_for(shape, scheduled[0]["stop"]["lat"], scheduled[0]["stop"]["lng"])
-            ib = _shape_index_for(shape, scheduled[1]["stop"]["lat"], scheduled[1]["stop"]["lng"])
-            heading = _heading_on_shape(shape, ia, ib, 0.0)
-        elif len(scheduled) > 1:
-            heading = _bearing(
-                scheduled[0]["stop"]["lat"], scheduled[0]["stop"]["lng"],
-                scheduled[1]["stop"]["lat"], scheduled[1]["stop"]["lng"],
-            )
-    elif nxt is None or nxt is prev:
-        # Trip finished - hold at the last stop, facing the arrival direction
-        pos = scheduled[-1]["stop"]
-        if has_shape and len(scheduled) > 1:
-            ia = _shape_index_for(shape, scheduled[-2]["stop"]["lat"], scheduled[-2]["stop"]["lng"])
-            ib = _shape_index_for(shape, scheduled[-1]["stop"]["lat"], scheduled[-1]["stop"]["lng"])
-            heading = _heading_on_shape(shape, ia, ib, 1.0)
-        elif len(scheduled) > 1:
-            heading = _bearing(
-                scheduled[-2]["stop"]["lat"], scheduled[-2]["stop"]["lng"],
-                scheduled[-1]["stop"]["lat"], scheduled[-1]["stop"]["lng"],
-            )
-    else:
-        span = max(1, nxt["t"] - prev["t"])
-        # Real vehicles dwell at each stop (open doors, board passengers).
-        # While dwelling the vehicle sits at the stop, then departs and
-        # covers the segment in the remaining time - stop-and-go motion
-        # instead of a constant drift.
-        dwell = min(25, max(0, int(span * 0.3)))
-        dep_t = prev["t"] + dwell
-        if now_sec < dep_t:
-            pos = {"lat": prev["stop"]["lat"], "lng": prev["stop"]["lng"]}
-            if has_shape:
-                ia = _shape_index_for(shape, prev["stop"]["lat"], prev["stop"]["lng"])
-                ib = _shape_index_for(shape, nxt["stop"]["lat"], nxt["stop"]["lng"])
-                heading = _heading_on_shape(shape, ia, ib, 0.0)
-            else:
-                heading = _bearing(
-                    prev["stop"]["lat"], prev["stop"]["lng"],
-                    nxt["stop"]["lat"], nxt["stop"]["lng"],
-                )
-        else:
-            frac = min(1.0, max(0.0, (now_sec - dep_t) / max(1, nxt["t"] - dep_t)))
-            if has_shape:
-                # Move along the real route shape instead of a straight line.
-                from_idx = _shape_index_for(shape, prev["stop"]["lat"], prev["stop"]["lng"])
-                to_idx = _shape_index_for(shape, nxt["stop"]["lat"], nxt["stop"]["lng"])
-                pos = _position_along_shape(shape, from_idx, to_idx, frac)
-                # Face along the street segment the vehicle is on
-                heading = _heading_on_shape(shape, from_idx, to_idx, frac)
-            else:
-                pos = {
-                    "lat": prev["stop"]["lat"] + (nxt["stop"]["lat"] - prev["stop"]["lat"]) * frac,
-                    "lng": prev["stop"]["lng"] + (nxt["stop"]["lng"] - prev["stop"]["lng"]) * frac,
-                }
-                heading = _bearing(
-                    prev["stop"]["lat"], prev["stop"]["lng"],
-                    nxt["stop"]["lat"], nxt["stop"]["lng"],
-                )
-    delay_minutes = 0
-    position_source = "SCHEDULE_ESTIMATE"
-    if trip_delay > 0:
-        delay_minutes = max(0, round(trip_delay / 60))
-        position_source = "REALTIME_ESTIMATE"
+
+    path = _trip_path_geometry(route, trip, timeline)
+    stop_progress = path.get("stop_progress") or []
+    if len(stop_progress) != len(timeline):
+        return None
+
+    raw_progress = _raw_timeline_progress(timeline, stop_progress, now_sec)
+    shown_progress = _adaptive_forward_progress(
+        trip_id,
+        raw_progress,
+        float(path.get("total_m") or 0.0),
+        str(route.get("mode") or "bus"),
+    )
+    pos, heading = _point_heading_at_progress(path, shown_progress)
+    if not pos:
+        return None
+
+    next_entry = next(
+        (e for e in timeline if e["predicted_arrival"] >= now_sec and e["relationship"] != "SKIPPED"),
+        timeline[-1],
+    )
+    delay_seconds = int(next_entry.get("delay_seconds") or 0)
+
+    has_rt = bool(
+        realtime
+        and (
+            realtime.get("stop_predictions")
+            or realtime.get("stop_delays")
+            or realtime.get("delay_seconds") is not None
+            or realtime.get("trip_schedule_relationship")
+        )
+    )
+
     return {
         "latitude": pos["lat"],
         "longitude": pos["lng"],
         "heading": heading,
-        "delay_minutes": delay_minutes,
-        "position_source": position_source,
+        "delay_minutes": round(delay_seconds / 60),
+        "position_source": "REALTIME_ESTIMATE" if has_rt else "SCHEDULE_ESTIMATE",
+        "progress_m": round(shown_progress, 1),
+        "target_progress_m": round(raw_progress, 1),
     }
-
 
 # Short-lived cache for the estimated vehicles so fast client polling
 # doesn't recompute the whole trip graph on every request.
 _ESTIMATES_CACHE = {"at": 0.0, "data": []}
 
-# Monotonic delay smoothing per service day: the max delay seen so far for
-# each trip/stop. Feed oscillations can never pull a vehicle backwards.
-_DELAY_MONO: dict = {}
+REALTIME_FRESH_SECONDS = int(os.getenv("MOBILITY_REALTIME_FRESH_SECONDS", "120"))
 
 
-def _trip_window(route: dict, trip: dict) -> Optional[dict]:
-    """Time window + stop list of one trip, ordered by stop time."""
-    stop_times = trip.get("stop_times") or {}
-    stops = route.get("stops") or []
-    ordered = []
-    for s in stops:
-        t = _time_to_seconds(stop_times.get(s.get("stop_id"), ""))
-        if t is None:
-            continue
-        ordered.append((s, t))
-    ordered.sort(key=lambda x: x[1])
-    if len(ordered) < 2:
+def _trip_window(route: dict, trip: dict, realtime: Optional[dict] = None) -> Optional[dict]:
+    """Predicted window + exact ordered stops for one trip."""
+    timeline = _predicted_stop_timeline(route, trip, realtime)
+    if len(timeline) < 2:
         return None
+    ordered = [(e["stop"], e["predicted_arrival"]) for e in timeline]
     return {
-        "start": ordered[0][1],
-        "end": ordered[-1][1],
-        "first_stop": ordered[0][0],
-        "last_stop": ordered[-1][0],
-        "first_stop_id": ordered[0][0].get("stop_id"),
-        "last_stop_id": ordered[-1][0].get("stop_id"),
+        "start": timeline[0]["predicted_arrival"],
+        "end": timeline[-1]["predicted_arrival"],
+        "first_stop": timeline[0]["stop"],
+        "last_stop": timeline[-1]["stop"],
+        "first_stop_id": timeline[0]["stop_id"],
+        "last_stop_id": timeline[-1]["stop_id"],
         "ordered": ordered,
     }
 
 
 def _iso_is_fresh(ts: str, seconds: int) -> bool:
-    """True when the ISO timestamp is within `seconds` of now."""
     try:
         return datetime.fromisoformat(ts) > now_utc() - timedelta(seconds=seconds)
     except Exception:
@@ -604,21 +810,14 @@ def _iso_is_fresh(ts: str, seconds: int) -> bool:
 
 
 def _chain_trips(route: dict, delays: Optional[dict] = None) -> List[dict]:
-    """Group trips of one route into vehicle runs: a trip that departs from
-    the stop where a previous trip ended within 7 minutes continues the
-    SAME physical vehicle (turnaround at the terminus) instead of spawning
-    a duplicate - trams/buses must not pass more often than in reality.
-    Trip windows are shifted by their realtime delay so a delayed vehicle
-    stays visible (and chains correctly) past its scheduled end."""
+    """Group consecutive predicted trips into one physical vehicle run."""
     windows = []
     for trip in route.get("trips", []):
-        w = _trip_window(route, trip)
+        rt = (delays or {}).get(str(trip.get("trip_id") or ""))
+        w = _trip_window(route, trip, rt)
         if w:
-            rt = (delays or {}).get(trip.get("trip_id"))
-            d = int(rt.get("delay_seconds") or 0) if rt else 0
-            w["start"] += d
-            w["end"] += d
             windows.append({"trip": trip, **w})
+
     windows.sort(key=lambda x: x["start"])
     runs: List[dict] = []
     for w in windows:
@@ -627,8 +826,7 @@ def _chain_trips(route: dict, delays: Optional[dict] = None) -> List[dict]:
             ls = run["last_stop"]
             fs = w["first_stop"]
             if (
-                _haversine_km(ls.get("lat"), ls.get("lng"), fs.get("lat"), fs.get("lng"))
-                < 0.08
+                _haversine_km(ls.get("lat"), ls.get("lng"), fs.get("lat"), fs.get("lng")) < 0.08
                 and run["end"] <= w["start"] <= run["end"] + 420
             ):
                 run["trips"].append(w)
@@ -649,60 +847,53 @@ def _chain_trips(route: dict, delays: Optional[dict] = None) -> List[dict]:
 
 
 async def _realtime_delays_for(trip_ids: List[str]) -> dict:
-    """Realtime delay docs for the given trips, smoothed monotonically
-    (per-day max) so feed oscillations never pull a vehicle backwards."""
-    delays: dict = {}
+    """Fresh GTFS-RT state. Do not mutate delay values to prevent reverse motion."""
     if not trip_ids:
-        return delays
+        return {}
+
     docs = await db.mobility_realtime.find(
-        {"trip_id": {"$in": trip_ids}}, {"_id": 0}
+        {"trip_id": {"$in": trip_ids}},
+        {"_id": 0},
     ).to_list(len(trip_ids))
-    today = _berlin_now().date().isoformat()
-    if _DELAY_MONO.get("date") != today:
-        _DELAY_MONO.clear()
-        _DELAY_MONO["date"] = today
-    for d in docs:
-        tid = d["trip_id"]
-        prev_d = _DELAY_MONO.get(tid, 0)
-        d["delay_seconds"] = max(int(d.get("delay_seconds") or 0), prev_d)
-        _DELAY_MONO[tid] = d["delay_seconds"]
-        sd = d.get("stop_delays") or {}
-        prev_stops = _DELAY_MONO.get(f"{tid}:stops") or {}
-        for sid, v in sd.items():
-            v = int(v)
-            if prev_stops.get(sid, v) > v:
-                sd[sid] = prev_stops[sid]
-            else:
-                prev_stops[sid] = v
-        _DELAY_MONO[f"{tid}:stops"] = prev_stops
-        delays[tid] = d
-    return delays
+
+    result = {}
+    for doc in docs:
+        if not _iso_is_fresh(doc.get("updated_at") or "", REALTIME_FRESH_SECONDS):
+            continue
+        result[str(doc.get("trip_id"))] = doc
+    return result
 
 
 def _active_trip_for(route: dict, vehicle: dict, now_sec: int, delays: dict) -> Optional[dict]:
-    """The trip this vehicle is CURRENTLY on. Estimated vehicles carry an
-    explicit trip_id from the estimator; real GPS vehicles fall back to the
-    delay-adjusted trip whose window contains now."""
-    tid = vehicle.get("trip_id")
+    """The exact trip the vehicle is currently on."""
+    tid = str(vehicle.get("trip_id") or "")
     if tid:
-        trip = next((t for t in route.get("trips", []) if t.get("trip_id") == tid), None)
-        if trip:
+        trip = next(
+            (t for t in route.get("trips", []) if str(t.get("trip_id") or "") == tid),
+            None,
+        )
+        if trip and _trip_window(route, trip, delays.get(tid)):
             return trip
+
     direction = str(vehicle.get("route_direction") or "")
     candidates = []
     for trip in route.get("trips", []):
-        rt = delays.get(trip.get("trip_id"))
-        d = int(rt.get("delay_seconds") or 0) if rt else 0
-        w = _trip_window(route, trip)
+        tid = str(trip.get("trip_id") or "")
+        w = _trip_window(route, trip, delays.get(tid))
         if not w:
             continue
-        if w["start"] + d - 60 <= now_sec <= w["end"] + d + 180:
-            candidates.append((trip, direction != "" and direction == str(trip.get("headsign") or "")))
+        if w["start"] - 60 <= now_sec <= w["end"] + 180:
+            candidates.append(
+                (
+                    trip,
+                    direction != "" and direction == str(trip.get("headsign") or ""),
+                )
+            )
+
     if not candidates:
         return None
     candidates.sort(key=lambda x: not x[1])
     return candidates[0][0]
-
 
 async def _estimated_transit_vehicles() -> List[dict]:
     """Virtual vehicles for every currently running vehicle run of the
@@ -777,7 +968,12 @@ async def _estimated_transit_vehicles() -> List[dict]:
                         before = w
                     if w["start"] >= now_sec and after is None:
                         after = w
-                shape_r = route.get("shape") or []
+                heading_trip = (
+                    after["trip"] if after is not None
+                    else before["trip"] if before is not None
+                    else first["trip"]
+                )
+                shape_r = _trip_shape(route, heading_trip)
                 has_shape_r = isinstance(shape_r, list) and len(shape_r) > 2
 
                 def _stop_pair_heading(s1: dict, s2: dict) -> Optional[float]:
@@ -1130,94 +1326,131 @@ async def buses_serving_stop(
     lng: Optional[float] = None,
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
-    """Live vehicles that will actually serve the stop: each vehicle's OWN
-    trip is checked (ordered stop sequence + realtime delays), so a line
-    that passes the stop in both directions only lists the vehicles whose
-    trip still has the stop AHEAD of them. ETA = predicted stop time - now
-    (timetable + stop-specific delay), never distance / assumed speed."""
+    """Vehicles whose CURRENT trip will still serve the requested stop."""
     network = await _get_active_network()
     if not network:
         return []
+
     serving_routes = [
         r
         for r in network.get("routes", [])
         if any(s.get("stop_id") == stop_id for s in r.get("stops", []))
     ]
     route_numbers = {str(r.get("route_number")) for r in serving_routes}
+
     live = [
         v
         for v in await _all_active_vehicles()
-        if v.get("mode") in ("bus", "tram") and str(v.get("route_number")) in route_numbers
+        if v.get("mode") in ("bus", "tram")
+        and str(v.get("route_number")) in route_numbers
     ]
+
     now_sec = _now_service_seconds()
+    all_trip_ids = [
+        str(t.get("trip_id"))
+        for r in serving_routes
+        for t in r.get("trips", [])
+        if t.get("trip_id")
+    ]
+    realtime_by_trip = await _realtime_delays_for(all_trip_ids)
     results = []
-    # Delay docs for all candidate trips (one batched query)
-    all_trip_ids = [t.get("trip_id") for r in serving_routes for t in r.get("trips", []) if t.get("trip_id")]
-    delays = await _realtime_delays_for(all_trip_ids)
-    for bus in live:
-        if bus.get("latitude") is None or bus.get("longitude") is None:
+
+    for vehicle in live:
+        if vehicle.get("latitude") is None or vehicle.get("longitude") is None:
             continue
-        route = next((r for r in serving_routes if str(r.get("route_number")) == str(bus.get("route_number"))), None)
+
+        route = next(
+            (
+                r for r in serving_routes
+                if str(r.get("route_number")) == str(vehicle.get("route_number"))
+                and str(r.get("mode") or "bus") == str(vehicle.get("mode") or "bus")
+            ),
+            None,
+        )
         if not route:
             continue
-        # The trip this vehicle is CURRENTLY on (not the run's first trip)
-        trip = _active_trip_for(route, bus, now_sec, delays)
+
+        trip = _active_trip_for(route, vehicle, now_sec, realtime_by_trip)
         if not trip:
             continue
-        # Ordered stop sequence of THIS trip
-        seq = []
-        for sid, t in (trip.get("stop_times") or {}).items():
-            ts = _time_to_seconds(t)
-            if ts is not None:
-                seq.append((sid, ts))
-        seq.sort(key=lambda x: x[1])
-        stop_info = next((s for s in route.get("stops", []) if s.get("stop_id") == stop_id), None)
 
-        def _same_stop(sid: str) -> bool:
-            # The feed uses different stop_ids for the arrival and departure
-            # platform of the SAME physical stop - match by name/coords.
+        trip_id = str(trip.get("trip_id") or "")
+        realtime = realtime_by_trip.get(trip_id)
+        timeline = _predicted_stop_timeline(route, trip, realtime)
+        if not timeline:
+            continue
+
+        stop_info = next(
+            (s for s in route.get("stops", []) if s.get("stop_id") == stop_id),
+            None,
+        )
+
+        def same_physical_stop(entry: dict) -> bool:
+            if str(entry.get("stop_id")) == str(stop_id):
+                return True
             if not stop_info:
                 return False
-            s = next((x for x in route.get("stops", []) if x.get("stop_id") == sid), None)
-            if not s:
-                return False
+            s = entry.get("stop") or {}
             if str(s.get("name")) == str(stop_info.get("name")):
                 return True
-            return _haversine_km(s.get("lat"), s.get("lng"), stop_info.get("lat"), stop_info.get("lng")) < 0.1
+            return (
+                _haversine_km(
+                    s.get("lat"), s.get("lng"),
+                    stop_info.get("lat"), stop_info.get("lng"),
+                )
+                < 0.1
+            )
 
-        target = next(((sid, t) for sid, t in seq if sid == stop_id or _same_stop(sid)), None)
-        if target is None:
-            # This specific trip does not serve the stop - skip it
+        target = next(
+            (
+                e for e in timeline
+                if same_physical_stop(e)
+                and e.get("relationship") != "SKIPPED"
+                and e.get("predicted_arrival", -1) > now_sec
+            ),
+            None,
+        )
+        if not target:
             continue
-        realtime = delays.get(trip.get("trip_id"))
-        trip_delay = int(realtime.get("delay_seconds") or 0) if realtime else 0
-        stop_delays = (realtime.get("stop_delays") or {}) if realtime else {}
-        eff = target[1] + int(stop_delays.get(target[0], trip_delay))
-        if eff <= now_sec:
-            # The stop is already behind this vehicle on its trip
-            continue
-        eta_minutes = max(0, math.ceil((eff - now_sec) / 60))
+
+        eta_minutes = max(0, math.ceil((target["predicted_arrival"] - now_sec) / 60))
+        delay_seconds = int(target.get("delay_seconds") or 0)
+
         remaining_m = None
         if stop_info:
-            remaining_m = round(_haversine_km(bus["latitude"], bus["longitude"], stop_info.get("lat"), stop_info.get("lng")) * 1000)
+            remaining_m = round(
+                _haversine_km(
+                    vehicle["latitude"], vehicle["longitude"],
+                    stop_info.get("lat"), stop_info.get("lng"),
+                ) * 1000
+            )
+
         user_distance_m = None
         if lat is not None and lng is not None:
-            user_distance_m = round(_haversine_km(lat, lng, bus["latitude"], bus["longitude"]) * 1000)
+            user_distance_m = round(
+                _haversine_km(
+                    lat, lng,
+                    vehicle["latitude"], vehicle["longitude"],
+                ) * 1000
+            )
+
         results.append(
             {
-                "vehicle_id": bus.get("vehicle_id"),
-                "route_number": bus.get("route_number"),
-                "route_direction": bus.get("route_direction") or trip.get("headsign") or route.get("name", ""),
-                "status": bus.get("status"),
-                "delay_minutes": max(0, round(trip_delay / 60)),
+                "vehicle_id": vehicle.get("vehicle_id"),
+                "trip_id": trip_id,
+                "route_number": vehicle.get("route_number"),
+                "route_direction": vehicle.get("route_direction") or trip.get("headsign") or route.get("name", ""),
+                "status": vehicle.get("status"),
+                "delay_minutes": round(delay_seconds / 60),
                 "eta_minutes": eta_minutes,
+                "eta_source": "REALTIME" if realtime else "SCHEDULE",
                 "distance_to_bus_m": user_distance_m,
                 "distance_to_stop_m": remaining_m,
             }
         )
+
     results.sort(key=lambda x: x["eta_minutes"])
     return results
-
 
 # ---------------------------------------------------------------------------
 # Taxi: pricing, passenger requests and company assignment. No payments -
@@ -1442,9 +1675,11 @@ async def complete_taxi_request(request_id: str, current_user: UserPublic = Depe
 
 
 @router.get("/vehicles/{vehicle_id}/trip")
-async def vehicle_trip_progress(vehicle_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    """Per-stop progress for one vehicle/trip: which stops are already
-    passed and the predicted arrival time at every remaining stop."""
+async def vehicle_trip_progress(
+    vehicle_id: str,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Per-stop progress using the same predicted timeline as map and ETA."""
     vehicle = await db.mobility_live.find_one({"vehicle_id": vehicle_id}, {"_id": 0})
     if not vehicle and vehicle_id.startswith("est_"):
         for v in await _all_active_vehicles():
@@ -1453,55 +1688,65 @@ async def vehicle_trip_progress(vehicle_id: str, current_user: Optional[UserPubl
                 break
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
+
     route = await _network_route(vehicle.get("route_number"))
     if not route:
         raise HTTPException(status_code=404, detail="Route not found")
+
     now_sec = _now_service_seconds()
-    trip_ids = [t.get("trip_id") for t in route.get("trips", []) if t.get("trip_id")]
-    delays = await _realtime_delays_for(trip_ids)
-    # The trip the vehicle is CURRENTLY on (its id names the whole run)
-    trip = _active_trip_for(route, vehicle, now_sec, delays)
+    trip_ids = [
+        str(t.get("trip_id"))
+        for t in route.get("trips", [])
+        if t.get("trip_id")
+    ]
+    realtime_by_trip = await _realtime_delays_for(trip_ids)
+    trip = _active_trip_for(route, vehicle, now_sec, realtime_by_trip)
     if not trip:
-        trips = route.get("trips", [])
-        trip = trips[0] if trips else None
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
-    stop_times = trip.get("stop_times") or {}
-    realtime = delays.get(trip.get("trip_id"))
-    trip_delay = int(realtime.get("delay_seconds") or 0) if realtime else 0
-    stop_delays = (realtime.get("stop_delays") or {}) if realtime else {}
+        raise HTTPException(status_code=404, detail="Active trip not found")
+
+    trip_id = str(trip.get("trip_id") or "")
+    realtime = realtime_by_trip.get(trip_id)
+    timeline = _predicted_stop_timeline(route, trip, realtime)
+    if not timeline:
+        raise HTTPException(status_code=404, detail="Trip cancelled or unavailable")
+
     stops_out = []
-    ordered = []
-    for s in route.get("stops", []):
-        t = _time_to_seconds(stop_times.get(s.get("stop_id"), ""))
-        if t is None:
-            continue
-        ordered.append((s, t))
-    ordered.sort(key=lambda x: x[1])
-    for i, (s, t) in enumerate(ordered):
-        delay = int(stop_delays.get(s.get("stop_id"), trip_delay))
-        predicted = t + delay
+    for entry in timeline:
+        predicted = int(entry["predicted_arrival"])
+        relationship = entry.get("relationship") or "SCHEDULED"
         stops_out.append(
             {
-                "stop_id": s.get("stop_id"),
-                "name": s.get("name"),
-                "scheduled": trip.get("stop_times", {}).get(s.get("stop_id")),
-                "delay_seconds": delay,
+                "stop_id": entry.get("stop_id"),
+                "name": (entry.get("stop") or {}).get("name"),
+                "scheduled": _fmt_service_time(int(entry["scheduled"])),
+                "delay_seconds": int(entry.get("delay_seconds") or 0),
                 "predicted": _fmt_service_time(predicted),
                 "passed": predicted <= now_sec,
+                "skipped": relationship == "SKIPPED",
+                "schedule_relationship": relationship,
             }
         )
+
+    next_entry = next(
+        (
+            e for e in timeline
+            if e["predicted_arrival"] >= now_sec
+            and e.get("relationship") != "SKIPPED"
+        ),
+        timeline[-1],
+    )
+
     return {
         "vehicle_id": vehicle.get("vehicle_id"),
+        "trip_id": trip_id,
         "route_number": vehicle.get("route_number"),
         "route_direction": vehicle.get("route_direction") or trip.get("headsign"),
         "mode": vehicle.get("mode"),
-        "delay_minutes": max(0, round(trip_delay / 60)),
+        "delay_minutes": round(int(next_entry.get("delay_seconds") or 0) / 60),
         "position_source": vehicle.get("position_source", "VEHICLE_GPS"),
         "estimated": bool(vehicle.get("estimated")),
         "stops": stops_out,
     }
-
 
 # ---------------------------------------------------------------------------
 # Passenger endpoint
@@ -1572,11 +1817,12 @@ async def plan_journey(
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
         for trip in route.get("trips", []):
             seq = []
-            for sid, t in (trip.get("stop_times") or {}).items():
-                tsec = _time_to_seconds(t)
-                if tsec is not None and sid in stops:
+            trip_stop_times = trip.get("stop_times") or {}
+            for stop in _trip_stops(route, trip):
+                sid = stop.get("stop_id")
+                tsec = _time_to_seconds(trip_stop_times.get(sid, ""))
+                if sid is not None and tsec is not None and sid in stops:
                     seq.append((sid, tsec))
-            seq.sort(key=lambda x: x[1])
             if len(seq) < 2:
                 continue
             segments = []
@@ -1587,6 +1833,7 @@ async def plan_journey(
                     "route_number": route.get("route_number"),
                     "mode": mode,
                     "direction": trip.get("headsign") or route.get("name") or "",
+                    "trip_id": trip.get("trip_id"),
                     "segments": segments,
                 }
             )
@@ -1633,6 +1880,7 @@ async def plan_journey(
                         "route_number": trip["route_number"],
                         "mode": trip["mode"],
                         "direction": trip["direction"],
+                        "trip_id": trip.get("trip_id"),
                         "board": sid,
                         "alight": nxt2,
                         "depart": trip["segments"][pos][1],
@@ -1662,19 +1910,26 @@ async def plan_journey(
     final_walk_km = _haversine_km(to_lat, to_lng, stops[reached[1]]["lat"], stops[reached[1]]["lng"])
     legs.append(("walk_dest", {"minutes": round(walk_sec(final_walk_km) / 60), "to_lat": to_lat, "to_lng": to_lng}, reached[1], None))
 
-    # Route shape lookup per route number for ride polylines
-    shapes_by_num = {}
-    for route in network.get("routes", []):
-        sh = route.get("shape") or []
-        if isinstance(sh, list) and len(sh) > 2:
-            shapes_by_num[str(route.get("route_number"))] = (route, sh)
+    # Trip-specific shape lookup for ride polylines.
+    routes_by_num = {
+        str(route.get("route_number")): route
+        for route in network.get("routes", [])
+    }
 
-    def _shape_slice(route_num, from_stop_id, to_stop_id):
-        """Slice of the route shape between two stops (either direction)."""
-        entry = shapes_by_num.get(str(route_num))
-        if not entry:
+    def _shape_slice(route_num, trip_id, from_stop_id, to_stop_id):
+        """Slice of THIS trip's shape between two stops (either direction)."""
+        route = routes_by_num.get(str(route_num))
+        if not route:
             return None
-        route, sh = entry
+        trip = next(
+            (t for t in route.get("trips", []) if str(t.get("trip_id")) == str(trip_id)),
+            None,
+        )
+        if not trip:
+            return None
+        sh = _trip_shape(route, trip)
+        if len(sh) < 3:
+            return None
         a = next((s for s in route.get("stops", []) if s.get("stop_id") == from_stop_id), None)
         b = next((s for s in route.get("stops", []) if s.get("stop_id") == to_stop_id), None)
         if not a or not b:
@@ -1702,7 +1957,12 @@ async def plan_journey(
             })
             walking_total += payload["minutes"]
         elif kind == "ride":
-            shape_slice = _shape_slice(payload["route_number"], payload["board"], payload["alight"])
+            shape_slice = _shape_slice(
+                payload["route_number"],
+                payload.get("trip_id"),
+                payload["board"],
+                payload["alight"],
+            )
             itinerary_legs.append({
                 "type": "ride",
                 "route_number": payload["route_number"],
