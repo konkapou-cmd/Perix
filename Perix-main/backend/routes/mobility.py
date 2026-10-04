@@ -415,13 +415,15 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
     # Realtime state for this trip
     realtime = delays.get(trip.get("trip_id")) if trip.get("trip_id") else None
     trip_delay = int(realtime.get("delay_seconds") or 0) if realtime else 0
-    stop_delays = realtime.get("stop_delays") or {} if realtime else {}
 
     stop_times = trip.get("stop_times") or {}
     stops = route.get("stops") or []
     if not stops:
         return None
-    # Effective (delay-corrected) stop times
+    # Effective (delay-corrected) stop times. The vehicle position uses the
+    # UNIFORM trip-level delay (monotonically smoothed): the whole trip
+    # shifts by the same amount, so the position moves strictly forward and
+    # never flickers backwards as per-stop values oscillate.
     scheduled = []
     for s in stops:
         t = _time_to_seconds(stop_times.get(s.get("stop_id"), ""))
@@ -429,8 +431,7 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
             t = _time_to_seconds(s.get("scheduled"))
         if t is None:
             continue
-        d = int(stop_delays.get(s.get("stop_id"), trip_delay))
-        scheduled.append({"stop": s, "t": t + d})
+        scheduled.append({"stop": s, "t": t + trip_delay})
     scheduled.sort(key=lambda x: x["t"])
     if not scheduled:
         return None
@@ -507,6 +508,10 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
 # Short-lived cache for the estimated vehicles so fast client polling
 # doesn't recompute the whole trip graph on every request.
 _ESTIMATES_CACHE = {"at": 0.0, "data": []}
+
+# Monotonic delay smoothing per service day: the max delay seen so far for
+# each trip/stop. Feed oscillations can never pull a vehicle backwards.
+_DELAY_MONO: dict = {}
 
 
 def _trip_window(route: dict, trip: dict) -> Optional[dict]:
@@ -617,18 +622,35 @@ async def _estimated_transit_vehicles() -> List[dict]:
         for t in route.get("trips", [])
         if t.get("trip_id")
     ]
-    # One batched query for all realtime delays (not one per trip). Stale
-    # delay documents (> 3 min) are ignored - they belong to previous days.
+    # One batched query for all realtime delays (not one per trip). Trip
+    # ids are unique per service day, so docs from previous days can never
+    # match today's ids - no freshness filter needed. Delays are smoothed
+    # monotonically: a vehicle NEVER moves backwards, even when the feed's
+    # delay value oscillates or drops.
     delays = {}
     if trip_ids:
         docs = await db.mobility_realtime.find(
             {"trip_id": {"$in": trip_ids}}, {"_id": 0}
         ).to_list(len(trip_ids))
-        delays = {
-            d["trip_id"]: d
-            for d in docs
-            if _iso_is_fresh(d.get("updated_at") or "", 180)
-        }
+        today = _berlin_now().date().isoformat()
+        if _DELAY_MONO.get("date") != today:
+            _DELAY_MONO.clear()
+            _DELAY_MONO["date"] = today
+        for d in docs:
+            tid = d["trip_id"]
+            prev_d = _DELAY_MONO.get(tid, 0)
+            d["delay_seconds"] = max(int(d.get("delay_seconds") or 0), prev_d)
+            _DELAY_MONO[tid] = d["delay_seconds"]
+            sd = d.get("stop_delays") or {}
+            prev_stops = _DELAY_MONO.get(f"{tid}:stops") or {}
+            for sid, v in sd.items():
+                v = int(v)
+                if prev_stops.get(sid, v) > v:
+                    sd[sid] = prev_stops[sid]
+                else:
+                    prev_stops[sid] = v
+            _DELAY_MONO[f"{tid}:stops"] = prev_stops
+            delays[tid] = d
     for route in network.get("routes", []):
         route_number = str(route.get("route_number"))
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
