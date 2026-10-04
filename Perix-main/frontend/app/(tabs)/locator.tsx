@@ -591,22 +591,93 @@ export default function LocatorScreen() {
       .filter((l) => l.points.length >= 2);
   }, [journeyPlans]);
 
-  // Nearest vehicles first: the list serves the user standing at their
-  // location, so order by distance to them (cap to the closest 20).
+  // Results follow the MAP VIEWPORT (like business results): vehicles and
+  // stops are filtered to what the map currently shows and ordered by
+  // distance from the map center (or the user's location as fallback).
+  const viewportRef = useMemo(() => {
+    if (
+      mapBounds &&
+      mapBounds.minLat != null &&
+      mapBounds.maxLat != null &&
+      mapBounds.minLng != null &&
+      mapBounds.maxLng != null
+    ) {
+      return mapBounds;
+    }
+    return null;
+  }, [mapBounds]);
+
+  const referencePoint = useMemo(() => {
+    if (mapBounds?.centerLat != null && mapBounds?.centerLng != null) {
+      return { latitude: mapBounds.centerLat, longitude: mapBounds.centerLng };
+    }
+    if (contextLocation) return contextLocation;
+    return null;
+  }, [mapBounds, contextLocation?.latitude, contextLocation?.longitude]);
+
+  const inViewport = (lat: number, lng: number) =>
+    !viewportRef ||
+    (lat >= viewportRef.minLat &&
+      lat <= viewportRef.maxLat &&
+      lng >= viewportRef.minLng &&
+      lng <= viewportRef.maxLng);
+
+  // Nearest vehicles first: filtered to the map viewport and ordered by
+  // distance from the map center / user (cap to the closest 20).
   const nearbyVehicles = useMemo(() => {
     const list = liveVehicles.filter((v) => (mobilityMode === "all" || v.mode === mobilityMode));
-    if (!contextLocation) return list.slice(0, 24);
-    const withDist = list
+    const visible = list.filter(
+      (v) => v.latitude != null && v.longitude != null && inViewport(v.latitude, v.longitude)
+    );
+    const ref = referencePoint;
+    if (!ref) return visible.slice(0, 24);
+    const withDist = visible
       .map((v) => ({
         v,
         d:
           v.latitude != null && v.longitude != null
-            ? haversineDistance(contextLocation.latitude, contextLocation.longitude, v.latitude, v.longitude)
+            ? haversineDistance(ref.latitude, ref.longitude, v.latitude, v.longitude)
             : null,
       }))
       .sort((a, b) => (a.d ?? Infinity) - (b.d ?? Infinity));
     return withDist.map((x) => x.v).slice(0, 20);
-  }, [liveVehicles, mobilityMode, contextLocation?.latitude, contextLocation?.longitude]);
+  }, [liveVehicles, mobilityMode, viewportRef, referencePoint]);
+
+  // Nearest stops (bus + tram) in the current map area, with their lines.
+  const nearbyStops = useMemo(() => {
+    if (!transitNetwork) return [];
+    const ref = referencePoint;
+    const byId = new Map<
+      string,
+      { stop_id: string; name: string; lat: number; lng: number; routes: string[]; d: number | null }
+    >();
+    for (const route of transitNetwork.routes) {
+      const rn = String(route.route_number);
+      for (const s of route.stops || []) {
+        if (s.lat == null || s.lng == null) continue;
+        if (!inViewport(s.lat, s.lng)) continue;
+        const key = s.stop_id || `${s.lat.toFixed(5)}_${s.lng.toFixed(5)}`;
+        const e = byId.get(key) || {
+          stop_id: s.stop_id || key,
+          name: s.name,
+          lat: s.lat,
+          lng: s.lng,
+          routes: [],
+          d: null,
+        };
+        if (!e.routes.includes(rn)) e.routes.push(rn);
+        byId.set(key, e);
+      }
+    }
+    const arr = Array.from(byId.values());
+    if (ref) {
+      arr.forEach((s) => {
+        s.d = haversineDistance(ref.latitude, ref.longitude, s.lat, s.lng);
+      });
+      arr.sort((a, b) => (a.d ?? Infinity) - (b.d ?? Infinity));
+    }
+    return arr.slice(0, 8);
+  }, [transitNetwork, viewportRef, referencePoint]);
 
   // Selected vehicle trip progress (passed stops + arrival times)
   useEffect(() => {
@@ -1848,7 +1919,41 @@ export default function LocatorScreen() {
             </View>
           )}
 
-          {nearbyVehicles.length === 0 ? (
+          {mobilityMode !== "taxi" && nearbyStops.length > 0 && (
+            <>
+              <Text style={styles.mobilityHeading}>
+                {t("mobility.nearbyStops", "Nearby stops")}
+              </Text>
+              {nearbyStops.map((s) => (
+                <Pressable
+                  key={"ns_" + s.stop_id}
+                  style={styles.mobilityRow}
+                  onPress={() => {
+                    setSelectedStop({ stop_id: s.stop_id, name: s.name });
+                    setBusQuery(s.name);
+                    setBusSuggestions([]);
+                  }}
+                >
+                  <View style={[styles.mobilityRowIcon, { backgroundColor: "#264348" }]}>
+                    <Ionicons name="location-outline" size={16} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.mobilityRowTitle} numberOfLines={1}>
+                      {s.name}
+                    </Text>
+                    <Text style={styles.mobilityRowSub}>
+                      {s.d != null ? `${s.d < 1 ? Math.round(s.d * 1000) + " m" : s.d.toFixed(1) + " km"} · ` : ""}
+                      {s.routes.slice(0, 6).join(", ")}
+                      {s.routes.length > 6 ? "…" : ""}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                </Pressable>
+              ))}
+            </>
+          )}
+
+          {nearbyVehicles.length === 0 && (mobilityMode === "taxi" || nearbyStops.length === 0) ? (
             <View style={styles.mobilityEmpty}>
               <Ionicons
                 name={mobilityMode === "all" ? "bus-outline" : mobilityMode === "bus" ? "bus-outline" : mobilityMode === "tram" ? "train-outline" : "car-outline"}
@@ -1856,14 +1961,16 @@ export default function LocatorScreen() {
                 color="#9ca3af"
               />
               <Text style={styles.mobilityEmptyText}>
-                {t("mobility.noVehicles", "No live vehicles right now")}
+                {mobilityMode === "taxi"
+                  ? t("mobility.noVehicles", "No live vehicles right now")
+                  : t("mobility.noTransitInArea", "No transit in this map area - move the map to see buses and trams")}
               </Text>
             </View>
           ) : (
             nearbyVehicles.map((v) => {
                 const dist =
-                  contextLocation && v.latitude != null && v.longitude != null
-                    ? haversineDistance(contextLocation.latitude, contextLocation.longitude, v.latitude, v.longitude)
+                  referencePoint && v.latitude != null && v.longitude != null
+                    ? haversineDistance(referencePoint.latitude, referencePoint.longitude, v.latitude, v.longitude)
                     : null;
                 const color = v.mode === "bus" ? "#59ABE3" : v.mode === "tram" ? "#7B3FF2" : "#FFC400";
                 const icon = v.mode === "bus" ? "bus" : v.mode === "tram" ? "train" : "car";

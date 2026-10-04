@@ -3159,6 +3159,8 @@
     "driverInvalidCode": "Ungültiger oder abgelaufener Code",
     "operatorRequired": "Mobilitätsverwaltung ist für Verkehrsbetriebe verfügbar (ÖPNV / Taxis).",
     "whereToGo": "Wohin möchtest du?",
+    "nearbyStops": "Haltestellen in der Nähe",
+    "noTransitInArea": "Kein Nahverkehr in diesem Kartenbereich - bewege die Karte, um Busse und Bahnen zu sehen",
     "manageTimetableDriven": "Fährt nach dem importierten Fahrplan - kein Fahrer nötig",
     "stopSuggest": "Haltestelle",
     "planTapDirections": "Tippen für Wegbeschreibung Schritt für Schritt",
