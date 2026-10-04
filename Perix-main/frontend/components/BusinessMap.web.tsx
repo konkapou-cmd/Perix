@@ -1284,7 +1284,7 @@ export default function BusinessMap({
                   console.warn("Web geolocation error:", err?.code, err?.message);
                   if (err?.code === 1) {
                     setEnableError(
-                      t("common.locationDenied", "Location is blocked for this site. Tap the lock icon in the address bar, open Site settings and allow Location access."),
+                      t("common.locationDeniedWeb", "Location is blocked for this site. Tap the lock icon in the address bar, open Site settings and allow Location access."),
                     );
                     enablingRef.current = false;
                     setEnabling(false);

@@ -98,6 +98,20 @@ async def force_https_middleware(request: Request, call_next):
     return await call_next(request)
 
 
+# Canonical host: exactly ONE origin for the web app, so browser
+# permissions (geolocation etc.) and stored sessions stay consistent -
+# www.perixapp.com / perixapp.com always land on app.perixapp.com.
+@app.middleware("http")
+async def canonical_host_middleware(request: Request, call_next):
+    host = (request.headers.get("host") or "").split(":")[0].lower()
+    if host in ("www.perixapp.com", "perixapp.com"):
+        return RedirectResponse(
+            url=str(request.url.replace(scheme="https", hostname="app.perixapp.com")),
+            status_code=308,
+        )
+    return await call_next(request)
+
+
 # Rate limiting middleware
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):

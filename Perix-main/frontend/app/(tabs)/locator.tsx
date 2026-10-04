@@ -476,7 +476,8 @@ export default function LocatorScreen() {
           centerLng: loc.longitude,
         });
       } else if (Platform.OS === "web" && typeof window !== "undefined") {
-        window.alert(t("common.error") + "\n\n" + (t("locator.locationDenied") || "Location permission denied"));
+        const deniedWeb = t("common.locationDeniedWeb", "Location is blocked for this site. Tap the lock icon in the address bar, open Site settings and allow Location access.");
+        window.alert(t("common.error") + "\n\n" + deniedWeb);
       } else {
         Alert.alert(t("common.error"), t("locator.locationDenied") || "Location permission denied");
       }

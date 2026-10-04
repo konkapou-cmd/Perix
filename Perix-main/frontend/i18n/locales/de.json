@@ -1555,7 +1555,8 @@
     "viewHere": "Hier ansehen",
     "searchLocation": "Standort suchen...",
     "selectCategoryFirst": "Bitte wähle zuerst eine Kategorie",
-    "locationDenied": "Standortberechtigung verweigert. Erlaube den Standortzugriff, um deine genaue Position zu verwenden."
+    "locationDenied": "Standortberechtigung verweigert. Erlaube den Standortzugriff, um deine genaue Position zu verwenden.",
+    "locationDeniedWeb": "Der Standort ist für diese Website blockiert. Tippe auf das Schloss-Symbol in der Adressleiste, öffne die Website-Einstellungen und erlaube den Standortzugriff."
   },
   "eventDetail": {
     "back": "Zurück",
