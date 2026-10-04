@@ -502,10 +502,74 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
 _ESTIMATES_CACHE = {"at": 0.0, "data": []}
 
 
+def _trip_window(route: dict, trip: dict) -> Optional[dict]:
+    """Time window + stop list of one trip, ordered by stop time."""
+    stop_times = trip.get("stop_times") or {}
+    stops = route.get("stops") or []
+    ordered = []
+    for s in stops:
+        t = _time_to_seconds(stop_times.get(s.get("stop_id"), ""))
+        if t is None:
+            continue
+        ordered.append((s, t))
+    ordered.sort(key=lambda x: x[1])
+    if len(ordered) < 2:
+        return None
+    return {
+        "start": ordered[0][1],
+        "end": ordered[-1][1],
+        "first_stop": ordered[0][0],
+        "last_stop": ordered[-1][0],
+        "first_stop_id": ordered[0][0].get("stop_id"),
+        "last_stop_id": ordered[-1][0].get("stop_id"),
+        "ordered": ordered,
+    }
+
+
+def _chain_trips(route: dict) -> List[dict]:
+    """Group trips of one route into vehicle runs: a trip that departs from
+    the stop where a previous trip ended within 7 minutes continues the
+    SAME physical vehicle (turnaround at the terminus) instead of spawning
+    a duplicate - trams/buses must not pass more often than in reality."""
+    windows = []
+    for trip in route.get("trips", []):
+        w = _trip_window(route, trip)
+        if w:
+            windows.append({"trip": trip, **w})
+    windows.sort(key=lambda x: x["start"])
+    runs: List[dict] = []
+    for w in windows:
+        attached = False
+        for run in runs:
+            ls = run["last_stop"]
+            fs = w["first_stop"]
+            if (
+                _haversine_km(ls.get("lat"), ls.get("lng"), fs.get("lat"), fs.get("lng"))
+                < 0.08
+                and run["end"] <= w["start"] <= run["end"] + 420
+            ):
+                run["trips"].append(w)
+                run["end"] = w["end"]
+                run["last_stop"] = w["last_stop"]
+                attached = True
+                break
+        if not attached:
+            runs.append(
+                {
+                    "trips": [w],
+                    "start": w["start"],
+                    "end": w["end"],
+                    "last_stop": w["last_stop"],
+                }
+            )
+    return runs
+
+
 async def _estimated_transit_vehicles() -> List[dict]:
-    """Virtual vehicles for every currently running trip of the active
-    network (bus/tram), unless a real vehicle already covers that route
-    and direction."""
+    """Virtual vehicles for every currently running vehicle run of the
+    active network (bus/tram), unless a real vehicle already covers that
+    route and direction. Consecutive trips at a terminus chain into ONE
+    vehicle so lines run at their real frequency."""
     import time
 
     now_ts = time.time()
@@ -538,28 +602,82 @@ async def _estimated_transit_vehicles() -> List[dict]:
     for route in network.get("routes", []):
         route_number = str(route.get("route_number"))
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
-        for trip in route.get("trips", []):
-            headsign = str(trip.get("headsign") or route.get("name") or "")
+        for run in _chain_trips(route):
+            first = run["trips"][0]
+            headsign = str(first["trip"].get("headsign") or route.get("name") or "")
             if (route_number, headsign) in covered or (route_number, "") in covered:
                 continue
-            pos = _estimate_trip_position(route, trip, now_sec, delays)
-            if not pos:
+            if now_sec < run["start"] - 60 or now_sec > run["end"] + 60:
+                continue
+            pos = None
+            heading = None
+            delay_minutes = 0
+            position_source = "SCHEDULE_ESTIMATE"
+            active = None
+            for w in run["trips"]:
+                if w["start"] <= now_sec <= w["end"]:
+                    active = w
+                    break
+            if active:
+                p = _estimate_trip_position(route, active["trip"], now_sec, delays)
+                if p:
+                    pos = {"lat": p["latitude"], "lng": p["longitude"]}
+                    heading = p.get("heading")
+                    delay_minutes = p["delay_minutes"]
+                    position_source = p["position_source"]
+            if pos is None:
+                # Gap between trips (turnaround) or grace at the run ends:
+                # stand at the shared terminus stop.
+                before = None
+                after = None
+                for w in run["trips"]:
+                    if w["end"] <= now_sec:
+                        before = w
+                    if w["start"] >= now_sec and after is None:
+                        after = w
+                if before is not None and after is not None:
+                    stop_pt = after["first_stop"]
+                    ordered = after["ordered"]
+                    if len(ordered) > 1:
+                        heading = _bearing(
+                            ordered[0][0]["lat"], ordered[0][0]["lng"],
+                            ordered[1][0]["lat"], ordered[1][0]["lng"],
+                        )
+                elif before is not None:
+                    stop_pt = before["last_stop"]
+                    ordered = before["ordered"]
+                    if len(ordered) > 1:
+                        heading = _bearing(
+                            ordered[-2][0]["lat"], ordered[-2][0]["lng"],
+                            ordered[-1][0]["lat"], ordered[-1][0]["lng"],
+                        )
+                else:
+                    stop_pt = first["first_stop"]
+                    ordered = first["ordered"]
+                    if len(ordered) > 1:
+                        heading = _bearing(
+                            ordered[0][0]["lat"], ordered[0][0]["lng"],
+                            ordered[1][0]["lat"], ordered[1][0]["lng"],
+                        )
+                if stop_pt:
+                    pos = {"lat": stop_pt.get("lat"), "lng": stop_pt.get("lng")}
+            if pos is None:
                 continue
             estimates.append(
                 {
-                    "vehicle_id": f"est_{route_number}_{trip.get('trip_id', '')}",
+                    "vehicle_id": f"est_{route_number}_{first['trip'].get('trip_id', '')}",
                     "business_id": network.get("business_id") or "mvb",
                     "mode": mode,
                     "fleet_number": route_number,
                     "name": f"{route_number} {headsign}".strip(),
                     "route_number": route_number,
                     "route_direction": headsign,
-                    "latitude": pos["latitude"],
-                    "longitude": pos["longitude"],
-                    "heading": pos.get("heading"),
+                    "latitude": pos["lat"],
+                    "longitude": pos["lng"],
+                    "heading": heading,
                     "status": "estimated",
-                    "delay_minutes": pos["delay_minutes"],
-                    "position_source": pos["position_source"],
+                    "delay_minutes": delay_minutes,
+                    "position_source": position_source,
                     "estimated": True,
                     "updated_at": datetime.now().isoformat(),
                 }

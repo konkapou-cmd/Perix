@@ -274,6 +274,15 @@ export default function BusinessMap({
   const zoomLayoutDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [layoutTick, setLayoutTick] = useState(0);
 
+  // The map's one-time listeners must always call the LATEST props (stale
+  // closures from the init render would keep old state like planPicking).
+  const onMapPressRef = useRef(onMapPress);
+  onMapPressRef.current = onMapPress;
+  const onRegionChangeRef = useRef(onRegionChange);
+  onRegionChangeRef.current = onRegionChange;
+  const onRegionChangeCompleteRef = useRef(onRegionChangeComplete);
+  onRegionChangeCompleteRef.current = onRegionChangeComplete;
+
   // Continuous vehicle motion: positions are interpolated in GEOGRAPHIC
   // space between polls (requestAnimationFrame), so vehicles glide along
   // their routes instead of jumping every 4s. Zooming in makes the same
@@ -515,13 +524,13 @@ export default function BusinessMap({
           lastBoundsRef.current = key;
           if (debounceRef.current) clearTimeout(debounceRef.current);
           debounceRef.current = setTimeout(() => {
-            onRegionChangeComplete?.({ minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() });
+            onRegionChangeCompleteRef.current?.({ minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() });
           }, 500);
-          onRegionChange?.({ minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() });
+          onRegionChangeRef.current?.({ minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() });
         });
 
         map.addListener("click", (e: any) => {
-          onMapPress?.(e.latLng.lat(), e.latLng.lng());
+          onMapPressRef.current?.(e.latLng.lat(), e.latLng.lng());
         });
 
         map.addListener("zoom_changed", () => {
@@ -603,10 +612,19 @@ export default function BusinessMap({
     // with a "+N" badge; tapping a cluster cycles through its members.
     const clusterOf = new Map<string, string>();
     const membersByRep = new Map<string, MapMarker[]>();
+    const repOffsets = new Map<string, { x: number; y: number }>();
     const projection = mapRef.current.getProjection();
     // fromLatLngToPoint returns ZOOM-0 world coordinates (0-256 range) -
     // scale them to the current zoom so differences equal screen pixels.
     const worldScale = Math.pow(2, zoom);
+    // Nudge directions when two vehicles would overlap: keep BOTH visible
+    // instead of hiding one behind a cluster badge.
+    const NUDGES = [
+      { x: 26, y: -18 },
+      { x: -26, y: -18 },
+      { x: 26, y: 18 },
+      { x: -26, y: 18 },
+    ];
     try {
       if (projection) {
         const placed: { x: number; y: number; id: string; w: number; h: number }[] = [];
@@ -617,12 +635,12 @@ export default function BusinessMap({
           const y = pt.y * worldScale;
           const w = (m.type === "tram" ? 66 : 46) * vScale;
           const h = (m.type === "tram" ? 30 : 26) * vScale;
+          const overlaps = (px: number, py: number, pw: number, ph: number, box: { x: number; y: number; w: number; h: number }) =>
+            Math.abs(px - box.x) < ((pw + box.w) / 2) * 0.9 && Math.abs(py - box.y) < ((ph + box.h) / 2) * 0.9;
           let owner: string | null = null;
           let best = Infinity;
           for (const pl of placed) {
-            const dx = Math.abs(x - pl.x);
-            const dy = Math.abs(y - pl.y);
-            if (dx < ((w + pl.w) / 2) * 0.9 && dy < ((h + pl.h) / 2) * 0.9) {
+            if (overlaps(x, y, w, h, pl)) {
               const d = (x - pl.x) ** 2 + (y - pl.y) ** 2;
               if (d < best) {
                 best = d;
@@ -630,11 +648,40 @@ export default function BusinessMap({
               }
             }
           }
-          const repId = owner || m.id;
-          clusterOf.set(m.id, repId);
-          if (!membersByRep.has(repId)) membersByRep.set(repId, []);
-          membersByRep.get(repId)!.push(m);
-          if (!owner) placed.push({ x, y, id: m.id, w, h });
+          if (!owner) {
+            placed.push({ x, y, id: m.id, w, h });
+            clusterOf.set(m.id, m.id);
+            membersByRep.set(m.id, [m]);
+            repOffsets.set(m.id, { x: 0, y: 0 });
+            continue;
+          }
+          // Try a small deterministic nudge first - both vehicles stay visible
+          let nudged = false;
+          for (const o of NUDGES) {
+            const nx = x + o.x;
+            const ny = y + o.y;
+            let free = true;
+            for (const pl of placed) {
+              if (overlaps(nx, ny, w, h, pl)) {
+                free = false;
+                break;
+              }
+            }
+            if (free) {
+              placed.push({ x: nx, y: ny, id: m.id, w, h });
+              clusterOf.set(m.id, m.id);
+              membersByRep.set(m.id, [m]);
+              repOffsets.set(m.id, o);
+              nudged = true;
+              break;
+            }
+          }
+          if (!nudged) {
+            // Truly crowded spot: join the nearest cluster
+            const repId = owner;
+            clusterOf.set(m.id, repId);
+            membersByRep.get(repId)!.push(m);
+          }
         }
       } else {
         throw new Error("no projection");
@@ -645,6 +692,7 @@ export default function BusinessMap({
       sortedTransit.forEach((m) => {
         clusterOf.set(m.id, m.id);
         membersByRep.set(m.id, [m]);
+        repOffsets.set(m.id, { x: 0, y: 0 });
       });
     }
 
@@ -822,6 +870,7 @@ export default function BusinessMap({
       if (existing) {
         const rec = existing;
         setVehicleTarget(rec, { lat: rep.latitude, lng: rep.longitude }, Date.now());
+        rec.overlay.off = repOffsets.get(repId) || { x: 0, y: 0 };
         rec.heading = heading;
         rec.scale = vScale;
         rec.inner.innerHTML = rep.type === "bus" ? busSvg(rep.label) : tramSvg(rep.label);
@@ -885,10 +934,12 @@ export default function BusinessMap({
       const overlay = new (class extends google.maps.OverlayView {
         div: HTMLDivElement;
         pos: { lat: number; lng: number };
-        constructor(div: HTMLDivElement, pos: { lat: number; lng: number }) {
+        off: { x: number; y: number };
+        constructor(div: HTMLDivElement, pos: { lat: number; lng: number }, off: { x: number; y: number }) {
           super();
           this.div = div;
           this.pos = pos;
+          this.off = off;
         }
         onAdd(this: any) {
           this.getPanes().overlayMouseTarget.appendChild(this.div);
@@ -897,14 +948,14 @@ export default function BusinessMap({
           const overlayProjection = this.getProjection();
           const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
           if (point) {
-            this.div.style.left = point.x + "px";
-            this.div.style.top = point.y + "px";
+            this.div.style.left = point.x + this.off.x + "px";
+            this.div.style.top = point.y + this.off.y + "px";
           }
         }
         onRemove(this: any) {
           if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
         }
-      })(container, { lat: rep.latitude, lng: rep.longitude });
+      })(container, { lat: rep.latitude, lng: rep.longitude }, repOffsets.get(repId) || { x: 0, y: 0 });
       overlay.setMap(mapRef.current);
 
       const rec: any = {
