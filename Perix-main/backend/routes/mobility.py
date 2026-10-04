@@ -407,6 +407,42 @@ def _bearing(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     return (math.degrees(math.atan2(y, x)) + 360) % 360
 
 
+def _heading_on_shape(shape: List[list], from_idx: int, to_idx: int, frac: Optional[float] = None) -> Optional[float]:
+    """Bearing of the shape segment at the interpolated point (or at `frac`),
+    in the direction of travel - so a vehicle on an L-shaped street always
+    faces along the street, never perpendicular to it."""
+    if not shape or from_idx == to_idx:
+        return None
+    reverse = from_idx > to_idx
+    lo, hi = (to_idx, from_idx) if reverse else (from_idx, to_idx)
+    if hi - lo < 1 or hi >= len(shape):
+        return None
+    i = lo if not reverse else hi - 1
+    if frac is not None and hi - lo >= 1:
+        segs = [
+            _haversine_km(shape[k][0], shape[k][1], shape[k + 1][0], shape[k + 1][1])
+            for k in range(lo, hi)
+        ]
+        total = sum(segs)
+        if total > 0:
+            target = total * (1.0 - frac if reverse else frac)
+            acc = 0.0
+            for k, d in enumerate(segs):
+                if acc + d >= target and d > 0:
+                    i = lo + k
+                    break
+                acc += d
+            else:
+                i = hi - 1
+    if reverse:
+        a, b = i + 1, i
+    else:
+        a, b = i, i + 1
+    if a < 0 or b < 0 or a >= len(shape) or b >= len(shape):
+        return None
+    return _bearing(shape[a][0], shape[a][1], shape[b][0], shape[b][1])
+
+
 def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
     """Estimated position of a running trip along the route shape (or stop
     polyline), interpolated between scheduled stop times, corrected with
@@ -448,12 +484,33 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
             prev = entry
         if entry["t"] >= now_sec and nxt is None:
             nxt = entry
+    shape = route.get("shape") or []
+    has_shape = isinstance(shape, list) and len(shape) > 2
+    heading = None
     if prev is None:
-        # Not departed yet - stand at the first stop
+        # Not departed yet - stand at the first stop, facing along the line
         pos = scheduled[0]["stop"]
+        if has_shape and len(scheduled) > 1:
+            ia = _shape_index_for(shape, scheduled[0]["stop"]["lat"], scheduled[0]["stop"]["lng"])
+            ib = _shape_index_for(shape, scheduled[1]["stop"]["lat"], scheduled[1]["stop"]["lng"])
+            heading = _heading_on_shape(shape, ia, ib, 0.0)
+        elif len(scheduled) > 1:
+            heading = _bearing(
+                scheduled[0]["stop"]["lat"], scheduled[0]["stop"]["lng"],
+                scheduled[1]["stop"]["lat"], scheduled[1]["stop"]["lng"],
+            )
     elif nxt is None or nxt is prev:
-        # Trip finished - hold at the last stop
+        # Trip finished - hold at the last stop, facing the arrival direction
         pos = scheduled[-1]["stop"]
+        if has_shape and len(scheduled) > 1:
+            ia = _shape_index_for(shape, scheduled[-2]["stop"]["lat"], scheduled[-2]["stop"]["lng"])
+            ib = _shape_index_for(shape, scheduled[-1]["stop"]["lat"], scheduled[-1]["stop"]["lng"])
+            heading = _heading_on_shape(shape, ia, ib, 1.0)
+        elif len(scheduled) > 1:
+            heading = _bearing(
+                scheduled[-2]["stop"]["lat"], scheduled[-2]["stop"]["lng"],
+                scheduled[-1]["stop"]["lat"], scheduled[-1]["stop"]["lng"],
+            )
     else:
         span = max(1, nxt["t"] - prev["t"])
         # Real vehicles dwell at each stop (open doors, board passengers).
@@ -464,38 +521,38 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
         dep_t = prev["t"] + dwell
         if now_sec < dep_t:
             pos = {"lat": prev["stop"]["lat"], "lng": prev["stop"]["lng"]}
+            if has_shape:
+                ia = _shape_index_for(shape, prev["stop"]["lat"], prev["stop"]["lng"])
+                ib = _shape_index_for(shape, nxt["stop"]["lat"], nxt["stop"]["lng"])
+                heading = _heading_on_shape(shape, ia, ib, 0.0)
+            else:
+                heading = _bearing(
+                    prev["stop"]["lat"], prev["stop"]["lng"],
+                    nxt["stop"]["lat"], nxt["stop"]["lng"],
+                )
         else:
             frac = min(1.0, max(0.0, (now_sec - dep_t) / max(1, nxt["t"] - dep_t)))
-            shape = route.get("shape") or []
-            if isinstance(shape, list) and len(shape) > 2:
+            if has_shape:
                 # Move along the real route shape instead of a straight line.
                 from_idx = _shape_index_for(shape, prev["stop"]["lat"], prev["stop"]["lng"])
                 to_idx = _shape_index_for(shape, nxt["stop"]["lat"], nxt["stop"]["lng"])
                 pos = _position_along_shape(shape, from_idx, to_idx, frac)
+                # Face along the street segment the vehicle is on
+                heading = _heading_on_shape(shape, from_idx, to_idx, frac)
             else:
                 pos = {
                     "lat": prev["stop"]["lat"] + (nxt["stop"]["lat"] - prev["stop"]["lat"]) * frac,
                     "lng": prev["stop"]["lng"] + (nxt["stop"]["lng"] - prev["stop"]["lng"]) * frac,
                 }
+                heading = _bearing(
+                    prev["stop"]["lat"], prev["stop"]["lng"],
+                    nxt["stop"]["lat"], nxt["stop"]["lng"],
+                )
     delay_minutes = 0
     position_source = "SCHEDULE_ESTIMATE"
     if trip_delay > 0:
         delay_minutes = max(0, round(trip_delay / 60))
         position_source = "REALTIME_ESTIMATE"
-    # Facing direction: toward the next scheduled stop
-    heading = None
-    if prev is not None and nxt is not None and nxt is not prev:
-        heading = _bearing(prev["stop"]["lat"], prev["stop"]["lng"], nxt["stop"]["lat"], nxt["stop"]["lng"])
-    elif prev is None and len(scheduled) > 1:
-        heading = _bearing(
-            scheduled[0]["stop"]["lat"], scheduled[0]["stop"]["lng"],
-            scheduled[1]["stop"]["lat"], scheduled[1]["stop"]["lng"],
-        )
-    elif (nxt is None or nxt is prev) and len(scheduled) > 1:
-        heading = _bearing(
-            scheduled[-2]["stop"]["lat"], scheduled[-2]["stop"]["lng"],
-            scheduled[-1]["stop"]["lat"], scheduled[-1]["stop"]["lng"],
-        )
     return {
         "latitude": pos["lat"],
         "longitude": pos["lng"],
@@ -679,7 +736,7 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     position_source = p["position_source"]
             if pos is None:
                 # Gap between trips (turnaround) or grace at the run ends:
-                # stand at the shared terminus stop.
+                # stand at the shared terminus stop, facing along the line.
                 before = None
                 after = None
                 for w in run["trips"]:
@@ -687,30 +744,33 @@ async def _estimated_transit_vehicles() -> List[dict]:
                         before = w
                     if w["start"] >= now_sec and after is None:
                         after = w
+                shape_r = route.get("shape") or []
+                has_shape_r = isinstance(shape_r, list) and len(shape_r) > 2
+
+                def _stop_pair_heading(s1: dict, s2: dict) -> Optional[float]:
+                    if has_shape_r:
+                        ia = _shape_index_for(shape_r, s1.get("lat"), s1.get("lng"))
+                        ib = _shape_index_for(shape_r, s2.get("lat"), s2.get("lng"))
+                        h = _heading_on_shape(shape_r, ia, ib, 0.0)
+                        if h is not None:
+                            return h
+                    return _bearing(s1.get("lat"), s1.get("lng"), s2.get("lat"), s2.get("lng"))
+
                 if before is not None and after is not None:
                     stop_pt = after["first_stop"]
                     ordered = after["ordered"]
                     if len(ordered) > 1:
-                        heading = _bearing(
-                            ordered[0][0]["lat"], ordered[0][0]["lng"],
-                            ordered[1][0]["lat"], ordered[1][0]["lng"],
-                        )
+                        heading = _stop_pair_heading(ordered[0][0], ordered[1][0])
                 elif before is not None:
                     stop_pt = before["last_stop"]
                     ordered = before["ordered"]
                     if len(ordered) > 1:
-                        heading = _bearing(
-                            ordered[-2][0]["lat"], ordered[-2][0]["lng"],
-                            ordered[-1][0]["lat"], ordered[-1][0]["lng"],
-                        )
+                        heading = _stop_pair_heading(ordered[-2][0], ordered[-1][0])
                 else:
                     stop_pt = first["first_stop"]
                     ordered = first["ordered"]
                     if len(ordered) > 1:
-                        heading = _bearing(
-                            ordered[0][0]["lat"], ordered[0][0]["lng"],
-                            ordered[1][0]["lat"], ordered[1][0]["lng"],
-                        )
+                        heading = _stop_pair_heading(ordered[0][0], ordered[1][0])
                 if stop_pt:
                     pos = {"lat": stop_pt.get("lat"), "lng": stop_pt.get("lng")}
             if pos is None:
