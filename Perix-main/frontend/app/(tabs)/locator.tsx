@@ -1267,6 +1267,11 @@ export default function LocatorScreen() {
           {/* Map Section */}
           <View style={styles.mapSection}>
         <BusinessMap
+          location={
+            contextLocation
+              ? { latitude: contextLocation.latitude, longitude: contextLocation.longitude }
+              : undefined
+          }
           initialRegion={{
             latitude: mapBounds?.centerLat ?? contextLocation?.latitude ?? 52.52,
             longitude: mapBounds?.centerLng ?? contextLocation?.longitude ?? 13.405,
