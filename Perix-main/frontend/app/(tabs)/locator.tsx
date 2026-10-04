@@ -83,7 +83,7 @@ export default function LocatorScreen() {
   const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locateToken, setLocateToken] = useState(0);
   const [locating, setLocating] = useState(false);
-  const [mobilityMode, setMobilityMode] = useState<"bus" | "tram" | "taxi">("bus");
+  const [mobilityMode, setMobilityMode] = useState<"all" | "bus" | "tram" | "taxi">("all");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
   const [busQuery, setBusQuery] = useState("");
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
@@ -493,10 +493,14 @@ export default function LocatorScreen() {
   useEffect(() => {
     if (activeTab !== "mobility") return;
     let cancelled = false;
+    let latestSeq = 0;
     const load = () => {
+      const seq = ++latestSeq;
       getLiveVehicles(sessionToken)
         .then((vehicles) => {
-          if (!cancelled) setLiveVehicles(vehicles || []);
+          // Only the newest response may win - a slow stale poll must
+          // never overwrite newer positions.
+          if (!cancelled && seq === latestSeq) setLiveVehicles(vehicles || []);
         })
         .catch(() => {});
     };
@@ -522,23 +526,23 @@ export default function LocatorScreen() {
     };
   }, [activeTab, sessionToken]);
 
-  // Tram: deep red, Bus: dark blue. Lines stay hidden until one is
-  // clicked - then only that line shows (isolated view).
+  // Tram: deep red, Bus: dark blue. Without a selection every line shows
+  // faintly; selecting one isolates it (prominent) and fades the rest.
   const transitLines = useMemo(() => {
     if (!transitNetwork) return [];
-    if (!selectedLine) return [];
-    return transitNetwork.routes
-      .filter((r) => r.route_number === selectedLine)
-      .map((r) => ({
+    return transitNetwork.routes.map((r) => {
+      const isSelected = selectedLine != null && r.route_number === selectedLine;
+      return {
         routeNumber: r.route_number,
         color: r.mode === "tram" ? "#8B0000" : "#1E3A8A",
-        opacity: 0.85,
-        weight: 3,
+        opacity: isSelected ? 0.9 : selectedLine != null ? 0.12 : 0.22,
+        weight: isSelected ? 4 : 2,
         points:
           Array.isArray((r as any).shape) && (r as any).shape.length > 2
             ? (r as any).shape.map((p: any) => ({ latitude: p[0], longitude: p[1] }))
             : r.stops.map((s) => ({ latitude: s.lat, longitude: s.lng })),
-      }));
+      };
+    });
   }, [transitNetwork, selectedLine]);
 
   const selectedRoute = useMemo(() => {
@@ -590,7 +594,7 @@ export default function LocatorScreen() {
   // Nearest vehicles first: the list serves the user standing at their
   // location, so order by distance to them (cap to the closest 20).
   const nearbyVehicles = useMemo(() => {
-    const list = liveVehicles.filter((v) => v.mode === mobilityMode);
+    const list = liveVehicles.filter((v) => (mobilityMode === "all" || v.mode === mobilityMode));
     if (!contextLocation) return list.slice(0, 24);
     const withDist = list
       .map((v) => ({
@@ -1215,7 +1219,7 @@ export default function LocatorScreen() {
           extraMarkers={
             activeTab === "mobility"
               ? liveVehicles
-                  .filter((v) => v.mode === mobilityMode && v.latitude != null && v.longitude != null)
+                  .filter((v) => (mobilityMode === "all" || v.mode === mobilityMode) && v.latitude != null && v.longitude != null)
                   .map((v) => {
                     return {
                       id: v.vehicle_id,
@@ -1235,14 +1239,14 @@ export default function LocatorScreen() {
                   })
               : undefined
           }
-          transitLines={activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram") ? transitLines : undefined}
+          transitLines={activeTab === "mobility" && (mobilityMode !== "taxi") ? transitLines : undefined}
           transitStops={
-            activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram")
+            activeTab === "mobility" && (mobilityMode !== "taxi")
               ? transitStops
               : undefined
           }
           planLines={
-            activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram")
+            activeTab === "mobility" && (mobilityMode !== "taxi")
               ? planLines
               : undefined
           }
@@ -1250,7 +1254,7 @@ export default function LocatorScreen() {
             setSelectedLine((prev) => (prev === routeNumber ? null : routeNumber));
           }}
           onMapPress={(lat, lng) => {
-            if (activeTab === "mobility" && (mobilityMode === "bus" || mobilityMode === "tram") && planPicking) {
+            if (activeTab === "mobility" && (mobilityMode !== "taxi") && planPicking) {
               setPlanPicking(false);
               setTransitDestLat(lat);
               setTransitDestLng(lng);
@@ -1308,6 +1312,15 @@ export default function LocatorScreen() {
         <View style={styles.mobilityPanel}>
           <View style={styles.mobilityToggle}>
             <Pressable
+              style={[styles.mobilityToggleOption, mobilityMode === "all" && styles.mobilityToggleOptionActive]}
+              onPress={() => setMobilityMode("all")}
+            >
+              <Ionicons name="apps" size={16} color={mobilityMode === "all" ? "#fff" : "#264348"} />
+              <Text style={[styles.mobilityToggleText, mobilityMode === "all" && styles.mobilityToggleTextActive]}>
+                {t("mobility.all", "All")}
+              </Text>
+            </Pressable>
+            <Pressable
               style={[styles.mobilityToggleOption, mobilityMode === "bus" && styles.mobilityToggleOptionActive]}
               onPress={() => setMobilityMode("bus")}
             >
@@ -1336,7 +1349,7 @@ export default function LocatorScreen() {
             </Pressable>
           </View>
 
-          {selectedVehicle && tripProgress && (mobilityMode === "bus" || mobilityMode === "tram") && (
+          {selectedVehicle && tripProgress && (mobilityMode !== "taxi") && (
             <View style={styles.linePanel}>
               <View style={styles.linePanelHeader}>
                 <View style={{ flex: 1 }}>
@@ -1383,7 +1396,7 @@ export default function LocatorScreen() {
             </View>
           )}
 
-          {selectedRoute && !selectedVehicle && (mobilityMode === "bus" || mobilityMode === "tram") && (
+          {selectedRoute && !selectedVehicle && (mobilityMode !== "taxi") && (
             <View style={styles.linePanel}>
               <View style={styles.linePanelHeader}>
                 <View style={{ flex: 1 }}>
@@ -1420,7 +1433,7 @@ export default function LocatorScreen() {
             </View>
           )}
 
-          {(mobilityMode === "bus" || mobilityMode === "tram") && (
+          {(mobilityMode !== "taxi") && (
             <View style={styles.busSearchWrap}>
               <View style={styles.busSearchBar}>
                 <Ionicons name="search" size={16} color="#264348" />
@@ -1526,14 +1539,14 @@ export default function LocatorScreen() {
             </View>
           )}
 
-          {planLoading && (mobilityMode === "bus" || mobilityMode === "tram") && (
+          {planLoading && (mobilityMode !== "taxi") && (
             <View style={styles.journeyCard}>
               <ActivityIndicator color="#59ABE3" />
               <Text style={styles.journeyMeta}>{t("mobility.planning", "Finding the best connection…")}</Text>
             </View>
           )}
 
-          {!planLoading && journeyPlans.length > 0 && (mobilityMode === "bus" || mobilityMode === "tram") && (
+          {!planLoading && journeyPlans.length > 0 && (mobilityMode !== "taxi") && (
             <Pressable style={styles.journeyCard} onPress={() => setPlanExpanded((e) => !e)}>
               <View style={styles.journeyHeaderRow}>
                 <View style={{ flex: 1 }}>
@@ -1649,13 +1662,13 @@ export default function LocatorScreen() {
             </Pressable>
           )}
 
-          {planNote && (mobilityMode === "bus" || mobilityMode === "tram") && (
+          {planNote && (mobilityMode !== "taxi") && (
             <View style={styles.journeyCard}>
               <Text style={styles.mobilityEmptyText}>{planNote}</Text>
             </View>
           )}
 
-          {(mobilityMode === "bus" || mobilityMode === "tram") && (
+          {(mobilityMode !== "taxi") && (
             <View style={styles.busSearchWrap}>
               <View style={styles.busSearchBar}>
                 <Ionicons name="bus" size={16} color="#264348" />
@@ -1710,7 +1723,7 @@ export default function LocatorScreen() {
             </View>
           )}
 
-          {selectedStop && (mobilityMode === "bus" || mobilityMode === "tram") ? (
+          {selectedStop && (mobilityMode !== "taxi") ? (
             <View>
               <Text style={styles.mobilityHeading}>
                 {t("mobility.toward", "Buses going toward")} {selectedStop.name}
@@ -1838,7 +1851,7 @@ export default function LocatorScreen() {
           {nearbyVehicles.length === 0 ? (
             <View style={styles.mobilityEmpty}>
               <Ionicons
-                name={mobilityMode === "bus" ? "bus-outline" : mobilityMode === "tram" ? "train-outline" : "car-outline"}
+                name={mobilityMode === "all" ? "bus-outline" : mobilityMode === "bus" ? "bus-outline" : mobilityMode === "tram" ? "train-outline" : "car-outline"}
                 size={32}
                 color="#9ca3af"
               />

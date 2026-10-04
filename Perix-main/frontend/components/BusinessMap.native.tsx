@@ -214,13 +214,21 @@ export default function BusinessMap({
   }, []);
 
   const groupedMarkers = useMemo(() => {
-    const groups = new Map<string, MapMarker[]>();
+    // Transit vehicles keep a STABLE identity (vehicle id) - grouping by
+    // coordinates would unmount/remount the marker on every position
+    // update and cause flicker.
+    const pins = new Map<string, MapMarker[]>();
+    const transitSingles: MapMarker[] = [];
     mapMarkers.forEach((m) => {
+      if (m.type === "bus" || m.type === "tram" || m.type === "taxi") {
+        transitSingles.push(m);
+        return;
+      }
       const key = `${m.latitude.toFixed(5)}_${m.longitude.toFixed(5)}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(m);
+      if (!pins.has(key)) pins.set(key, []);
+      pins.get(key)!.push(m);
     });
-    return Array.from(groups.entries()).map(([key, items]) => {
+    const pinGroups = Array.from(pins.entries()).map(([key, items]) => {
       const uniqueColors: string[] = [];
       items.forEach((i) => {
         if (i.pinColor && !uniqueColors.includes(i.pinColor)) uniqueColors.push(i.pinColor);
@@ -238,6 +246,18 @@ export default function BusinessMap({
         type: items[0].type,
       };
     });
+    const transitGroups = transitSingles.map((m) => ({
+      key: m.id,
+      items: [m],
+      latitude: m.latitude,
+      longitude: m.longitude,
+      count: 1,
+      pinColor: m.pinColor,
+      pinInnerColor: m.pinInnerColor,
+      memberColors: [],
+      type: m.type,
+    }));
+    return [...pinGroups, ...transitGroups];
   }, [mapMarkers]);
 
   useEffect(() => {

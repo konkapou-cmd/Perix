@@ -148,15 +148,6 @@ export const activateBusNetwork = (token: string, versionId: string) =>
     version_id: versionId,
   });
 
-/** GTFS-Realtime TripUpdates (used by the external mobility sync service). */
-export const pushRealtimeUpdates = (
-  token: string,
-  updates: { trip_id: string; delay_seconds: number; source?: string }[]
-) =>
-  apiRequest<{ ok: boolean; count: number }>("/mobility/network/realtime", "POST", token, {
-    updates,
-  });
-
 /** Upload a GTFS zip - the backend converts it into the bus/tram network. */
 export const importGtfsZip = async (token: string, file: Blob, fileName: string) => {
   const form = new FormData();

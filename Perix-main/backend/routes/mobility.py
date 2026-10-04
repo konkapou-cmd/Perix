@@ -533,15 +533,29 @@ def _trip_window(route: dict, trip: dict) -> Optional[dict]:
     }
 
 
-def _chain_trips(route: dict) -> List[dict]:
+def _iso_is_fresh(ts: str, seconds: int) -> bool:
+    """True when the ISO timestamp is within `seconds` of now."""
+    try:
+        return datetime.fromisoformat(ts) > now_utc() - timedelta(seconds=seconds)
+    except Exception:
+        return False
+
+
+def _chain_trips(route: dict, delays: Optional[dict] = None) -> List[dict]:
     """Group trips of one route into vehicle runs: a trip that departs from
     the stop where a previous trip ended within 7 minutes continues the
     SAME physical vehicle (turnaround at the terminus) instead of spawning
-    a duplicate - trams/buses must not pass more often than in reality."""
+    a duplicate - trams/buses must not pass more often than in reality.
+    Trip windows are shifted by their realtime delay so a delayed vehicle
+    stays visible (and chains correctly) past its scheduled end."""
     windows = []
     for trip in route.get("trips", []):
         w = _trip_window(route, trip)
         if w:
+            rt = (delays or {}).get(trip.get("trip_id"))
+            d = int(rt.get("delay_seconds") or 0) if rt else 0
+            w["start"] += d
+            w["end"] += d
             windows.append({"trip": trip, **w})
     windows.sort(key=lambda x: x["start"])
     runs: List[dict] = []
@@ -588,8 +602,12 @@ async def _estimated_transit_vehicles() -> List[dict]:
     live = await db.mobility_live.find(
         {"mode": {"$in": ["bus", "tram"]}, "latitude": {"$ne": None}}, {"_id": 0}
     ).to_list(500)
+    # Only FRESH live positions may suppress estimates - a stale GPS record
+    # must never hide the scheduled vehicles of a whole route+direction.
     covered = {
-        (str(v.get("route_number")), str(v.get("route_direction") or "")) for v in live
+        (str(v.get("route_number")), str(v.get("route_direction") or ""))
+        for v in live
+        if _iso_is_fresh(v.get("updated_at") or "", 90)
     }
     now_sec = _now_service_seconds()
     estimates: List[dict] = []
@@ -599,17 +617,22 @@ async def _estimated_transit_vehicles() -> List[dict]:
         for t in route.get("trips", [])
         if t.get("trip_id")
     ]
-    # One batched query for all realtime delays (not one per trip)
+    # One batched query for all realtime delays (not one per trip). Stale
+    # delay documents (> 3 min) are ignored - they belong to previous days.
     delays = {}
     if trip_ids:
         docs = await db.mobility_realtime.find(
             {"trip_id": {"$in": trip_ids}}, {"_id": 0}
         ).to_list(len(trip_ids))
-        delays = {d["trip_id"]: d for d in docs}
+        delays = {
+            d["trip_id"]: d
+            for d in docs
+            if _iso_is_fresh(d.get("updated_at") or "", 180)
+        }
     for route in network.get("routes", []):
         route_number = str(route.get("route_number"))
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
-        for run in _chain_trips(route):
+        for run in _chain_trips(route, delays):
             first = run["trips"][0]
             headsign = str(first["trip"].get("headsign") or route.get("name") or "")
             if (route_number, headsign) in covered or (route_number, "") in covered:
@@ -701,6 +724,13 @@ async def _all_active_vehicles() -> List[dict]:
             {"_id": 0},
         ).to_list(500)
     )
+    # Transit GPS must be fresh to count as live (90s) - a frozen bus/tram
+    # record must not linger on the map. Taxis keep the longer window.
+    live = [
+        v
+        for v in live
+        if v.get("mode") == "taxi" or _iso_is_fresh(v.get("updated_at") or "", 90)
+    ]
     return live + await _estimated_transit_vehicles()
 
 

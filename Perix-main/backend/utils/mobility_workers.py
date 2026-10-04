@@ -37,7 +37,7 @@ def _log(msg: str) -> None:
     print(f"[mobility] {msg}", flush=True)
 
 
-def _merge_shapes(payload: dict, prev_network: Optional[dict]) -> None:
+async def _merge_shapes(payload: dict, prev_network: Optional[dict]) -> None:
     """Carry over OSM shapes from the previous network so the daily GTFS
     re-import never loses route geometries (the feed has no shapes.txt).
     Missing routes fall back to Overpass."""
@@ -56,9 +56,7 @@ def _merge_shapes(payload: dict, prev_network: Optional[dict]) -> None:
             missing.append(rn)
     if missing:
         _log(f"static: {len(missing)} routes without shape, trying Overpass: {missing}")
-        import asyncio as _a
-
-        async def _fetch():
+        try:
             from utils.osm import fetch_route_shape
 
             for rn in missing:
@@ -67,9 +65,6 @@ def _merge_shapes(payload: dict, prev_network: Optional[dict]) -> None:
                     if str(route.get("route_number")) == rn and sh:
                         route["shape"] = sh
                         _log(f"static: OSM shape for {rn}: {len(sh)} points")
-
-        try:
-            _a.run(_fetch())
         except Exception as e:
             _log(f"static: OSM shape fetch failed: {e}")
 
@@ -100,7 +95,7 @@ async def _realtime_worker():
     while True:
         try:
             now = asyncio.get_event_loop().time()
-            if not trip_ids or now - last_refresh > 600:
+            if not trip_ids or now - last_refresh > 120:
                 trip_ids = await _active_trip_ids()
                 last_refresh = now
             async with httpx.AsyncClient(timeout=60) as client:
@@ -109,6 +104,7 @@ async def _realtime_worker():
                 raw = resp.content
             feed = gtfs_realtime_pb2.FeedMessage()
             feed.ParseFromString(raw)
+            total_tu = sum(1 for e in feed.entity if e.HasField("trip_update"))
             updates = []
             for entity in feed.entity:
                 tu = entity.trip_update
@@ -146,10 +142,14 @@ async def _realtime_worker():
                     },
                     upsert=True,
                 )
-            if updates:
-                logger.info(f"[mobility-realtime] updated {len(updates)} trips")
+            if updates or total_tu:
+                # Diagnostics: if "matched" is 0 the static feed and the
+                # realtime feed do not share trip_ids (namespace mismatch).
+                _log(
+                    f"realtime: feed trip_updates={total_tu} network_trips={len(trip_ids)} matched={len(updates)} stored={len(updates)}"
+                )
         except Exception as e:
-            logger.warning(f"[mobility-realtime] cycle error: {e}")
+            _log(f"realtime: cycle error: {type(e).__name__}: {e}")
         await asyncio.sleep(REALTIME_INTERVAL_SECONDS)
 
 
@@ -202,7 +202,7 @@ async def _static_worker():
                 # Preserve OSM shapes across the daily re-import
                 from routes.mobility import _create_network_version, _get_active_network
 
-                _merge_shapes(payload, await _get_active_network())
+                await _merge_shapes(payload, await _get_active_network())
                 result = await _create_network_version(routes, payload.get("name") or "GTFS auto")
                 _log(f"static: imported version {result['version_id']} diff={result['diff']}")
                 if AUTO_ACTIVATE:

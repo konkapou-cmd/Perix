@@ -170,7 +170,7 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
             except Exception:
                 continue
         for sid in shapes:
-            shapes[sid] = [pt for _, lat, lng in sorted(shapes[sid], key=lambda x: x[0])]
+            shapes[sid] = [[lat, lng] for _, lat, lng in sorted(shapes[sid], key=lambda x: x[0])]
 
         # Group trips by public line number + mode
         grouped = {}
