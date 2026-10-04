@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getCurrentPositionWithPermission, watchPrecisePosition, FreshPosition, isReliablePosition } from "../lib/locationPermission";
+import { getCurrentPositionWithPermission, watchPrecisePosition, FreshPosition, isReliablePosition, isGeolocationGranted } from "../lib/locationPermission";
 import { useAuth } from "./AuthContext";
 
 interface LocationData {
@@ -77,6 +77,11 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [radiusKm, setRadiusKmState] = useState(DEFAULT_RADIUS);
   const [refreshKey, setRefreshKey] = useState(0);
+  // True once the browser/device has granted geolocation. Only then may we
+  // fetch positions silently - never prompt the browser without a user
+  // gesture (that's what makes the permission prompt pop up on every
+  // refresh and the locate button spin forever).
+  const [geoGranted, setGeoGranted] = useState<boolean | null>(null);
   const locationRef = useRef(location);
   locationRef.current = location;
   const liveRef = useRef<FreshPosition | null>(null);
@@ -87,9 +92,9 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const { sessionToken } = useAuth();
 
   // On startup: restore the last-known AREA immediately (so a refresh
-  // never resets the map to Berlin), then acquire a fresh live fix in the
-  // background. The live pin is only ever shown from a fresh GPS fix -
-  // the restored area is marked as NOT live.
+  // never resets the map to Berlin). A fresh fix is fetched ONLY when the
+  // permission is already granted - otherwise we wait for the user to tap
+  // a locate button (user gesture) before asking the browser.
   // Runs in the background: the UI never waits for the GPS.
   useEffect(() => {
     if (!sessionToken) {
@@ -111,20 +116,23 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
           isLiveLocation: false,
         });
       }
-      const fresh = await getCurrentPositionWithPermission({ timeoutMs: 12000 });
-      if (fresh && isReliablePosition(fresh.accuracy)) {
-        setLocation({
-          latitude: fresh.latitude,
-          longitude: fresh.longitude,
-          isLiveLocation: true,
-        });
-        liveRef.current = { latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy };
-        setLivePosition({ latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy });
-        saveLastLocation(fresh.latitude, fresh.longitude);
+      const granted = await isGeolocationGranted();
+      setGeoGranted(granted);
+      if (granted) {
+        const fresh = await getCurrentPositionWithPermission({ timeoutMs: 12000 });
+        if (fresh && isReliablePosition(fresh.accuracy)) {
+          setLocation({
+            latitude: fresh.latitude,
+            longitude: fresh.longitude,
+            isLiveLocation: true,
+          });
+          liveRef.current = { latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy };
+          setLivePosition({ latitude: fresh.latitude, longitude: fresh.longitude, accuracy: fresh.accuracy });
+          saveLastLocation(fresh.latitude, fresh.longitude);
+        }
       } else if (!saved) {
-        // No precise fix and nothing saved from before. Never auto-open the
-        // map at a network/IP estimate (that lands on an unrelated city) -
-        // keep the area empty so the app ASKS for the location.
+        // No saved area and no permission: leave the area empty; the map
+        // shows its default and the locate buttons request permission.
         setError("Could not get location");
       }
       setLoading(false);
@@ -139,6 +147,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const current = await getCurrentPositionWithPermission(timeoutMs ? { timeoutMs } : undefined);
       if (current && isReliablePosition(current.accuracy)) {
+        setGeoGranted(true);
         liveRef.current = { latitude: current.latitude, longitude: current.longitude, accuracy: current.accuracy };
         setLocation({
           latitude: current.latitude,
@@ -223,8 +232,9 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
   // Keep the pin accurate: re-fix on foreground/focus, and watch
   // continuously so the pin follows the user live (Google Maps style).
+  // Only runs once the permission is granted - never prompts on its own.
   useEffect(() => {
-    if (!sessionToken) return;
+    if (!sessionToken || geoGranted !== true) return;
     let stopWatch: (() => void) | null = null;
     const oneShot = () => {
       getCurrentPositionWithPermission({ timeoutMs: 15000 })
@@ -261,7 +271,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       if (stopWatch) stopWatch();
       sub.remove();
     };
-  }, [applyFix, sessionToken]);
+  }, [applyFix, sessionToken, geoGranted]);
 
   return (
     <LocationContext.Provider

@@ -7,6 +7,30 @@ import i18n from "../i18n";
 let _permissionDialogShown = false;
 
 /**
+ * True only when the geolocation permission is ALREADY granted. Never
+ * triggers a prompt - used to decide whether the app may request a
+ * position silently on page load (no user gesture = no prompt).
+ */
+export async function isGeolocationGranted(): Promise<boolean> {
+  if (Platform.OS === "web" && typeof navigator !== "undefined") {
+    const perms = (navigator as any).permissions;
+    if (perms?.query) {
+      try {
+        const st = await perms.query({ name: "geolocation" });
+        return st.state === "granted";
+      } catch {}
+    }
+    return false;
+  }
+  try {
+    const { granted } = await Location.getForegroundPermissionsAsync();
+    return granted;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Request foreground location permission. When denied, explain what happened
  * and offer a direct link to the device settings so the button never looks
  * "dead".
@@ -14,8 +38,7 @@ let _permissionDialogShown = false;
  * Returns true when the permission is granted (now or after the user fixes
  * it in settings and comes back).
  */
-export async function ensureLocationPermission(): Promise<boolean> {
-  let status: string = "undetermined";
+export async function ensureLocationPermission(): Promise<boolean> {  let status: string = "undetermined";
   let canAskAgain = true;
 
   const directAttempt = () =>
