@@ -3159,6 +3159,7 @@
     "driverInvalidCode": "Ungültiger oder abgelaufener Code",
     "operatorRequired": "Mobilitätsverwaltung ist für Verkehrsbetriebe verfügbar (ÖPNV / Taxis).",
     "whereToGo": "Wohin möchtest du?",
+    "manageTimetableDriven": "Fährt nach dem importierten Fahrplan - kein Fahrer nötig",
     "stopSuggest": "Haltestelle",
     "planTapDirections": "Tippen für Wegbeschreibung Schritt für Schritt",
     "planDirectionsTitle": "Wegbeschreibung",

@@ -3059,6 +3059,7 @@
     "driverInvalidCode": "Invalid or expired code",
     "operatorRequired": "Mobility management is available for transport operator businesses (Public Transport / Taxis).",
     "whereToGo": "Where do you want to go?",
+    "manageTimetableDriven": "Runs from the imported timetable - no driver needed",
     "stopSuggest": "Stop",
     "planTapDirections": "Tap for step-by-step directions",
     "planDirectionsTitle": "Step-by-step directions",

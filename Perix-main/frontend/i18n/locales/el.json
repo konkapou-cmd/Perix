@@ -3087,6 +3087,7 @@
     "driverInvalidCode": "Μη έγκυρος ή ληγμένος κωδικός",
     "operatorRequired": "Η διαχείριση Mobility είναι διαθέσιμη για επιχειρήσεις μεταφορών (Συγκοινωνίες / Ταξί).",
     "whereToGo": "Πού θέλεις να πας;",
+    "manageTimetableDriven": "Κινείται από το εισαγόμενο ωράριο - δεν χρειάζεται οδηγός",
     "stopSuggest": "Στάση",
     "planTapDirections": "Πάτησε για οδηγίες βήμα-βήμα",
     "planDirectionsTitle": "Οδηγίες βήμα-βήμα",

@@ -314,20 +314,26 @@ export default function MobilityManageScreen() {
               <Text style={styles.vehicleName}>
                 {v.mode !== "taxi" ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}` : v.name || v.fleet_number}
               </Text>
-              <Text style={styles.vehicleSub}>{v.fleet_number}</Text>
+              <Text style={styles.vehicleSub}>
+                {v.mode !== "taxi"
+                  ? t("mobility.manageTimetableDriven", "Runs from the imported timetable - no driver needed")
+                  : v.fleet_number}
+              </Text>
             </View>
-            <Pressable
-              style={styles.codeButton}
-              onPress={() => generateCode(v.vehicle_id)}
-              disabled={codeLoading === v.vehicle_id}
-            >
-              {codeLoading === v.vehicle_id ? (
-                <ActivityIndicator size="small" color="#59ABE3" />
-              ) : (
-                <Text style={styles.codeButtonText}>{t("mobility.manageGenerateCode", "Generate code")}</Text>
-              )}
-            </Pressable>
-            {codes[v.vehicle_id] && (
+            {v.mode === "taxi" ? (
+              <Pressable
+                style={styles.codeButton}
+                onPress={() => generateCode(v.vehicle_id)}
+                disabled={codeLoading === v.vehicle_id}
+              >
+                {codeLoading === v.vehicle_id ? (
+                  <ActivityIndicator size="small" color="#59ABE3" />
+                ) : (
+                  <Text style={styles.codeButtonText}>{t("mobility.manageGenerateCode", "Generate code")}</Text>
+                )}
+              </Pressable>
+            ) : null}
+            {v.mode === "taxi" && codes[v.vehicle_id] && (
               <View style={styles.codeDisplay}>
                 <Text style={styles.codeValue}>{codes[v.vehicle_id].code}</Text>
                 <Text style={styles.codeHint}>{t("mobility.manageCodeHint", "Give this code to the driver - it expires after 12 hours.")}</Text>

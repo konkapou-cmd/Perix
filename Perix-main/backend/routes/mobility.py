@@ -146,6 +146,10 @@ async def generate_driver_code(vehicle_id: str, current_user: UserPublic = Depen
     )
     if not vehicle:
         raise HTTPException(status_code=403, detail="Not authorized")
+    # Driver codes are a TAXI-only concept. Buses and trams run from the
+    # imported network/timetable - they don't need drivers in Perix.
+    if vehicle.get("mode") != "taxi":
+        raise HTTPException(status_code=400, detail="Driver codes are only for taxis")
     # One active code per vehicle - reuse it while valid.
     existing = await db.mobility_driver_codes.find_one(
         {"vehicle_id": vehicle_id, "expires_at": {"$gt": now_utc()}}
@@ -198,6 +202,9 @@ async def driver_start(payload: DriverStartRequest):
     )
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
+    # Buses/trams are driven by the timetable - only taxi drivers log in.
+    if vehicle.get("mode") != "taxi":
+        raise HTTPException(status_code=403, detail="Driver codes are only for taxis")
     token = generate_id("mob")
     session = {
         "session_token": token,
