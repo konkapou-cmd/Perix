@@ -1814,8 +1814,8 @@ export default function LocatorScreen() {
                         {b.route_number} → {b.route_direction}
                       </Text>
                       <Text style={styles.mobilityRowSub}>
-                        {b.distance_to_bus_m != null
-                          ? `${b.distance_to_bus_m < 1000 ? b.distance_to_bus_m + " m" : (b.distance_to_bus_m / 1000).toFixed(1) + " km"} · `
+                        {b.distance_to_stop_m != null
+                          ? `${b.distance_to_stop_m < 1000 ? b.distance_to_stop_m + " m" : (b.distance_to_stop_m / 1000).toFixed(1) + " km"} · `
                           : ""}
                         {t("mobility.eta", "Arrives ~{{n}} min", { n: b.eta_minutes })}
                         {b.delay_minutes > 0 ? ` · ${t("mobility.delay", "+{{n}} min", { n: b.delay_minutes })}` : ""}

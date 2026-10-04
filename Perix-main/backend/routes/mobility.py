@@ -648,6 +648,62 @@ def _chain_trips(route: dict, delays: Optional[dict] = None) -> List[dict]:
     return runs
 
 
+async def _realtime_delays_for(trip_ids: List[str]) -> dict:
+    """Realtime delay docs for the given trips, smoothed monotonically
+    (per-day max) so feed oscillations never pull a vehicle backwards."""
+    delays: dict = {}
+    if not trip_ids:
+        return delays
+    docs = await db.mobility_realtime.find(
+        {"trip_id": {"$in": trip_ids}}, {"_id": 0}
+    ).to_list(len(trip_ids))
+    today = _berlin_now().date().isoformat()
+    if _DELAY_MONO.get("date") != today:
+        _DELAY_MONO.clear()
+        _DELAY_MONO["date"] = today
+    for d in docs:
+        tid = d["trip_id"]
+        prev_d = _DELAY_MONO.get(tid, 0)
+        d["delay_seconds"] = max(int(d.get("delay_seconds") or 0), prev_d)
+        _DELAY_MONO[tid] = d["delay_seconds"]
+        sd = d.get("stop_delays") or {}
+        prev_stops = _DELAY_MONO.get(f"{tid}:stops") or {}
+        for sid, v in sd.items():
+            v = int(v)
+            if prev_stops.get(sid, v) > v:
+                sd[sid] = prev_stops[sid]
+            else:
+                prev_stops[sid] = v
+        _DELAY_MONO[f"{tid}:stops"] = prev_stops
+        delays[tid] = d
+    return delays
+
+
+def _active_trip_for(route: dict, vehicle: dict, now_sec: int, delays: dict) -> Optional[dict]:
+    """The trip this vehicle is CURRENTLY on. Estimated vehicles carry an
+    explicit trip_id from the estimator; real GPS vehicles fall back to the
+    delay-adjusted trip whose window contains now."""
+    tid = vehicle.get("trip_id")
+    if tid:
+        trip = next((t for t in route.get("trips", []) if t.get("trip_id") == tid), None)
+        if trip:
+            return trip
+    direction = str(vehicle.get("route_direction") or "")
+    candidates = []
+    for trip in route.get("trips", []):
+        rt = delays.get(trip.get("trip_id"))
+        d = int(rt.get("delay_seconds") or 0) if rt else 0
+        w = _trip_window(route, trip)
+        if not w:
+            continue
+        if w["start"] + d - 60 <= now_sec <= w["end"] + d + 180:
+            candidates.append((trip, direction != "" and direction == str(trip.get("headsign") or "")))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda x: not x[1])
+    return candidates[0][0]
+
+
 async def _estimated_transit_vehicles() -> List[dict]:
     """Virtual vehicles for every currently running vehicle run of the
     active network (bus/tram), unless a real vehicle already covers that
@@ -684,30 +740,7 @@ async def _estimated_transit_vehicles() -> List[dict]:
     # match today's ids - no freshness filter needed. Delays are smoothed
     # monotonically: a vehicle NEVER moves backwards, even when the feed's
     # delay value oscillates or drops.
-    delays = {}
-    if trip_ids:
-        docs = await db.mobility_realtime.find(
-            {"trip_id": {"$in": trip_ids}}, {"_id": 0}
-        ).to_list(len(trip_ids))
-        today = _berlin_now().date().isoformat()
-        if _DELAY_MONO.get("date") != today:
-            _DELAY_MONO.clear()
-            _DELAY_MONO["date"] = today
-        for d in docs:
-            tid = d["trip_id"]
-            prev_d = _DELAY_MONO.get(tid, 0)
-            d["delay_seconds"] = max(int(d.get("delay_seconds") or 0), prev_d)
-            _DELAY_MONO[tid] = d["delay_seconds"]
-            sd = d.get("stop_delays") or {}
-            prev_stops = _DELAY_MONO.get(f"{tid}:stops") or {}
-            for sid, v in sd.items():
-                v = int(v)
-                if prev_stops.get(sid, v) > v:
-                    sd[sid] = prev_stops[sid]
-                else:
-                    prev_stops[sid] = v
-            _DELAY_MONO[f"{tid}:stops"] = prev_stops
-            delays[tid] = d
+    delays = await _realtime_delays_for(trip_ids)
     for route in network.get("routes", []):
         route_number = str(route.get("route_number"))
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
@@ -775,6 +808,18 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     pos = {"lat": stop_pt.get("lat"), "lng": stop_pt.get("lng")}
             if pos is None:
                 continue
+            # The trip the vehicle is on RIGHT NOW (window-based fallback for
+            # the gap-at-terminus state), so consumers know the exact
+            # stop sequence instead of guessing from the run's first trip.
+            current_trip = None
+            if active is not None:
+                current_trip = active["trip"]
+            elif after is not None:
+                current_trip = after["trip"]
+            elif before is not None:
+                current_trip = before["trip"]
+            else:
+                current_trip = first["trip"]
             estimates.append(
                 {
                     "vehicle_id": f"est_{route_number}_{first['trip'].get('trip_id', '')}",
@@ -783,7 +828,10 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     "fleet_number": route_number,
                     "name": f"{route_number} {headsign}".strip(),
                     "route_number": route_number,
-                    "route_direction": headsign,
+                    # Direction of the CURRENT trip (a run alternates
+                    # directions at each turnaround)
+                    "route_direction": str(current_trip.get("headsign") or headsign),
+                    "trip_id": current_trip.get("trip_id"),
                     "latitude": pos["lat"],
                     "longitude": pos["lng"],
                     "heading": heading,
@@ -1082,7 +1130,11 @@ async def buses_serving_stop(
     lng: Optional[float] = None,
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
-    """Live buses whose route serves the requested stop, with a rough ETA."""
+    """Live vehicles that will actually serve the stop: each vehicle's OWN
+    trip is checked (ordered stop sequence + realtime delays), so a line
+    that passes the stop in both directions only lists the vehicles whose
+    trip still has the stop AHEAD of them. ETA = predicted stop time - now
+    (timetable + stop-specific delay), never distance / assumed speed."""
     network = await _get_active_network()
     if not network:
         return []
@@ -1097,18 +1149,57 @@ async def buses_serving_stop(
         for v in await _all_active_vehicles()
         if v.get("mode") in ("bus", "tram") and str(v.get("route_number")) in route_numbers
     ]
+    now_sec = _now_service_seconds()
     results = []
+    # Delay docs for all candidate trips (one batched query)
+    all_trip_ids = [t.get("trip_id") for r in serving_routes for t in r.get("trips", []) if t.get("trip_id")]
+    delays = await _realtime_delays_for(all_trip_ids)
     for bus in live:
         if bus.get("latitude") is None or bus.get("longitude") is None:
             continue
         route = next((r for r in serving_routes if str(r.get("route_number")) == str(bus.get("route_number"))), None)
         if not route:
             continue
-        remaining_m = _route_distance_to_stop(route, bus["latitude"], bus["longitude"], stop_id)
-        speed_kmh = bus.get("speed") or 18.0
-        if speed_kmh < 5:
-            speed_kmh = 18.0
-        eta_minutes = round((remaining_m / 1000.0) / speed_kmh * 60) + int(bus.get("delay_minutes") or 0)
+        # The trip this vehicle is CURRENTLY on (not the run's first trip)
+        trip = _active_trip_for(route, bus, now_sec, delays)
+        if not trip:
+            continue
+        # Ordered stop sequence of THIS trip
+        seq = []
+        for sid, t in (trip.get("stop_times") or {}).items():
+            ts = _time_to_seconds(t)
+            if ts is not None:
+                seq.append((sid, ts))
+        seq.sort(key=lambda x: x[1])
+        stop_info = next((s for s in route.get("stops", []) if s.get("stop_id") == stop_id), None)
+
+        def _same_stop(sid: str) -> bool:
+            # The feed uses different stop_ids for the arrival and departure
+            # platform of the SAME physical stop - match by name/coords.
+            if not stop_info:
+                return False
+            s = next((x for x in route.get("stops", []) if x.get("stop_id") == sid), None)
+            if not s:
+                return False
+            if str(s.get("name")) == str(stop_info.get("name")):
+                return True
+            return _haversine_km(s.get("lat"), s.get("lng"), stop_info.get("lat"), stop_info.get("lng")) < 0.1
+
+        target = next(((sid, t) for sid, t in seq if sid == stop_id or _same_stop(sid)), None)
+        if target is None:
+            # This specific trip does not serve the stop - skip it
+            continue
+        realtime = delays.get(trip.get("trip_id"))
+        trip_delay = int(realtime.get("delay_seconds") or 0) if realtime else 0
+        stop_delays = (realtime.get("stop_delays") or {}) if realtime else {}
+        eff = target[1] + int(stop_delays.get(target[0], trip_delay))
+        if eff <= now_sec:
+            # The stop is already behind this vehicle on its trip
+            continue
+        eta_minutes = max(0, math.ceil((eff - now_sec) / 60))
+        remaining_m = None
+        if stop_info:
+            remaining_m = round(_haversine_km(bus["latitude"], bus["longitude"], stop_info.get("lat"), stop_info.get("lng")) * 1000)
         user_distance_m = None
         if lat is not None and lng is not None:
             user_distance_m = round(_haversine_km(lat, lng, bus["latitude"], bus["longitude"]) * 1000)
@@ -1116,12 +1207,12 @@ async def buses_serving_stop(
             {
                 "vehicle_id": bus.get("vehicle_id"),
                 "route_number": bus.get("route_number"),
-                "route_direction": bus.get("route_direction") or route.get("name", ""),
+                "route_direction": bus.get("route_direction") or trip.get("headsign") or route.get("name", ""),
                 "status": bus.get("status"),
-                "delay_minutes": bus.get("delay_minutes") or 0,
+                "delay_minutes": max(0, round(trip_delay / 60)),
                 "eta_minutes": eta_minutes,
                 "distance_to_bus_m": user_distance_m,
-                "distance_to_stop_m": round(remaining_m),
+                "distance_to_stop_m": remaining_m,
             }
         )
     results.sort(key=lambda x: x["eta_minutes"])
@@ -1365,25 +1456,20 @@ async def vehicle_trip_progress(vehicle_id: str, current_user: Optional[UserPubl
     route = await _network_route(vehicle.get("route_number"))
     if not route:
         raise HTTPException(status_code=404, detail="Route not found")
-    trips = route.get("trips", [])
-    trip = None
-    if vehicle_id.startswith("est_"):
-        parts = vehicle_id.split("_", 2)
-        if len(parts) >= 3:
-            trip_id = parts[2]
-            trip = next((t for t in trips if t.get("trip_id") == trip_id), None)
-    if trip is None:
-        trip = next(
-            (t for t in trips if str(t.get("headsign") or "") == str(vehicle.get("route_direction") or "")),
-            None,
-        ) or (trips[0] if trips else None)
+    now_sec = _now_service_seconds()
+    trip_ids = [t.get("trip_id") for t in route.get("trips", []) if t.get("trip_id")]
+    delays = await _realtime_delays_for(trip_ids)
+    # The trip the vehicle is CURRENTLY on (its id names the whole run)
+    trip = _active_trip_for(route, vehicle, now_sec, delays)
+    if not trip:
+        trips = route.get("trips", [])
+        trip = trips[0] if trips else None
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
     stop_times = trip.get("stop_times") or {}
-    realtime = await db.mobility_realtime.find_one({"trip_id": trip.get("trip_id")})
+    realtime = delays.get(trip.get("trip_id"))
     trip_delay = int(realtime.get("delay_seconds") or 0) if realtime else 0
     stop_delays = (realtime.get("stop_delays") or {}) if realtime else {}
-    now_sec = _now_service_seconds()
     stops_out = []
     ordered = []
     for s in route.get("stops", []):
