@@ -64,8 +64,23 @@ type Props = {
     routeNumber?: string;
   }[];
   onTransitLineClick?: (routeNumber: string) => void;
-  /** Transit stops rendered as small dots (exact GTFS positions). */
-  transitStops?: { latitude: number; longitude: number }[];
+  /** Transit stops rendered as clickable bus/tram pins (zoom-aware). */
+  transitStops?: {
+    stop_id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    modes: ("bus" | "tram")[];
+    routes: { route_number: string; mode: "bus" | "tram" }[];
+  }[];
+  onTransitStopPress?: (stop: {
+    stop_id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    modes: ("bus" | "tram")[];
+    routes: { route_number: string; mode: "bus" | "tram" }[];
+  }) => void;
   /** Journey-plan route: walking legs light blue, tram green, bus blue. */
   planLines?: {
     points: { latitude: number; longitude: number }[];
@@ -240,6 +255,7 @@ export default function BusinessMap({
   transitLines,
   onTransitLineClick,
   transitStops,
+  onTransitStopPress,
   planLines,
   showUserLocation,
   userPinImage,
@@ -1063,8 +1079,9 @@ export default function BusinessMap({
     });
   }, [planLines, mapReady]);
 
-  // Transit stops as small dots on their exact positions (visible when
-  // zoomed in; capped so the map stays responsive).
+  // Transit stops as CLICKABLE bus/tram pins (zoom-aware detail:
+  // tiny icon < 12, full pin 12+, route numbers 14+, stop name 16+).
+  // Viewport-filtered and capped so the map stays responsive.
   const transitStopsRef = useRef<any[]>([]);
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return;
@@ -1073,17 +1090,19 @@ export default function BusinessMap({
     });
     transitStopsRef.current = [];
     const zoom = mapRef.current?.getZoom?.() || 14;
-    if (!transitStops || transitStops.length === 0 || zoom < 12.5) return;
+    if (!transitStops || transitStops.length === 0 || zoom < 11) return;
     const google = (window as any).google;
     const bounds = mapRef.current.getBounds();
     const list = (transitStops || []).filter(
       (s) =>
         !bounds ||
         (s.latitude >= bounds.getSouthWest().lat() && s.latitude <= bounds.getNorthEast().lat() &&
-         s.longitude >= bounds.getSouthWest().lng() && s.longitude <= bounds.getNorthEast().lng())
+          s.longitude >= bounds.getSouthWest().lng() && s.longitude <= bounds.getNorthEast().lng())
     );
-    // Cap the dots at 300 (skip evenly) to avoid DOM overload
+    // Cap the pins (skip evenly) to avoid DOM overload
     const stride = Math.max(1, Math.ceil(list.length / 300));
+    const showBadges = zoom >= 14;
+    const showNames = zoom >= 16;
     class StopOverlay extends google.maps.OverlayView {
       div: HTMLDivElement;
       pos: { lat: number; lng: number };
@@ -1109,18 +1128,97 @@ export default function BusinessMap({
     }
     list.forEach((s, i) => {
       if (i % stride !== 0) return;
-      const div = document.createElement("div");
-      div.style.position = "absolute";
-      div.style.width = "7px";
-      div.style.height = "7px";
-      div.style.borderRadius = "50%";
-      div.style.backgroundColor = "#264348";
-      div.style.border = "2px solid #ffffff";
-      div.style.boxShadow = "0 0 2px rgba(0,0,0,0.4)";
-      div.style.transform = "translate(-50%, -50%)";
-      div.style.boxSizing = "border-box";
-      div.style.pointerEvents = "none";
-      const overlay = new StopOverlay(div, { lat: s.latitude, lng: s.longitude });
+      const hasBus = s.modes.includes("bus");
+      const hasTram = s.modes.includes("tram");
+      const pinColor = hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A";
+      const container = document.createElement("div");
+      container.style.position = "absolute";
+      container.style.transform = "translate(-50%, -50%)";
+      container.style.pointerEvents = "auto";
+      container.style.cursor = "pointer";
+      container.style.userSelect = "none";
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+      container.style.alignItems = "center";
+
+      if (zoom < 12) {
+        // Minimal transit glyph at low zoom
+        const mini = document.createElement("div");
+        mini.textContent = hasBus && hasTram ? "🚏" : hasTram ? "🚋" : "🚌";
+        mini.style.fontSize = "13px";
+        mini.style.filter = "drop-shadow(0 1px 1px rgba(0,0,0,0.4))";
+        container.appendChild(mini);
+      } else {
+        // Rounded pin with mode icons
+        const pin = document.createElement("div");
+        pin.style.display = "flex";
+        pin.style.alignItems = "center";
+        pin.style.justifyContent = "center";
+        pin.style.gap = "3px";
+        pin.style.padding = "3px 6px";
+        pin.style.borderRadius = "9px";
+        pin.style.backgroundColor = pinColor;
+        pin.style.border = "2px solid #ffffff";
+        pin.style.boxShadow = "0 1px 4px rgba(0,0,0,0.4)";
+        pin.style.boxSizing = "border-box";
+        pin.style.fontFamily = "Arial, sans-serif";
+        if (hasBus) {
+          const ic = document.createElement("span");
+          ic.textContent = "🚌";
+          ic.style.fontSize = "11px";
+          pin.appendChild(ic);
+        }
+        if (hasTram) {
+          const ic = document.createElement("span");
+          ic.textContent = "🚋";
+          ic.style.fontSize = "11px";
+          pin.appendChild(ic);
+        }
+        container.appendChild(pin);
+
+        if (showBadges) {
+          const badges = document.createElement("div");
+          badges.style.display = "flex";
+          badges.style.gap = "2px";
+          badges.style.marginTop = "1px";
+          s.routes.slice(0, 3).forEach((r) => {
+            const b = document.createElement("span");
+            b.textContent = r.route_number;
+            b.style.backgroundColor = r.mode === "tram" ? "#8B0000" : "#1E3A8A";
+            b.style.color = "#ffffff";
+            b.style.fontSize = "9px";
+            b.style.fontWeight = "800";
+            b.style.fontFamily = "Arial, sans-serif";
+            b.style.borderRadius = "6px";
+            b.style.padding = "0 4px";
+            b.style.border = "1px solid #ffffff";
+            b.style.lineHeight = "12px";
+            badges.appendChild(b);
+          });
+          container.appendChild(badges);
+        }
+        if (showNames) {
+          const nameEl = document.createElement("div");
+          nameEl.textContent = s.name;
+          nameEl.style.fontSize = "10px";
+          nameEl.style.fontWeight = "700";
+          nameEl.style.fontFamily = "Arial, sans-serif";
+          nameEl.style.color = "#264348";
+          nameEl.style.backgroundColor = "rgba(255,255,255,0.92)";
+          nameEl.style.borderRadius = "6px";
+          nameEl.style.padding = "1px 4px";
+          nameEl.style.marginTop = "1px";
+          nameEl.style.whiteSpace = "nowrap";
+          container.appendChild(nameEl);
+        }
+      }
+
+      container.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onTransitStopPress?.(s as any);
+      });
+
+      const overlay = new StopOverlay(container, { lat: s.latitude, lng: s.longitude });
       overlay.setMap(mapRef.current);
       transitStopsRef.current.push(overlay);
     });

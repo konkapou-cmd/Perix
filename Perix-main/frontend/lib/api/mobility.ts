@@ -100,6 +100,19 @@ export type BusStop = {
   lat: number;
   lng: number;
   scheduled?: string;
+  parent_station?: string | null;
+  location_type?: string;
+  platform_code?: string | null;
+};
+
+export type BusTrip = {
+  trip_id: string;
+  headsign?: string;
+  start: string;
+  end: string;
+  stop_ids?: string[];
+  stop_times?: Record<string, string>;
+  shape_id?: string | null;
 };
 
 export type BusRoute = {
@@ -107,13 +120,11 @@ export type BusRoute = {
   name: string;
   mode?: "bus" | "tram";
   stops: BusStop[];
-  trips?: {
-    trip_id: string;
-    headsign?: string;
-    start: string;
-    end: string;
-    stop_times?: Record<string, string>;
-  }[];
+  trips?: BusTrip[];
+  // legacy representative geometry (one direction)
+  shape?: number[][];
+  // trip-specific geometry by shape_id
+  shapes?: Record<string, number[][]>;
 };
 
 export type BusNetwork = {
@@ -122,6 +133,23 @@ export type BusNetwork = {
   imported_at: string | null;
   routes: BusRoute[];
 };
+
+export type TransitStopMarker = {
+  stop_id: string;
+  stop_ids: string[];
+  name: string;
+  latitude: number;
+  longitude: number;
+  modes: ("bus" | "tram")[];
+  routes: {
+    route_number: string;
+    mode: "bus" | "tram";
+    directions: string[];
+  }[];
+};
+
+export const getTransitStops = (token: string | null | undefined) =>
+  apiRequest<TransitStopMarker[]>(`/mobility/stops`, "GET", token || undefined);
 
 export type ServingBus = {
   vehicle_id: string;

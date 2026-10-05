@@ -1312,6 +1312,112 @@ async def search_places(q: str = "", current_user: Optional[UserPublic] = Depend
     return {"places": places, "stops": stops, "streets": streets}
 
 
+_STOPS_CACHE: dict = {"version_id": None, "data": []}
+
+
+def _physical_stop_groups(network: dict) -> List[dict]:
+    """Group raw GTFS platforms into PHYSICAL stops.
+
+    Key: parent_station when the feed provides it, otherwise same name
+    within ~80m. Each group carries every platform id, the serving modes
+    and the routes/directions so the UI shows ONE clear stop.
+    """
+    groups: dict = {}
+    for route in network.get("routes", []):
+        mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
+        rn = str(route.get("route_number"))
+        directions = {
+            str(t.get("headsign") or "")
+            for t in (route.get("trips") or [])
+            if t.get("headsign")
+        }
+        for s in route.get("stops", []):
+            sid = str(s.get("stop_id") or "")
+            if not sid or s.get("lat") is None or s.get("lng") is None:
+                continue
+            parent = s.get("parent_station")
+            key = f"p:{parent}" if parent else f"n:{str(s.get('name')).strip().lower()}"
+            if not parent:
+                # fallback: attach to an existing same-name group within 80m
+                for gkey, g in groups.items():
+                    if not gkey.startswith("n:"):
+                        continue
+                    if str(g.get("name") or "").strip().lower() != str(s.get("name")).strip().lower():
+                        continue
+                    if _haversine_km(g.get("latitude"), g.get("longitude"), s.get("lat"), s.get("lng")) < 0.08:
+                        key = gkey
+                        break
+            g = groups.get(key)
+            if not g:
+                g = {
+                    "stop_id": f"physical:{key[2:]}",
+                    "stop_ids": [],
+                    "name": str(s.get("name") or "").strip(),
+                    "latitude": s.get("lat"),
+                    "longitude": s.get("lng"),
+                    "modes": set(),
+                    "routes": {},
+                }
+                groups[key] = g
+            if sid not in g["stop_ids"]:
+                g["stop_ids"].append(sid)
+            g["modes"].add(mode)
+            entry = g["routes"].setdefault(rn, {"route_number": rn, "mode": mode, "directions": set()})
+            entry["directions"] |= directions
+    out = []
+    for g in groups.values():
+        out.append(
+            {
+                "stop_id": g["stop_id"],
+                "stop_ids": g["stop_ids"],
+                "name": g["name"],
+                "latitude": g["latitude"],
+                "longitude": g["longitude"],
+                "modes": sorted(g["modes"]),
+                "routes": [
+                    {
+                        "route_number": r["route_number"],
+                        "mode": r["mode"],
+                        "directions": sorted(d for d in r["directions"] if d),
+                    }
+                    for r in sorted(g["routes"].values(), key=lambda x: (x["mode"] != "tram", x["route_number"]))
+                ],
+            }
+        )
+    return out
+
+
+async def _physical_stop_ids(network: dict, stop_id: str) -> set:
+    """All platform ids belonging to the same physical stop as `stop_id`."""
+    groups = await _physical_stops_for(network)
+    if not groups:
+        return {str(stop_id)}
+    for g in groups:
+        if str(stop_id) in {str(x) for x in g["stop_ids"]} or str(g["stop_id"]) == str(stop_id):
+            return {str(x) for x in g["stop_ids"]}
+    return {str(stop_id)}
+
+
+async def _physical_stops_for(network: dict) -> List[dict]:
+    version = network.get("version_id")
+    if _STOPS_CACHE.get("version_id") == version:
+        return _STOPS_CACHE["data"]
+    data = _physical_stop_groups(network)
+    _STOPS_CACHE["version_id"] = version
+    _STOPS_CACHE["data"] = data
+    return data
+
+
+@router.get("/stops")
+async def transit_stops(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Physical stops of the active network (platforms grouped by
+    parent_station or same name + proximity), with modes and routes."""
+    network = await _get_active_network()
+    if not network:
+        return []
+    return await _physical_stops_for(network)
+
+
 @router.get("/buses/search")
 async def search_bus_stops(q: str = "", current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     network = await _get_active_network()
@@ -1400,26 +1506,14 @@ async def buses_serving_stop(
             None,
         )
 
-        def same_physical_stop(entry: dict) -> bool:
-            if str(entry.get("stop_id")) == str(stop_id):
-                return True
-            if not stop_info:
-                return False
-            s = entry.get("stop") or {}
-            if str(s.get("name")) == str(stop_info.get("name")):
-                return True
-            return (
-                _haversine_km(
-                    s.get("lat"), s.get("lng"),
-                    stop_info.get("lat"), stop_info.get("lng"),
-                )
-                < 0.1
-            )
+        # All platforms of the requested PHYSICAL stop - a trip serves it
+        # when its timeline contains ANY of them (arrival/departure ids).
+        target_stop_ids = await _physical_stop_ids(network, stop_id)
 
         target = next(
             (
                 e for e in timeline
-                if same_physical_stop(e)
+                if str(e.get("stop_id")) in target_stop_ids
                 and e.get("relationship") != "SKIPPED"
                 and e.get("predicted_arrival", -1) > now_sec
             ),

@@ -37,45 +37,47 @@ def _log(msg: str) -> None:
     print(f"[mobility] {msg}", flush=True)
 
 
+def _pattern_signature(route: dict) -> set:
+    """First/last stop pairs of a route's trips - the route's travel
+    patterns. Geometry may only be reused when these match, otherwise a
+    diversion/terminus change would inherit the wrong street."""
+    sigs = set()
+    for t in (route.get("trips") or [])[:60]:
+        ids = t.get("stop_ids") or []
+        if len(ids) >= 2:
+            sigs.add((str(ids[0]), str(ids[-1])))
+    return sigs
+
+
 async def _merge_shapes(payload: dict, prev_network: Optional[dict]) -> None:
-    """Carry over OSM shapes from the previous network so the daily GTFS
-    re-import never loses route geometries (the feed has no shapes.txt).
-    Missing routes fall back to Overpass."""
+    """Geometry priority:
+    1. trip-specific GTFS shapes already in the feed - never touched.
+    2. previous OSM geometry - reused ONLY when the trip patterns match
+       (same first/last stops), never blindly by route_number.
+    3. otherwise: no geometry - clients draw the ordered stop polyline,
+       which is always correct even if less pretty."""
     prev_by_num = {}
     if prev_network:
         for r in prev_network.get("routes", []):
-            sh = r.get("shape") or []
-            if isinstance(sh, list) and len(sh) > 2:
-                prev_by_num[str(r.get("route_number"))] = sh
-    missing = []
+            prev_by_num[str(r.get("route_number"))] = r
     for route in payload.get("routes", []):
         rn = str(route.get("route_number"))
-        prev_r = prev_network and next(
-            (x for x in prev_network.get("routes", []) if str(x.get("route_number")) == rn),
-            None,
-        )
-        if prev_r:
-            if prev_r.get("shapes"):
-                route["shapes"] = prev_r["shapes"]
-            if prev_r.get("shape"):
-                route["shape"] = prev_r["shape"]
-        if rn in prev_by_num:
-            route["shape"] = prev_by_num[rn]
-        if not route.get("shape") or len(route.get("shape") or []) <= 2:
-            missing.append(rn)
-    if missing:
-        _log(f"static: {len(missing)} routes without shape, trying Overpass: {missing}")
-        try:
-            from utils.osm import fetch_route_shape
-
-            for rn in missing:
-                sh = await fetch_route_shape(rn)
-                for route in payload.get("routes", []):
-                    if str(route.get("route_number")) == rn and sh:
-                        route["shape"] = sh
-                        _log(f"static: OSM shape for {rn}: {len(sh)} points")
-        except Exception as e:
-            _log(f"static: OSM shape fetch failed: {e}")
+        # The feed itself has shapes for this line - keep them untouched.
+        if route.get("shapes"):
+            continue
+        prev_r = prev_by_num.get(rn)
+        if not prev_r:
+            continue
+        # Only reuse old geometry when today's trips still run the same
+        # pattern (terminus changes / diversions must not inherit it).
+        if not (_pattern_signature(route) & _pattern_signature(prev_r)):
+            _log(f"static: {rn} pattern changed - dropping previous geometry")
+            continue
+        if prev_r.get("shapes"):
+            route["shapes"] = prev_r["shapes"]
+        sh = prev_r.get("shape") or []
+        if isinstance(sh, list) and len(sh) > 2:
+            route["shape"] = sh
 
 
 async def _active_trip_ids() -> set:
@@ -280,7 +282,21 @@ async def _static_worker():
                     break
                 if has_trip_stops:
                     break
-            if state.get("value") == sha and active_fresh and has_trip_stops:
+            # Schema v3: stops must carry location_type/parent_station so
+            # the /mobility/stops physical grouping works.
+            has_stop_meta = False
+            for r in (active or {}).get("routes", []):
+                for s in r.get("stops", []):
+                    has_stop_meta = "location_type" in s
+                    break
+                if has_stop_meta:
+                    break
+            if (
+                state.get("value") == sha
+                and active_fresh
+                and has_trip_stops
+                and has_stop_meta
+            ):
                 _log("static: feed unchanged")
             else:
                 from utils.gtfs import parse_gtfs_zip_path

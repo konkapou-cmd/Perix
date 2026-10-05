@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, getVehicleTrip, VehicleTripProgress, BusNetwork, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion, StreetSuggestion } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getBusNetwork, getVehicleTrip, VehicleTripProgress, BusNetwork, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion, StreetSuggestion, getTransitStops, TransitStopMarker } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -108,6 +108,7 @@ export default function LocatorScreen() {
   const [myTaxiReq, setMyTaxiReq] = useState<TaxiRequest | null>(null);
   const [taxiRequesting, setTaxiRequesting] = useState(false);
   const [transitNetwork, setTransitNetwork] = useState<BusNetwork | null>(null);
+  const [physicalStops, setPhysicalStops] = useState<TransitStopMarker[]>([]);
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [tripProgress, setTripProgress] = useState<VehicleTripProgress | null>(null);
@@ -521,28 +522,55 @@ export default function LocatorScreen() {
         if (!cancelled) setTransitNetwork(net);
       })
       .catch(() => {});
+    getTransitStops(sessionToken)
+      .then((stops) => {
+        if (!cancelled) setPhysicalStops(stops || []);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, [activeTab, sessionToken]);
 
-  // Tram: deep red, Bus: dark blue. Without a selection every line shows
-  // faintly; selecting one isolates it (prominent) and fades the rest.
+  // Transit lines drawn per TRIP PATTERN (direction-specific stop_ids +
+  // shape), never one line per route_number - so 9 -> Reform and
+  // 9 -> Neustädter See are separate geometries from today's timetable.
   const transitLines = useMemo(() => {
     if (!transitNetwork) return [];
-    return transitNetwork.routes.map((r) => {
-      const isSelected = selectedLine != null && r.route_number === selectedLine;
-      return {
-        routeNumber: r.route_number,
-        color: r.mode === "tram" ? "#8B0000" : "#1E3A8A",
-        opacity: isSelected ? 0.9 : selectedLine != null ? 0.12 : 0.22,
-        weight: isSelected ? 4 : 2,
-        points:
-          Array.isArray((r as any).shape) && (r as any).shape.length > 2
-            ? (r as any).shape.map((p: any) => ({ latitude: p[0], longitude: p[1] }))
-            : r.stops.map((s) => ({ latitude: s.lat, longitude: s.lng })),
-      };
-    });
+    const result: any[] = [];
+    for (const route of transitNetwork.routes) {
+      const stopById = new Map(route.stops.map((s) => [String(s.stop_id), s]));
+      const patterns = new Map<string, boolean>();
+      for (const trip of route.trips || []) {
+        const stopIds = trip.stop_ids || [];
+        const patternKey =
+          trip.shape_id || `${trip.headsign || ""}:${stopIds.join(">")}`;
+        if (patterns.has(patternKey)) continue;
+        let points: { latitude: number; longitude: number }[] = [];
+        if (trip.shape_id && route.shapes?.[trip.shape_id] && route.shapes[trip.shape_id].length > 2) {
+          points = route.shapes[trip.shape_id].map((p) => ({ latitude: p[0], longitude: p[1] }));
+        } else {
+          points = stopIds
+            .map((id) => stopById.get(String(id)))
+            .filter(Boolean)
+            .map((s: any) => ({ latitude: s.lat, longitude: s.lng }));
+        }
+        if (points.length < 2) continue;
+        patterns.set(patternKey, true);
+        const isSelected = selectedLine != null && route.route_number === selectedLine;
+        result.push({
+          routeNumber: route.route_number,
+          patternId: patternKey,
+          headsign: trip.headsign,
+          mode: route.mode,
+          points,
+          color: route.mode === "tram" ? "#8B0000" : "#1E3A8A",
+          opacity: isSelected ? 0.9 : selectedLine != null ? 0.1 : 0.22,
+          weight: isSelected ? 5 : 2,
+        });
+      }
+    }
+    return result;
   }, [transitNetwork, selectedLine]);
 
   const selectedRoute = useMemo(() => {
@@ -550,29 +578,12 @@ export default function LocatorScreen() {
     return transitNetwork.routes.find((r) => r.route_number === selectedLine) || null;
   }, [transitNetwork, selectedLine]);
 
-  // Stops drawn on the map: the selected line's stops, or every stop of the
-  // network (exact GTFS positions) when no line is isolated.
+  // Physical stops drawn on the map (from /mobility/stops). When a line is
+  // selected, only the stops that line serves are shown.
   const transitStops = useMemo(() => {
-    if (!transitNetwork) return [];
-    if (selectedLine) {
-      const route = transitNetwork.routes.find((r) => r.route_number === selectedLine);
-      return (route?.stops || [])
-        .filter((s) => s.lat != null && s.lng != null)
-        .map((s) => ({ latitude: s.lat, longitude: s.lng }));
-    }
-    const seen = new Set<string>();
-    const out: { latitude: number; longitude: number }[] = [];
-    for (const route of transitNetwork.routes) {
-      for (const s of route.stops || []) {
-        if (s.lat == null || s.lng == null) continue;
-        const key = `${s.lat.toFixed(5)}_${s.lng.toFixed(5)}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push({ latitude: s.lat, longitude: s.lng });
-      }
-    }
-    return out;
-  }, [transitNetwork, selectedLine]);
+    if (!selectedLine) return physicalStops;
+    return physicalStops.filter((s) => s.routes.some((r) => r.route_number === selectedLine));
+  }, [physicalStops, selectedLine]);
 
   // Journey-plan route on the map: walking light blue, tram green, bus blue.
   const planLines = useMemo(() => {
@@ -645,39 +656,17 @@ export default function LocatorScreen() {
 
   // Nearest stops (bus + tram) in the current map area, with their lines.
   const nearbyStops = useMemo(() => {
-    if (!transitNetwork) return [];
+    if (!physicalStops.length) return [];
     const ref = referencePoint;
-    const byId = new Map<
-      string,
-      { stop_id: string; name: string; lat: number; lng: number; routes: string[]; d: number | null }
-    >();
-    for (const route of transitNetwork.routes) {
-      const rn = String(route.route_number);
-      for (const s of route.stops || []) {
-        if (s.lat == null || s.lng == null) continue;
-        if (!inViewport(s.lat, s.lng)) continue;
-        const key = s.stop_id || `${s.lat.toFixed(5)}_${s.lng.toFixed(5)}`;
-        const e = byId.get(key) || {
-          stop_id: s.stop_id || key,
-          name: s.name,
-          lat: s.lat,
-          lng: s.lng,
-          routes: [],
-          d: null,
-        };
-        if (!e.routes.includes(rn)) e.routes.push(rn);
-        byId.set(key, e);
-      }
-    }
-    const arr = Array.from(byId.values());
+    const visible = physicalStops.filter((s) => inViewport(s.latitude, s.longitude));
     if (ref) {
-      arr.forEach((s) => {
-        s.d = haversineDistance(ref.latitude, ref.longitude, s.lat, s.lng);
+      visible.forEach((s: any) => {
+        s.d = haversineDistance(ref.latitude, ref.longitude, s.latitude, s.longitude);
       });
-      arr.sort((a, b) => (a.d ?? Infinity) - (b.d ?? Infinity));
+      visible.sort((a: any, b: any) => (a.d ?? Infinity) - (b.d ?? Infinity));
     }
-    return arr.slice(0, 8);
-  }, [transitNetwork, viewportRef, referencePoint]);
+    return visible.slice(0, 8);
+  }, [physicalStops, viewportRef, referencePoint]);
 
   // Selected vehicle trip progress (passed stops + arrival times)
   useEffect(() => {
@@ -1321,6 +1310,12 @@ export default function LocatorScreen() {
               ? transitStops
               : undefined
           }
+          onTransitStopPress={(stop) => {
+            setSelectedStop({ stop_id: stop.stop_id, name: stop.name });
+            setBusQuery(stop.name);
+            setBusSuggestions([]);
+            setServingBuses([]);
+          }}
           planLines={
             activeTab === "mobility" && (mobilityMode !== "taxi")
               ? planLines
@@ -1947,8 +1942,10 @@ export default function LocatorScreen() {
                       {s.name}
                     </Text>
                     <Text style={styles.mobilityRowSub}>
-                      {s.d != null ? `${s.d < 1 ? Math.round(s.d * 1000) + " m" : s.d.toFixed(1) + " km"} · ` : ""}
-                      {s.routes.slice(0, 6).join(", ")}
+                      {(s as any).d != null
+                        ? `${(s as any).d < 1 ? Math.round((s as any).d * 1000) + " m" : (s as any).d.toFixed(1) + " km"} · `
+                        : ""}
+                      {s.routes.slice(0, 6).map((r) => r.route_number).join(", ")}
                       {s.routes.length > 6 ? "…" : ""}
                     </Text>
                   </View>

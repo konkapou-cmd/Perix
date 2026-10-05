@@ -142,6 +142,9 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
                     "name": (r.get("stop_name") or r["stop_id"]).strip(),
                     "lat": float(r["stop_lat"]),
                     "lng": float(r["stop_lon"]),
+                    "parent_station": (r.get("parent_station") or "").strip() or None,
+                    "location_type": (r.get("location_type") or "0").strip(),
+                    "platform_code": (r.get("platform_code") or "").strip() or None,
                 }
             except Exception:
                 continue

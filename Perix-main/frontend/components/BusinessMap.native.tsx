@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Marker, Polyline, Region } from "react-native-maps";
 import { StyleSheet, View, Text, Pressable, Platform, Image, Modal, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -60,8 +60,25 @@ type Props = {
     opacity?: number;
     weight?: number;
     routeNumber?: string;
+    patternId?: string;
   }[];
   onTransitLineClick?: (routeNumber: string) => void;
+  transitStops?: {
+    stop_id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    modes: ("bus" | "tram")[];
+    routes: { route_number: string; mode: "bus" | "tram" }[];
+  }[];
+  onTransitStopPress?: (stop: {
+    stop_id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    modes: ("bus" | "tram")[];
+    routes: { route_number: string; mode: "bus" | "tram" }[];
+  }) => void;
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
@@ -90,6 +107,9 @@ export default function BusinessMap({
   services = [] as Service[],
   markers,
   extraMarkers,
+  transitLines = [],
+  transitStops = [],
+  onTransitStopPress,
   showUserLocation = false,
   onRegionChange,
   onRegionChangeComplete,
@@ -382,6 +402,54 @@ export default function BusinessMap({
         pitchEnabled={!staticMode}
         rotateEnabled={!staticMode}
       >
+        {transitLines.map((line, i) => (
+          <Polyline
+            key={`transit-line-${line.patternId || i}`}
+            coordinates={line.points}
+            strokeColor={line.color}
+            strokeWidth={line.weight ?? 2}
+          />
+        ))}
+        {zoomLevel >= 12 &&
+          transitStops.map((stop) => {
+            const hasBus = stop.modes.includes("bus");
+            const hasTram = stop.modes.includes("tram");
+            return (
+              <Marker
+                key={`transit-stop-${stop.stop_id}`}
+                coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
+                onPress={() => onTransitStopPress?.(stop)}
+                tracksViewChanges={false}
+              >
+                <View style={styles.transitStopWrap}>
+                  <View
+                    style={[
+                      styles.transitStopPin,
+                      {
+                        backgroundColor:
+                          hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A",
+                      },
+                    ]}
+                  >
+                    {hasBus ? <Ionicons name="bus" size={13} color="#fff" /> : null}
+                    {hasTram ? <Ionicons name="train" size={13} color="#fff" /> : null}
+                  </View>
+                  {zoomLevel >= 14 && (
+                    <View style={styles.stopRouteBadges}>
+                      {stop.routes.slice(0, 3).map((r) => (
+                        <Text
+                          key={`${r.mode}-${r.route_number}`}
+                          style={[styles.stopRouteBadge, { backgroundColor: r.mode === "tram" ? "#8B0000" : "#1E3A8A" }]}
+                        >
+                          {r.route_number}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </Marker>
+            );
+          })}
         {groupedMarkers.map((group) => {
           const zoomScale = Math.max(0.8, Math.min(1.7, zoomLevel / 12));
           const groupSize = (group.count > 1 ? (group.count < 3 ? 26 : group.count < 10 ? 30 : group.count < 30 ? 34 : 40) : 20) * zoomScale;
@@ -455,6 +523,35 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  transitStopWrap: { alignItems: "center" },
+  transitStopPin: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
+  },
+  stopRouteBadges: { flexDirection: "row", gap: 2, marginTop: 2 },
+  stopRouteBadge: {
+    color: "#ffffff",
+    fontSize: 9,
+    fontWeight: "800",
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: "#ffffff",
+    overflow: "hidden",
   },
   disabledOverlay: {
     flex: 1,

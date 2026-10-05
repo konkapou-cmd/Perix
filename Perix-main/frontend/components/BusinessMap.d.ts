@@ -56,7 +56,22 @@ type Props = {
     routeNumber?: string;
   }[];
   onTransitLineClick?: (routeNumber: string) => void;
-  transitStops?: { latitude: number; longitude: number }[];
+  transitStops?: {
+    stop_id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    modes: ("bus" | "tram")[];
+    routes: { route_number: string; mode: "bus" | "tram" }[];
+  }[];
+  onTransitStopPress?: (stop: {
+    stop_id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    modes: ("bus" | "tram")[];
+    routes: { route_number: string; mode: "bus" | "tram" }[];
+  }) => void;
   planLines?: {
     points: { latitude: number; longitude: number }[];
     color: string;
