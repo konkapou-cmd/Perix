@@ -55,7 +55,7 @@ type Props = {
     weight?: number;
     routeNumber?: string;
   }[];
-  onTransitLineClick?: (routeNumber: string) => void;
+  onTransitLineClick?: (routeNumber: string, patternId?: string) => void;
   transitStops?: {
     stop_id: string;
     name: string;

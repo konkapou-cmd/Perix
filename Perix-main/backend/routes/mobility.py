@@ -926,12 +926,13 @@ async def _estimated_transit_vehicles() -> List[dict]:
     live = await db.mobility_live.find(
         {"mode": {"$in": ["bus", "tram"]}, "latitude": {"$ne": None}}, {"_id": 0}
     ).to_list(500)
-    # Only FRESH live positions may suppress estimates - a stale GPS record
-    # must never hide the scheduled vehicles of a whole route+direction.
-    covered = {
-        (str(v.get("route_number")), str(v.get("route_direction") or ""))
+    # Only FRESH live positions suppress estimates, and suppression is per
+    # TRIP: a GPS vehicle hides only the estimate of the trip it is on -
+    # never every scheduled vehicle of the same route+direction.
+    covered_trip_ids = {
+        str(v.get("trip_id"))
         for v in live
-        if _iso_is_fresh(v.get("updated_at") or "", 90)
+        if v.get("trip_id") and _iso_is_fresh(v.get("updated_at") or "", 90)
     }
     now_sec = _now_service_seconds()
     estimates: List[dict] = []
@@ -953,19 +954,37 @@ async def _estimated_transit_vehicles() -> List[dict]:
         for run in _chain_trips(route, delays):
             first = run["trips"][0]
             headsign = str(first["trip"].get("headsign") or route.get("name") or "")
-            if (route_number, headsign) in covered or (route_number, "") in covered:
-                continue
             if now_sec < run["start"] - 60 or now_sec > run["end"] + 60:
                 continue
-            pos = None
-            heading = None
-            delay_minutes = 0
-            position_source = "SCHEDULE_ESTIMATE"
+            # Determine the trip the vehicle is on RIGHT NOW first (window
+            # check), so suppression can be trip-scoped.
             active = None
             for w in run["trips"]:
                 if w["start"] <= now_sec <= w["end"]:
                     active = w
                     break
+            before = None
+            after = None
+            for w in run["trips"]:
+                if w["end"] <= now_sec:
+                    before = w
+                if w["start"] >= now_sec and after is None:
+                    after = w
+            current_trip = None
+            if active is not None:
+                current_trip = active["trip"]
+            elif after is not None:
+                current_trip = after["trip"]
+            elif before is not None:
+                current_trip = before["trip"]
+            else:
+                current_trip = first["trip"]
+            if current_trip and str(current_trip.get("trip_id")) in covered_trip_ids:
+                continue
+            pos = None
+            heading = None
+            delay_minutes = 0
+            position_source = "SCHEDULE_ESTIMATE"
             if active:
                 p = _estimate_trip_position(route, active["trip"], now_sec, delays)
                 if p:
@@ -976,13 +995,6 @@ async def _estimated_transit_vehicles() -> List[dict]:
             if pos is None:
                 # Gap between trips (turnaround) or grace at the run ends:
                 # stand at the shared terminus stop, facing along the line.
-                before = None
-                after = None
-                for w in run["trips"]:
-                    if w["end"] <= now_sec:
-                        before = w
-                    if w["start"] >= now_sec and after is None:
-                        after = w
                 heading_trip = (
                     after["trip"] if after is not None
                     else before["trip"] if before is not None
@@ -1022,15 +1034,6 @@ async def _estimated_transit_vehicles() -> List[dict]:
             # The trip the vehicle is on RIGHT NOW (window-based fallback for
             # the gap-at-terminus state), so consumers know the exact
             # stop sequence instead of guessing from the run's first trip.
-            current_trip = None
-            if active is not None:
-                current_trip = active["trip"]
-            elif after is not None:
-                current_trip = after["trip"]
-            elif before is not None:
-                current_trip = before["trip"]
-            else:
-                current_trip = first["trip"]
             estimates.append(
                 {
                     "vehicle_id": f"est_{route_number}_{first['trip'].get('trip_id', '')}",
@@ -1319,8 +1322,9 @@ def _physical_stop_groups(network: dict) -> List[dict]:
     """Group raw GTFS platforms into PHYSICAL stops.
 
     Key: parent_station when the feed provides it, otherwise same name
-    within ~80m. Each group carries every platform id, the serving modes
-    and the routes/directions so the UI shows ONE clear stop.
+    within ~80m (stops with the same name far apart never merge). Each
+    group carries every platform (id, coords, directions) plus the
+    serving modes/routes so the UI shows ONE clear stop.
     """
     groups: dict = {}
     for route in network.get("routes", []):
@@ -1352,6 +1356,7 @@ def _physical_stop_groups(network: dict) -> List[dict]:
                 g = {
                     "stop_id": f"physical:{key[2:]}",
                     "stop_ids": [],
+                    "platforms": {},
                     "name": str(s.get("name") or "").strip(),
                     "latitude": s.get("lat"),
                     "longitude": s.get("lng"),
@@ -1362,6 +1367,18 @@ def _physical_stop_groups(network: dict) -> List[dict]:
             if sid not in g["stop_ids"]:
                 g["stop_ids"].append(sid)
             g["modes"].add(mode)
+            plat = g["platforms"].setdefault(
+                sid,
+                {
+                    "platform_id": sid,
+                    "latitude": s.get("lat"),
+                    "longitude": s.get("lng"),
+                    "name": str(s.get("name") or "").strip(),
+                    "platform_code": s.get("platform_code"),
+                    "directions": set(),
+                },
+            )
+            plat["directions"] |= directions
             entry = g["routes"].setdefault(rn, {"route_number": rn, "mode": mode, "directions": set()})
             entry["directions"] |= directions
     out = []
@@ -1370,6 +1387,17 @@ def _physical_stop_groups(network: dict) -> List[dict]:
             {
                 "stop_id": g["stop_id"],
                 "stop_ids": g["stop_ids"],
+                "platforms": [
+                    {
+                        "platform_id": p["platform_id"],
+                        "latitude": p["latitude"],
+                        "longitude": p["longitude"],
+                        "name": p["name"],
+                        "platform_code": p.get("platform_code"),
+                        "directions": sorted(d for d in p["directions"] if d),
+                    }
+                    for p in g["platforms"].values()
+                ],
                 "name": g["name"],
                 "latitude": g["latitude"],
                 "longitude": g["longitude"],

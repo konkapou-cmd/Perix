@@ -62,7 +62,7 @@ type Props = {
     routeNumber?: string;
     patternId?: string;
   }[];
-  onTransitLineClick?: (routeNumber: string) => void;
+  onTransitLineClick?: (routeNumber: string, patternId?: string) => void;
   transitStops?: {
     stop_id: string;
     name: string;
@@ -108,6 +108,7 @@ export default function BusinessMap({
   markers,
   extraMarkers,
   transitLines = [],
+  onTransitLineClick,
   transitStops = [],
   onTransitStopPress,
   showUserLocation = false,
@@ -408,6 +409,11 @@ export default function BusinessMap({
             coordinates={line.points}
             strokeColor={line.color}
             strokeWidth={line.weight ?? 2}
+            onPress={() => {
+              if (onTransitLineClick && line.routeNumber) {
+                onTransitLineClick(line.routeNumber as string, (line as any).patternId);
+              }
+            }}
           />
         ))}
         {zoomLevel >= 12 &&

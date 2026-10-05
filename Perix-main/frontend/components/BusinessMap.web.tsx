@@ -63,7 +63,7 @@ type Props = {
     weight?: number;
     routeNumber?: string;
   }[];
-  onTransitLineClick?: (routeNumber: string) => void;
+  onTransitLineClick?: (routeNumber: string, patternId?: string) => void;
   /** Transit stops rendered as clickable bus/tram pins (zoom-aware). */
   transitStops?: {
     stop_id: string;
@@ -1047,7 +1047,7 @@ export default function BusinessMap({
       });
       if (onTransitLineClick && line.routeNumber) {
         poly.addListener("click", () => {
-          onTransitLineClick(line.routeNumber as string);
+          onTransitLineClick(line.routeNumber as string, (line as any).patternId);
         });
       }
       poly.setMap(mapRef.current);

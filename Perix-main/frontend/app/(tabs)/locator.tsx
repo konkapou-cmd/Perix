@@ -109,6 +109,7 @@ export default function LocatorScreen() {
   const [taxiRequesting, setTaxiRequesting] = useState(false);
   const [transitNetwork, setTransitNetwork] = useState<BusNetwork | null>(null);
   const [physicalStops, setPhysicalStops] = useState<TransitStopMarker[]>([]);
+  const [selectedPattern, setSelectedPattern] = useState<string | null>(null);
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [tripProgress, setTripProgress] = useState<VehicleTripProgress | null>(null);
@@ -535,10 +536,12 @@ export default function LocatorScreen() {
   // Transit lines drawn per TRIP PATTERN (direction-specific stop_ids +
   // shape), never one line per route_number - so 9 -> Reform and
   // 9 -> Neustädter See are separate geometries from today's timetable.
+  // The All/Bus/Tram toggle filters these together with stops + vehicles.
   const transitLines = useMemo(() => {
     if (!transitNetwork) return [];
     const result: any[] = [];
     for (const route of transitNetwork.routes) {
+      if (mobilityMode !== "all" && route.mode !== mobilityMode) continue;
       const stopById = new Map(route.stops.map((s) => [String(s.stop_id), s]));
       const patterns = new Map<string, boolean>();
       for (const trip of route.trips || []) {
@@ -571,19 +574,47 @@ export default function LocatorScreen() {
       }
     }
     return result;
-  }, [transitNetwork, selectedLine]);
+  }, [transitNetwork, selectedLine, mobilityMode]);
 
   const selectedRoute = useMemo(() => {
     if (!transitNetwork || !selectedLine) return null;
-    return transitNetwork.routes.find((r) => r.route_number === selectedLine) || null;
-  }, [transitNetwork, selectedLine]);
+    const route = transitNetwork.routes.find((r) => r.route_number === selectedLine);
+    if (!route) return null;
+    // A selected PATTERN shows exactly that direction's stops (from the
+    // trip's stop_ids), not the union of the whole line.
+    if (selectedPattern) {
+      const trip = (route.trips || []).find(
+        (t) =>
+          (t.shape_id || `${t.headsign || ""}:${(t.stop_ids || []).join(">")}`) ===
+          selectedPattern
+      );
+      if (trip && trip.stop_ids && trip.stop_ids.length > 1) {
+        const byId = new Map(route.stops.map((s) => [String(s.stop_id), s]));
+        return {
+          ...route,
+          stops: trip.stop_ids
+            .map((id) => byId.get(String(id)))
+            .filter(Boolean) as any[],
+          headsign: trip.headsign,
+        };
+      }
+    }
+    return route;
+  }, [transitNetwork, selectedLine, selectedPattern]);
 
-  // Physical stops drawn on the map (from /mobility/stops). When a line is
-  // selected, only the stops that line serves are shown.
+  // Physical stops drawn on the map (from /mobility/stops). The All/Bus/
+  // Tram toggle filters them together with lines and vehicles; when a
+  // line is selected, only the stops that line serves are shown.
   const transitStops = useMemo(() => {
-    if (!selectedLine) return physicalStops;
-    return physicalStops.filter((s) => s.routes.some((r) => r.route_number === selectedLine));
-  }, [physicalStops, selectedLine]);
+    let list = physicalStops;
+    if (mobilityMode !== "all") {
+      list = list.filter((s) => s.modes.includes(mobilityMode as "bus" | "tram"));
+    }
+    if (selectedLine) {
+      list = list.filter((s) => s.routes.some((r) => r.route_number === selectedLine));
+    }
+    return list;
+  }, [physicalStops, selectedLine, mobilityMode]);
 
   // Journey-plan route on the map: walking light blue, tram green, bus blue.
   const planLines = useMemo(() => {
@@ -655,10 +686,15 @@ export default function LocatorScreen() {
   }, [liveVehicles, mobilityMode, viewportRef, referencePoint]);
 
   // Nearest stops (bus + tram) in the current map area, with their lines.
+  // Follows the All/Bus/Tram toggle like the vehicles list.
   const nearbyStops = useMemo(() => {
     if (!physicalStops.length) return [];
     const ref = referencePoint;
-    const visible = physicalStops.filter((s) => inViewport(s.latitude, s.longitude));
+    let visible = physicalStops;
+    if (mobilityMode !== "all") {
+      visible = visible.filter((s) => s.modes.includes(mobilityMode as "bus" | "tram"));
+    }
+    visible = visible.filter((s) => inViewport(s.latitude, s.longitude));
     if (ref) {
       visible.forEach((s: any) => {
         s.d = haversineDistance(ref.latitude, ref.longitude, s.latitude, s.longitude);
@@ -666,7 +702,7 @@ export default function LocatorScreen() {
       visible.sort((a: any, b: any) => (a.d ?? Infinity) - (b.d ?? Infinity));
     }
     return visible.slice(0, 8);
-  }, [physicalStops, viewportRef, referencePoint]);
+  }, [physicalStops, viewportRef, referencePoint, mobilityMode]);
 
   // Selected vehicle trip progress (passed stops + arrival times)
   useEffect(() => {
@@ -1321,8 +1357,12 @@ export default function LocatorScreen() {
               ? planLines
               : undefined
           }
-          onTransitLineClick={(routeNumber) => {
+          onTransitLineClick={(routeNumber, patternId) => {
             setSelectedLine((prev) => (prev === routeNumber ? null : routeNumber));
+            setSelectedPattern((prev) => {
+              if (selectedLine === routeNumber) return null;
+              return patternId || null;
+            });
           }}
           onMapPress={(lat, lng) => {
             if (activeTab === "mobility" && (mobilityMode !== "taxi") && planPicking) {
@@ -1333,7 +1373,10 @@ export default function LocatorScreen() {
               runPlan(lat, lng);
               return;
             }
-            if (selectedLine) setSelectedLine(null);
+            if (selectedLine) {
+              setSelectedLine(null);
+              setSelectedPattern(null);
+            }
           }}
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
@@ -1472,13 +1515,22 @@ export default function LocatorScreen() {
               <View style={styles.linePanelHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.linePanelTitle}>
-                    {selectedRoute.route_number} · {selectedRoute.name}
+                    {selectedRoute.route_number}
+                    {selectedPattern && (selectedRoute as any).headsign
+                      ? ` → ${(selectedRoute as any).headsign}`
+                      : ` · ${selectedRoute.name}`}
                   </Text>
                   <Text style={styles.linePanelHint}>
                     {t("mobility.lineStopsHint", "Tap a stop to see live arrivals")}
                   </Text>
                 </View>
-                <Pressable onPress={() => setSelectedLine(null)} hitSlop={8}>
+                <Pressable
+                  onPress={() => {
+                    setSelectedLine(null);
+                    setSelectedPattern(null);
+                  }}
+                  hitSlop={8}
+                >
                   <Ionicons name="close-circle" size={22} color="#264348" />
                 </Pressable>
               </View>
