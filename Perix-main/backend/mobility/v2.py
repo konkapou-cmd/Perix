@@ -47,7 +47,91 @@ async def v2_patterns(current_user: Optional[UserPublic] = Depends(get_current_u
     domain = await _domain()
     if not domain:
         return []
-    return domain["patterns"]
+    return await _patterns_resolved(domain)
+
+
+async def _patterns_resolved(domain: dict) -> list:
+    """Patterns with geometry resolved by the Geometry Resolver (validated
+    against their platforms; invalid geometries fall back to the
+    ordered-stop polyline)."""
+    from mobility.graph import get_overlays, resolve_pattern_geometry
+
+    platforms_by_id = {}
+    for stop in domain.get("stops", []):
+        for p in stop.get("platforms", []):
+            platforms_by_id[str(p.get("platform_id"))] = p
+    overlays = await get_overlays()
+    out = []
+    for pat in domain.get("patterns", []):
+        resolved = resolve_pattern_geometry(pat, platforms_by_id, overlays)
+        out.append(
+            {
+                **{k: v for k, v in pat.items() if k != "points"},
+                "geometry": resolved,
+            }
+        )
+    return out
+
+
+@router.get("/map")
+async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """The stable map payload the Locator will consume: resolved lines
+    (validated geometry + source per pattern) and physical stops."""
+    domain = await _domain()
+    if not domain:
+        return {"lines": [], "stops": []}
+    patterns = await _patterns_resolved(domain)
+    lines = []
+    for p in patterns:
+        g = p.get("geometry") or {}
+        points = g.get("points") or []
+        if len(points) < 2:
+            continue
+        lines.append(
+            {
+                "pattern_id": p.get("pattern_id"),
+                "route_number": p.get("route_number"),
+                "mode": p.get("mode"),
+                "direction": p.get("direction"),
+                "points": [{"latitude": pt[0], "longitude": pt[1]} for pt in points],
+                "source": g.get("source"),
+                "valid": g.get("valid"),
+                "max_platform_distance_m": g.get("max_platform_distance_m"),
+            }
+        )
+    return {"lines": lines, "stops": domain.get("stops", [])}
+
+
+@router.get("/graph/overlays")
+async def v2_overlays(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    from mobility.graph import get_overlays
+
+    return await get_overlays()
+
+
+@router.post("/graph/overlays")
+async def v2_create_overlay(payload: dict, current_user: UserPublic = Depends(get_current_user_optional)):
+    """Operator-drawn road/track correction (Perix manual graph overlay).
+    Overlays never mutate imported data - the resolver prefers them only
+    when verified and mode-compatible."""
+    from fastapi import HTTPException
+
+    from mobility.graph import create_overlay
+    from routes.mobility import _require_operator
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        await _require_operator(current_user)
+    except HTTPException:
+        raise
+    try:
+        return await create_overlay(payload or {})
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/vehicles")
 
 
 @router.get("/stops")
