@@ -29,6 +29,9 @@ MIN_LINES = int(os.getenv("MOBILITY_SYNC_MIN_LINES", "10"))
 AUTO_ACTIVATE = os.getenv("MOBILITY_SYNC_AUTO_ACTIVATE", "true").lower() != "false"
 STATIC_INTERVAL_HOURS = float(os.getenv("MOBILITY_STATIC_INTERVAL_HOURS", "6"))
 REALTIME_INTERVAL_SECONDS = float(os.getenv("MOBILITY_REALTIME_INTERVAL_SECONDS", "15"))
+# Bump to force a one-time re-import when the network schema/derivation
+# logic changes (the feed hash alone is not enough).
+STATIC_SCHEMA_V = "6"
 
 
 def _log(msg: str) -> None:
@@ -37,23 +40,50 @@ def _log(msg: str) -> None:
     print(f"[mobility] {msg}", flush=True)
 
 
-def _pattern_signature(route: dict) -> set:
-    """First/last stop pairs of a route's trips - the route's travel
-    patterns. Geometry may only be reused when these match, otherwise a
-    diversion/terminus change would inherit the wrong street."""
-    sigs = set()
-    for t in (route.get("trips") or [])[:60]:
+def _shape_matches_stops(shape: list, stops: list, max_d_m: float = 150.0) -> bool:
+    """True when the route's MAIN pattern (the trip with the most stops)
+    sits on the candidate geometry (>= 80% of its platforms within
+    max_d_m). A diversion/terminus change fails this and the old geometry
+    must NOT be carried over."""
+    if not shape or not stops:
+        return False
+    import math
+
+    def hav(a, b):
+        r = 6371000.0
+        p1, p2 = math.radians(a[0]), math.radians(b[0])
+        dp, dl = math.radians(b[0] - a[0]), math.radians(b[1] - a[1])
+        x = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+        return r * 2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
+
+    within = 0
+    for s in stops:
+        lat, lng = s.get("lat"), s.get("lng")
+        if lat is None or lng is None:
+            continue
+        if min(hav((lat, lng), (p[0], p[1])) for p in shape) <= max_d_m:
+            within += 1
+    return len(stops) > 0 and within >= 0.8 * len(stops)
+
+
+def _main_pattern_stops(route: dict) -> list:
+    """Stops of the trip with the most stops (the route's main pattern)."""
+    by_id = {str(s.get("stop_id")): s for s in route.get("stops", []) if s.get("stop_id") is not None}
+    best = []
+    for t in (route.get("trips") or []):
         ids = t.get("stop_ids") or []
-        if len(ids) >= 2:
-            sigs.add((str(ids[0]), str(ids[-1])))
-    return sigs
+        if len(ids) > len(best):
+            best = ids
+    return [by_id[str(sid)] for sid in best if str(sid) in by_id]
 
 
 async def _merge_shapes(payload: dict, prev_network: Optional[dict]) -> None:
     """Geometry priority:
     1. trip-specific GTFS shapes already in the feed - never touched.
-    2. previous OSM geometry - reused ONLY when the trip patterns match
-       (same first/last stops), never blindly by route_number.
+    2. previous OSM geometry - reused ONLY when today's main trip pattern
+       actually sits on it (>= 80% of platforms within 150m). A diversion
+       or terminus change drops the old geometry instead of inheriting the
+       wrong street.
     3. otherwise: no geometry - clients draw the ordered stop polyline,
        which is always correct even if less pretty."""
     prev_by_num = {}
@@ -68,16 +98,15 @@ async def _merge_shapes(payload: dict, prev_network: Optional[dict]) -> None:
         prev_r = prev_by_num.get(rn)
         if not prev_r:
             continue
-        # Only reuse old geometry when today's trips still run the same
-        # pattern (terminus changes / diversions must not inherit it).
-        if not (_pattern_signature(route) & _pattern_signature(prev_r)):
+        prev_shape = prev_r.get("shape") or []
+        if not (isinstance(prev_shape, list) and len(prev_shape) > 2):
+            continue
+        if not _shape_matches_stops(prev_shape, _main_pattern_stops(route)):
             _log(f"static: {rn} pattern changed - dropping previous geometry")
             continue
         if prev_r.get("shapes"):
             route["shapes"] = prev_r["shapes"]
-        sh = prev_r.get("shape") or []
-        if isinstance(sh, list) and len(sh) > 2:
-            route["shape"] = sh
+        route["shape"] = prev_shape
 
 
 async def _active_trip_ids() -> set:
@@ -293,6 +322,7 @@ async def _static_worker():
                     break
             if (
                 state.get("value") == sha
+                and state.get("schema_v") == STATIC_SCHEMA_V
                 and active_fresh
                 and has_trip_stops
                 and has_stop_meta
@@ -323,7 +353,9 @@ async def _static_worker():
                     )
                     _log(f"static: activated {result['version_id']}")
                 await db.mobility_sync_state.replace_one(
-                    {"key": "static_sha256"}, {"key": "static_sha256", "value": sha}, upsert=True
+                    {"key": "static_sha256"},
+                    {"key": "static_sha256", "value": sha, "schema_v": STATIC_SCHEMA_V},
+                    upsert=True,
                 )
         except Exception as e:
             _log(f"static: cycle error: {type(e).__name__}: {e}")
