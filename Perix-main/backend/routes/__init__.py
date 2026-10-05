@@ -75,9 +75,11 @@ api_router.include_router(listings_router)
 api_router.include_router(mobility_router)
 from mobility.v2 import router as mobility_v2_router
 from mobility.editor import router as mobility_editor_router
+from mobility.telemetry import router as mobility_telemetry_router
 
 api_router.include_router(mobility_v2_router)
 api_router.include_router(mobility_editor_router)
+api_router.include_router(mobility_telemetry_router)
 api_router.include_router(reports_router)
 api_router.include_router(account_deletion_router)
 api_router.include_router(push_web_router)
