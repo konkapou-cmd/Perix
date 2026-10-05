@@ -655,8 +655,14 @@ def _raw_timeline_progress(timeline: List[dict], stop_progress: List[float], now
     return stop_progress[-1]
 
 
-def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: float, mode: str) -> float:
-    """Forward-only ETA-constrained display progress."""
+def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: float, mode: str, trip_duration_sec: int) -> float:
+    """Forward-only ETA-constrained display progress.
+
+    - Delay improved: the marker accelerates forward (visual speed cap).
+    - Delay got worse: the marker NEVER stops - a real vehicle keeps
+      moving even when late, so it advances at the scheduled pace while
+      the ETA absorbs the delay. It never reverses.
+    """
     import time
 
     service_date = _service_date_key()
@@ -681,8 +687,10 @@ def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: flo
         if dt > 180:
             shown = max(0.0, min(total_m, raw_progress_m))
         elif raw_progress_m <= previous:
-            # Delay got worse: hold/slow, never reverse.
-            shown = previous
+            # Delay got worse: keep moving at the scheduled pace so the
+            # marker never freezes kilometers behind the real vehicle.
+            sched_speed = total_m / max(60.0, float(trip_duration_sec))
+            shown = min(total_m, previous + sched_speed * dt)
         else:
             # Delay improved: catch up forward, no teleport.
             max_kmh = 60.0 if mode == "tram" else 70.0
@@ -747,6 +755,7 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
         raw_progress,
         float(path.get("total_m") or 0.0),
         str(route.get("mode") or "bus"),
+        max(60, int(end - start)),
     )
     pos, heading = _point_heading_at_progress(path, shown_progress)
     if not pos:
