@@ -73,6 +73,9 @@ api_router.include_router(mux_router)
 api_router.include_router(mux_proxy_router)
 api_router.include_router(listings_router)
 api_router.include_router(mobility_router)
+from mobility.v2 import router as mobility_v2_router
+
+api_router.include_router(mobility_v2_router)
 api_router.include_router(reports_router)
 api_router.include_router(account_deletion_router)
 api_router.include_router(push_web_router)
