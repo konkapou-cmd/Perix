@@ -330,10 +330,16 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 
 def _time_to_seconds(value: str) -> Optional[int]:
-    """Parse HH:MM; hours >= 24 (GTFS service-day times) are preserved."""
+    """Parse HH:MM into service-day seconds. Hours >= 24 are preserved
+    (GTFS post-midnight times), and times before the service-day boundary
+    (04:00) are shifted to the next day - night lines write 00:xx meaning
+    24:xx, otherwise their stops land a full day off."""
     try:
         h, m = str(value).split(":")
-        return int(h) * 3600 + int(m) * 60
+        h = int(h)
+        if h < SERVICE_DAY_START_HOUR:
+            h += 24
+        return h * 3600 + int(m) * 60
     except Exception:
         return None
 
