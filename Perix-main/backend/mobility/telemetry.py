@@ -97,6 +97,42 @@ async def ingest_telemetry(request: Request, payload: dict = None):
     if source not in VALID_SOURCES:
         source = str(device.get("source_type") or "PERIX_GPS")
 
+    # Map matching (Phase 5): bus/tram positions snap to their line's
+    # geometry (with heading/tolerance guards); taxis stay raw. When the
+    # vehicle is confidently on an active trip, that trip is assigned so
+    # the estimator stops drawing a duplicate for the same physical bus.
+    matched_lat, matched_lng = lat, lng
+    snapped = False
+    snapped_distance_m = None
+    trip_id = None
+    mode = vehicle.get("mode")
+    if mode in ("bus", "tram") and vehicle.get("route_number"):
+        try:
+            from mobility.map_match import assign_trip, snap_to_geometry, _geometry_points
+            from routes.mobility import (
+                _get_active_network,
+                _network_route,
+                _now_service_seconds,
+                _realtime_delays_for,
+            )
+
+            route = await _network_route(str(vehicle.get("route_number")))
+            if route:
+                geometry = _geometry_points(route)
+                snap = snap_to_geometry(lat, lng, body.get("heading"), body.get("accuracy_m"), geometry)
+                if snap.get("snapped"):
+                    matched_lat, matched_lng = snap["latitude"], snap["longitude"]
+                    snapped = True
+                    snapped_distance_m = snap.get("distance_m")
+                network = await _get_active_network()
+                trip_ids = [str(t.get("trip_id")) for t in route.get("trips", []) if t.get("trip_id")]
+                delays = await _realtime_delays_for(trip_ids)
+                trip = assign_trip(route, vehicle, matched_lat, matched_lng, _now_service_seconds(), delays)
+                if trip is not None:
+                    trip_id = str(trip.get("trip_id"))
+        except Exception as e:
+            print(f"[mobility] telemetry map-match failed: {type(e).__name__}: {e}", flush=True)
+
     obs_id = f"obs_{uuid.uuid4().hex[:12]}"
     obs = {
         "observation_id": obs_id,
@@ -111,6 +147,11 @@ async def ingest_telemetry(request: Request, payload: dict = None):
         "speed_mps": body.get("speed_mps"),
         "heading": body.get("heading"),
         "source": source,
+        "matched_latitude": matched_lat if snapped else None,
+        "matched_longitude": matched_lng if snapped else None,
+        "snapped": snapped,
+        "snapped_distance_m": snapped_distance_m,
+        "trip_id": trip_id,
     }
     await db.mobility_position_observations.insert_one(obs)
 
@@ -119,13 +160,17 @@ async def ingest_telemetry(request: Request, payload: dict = None):
         {"vehicle_id": vehicle_id},
         {
             "vehicle_id": vehicle_id,
-            "latitude": lat,
-            "longitude": lng,
+            "latitude": matched_lat,
+            "longitude": matched_lng,
+            "raw_latitude": lat,
+            "raw_longitude": lng,
+            "snapped": snapped,
             "heading": body.get("heading"),
             "speed_mps": body.get("speed_mps"),
             "accuracy_m": body.get("accuracy_m"),
             "source": source,
             "quality": "LIVE",
+            "trip_id": trip_id,
             "observed_at": observed_dt.isoformat(),
             "updated_at": _utc_now_iso(),
         },
@@ -144,18 +189,20 @@ async def ingest_telemetry(request: Request, payload: dict = None):
         "registration": vehicle.get("registration"),
         "route_number": vehicle.get("route_number"),
         "route_direction": vehicle.get("route_direction"),
-        "latitude": lat,
-        "longitude": lng,
+        "latitude": matched_lat,
+        "longitude": matched_lng,
         "heading": body.get("heading"),
         "speed": body.get("speed_mps"),
         "accuracy_m": body.get("accuracy_m"),
         "status": "active",
         "updated_at": now_utc().isoformat(),
         "position_source": source,
+        "trip_id": trip_id,
+        "snapped": snapped,
         "estimated": False,
     }
     await db.mobility_live.replace_one({"vehicle_id": vehicle_id}, live, upsert=True)
-    return {"ok": True, "observation_id": obs_id, "source": source}
+    return {"ok": True, "observation_id": obs_id, "source": source, "snapped": snapped, "trip_id": trip_id}
 
 
 # ---------------------------------------------------------------------------
