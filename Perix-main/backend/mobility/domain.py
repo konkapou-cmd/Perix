@@ -19,7 +19,7 @@ NETWORK_TIMEZONE = "Europe/Berlin"
 NETWORK_COUNTRY = "DE"
 SERVICE_DAY_START_HOUR = 4
 
-_DOMAIN_CACHE: dict = {"version_id": None, "data": None}
+_DOMAIN_CACHE: dict = {"key": None, "data": None}
 
 
 def _haversine_km(lat1, lng1, lat2, lng2):
@@ -162,10 +162,88 @@ def _physical_stops(network: dict) -> List[dict]:
     return out
 
 
-def build_domain(network_doc: dict, network_id: str = NETWORK_ID) -> dict:
+def _apply_stop_overrides(stops: List[dict], overrides: Optional[List[dict]]) -> List[dict]:
+    """Operator overrides over imported stops (rename / move / deactivate /
+    manual stop / add platform). Imported data is never mutated - the
+    effective stop list is derived, so a future GTFS import always starts
+    from the clean imported base again."""
+    if not overrides:
+        return stops
+    by_id = {str(s.get("stop_id")): s for s in stops}
+    for ov in overrides:
+        kind = str(ov.get("kind") or "")
+        target = str(ov.get("target_stop_id") or "")
+        if kind == "manual_stop":
+            sid = str(ov.get("stop_id") or ov.get("override_id") or "")
+            if sid and sid not in by_id:
+                by_id[sid] = {
+                    "stop_id": sid,
+                    "stop_ids": [],
+                    "platforms": [
+                        {
+                            "platform_id": p.get("platform_id"),
+                            "latitude": p.get("latitude"),
+                            "longitude": p.get("longitude"),
+                            "name": p.get("name") or ov.get("name") or "Platform",
+                            "platform_code": p.get("platform_code"),
+                            "directions": p.get("directions") or [],
+                        }
+                        for p in (ov.get("platforms") or [])
+                        if p.get("platform_id") and p.get("latitude") is not None and p.get("longitude") is not None
+                    ],
+                    "name": ov.get("name") or sid,
+                    "latitude": ov.get("latitude"),
+                    "longitude": ov.get("longitude"),
+                    "modes": [m for m in (ov.get("modes") or []) if m in ("bus", "tram")],
+                    "routes": ov.get("routes") or [],
+                    "manual": True,
+                }
+                if by_id[sid].get("latitude") is None:
+                    plats = by_id[sid]["platforms"]
+                    if plats:
+                        by_id[sid]["latitude"] = plats[0]["latitude"]
+                        by_id[sid]["longitude"] = plats[0]["longitude"]
+            continue
+        if target not in by_id:
+            continue
+        stop = by_id[target]
+        if kind == "rename":
+            if ov.get("name"):
+                stop["name"] = ov.get("name")
+        elif kind == "move":
+            if ov.get("latitude") is not None and ov.get("longitude") is not None:
+                stop["latitude"] = ov.get("latitude")
+                stop["longitude"] = ov.get("longitude")
+        elif kind == "deactivate":
+            stop["active"] = False
+        elif kind == "activate":
+            stop["active"] = True
+        elif kind == "add_platform":
+            plat = ov.get("platform")
+            if plat and plat.get("platform_id") and plat.get("latitude") is not None and plat.get("longitude") is not None:
+                if str(plat.get("platform_id")) not in stop.get("stop_ids", []):
+                    stop.setdefault("stop_ids", []).append(str(plat["platform_id"]))
+                stop.setdefault("platforms", []).append(
+                    {
+                        "platform_id": str(plat.get("platform_id")),
+                        "latitude": plat.get("latitude"),
+                        "longitude": plat.get("longitude"),
+                        "name": plat.get("name") or stop.get("name") or "Platform",
+                        "platform_code": plat.get("platform_code"),
+                        "directions": plat.get("directions") or [],
+                    }
+                )
+                stop["manual"] = True
+    return [s for s in by_id.values() if s.get("active", True)]
+
+
+def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Optional[List[dict]] = None) -> dict:
     """Derive the full canonical domain from an active network document."""
     version_id = str(network_doc.get("version_id") or "")
-    if _DOMAIN_CACHE.get("version_id") == version_id and _DOMAIN_CACHE.get("data") is not None:
+    import json as _json
+
+    cache_key = f"{version_id}:{len(overrides or [])}:{_json.dumps(overrides or [], sort_keys=True)[:200]}"
+    if _DOMAIN_CACHE.get("key") == cache_key and _DOMAIN_CACHE.get("data") is not None:
         return _DOMAIN_CACHE["data"]
     service_date = _service_date(network_doc)
 
@@ -246,9 +324,9 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID) -> dict:
         },
         "routes": routes,
         "patterns": patterns,
-        "stops": _physical_stops(network_doc),
+        "stops": _apply_stop_overrides(_physical_stops(network_doc), overrides),
         "trip_templates": trip_templates,
     }
-    _DOMAIN_CACHE["version_id"] = version_id
+    _DOMAIN_CACHE["key"] = cache_key
     _DOMAIN_CACHE["data"] = data
     return data

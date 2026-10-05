@@ -1,0 +1,88 @@
+"""Network Editor base (Mobility Core V2 - Phase 3).
+
+Operator overrides over imported stops: rename, move, deactivate,
+temporary/manual stops and extra platforms. Everything is stored as an
+OVERLAY - imported GTFS data is never mutated, so the next import starts
+clean and the overrides stay on top.
+"""
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from database import db
+from models.user import UserPublic
+from routes.dependencies import get_current_user_optional
+
+router = APIRouter(prefix="/mobility/v2", tags=["MobilityEditor"])
+
+
+async def _require_operator_user(current_user: Optional[UserPublic]) -> dict:
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from routes.mobility import _require_operator
+
+    return await _require_operator(current_user)
+
+
+async def _get_overrides() -> list:
+    docs = await db.mobility_stop_overrides.find({}, {"_id": 0}).to_list(500)
+    return list(docs)
+
+
+@router.get("/stops/{stop_id}")
+async def v2_stop_detail(stop_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    from mobility.domain import build_domain, NETWORK_ID
+    from routes.mobility import _get_active_network
+
+    network = await _get_active_network()
+    if not network:
+        raise HTTPException(status_code=404, detail="No active network")
+    domain = build_domain(network, NETWORK_ID, await _get_overrides())
+    for stop in domain["stops"]:
+        if str(stop.get("stop_id")) == stop_id or stop_id in {str(x) for x in stop.get("stop_ids", [])}:
+            return stop
+    raise HTTPException(status_code=404, detail="Stop not found")
+
+
+@router.get("/editor/overrides")
+async def v2_list_overrides(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    await _require_operator_user(current_user)
+    return await _get_overrides()
+
+
+@router.post("/editor/overrides")
+async def v2_create_override(payload: dict, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Create a stop override: kind = rename | move | deactivate | activate |
+    manual_stop | add_platform."""
+    operator = await _require_operator_user(current_user)
+    kind = str(payload.get("kind") or "")
+    if kind not in ("rename", "move", "deactivate", "activate", "manual_stop", "add_platform"):
+        raise HTTPException(status_code=400, detail="Unknown override kind")
+    import uuid
+
+    from routes.mobility import now_utc
+
+    doc = {
+        "override_id": f"ovr_{uuid.uuid4().hex[:12]}",
+        "kind": kind,
+        "target_stop_id": str(payload.get("target_stop_id") or ""),
+        "name": payload.get("name"),
+        "latitude": payload.get("latitude"),
+        "longitude": payload.get("longitude"),
+        "modes": [m for m in (payload.get("modes") or []) if m in ("bus", "tram")],
+        "routes": payload.get("routes") or [],
+        "platforms": payload.get("platforms") or [],
+        "platform": payload.get("platform"),
+        "stop_id": payload.get("stop_id"),
+        "created_by": operator.get("business_id") or current_user.user_id,
+        "created_at": now_utc().isoformat(),
+    }
+    await db.mobility_stop_overrides.insert_one(doc)
+    return doc
+
+
+@router.delete("/editor/overrides/{override_id}")
+async def v2_delete_override(override_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    await _require_operator_user(current_user)
+    await db.mobility_stop_overrides.delete_one({"override_id": override_id})
+    return {"ok": True}

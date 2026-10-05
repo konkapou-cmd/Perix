@@ -23,7 +23,8 @@ async def _domain():
     network = await _get_active_network()
     if not network:
         return None
-    return build_domain(network, NETWORK_ID)
+    overrides = await db.mobility_stop_overrides.find({}, {"_id": 0}).to_list(500)
+    return build_domain(network, NETWORK_ID, list(overrides))
 
 
 @router.get("/networks")
