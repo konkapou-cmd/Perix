@@ -72,6 +72,13 @@ type Props = {
     longitude: number;
     modes: ("bus" | "tram")[];
     routes: { route_number: string; mode: "bus" | "tram" }[];
+    platforms?: {
+      platform_id: string;
+      latitude?: number | null;
+      longitude?: number | null;
+      name?: string;
+      directions?: string[];
+    }[];
   }[];
   onTransitStopPress?: (stop: {
     stop_id: string;
@@ -1131,96 +1138,125 @@ export default function BusinessMap({
       const hasBus = s.modes.includes("bus");
       const hasTram = s.modes.includes("tram");
       const pinColor = hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A";
-      const container = document.createElement("div");
-      container.style.position = "absolute";
-      container.style.transform = "translate(-50%, -50%)";
-      container.style.pointerEvents = "auto";
-      container.style.cursor = "pointer";
-      container.style.userSelect = "none";
-      container.style.display = "flex";
-      container.style.flexDirection = "column";
-      container.style.alignItems = "center";
+      const platforms = (s as any).platforms || [];
+      const renderPin = (lat: number, lng: number, withBadges: boolean, platformDirections?: string[]) => {
+        const container = document.createElement("div");
+        container.style.position = "absolute";
+        container.style.transform = "translate(-50%, -50%)";
+        container.style.pointerEvents = "auto";
+        container.style.cursor = "pointer";
+        container.style.userSelect = "none";
+        container.style.display = "flex";
+        container.style.flexDirection = "column";
+        container.style.alignItems = "center";
 
-      if (zoom < 12) {
-        // Minimal transit glyph at low zoom
-        const mini = document.createElement("div");
-        mini.textContent = hasBus && hasTram ? "🚏" : hasTram ? "🚋" : "🚌";
-        mini.style.fontSize = "13px";
-        mini.style.filter = "drop-shadow(0 1px 1px rgba(0,0,0,0.4))";
-        container.appendChild(mini);
+        if (zoom < 12) {
+          const mini = document.createElement("div");
+          mini.textContent = hasBus && hasTram ? "🚏" : hasTram ? "🚋" : "🚌";
+          mini.style.fontSize = "13px";
+          mini.style.filter = "drop-shadow(0 1px 1px rgba(0,0,0,0.4))";
+          container.appendChild(mini);
+        } else {
+          const pin = document.createElement("div");
+          pin.style.display = "flex";
+          pin.style.alignItems = "center";
+          pin.style.justifyContent = "center";
+          pin.style.gap = "3px";
+          pin.style.padding = "3px 6px";
+          pin.style.borderRadius = "9px";
+          pin.style.backgroundColor = pinColor;
+          pin.style.border = "2px solid #ffffff";
+          pin.style.boxShadow = "0 1px 4px rgba(0,0,0,0.4)";
+          pin.style.boxSizing = "border-box";
+          pin.style.fontFamily = "Arial, sans-serif";
+          if (hasBus) {
+            const ic = document.createElement("span");
+            ic.textContent = "🚌";
+            ic.style.fontSize = "11px";
+            pin.appendChild(ic);
+          }
+          if (hasTram) {
+            const ic = document.createElement("span");
+            ic.textContent = "🚋";
+            ic.style.fontSize = "11px";
+            pin.appendChild(ic);
+          }
+          container.appendChild(pin);
+
+          if (withBadges) {
+            const badges = document.createElement("div");
+            badges.style.display = "flex";
+            badges.style.gap = "2px";
+            badges.style.marginTop = "1px";
+            s.routes.slice(0, 3).forEach((r) => {
+              const b = document.createElement("span");
+              b.textContent = r.route_number;
+              b.style.backgroundColor = r.mode === "tram" ? "#8B0000" : "#1E3A8A";
+              b.style.color = "#ffffff";
+              b.style.fontSize = "9px";
+              b.style.fontWeight = "800";
+              b.style.fontFamily = "Arial, sans-serif";
+              b.style.borderRadius = "6px";
+              b.style.padding = "0 4px";
+              b.style.border = "1px solid #ffffff";
+              b.style.lineHeight = "12px";
+              badges.appendChild(b);
+            });
+            container.appendChild(badges);
+          }
+          if (platformDirections && platformDirections.length > 0) {
+            const dirEl = document.createElement("div");
+            dirEl.textContent = platformDirections.slice(0, 2).join(" · ");
+            dirEl.style.fontSize = "9px";
+            dirEl.style.fontWeight = "700";
+            dirEl.style.fontFamily = "Arial, sans-serif";
+            dirEl.style.color = "#264348";
+            dirEl.style.backgroundColor = "rgba(255,255,255,0.92)";
+            dirEl.style.borderRadius = "6px";
+            dirEl.style.padding = "1px 4px";
+            dirEl.style.marginTop = "1px";
+            dirEl.style.whiteSpace = "nowrap";
+            dirEl.style.maxWidth = "120px";
+            dirEl.style.overflow = "hidden";
+            dirEl.style.textOverflow = "ellipsis";
+            container.appendChild(dirEl);
+          }
+          if (showNames && !platformDirections) {
+            const nameEl = document.createElement("div");
+            nameEl.textContent = s.name;
+            nameEl.style.fontSize = "10px";
+            nameEl.style.fontWeight = "700";
+            nameEl.style.fontFamily = "Arial, sans-serif";
+            nameEl.style.color = "#264348";
+            nameEl.style.backgroundColor = "rgba(255,255,255,0.92)";
+            nameEl.style.borderRadius = "6px";
+            nameEl.style.padding = "1px 4px";
+            nameEl.style.marginTop = "1px";
+            nameEl.style.whiteSpace = "nowrap";
+            container.appendChild(nameEl);
+          }
+        }
+
+        container.addEventListener("click", (e) => {
+          e.stopPropagation();
+          onTransitStopPress?.(s as any);
+        });
+
+        const overlay = new StopOverlay(container, { lat, lng });
+        overlay.setMap(mapRef.current);
+        transitStopsRef.current.push(overlay);
+      };
+
+      // Both sides of the road: at close zoom show one pin per PLATFORM
+      // (each with its own directions), otherwise the single physical stop.
+      if (zoom >= 16 && platforms.length >= 2) {
+        platforms.forEach((p: any) => {
+          if (p.latitude == null || p.longitude == null) return;
+          renderPin(p.latitude, p.longitude, true, p.directions || []);
+        });
       } else {
-        // Rounded pin with mode icons
-        const pin = document.createElement("div");
-        pin.style.display = "flex";
-        pin.style.alignItems = "center";
-        pin.style.justifyContent = "center";
-        pin.style.gap = "3px";
-        pin.style.padding = "3px 6px";
-        pin.style.borderRadius = "9px";
-        pin.style.backgroundColor = pinColor;
-        pin.style.border = "2px solid #ffffff";
-        pin.style.boxShadow = "0 1px 4px rgba(0,0,0,0.4)";
-        pin.style.boxSizing = "border-box";
-        pin.style.fontFamily = "Arial, sans-serif";
-        if (hasBus) {
-          const ic = document.createElement("span");
-          ic.textContent = "🚌";
-          ic.style.fontSize = "11px";
-          pin.appendChild(ic);
-        }
-        if (hasTram) {
-          const ic = document.createElement("span");
-          ic.textContent = "🚋";
-          ic.style.fontSize = "11px";
-          pin.appendChild(ic);
-        }
-        container.appendChild(pin);
-
-        if (showBadges) {
-          const badges = document.createElement("div");
-          badges.style.display = "flex";
-          badges.style.gap = "2px";
-          badges.style.marginTop = "1px";
-          s.routes.slice(0, 3).forEach((r) => {
-            const b = document.createElement("span");
-            b.textContent = r.route_number;
-            b.style.backgroundColor = r.mode === "tram" ? "#8B0000" : "#1E3A8A";
-            b.style.color = "#ffffff";
-            b.style.fontSize = "9px";
-            b.style.fontWeight = "800";
-            b.style.fontFamily = "Arial, sans-serif";
-            b.style.borderRadius = "6px";
-            b.style.padding = "0 4px";
-            b.style.border = "1px solid #ffffff";
-            b.style.lineHeight = "12px";
-            badges.appendChild(b);
-          });
-          container.appendChild(badges);
-        }
-        if (showNames) {
-          const nameEl = document.createElement("div");
-          nameEl.textContent = s.name;
-          nameEl.style.fontSize = "10px";
-          nameEl.style.fontWeight = "700";
-          nameEl.style.fontFamily = "Arial, sans-serif";
-          nameEl.style.color = "#264348";
-          nameEl.style.backgroundColor = "rgba(255,255,255,0.92)";
-          nameEl.style.borderRadius = "6px";
-          nameEl.style.padding = "1px 4px";
-          nameEl.style.marginTop = "1px";
-          nameEl.style.whiteSpace = "nowrap";
-          container.appendChild(nameEl);
-        }
+        renderPin(s.latitude, s.longitude, showBadges);
       }
-
-      container.addEventListener("click", (e) => {
-        e.stopPropagation();
-        onTransitStopPress?.(s as any);
-      });
-
-      const overlay = new StopOverlay(container, { lat: s.latitude, lng: s.longitude });
-      overlay.setMap(mapRef.current);
-      transitStopsRef.current.push(overlay);
     });
   }, [transitStops, mapReady, layoutTick]);
 

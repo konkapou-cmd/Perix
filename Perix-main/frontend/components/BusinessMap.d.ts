@@ -63,6 +63,13 @@ type Props = {
     longitude: number;
     modes: ("bus" | "tram")[];
     routes: { route_number: string; mode: "bus" | "tram" }[];
+    platforms?: {
+      platform_id: string;
+      latitude?: number | null;
+      longitude?: number | null;
+      name?: string;
+      directions?: string[];
+    }[];
   }[];
   onTransitStopPress?: (stop: {
     stop_id: string;

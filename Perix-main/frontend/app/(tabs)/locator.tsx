@@ -719,7 +719,7 @@ export default function LocatorScreen() {
 
   // Refresh the serving-bus list while a destination is selected
   useEffect(() => {
-    if (activeTab !== "mobility" || (mobilityMode !== "bus" && mobilityMode !== "tram") || !selectedStop) return;
+    if (activeTab !== "mobility" || mobilityMode === "taxi" || !selectedStop) return;
     let cancelled = false;
     const load = () => {
       getBusesServing(
@@ -729,7 +729,10 @@ export default function LocatorScreen() {
         contextLocation?.longitude ?? null
       )
         .then((res) => {
-          if (!cancelled) setServingBuses(res || []);
+          if (cancelled) return;
+          // The All/Bus/Tram toggle filters arrivals too - a stop serves
+          // both modes but the user asked for one.
+          setServingBuses((res || []).filter((b) => mobilityMode === "all" || b.mode === mobilityMode));
         })
         .catch(() => {});
     };

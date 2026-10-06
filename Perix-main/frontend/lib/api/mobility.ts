@@ -216,6 +216,14 @@ export type TransitStopMarker = {
   latitude: number;
   longitude: number;
   modes: ("bus" | "tram")[];
+  platforms?: {
+    platform_id: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    name?: string;
+    platform_code?: string | null;
+    directions?: string[];
+  }[];
   routes: {
     route_number: string;
     mode: "bus" | "tram";
@@ -239,6 +247,7 @@ export type ServingBus = {
   eta_minutes: number;
   distance_to_bus_m: number | null;
   distance_to_stop_m: number;
+  mode?: string;
 };
 
 export const getBusNetwork = (token?: string | null) =>
@@ -338,6 +347,7 @@ export const getBusesServing = async (
     eta_minutes: Math.max(0, Math.ceil((a.eta_seconds ?? 0) / 60)),
     distance_to_bus_m: null,
     distance_to_stop_m: 0,
+    mode: a.mode,
   }));
 };
 
