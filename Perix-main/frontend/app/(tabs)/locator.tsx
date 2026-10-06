@@ -1286,13 +1286,29 @@ export default function LocatorScreen() {
           location={
             contextLocation
               ? { latitude: contextLocation.latitude, longitude: contextLocation.longitude }
+              : activeTab === "mobility"
+              ? { latitude: 52.131, longitude: 11.64 }
               : undefined
           }
           initialRegion={{
-            latitude: mapBounds?.centerLat ?? contextLocation?.latitude ?? 52.52,
-            longitude: mapBounds?.centerLng ?? contextLocation?.longitude ?? 13.405,
-            latitudeDelta: mapBounds ? (mapBounds.maxLat - mapBounds.minLat) : 0.05,
-            longitudeDelta: mapBounds ? (mapBounds.maxLng - mapBounds.minLng) : 0.05,
+            latitude:
+              mapBounds?.centerLat ??
+              contextLocation?.latitude ??
+              (activeTab === "mobility" ? 52.131 : 52.52),
+            longitude:
+              mapBounds?.centerLng ??
+              contextLocation?.longitude ??
+              (activeTab === "mobility" ? 11.64 : 13.405),
+            latitudeDelta: mapBounds
+              ? mapBounds.maxLat - mapBounds.minLat
+              : activeTab === "mobility"
+              ? 0.09
+              : 0.05,
+            longitudeDelta: mapBounds
+              ? mapBounds.maxLng - mapBounds.minLng
+              : activeTab === "mobility"
+              ? 0.09
+              : 0.05,
           }}
           pinLocation={locateFocus ?? (livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null)}
           userPinImage={activeIdentity?.type === "business" ? (activeIdentity as any).avatar || undefined : (user?.profile_photo || user?.picture || undefined)}
