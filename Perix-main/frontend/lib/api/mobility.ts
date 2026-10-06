@@ -34,8 +34,83 @@ export type DriverSession = {
   status: string;
 };
 
-export const getLiveVehicles = (token?: string | null) =>
-  apiRequest<LiveVehicle[]>("/mobility/live", "GET", token || undefined);
+export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicle[]> => {
+  // Stable V2 API: the Locator no longer knows GTFS/GPS internals.
+  const raw = await apiRequest<V2Vehicle[]>("/mobility/v2/vehicles", "GET", token || undefined);
+  return (raw || []).map((v) => ({
+    vehicle_id: v.vehicle_id,
+    business_id: "",
+    mode: v.mode as MobilityMode,
+    fleet_number: String(v.route?.number ?? ""),
+    name: String(v.route?.number ?? v.vehicle_id),
+    route_number: v.route?.number ?? null,
+    route_direction: v.route?.direction ?? null,
+    latitude: v.position?.latitude ?? null,
+    longitude: v.position?.longitude ?? null,
+    heading: v.position?.heading ?? null,
+    status: v.position?.source ?? "active",
+    updated_at: new Date().toISOString(),
+    estimated: v.estimated ?? false,
+    position_source: v.position?.source,
+    delay_minutes: v.delay_minutes ?? 0,
+  }));
+};
+
+export type V2Vehicle = {
+  vehicle_id: string;
+  mode: string;
+  route?: { number?: string | null; direction?: string | null };
+  position?: {
+    latitude?: number | null;
+    longitude?: number | null;
+    heading?: number | null;
+    source?: string;
+    quality?: string;
+    accuracy_m?: number | null;
+    age_seconds?: number;
+  };
+  trip_instance_id?: string | null;
+  trip_id?: string | null;
+  delay_minutes?: number;
+  estimated?: boolean;
+};
+
+export type V2Arrival = {
+  trip_instance_id?: string;
+  trip_id?: string;
+  route_number: string;
+  direction?: string | null;
+  mode?: string;
+  eta_seconds?: number;
+  predicted?: string;
+  delay_seconds?: number;
+  source?: string;
+  vehicle_id: string;
+};
+
+export type V2MapLineStop = {
+  stop_id: string;
+  name?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+export type V2MapLine = {
+  pattern_id: string;
+  route_number: string;
+  mode?: "bus" | "tram";
+  direction?: string;
+  points: { latitude: number; longitude: number }[];
+  source?: string;
+  valid?: boolean;
+  max_platform_distance_m?: number | null;
+  stops?: V2MapLineStop[];
+};
+
+export type V2Map = {
+  lines: V2MapLine[];
+  stops: TransitStopMarker[];
+};
 
 export const getMobilityOperatorInfo = (token: string) =>
   apiRequest<{ business_id: string | null; mobility_role: string | null }>(
@@ -149,7 +224,11 @@ export type TransitStopMarker = {
 };
 
 export const getTransitStops = (token: string | null | undefined) =>
-  apiRequest<TransitStopMarker[]>(`/mobility/stops`, "GET", token || undefined);
+  apiRequest<TransitStopMarker[]>(`/mobility/v2/stops`, "GET", token || undefined);
+
+/** Stable map payload: resolved transit lines + physical stops. */
+export const getV2Map = (token: string | null | undefined) =>
+  apiRequest<V2Map>(`/mobility/v2/map`, "GET", token || undefined);
 
 export type ServingBus = {
   vehicle_id: string;
@@ -238,19 +317,29 @@ export const searchPlaces = (token: string | null | undefined, q: string) =>
     token || undefined
   );
 
-export const getBusesServing = (
+export const getBusesServing = async (
   token: string | null | undefined,
   stopId: string,
-  lat?: number | null,
-  lng?: number | null
-) =>
-  apiRequest<ServingBus[]>(
-    `/mobility/buses/serving?stop_id=${encodeURIComponent(stopId)}${
-      lat != null && lng != null ? `&lat=${lat}&lng=${lng}` : ""
-    }`,
+  _lat?: number | null,
+  _lng?: number | null
+): Promise<ServingBus[]> => {
+  // Stable V2 unified arrivals engine (LIVE / REALTIME / SCHEDULE).
+  const raw = await apiRequest<V2Arrival[]>(
+    `/mobility/v2/stops/${encodeURIComponent(stopId)}/arrivals`,
     "GET",
     token || undefined
   );
+  return (raw || []).map((a) => ({
+    vehicle_id: a.vehicle_id,
+    route_number: a.route_number,
+    route_direction: a.direction ?? "",
+    status: a.source ?? "SCHEDULE",
+    delay_minutes: Math.max(0, Math.round((a.delay_seconds ?? 0) / 60)),
+    eta_minutes: Math.max(0, Math.ceil((a.eta_seconds ?? 0) / 60)),
+    distance_to_bus_m: null,
+    distance_to_stop_m: 0,
+  }));
+};
 
 export type TripStopProgress = {
   stop_id: string;
@@ -315,7 +404,7 @@ export const planJourney = (
   toLng: number
 ) =>
   apiRequest<{ itineraries: JourneyPlan[]; note?: string }>(
-    `/mobility/plan?from_lat=${fromLat}&from_lng=${fromLng}&to_lat=${toLat}&to_lng=${toLng}`,
+    `/mobility/v2/plan?from_lat=${fromLat}&from_lng=${fromLng}&to_lat=${toLat}&to_lng=${toLng}`,
     "GET",
     token || undefined
   );

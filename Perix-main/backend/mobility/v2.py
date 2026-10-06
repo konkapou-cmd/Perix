@@ -76,18 +76,35 @@ async def _patterns_resolved(domain: dict) -> list:
 
 @router.get("/map")
 async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    """The stable map payload the Locator will consume: resolved lines
-    (validated geometry + source per pattern) and physical stops."""
+    """The stable map payload the Locator consumes: resolved lines
+    (validated geometry + source + per-line stops) and physical stops."""
     domain = await _domain()
     if not domain:
         return {"lines": [], "stops": []}
     patterns = await _patterns_resolved(domain)
+    # stop lookup for per-line stop lists
+    stop_by_id = {}
+    for stop in domain.get("stops", []):
+        for p in stop.get("platforms", []):
+            stop_by_id[str(p.get("platform_id"))] = p
     lines = []
     for p in patterns:
         g = p.get("geometry") or {}
         points = g.get("points") or []
         if len(points) < 2:
             continue
+        line_stops = []
+        for sid in p.get("stop_ids") or []:
+            sp = stop_by_id.get(str(sid))
+            if sp:
+                line_stops.append(
+                    {
+                        "stop_id": str(sid),
+                        "name": sp.get("name"),
+                        "latitude": sp.get("latitude"),
+                        "longitude": sp.get("longitude"),
+                    }
+                )
         lines.append(
             {
                 "pattern_id": p.get("pattern_id"),
@@ -98,6 +115,7 @@ async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_o
                 "source": g.get("source"),
                 "valid": g.get("valid"),
                 "max_platform_distance_m": g.get("max_platform_distance_m"),
+                "stops": line_stops,
             }
         )
     return {"lines": lines, "stops": domain.get("stops", [])}
@@ -150,6 +168,20 @@ async def v2_stop_arrivals(stop_id: str, current_user: Optional[UserPublic] = De
     from mobility.arrivals import unified_arrivals
 
     return await unified_arrivals(stop_id)
+
+
+@router.get("/plan")
+async def v2_plan(
+    from_lat: float,
+    from_lng: float,
+    to_lat: float,
+    to_lng: float,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Journey planning - same engine as V1, exposed on the stable API."""
+    from routes.mobility import plan_journey
+
+    return await plan_journey(from_lat, from_lng, to_lat, to_lng, current_user)
 
 
 @router.get("/vehicles")
