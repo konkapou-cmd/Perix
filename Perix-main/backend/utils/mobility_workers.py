@@ -448,6 +448,13 @@ def start_mobility_workers():
     # Startup repair: rebuild road/rail geometry for any pattern missing it
     # (also covers networks that were already active before this deploy).
     asyncio.create_task(_precompute_road_geometries())
+    # Live traffic incidents -> operational restrictions (TomTom)
+    try:
+        from mobility.traffic import traffic_worker
+
+        asyncio.create_task(traffic_worker())
+    except Exception as e:
+        _log(f"traffic worker not started: {type(e).__name__}: {e}")
 
 
 async def _precompute_road_geometries():
