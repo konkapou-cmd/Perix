@@ -86,3 +86,49 @@ async def v2_delete_override(override_id: str, current_user: Optional[UserPublic
     await _require_operator_user(current_user)
     await db.mobility_stop_overrides.delete_one({"override_id": override_id})
     return {"ok": True}
+
+
+@router.get("/editor/trip-overrides")
+async def v2_list_trip_overrides(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    await _require_operator_user(current_user)
+    docs = await db.mobility_trip_overrides.find({}, {"_id": 0}).to_list(500)
+    return docs
+
+
+@router.post("/editor/trip-overrides")
+async def v2_create_trip_override(payload: dict, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Operational exception: kind = trip_canceled | stop_skipped.
+    Applied by the arrivals engine AND the position estimator - the
+    imported timetable stays untouched."""
+    operator = await _require_operator_user(current_user)
+    kind = str(payload.get("kind") or "")
+    if kind not in ("trip_canceled", "stop_skipped"):
+        raise HTTPException(status_code=400, detail="Unknown trip override kind")
+    if not payload.get("trip_id"):
+        raise HTTPException(status_code=400, detail="trip_id required")
+    if kind == "stop_skipped" and not payload.get("stop_id"):
+        raise HTTPException(status_code=400, detail="stop_id required for stop_skipped")
+    import uuid
+
+    from routes.mobility import now_utc
+
+    doc = {
+        "override_id": f"tovr_{uuid.uuid4().hex[:12]}",
+        "kind": kind,
+        "trip_id": str(payload.get("trip_id")),
+        "stop_id": str(payload.get("stop_id") or "") or None,
+        "reason": payload.get("reason"),
+        "valid_from": payload.get("valid_from"),
+        "valid_until": payload.get("valid_until"),
+        "created_by": operator.get("business_id") or current_user.user_id,
+        "created_at": now_utc().isoformat(),
+    }
+    await db.mobility_trip_overrides.insert_one(doc)
+    return doc
+
+
+@router.delete("/editor/trip-overrides/{override_id}")
+async def v2_delete_trip_override(override_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    await _require_operator_user(current_user)
+    await db.mobility_trip_overrides.delete_one({"override_id": override_id})
+    return {"ok": True}

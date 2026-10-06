@@ -824,10 +824,13 @@ def _iso_is_fresh(ts: str, seconds: int) -> bool:
         return False
 
 
-def _chain_trips(route: dict, delays: Optional[dict] = None) -> List[dict]:
-    """Group consecutive predicted trips into one physical vehicle run."""
+def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Optional[set] = None) -> List[dict]:
+    """Group consecutive predicted trips into one physical vehicle run.
+    Trips in skip_trip_ids (operator-canceled) are excluded entirely."""
     windows = []
     for trip in route.get("trips", []):
+        if skip_trip_ids and str(trip.get("trip_id") or "") in skip_trip_ids:
+            continue
         rt = (delays or {}).get(str(trip.get("trip_id") or ""))
         w = _trip_window(route, trip, rt)
         if w:
@@ -948,10 +951,18 @@ async def _estimated_transit_vehicles() -> List[dict]:
     # monotonically: a vehicle NEVER moves backwards, even when the feed's
     # delay value oscillates or drops.
     delays = await _realtime_delays_for(trip_ids)
+    # Operator overrides: canceled trips produce no vehicle at all.
+    canceled_ids: set = set()
+    try:
+        from mobility.overrides import canceled_trip_ids
+
+        canceled_ids = await canceled_trip_ids()
+    except Exception:
+        pass
     for route in network.get("routes", []):
         route_number = str(route.get("route_number"))
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
-        for run in _chain_trips(route, delays):
+        for run in _chain_trips(route, delays, canceled_ids):
             first = run["trips"][0]
             headsign = str(first["trip"].get("headsign") or route.get("name") or "")
             if now_sec < run["start"] - 60 or now_sec > run["end"] + 60:

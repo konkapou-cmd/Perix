@@ -143,6 +143,15 @@ async def v2_stops(current_user: Optional[UserPublic] = Depends(get_current_user
     return domain["stops"]
 
 
+@router.get("/stops/{stop_id}/arrivals")
+async def v2_stop_arrivals(stop_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Unified arrivals for a physical stop: LIVE GPS, realtime and
+    schedule arrivals from one engine, honoring canceled/skipped."""
+    from mobility.arrivals import unified_arrivals
+
+    return await unified_arrivals(stop_id)
+
+
 @router.get("/vehicles")
 async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     """Canonical vehicle state: position always carries source/quality, and
