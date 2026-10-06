@@ -1963,10 +1963,18 @@ async def plan_journey(
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     """Point-to-point transit planning: nearest stops, line combinations
-    with transfers and walking (Google Maps style, minimal walking + time)."""
+    with transfers and walking (Google Maps style, minimal walking + time).
+
+    Runs in a worker thread: the trip-graph search is CPU-heavy and must
+    NEVER block the async event loop (a slow plan used to freeze every
+    other request and time out the edge gateway)."""
     network = await _get_active_network()
     if not network:
         return {"itineraries": []}
+    return await asyncio.to_thread(_plan_core, network, from_lat, from_lng, to_lat, to_lng)
+
+
+def _plan_core(network: dict, from_lat: float, from_lng: float, to_lat: float, to_lng: float) -> dict:
     now_sec = _now_service_seconds()
 
     stops = {}
@@ -2040,7 +2048,15 @@ async def plan_journey(
             )
 
     boardings = {}
+    # Time-window pruning: only trips that can possibly serve a journey in
+    # the next 3 hours participate - the full-day graph made the search
+    # explode and block the server.
+    horizon = now_sec + 3 * 3600
     for ti, trip in enumerate(trips):
+        first_dep = trip["segments"][0][1]
+        last_arr = trip["segments"][-1][3]
+        if last_arr < now_sec - 600 or first_dep > horizon:
+            continue
         for pos, seg in enumerate(trip["segments"]):
             boardings.setdefault(seg[0], []).append((seg[1], ti, pos))
     for sid in boardings:
@@ -2059,7 +2075,9 @@ async def plan_journey(
         parent[sid] = (None, "walk_origin", {"minutes": round(walk_sec(d) / 60), "stop": sid, "from_lat": from_lat, "from_lng": from_lng})
 
     reached = None
-    while heap:
+    pops = 0
+    while heap and pops < 30000:
+        pops += 1
         arr, sid = heapq.heappop(heap)
         if arr > best.get(sid, float("inf")):
             continue

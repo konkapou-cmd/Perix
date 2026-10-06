@@ -267,10 +267,12 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
                 shapes = route.get("shapes") or {}
                 if shape_id and isinstance(shapes.get(shape_id), list) and len(shapes[shape_id]) > 2:
                     points = [[float(p[0]), float(p[1])] for p in shapes[shape_id]]
-                # NEVER invent geometry here: no route-level shape reuse and
-                # no stop-to-stop polyline - the Geometry Resolver decides
-                # (GTFS shape > manual overlay > OSM road/rail reconstruction
-                # > hide). Fake straight lines must not cross buildings.
+                elif isinstance(route.get("shape"), list) and len(route["shape"]) > 2:
+                    # Import-validated legacy geometry (OSM relation, pattern
+                    # checked by _merge_shapes) - real street/rail, never
+                    # invented. The resolver still prefers the rebuilt
+                    # road/rail geometry once it is computed.
+                    points = [[float(p[0]), float(p[1])] for p in route["shape"]]
                 pat = {
                     "pattern_id": _pattern_id(rn, key),
                     "route_id": route_id,

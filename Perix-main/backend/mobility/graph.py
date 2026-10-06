@@ -114,6 +114,10 @@ def resolve_pattern_geometry(
     candidates: List[tuple] = []
     if pat.get("shape_id") and (pat.get("points") or []):
         candidates.append(("GTFS_SHAPE", pat["points"]))
+    elif (pat.get("points") or []) and len(pat.get("points") or []) > 2:
+        # Import-validated legacy geometry (real OSM relation, pattern
+        # checked at import) - never the fake stop-to-stop line.
+        candidates.append(("OSM_ROUTE", pat["points"]))
     for ov in overlays or []:
         if not ov.get("verified"):
             continue

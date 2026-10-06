@@ -496,7 +496,11 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
         for p in stop.get("platforms", []):
             platforms_by_id[str(p.get("platform_id"))] = p
     done = 0
-    for pat in domain.get("patterns", []):
+    # Trams first: rail geometry is the most visible gap.
+    patterns_sorted = sorted(
+        domain.get("patterns", []), key=lambda p: 0 if (p.get("mode") or "") == "tram" else 1
+    )
+    for pat in patterns_sorted:
         pid = str(pat.get("pattern_id") or "")
         mode = str(pat.get("mode") or "bus")
         if not pid:
@@ -539,5 +543,5 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                 _log(f"roads: {pid} ({mode}) -> {len(pts)} points")
         except Exception as e:
             _log(f"roads: {pid} failed: {type(e).__name__}: {e}")
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.3)
     _log(f"roads: precomputed {done} pattern geometries")
