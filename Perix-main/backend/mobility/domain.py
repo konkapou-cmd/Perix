@@ -267,14 +267,10 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
                 shapes = route.get("shapes") or {}
                 if shape_id and isinstance(shapes.get(shape_id), list) and len(shapes[shape_id]) > 2:
                     points = [[float(p[0]), float(p[1])] for p in shapes[shape_id]]
-                elif isinstance(route.get("shape"), list) and len(route["shape"]) > 2:
-                    points = [[float(p[0]), float(p[1])] for p in route["shape"]]
-                else:
-                    points = [
-                        [float(stop_by_id.get(sid, {}).get("lat")), float(stop_by_id.get(sid, {}).get("lng"))]
-                        for sid in stop_ids
-                        if sid in stop_by_id
-                    ]
+                # NEVER invent geometry here: no route-level shape reuse and
+                # no stop-to-stop polyline - the Geometry Resolver decides
+                # (GTFS shape > manual overlay > OSM road/rail reconstruction
+                # > hide). Fake straight lines must not cross buildings.
                 pat = {
                     "pattern_id": _pattern_id(rn, key),
                     "route_id": route_id,

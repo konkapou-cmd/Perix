@@ -62,12 +62,25 @@ async def _patterns_resolved(domain: dict) -> list:
         for p in stop.get("platforms", []):
             platforms_by_id[str(p.get("platform_id"))] = p
     overlays = await get_overlays()
-    # Precomputed real-road geometries (OSM road-graph reconstruction)
-    road_docs = await db.mobility_road_geometries.find({}, {"_id": 0}).to_list(1000)
-    roads_by_pattern = {str(d.get("pattern_id")): d.get("points") or [] for d in road_docs}
+    # Precomputed real geometries (OSM road/rail reconstruction), scoped to
+    # the ACTIVE network version - a previous day's path must never leak.
+    version_id = domain.get("network", {}).get("version_id")
+    road_docs = await db.mobility_road_geometries.find(
+        {"version_id": version_id}, {"_id": 0}
+    ).to_list(1000)
+    roads_by_pattern = {
+        str(d.get("pattern_id")): d.get("points") or []
+        for d in road_docs
+        if (d.get("mode") or "bus") != "tram"
+    }
+    rails_by_pattern = {
+        str(d.get("pattern_id")): d.get("points") or []
+        for d in road_docs
+        if (d.get("mode") or "bus") == "tram"
+    }
     out = []
     for pat in domain.get("patterns", []):
-        resolved = resolve_pattern_geometry(pat, platforms_by_id, overlays, roads_by_pattern)
+        resolved = resolve_pattern_geometry(pat, platforms_by_id, overlays, roads_by_pattern, rails_by_pattern)
         out.append(
             {
                 **{k: v for k, v in pat.items() if k != "points"},

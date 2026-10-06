@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -59,6 +59,8 @@ export default function MobilityManageScreen() {
   const router = useRouter();
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [live, setLive] = useState<LiveVehicle[]>([]);
+  const [activeExpanded, setActiveExpanded] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<"all" | "live" | "realtime" | "schedule">("all");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [mode, setMode] = useState<"bus" | "tram" | "taxi">("bus");
@@ -106,6 +108,89 @@ export default function MobilityManageScreen() {
   const [toStopId, setToStopId] = useState("");
   const [toReason, setToReason] = useState("");
   const [toBusy, setToBusy] = useState(false);
+
+  // Active means an operating service unit right now. It does not
+  // necessarily mean a physical vehicle is sending GPS.
+  //
+  // LIVE     = fresh physical position (GPS/device/external GPS)
+  // REALTIME = virtual position constrained by realtime trip updates
+  // SCHEDULE = virtual position derived from the timetable
+  const activeServiceUnits = useMemo(() => {
+    const vehiclesById = new Map<string, any>();
+    (vehicles || []).forEach((v) => {
+      if (v?.vehicle_id) vehiclesById.set(String(v.vehicle_id), v);
+    });
+
+    return (live || [])
+      .map((v) => {
+        const rawQuality = String(
+          v.position_quality ||
+            (!v.estimated
+              ? "LIVE"
+              : v.position_source === "REALTIME_ESTIMATE"
+                ? "REALTIME"
+                : "SCHEDULE")
+        ).toUpperCase();
+
+        const quality: "LIVE" | "REALTIME" | "SCHEDULE" =
+          rawQuality === "LIVE"
+            ? "LIVE"
+            : rawQuality === "REALTIME"
+              ? "REALTIME"
+              : "SCHEDULE";
+
+        return {
+          ...v,
+          quality,
+          physicalVehicle: vehiclesById.get(String(v.vehicle_id)) || null,
+        };
+      })
+      .sort((a, b) => {
+        const rank = { LIVE: 0, REALTIME: 1, SCHEDULE: 2 };
+        const q = rank[a.quality] - rank[b.quality];
+        if (q !== 0) return q;
+
+        const modeCompare = String(a.mode).localeCompare(String(b.mode));
+        if (modeCompare !== 0) return modeCompare;
+
+        const routeCompare = String(a.route_number || "").localeCompare(
+          String(b.route_number || ""),
+          undefined,
+          { numeric: true }
+        );
+        if (routeCompare !== 0) return routeCompare;
+
+        return String(a.route_direction || "").localeCompare(
+          String(b.route_direction || "")
+        );
+      });
+  }, [live, vehicles]);
+
+  const activeCounts = useMemo(
+    () => ({
+      total: activeServiceUnits.length,
+      live: activeServiceUnits.filter((v) => v.quality === "LIVE").length,
+      realtime: activeServiceUnits.filter((v) => v.quality === "REALTIME").length,
+      schedule: activeServiceUnits.filter((v) => v.quality === "SCHEDULE").length,
+      bus: activeServiceUnits.filter((v) => v.mode === "bus").length,
+      tram: activeServiceUnits.filter((v) => v.mode === "tram").length,
+      taxi: activeServiceUnits.filter((v) => v.mode === "taxi").length,
+    }),
+    [activeServiceUnits]
+  );
+
+  const filteredActiveUnits = useMemo(() => {
+    if (activeFilter === "all") return activeServiceUnits;
+
+    const quality =
+      activeFilter === "live"
+        ? "LIVE"
+        : activeFilter === "realtime"
+          ? "REALTIME"
+          : "SCHEDULE";
+
+    return activeServiceUnits.filter((v) => v.quality === quality);
+  }, [activeServiceUnits, activeFilter]);
 
   const load = useCallback(async () => {
     if (!sessionToken) return;
@@ -414,20 +499,173 @@ export default function MobilityManageScreen() {
 
         {operatorRole && (
         <>
-        {/* Live fleet */}
-        <Text style={styles.sectionTitle}>{t("mobility.manageLive", "Live now")}</Text>
-        <View style={styles.liveRow}>
-          {live.length === 0 ? (
-            <Text style={styles.emptyText}>{t("mobility.noVehicles", "No live vehicles right now")}</Text>
-          ) : (
-            live.map((v) => (
-              <View key={v.vehicle_id} style={styles.liveChip}>
-                <Ionicons name={v.mode === "bus" ? "bus" : v.mode === "tram" ? "train" : "car"} size={14} color="#59ABE3" />
-                <Text style={styles.liveChipText}>
-                  {v.mode !== "taxi" ? v.route_number || v.fleet_number : v.name} · {t("mobility.status." + v.status, v.status)}
-                </Text>
+        {/* Active operating service units. Collapsed by default so a
+            large imported timetable never takes over the whole page. */}
+        <View style={styles.activePanel}>
+          <Pressable
+            style={styles.activePanelHeader}
+            onPress={() => setActiveExpanded((value) => !value)}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.activePanelTitle}>
+                {t("mobility.activeServiceNow", "Active service now")}
+              </Text>
+              <Text style={styles.activePanelMeta}>
+                {activeCounts.total} {t("mobility.activeUnits", "active")} ·{" "}
+                GPS {activeCounts.live} · RT {activeCounts.realtime} ·{" "}
+                {t("mobility.scheduleShort", "Schedule")} {activeCounts.schedule}
+              </Text>
+              <Text style={styles.activePanelModes}>
+                {t("mobility.bus", "Bus")} {activeCounts.bus} ·{" "}
+                {t("mobility.tram", "Tram")} {activeCounts.tram} ·{" "}
+                {t("mobility.taxi", "Taxi")} {activeCounts.taxi}
+              </Text>
+            </View>
+
+            <Ionicons
+              name={activeExpanded ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#264348"
+            />
+          </Pressable>
+
+          {activeExpanded && (
+            <>
+              <Text style={styles.activeExplain}>
+                {t(
+                  "mobility.activeExplain",
+                  "Active = a service currently operating. GPS Live is a physical position; Realtime and Schedule are estimated service trips."
+                )}
+              </Text>
+
+              <View style={styles.activeFilters}>
+                {([
+                  ["all", t("common.all", "All"), activeCounts.total],
+                  ["live", "GPS", activeCounts.live],
+                  ["realtime", "Realtime", activeCounts.realtime],
+                  ["schedule", t("mobility.scheduleShort", "Schedule"), activeCounts.schedule],
+                ] as const).map(([key, label, count]) => (
+                  <Pressable
+                    key={key}
+                    style={[
+                      styles.activeFilterChip,
+                      activeFilter === key && styles.activeFilterChipActive,
+                    ]}
+                    onPress={() => setActiveFilter(key)}
+                  >
+                    <Text
+                      style={[
+                        styles.activeFilterText,
+                        activeFilter === key && styles.activeFilterTextActive,
+                      ]}
+                    >
+                      {label} {count}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
-            ))
+
+              {filteredActiveUnits.length === 0 ? (
+                <Text style={[styles.emptyText, { paddingHorizontal: 14, paddingBottom: 14 }]}>
+                  {t("mobility.noActiveUnits", "No active service units in this category")}
+                </Text>
+              ) : (
+                <ScrollView
+                  style={styles.activeList}
+                  contentContainerStyle={styles.activeListContent}
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator
+                >
+                  {filteredActiveUnits.map((v) => {
+                    const physical = v.physicalVehicle;
+                    const qualityLabel =
+                      v.quality === "LIVE"
+                        ? t("mobility.gpsLive", "GPS Live")
+                        : v.quality === "REALTIME"
+                          ? t("mobility.realtimeEstimate", "Realtime estimate")
+                          : t("mobility.scheduleEstimate", "Schedule estimate");
+
+                    const qualityColor =
+                      v.quality === "LIVE"
+                        ? "#16A34A"
+                        : v.quality === "REALTIME"
+                          ? "#2563EB"
+                          : "#6B7280";
+
+                    const tripLabel = v.trip_id
+                      ? `${t("mobility.trip", "Trip")} ${v.trip_id}`
+                      : t("mobility.tripUnknown", "Trip id unavailable");
+
+                    return (
+                      <View key={v.vehicle_id} style={styles.activeUnitRow}>
+                        <View
+                          style={[
+                            styles.activeUnitIcon,
+                            {
+                              backgroundColor:
+                                v.mode === "tram"
+                                  ? "#8B0000"
+                                  : v.mode === "bus"
+                                    ? "#1E3A8A"
+                                    : "#D9A400",
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name={v.mode === "bus" ? "bus" : v.mode === "tram" ? "train" : "car"}
+                            size={15}
+                            color="#fff"
+                          />
+                        </View>
+
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.activeUnitTitle} numberOfLines={1}>
+                            {v.mode !== "taxi"
+                              ? `${v.route_number || v.fleet_number || "—"} → ${v.route_direction || "—"}`
+                              : physical?.name || v.name || physical?.fleet_number || v.vehicle_id}
+                          </Text>
+
+                          <Text style={styles.activeUnitSub} numberOfLines={2}>
+                            {physical
+                              ? `${t("mobility.linkedVehicle", "Vehicle")} ${physical.fleet_number || physical.name || physical.vehicle_id}${physical.registration ? ` · ${physical.registration}` : ""}`
+                              : `${tripLabel} · ${t("mobility.noPerixVehicleLink", "no Perix vehicle record linked")}`}
+                          </Text>
+
+                          {v.quality === "LIVE" && (
+                            <Text style={styles.activeUnitAge}>
+                              {t("mobility.positionAge", "Position age")}:{" "}
+                              {Math.max(0, Math.round(v.position_age_seconds || 0))}s
+                            </Text>
+                          )}
+                        </View>
+
+                        <View
+                          style={[
+                            styles.activeQualityBadge,
+                            { borderColor: qualityColor },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.activeQualityDot,
+                              { backgroundColor: qualityColor },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              styles.activeQualityText,
+                              { color: qualityColor },
+                            ]}
+                          >
+                            {qualityLabel}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              )}
+            </>
           )}
         </View>
 
@@ -868,19 +1106,131 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
-  liveRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  liveChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  activePanel: {
+    marginTop: 16,
     backgroundColor: "#fff",
-    borderRadius: 20,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#E7EAF0",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    overflow: "hidden",
   },
-  liveChipText: { fontSize: 13, color: "#264348", fontWeight: "600" },
+  activePanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  activePanelTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#264348",
+  },
+  activePanelMeta: {
+    marginTop: 3,
+    fontSize: 12,
+    color: "#4B5563",
+    fontWeight: "600",
+  },
+  activePanelModes: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#6B7280",
+  },
+  activeExplain: {
+    marginHorizontal: 14,
+    marginBottom: 10,
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#6B7280",
+  },
+  activeFilters: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+  },
+  activeFilterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#F9FAFB",
+  },
+  activeFilterChipActive: {
+    backgroundColor: "#264348",
+    borderColor: "#264348",
+  },
+  activeFilterText: {
+    fontSize: 11,
+    color: "#264348",
+    fontWeight: "700",
+  },
+  activeFilterTextActive: {
+    color: "#fff",
+  },
+  activeList: {
+    maxHeight: 360,
+    borderTopWidth: 1,
+    borderTopColor: "#EEF0F3",
+  },
+  activeListContent: {
+    padding: 10,
+    gap: 8,
+  },
+  activeUnitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#EEF0F3",
+  },
+  activeUnitIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeUnitTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#264348",
+  },
+  activeUnitSub: {
+    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 15,
+    color: "#6B7280",
+  },
+  activeUnitAge: {
+    marginTop: 2,
+    fontSize: 10,
+    color: "#6B7280",
+  },
+  activeQualityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  activeQualityDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  activeQualityText: {
+    fontSize: 10,
+    fontWeight: "800",
+  },
   emptyText: { fontSize: 14, color: "#6B7280" },
   card: {
     backgroundColor: "#fff",

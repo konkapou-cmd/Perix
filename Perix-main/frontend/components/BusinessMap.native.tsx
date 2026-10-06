@@ -82,6 +82,7 @@ type Props = {
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
+  onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;
@@ -114,6 +115,7 @@ export default function BusinessMap({
   showUserLocation = false,
   onRegionChange,
   onRegionChangeComplete,
+  onZoomChange,
   onMarkerPress,
   onMapPress,
   height,
@@ -300,7 +302,9 @@ export default function BusinessMap({
   }, [focusToken]);
 
   const handleRegionChangeComplete = (region: Region) => {
-    setZoomLevel(Math.max(2, Math.log2(360 / region.longitudeDelta)));
+    const z = Math.max(2, Math.log2(360 / region.longitudeDelta));
+    setZoomLevel(z);
+    onZoomChange?.(z);
     if (disabled || !readyRef.current) return;
     const bounds: MapBounds = {
       minLat: region.latitude - region.latitudeDelta / 2,

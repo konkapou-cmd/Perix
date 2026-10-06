@@ -21,6 +21,7 @@ OVERPASS_URLS = [
 HIGHWAY_FILTER = (
     "^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street)$"
 )
+RAILWAY_FILTER = "^(tram|light_rail)$"
 
 
 def _haversine_m(lat1, lng1, lat2, lng2) -> float:
@@ -35,11 +36,16 @@ def _key(lat: float, lng: float) -> str:
     return f"{round(lat, 5)}:{round(lng, 5)}"
 
 
-async def _fetch_ways(bbox: Tuple[float, float, float, float]) -> List[list]:
+async def _fetch_ways(bbox: Tuple[float, float, float, float], mode: str) -> List[list]:
     s, w, n, e = bbox
-    query = (
-        f'[out:json][timeout:90];way["highway"~"{HIGHWAY_FILTER}"]({s},{w},{n},{e});out geom;'
-    )
+    if mode == "tram":
+        query = (
+            f'[out:json][timeout:90];way["railway"~"{RAILWAY_FILTER}"]({s},{w},{n},{e});out geom;'
+        )
+    else:
+        query = (
+            f'[out:json][timeout:90];way["highway"~"{HIGHWAY_FILTER}"]({s},{w},{n},{e});out geom;'
+        )
     last_err: Optional[Exception] = None
     for url in OVERPASS_URLS:
         for attempt in range(3):
@@ -137,8 +143,9 @@ def _route_stops_sync(stops: List[Tuple[float, float]], ways: List[list]) -> Lis
         b = _nearest_node(nodes, stops[i + 1][0], stops[i + 1][1])
         seg = _astar(adj, nodes, a, b)
         if not seg:
-            # Street not connected in this tile - keep going with the next pair
-            continue
+            # Discontinuity: NEVER join unconnected segments with a
+            # straight line (it would cross buildings). Reject everything.
+            return []
         coords = [[nodes[nid][0], nodes[nid][1]] for nid in seg]
         if path and coords:
             path.extend(coords[1:])
@@ -147,8 +154,9 @@ def _route_stops_sync(stops: List[Tuple[float, float]], ways: List[list]) -> Lis
     return path
 
 
-async def compute_pattern_geometry(stops: List[dict]) -> List[list]:
-    """Route the pattern over real OSM roads. `stops` = [{lat, lng}, ...]."""
+async def compute_pattern_geometry(stops: List[dict], mode: str = "bus") -> List[list]:
+    """Route the pattern over real OSM roads (bus/taxi) or rails (tram).
+    `stops` = [{lat, lng}, ...]."""
     pts = [
         (float(s.get("latitude") or s.get("lat")), float(s.get("longitude") or s.get("lng")))
         for s in stops
@@ -160,7 +168,7 @@ async def compute_pattern_geometry(stops: List[dict]) -> List[list]:
     lngs = [p[1] for p in pts]
     margin = 0.004
     bbox = (min(lats) - margin, min(lngs) - margin, max(lats) + margin, max(lngs) + margin)
-    ways = await _fetch_ways(bbox)
+    ways = await _fetch_ways(bbox, mode)
     if not ways:
         return []
     loop = asyncio.get_event_loop()

@@ -19,6 +19,11 @@ export type LiveVehicle = {
   updated_at: string;
   estimated?: boolean;
   position_source?: string;
+  position_quality?: "LIVE" | "REALTIME" | "SCHEDULE" | string;
+  position_age_seconds?: number;
+  accuracy_m?: number | null;
+  trip_id?: string | null;
+  trip_instance_id?: string | null;
   delay_minutes?: number;
 };
 
@@ -37,23 +42,31 @@ export type DriverSession = {
 export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicle[]> => {
   // Stable V2 API: the Locator no longer knows GTFS/GPS internals.
   const raw = await apiRequest<V2Vehicle[]>("/mobility/v2/vehicles", "GET", token || undefined);
-  return (raw || []).map((v) => ({
-    vehicle_id: v.vehicle_id,
-    business_id: "",
-    mode: v.mode as MobilityMode,
-    fleet_number: String(v.route?.number ?? ""),
-    name: String(v.route?.number ?? v.vehicle_id),
-    route_number: v.route?.number ?? null,
-    route_direction: v.route?.direction ?? null,
-    latitude: v.position?.latitude ?? null,
-    longitude: v.position?.longitude ?? null,
-    heading: v.position?.heading ?? null,
-    status: v.position?.source ?? "active",
-    updated_at: new Date().toISOString(),
-    estimated: v.estimated ?? false,
-    position_source: v.position?.source,
-    delay_minutes: v.delay_minutes ?? 0,
-  }));
+  return (raw || []).map((v) => {
+    const ageSeconds = Math.max(0, Number(v.position?.age_seconds ?? 0));
+    return {
+      vehicle_id: v.vehicle_id,
+      business_id: "",
+      mode: v.mode as MobilityMode,
+      fleet_number: String(v.route?.number ?? ""),
+      name: String(v.route?.number ?? v.vehicle_id),
+      route_number: v.route?.number ?? null,
+      route_direction: v.route?.direction ?? null,
+      latitude: v.position?.latitude ?? null,
+      longitude: v.position?.longitude ?? null,
+      heading: v.position?.heading ?? null,
+      status: v.position?.source ?? "active",
+      updated_at: new Date(Date.now() - ageSeconds * 1000).toISOString(),
+      estimated: v.estimated ?? false,
+      position_source: v.position?.source,
+      position_quality: v.position?.quality,
+      position_age_seconds: ageSeconds,
+      accuracy_m: v.position?.accuracy_m ?? null,
+      trip_id: v.trip_id ?? null,
+      trip_instance_id: v.trip_instance_id ?? null,
+      delay_minutes: v.delay_minutes ?? 0,
+    };
+  });
 };
 
 export type V2Vehicle = {

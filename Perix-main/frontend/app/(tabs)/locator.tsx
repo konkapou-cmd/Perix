@@ -109,6 +109,7 @@ export default function LocatorScreen() {
   const [taxiRequesting, setTaxiRequesting] = useState(false);
   const [transitMapLines, setTransitMapLines] = useState<V2MapLine[]>([]);
   const [physicalStops, setPhysicalStops] = useState<TransitStopMarker[]>([]);
+  const [mapZoom, setMapZoom] = useState<number | null>(null);
   const [selectedPattern, setSelectedPattern] = useState<string | null>(null);
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
@@ -576,19 +577,32 @@ export default function LocatorScreen() {
     };
   }, [transitMapLines, selectedLine, selectedPattern]);
 
-  // Physical stops drawn on the map (from /mobility/stops). The All/Bus/
-  // Tram toggle filters them together with lines and vehicles; when a
-  // line is selected, only the stops that line serves are shown.
+  // Zoom-aware stop visibility (vehicles and lines always visible):
+  //  < 13.2: no stops (except selected pattern/stop)
+  //  13.2-15.3: major stops only (interchanges: 2+ routes or 2+ modes)
+  //  >= 15.3: all stops
+  // A selected line always shows ITS stops; a selected stop is forced.
   const transitStops = useMemo(() => {
     let list = physicalStops;
     if (mobilityMode !== "all") {
       list = list.filter((s) => s.modes.includes(mobilityMode as "bus" | "tram"));
     }
+    const z = mapZoom ?? 14;
     if (selectedLine) {
-      list = list.filter((s) => s.routes.some((r) => r.route_number === selectedLine));
+      const line = transitMapLines.find((l) => l.route_number === selectedLine);
+      const ids = new Set((line?.stops || []).map((s) => s.stop_id));
+      list = list.filter((s) => ids.has(s.stop_id) || s.routes.some((r) => r.route_number === selectedLine));
+    } else if (selectedStop) {
+      list = list.filter((s) => s.stop_id === selectedStop.stop_id);
+    } else if (z >= 15.3) {
+      // all stops
+    } else if (z >= 13.2) {
+      list = list.filter((s) => s.routes.length >= 2 || s.modes.length >= 2);
+    } else {
+      list = [];
     }
     return list;
-  }, [physicalStops, selectedLine, mobilityMode]);
+  }, [physicalStops, selectedLine, selectedStop, mobilityMode, mapZoom, transitMapLines]);
 
   // Journey-plan route on the map: walking light blue, tram green, bus blue.
   const planLines = useMemo(() => {
@@ -1341,6 +1355,7 @@ export default function LocatorScreen() {
               return patternId || null;
             });
           }}
+          onZoomChange={setMapZoom}
           onMapPress={(lat, lng) => {
             if (activeTab === "mobility" && (mobilityMode !== "taxi") && planPicking) {
               setPlanPicking(false);

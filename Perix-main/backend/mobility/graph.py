@@ -42,9 +42,19 @@ def _point_to_polyline_m(lat: float, lng: float, points: List[list]) -> float:
 
 
 def validate_geometry(points: List[list], platforms: List[dict]) -> dict:
-    """Check that every platform (in trip order) sits near the geometry."""
+    """Check that every platform (in trip order) sits near the geometry AND
+    that their projections advance monotonically along it - a wrong loop or
+    opposite-direction geometry is rejected."""
     if not points or len(points) < 2 or not platforms:
+        return {"valid": False, "max_platform_distance_m": None, "missing_platforms": len(platforms) or None}
+    # cumulative lengths
+    cum = [0.0]
+    for i in range(len(points) - 1):
+        cum.append(cum[-1] + _haversine_m(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]))
+    total = cum[-1]
+    if total <= 0:
         return {"valid": False, "max_platform_distance_m": None, "missing_platforms": len(platforms)}
+    positions = []
     max_d = 0.0
     missing = 0
     for p in platforms:
@@ -53,11 +63,25 @@ def validate_geometry(points: List[list], platforms: List[dict]) -> dict:
         if lat is None or lng is None:
             missing += 1
             continue
-        d = _point_to_polyline_m(lat, lng, points)
-        if d > MAX_PLATFORM_DISTANCE_M:
+        best_d = float("inf")
+        best_pos = 0.0
+        for i in range(len(points) - 1):
+            x0, y0 = points[i]
+            x1, y1 = points[i + 1]
+            dx, dy = x1 - x0, y1 - y0
+            denom = dx * dx + dy * dy
+            t = 0.0 if denom == 0 else max(0.0, min(1.0, ((lat - x0) * dx + (lng - y0) * dy) / denom))
+            d = _haversine_m(lat, lng, x0 + t * dx, y0 + t * dy)
+            if d < best_d:
+                best_d = d
+                best_pos = cum[i] + t * (cum[i + 1] - cum[i])
+        if best_d > MAX_PLATFORM_DISTANCE_M:
             missing += 1
-        max_d = max(max_d, d)
-    return {"valid": missing == 0, "max_platform_distance_m": round(max_d, 1), "missing_platforms": missing}
+        max_d = max(max_d, best_d)
+        positions.append(best_pos)
+    # Monotonic (small backward tolerance for slight stop offsets)
+    mono = all(positions[i + 1] >= positions[i] - 60.0 for i in range(len(positions) - 1))
+    return {"valid": missing == 0 and mono, "max_platform_distance_m": round(max_d, 1), "missing_platforms": missing}
 
 
 def resolve_pattern_geometry(
@@ -65,37 +89,31 @@ def resolve_pattern_geometry(
     platforms_by_id: dict,
     overlays: List[dict],
     road_geometries: Optional[dict] = None,
+    rail_geometries: Optional[dict] = None,
 ) -> dict:
-    """Geometry Resolver: first candidate source that validates wins.
+    """Geometry Resolver - mode-aware and honest.
 
-    Priority: GTFS shape > OSM route geometry > verified manual overlay >
-    OSM road-graph reconstruction (real street centerlines) >
-    ordered-stop polyline (diagnostic fallback).
+    BUS/TAXI: GTFS shape > verified manual overlay > OSM road-graph
+    reconstruction > HIDE (no fake line through buildings).
+    TRAM:     GTFS shape > verified manual overlay > OSM rail-graph
+    reconstruction > HIDE.
     """
+    mode = str(pat.get("mode") or "bus")
+    pid = str(pat.get("pattern_id"))
     stop_platforms = [
         platforms_by_id.get(str(sid))
         for sid in (pat.get("stop_ids") or [])
         if platforms_by_id.get(str(sid))
     ]
-    fallback_points = [
+    diagnostic_points = [
         [float(p.get("latitude")), float(p.get("longitude"))]
         for p in stop_platforms
         if p.get("latitude") is not None and p.get("longitude") is not None
     ]
-    if len(fallback_points) < 2:
-        return {
-            "points": [],
-            "source": "STOP_FALLBACK",
-            "valid": False,
-            "max_platform_distance_m": None,
-        }
 
     candidates: List[tuple] = []
-    if pat.get("shape_id"):
-        # Geometry came from the feed's own shapes.txt for THIS trip
-        candidates.append(("GTFS_SHAPE", pat.get("points") or []))
-    elif (pat.get("points") or []) and len(pat.get("points") or []) > 2:
-        candidates.append(("OSM_ROUTE", pat["points"]))
+    if pat.get("shape_id") and (pat.get("points") or []):
+        candidates.append(("GTFS_SHAPE", pat["points"]))
     for ov in overlays or []:
         if not ov.get("verified"):
             continue
@@ -103,16 +121,19 @@ def resolve_pattern_geometry(
             continue
         if ov.get("direction") and str(ov.get("direction")) != str(pat.get("direction")):
             continue
-        mode = pat.get("mode")
-        if mode and ov.get("allowed_modes") and mode not in ov.get("allowed_modes"):
+        if ov.get("allowed_modes") and mode not in ov.get("allowed_modes"):
             continue
         geom = ov.get("geometry") or []
         if len(geom) >= 2:
             candidates.append(("PERIX_MANUAL", [[float(p[0]), float(p[1])] for p in geom]))
-    roads = (road_geometries or {}).get(str(pat.get("pattern_id")))
-    if roads and len(roads) >= 2:
-        candidates.append(("OSM_ROADS", [[float(p[0]), float(p[1])] for p in roads]))
-    candidates.append(("STOP_FALLBACK", fallback_points))
+    if mode == "tram":
+        rail = (rail_geometries or {}).get(pid)
+        if rail and len(rail) >= 2:
+            candidates.append(("OSM_RAIL", [[float(p[0]), float(p[1])] for p in rail]))
+    else:
+        road = (road_geometries or {}).get(pid)
+        if road and len(road) >= 2:
+            candidates.append(("OSM_ROADS", [[float(p[0]), float(p[1])] for p in road]))
 
     for source, pts in candidates:
         check = validate_geometry(pts, stop_platforms)
@@ -121,15 +142,18 @@ def resolve_pattern_geometry(
                 "points": pts,
                 "source": source,
                 "valid": True,
+                "render": True,
                 "max_platform_distance_m": check["max_platform_distance_m"],
             }
 
-    # Nothing validated: the stop polyline is always correct-by-construction
+    # No verified real geometry: HIDE instead of drawing a fake line.
     return {
-        "points": fallback_points,
+        "points": [],
+        "diagnostic_points": diagnostic_points,
         "source": "STOP_FALLBACK",
-        "valid": True,
-        "max_platform_distance_m": 0.0,
+        "valid": False,
+        "render": False,
+        "max_platform_distance_m": None,
     }
 
 

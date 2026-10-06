@@ -368,12 +368,16 @@ async def _static_worker():
 def start_mobility_workers():
     asyncio.create_task(_realtime_worker())
     asyncio.create_task(_static_worker())
+    # Startup repair: rebuild road/rail geometry for any pattern missing it
+    # (also covers networks that were already active before this deploy).
+    asyncio.create_task(_precompute_road_geometries())
 
 
 async def _precompute_road_geometries():
-    """Rebuild every pattern's geometry over real OSM roads (road-center
-    routing between consecutive stops). Stored per version so the resolver
-    can prefer real streets over stop-lines - lines never cross buildings."""
+    """Rebuild every pattern's geometry over real OSM roads (bus) or rails
+    (tram) - road-center routing between consecutive stops. Stored per
+    version so the resolver can prefer real streets over nothing; lines
+    never cross buildings."""
     from mobility.domain import NETWORK_ID, build_domain
     from mobility.roads import compute_pattern_geometry
     from routes.mobility import _berlin_now
@@ -390,12 +394,14 @@ async def _precompute_road_geometries():
     done = 0
     for pat in domain.get("patterns", []):
         pid = str(pat.get("pattern_id") or "")
+        mode = str(pat.get("mode") or "bus")
         if not pid:
             continue
         existing = await db.mobility_road_geometries.find_one(
             {"pattern_id": pid, "version_id": version}, {"_id": 0}
         )
-        if existing:
+        # Rebuild old docs that predate the road/rail mode split
+        if existing and existing.get("mode"):
             continue
         coords = []
         for sid in pat.get("stop_ids") or []:
@@ -405,21 +411,22 @@ async def _precompute_road_geometries():
         if len(coords) < 2:
             continue
         try:
-            pts = await compute_pattern_geometry(coords)
+            pts = await compute_pattern_geometry(coords, mode)
             if pts and len(pts) >= 2:
                 await db.mobility_road_geometries.replace_one(
                     {"pattern_id": pid},
                     {
                         "pattern_id": pid,
                         "version_id": version,
+                        "mode": mode,
                         "points": pts,
-                        "source": "OSM_ROADS",
+                        "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
                         "created_at": _berlin_now().isoformat(),
                     },
                     upsert=True,
                 )
                 done += 1
-                _log(f"roads: {pid} -> {len(pts)} points")
+                _log(f"roads: {pid} ({mode}) -> {len(pts)} points")
         except Exception as e:
             _log(f"roads: {pid} failed: {type(e).__name__}: {e}")
         await asyncio.sleep(1)

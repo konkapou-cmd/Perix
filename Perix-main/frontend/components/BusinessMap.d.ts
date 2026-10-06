@@ -90,6 +90,7 @@ type Props = {
   pinLocation?: { latitude: number; longitude: number } | null;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
+  onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;

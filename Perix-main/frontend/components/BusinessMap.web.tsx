@@ -101,6 +101,7 @@ type Props = {
   pinLocation?: { latitude: number; longitude: number } | null;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
+  onZoomChange?: (zoom: number) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;
@@ -270,6 +271,7 @@ export default function BusinessMap({
   pinLocation,
   onRegionChange,
   onRegionChangeComplete,
+  onZoomChange,
   onMarkerPress,
   onMapPress,
   height = 300,
@@ -306,6 +308,8 @@ export default function BusinessMap({
   onRegionChangeRef.current = onRegionChange;
   const onRegionChangeCompleteRef = useRef(onRegionChangeComplete);
   onRegionChangeCompleteRef.current = onRegionChangeComplete;
+  const onZoomChangeRef = useRef(onZoomChange);
+  onZoomChangeRef.current = onZoomChange;
 
   // Continuous vehicle motion: positions are interpolated in GEOGRAPHIC
   // space between polls (requestAnimationFrame), so vehicles glide along
@@ -564,6 +568,7 @@ export default function BusinessMap({
           markersRef.current.forEach((rec: any) => {
             try { rec?.resize?.(scale, vscale); } catch (e) {}
           });
+          onZoomChangeRef.current?.(zoom);
           // Collision resolution depends on screen distances - re-layout
           // after the zoom gesture settles.
           if (zoomLayoutDebounceRef.current) clearTimeout(zoomLayoutDebounceRef.current);
@@ -575,6 +580,7 @@ export default function BusinessMap({
         mapReadyRef.current = true;
         setMapReady(true);
         console.log("[WebMap] initialized zoom=" + map.getZoom());
+        onZoomChangeRef.current?.(map.getZoom() || 14);
       })
       .catch((e) => { console.error("[WebMap] init failed", e); setMapError(true); });
     return () => {
@@ -1120,7 +1126,9 @@ export default function BusinessMap({
         this.pos = pos;
       }
       onAdd(this: any) {
-        this.getPanes().overlayMouseTarget.appendChild(this.div);
+        // overlayLayer sits BELOW the vehicle markers (overlayMouseTarget):
+        // vehicles always stay on top of stop pins.
+        this.getPanes().overlayLayer.appendChild(this.div);
       }
       draw(this: any) {
         const overlayProjection = this.getProjection();
