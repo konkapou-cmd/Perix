@@ -60,11 +60,17 @@ def validate_geometry(points: List[list], platforms: List[dict]) -> dict:
     return {"valid": missing == 0, "max_platform_distance_m": round(max_d, 1), "missing_platforms": missing}
 
 
-def resolve_pattern_geometry(pat: dict, platforms_by_id: dict, overlays: List[dict]) -> dict:
+def resolve_pattern_geometry(
+    pat: dict,
+    platforms_by_id: dict,
+    overlays: List[dict],
+    road_geometries: Optional[dict] = None,
+) -> dict:
     """Geometry Resolver: first candidate source that validates wins.
 
-    Priority: GTFS shape > OSM route geometry > verified manual overlay
-    > ordered-stop polyline (diagnostic fallback).
+    Priority: GTFS shape > OSM route geometry > verified manual overlay >
+    OSM road-graph reconstruction (real street centerlines) >
+    ordered-stop polyline (diagnostic fallback).
     """
     stop_platforms = [
         platforms_by_id.get(str(sid))
@@ -103,6 +109,9 @@ def resolve_pattern_geometry(pat: dict, platforms_by_id: dict, overlays: List[di
         geom = ov.get("geometry") or []
         if len(geom) >= 2:
             candidates.append(("PERIX_MANUAL", [[float(p[0]), float(p[1])] for p in geom]))
+    roads = (road_geometries or {}).get(str(pat.get("pattern_id")))
+    if roads and len(roads) >= 2:
+        candidates.append(("OSM_ROADS", [[float(p[0]), float(p[1])] for p in roads]))
     candidates.append(("STOP_FALLBACK", fallback_points))
 
     for source, pts in candidates:

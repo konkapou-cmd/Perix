@@ -78,6 +78,7 @@ type Props = {
       longitude?: number | null;
       name?: string;
       directions?: string[];
+      side?: string | null;
     }[];
   }[];
   onTransitStopPress?: (stop: {
@@ -1139,7 +1140,7 @@ export default function BusinessMap({
       const hasTram = s.modes.includes("tram");
       const pinColor = hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A";
       const platforms = (s as any).platforms || [];
-      const renderPin = (lat: number, lng: number, withBadges: boolean, platformDirections?: string[]) => {
+      const renderPin = (lat: number, lng: number, withBadges: boolean, platformDirections?: string[], platformSide?: string | null) => {
         const container = document.createElement("div");
         container.style.position = "absolute";
         container.style.transform = "translate(-50%, -50%)";
@@ -1206,7 +1207,8 @@ export default function BusinessMap({
           }
           if (platformDirections && platformDirections.length > 0) {
             const dirEl = document.createElement("div");
-            dirEl.textContent = platformDirections.slice(0, 2).join(" · ");
+            const sideLabel = (platformSide ?? "") ? `${platformSide === "left" ? "L" : "R"} · ` : "";
+            dirEl.textContent = sideLabel + platformDirections.slice(0, 2).join(" · ");
             dirEl.style.fontSize = "9px";
             dirEl.style.fontWeight = "700";
             dirEl.style.fontFamily = "Arial, sans-serif";
@@ -1252,7 +1254,7 @@ export default function BusinessMap({
       if (zoom >= 16 && platforms.length >= 2) {
         platforms.forEach((p: any) => {
           if (p.latitude == null || p.longitude == null) return;
-          renderPin(p.latitude, p.longitude, true, p.directions || []);
+          renderPin(p.latitude, p.longitude, true, p.directions || [], p.side || null);
         });
       } else {
         renderPin(s.latitude, s.longitude, showBadges);

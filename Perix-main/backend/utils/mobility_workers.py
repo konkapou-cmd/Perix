@@ -31,7 +31,7 @@ STATIC_INTERVAL_HOURS = float(os.getenv("MOBILITY_STATIC_INTERVAL_HOURS", "6"))
 REALTIME_INTERVAL_SECONDS = float(os.getenv("MOBILITY_REALTIME_INTERVAL_SECONDS", "15"))
 # Bump to force a one-time re-import when the network schema/derivation
 # logic changes (the feed hash alone is not enough).
-STATIC_SCHEMA_V = "6"
+STATIC_SCHEMA_V = "7"
 
 
 def _log(msg: str) -> None:
@@ -352,6 +352,9 @@ async def _static_worker():
                         {"version_id": result["version_id"]}, {"$set": {"active": True}}
                     )
                     _log(f"static: activated {result['version_id']}")
+                    # Rebuild real-road geometries for the new timetable in
+                    # the background (lines must never cross buildings).
+                    asyncio.create_task(_precompute_road_geometries())
                 await db.mobility_sync_state.replace_one(
                     {"key": "static_sha256"},
                     {"key": "static_sha256", "value": sha, "schema_v": STATIC_SCHEMA_V},
@@ -365,3 +368,59 @@ async def _static_worker():
 def start_mobility_workers():
     asyncio.create_task(_realtime_worker())
     asyncio.create_task(_static_worker())
+
+
+async def _precompute_road_geometries():
+    """Rebuild every pattern's geometry over real OSM roads (road-center
+    routing between consecutive stops). Stored per version so the resolver
+    can prefer real streets over stop-lines - lines never cross buildings."""
+    from mobility.domain import NETWORK_ID, build_domain
+    from mobility.roads import compute_pattern_geometry
+    from routes.mobility import _berlin_now
+
+    network = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+    if not network:
+        return
+    domain = build_domain(network, NETWORK_ID)
+    version = str(network.get("version_id"))
+    platforms_by_id = {}
+    for stop in domain.get("stops", []):
+        for p in stop.get("platforms", []):
+            platforms_by_id[str(p.get("platform_id"))] = p
+    done = 0
+    for pat in domain.get("patterns", []):
+        pid = str(pat.get("pattern_id") or "")
+        if not pid:
+            continue
+        existing = await db.mobility_road_geometries.find_one(
+            {"pattern_id": pid, "version_id": version}, {"_id": 0}
+        )
+        if existing:
+            continue
+        coords = []
+        for sid in pat.get("stop_ids") or []:
+            p = platforms_by_id.get(str(sid))
+            if p and p.get("latitude") is not None and p.get("longitude") is not None:
+                coords.append({"latitude": p["latitude"], "longitude": p["longitude"]})
+        if len(coords) < 2:
+            continue
+        try:
+            pts = await compute_pattern_geometry(coords)
+            if pts and len(pts) >= 2:
+                await db.mobility_road_geometries.replace_one(
+                    {"pattern_id": pid},
+                    {
+                        "pattern_id": pid,
+                        "version_id": version,
+                        "points": pts,
+                        "source": "OSM_ROADS",
+                        "created_at": _berlin_now().isoformat(),
+                    },
+                    upsert=True,
+                )
+                done += 1
+                _log(f"roads: {pid} -> {len(pts)} points")
+        except Exception as e:
+            _log(f"roads: {pid} failed: {type(e).__name__}: {e}")
+        await asyncio.sleep(1)
+    _log(f"roads: precomputed {done} pattern geometries")

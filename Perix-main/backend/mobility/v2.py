@@ -62,9 +62,12 @@ async def _patterns_resolved(domain: dict) -> list:
         for p in stop.get("platforms", []):
             platforms_by_id[str(p.get("platform_id"))] = p
     overlays = await get_overlays()
+    # Precomputed real-road geometries (OSM road-graph reconstruction)
+    road_docs = await db.mobility_road_geometries.find({}, {"_id": 0}).to_list(1000)
+    roads_by_pattern = {str(d.get("pattern_id")): d.get("points") or [] for d in road_docs}
     out = []
     for pat in domain.get("patterns", []):
-        resolved = resolve_pattern_geometry(pat, platforms_by_id, overlays)
+        resolved = resolve_pattern_geometry(pat, platforms_by_id, overlays, roads_by_pattern)
         out.append(
             {
                 **{k: v for k, v in pat.items() if k != "points"},
@@ -118,7 +121,67 @@ async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_o
                 "stops": line_stops,
             }
         )
-    return {"lines": lines, "stops": domain.get("stops", [])}
+    stops = _stops_with_sides(domain.get("stops", []), lines)
+    return {"lines": lines, "stops": stops}
+
+
+def _side_of_road(points: list, lat: float, lng: float) -> Optional[str]:
+    """'left'/'right' of the road centerline (relative to its direction),
+    None when the platform is not near the geometry."""
+    import math as _math
+
+    best = None
+    for i in range(len(points) - 1):
+        x0, y0 = points[i]
+        x1, y1 = points[i + 1]
+        dx, dy = x1 - x0, y1 - y0
+        denom = dx * dx + dy * dy
+        t = 0.0 if denom == 0 else max(0.0, min(1.0, ((lat - x0) * dx + (lng - y0) * dy) / denom))
+        px, py = x0 + t * dx, y0 + t * dy
+        d = _haversine_km(lat, lng, px, py)
+        if best is None or d < best[0]:
+            best = (d, dx, dy, x0, y0)
+    if not best:
+        return None
+    d, dx, dy, x0, y0 = best
+    if d > 0.2:
+        return None
+    kl = _math.cos(_math.radians((lat + y0) / 2.0))
+    cross = dx * (lat - y0) - (dy * kl) * ((lng - x0) * kl)
+    return "left" if cross > 0 else "right"
+
+
+def _haversine_km(lat1, lng1, lat2, lng2) -> float:
+    import math as _math
+
+    r = 6371.0
+    p1, p2 = _math.radians(lat1), _math.radians(lat2)
+    dp, dl = _math.radians(lat2 - lat1), _math.radians(lng2 - lng1)
+    a = _math.sin(dp / 2) ** 2 + _math.cos(p1) * _math.cos(p2) * _math.sin(dl / 2) ** 2
+    return r * 2 * _math.atan2(_math.sqrt(a), _math.sqrt(1 - a))
+
+
+def _stops_with_sides(stops: list, lines: list) -> list:
+    """Attach left/right side to each stop/platform using the geometry of
+    a line that serves it."""
+    for stop in stops:
+        stop_side = None
+        plat_sides = {}
+        for platform in stop.get("platforms", []):
+            side = None
+            for line in lines:
+                if str(platform.get("platform_id")) in {str(s.get("stop_id")) for s in line.get("stops", [])}:
+                    pts = [[p["latitude"], p["longitude"]] for p in line.get("points", [])]
+                    if len(pts) >= 2:
+                        side = _side_of_road(pts, platform.get("latitude"), platform.get("longitude"))
+                        if side:
+                            break
+            platform["side"] = side
+            plat_sides[str(platform.get("platform_id"))] = side
+            if stop_side is None and side:
+                stop_side = side
+        stop["side"] = stop_side
+    return stops
 
 
 @router.get("/graph/overlays")
