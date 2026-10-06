@@ -132,3 +132,67 @@ async def v2_delete_trip_override(override_id: str, current_user: Optional[UserP
     await _require_operator_user(current_user)
     await db.mobility_trip_overrides.delete_one({"override_id": override_id})
     return {"ok": True}
+
+
+@router.get("/editor/restrictions")
+async def v2_list_restrictions(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    await _require_operator_user(current_user)
+    docs = await db.mobility_restrictions.find({}, {"_id": 0}).to_list(500)
+    return docs
+
+
+@router.post("/editor/restrictions")
+async def v2_create_restriction(payload: dict, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Mode-aware closure: e.g. {kind: segment_closed, geometry: [[lat,lng],...],
+    blocked_modes: [bus, taxi], allowed_modes: [tram], route_numbers: [], valid window}.
+    Closed edges for the blocked modes are excluded from road/rail routing."""
+    operator = await _require_operator_user(current_user)
+    kind = str(payload.get("kind") or "segment_closed")
+    if kind not in ("segment_closed", "rail_closed", "road_closed", "detour", "stop_closed"):
+        raise HTTPException(status_code=400, detail="Unknown restriction kind")
+    geometry = [[float(p[0]), float(p[1])] for p in (payload.get("geometry") or []) if len(p) >= 2]
+    if len(geometry) < 2:
+        raise HTTPException(status_code=400, detail="geometry needs at least 2 points")
+    import uuid
+
+    from routes.mobility import now_utc
+
+    doc = {
+        "restriction_id": f"res_{uuid.uuid4().hex[:12]}",
+        "kind": kind,
+        "geometry": geometry,
+        "blocked_modes": [m for m in (payload.get("blocked_modes") or []) if m in ("bus", "tram", "taxi", "car")],
+        "allowed_modes": [m for m in (payload.get("allowed_modes") or []) if m in ("bus", "tram", "taxi", "car")],
+        "route_numbers": [str(x) for x in (payload.get("route_numbers") or [])],
+        "direction": payload.get("direction") or "both",
+        "valid_from": payload.get("valid_from"),
+        "valid_until": payload.get("valid_until"),
+        "source": payload.get("source") or "PERIX_MANUAL",
+        "created_by": operator.get("business_id") or current_user.user_id,
+        "created_at": now_utc().isoformat(),
+    }
+    await db.mobility_restrictions.insert_one(doc)
+    # Rebuild affected geometries with the closed edges excluded
+    try:
+        from mobility.restrictions import invalidate_geometries
+
+        await invalidate_geometries(doc)
+    except Exception:
+        pass
+    return doc
+
+
+@router.delete("/editor/restrictions/{restriction_id}")
+async def v2_delete_restriction(restriction_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    operator = await _require_operator_user(current_user)
+    doc = await db.mobility_restrictions.find_one({"restriction_id": restriction_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Restriction not found")
+    await db.mobility_restrictions.delete_one({"restriction_id": restriction_id})
+    try:
+        from mobility.restrictions import invalidate_geometries
+
+        await invalidate_geometries(doc)
+    except Exception:
+        pass
+    return {"ok": True}

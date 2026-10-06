@@ -454,11 +454,22 @@ async def _precompute_road_geometries():
     """Rebuild every pattern's geometry over real OSM roads (bus) or rails
     (tram) - road-center routing between consecutive stops. Stored per
     version so the resolver can prefer real streets over nothing; lines
-    never cross buildings."""
+    never cross buildings. Runs continuously: after the first pass it
+    re-checks every 20 minutes for missing/invalidated patterns (e.g.
+    after an operator created a restriction)."""
     from mobility.domain import NETWORK_ID, build_domain
     from mobility.roads import compute_pattern_geometry
     from routes.mobility import _berlin_now
 
+    while True:
+        try:
+            await _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _berlin_now)
+        except Exception as e:
+            _log(f"roads: precompute pass failed: {type(e).__name__}: {e}")
+        await asyncio.sleep(1200)
+
+
+async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _berlin_now):
     network = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
     if not network:
         return

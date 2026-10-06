@@ -156,7 +156,8 @@ def _route_stops_sync(stops: List[Tuple[float, float]], ways: List[list]) -> Lis
 
 async def compute_pattern_geometry(stops: List[dict], mode: str = "bus") -> List[list]:
     """Route the pattern over real OSM roads (bus/taxi) or rails (tram).
-    `stops` = [{lat, lng}, ...]."""
+    Closed edges for this mode (operational restrictions) never
+    participate in the routing. `stops` = [{lat, lng}, ...]."""
     pts = [
         (float(s.get("latitude") or s.get("lat")), float(s.get("longitude") or s.get("lng")))
         for s in stops
@@ -169,6 +170,17 @@ async def compute_pattern_geometry(stops: List[dict], mode: str = "bus") -> List
     margin = 0.004
     bbox = (min(lats) - margin, min(lngs) - margin, max(lats) + margin, max(lngs) + margin)
     ways = await _fetch_ways(bbox, mode)
+    if not ways:
+        return []
+    # Mode-aware closures: remove blocked edges before routing
+    try:
+        from mobility.restrictions import get_active_restrictions, way_blocked
+
+        restrictions = await get_active_restrictions()
+        if restrictions:
+            ways = [w for w in ways if not way_blocked(mode, w, restrictions)]
+    except Exception:
+        pass
     if not ways:
         return []
     loop = asyncio.get_event_loop()

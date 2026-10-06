@@ -257,6 +257,14 @@ async def v2_plan(
     return await plan_journey(from_lat, from_lng, to_lat, to_lng, current_user)
 
 
+@router.get("/alerts")
+async def v2_alerts(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """GTFS-RT ServiceAlerts (Störung / Umleitung / Sperrung / Halt entfällt)
+    imported from the realtime feed."""
+    docs = await db.mobility_service_alerts.find({}, {"_id": 0}).sort("updated_at", -1).to_list(50)
+    return docs
+
+
 @router.get("/vehicles")
 async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     """Canonical vehicle state: position always carries source/quality, and
