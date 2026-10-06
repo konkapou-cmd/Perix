@@ -163,9 +163,15 @@ async def _realtime_worker():
             feed = gtfs_realtime_pb2.FeedMessage()
             feed.ParseFromString(raw)
             total_tu = sum(1 for e in feed.entity if e.HasField("trip_update"))
+            total_alerts = sum(1 for e in feed.entity if e.HasField("alert"))
             docs = []
+            from routes.mobility import _berlin_now
+
+            now_iso = _berlin_now().isoformat()
 
             for entity in feed.entity:
+                if entity.HasField("alert"):
+                    await _store_alert(entity.alert, now_iso)
                 if not entity.HasField("trip_update"):
                     continue
 
@@ -234,9 +240,6 @@ async def _realtime_worker():
                     }
                 )
 
-            from routes.mobility import _berlin_now
-
-            now_iso = _berlin_now().isoformat()
             canceled = 0
             skipped = 0
 
@@ -269,6 +272,80 @@ async def _realtime_worker():
             _log(f"realtime: cycle error: {type(e).__name__}: {e}")
 
         await asyncio.sleep(REALTIME_INTERVAL_SECONDS)
+
+async def _store_alert(alert, now_iso: str) -> None:
+    """Store a GTFS-RT ServiceAlert (Störung/Umleitung/Sperrung/Halt entfällt)
+    so the restrictions layer can derive mode-aware closures."""
+    effect_names = {
+        1: "NO_SERVICE",
+        2: "REDUCED_SERVICE",
+        3: "SIGNIFICANT_DELAYS",
+        4: "DETOUR",
+        5: "ADDITIONAL_SERVICE",
+        6: "MODIFIED_SERVICE",
+        7: "OTHER_EFFECT",
+        8: "UNKNOWN_EFFECT",
+        9: "STOP_MOVED",
+        10: "NO_EFFECT",
+        11: "ACCESSIBILITY_ISSUE",
+    }
+    cause_names = {
+        1: "UNKNOWN_CAUSE",
+        2: "OTHER_CAUSE",
+        3: "TECHNICAL_PROBLEM",
+        4: "STRIKE",
+        5: "DEMONSTRATION",
+        6: "ACCIDENT",
+        7: "HOLIDAY",
+        8: "WEATHER",
+        9: "MAINTENANCE",
+        10: "CONSTRUCTION",
+        11: "POLICE_ACTIVITY",
+        12: "MEDICAL_EMERGENCY",
+    }
+    entities = []
+    for sel in alert.informed_entity:
+        ent = {}
+        if sel.HasField("agency_id"):
+            ent["agency_id"] = sel.agency_id
+        if sel.HasField("route_id"):
+            ent["route_id"] = sel.route_id
+        if sel.HasField("route_type"):
+            ent["route_type"] = int(sel.route_type)
+        if sel.HasField("stop_id"):
+            ent["stop_id"] = sel.stop_id
+        if sel.trip and sel.trip.trip_id:
+            ent["trip_id"] = sel.trip.trip_id
+        if ent:
+            entities.append(ent)
+    periods = []
+    for ap in alert.active_period:
+        p = {}
+        if ap.HasField("start") and ap.start:
+            p["start"] = int(ap.start)
+        if ap.HasField("end") and ap.end:
+            p["end"] = int(ap.end)
+        if p:
+            periods.append(p)
+    header = alert.header_text.translation[0].text if alert.header_text.translation else ""
+    desc = alert.description_text.translation[0].text if alert.description_text.translation else ""
+    doc = {
+        "alert_hash": hashlib.sha256((header + desc).encode("utf-8")).hexdigest(),
+        "effect": effect_names.get(int(alert.effect), "UNKNOWN_EFFECT"),
+        "cause": cause_names.get(int(alert.cause), "UNKNOWN_CAUSE"),
+        "header_text": header,
+        "description_text": desc,
+        "informed_entities": entities,
+        "active_periods": periods,
+        "updated_at": now_iso,
+        "source": "GTFS_RT_ALERT",
+    }
+    existing = await db.mobility_service_alerts.find_one({"alert_hash": doc["alert_hash"]}, {"_id": 1})
+    if existing:
+        await db.mobility_service_alerts.update_one({"_id": existing["_id"]}, {"$set": doc})
+    else:
+        await db.mobility_service_alerts.insert_one(doc)
+
 
 async def _static_worker():
     if not STATIC_GTFS_URL:
@@ -387,6 +464,15 @@ async def _precompute_road_geometries():
         return
     domain = build_domain(network, NETWORK_ID)
     version = str(network.get("version_id"))
+    # Warm the in-process geometry cache with everything already computed
+    # (the sync estimator reads exactly the same resolved geometry).
+    try:
+        from mobility import geometry_cache
+
+        warmed = await geometry_cache.warm_from_db(version)
+        _log(f"roads: warmed {warmed} cached geometries for {version}")
+    except Exception as e:
+        _log(f"roads: cache warm failed: {type(e).__name__}: {e}")
     platforms_by_id = {}
     for stop in domain.get("stops", []):
         for p in stop.get("platforms", []):
@@ -425,6 +511,12 @@ async def _precompute_road_geometries():
                     },
                     upsert=True,
                 )
+                try:
+                    from mobility import geometry_cache
+
+                    geometry_cache.set_cached(pid, pts)
+                except Exception:
+                    pass
                 done += 1
                 _log(f"roads: {pid} ({mode}) -> {len(pts)} points")
         except Exception as e:

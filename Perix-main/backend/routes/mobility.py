@@ -578,48 +578,59 @@ def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) 
     return timeline
 
 
-def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> dict:
-    """Travel-ordered path, cumulative meters and stop progress."""
+def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> Optional[dict]:
+    """Travel-ordered path, cumulative meters and stop progress.
+
+    Uses ONLY verified real geometry: the trip's own GTFS shape, or the
+    RESOLVED V2 pattern geometry (OSM road/rail reconstruction). When
+    neither exists the marker is NOT drawn at all - a fake stop-to-stop
+    line must never cross buildings (the arrivals/ETA stay available)."""
     key = f"{_service_date_key()}:{trip.get('trip_id')}:{trip.get('shape_id') or 'legacy'}"
     cached = _TRIP_PATH_CACHE.get(key)
-    if cached:
+    if cached is not None:
         return cached
 
+    points: Optional[List[list]] = None
     shape = _trip_shape(route, trip)
     if isinstance(shape, list) and len(shape) > 2:
         points = [[float(p[0]), float(p[1])] for p in shape]
-        cumulative = [0.0]
-        for i in range(len(points) - 1):
-            cumulative.append(
-                cumulative[-1]
-                + _haversine_km(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]) * 1000.0
-            )
+    if points is None:
+        # Resolved V2 geometry (same pipeline as the map lines)
+        try:
+            from mobility.domain import _pattern_id as _dom_pattern_id, _pattern_key as _dom_pattern_key
+            from mobility.geometry_cache import get_cached
 
-        stop_progress = []
-        cursor = 0
-        for entry in timeline:
-            s = entry["stop"]
-            best_i = cursor
-            best_d = float("inf")
-            for i in range(cursor, len(points)):
-                d = _haversine_km(s.get("lat"), s.get("lng"), points[i][0], points[i][1])
-                if d < best_d:
-                    best_d = d
-                    best_i = i
-            cursor = best_i
-            stop_progress.append(cumulative[best_i])
-    else:
-        points = [
-            [float(entry["stop"]["lat"]), float(entry["stop"]["lng"])]
-            for entry in timeline
-        ]
-        cumulative = [0.0]
-        for i in range(len(points) - 1):
-            cumulative.append(
-                cumulative[-1]
-                + _haversine_km(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]) * 1000.0
-            )
-        stop_progress = list(cumulative)
+            pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
+            pts = get_cached(pat_id)
+            if pts and len(pts) >= 2:
+                points = [[float(p[0]), float(p[1])] for p in pts]
+        except Exception:
+            points = None
+    if not points:
+        # Don't cache the miss - the background precompute may fill the
+        # resolved geometry shortly after and the marker should appear then.
+        return None
+
+    cumulative = [0.0]
+    for i in range(len(points) - 1):
+        cumulative.append(
+            cumulative[-1]
+            + _haversine_km(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]) * 1000.0
+        )
+
+    stop_progress = []
+    cursor = 0
+    for entry in timeline:
+        s = entry["stop"]
+        best_i = cursor
+        best_d = float("inf")
+        for i in range(cursor, len(points)):
+            d = _haversine_km(s.get("lat"), s.get("lng"), points[i][0], points[i][1])
+            if d < best_d:
+                best_d = d
+                best_i = i
+        cursor = best_i
+        stop_progress.append(cumulative[best_i])
 
     result = {
         "points": points,
@@ -751,6 +762,10 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
         return None
 
     path = _trip_path_geometry(route, trip, timeline)
+    if not path:
+        # No verified real geometry: the marker is not drawn (ETA remains
+        # available via arrivals) - never a fake line through buildings.
+        return None
     stop_progress = path.get("stop_progress") or []
     if len(stop_progress) != len(timeline):
         return None
@@ -1003,6 +1018,10 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     heading = p.get("heading")
                     delay_minutes = p["delay_minutes"]
                     position_source = p["position_source"]
+                else:
+                    # Trip active but no verified geometry: skip this vehicle
+                    # entirely (the ETA stays in the arrivals list).
+                    continue
             if pos is None:
                 # Gap between trips (turnaround) or grace at the run ends:
                 # stand at the shared terminus stop, facing along the line.
