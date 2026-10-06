@@ -226,9 +226,6 @@ async def v2_create_overlay(payload: dict, current_user: UserPublic = Depends(ge
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/vehicles")
-
-
 @router.get("/stops")
 async def v2_stops(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     domain = await _domain()

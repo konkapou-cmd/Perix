@@ -1841,7 +1841,12 @@ export default function LocatorScreen() {
           {selectedStop && (mobilityMode !== "taxi") ? (
             <View>
               <Text style={styles.mobilityHeading}>
-                {t("mobility.toward", "Buses going toward")} {selectedStop.name}
+                {mobilityMode === "tram"
+                  ? t("mobility.towardTram", "Trams going toward")
+                  : mobilityMode === "bus"
+                  ? t("mobility.towardBus", "Buses going toward")
+                  : t("mobility.towardAny", "Transit going toward")}{" "}
+                {selectedStop.name}
               </Text>
               {servingBuses.length === 0 ? (
                 <Text style={styles.mobilityEmptyText}>

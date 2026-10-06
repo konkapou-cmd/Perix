@@ -72,6 +72,31 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
             continue
         gps_by_trip[str(st.get("trip_id"))] = st
 
+    # Current positions of every active vehicle (for real distances)
+    from routes.mobility import _all_active_vehicles
+
+    pos_by_id = {}
+    for v in await _all_active_vehicles():
+        if v.get("latitude") is not None and v.get("longitude") is not None:
+            pos_by_id[str(v.get("vehicle_id"))] = v
+
+    stop_lat = stop_lng = None
+    for stop in domain.get("stops", []):
+        ids = {str(x) for x in stop.get("stop_ids", [])}
+        if str(stop.get("stop_id")) == str(stop_id) or str(stop_id) in ids:
+            stop_lat = stop.get("latitude")
+            stop_lng = stop.get("longitude")
+            break
+
+    def _hav_m(a_lat, a_lng, b_lat, b_lng):
+        import math
+
+        r = 6371000.0
+        p1, p2 = math.radians(a_lat), math.radians(b_lat)
+        dp, dl = math.radians(b_lat - a_lat), math.radians(b_lng - a_lng)
+        x = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+        return r * 2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
+
     out = []
     for tt in candidates:
         tid = str(tt.get("trip_id") or "")
@@ -102,6 +127,12 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
         if not entry:
             continue
         gps = gps_by_trip.get(tid)
+        vehicle_id = (gps or {}).get("vehicle_id") if gps else f"est_{tt.get('route_number')}_{tid}"
+        distance_m = None
+        if stop_lat is not None:
+            veh = pos_by_id.get(vehicle_id)
+            if veh:
+                distance_m = round(_hav_m(veh["latitude"], veh["longitude"], stop_lat, stop_lng))
         out.append(
             {
                 "trip_instance_id": tt.get("trip_instance_id"),
@@ -113,7 +144,8 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
                 "predicted": _fmt_service_time(int(entry["predicted_arrival"])),
                 "delay_seconds": int(entry.get("delay_seconds") or 0),
                 "source": "LIVE" if gps else ("REALTIME" if rt else "SCHEDULE"),
-                "vehicle_id": (gps or {}).get("vehicle_id") if gps else f"est_{tt.get('route_number')}_{tid}",
+                "vehicle_id": vehicle_id,
+                "distance_to_stop_m": distance_m,
             }
         )
     out.sort(key=lambda x: x["eta_seconds"])

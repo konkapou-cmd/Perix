@@ -99,6 +99,7 @@ export type V2Arrival = {
   delay_seconds?: number;
   source?: string;
   vehicle_id: string;
+  distance_to_stop_m?: number | null;
 };
 
 export type V2MapLineStop = {
@@ -260,7 +261,7 @@ export type ServingBus = {
   delay_minutes: number;
   eta_minutes: number;
   distance_to_bus_m: number | null;
-  distance_to_stop_m: number;
+  distance_to_stop_m: number | null;
   mode?: string;
 };
 
@@ -360,7 +361,7 @@ export const getBusesServing = async (
     delay_minutes: Math.max(0, Math.round((a.delay_seconds ?? 0) / 60)),
     eta_minutes: Math.max(0, Math.ceil((a.eta_seconds ?? 0) / 60)),
     distance_to_bus_m: null,
-    distance_to_stop_m: 0,
+    distance_to_stop_m: a.distance_to_stop_m ?? null,
     mode: a.mode,
   }));
 };
