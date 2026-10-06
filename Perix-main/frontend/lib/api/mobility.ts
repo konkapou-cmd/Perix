@@ -410,6 +410,66 @@ export const planJourney = (
   );
 
 // ---------------------------------------------------------------------------
+// Network Editor (V2): GPS devices, graph overlays, stop/trip overrides
+// ---------------------------------------------------------------------------
+
+export type MobilityDevice = {
+  device_id: string;
+  name?: string;
+  source_type: string;
+  vehicle_id?: string | null;
+  active?: boolean;
+  created_at?: string;
+};
+
+export const registerDevice = (token: string, payload: { name?: string; source_type?: string; vehicle_id?: string }) =>
+  apiRequest<{ device_id: string; secret: string } & MobilityDevice>("/mobility/v2/devices", "POST", token, payload);
+
+export const listDevices = (token: string) =>
+  apiRequest<MobilityDevice[]>("/mobility/v2/devices", "GET", token);
+
+export const assignDevice = (token: string, deviceId: string, vehicleId: string) =>
+  apiRequest(`/mobility/v2/devices/${deviceId}/assign`, "POST", token, { vehicle_id: vehicleId });
+
+export const deleteDevice = (token: string, deviceId: string) =>
+  apiRequest(`/mobility/v2/devices/${deviceId}`, "DELETE", token);
+
+export type GraphOverlay = {
+  overlay_id: string;
+  name?: string;
+  geometry: number[][];
+  allowed_modes?: string[];
+  route_number?: string | null;
+  direction?: string | null;
+  verified?: boolean;
+  created_at?: string;
+};
+
+export const createGraphOverlay = (token: string, payload: Partial<GraphOverlay>) =>
+  apiRequest<GraphOverlay>("/mobility/v2/graph/overlays", "POST", token, payload);
+
+export const listGraphOverlays = (token: string) =>
+  apiRequest<GraphOverlay[]>("/mobility/v2/graph/overlays", "GET", token);
+
+export const createStopOverride = (token: string, payload: Record<string, any>) =>
+  apiRequest("/mobility/v2/editor/overrides", "POST", token, payload);
+
+export const listStopOverrides = (token: string) =>
+  apiRequest<any[]>("/mobility/v2/editor/overrides", "GET", token);
+
+export const deleteStopOverride = (token: string, overrideId: string) =>
+  apiRequest(`/mobility/v2/editor/overrides/${overrideId}`, "DELETE", token);
+
+export const createTripOverride = (token: string, payload: Record<string, any>) =>
+  apiRequest("/mobility/v2/editor/trip-overrides", "POST", token, payload);
+
+export const listTripOverrides = (token: string) =>
+  apiRequest<any[]>("/mobility/v2/editor/trip-overrides", "GET", token);
+
+export const deleteTripOverride = (token: string, overrideId: string) =>
+  apiRequest(`/mobility/v2/editor/trip-overrides/${overrideId}`, "DELETE", token);
+
+// ---------------------------------------------------------------------------
 // Taxi: pricing, passenger requests, company assignment
 // ---------------------------------------------------------------------------
 

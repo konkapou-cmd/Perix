@@ -34,6 +34,20 @@ import {
   TaxiRequest,
   BusNetwork,
   LiveVehicle,
+  registerDevice,
+  listDevices,
+  assignDevice,
+  deleteDevice,
+  MobilityDevice,
+  createGraphOverlay,
+  listGraphOverlays,
+  GraphOverlay,
+  createStopOverride,
+  listStopOverrides,
+  deleteStopOverride,
+  createTripOverride,
+  listTripOverrides,
+  deleteTripOverride,
 } from "../../lib/api/mobility";
 
 // Operator page: manage vehicles, generate driver codes and watch the live
@@ -67,6 +81,31 @@ export default function MobilityManageScreen() {
   const [taxiRequests, setTaxiRequests] = useState<TaxiRequest[]>([]);
   const [assignVehicleFor, setAssignVehicleFor] = useState<string | null>(null);
   const [assignVehicleId, setAssignVehicleId] = useState<string | null>(null);
+
+  // --- Network Editor (V2) state ---
+  const [devices, setDevices] = useState<MobilityDevice[]>([]);
+  const [deviceName, setDeviceName] = useState("");
+  const [deviceSource, setDeviceSource] = useState<"PERIX_GPS" | "PHONE_GPS">("PERIX_GPS");
+  const [deviceSecret, setDeviceSecret] = useState<string | null>(null);
+  const [deviceBusy, setDeviceBusy] = useState(false);
+  const [overlays, setOverlays] = useState<GraphOverlay[]>([]);
+  const [ovName, setOvName] = useState("");
+  const [ovGeometry, setOvGeometry] = useState("");
+  const [ovRoute, setOvRoute] = useState("");
+  const [ovBusy, setOvBusy] = useState(false);
+  const [stopOverrides, setStopOverrides] = useState<any[]>([]);
+  const [soKind, setSoKind] = useState<string>("rename");
+  const [soTarget, setSoTarget] = useState("");
+  const [soName, setSoName] = useState("");
+  const [soLat, setSoLat] = useState("");
+  const [soLng, setSoLng] = useState("");
+  const [soBusy, setSoBusy] = useState(false);
+  const [tripOverrides, setTripOverrides] = useState<any[]>([]);
+  const [toKind, setToKind] = useState<string>("trip_canceled");
+  const [toTripId, setToTripId] = useState("");
+  const [toStopId, setToStopId] = useState("");
+  const [toReason, setToReason] = useState("");
+  const [toBusy, setToBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!sessionToken) return;
@@ -104,6 +143,134 @@ export default function MobilityManageScreen() {
     }, 10000);
     return () => clearInterval(interval);
   }, [sessionToken, operatorRole, load]);
+
+  // Network Editor data (V2)
+  const loadEditor = useCallback(async () => {
+    if (!sessionToken) return;
+    try {
+      const [devs, ovs, sos, tos] = await Promise.all([
+        listDevices(sessionToken).catch(() => [] as MobilityDevice[]),
+        listGraphOverlays(sessionToken).catch(() => [] as GraphOverlay[]),
+        listStopOverrides(sessionToken).catch(() => []),
+        listTripOverrides(sessionToken).catch(() => []),
+      ]);
+      setDevices(devs || []);
+      setOverlays(ovs || []);
+      setStopOverrides(sos || []);
+      setTripOverrides(tos || []);
+    } catch (e) {
+      console.warn("editor load failed:", e);
+    }
+  }, [sessionToken]);
+
+  useEffect(() => {
+    if (sessionToken && operatorRole) loadEditor();
+  }, [sessionToken, operatorRole, loadEditor]);
+
+  const doRegisterDevice = async () => {
+    if (!sessionToken || deviceBusy) return;
+    setDeviceBusy(true);
+    try {
+      const res = await registerDevice(sessionToken, {
+        name: deviceName.trim(),
+        source_type: deviceSource,
+      });
+      setDeviceSecret(res.secret);
+      setDeviceName("");
+      loadEditor();
+    } catch (e: any) {
+      alert("Device registration failed: " + (e?.message || e));
+    } finally {
+      setDeviceBusy(false);
+    }
+  };
+
+  const doAssignDevice = async (deviceId: string, vehicleId: string) => {
+    if (!sessionToken || !vehicleId.trim()) return;
+    try {
+      await assignDevice(sessionToken, deviceId, vehicleId.trim());
+      loadEditor();
+    } catch (e: any) {
+      alert("Assign failed: " + (e?.message || e));
+    }
+  };
+
+  const doCreateOverlay = async () => {
+    if (!sessionToken || ovBusy) return;
+    setOvBusy(true);
+    try {
+      const geometry = JSON.parse(ovGeometry);
+      await createGraphOverlay(sessionToken, {
+        name: ovName.trim(),
+        geometry,
+        allowed_modes: ["bus", "tram"],
+        route_number: ovRoute.trim() || null,
+        verified: true,
+      });
+      setOvName("");
+      setOvGeometry("");
+      setOvRoute("");
+      loadEditor();
+    } catch (e: any) {
+      alert("Overlay creation failed: " + (e?.message || "invalid geometry JSON"));
+    } finally {
+      setOvBusy(false);
+    }
+  };
+
+  const doCreateStopOverride = async () => {
+    if (!sessionToken || soBusy || !soTarget.trim()) return;
+    setSoBusy(true);
+    try {
+      const payload: Record<string, any> = { kind: soKind, target_stop_id: soTarget.trim() };
+      if (soKind === "rename") payload.name = soName.trim();
+      if (soKind === "move") {
+        payload.latitude = parseFloat(soLat);
+        payload.longitude = parseFloat(soLng);
+      }
+      if (soKind === "manual_stop") {
+        payload.stop_id = soTarget.trim();
+        payload.name = soName.trim() || soTarget.trim();
+        payload.latitude = parseFloat(soLat);
+        payload.longitude = parseFloat(soLng);
+        payload.modes = ["bus", "tram"];
+        payload.platforms = [
+          { platform_id: soTarget.trim() + "_p1", latitude: parseFloat(soLat), longitude: parseFloat(soLng), name: soName.trim() || soTarget.trim(), directions: [] },
+        ];
+      }
+      await createStopOverride(sessionToken, payload);
+      setSoTarget("");
+      setSoName("");
+      setSoLat("");
+      setSoLng("");
+      loadEditor();
+    } catch (e: any) {
+      alert("Override failed: " + (e?.message || e));
+    } finally {
+      setSoBusy(false);
+    }
+  };
+
+  const doCreateTripOverride = async () => {
+    if (!sessionToken || toBusy || !toTripId.trim()) return;
+    setToBusy(true);
+    try {
+      await createTripOverride(sessionToken, {
+        kind: toKind,
+        trip_id: toTripId.trim(),
+        stop_id: toStopId.trim() || null,
+        reason: toReason.trim() || null,
+      });
+      setToTripId("");
+      setToStopId("");
+      setToReason("");
+      loadEditor();
+    } catch (e: any) {
+      alert("Trip override failed: " + (e?.message || e));
+    } finally {
+      setToBusy(false);
+    }
+  };
 
   const doImport = async () => {
     if (!sessionToken || importing || !importText.trim()) return;
@@ -404,6 +571,146 @@ export default function MobilityManageScreen() {
           )}
         </View>
 
+        {/* Network Editor (V2): GPS devices, graph overlays, overrides */}
+        <Text style={styles.sectionTitle}>{t("mobility.editorTitle", "Network Editor")}</Text>
+
+        <Text style={styles.editorSubtitle}>{t("mobility.editorDevices", "GPS devices (hardware or phone)")}</Text>
+        <View style={styles.card}>
+          <View style={styles.editorRow}>
+            <TextInput style={[styles.input, { flex: 1 }]} value={deviceName} onChangeText={setDeviceName} placeholder={t("mobility.editorDeviceName", "Device name")} placeholderTextColor="#9CA3AF" />
+            <Pressable
+              style={[styles.codeButton, deviceSource === "PERIX_GPS" && styles.codeButtonActive]}
+              onPress={() => setDeviceSource("PERIX_GPS")}
+            >
+              <Text style={styles.codeButtonText}>GPS Box</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.codeButton, deviceSource === "PHONE_GPS" && styles.codeButtonActive]}
+              onPress={() => setDeviceSource("PHONE_GPS")}
+            >
+              <Text style={styles.codeButtonText}>Phone</Text>
+            </Pressable>
+          </View>
+          <Pressable style={styles.addButton} onPress={doRegisterDevice} disabled={deviceBusy || !deviceName.trim()}>
+            {deviceBusy ? <ActivityIndicator color="#fff" /> : <Text style={styles.addButtonText}>+</Text>}
+          </Pressable>
+          {deviceSecret && (
+            <View style={styles.codeDisplay}>
+              <Text style={styles.codeValue}>{deviceSecret}</Text>
+              <Text style={styles.codeHint}>{t("mobility.editorSecretHint", "Store this secret on the device now - it is shown only once.")}</Text>
+            </View>
+          )}
+          {devices.map((d) => (
+            <View key={d.device_id} style={styles.vehicleRow}>
+              <View style={styles.vehicleIcon}>
+                <Ionicons name={d.source_type === "PHONE_GPS" ? "phone-portrait" : "hardware-chip"} size={16} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.vehicleName}>{d.name || d.device_id}</Text>
+                <Text style={styles.vehicleSub}>
+                  {d.device_id} · {d.source_type}
+                  {d.vehicle_id ? ` → ${d.vehicle_id}` : ""}
+                </Text>
+              </View>
+              <Pressable onPress={() => doAssignDevice(d.device_id, prompt("Vehicle ID") || "")}>
+                <Text style={styles.codeButtonText}>{t("mobility.editorAssign", "Assign")}</Text>
+              </Pressable>
+              <Pressable onPress={() => sessionToken && deleteDevice(sessionToken, d.device_id).then(loadEditor)}>
+                <Ionicons name="trash-outline" size={16} color="#EF4444" />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+
+        <Text style={styles.editorSubtitle}>{t("mobility.editorOverlays", "Missing road/track (graph overlay)")}</Text>
+        <View style={styles.card}>
+          <TextInput style={styles.input} value={ovName} onChangeText={setOvName} placeholder={t("mobility.editorOverlayName", "Name (e.g. new depot access)")} placeholderTextColor="#9CA3AF" />
+          <TextInput style={[styles.input, styles.importInput]} value={ovGeometry} onChangeText={setOvGeometry} placeholder={'Geometry JSON: [[52.1, 11.6], [52.101, 11.602]]'} placeholderTextColor="#9CA3AF" multiline numberOfLines={3} />
+          <TextInput style={styles.input} value={ovRoute} onChangeText={setOvRoute} placeholder={t("mobility.editorOverlayRoute", "Route number (optional)")} placeholderTextColor="#9CA3AF" />
+          <Pressable style={styles.uploadButton} onPress={doCreateOverlay} disabled={ovBusy || !ovGeometry.trim()}>
+            {ovBusy ? <ActivityIndicator size="small" color="#59ABE3" /> : <Text style={styles.uploadButtonText}>{t("mobility.editorAddOverlay", "Add overlay")}</Text>}
+          </Pressable>
+          {overlays.map((o) => (
+            <View key={o.overlay_id} style={styles.vehicleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.vehicleName}>{o.name || o.overlay_id}</Text>
+                <Text style={styles.vehicleSub}>{o.overlay_id} · {(o.geometry || []).length} points{o.route_number ? ` · route ${o.route_number}` : ""}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <Text style={styles.editorSubtitle}>{t("mobility.editorStopOverrides", "Stop corrections")}</Text>
+        <View style={styles.card}>
+          <View style={styles.editorRow}>
+            <Pressable style={[styles.codeButton, soKind === "rename" && styles.codeButtonActive]} onPress={() => setSoKind("rename")}>
+              <Text style={styles.codeButtonText}>Rename</Text>
+            </Pressable>
+            <Pressable style={[styles.codeButton, soKind === "move" && styles.codeButtonActive]} onPress={() => setSoKind("move")}>
+              <Text style={styles.codeButtonText}>Move</Text>
+            </Pressable>
+            <Pressable style={[styles.codeButton, soKind === "deactivate" && styles.codeButtonActive]} onPress={() => setSoKind("deactivate")}>
+              <Text style={styles.codeButtonText}>Remove</Text>
+            </Pressable>
+            <Pressable style={[styles.codeButton, soKind === "manual_stop" && styles.codeButtonActive]} onPress={() => setSoKind("manual_stop")}>
+              <Text style={styles.codeButtonText}>New stop</Text>
+            </Pressable>
+          </View>
+          <TextInput style={styles.input} value={soTarget} onChangeText={setSoTarget} placeholder={t("mobility.editorStopTarget", "Stop id (physical:...)")} placeholderTextColor="#9CA3AF" />
+          {soKind !== "deactivate" && <TextInput style={styles.input} value={soName} onChangeText={setSoName} placeholder={t("mobility.editorStopName", "Name")} placeholderTextColor="#9CA3AF" />}
+          {(soKind === "move" || soKind === "manual_stop") && (
+            <View style={styles.editorRow}>
+              <TextInput style={[styles.input, { flex: 1 }]} value={soLat} onChangeText={setSoLat} placeholder="Lat" placeholderTextColor="#9CA3AF" keyboardType="numeric" />
+              <TextInput style={[styles.input, { flex: 1 }]} value={soLng} onChangeText={setSoLng} placeholder="Lng" placeholderTextColor="#9CA3AF" keyboardType="numeric" />
+            </View>
+          )}
+          <Pressable style={styles.uploadButton} onPress={doCreateStopOverride} disabled={soBusy || !soTarget.trim()}>
+            {soBusy ? <ActivityIndicator size="small" color="#59ABE3" /> : <Text style={styles.uploadButtonText}>{t("mobility.editorApply", "Apply override")}</Text>}
+          </Pressable>
+          {stopOverrides.map((o) => (
+            <View key={o.override_id} style={styles.vehicleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.vehicleName}>{o.kind}</Text>
+                <Text style={styles.vehicleSub}>{o.target_stop_id}{o.name ? ` → ${o.name}` : ""}</Text>
+              </View>
+              <Pressable onPress={() => sessionToken && deleteStopOverride(sessionToken, o.override_id).then(loadEditor)}>
+                <Ionicons name="trash-outline" size={16} color="#EF4444" />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+
+        <Text style={styles.editorSubtitle}>{t("mobility.editorTripOverrides", "Trip exceptions (cancel / skip stop)")}</Text>
+        <View style={styles.card}>
+          <View style={styles.editorRow}>
+            <Pressable style={[styles.codeButton, toKind === "trip_canceled" && styles.codeButtonActive]} onPress={() => setToKind("trip_canceled")}>
+              <Text style={styles.codeButtonText}>Cancel trip</Text>
+            </Pressable>
+            <Pressable style={[styles.codeButton, toKind === "stop_skipped" && styles.codeButtonActive]} onPress={() => setToKind("stop_skipped")}>
+              <Text style={styles.codeButtonText}>Skip stop</Text>
+            </Pressable>
+          </View>
+          <TextInput style={styles.input} value={toTripId} onChangeText={setToTripId} placeholder={t("mobility.editorTripId", "Trip id")} placeholderTextColor="#9CA3AF" />
+          {toKind === "stop_skipped" && (
+            <TextInput style={styles.input} value={toStopId} onChangeText={setToStopId} placeholder={t("mobility.editorStopId", "Stop id")} placeholderTextColor="#9CA3AF" />
+          )}
+          <TextInput style={styles.input} value={toReason} onChangeText={setToReason} placeholder={t("mobility.editorReason", "Reason (optional)")} placeholderTextColor="#9CA3AF" />
+          <Pressable style={styles.uploadButton} onPress={doCreateTripOverride} disabled={toBusy || !toTripId.trim()}>
+            {toBusy ? <ActivityIndicator size="small" color="#59ABE3" /> : <Text style={styles.uploadButtonText}>{t("mobility.editorApply", "Apply")}</Text>}
+          </Pressable>
+          {tripOverrides.map((o) => (
+            <View key={o.override_id} style={styles.vehicleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.vehicleName}>{o.kind}</Text>
+                <Text style={styles.vehicleSub}>{o.trip_id}{o.stop_id ? ` · stop ${o.stop_id}` : ""}</Text>
+              </View>
+              <Pressable onPress={() => sessionToken && deleteTripOverride(sessionToken, o.override_id).then(loadEditor)}>
+                <Ionicons name="trash-outline" size={16} color="#EF4444" />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+
         {/* Taxi: pricing + incoming requests */}
         {operatorRole === "taxi_operator" && (
           <>
@@ -639,9 +946,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#59ABE3",
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
+  codeButtonActive: { backgroundColor: "#264348", borderColor: "#264348" },
+  editorSubtitle: { fontSize: 13, fontWeight: "800", color: "#264348", marginTop: 14, marginBottom: 6 },
+  editorRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" },
   codeButtonText: { color: "#59ABE3", fontSize: 13, fontWeight: "700" },
   codeDisplay: { width: "100%", marginTop: 6 },
   codeValue: { fontSize: 22, fontWeight: "800", color: "#264348", letterSpacing: 4 },
