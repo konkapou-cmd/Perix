@@ -133,6 +133,20 @@ async def ingest_telemetry(request: Request, payload: dict = None):
         except Exception as e:
             print(f"[mobility] telemetry map-match failed: {type(e).__name__}: {e}", flush=True)
 
+    # Second opinion: Google Roads snap-to-road for bus/taxi GPS that did
+    # not land on our geometry (e.g. depot access, parallel street noise).
+    if not snapped and mode in ("bus", "taxi"):
+        try:
+            from mobility.google_roads import snap_to_road
+
+            gpos = await snap_to_road(vehicle_id, lat, lng)
+            if gpos:
+                matched_lat, matched_lng = gpos["latitude"], gpos["longitude"]
+                snapped = True
+                snapped_distance_m = None
+        except Exception as e:
+            print(f"[mobility] google snap failed: {type(e).__name__}: {e}", flush=True)
+
     obs_id = f"obs_{uuid.uuid4().hex[:12]}"
     obs = {
         "observation_id": obs_id,

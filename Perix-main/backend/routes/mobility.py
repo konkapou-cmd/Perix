@@ -1309,39 +1309,73 @@ async def search_places(q: str = "", current_user: Optional[UserPublic] = Depend
             if len(stops) >= 8:
                 break
     streets = []
-    try:
-        import httpx as _httpx
+    google_key = os.getenv("GOOGLE_API_KEY", "")
+    if google_key:
+        # Primary: Google Geocoding (reliable street/address search)
+        try:
+            import httpx as _httpx
 
-        # Magdeburg area viewbox: south, west, north, east
-        async with _httpx.AsyncClient(timeout=8, headers={"User-Agent": "PerixMobility/1.0 (app.perixapp.com)"}) as client:
-            resp = await client.get(
-                "https://nominatim.openstreetmap.org/search",
-                params={
-                    "format": "json",
-                    "q": q,
-                    "addressdetails": 0,
-                    "limit": 6,
-                    "accept-language": "de",
-                    "viewbox": "11.55,52.02,11.72,52.20",
-                    "bounded": 1,
-                },
-            )
-            if resp.status_code == 200:
-                for item in resp.json():
-                    lat = float(item.get("lat") or 0)
-                    lng = float(item.get("lon") or 0)
-                    if lat and lng:
-                        streets.append(
-                            {
-                                "name": item.get("display_name", "").split(",")[0].strip(),
-                                "address": item.get("display_name", ""),
-                                "lat": lat,
-                                "lng": lng,
-                                "type": item.get("type", ""),
-                            }
-                        )
-    except Exception:
-        streets = []
+            async with _httpx.AsyncClient(timeout=8) as client:
+                resp = await client.get(
+                    "https://maps.googleapis.com/maps/api/geocode/json",
+                    params={
+                        "address": f"{q}, Magdeburg",
+                        "components": "country:DE",
+                        "bounds": "52.00,11.45|52.25,11.80",
+                        "key": google_key,
+                    },
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    for item in (data.get("results") or [])[:6]:
+                        loc = (item.get("geometry") or {}).get("location") or {}
+                        if loc.get("lat") and loc.get("lng"):
+                            first_comp = ((item.get("address_components") or [{}])[0] or {}).get("long_name")
+                            streets.append(
+                                {
+                                    "name": first_comp or item.get("formatted_address", "").split(",")[0].strip(),
+                                    "address": item.get("formatted_address", ""),
+                                    "lat": loc["lat"],
+                                    "lng": loc["lng"],
+                                    "type": "google",
+                                }
+                            )
+        except Exception:
+            streets = []
+    if not streets:
+        # Fallback: OSM Nominatim (rate-limited, scoped to the city)
+        try:
+            import httpx as _httpx
+
+            async with _httpx.AsyncClient(timeout=8, headers={"User-Agent": "PerixMobility/1.0 (app.perixapp.com)"}) as client:
+                resp = await client.get(
+                    "https://nominatim.openstreetmap.org/search",
+                    params={
+                        "format": "json",
+                        "q": q,
+                        "addressdetails": 0,
+                        "limit": 6,
+                        "accept-language": "de",
+                        "viewbox": "11.55,52.02,11.72,52.20",
+                        "bounded": 1,
+                    },
+                )
+                if resp.status_code == 200:
+                    for item in resp.json():
+                        lat = float(item.get("lat") or 0)
+                        lng = float(item.get("lon") or 0)
+                        if lat and lng:
+                            streets.append(
+                                {
+                                    "name": item.get("display_name", "").split(",")[0].strip(),
+                                    "address": item.get("display_name", ""),
+                                    "lat": lat,
+                                    "lng": lng,
+                                    "type": item.get("type", ""),
+                                }
+                            )
+        except Exception:
+            streets = []
     return {"places": places, "stops": stops, "streets": streets}
 
 
