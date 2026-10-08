@@ -90,13 +90,15 @@ def resolve_pattern_geometry(
     overlays: List[dict],
     road_geometries: Optional[dict] = None,
     rail_geometries: Optional[dict] = None,
+    segments: Optional[List[dict]] = None,
 ) -> dict:
     """Geometry Resolver - mode-aware and honest.
 
     BUS/TAXI: GTFS shape > verified manual overlay > OSM road-graph
-    reconstruction > HIDE (no fake line through buildings).
+    reconstruction > assembled per-pair segments > HIDE (no fake line
+    through buildings).
     TRAM:     GTFS shape > verified manual overlay > OSM rail-graph
-    reconstruction > HIDE.
+    reconstruction > assembled per-pair segments > HIDE.
     """
     mode = str(pat.get("mode") or "bus")
     pid = str(pat.get("pattern_id"))
@@ -138,6 +140,27 @@ def resolve_pattern_geometry(
         road = (road_geometries or {}).get(pid)
         if road and len(road) >= 2:
             candidates.append(("OSM_ROADS", [[float(p[0]), float(p[1])] for p in road]))
+    # Segment registry: assemble the canonical line from stored stop-pairs.
+    # Only complete patterns count - a missing pair still hides the line,
+    # but every resolved pair is kept for the next attempt.
+    segs = sorted((segments or []), key=lambda s: (int(s.get("a_idx", 0)), int(s.get("b_idx", 0))))
+    expected_pairs = max(0, len(pat.get("stop_ids") or []) - 1)
+    if segs and expected_pairs > 0:
+        covered = {(int(s.get("a_idx")), int(s.get("b_idx"))) for s in segs if s.get("points")}
+        if len(covered) == expected_pairs:
+            assembled = []
+            for s in segs:
+                pts = [[float(p[0]), float(p[1])] for p in (s.get("points") or [])]
+                if not pts:
+                    break
+                if not assembled:
+                    assembled.extend(pts)
+                else:
+                    assembled.extend(pts[1:])
+            if len(assembled) >= 2:
+                candidates.append(
+                    ("OSM_RAIL_SEGMENTS" if mode == "tram" else "OSM_ROADS_SEGMENTS", assembled)
+                )
 
     for source, pts in candidates:
         check = validate_geometry(pts, stop_platforms)

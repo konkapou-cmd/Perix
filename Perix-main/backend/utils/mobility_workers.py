@@ -17,6 +17,7 @@ import os
 from typing import Optional
 
 import httpx
+from pymongo import UpdateOne
 
 from database import db
 
@@ -243,6 +244,7 @@ async def _realtime_worker():
             canceled = 0
             skipped = 0
 
+            ops = []
             for doc in docs:
                 doc["updated_at"] = now_iso
                 doc["source"] = "GTFS_RT"
@@ -253,11 +255,15 @@ async def _realtime_worker():
                     for rel in (doc.get("stop_relationships") or {}).values()
                     if rel == "SKIPPED"
                 )
-                await db.mobility_realtime.replace_one(
-                    {"trip_id": doc["trip_id"]},
-                    doc,
-                    upsert=True,
+                ops.append(
+                    UpdateOne(
+                        {"trip_id": doc["trip_id"]},
+                        {"$set": doc},
+                        upsert=True,
+                    )
                 )
+            if ops:
+                await db.mobility_realtime.bulk_write(ops, ordered=False)
 
             if docs or total_tu:
                 _log(
@@ -457,29 +463,38 @@ def start_mobility_workers():
         _log(f"traffic worker not started: {type(e).__name__}: {e}")
 
 
-async def _precompute_road_geometries():
+async def _precompute_road_geometries(only_patterns: Optional[set] = None):
     """Rebuild every pattern's geometry over real OSM roads (bus) or rails
     (tram) - road-center routing between consecutive stops. Stored per
     version so the resolver can prefer real streets over nothing; lines
     never cross buildings. Runs continuously: after the first pass it
     re-checks every 20 minutes for missing/invalidated patterns (e.g.
-    after an operator created a restriction)."""
+    after an operator created a restriction). `only_patterns` limits the
+    rebuild to the affected patterns (targeted invalidation)."""
     from mobility.domain import NETWORK_ID, build_domain
     from mobility.roads import compute_pattern_geometry
     from routes.mobility import _berlin_now
 
     while True:
         try:
-            await _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _berlin_now)
+            changed = await _precompute_pass(
+                build_domain, NETWORK_ID, compute_pattern_geometry, _berlin_now, only_patterns
+            )
+            if changed:
+                from mobility import geometry_cache
+
+                geometry_cache.bump_revision()
         except Exception as e:
             _log(f"roads: precompute pass failed: {type(e).__name__}: {e}")
+        if only_patterns is not None:
+            return
         await asyncio.sleep(1200)
 
 
-async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _berlin_now):
+async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _berlin_now, only_patterns: Optional[set] = None):
     network = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
     if not network:
-        return
+        return 0
     domain = build_domain(network, NETWORK_ID)
     version = str(network.get("version_id"))
     # Warm the in-process geometry cache with everything already computed
@@ -505,6 +520,8 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
         mode = str(pat.get("mode") or "bus")
         if not pid:
             continue
+        if only_patterns is not None and pid not in only_patterns:
+            continue
         existing = await db.mobility_road_geometries.find_one(
             {"pattern_id": pid, "version_id": version}, {"_id": 0}
         )
@@ -519,29 +536,70 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
         if len(coords) < 2:
             continue
         try:
-            pts = await compute_pattern_geometry(coords, mode)
-            if pts and len(pts) >= 2:
-                await db.mobility_road_geometries.replace_one(
-                    {"pattern_id": pid},
+            from mobility.roads import compute_pattern_segments
+
+            res = await compute_pattern_segments(coords, mode)
+            # Segment registry: store EVERY resolved stop-pair so a single
+            # unresolved pair never discards the rest of the pattern. Once
+            # all pairs exist the pattern becomes canonical (see graph.py).
+            stored = 0
+            for seg in res.get("segments") or []:
+                if not seg.get("ok") or not seg.get("points"):
+                    continue
+                await db.mobility_geometry_segments.replace_one(
+                    {"segment_id": f"{pid}:{seg['a_idx']}:{seg['b_idx']}"},
                     {
+                        "segment_id": f"{pid}:{seg['a_idx']}:{seg['b_idx']}",
                         "pattern_id": pid,
                         "version_id": version,
                         "mode": mode,
-                        "points": pts,
+                        "a_idx": seg["a_idx"],
+                        "b_idx": seg["b_idx"],
+                        "points": seg["points"],
                         "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
                         "created_at": _berlin_now().isoformat(),
                     },
                     upsert=True,
                 )
+                stored += 1
+            pts = res.get("full")
+            if pts and len(pts) >= 2:
+                # Only keep a full geometry the resolver would accept
+                # (platforms near + in order) - a bad OSM route must not
+                # become the line vehicles ride.
                 try:
-                    from mobility import geometry_cache
+                    from mobility.graph import validate_geometry
 
-                    geometry_cache.set_cached(pid, pts)
+                    check = validate_geometry(pts, coords)
+                    valid_full = check.get("valid", False)
                 except Exception:
-                    pass
-                done += 1
-                _log(f"roads: {pid} ({mode}) -> {len(pts)} points")
+                    valid_full = True
+                if valid_full:
+                    await db.mobility_road_geometries.replace_one(
+                        {"pattern_id": pid},
+                        {
+                            "pattern_id": pid,
+                            "version_id": version,
+                            "mode": mode,
+                            "points": pts,
+                            "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
+                            "created_at": _berlin_now().isoformat(),
+                        },
+                        upsert=True,
+                    )
+                    try:
+                        from mobility import geometry_cache
+
+                        geometry_cache.set_cached(pid, pts)
+                    except Exception:
+                        pass
+                    done += 1
+                else:
+                    _log(f"roads: {pid} full geometry rejected by validator (segments kept)")
+            elif res.get("missing_pairs"):
+                _log(f"roads: {pid} ({mode}) missing pairs {res['missing_pairs']} (stored {stored} segments)")
         except Exception as e:
             _log(f"roads: {pid} failed: {type(e).__name__}: {e}")
         await asyncio.sleep(0.3)
     _log(f"roads: precomputed {done} pattern geometries")
+    return done

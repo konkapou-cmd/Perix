@@ -37,6 +37,11 @@ def _key(lat: float, lng: float) -> str:
 
 
 async def _fetch_ways(bbox: Tuple[float, float, float, float], mode: str) -> List[list]:
+    return [w["points"] for w in await _fetch_ways_detailed(bbox, mode)]
+
+
+async def _fetch_ways_detailed(bbox: Tuple[float, float, float, float], mode: str) -> List[dict]:
+    """Overpass ways with their ids: [{id, points}]."""
     s, w, n, e = bbox
     if mode == "tram":
         query = (
@@ -59,7 +64,12 @@ async def _fetch_ways(bbox: Tuple[float, float, float, float], mode: str) -> Lis
                 ways = []
                 for el in data.get("elements", []):
                     if el.get("type") == "way" and el.get("geometry"):
-                        ways.append([[p.get("lat"), p.get("lon")] for p in el["geometry"]])
+                        ways.append(
+                            {
+                                "id": int(el.get("id") or 0),
+                                "points": [[p.get("lat"), p.get("lon")] for p in el["geometry"]],
+                            }
+                        )
                 return ways
             except Exception as err:
                 last_err = err
@@ -68,10 +78,20 @@ async def _fetch_ways(bbox: Tuple[float, float, float, float], mode: str) -> Lis
 
 
 def _build_graph(ways: List[list]) -> Tuple[Dict[int, Tuple[float, float]], Dict[int, List[Tuple[int, float]]]]:
-    """Nodes are road vertices; edges carry meters. Bidirectional."""
+    nodes, adj, _ = _build_graph_detailed([{"id": 0, "points": w} for w in ways])
+    return nodes, adj
+
+
+def _build_graph_detailed(
+    ways: List[dict],
+) -> Tuple[Dict[int, Tuple[float, float]], Dict[int, List[Tuple[int, float]]], Dict[tuple, int]]:
+    """Nodes are road vertices; edges carry meters. Bidirectional. Every
+    edge remembers which OSM way it came from so closures can block the
+    EXACT edges (never parallel streets by proximity)."""
     coord_to_id: Dict[str, int] = {}
     nodes: Dict[int, Tuple[float, float]] = {}
     adj: Dict[int, List[Tuple[int, float]]] = {}
+    edge_way: Dict[tuple, int] = {}
 
     def node_id(lat: float, lng: float) -> int:
         k = _key(lat, lng)
@@ -83,13 +103,17 @@ def _build_graph(ways: List[list]) -> Tuple[Dict[int, Tuple[float, float]], Dict
         return coord_to_id[k]
 
     for way in ways:
-        for i in range(len(way) - 1):
-            a = node_id(way[i][0], way[i][1])
-            b = node_id(way[i + 1][0], way[i + 1][1])
+        wid = int(way.get("id") or 0)
+        pts = way.get("points") or []
+        for i in range(len(pts) - 1):
+            a = node_id(pts[i][0], pts[i][1])
+            b = node_id(pts[i + 1][0], pts[i + 1][1])
             d = _haversine_m(nodes[a][0], nodes[a][1], nodes[b][0], nodes[b][1])
             adj[a].append((b, d))
             adj[b].append((a, d))
-    return nodes, adj
+            edge_way[(a, b)] = wid
+            edge_way[(b, a)] = wid
+    return nodes, adj, edge_way
 
 
 def _nearest_node(nodes: Dict[int, Tuple[float, float]], lat: float, lng: float) -> int:
@@ -106,9 +130,11 @@ def _astar(
     nodes: Dict[int, Tuple[float, float]],
     start: int,
     goal: int,
+    blocked_edges: Optional[set] = None,
 ) -> List[int]:
     if start == goal:
         return [start]
+    blocked_edges = blocked_edges or set()
     open_heap = [(0.0, start)]
     g = {start: 0.0}
     came = {}
@@ -118,6 +144,8 @@ def _astar(
             break
         cur_g = g[cur]
         for nxt, d in adj.get(cur, []):
+            if (cur, nxt) in blocked_edges:
+                continue
             ng = cur_g + d
             if ng < g.get(nxt, float("inf")):
                 g[nxt] = ng
@@ -134,54 +162,109 @@ def _astar(
 
 
 def _route_stops_sync(stops: List[Tuple[float, float]], ways: List[list]) -> List[list]:
-    nodes, adj = _build_graph(ways)
-    if len(nodes) < 2:
-        return []
-    path: List[list] = []
+    res = _route_stops_segments_sync(stops, ways)
+    return res["full"] or []
+
+
+def _route_stops_segments_sync(
+    stops: List[Tuple[float, float]],
+    ways: List[list],
+    blocked_way_ids: Optional[set] = None,
+) -> dict:
+    """Route each consecutive stop pair independently (segment registry).
+
+    One failed pair NEVER rejects the whole pattern: every successful
+    pair keeps its own real road/rail geometry, so the pattern becomes
+    complete as soon as the last missing pair resolves (manual overlay,
+    larger search area, updated OSM data)."""
+    nodes, adj, edge_way = _build_graph_detailed(
+        [
+            {"id": (w.get("id") if isinstance(w, dict) else i), "points": (w.get("points") if isinstance(w, dict) else w)}
+            for i, w in enumerate(ways)
+        ]
+    )
+    blocked_way_ids = blocked_way_ids or set()
+    blocked_edges = set()
+    for (a, b), wid in edge_way.items():
+        if wid in blocked_way_ids:
+            blocked_edges.add((a, b))
+    segments = []
     for i in range(len(stops) - 1):
+        if len(nodes) < 2:
+            segments.append({"a_idx": i, "b_idx": i + 1, "points": [], "ok": False})
+            continue
         a = _nearest_node(nodes, stops[i][0], stops[i][1])
         b = _nearest_node(nodes, stops[i + 1][0], stops[i + 1][1])
-        seg = _astar(adj, nodes, a, b)
+        seg = _astar(adj, nodes, a, b, blocked_edges)
         if not seg:
             # Discontinuity: NEVER join unconnected segments with a
-            # straight line (it would cross buildings). Reject everything.
-            return []
+            # straight line (it would cross buildings). Mark unresolved.
+            segments.append({"a_idx": i, "b_idx": i + 1, "points": [], "ok": False})
+            continue
         coords = [[nodes[nid][0], nodes[nid][1]] for nid in seg]
-        if path and coords:
-            path.extend(coords[1:])
-        else:
-            path.extend(coords)
-    return path
+        segments.append({"a_idx": i, "b_idx": i + 1, "points": coords, "ok": True})
+
+    full = []
+    if segments and all(s["ok"] for s in segments):
+        for i, s in enumerate(segments):
+            if i == 0:
+                full.extend(s["points"])
+            else:
+                full.extend(s["points"][1:])
+    missing = [[s["a_idx"], s["b_idx"]] for s in segments if not s["ok"]]
+    return {"segments": segments, "full": full or None, "missing_pairs": missing}
 
 
 async def compute_pattern_geometry(stops: List[dict], mode: str = "bus") -> List[list]:
     """Route the pattern over real OSM roads (bus/taxi) or rails (tram).
     Closed edges for this mode (operational restrictions) never
     participate in the routing. `stops` = [{lat, lng}, ...]."""
+    res = await compute_pattern_segments(stops, mode)
+    return res.get("full") or []
+
+
+async def compute_pattern_segments(stops: List[dict], mode: str = "bus") -> dict:
+    """Per stop-pair routing (segment registry) with a larger retry bbox:
+    rail networks can leave the immediate stop corridor, so a first pass
+    with a tight bbox may fail while a wider one succeeds."""
     pts = [
         (float(s.get("latitude") or s.get("lat")), float(s.get("longitude") or s.get("lng")))
         for s in stops
         if (s.get("latitude") or s.get("lat")) is not None and (s.get("longitude") or s.get("lng")) is not None
     ]
     if len(pts) < 2:
-        return []
+        return {"segments": [], "full": None, "missing_pairs": []}
     lats = [p[0] for p in pts]
     lngs = [p[1] for p in pts]
-    margin = 0.004
-    bbox = (min(lats) - margin, min(lngs) - margin, max(lats) + margin, max(lngs) + margin)
-    ways = await _fetch_ways(bbox, mode)
-    if not ways:
-        return []
-    # Mode-aware closures: remove blocked edges before routing
-    try:
-        from mobility.restrictions import get_active_restrictions, way_blocked
+    margins = [0.004, 0.02] if mode == "tram" else [0.004]
+    for margin in margins:
+        bbox = (min(lats) - margin, min(lngs) - margin, max(lats) + margin, max(lngs) + margin)
+        try:
+            ways_detailed = await _fetch_ways_detailed(bbox, mode)
+        except Exception:
+            ways_detailed = []
+        if not ways_detailed:
+            continue
+        # Mode-aware closures: block the EXACT matched OSM edges for this
+        # mode (verified only - proximity-based blocking is gone, it kept
+        # closing parallel streets by accident).
+        blocked_way_ids: set = set()
+        try:
+            from mobility.restrictions import blocked_way_ids_for, get_active_restrictions
 
-        restrictions = await get_active_restrictions()
-        if restrictions:
-            ways = [w for w in ways if not way_blocked(mode, w, restrictions)]
-    except Exception:
-        pass
-    if not ways:
-        return []
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _route_stops_sync, pts, ways)
+            restrictions = await get_active_restrictions()
+            if restrictions:
+                blocked_way_ids = await blocked_way_ids_for(mode, restrictions)
+        except Exception:
+            pass
+        if not ways_detailed:
+            continue
+        loop = asyncio.get_event_loop()
+        res = await loop.run_in_executor(
+            None, _route_stops_segments_sync, pts, ways_detailed, blocked_way_ids
+        )
+        if res["full"]:
+            return res
+        if res["segments"]:
+            return res
+    return {"segments": [], "full": None, "missing_pairs": [[i, i + 1] for i in range(len(pts) - 1)]}

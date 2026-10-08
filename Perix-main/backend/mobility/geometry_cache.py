@@ -6,6 +6,19 @@ from typing import Dict, List, Optional
 
 _RESOLVED: Dict[str, List[list]] = {}
 _VERSION: Optional[str] = None
+_REVISION: int = 0
+
+
+def revision() -> int:
+    """Geometry generation counter: any rebuild/change bumps it, so cached
+    trip paths keyed on the old revision can never survive a change."""
+    return _REVISION
+
+
+def bump_revision() -> int:
+    global _REVISION
+    _REVISION += 1
+    return _REVISION
 
 
 def set_cached(pattern_id: str, points: List[list]) -> None:

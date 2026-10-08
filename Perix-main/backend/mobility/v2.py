@@ -78,9 +78,33 @@ async def _patterns_resolved(domain: dict) -> list:
         for d in road_docs
         if (d.get("mode") or "bus") == "tram"
     }
+    # Segment registry (per stop-pair) for patterns without a full geometry
+    seg_docs = await db.mobility_geometry_segments.find(
+        {"version_id": version_id}, {"_id": 0}
+    ).to_list(3000)
+    segments_by_pattern = {}
+    for d in seg_docs:
+        segments_by_pattern.setdefault(str(d.get("pattern_id")), []).append(d)
     out = []
     for pat in domain.get("patterns", []):
-        resolved = resolve_pattern_geometry(pat, platforms_by_id, overlays, roads_by_pattern, rails_by_pattern)
+        resolved = resolve_pattern_geometry(
+            pat,
+            platforms_by_id,
+            overlays,
+            roads_by_pattern,
+            rails_by_pattern,
+            segments_by_pattern.get(str(pat.get("pattern_id"))),
+        )
+        # Vehicles read the SAME canonical geometry as the rendered line:
+        # seed the in-process cache with every resolved pattern so a marker
+        # never rides a geometry the map is not drawing.
+        if resolved.get("valid") and resolved.get("render") and resolved.get("points"):
+            try:
+                from mobility import geometry_cache
+
+                geometry_cache.set_cached(str(pat.get("pattern_id")), resolved["points"])
+            except Exception:
+                pass
         out.append(
             {
                 **{k: v for k, v in pat.items() if k != "points"},
@@ -327,6 +351,11 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
                 "trip_id": trip_id,
                 "delay_minutes": v.get("delay_minutes") or 0,
                 "estimated": estimated,
+                "next_stop_id": v.get("next_stop_id"),
+                "next_stop_name": v.get("next_stop_name"),
+                "distance_to_next_stop_m": v.get("distance_to_next_stop_m"),
+                "pattern_id": v.get("pattern_id"),
+                "progress_m": v.get("progress_m"),
             }
         )
     return out

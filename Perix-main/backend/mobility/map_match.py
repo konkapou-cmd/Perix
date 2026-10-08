@@ -62,32 +62,32 @@ def snap_to_geometry(
     px, py, d, seg = proj
     if d > tolerance:
         return {"latitude": lat, "longitude": lng, "snapped": False, "distance_m": round(d, 1)}
+    seg_heading = _bearing(points[seg][0], points[seg][1], points[seg + 1][0], points[seg + 1][1])
     if heading is not None:
-        seg_heading = _bearing(points[seg][0], points[seg][1], points[seg + 1][0], points[seg + 1][1])
         diff = abs(((float(heading) - seg_heading + 180) % 360) - 180)
         if diff > 90:
             # Heading contradicts the geometry: vehicle turning or off-route
             return {"latitude": lat, "longitude": lng, "snapped": False, "distance_m": round(d, 1)}
-    return {"latitude": px, "longitude": py, "snapped": True, "distance_m": round(d, 1), "segment_idx": seg}
+    return {
+        "latitude": px,
+        "longitude": py,
+        "snapped": True,
+        "distance_m": round(d, 1),
+        "segment_idx": seg,
+        "bearing": round(seg_heading, 1),
+    }
 
 
 def _geometry_points(route: dict) -> List[list]:
-    """Route geometry as [[lat, lng], ...] - the route shape, or the main
-    trip's ordered stops as the honest fallback."""
+    """Route geometry as [[lat, lng], ...] - ONLY the verified route shape.
+
+    No stop-to-stop fallback: without a real road/rail geometry there is
+    nothing honest to snap to, so the caller must keep the last valid
+    position instead of showing a raw off-road GPS fix."""
     sh = route.get("shape") or []
     if isinstance(sh, list) and len(sh) > 2:
         return [[float(p[0]), float(p[1])] for p in sh]
-    by_id = {str(s.get("stop_id")): s for s in route.get("stops", []) if s.get("stop_id") is not None}
-    best = []
-    for t in (route.get("trips") or []):
-        ids = t.get("stop_ids") or []
-        if len(ids) > len(best):
-            best = ids
-    return [
-        [float(by_id[str(sid)]["lat"]), float(by_id[str(sid)]["lng"])]
-        for sid in best
-        if str(sid) in by_id and by_id[str(sid)].get("lat") is not None
-    ]
+    return []
 
 
 def assign_trip(route: dict, vehicle: dict, lat: float, lng: float, now_sec: int, delays: dict) -> Optional[dict]:

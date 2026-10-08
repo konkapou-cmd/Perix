@@ -480,15 +480,18 @@ def _trip_stops(route: dict, trip: dict) -> List[dict]:
 
 
 def _trip_shape(route: dict, trip: dict) -> List[list]:
-    """Geometry for this exact trip/direction, with legacy fallback."""
+    """Geometry for this EXACT trip/direction - the trip's own shape only.
+
+    No legacy `route.shape` fallback: a representative shape can belong to
+    another direction/pattern and would put the marker hundreds of meters
+    off the canonical line. Estimator order is:
+    resolved pattern geometry -> exact validated trip shape -> nothing."""
     shape_id = trip.get("shape_id")
+    if not shape_id:
+        return []
     shapes = route.get("shapes") or {}
-    if shape_id:
-        shape = shapes.get(shape_id)
-        if isinstance(shape, list) and len(shape) > 2:
-            return shape
-    shape = route.get("shape") or []
-    return shape if isinstance(shape, list) else []
+    shape = shapes.get(shape_id)
+    return shape if isinstance(shape, list) and len(shape) > 2 else []
 
 
 _TRIP_PATH_CACHE: dict = {}
@@ -578,34 +581,142 @@ def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) 
     return timeline
 
 
-def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> Optional[dict]:
+def _assembled_matches_timeline(points: List[list], timeline: List[dict]) -> bool:
+    """The assembled segment geometry must actually pass its stops (like the
+    resolver's validate_geometry) - otherwise the vehicle would ride a line
+    the map does not draw."""
+    stops = [
+        e["stop"]
+        for e in timeline
+        if (e.get("stop") or {}).get("lat") is not None and (e.get("stop") or {}).get("lng") is not None
+    ]
+    if len(stops) < 2:
+        return True
+    cum = [0.0]
+    for i in range(len(points) - 1):
+        cum.append(cum[-1] + _haversine_km(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]))
+    positions = []
+    for s in stops:
+        lat, lng = float(s["lat"]), float(s["lng"])
+        best_d, best_pos = float("inf"), 0.0
+        for i in range(len(points) - 1):
+            x0, y0 = points[i]
+            x1, y1 = points[i + 1]
+            dx, dy = x1 - x0, y1 - y0
+            denom = dx * dx + dy * dy
+            t = 0.0 if denom == 0 else max(0.0, min(1.0, ((lat - x0) * dx + (lng - y0) * dy) / denom))
+            d = _haversine_km(lat, lng, x0 + t * dx, y0 + t * dy)
+            if d < best_d:
+                best_d = d
+                best_pos = cum[i] + t * (cum[i + 1] - cum[i])
+        if best_d > 0.12:
+            return False
+        positions.append(best_pos)
+    return all(positions[i + 1] >= positions[i] - 0.06 for i in range(len(positions) - 1))
+
+
+async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> Optional[dict]:
     """Travel-ordered path, cumulative meters and stop progress.
 
     Uses ONLY verified real geometry: the trip's own GTFS shape, or the
     RESOLVED V2 pattern geometry (OSM road/rail reconstruction). When
     neither exists the marker is NOT drawn at all - a fake stop-to-stop
     line must never cross buildings (the arrivals/ETA stay available)."""
-    key = f"{_service_date_key()}:{trip.get('trip_id')}:{trip.get('shape_id') or 'legacy'}"
+    from mobility import geometry_cache
+
+    pat_id = None
+    try:
+        from mobility.domain import _pattern_id as _dom_pattern_id, _pattern_key as _dom_pattern_key
+
+        pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
+    except Exception:
+        pat_id = None
+    key = (
+        f"{_service_date_key()}:{trip.get('trip_id')}:{pat_id}:{geometry_cache.revision()}"
+    )
     cached = _TRIP_PATH_CACHE.get(key)
     if cached is not None:
         return cached
 
     points: Optional[List[list]] = None
-    shape = _trip_shape(route, trip)
-    if isinstance(shape, list) and len(shape) > 2:
-        points = [[float(p[0]), float(p[1])] for p in shape]
-    if points is None:
-        # Resolved V2 geometry (same pipeline as the map lines)
-        try:
-            from mobility.domain import _pattern_id as _dom_pattern_id, _pattern_key as _dom_pattern_key
-            from mobility.geometry_cache import get_cached
+    # Resolved V2 geometry FIRST: it is exactly what the map renders as the
+    # line, so vehicles always ride ON the visible line. The raw GTFS shape
+    # is the fallback (it can deviate from the rendered OSM/rail line).
+    try:
+        from mobility.geometry_cache import get_cached
 
-            pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
-            pts = get_cached(pat_id)
-            if pts and len(pts) >= 2:
-                points = [[float(p[0]), float(p[1])] for p in pts]
+        pts = get_cached(pat_id)
+        if pts and len(pts) >= 2:
+            pts_f = [[float(p[0]), float(p[1])] for p in pts]
+            # Only ride geometry the map actually draws (resolver validates
+            # the same way) - otherwise the marker floats on a line the
+            # passenger cannot see.
+            if _assembled_matches_timeline(pts_f, timeline):
+                points = pts_f
+    except Exception:
+        points = None
+    if points is None:
+        # Segment registry: assemble the canonical line from stored
+        # stop-pairs when the full geometry is not cached yet.
+        try:
+            from mobility.geometry_cache import set_cached
+
+            net = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+            version_id = (net or {}).get("version_id")
+            query = {"pattern_id": pat_id}
+            if version_id:
+                query["version_id"] = version_id
+            seg_docs = await db.mobility_geometry_segments.find(
+                query, {"_id": 0}
+            ).to_list(300)
+            segs = sorted(seg_docs, key=lambda s: (int(s.get("a_idx", 0)), int(s.get("b_idx", 0))))
+            n_stops = len(trip.get("stop_ids") or route.get("stop_ids") or [])
+            covered = {(int(s.get("a_idx")), int(s.get("b_idx"))) for s in segs if s.get("points")}
+            if segs and n_stops > 0 and len(covered) == max(0, n_stops - 1):
+                assembled: List[list] = []
+                for s in segs:
+                    pts_s = [[float(p[0]), float(p[1])] for p in (s.get("points") or [])]
+                    if not pts_s:
+                        break
+                    if not assembled:
+                        assembled.extend(pts_s)
+                    else:
+                        assembled.extend(pts_s[1:])
+                if len(assembled) >= 2 and _assembled_matches_timeline(assembled, timeline):
+                    points = assembled
+                    set_cached(pat_id, assembled)
         except Exception:
             points = None
+    if points is None:
+        shape = _trip_shape(route, trip)
+        if isinstance(shape, list) and len(shape) > 2:
+            shape_pts = [[float(p[0]), float(p[1])] for p in shape]
+            if _assembled_matches_timeline(shape_pts, timeline):
+                points = shape_pts
+                # Persist as canonical so the map draws the SAME line the
+                # vehicle rides (pattern-level shape_id may be missing even
+                # when the trip carries a verified shape).
+                try:
+                    from mobility.geometry_cache import set_cached
+
+                    net = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+                    version_id = (net or {}).get("version_id")
+                    if version_id:
+                        await db.mobility_road_geometries.replace_one(
+                            {"pattern_id": pat_id},
+                            {
+                                "pattern_id": pat_id,
+                                "version_id": version_id,
+                                "mode": str(route.get("mode") or "bus"),
+                                "points": shape_pts,
+                                "source": "GTFS_SHAPE",
+                                "created_at": datetime.now().isoformat(),
+                            },
+                            upsert=True,
+                        )
+                    set_cached(pat_id, shape_pts)
+                except Exception:
+                    pass
     if not points:
         # Don't cache the miss - the background precompute may fill the
         # resolved geometry shortly after and the marker should appear then.
@@ -637,6 +748,7 @@ def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> Option
         "cumulative": cumulative,
         "stop_progress": stop_progress,
         "total_m": cumulative[-1] if cumulative else 0.0,
+        "pattern_id": pat_id,
     }
     _TRIP_PATH_CACHE[key] = result
     return result
@@ -748,7 +860,7 @@ def _point_heading_at_progress(path: dict, progress_m: float) -> tuple:
     )
 
 
-def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
+async def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
     """ETA-constrained, forward-only estimated position."""
     trip_id = str(trip.get("trip_id") or "")
     realtime = delays.get(trip_id) if trip_id else None
@@ -761,7 +873,7 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
     if now_sec < start - 60 or now_sec > end + 180:
         return None
 
-    path = _trip_path_geometry(route, trip, timeline)
+    path = await _trip_path_geometry(route, trip, timeline)
     if not path:
         # No verified real geometry: the marker is not drawn (ETA remains
         # available via arrivals) - never a fake line through buildings.
@@ -788,6 +900,19 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
     )
     delay_seconds = int(next_entry.get("delay_seconds") or 0)
 
+    # Remaining distance ALONG THE RAIL/ROAD to the next stop (not the
+    # straight-line map distance) - the same canonical line the marker
+    # rides, so ETA, marker and distance all agree.
+    distance_to_next_stop_m = None
+    try:
+        next_idx = timeline.index(next_entry)
+        if next_idx < len(stop_progress):
+            remaining = float(stop_progress[next_idx]) - float(shown_progress)
+            if remaining >= 0:
+                distance_to_next_stop_m = round(remaining)
+    except Exception:
+        distance_to_next_stop_m = None
+
     has_rt = bool(
         realtime
         and (
@@ -806,13 +931,17 @@ def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict)
         "position_source": "REALTIME_ESTIMATE" if has_rt else "SCHEDULE_ESTIMATE",
         "progress_m": round(shown_progress, 1),
         "target_progress_m": round(raw_progress, 1),
+        "next_stop_id": next_entry.get("stop_id"),
+        "next_stop_name": next_entry.get("name") or (next_entry.get("stop") or {}).get("name"),
+        "distance_to_next_stop_m": distance_to_next_stop_m,
+        "pattern_id": path.get("pattern_id"),
     }
 
 # Short-lived cache for the estimated vehicles so fast client polling
 # doesn't recompute the whole trip graph on every request.
 _ESTIMATES_CACHE = {"at": 0.0, "data": []}
 
-REALTIME_FRESH_SECONDS = int(os.getenv("MOBILITY_REALTIME_FRESH_SECONDS", "120"))
+REALTIME_FRESH_SECONDS = int(os.getenv("MOBILITY_REALTIME_FRESH_SECONDS", "420"))
 
 
 def _trip_window(route: dict, trip: dict, realtime: Optional[dict] = None) -> Optional[dict]:
@@ -1011,13 +1140,23 @@ async def _estimated_transit_vehicles() -> List[dict]:
             heading = None
             delay_minutes = 0
             position_source = "SCHEDULE_ESTIMATE"
+            next_stop_name = None
+            next_stop_id = None
+            distance_to_next_stop_m = None
+            pattern_id = None
+            progress_m = None
             if active:
-                p = _estimate_trip_position(route, active["trip"], now_sec, delays)
+                p = await _estimate_trip_position(route, active["trip"], now_sec, delays)
                 if p:
                     pos = {"lat": p["latitude"], "lng": p["longitude"]}
                     heading = p.get("heading")
                     delay_minutes = p["delay_minutes"]
                     position_source = p["position_source"]
+                    next_stop_name = p.get("next_stop_name")
+                    next_stop_id = p.get("next_stop_id")
+                    distance_to_next_stop_m = p.get("distance_to_next_stop_m")
+                    pattern_id = p.get("pattern_id")
+                    progress_m = p.get("progress_m")
                 else:
                     # Trip active but no verified geometry: skip this vehicle
                     # entirely (the ETA stays in the arrivals list).
@@ -1083,6 +1222,11 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     "delay_minutes": delay_minutes,
                     "position_source": position_source,
                     "estimated": True,
+                    "next_stop_id": next_stop_id,
+                    "next_stop_name": next_stop_name,
+                    "distance_to_next_stop_m": distance_to_next_stop_m,
+                    "pattern_id": pattern_id,
+                    "progress_m": progress_m,
                     "updated_at": datetime.now().isoformat(),
                 }
             )

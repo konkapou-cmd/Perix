@@ -104,6 +104,7 @@ async def ingest_telemetry(request: Request, payload: dict = None):
     matched_lat, matched_lng = lat, lng
     snapped = False
     snapped_distance_m = None
+    display_heading = body.get("heading")
     trip_id = None
     mode = vehicle.get("mode")
     if mode in ("bus", "tram") and vehicle.get("route_number"):
@@ -124,6 +125,11 @@ async def ingest_telemetry(request: Request, payload: dict = None):
                     matched_lat, matched_lng = snap["latitude"], snap["longitude"]
                     snapped = True
                     snapped_distance_m = snap.get("distance_m")
+                    # Display heading = the road/rail bearing the vehicle is
+                    # riding, never the raw GPS compass (which can point
+                    # sideways during maneuvers).
+                    if snap.get("bearing") is not None:
+                        display_heading = snap["bearing"]
                 network = await _get_active_network()
                 trip_ids = [str(t.get("trip_id")) for t in route.get("trips", []) if t.get("trip_id")]
                 delays = await _realtime_delays_for(trip_ids)
@@ -135,6 +141,7 @@ async def ingest_telemetry(request: Request, payload: dict = None):
 
     # Second opinion: Google Roads snap-to-road for bus/taxi GPS that did
     # not land on our geometry (e.g. depot access, parallel street noise).
+    # Trams NEVER get a Google fallback: rails are ours.
     if not snapped and mode in ("bus", "taxi"):
         try:
             from mobility.google_roads import snap_to_road
@@ -146,6 +153,38 @@ async def ingest_telemetry(request: Request, payload: dict = None):
                 snapped_distance_m = None
         except Exception as e:
             print(f"[mobility] google snap failed: {type(e).__name__}: {e}", flush=True)
+
+    # Strict rule: transit vehicles are shown ONLY on their road/rail. If
+    # nothing snapped, keep the last valid position instead of drifting a
+    # raw GPS fix across buildings. No previous valid position -> hide
+    # (the state is not updated, so no off-road marker ever appears).
+    if mode in ("bus", "tram") and not snapped:
+        prev = await db.mobility_vehicle_state.find_one({"vehicle_id": vehicle_id})
+        if prev and prev.get("latitude") is not None and prev.get("longitude") is not None:
+            matched_lat, matched_lng = prev["latitude"], prev["longitude"]
+            display_heading = prev.get("heading")
+            trip_id = trip_id or prev.get("trip_id")
+            snapped = bool(prev.get("snapped"))
+        else:
+            # Hide: record the raw observation for diagnostics only.
+            obs_id_hidden = f"obs_{uuid.uuid4().hex[:12]}"
+            await db.mobility_position_observations.insert_one(
+                {
+                    "observation_id": obs_id_hidden,
+                    "device_id": device.get("device_id"),
+                    "vehicle_id": vehicle_id,
+                    "observed_at": observed_dt.isoformat(),
+                    "received_at": _utc_now_iso(),
+                    "latitude": lat,
+                    "longitude": lng,
+                    "accuracy_m": body.get("accuracy_m"),
+                    "heading": body.get("heading"),
+                    "source": source,
+                    "snapped": False,
+                    "hidden": True,
+                }
+            )
+            return {"ok": True, "observation_id": obs_id_hidden, "source": source, "snapped": False, "hidden": True}
 
     obs_id = f"obs_{uuid.uuid4().hex[:12]}"
     obs = {
@@ -179,7 +218,7 @@ async def ingest_telemetry(request: Request, payload: dict = None):
             "raw_latitude": lat,
             "raw_longitude": lng,
             "snapped": snapped,
-            "heading": body.get("heading"),
+            "heading": display_heading,
             "speed_mps": body.get("speed_mps"),
             "accuracy_m": body.get("accuracy_m"),
             "source": source,
@@ -205,7 +244,7 @@ async def ingest_telemetry(request: Request, payload: dict = None):
         "route_direction": vehicle.get("route_direction"),
         "latitude": matched_lat,
         "longitude": matched_lng,
-        "heading": body.get("heading"),
+        "heading": display_heading,
         "speed": body.get("speed_mps"),
         "accuracy_m": body.get("accuracy_m"),
         "status": "active",
