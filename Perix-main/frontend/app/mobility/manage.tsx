@@ -794,7 +794,11 @@ export default function MobilityManageScreen() {
                   {t("mobility.busLines", "Bus lines")}: {importResult.summary.bus_lines} ·{" "}
                   {t("mobility.tramLines", "Tram lines")}: {importResult.summary.tram_lines} ·{" "}
                   {t("mobility.tripCount", "Trips")}: {importResult.summary.trips}{"\n"}
-                  {t("mobility.serviceDate", "Service date")}: {importResult.summary.service_date}
+                  {t("mobility.serviceDate", "Service date")}: {(() => {
+                    const sd = String(importResult.summary.service_date || "");
+                    const m = sd.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                    return m ? `${m[3]}/${m[2]}/${m[1]}` : sd;
+                  })()}
                 </Text>
               )}
               <Text style={styles.diffText}>

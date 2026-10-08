@@ -22,6 +22,9 @@ type MapMarker = {
   heading?: number | null;
   estimated?: boolean;
   label?: string | null;
+  /** The canonical line geometry the vehicle rides - animations follow
+   *  every curve of the road/rail instead of cutting straight across. */
+  path?: { latitude: number; longitude: number }[];
 };
 
 type MapBounds = {
@@ -89,6 +92,20 @@ type Props = {
     modes: ("bus" | "tram")[];
     routes: { route_number: string; mode: "bus" | "tram" }[];
   }) => void;
+  /** Live road closures (TomTom Traffic) as red dashed segments. */
+  closures?: {
+    id: string;
+    points: { latitude: number; longitude: number }[];
+    from?: string;
+    to?: string;
+    description?: string;
+  }[];
+  onClosureClick?: (closure: {
+    id: string;
+    from?: string;
+    to?: string;
+    description?: string;
+  }) => void;
   /** Journey-plan route: walking legs light blue, tram green, bus blue. */
   planLines?: {
     points: { latitude: number; longitude: number }[];
@@ -121,14 +138,78 @@ const googleKey =
 // zoom 14 -> 0.78, zoom 16 -> 0.89, zoom 18+ -> 1.05.
 const vehicleScale = (zoom: number) => 0.78 * Math.max(0.45, Math.min(1.35, zoom / 14));
 
-const haversineMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+const haversineMeters = (
+  a: { lat?: number; lng?: number; latitude?: number; longitude?: number },
+  b: { lat?: number; lng?: number; latitude?: number; longitude?: number }
+) => {
+  const alat = a.lat ?? a.latitude!;
+  const alng = a.lng ?? a.longitude!;
+  const blat = b.lat ?? b.latitude!;
+  const blng = b.lng ?? b.longitude!;
   const R = 6371000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const dLat = ((blat - alat) * Math.PI) / 180;
+  const dLng = ((blng - alng) * Math.PI) / 180;
   const s =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    Math.cos((alat * Math.PI) / 180) * Math.cos((blat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(s));
+};
+
+// Vehicles move as PROGRESS along their canonical polyline - the icon
+// follows the road/rail around every curve. Straight lat/lng lerp between
+// polls would cut corners across buildings.
+const polylineCumulative = (points: { latitude: number; longitude: number }[]): number[] => {
+  const cum = [0];
+  for (let i = 1; i < points.length; i++) {
+    cum.push(cum[i - 1] + haversineMeters(points[i - 1], points[i]));
+  }
+  return cum;
+};
+
+const pointAtProgress = (
+  points: { latitude: number; longitude: number }[],
+  cum: number[],
+  progress: number
+): { latitude: number; longitude: number } => {
+  if (points.length === 1) return points[0];
+  const total = cum[cum.length - 1] || 1;
+  const p = Math.max(0, Math.min(total, progress));
+  for (let i = 0; i < cum.length - 1; i++) {
+    if (cum[i + 1] < p) continue;
+    const span = Math.max(0.001, cum[i + 1] - cum[i]);
+    const f = Math.min(1, Math.max(0, (p - cum[i]) / span));
+    return {
+      latitude: points[i].latitude + (points[i + 1].latitude - points[i].latitude) * f,
+      longitude: points[i].longitude + (points[i + 1].longitude - points[i].longitude) * f,
+    };
+  }
+  return points[points.length - 1];
+};
+
+const progressOfPoint = (
+  points: { latitude: number; longitude: number }[],
+  cum: number[],
+  lat: number,
+  lng: number
+): number => {
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < points.length - 1; i++) {
+    const x0 = points[i].latitude;
+    const y0 = points[i].longitude;
+    const x1 = points[i + 1].latitude;
+    const y1 = points[i + 1].longitude;
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const denom = dx * dx + dy * dy;
+    const t = denom === 0 ? 0 : Math.max(0, Math.min(1, ((lat - x0) * dx + (lng - y0) * dy) / denom));
+    const d = haversineMeters({ lat, lng }, { lat: x0 + t * dx, lng: y0 + t * dy });
+    if (d < bestD) {
+      bestD = d;
+      best = cum[i] + t * (cum[i + 1] - cum[i]);
+    }
+  }
+  return best;
 };
 
 // Cartoon transit icons (SVG) with the route number on a side plate.
@@ -266,6 +347,8 @@ export default function BusinessMap({
   transitStops,
   onTransitStopPress,
   planLines,
+  closures,
+  onClosureClick,
   showUserLocation,
   userPinImage,
   pinLocation,
@@ -310,6 +393,8 @@ export default function BusinessMap({
   onRegionChangeCompleteRef.current = onRegionChangeComplete;
   const onZoomChangeRef = useRef(onZoomChange);
   onZoomChangeRef.current = onZoomChange;
+  const onClosureClickRef = useRef(onClosureClick);
+  onClosureClickRef.current = onClosureClick;
 
   // Continuous vehicle motion: positions are interpolated in GEOGRAPHIC
   // space between polls (requestAnimationFrame), so vehicles glide along
@@ -321,11 +406,18 @@ export default function BusinessMap({
     let active = false;
     const now = Date.now();
     markersRef.current.forEach((rec: any) => {
-      if (!rec || rec.animStart == null || !rec.geoTo) return;
+      if (!rec || rec.animStart == null) return;
       const t = Math.min(1, (now - rec.animStart) / rec.animDuration);
-      const lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * t;
-      const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * t;
-      rec.overlay.pos = { lat, lng };
+      if (rec.path && rec.cum) {
+        // Progress interpolation along the canonical road/rail polyline:
+        // the vehicle follows the curves, never a straight chord.
+        rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * t;
+        rec.overlay.pos = pointAtProgress(rec.path, rec.cum, rec.progNow);
+      } else if (rec.geoTo) {
+        const lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * t;
+        const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * t;
+        rec.overlay.pos = { lat, lng };
+      }
       try { rec.overlay.draw(); } catch (e) {}
       if (t >= 1) rec.animStart = null;
       else active = true;
@@ -343,6 +435,47 @@ export default function BusinessMap({
     animRafRef.current = requestAnimationFrame(loopTick);
   };
   const setVehicleTarget = (rec: any, pos: { lat: number; lng: number }, nowTs: number) => {
+    // Path mode: interpolate progress (meters along the line). If the new
+    // position does not lie on this path (wrong pattern, missing line),
+    // fall back to the geographic lerp instead of freezing the vehicle.
+    if (rec.path && rec.path.length >= 2 && rec.cum) {
+      const toProg = progressOfPoint(rec.path, rec.cum, pos.lat, pos.lng);
+      const onPath = pointAtProgress(rec.path, rec.cum, toProg);
+      const offDist = haversineMeters({ lat: pos.lat, lng: pos.lng }, { lat: onPath.latitude, lng: onPath.longitude });
+      if (offDist > 250) {
+        rec.path = null;
+        rec.cum = null;
+        rec.progNow = null;
+        rec.animStart = null;
+      } else {
+        let fromProg: number;
+        if (rec.animStart != null) {
+          const t = Math.min(1, (nowTs - rec.animStart) / rec.animDuration);
+          fromProg = rec.progFrom + (rec.progTo - rec.progFrom) * t;
+        } else {
+          fromProg = rec.progNow ?? toProg;
+        }
+        const d = Math.abs(toProg - fromProg);
+        const dt = rec.lastTs ? nowTs - rec.lastTs : 0;
+        rec.lastTs = nowTs;
+        if (d > 250 || dt <= 0 || dt > 30000) {
+          // Snap: brand-new vehicle, trip change, or a stale update.
+          rec.progFrom = toProg;
+          rec.progTo = null;
+          rec.animStart = null;
+          rec.progNow = toProg;
+          rec.overlay.pos = pos;
+        } else {
+          rec.progFrom = fromProg;
+          rec.progTo = toProg;
+          rec.animDuration = Math.max(1500, Math.min(9000, dt));
+          rec.animStart = nowTs;
+        }
+        kickAnim();
+        return;
+      }
+    }
+    // Fallback: geographic lerp (no known line geometry).
     let cur = rec.overlay.pos || pos;
     if (rec.animStart != null && rec.geoTo) {
       const t = Math.min(1, (nowTs - rec.animStart) / rec.animDuration);
@@ -468,7 +601,12 @@ export default function BusinessMap({
   // Stable content signature — arrays are recreated every render, so depend on contents instead
   const markersVersion = useMemo(() => {
     const parts: string[] = [];
-    allMarkers.forEach((m) => parts.push(`${m.id}|${m.latitude}|${m.longitude}|${m.pinColor || ""}|${m.pinInnerColor || ""}`));
+    allMarkers.forEach((m) => {
+      parts.push(
+        `${m.id}|${m.latitude}|${m.longitude}|${m.pinColor || ""}|${m.pinInnerColor || ""}` +
+        (m.path && m.path.length ? `|p${m.path.length}:${m.path[0]?.latitude}` : "")
+      );
+    });
     return parts.join(";");
   }, [allMarkers]);
 
@@ -497,6 +635,7 @@ export default function BusinessMap({
         type: items[0].type,
         heading: items[0].heading ?? null,
         estimated: items[0].estimated ?? false,
+        path: items[0].path,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -899,6 +1038,22 @@ export default function BusinessMap({
       const existing = existingTransit.get(repId);
       if (existing) {
         const rec = existing;
+        // Keep the vehicle's canonical path fresh (the resolved line can
+        // change once, e.g. when the geometry worker completes it).
+        if (rep.path && rep.path.length >= 2) {
+          rec.path = rep.path;
+          rec.cum = polylineCumulative(rep.path);
+          if (rec.progNow == null) {
+            rec.progNow = progressOfPoint(rec.path, rec.cum, rep.latitude, rep.longitude);
+            rec.progFrom = rec.progNow;
+            rec.progTo = null;
+            rec.animStart = null;
+            rec.overlay.pos = { lat: rep.latitude, lng: rep.longitude };
+          }
+        } else {
+          rec.path = null;
+          rec.cum = null;
+        }
         setVehicleTarget(rec, { lat: rep.latitude, lng: rep.longitude }, Date.now());
         rec.overlay.off = repOffsets.get(repId) || { x: 0, y: 0 };
         rec.heading = heading;
@@ -1007,6 +1162,16 @@ export default function BusinessMap({
         animStart: null,
         lastTs: Date.now(),
       };
+      // Attach the canonical line: from now on this vehicle glides along
+      // the road/rail polyline (progress interpolation), never in a
+      // straight chord between polls.
+      if (rep.path && rep.path.length >= 2) {
+        rec.path = rep.path;
+        rec.cum = polylineCumulative(rep.path);
+        rec.progNow = progressOfPoint(rec.path, rec.cum, rep.latitude, rep.longitude);
+        rec.progFrom = rec.progNow;
+        rec.progTo = null;
+      }
 
       // Tapping a cluster cycles through the vehicles stacked there.
       container.addEventListener("click", (e: any) => {
@@ -1092,6 +1257,38 @@ export default function BusinessMap({
       planLinesRef.current.push(poly);
     });
   }, [planLines, mapReady]);
+
+  // Road closures (TomTom Traffic) as clickable red dashed segments, drawn
+  // above the network lines so closures stay visible on busy corridors.
+  const closuresRef = useRef<any[]>([]);
+  useEffect(() => {
+    if (!mapRef.current || !mapReadyRef.current) return;
+    closuresRef.current.forEach((p) => {
+      try { p.setMap(null); } catch (e) {}
+    });
+    closuresRef.current = [];
+    const google = (window as any).google;
+    (closures || []).forEach((closure) => {
+      if (!closure.points || closure.points.length < 2) return;
+      const poly = new google.maps.Polyline({
+        path: closure.points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
+        strokeColor: "#DC2626",
+        strokeWeight: 5,
+        strokeOpacity: 0.85,
+        zIndex: 3,
+      });
+      poly.addListener("click", () => {
+        onClosureClickRef.current?.({
+          id: closure.id,
+          from: closure.from,
+          to: closure.to,
+          description: closure.description,
+        });
+      });
+      poly.setMap(mapRef.current);
+      closuresRef.current.push(poly);
+    });
+  }, [closures, mapReady]);
 
   // Transit stops as CLICKABLE bus/tram pins (zoom-aware detail:
   // tiny icon < 12, full pin 12+, route numbers 14+, stop name 16+).

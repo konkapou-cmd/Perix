@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getVehicleTrip, VehicleTripProgress, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion, StreetSuggestion, TransitStopMarker, getV2Map, V2MapLine } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getVehicleTrip, VehicleTripProgress, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion, StreetSuggestion, TransitStopMarker, getV2Map, V2MapLine, getTraffic, TrafficClosure } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -85,6 +85,8 @@ export default function LocatorScreen() {
   const [locating, setLocating] = useState(false);
   const [mobilityMode, setMobilityMode] = useState<"all" | "bus" | "tram" | "taxi">("all");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
+  const [trafficClosures, setTrafficClosures] = useState<TrafficClosure[]>([]);
+  const [selectedClosure, setSelectedClosure] = useState<{ id: string; from?: string; to?: string; description?: string; verified?: boolean } | null>(null);
   const [busQuery, setBusQuery] = useState("");
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
   const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string } | null>(null);
@@ -527,8 +529,19 @@ export default function LocatorScreen() {
         setPhysicalStops(map.stops || []);
       })
       .catch(() => {});
+    // Live road closures (TomTom Traffic) - refreshed every 5 minutes.
+    const loadTraffic = () => {
+      getTraffic(sessionToken)
+        .then((info) => {
+          if (!cancelled) setTrafficClosures(info?.closures || []);
+        })
+        .catch(() => {});
+    };
+    loadTraffic();
+    const trafficTimer = setInterval(loadTraffic, 5 * 60 * 1000);
     return () => {
       cancelled = true;
+      clearInterval(trafficTimer);
     };
   }, [activeTab, sessionToken]);
 
@@ -620,6 +633,45 @@ export default function LocatorScreen() {
       }))
       .filter((l) => l.points.length >= 2);
   }, [journeyPlans]);
+
+  // Live road closures (TomTom): red dashed segments on the map. Only shown
+  // when zoomed into the city scale where a closure is actionable. Capped
+  // and point-simplified so phones render them smoothly; identity stays
+  // stable across zoom ticks (bucket flip only) to avoid polyline rebuild
+  // churn on every pinch.
+  const showClosures = (mapZoom ?? 14) >= 12;
+  const closureLines = useMemo(() => {
+    if (!showClosures) return [];
+    return trafficClosures
+      .slice(0, 40)
+      .map((c) => {
+        const g = (c.geometry || []) as [number, number][];
+        const stride = Math.max(1, Math.ceil(g.length / 60));
+        const pts: { latitude: number; longitude: number }[] = [];
+        for (let i = 0; i < g.length; i += stride) {
+          const p = g[i];
+          if (
+            Array.isArray(p) &&
+            p.length === 2 &&
+            Number.isFinite(p[0]) &&
+            Number.isFinite(p[1]) &&
+            Math.abs(p[0]) <= 90 &&
+            Math.abs(p[1]) <= 180
+          ) {
+            pts.push({ latitude: p[0], longitude: p[1] });
+          }
+        }
+        return {
+          id: c.restriction_id,
+          points: pts,
+          from: c.from,
+          to: c.to,
+          description: c.description,
+          verified: c.verified,
+        };
+      })
+      .filter((c) => c.points.length >= 2);
+  }, [trafficClosures, showClosures]);
 
   // Results follow the MAP VIEWPORT (like business results): vehicles and
   // stops are filtered to what the map currently shows and ordered by
@@ -1329,6 +1381,32 @@ export default function LocatorScreen() {
               ? liveVehicles
                   .filter((v) => (mobilityMode === "all" || v.mode === mobilityMode) && v.latitude != null && v.longitude != null)
                   .map((v) => {
+                    // The canonical line geometry the vehicle rides: the
+                    // marker follows every curve of the road/rail instead
+                    // of cutting straight across between polls. Only when
+                    // the vehicle is actually ON that line - a wrong path
+                    // (missing pattern, opposite direction) would freeze
+                    // the animation on every poll.
+                    let path: { latitude: number; longitude: number }[] | undefined;
+                    const vLine = transitMapLines.find((l) => l.pattern_id != null && l.pattern_id === v.pattern_id);
+                    const fallbackLine = transitMapLines.find((l) => l.route_number === v.route_number && l.mode === v.mode);
+                    const candidate = vLine || fallbackLine;
+                    if (candidate && candidate.points && candidate.points.length >= 2) {
+                      const pts = candidate.points;
+                      let minD = Infinity;
+                      for (let i = 0; i < pts.length - 1; i++) {
+                        const x0 = pts[i].latitude, y0 = pts[i].longitude;
+                        const x1 = pts[i + 1].latitude, y1 = pts[i + 1].longitude;
+                        const dx = x1 - x0, dy = y1 - y0;
+                        const den = dx * dx + dy * dy;
+                        const t = den === 0 ? 0 : Math.max(0, Math.min(1, ((v.latitude! - x0) * dx + (v.longitude! - y0) * dy) / den));
+                        const px = x0 + t * dx, py = y0 + t * dy;
+                        const dLat = v.latitude! - px, dLng = v.longitude! - py;
+                        const dM = Math.sqrt(dLat * dLat + dLng * dLng) * 111000;
+                        if (dM < minD) minD = dM;
+                      }
+                      if (minD <= 400) path = pts;
+                    }
                     return {
                       id: v.vehicle_id,
                       latitude: v.latitude!,
@@ -1343,6 +1421,7 @@ export default function LocatorScreen() {
                       pinColor: v.mode === "bus" ? "#1E3A8A" : v.mode === "tram" ? "#8B0000" : "#FFC400",
                       heading: v.heading ?? null,
                       estimated: v.estimated ?? false,
+                      path,
                     };
                   })
               : undefined
@@ -1353,6 +1432,14 @@ export default function LocatorScreen() {
               ? transitStops
               : undefined
           }
+          closures={
+            activeTab === "mobility" && (mobilityMode === "all" || mobilityMode === "bus")
+              ? closureLines
+              : undefined
+          }
+          onClosureClick={(closure) => {
+            setSelectedClosure({ ...closure, verified: (closure as any).verified });
+          }}
           onTransitStopPress={(stop) => {
             setSelectedStop({ stop_id: stop.stop_id, name: stop.name });
             setBusQuery(stop.name);
@@ -1384,6 +1471,9 @@ export default function LocatorScreen() {
             if (selectedLine) {
               setSelectedLine(null);
               setSelectedPattern(null);
+            }
+            if (selectedClosure) {
+              setSelectedClosure(null);
             }
           }}
           showUserLocation
@@ -1485,6 +1575,14 @@ export default function LocatorScreen() {
                     {tripProgress.delay_minutes > 0
                       ? ` · ${t("mobility.delay", "+{{n}} min", { n: tripProgress.delay_minutes })}`
                       : ""}
+                    {(() => {
+                      const v = liveVehicles.find((x) => x.vehicle_id === selectedVehicle);
+                      if (v && v.distance_to_next_stop_m != null && v.distance_to_next_stop_m > 0) {
+                        const km = (v.distance_to_next_stop_m / 1000).toFixed(1).replace(".", ",");
+                        return ` · ${km} km → ${v.next_stop_name || t("mobility.nextStop", "next stop")}`;
+                      }
+                      return "";
+                    })()}
                   </Text>
                 </View>
                 <Pressable onPress={() => { setSelectedVehicle(null); setTripProgress(null); }} hitSlop={8}>
@@ -1561,6 +1659,35 @@ export default function LocatorScreen() {
                   </Pressable>
                 ))}
               </ScrollView>
+            </View>
+          )}
+
+          {selectedClosure && (mobilityMode !== "taxi") && (
+            <View style={styles.linePanel}>
+              <View style={styles.linePanelHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linePanelTitle}>
+                    {selectedClosure.verified === false ? "⚠️ " : "⛔ "}
+                    {t("mobility.roadClosed", "Road closed")}
+                  </Text>
+                  <Text style={styles.linePanelHint}>
+                    {[selectedClosure.from, selectedClosure.to].filter(Boolean).join(" → ")}
+                  </Text>
+                  {selectedClosure.description ? (
+                    <Text style={styles.linePanelHint}>
+                      {selectedClosure.description}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.linePanelHint}>
+                    {selectedClosure.verified === false
+                      ? t("mobility.closureUnverified", "Report from TomTom - not yet matched to a street on our map.")
+                      : t("mobility.closureHint", "Cars, taxis and buses are blocked. Trams are not affected.")}
+                  </Text>
+                </View>
+                <Pressable onPress={() => setSelectedClosure(null)} hitSlop={8}>
+                  <Ionicons name="close-circle" size={22} color="#264348" />
+                </Pressable>
+              </View>
             </View>
           )}
 

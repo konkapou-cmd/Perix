@@ -13,6 +13,7 @@ type MapMarker = {
   heading?: number | null;
   estimated?: boolean;
   label?: string | null;
+  path?: { latitude: number; longitude: number }[];
 };
 
 type MapBounds = {
@@ -85,6 +86,19 @@ type Props = {
     weight?: number;
     opacity?: number;
   }[];
+  closures?: {
+    id: string;
+    points: { latitude: number; longitude: number }[];
+    from?: string;
+    to?: string;
+    description?: string;
+  }[];
+  onClosureClick?: (closure: {
+    id: string;
+    from?: string;
+    to?: string;
+    description?: string;
+  }) => void;
   showUserLocation?: boolean;
   userPinImage?: string | null;
   pinLocation?: { latitude: number; longitude: number } | null;

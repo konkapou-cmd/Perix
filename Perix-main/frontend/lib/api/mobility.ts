@@ -25,6 +25,10 @@ export type LiveVehicle = {
   trip_id?: string | null;
   trip_instance_id?: string | null;
   delay_minutes?: number;
+  next_stop_id?: string | null;
+  next_stop_name?: string | null;
+  distance_to_next_stop_m?: number | null;
+  pattern_id?: string | null;
 };
 
 export type DriverSession = {
@@ -65,6 +69,10 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
       trip_id: v.trip_id ?? null,
       trip_instance_id: v.trip_instance_id ?? null,
       delay_minutes: v.delay_minutes ?? 0,
+      next_stop_id: v.next_stop_id ?? null,
+      next_stop_name: v.next_stop_name ?? null,
+      distance_to_next_stop_m: v.distance_to_next_stop_m ?? null,
+      pattern_id: v.pattern_id ?? null,
     };
   });
 };
@@ -86,6 +94,10 @@ export type V2Vehicle = {
   trip_id?: string | null;
   delay_minutes?: number;
   estimated?: boolean;
+  next_stop_id?: string | null;
+  next_stop_name?: string | null;
+  distance_to_next_stop_m?: number | null;
+  pattern_id?: string | null;
 };
 
 export type V2Arrival = {
@@ -252,6 +264,34 @@ export const getTransitStops = (token: string | null | undefined) =>
 /** Stable map payload: resolved transit lines + physical stops. */
 export const getV2Map = (token: string | null | undefined) =>
   apiRequest<V2Map>(`/mobility/v2/map`, "GET", token || undefined);
+
+export type TrafficClosure = {
+  restriction_id: string;
+  kind: string;
+  geometry: [number, number][] | null;
+  blocked_modes?: string[];
+  allowed_modes?: string[];
+  verified?: boolean;
+  geometry_source?: string;
+  match_confidence?: number;
+  max_match_error_m?: number;
+  blocked_way_ids?: number[];
+  from?: string;
+  to?: string;
+  description?: string;
+  road_numbers?: string[];
+  valid_from?: string | null;
+  valid_until?: string | null;
+};
+
+export type TrafficInfo = {
+  incidents: Record<string, any>[];
+  closures: TrafficClosure[];
+  updated_at?: string | null;
+};
+
+export const getTraffic = (token: string | null | undefined) =>
+  apiRequest<TrafficInfo>(`/mobility/v2/traffic`, "GET", token || undefined);
 
 export type ServingBus = {
   vehicle_id: string;
