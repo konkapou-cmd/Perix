@@ -643,6 +643,9 @@ export default function LocatorScreen() {
   const closureLines = useMemo(() => {
     if (!showClosures) return [];
     return trafficClosures
+      // Only OSM-matched (verified) closures are drawn as blocked roads -
+      // unmatched TomTom reports would show a red line on the wrong street.
+      .filter((c) => c.verified !== false)
       .slice(0, 40)
       .map((c) => {
         const g = (c.geometry || []) as [number, number][];
@@ -1383,16 +1386,14 @@ export default function LocatorScreen() {
                   .map((v) => {
                     // The canonical line geometry the vehicle rides: the
                     // marker follows every curve of the road/rail instead
-                    // of cutting straight across between polls. Only when
-                    // the vehicle is actually ON that line - a wrong path
-                    // (missing pattern, opposite direction) would freeze
-                    // the animation on every poll.
+                    // of cutting straight across between polls. ONLY the
+                    // exact pattern match counts - a same-route fallback
+                    // could be the OPPOSITE direction and would pull the
+                    // marker onto the wrong line.
                     let path: { latitude: number; longitude: number }[] | undefined;
                     const vLine = transitMapLines.find((l) => l.pattern_id != null && l.pattern_id === v.pattern_id);
-                    const fallbackLine = transitMapLines.find((l) => l.route_number === v.route_number && l.mode === v.mode);
-                    const candidate = vLine || fallbackLine;
-                    if (candidate && candidate.points && candidate.points.length >= 2) {
-                      const pts = candidate.points;
+                    if (vLine && vLine.points && vLine.points.length >= 2) {
+                      const pts = vLine.points;
                       let minD = Infinity;
                       for (let i = 0; i < pts.length - 1; i++) {
                         const x0 = pts[i].latitude, y0 = pts[i].longitude;
