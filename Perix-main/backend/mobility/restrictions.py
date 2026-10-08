@@ -52,16 +52,6 @@ def restriction_blocks_mode(r: dict, mode: str) -> bool:
     return False
 
 
-def _hav_m(a_lat, a_lng, b_lat, b_lng) -> float:
-    import math
-
-    r = 6371000.0
-    p1, p2 = math.radians(a_lat), math.radians(b_lat)
-    dp, dl = math.radians(b_lat - a_lat), math.radians(b_lng - a_lng)
-    x = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    return r * 2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
-
-
 async def blocked_way_ids_for(mode: str, restrictions: List[dict]) -> set:
     """OSM way ids closed for this mode - ONLY from map-matched (verified)
     restrictions. Proximity guessing is gone: a parallel street must never
@@ -80,33 +70,6 @@ async def blocked_way_ids_for(mode: str, restrictions: List[dict]) -> set:
             except (TypeError, ValueError):
                 continue
     return blocked
-
-
-def way_blocked(mode: str, way: List[list], restrictions: List[dict]) -> bool:
-    """Legacy helper for manual restrictions without matched edges: any
-    sample point within 20m of a manual (non-TomTom) closure geometry."""
-    for r in restrictions:
-        if r.get("route_numbers"):
-            continue
-        if not restriction_blocks_mode(r, mode):
-            continue
-        if str(r.get("source") or "") == "TOMTOM_TRAFFIC":
-            # TomTom closures block by exact matched edges only.
-            continue
-        geom = r.get("geometry") or []
-        if len(geom) < 2:
-            continue
-        for i in range(0, len(way), 3):
-            wlat, wlng = way[i]
-            for j in range(len(geom) - 1):
-                x0, y0 = geom[j]
-                x1, y1 = geom[j + 1]
-                dx, dy = x1 - x0, y1 - y0
-                denom = dx * dx + dy * dy
-                t = 0.0 if denom == 0 else max(0.0, min(1.0, ((wlat - x0) * dx + (wlng - y0) * dy) / denom))
-                if _hav_m(wlat, wlng, x0 + t * dx, y0 + t * dy) < 20.0:
-                    return True
-    return False
 
 
 async def invalidate_geometries(restriction: dict) -> None:

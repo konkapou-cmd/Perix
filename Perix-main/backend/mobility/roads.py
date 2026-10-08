@@ -16,6 +16,8 @@ import httpx
 OVERPASS_URLS = [
     "https://overpass.kumi.systems/api/interpreter",
     "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.osm.ch/api/interpreter",
 ]
 
 HIGHWAY_FILTER = (
@@ -40,16 +42,17 @@ async def _fetch_ways(bbox: Tuple[float, float, float, float], mode: str) -> Lis
     return [w["points"] for w in await _fetch_ways_detailed(bbox, mode)]
 
 
-async def _fetch_ways_detailed(bbox: Tuple[float, float, float, float], mode: str) -> List[dict]:
-    """Overpass ways with their ids: [{id, points}]."""
+async def _fetch_ways_detailed(bbox: Tuple[float, float, float, float], mode: str, with_names: bool = False) -> List[dict]:
+    """Overpass ways with their ids: [{id, points, name?}]."""
     s, w, n, e = bbox
+    out_stmt = "out body;" if with_names else "out geom;"
     if mode == "tram":
         query = (
-            f'[out:json][timeout:90];way["railway"~"{RAILWAY_FILTER}"]({s},{w},{n},{e});out geom;'
+            f'[out:json][timeout:90];way["railway"~"{RAILWAY_FILTER}"]({s},{w},{n},{e});{out_stmt}'
         )
     else:
         query = (
-            f'[out:json][timeout:90];way["highway"~"{HIGHWAY_FILTER}"]({s},{w},{n},{e});out geom;'
+            f'[out:json][timeout:90];way["highway"~"{HIGHWAY_FILTER}"]({s},{w},{n},{e});{out_stmt}'
         )
     last_err: Optional[Exception] = None
     for url in OVERPASS_URLS:
@@ -64,13 +67,23 @@ async def _fetch_ways_detailed(bbox: Tuple[float, float, float, float], mode: st
                 ways = []
                 for el in data.get("elements", []):
                     if el.get("type") == "way" and el.get("geometry"):
+                        pts = [[p.get("lat"), p.get("lon")] for p in el["geometry"]]
+                        if len(pts) < 2:
+                            continue
                         ways.append(
                             {
                                 "id": int(el.get("id") or 0),
-                                "points": [[p.get("lat"), p.get("lon")] for p in el["geometry"]],
+                                "points": pts,
+                                "name": (el.get("tags") or {}).get("name") or None,
                             }
                         )
-                return ways
+                if ways:
+                    return ways
+                # A 200 with zero ways means a stale/empty mirror - treat it
+                # as a failure and try the next mirror instead of returning
+                # an empty graph silently.
+                last_err = RuntimeError("empty response (0 ways)")
+                await asyncio.sleep(2 * (attempt + 1))
             except Exception as err:
                 last_err = err
                 await asyncio.sleep(2 * (attempt + 1))

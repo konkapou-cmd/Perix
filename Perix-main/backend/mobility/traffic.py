@@ -1,17 +1,19 @@
 """TomTom Traffic Incidents adapter (Orbis Maps v2).
 
-Fetches live traffic incidents around the active network's area and maps
-them into the canonical restriction model:
-- roadClosed  -> road_closed  (blocked: car, taxi, bus; trams unaffected)
-- laneClosed / accident / jam / roadWorks -> informational incidents
-  (stored, exposed via /v2/traffic)
+Our map is authoritative. TomTom contributes ONLY the STREET NAMES of a
+closure - we look the names up on our own OSM road graph and block those
+exact ways:
+- roadClosed + street name found      -> verified closure (car/taxi/bus
+  blocked, trams unaffected), canonical geometry = OUR road.
+- roadClosed but name not on our map  -> informational only (never blocks).
+- laneClosed / jam / roadWorks        -> informational incidents.
 
-The restriction documents carry source=TOMTOM_TRAFFIC and are refreshed
-every poll (stale ones removed), so closures always reflect reality.
-"""
+Refreshed every poll (stale closures removed)."""
 import asyncio
+import hashlib
 import math
 import os
+import re
 from typing import List, Optional
 
 import httpx
@@ -27,6 +29,13 @@ ATTRIBUTES = (
     "magnitudeOfDelay,startTime,endTime,from,to,lengthInMeters,delayInSeconds,"
     "roadNumbers,events(description,code,iconCategory),probabilityOfOccurrence))"
 )
+
+_WAYS_CACHE = {"at": 0.0, "ways": []}
+
+_STREET_STOPWORDS = {
+    "straße", "strasse", "str", "st", "weg", "allee", "platz", "ring",
+    "chaussee", "damm", "gasse", "ufer", "brücke", "bruecke", "tor",
+}
 
 
 async def fetch_incidents(bbox: str = MAGDEBURG_BBOX) -> List[dict]:
@@ -54,96 +63,58 @@ async def fetch_incidents(bbox: str = MAGDEBURG_BBOX) -> List[dict]:
     return data.get("incidents") or []
 
 
-MAGDEBURG_ROAD_BBOX = (52.00, 11.45, 52.25, 11.80)
-MATCH_MAX_ERROR_M = 20.0
-MATCH_MIN_COVERAGE = 0.6
-
-_WAYS_CACHE = {"at": 0.0, "ways": []}
-
-
 async def _city_road_ways() -> List[dict]:
-    """The Perix OSM road graph for Magdeburg (cached an hour). Closures
-    map-match against THIS network - the same one buses route on - so a
-    red line and a blocked edge always mean the exact same road."""
+    """The Perix OSM road graph for Magdeburg - in-memory cache, persisted
+    to the database so a restart or an Overpass outage never zeroes the
+    name matching (last-known-good ways are always available). The city is
+    fetched in quadrant queries: a single city-wide way query times out on
+    busy Overpass days, small ones still succeed."""
     import time
 
     now = time.monotonic()
     if _WAYS_CACHE["ways"] and now - _WAYS_CACHE["at"] < 3600:
         return _WAYS_CACHE["ways"]
+    from database import db
+
+    stored = await db.mobility_osm_roads.find_one({"key": "magdeburg_roads"}, {"_id": 0})
+    if stored and stored.get("ways"):
+        _WAYS_CACHE["ways"] = stored["ways"]
+        age = now - float(stored.get("at") or 0)
+        if age < 24 * 3600:
+            _WAYS_CACHE["at"] = stored.get("at") or now
+            return _WAYS_CACHE["ways"]
     try:
         from mobility.roads import _fetch_ways_detailed
 
-        ways = await _fetch_ways_detailed(MAGDEBURG_ROAD_BBOX, "bus")
-        if ways:
+        quadrants = [
+            (52.00, 11.45, 52.125, 11.625),
+            (52.00, 11.625, 52.125, 11.80),
+            (52.125, 11.45, 52.25, 11.625),
+            (52.125, 11.625, 52.25, 11.80),
+        ]
+        ways_by_id = {}
+        for bbox in quadrants:
+            try:
+                part = await _fetch_ways_detailed(bbox, "bus", with_names=True)
+                for w in part:
+                    ways_by_id[int(w.get("id") or 0)] = w
+            except Exception as e:
+                print(f"[mobility] tomtom: quadrant fetch failed {bbox}: {type(e).__name__}", flush=True)
+        if ways_by_id:
+            ways = list(ways_by_id.values())
             _WAYS_CACHE["at"] = now
             _WAYS_CACHE["ways"] = ways
+            try:
+                await db.mobility_osm_roads.replace_one(
+                    {"key": "magdeburg_roads"},
+                    {"key": "magdeburg_roads", "at": now, "ways": ways},
+                    upsert=True,
+                )
+            except Exception as e:
+                print(f"[mobility] tomtom: osm roads persist failed: {type(e).__name__}: {e}", flush=True)
     except Exception as e:
         print(f"[mobility] tomtom: city road fetch failed: {type(e).__name__}: {e}", flush=True)
     return _WAYS_CACHE["ways"]
-
-
-def _snap_points_to_roads(raw_geom: List[list], ways: List[dict]) -> dict:
-    """Project every TomTom point onto the nearest OSM road way.
-
-    Returns {geometry, way_ids, max_error_m, coverage} or None when the
-    closure does not sit on our road network (max error > 20m)."""
-    if not raw_geom or not ways:
-        return None
-    # Precompute per-way bbox for fast rejection
-    way_boxes = []
-    for w in ways:
-        pts = w["points"]
-        lats = [p[0] for p in pts]
-        lngs = [p[1] for p in pts]
-        way_boxes.append((min(lats), max(lats), min(lngs), max(lngs)))
-    projected = []
-    matched_way_ids = set()
-    errors = []
-    for (lat, lng) in raw_geom:
-        best = None  # (dist, px, py, way_id)
-        for wi, w in enumerate(ways):
-            smin, smax, wmin, wmax = way_boxes[wi]
-            if lat < smin - 0.002 or lat > smax + 0.002 or lng < wmin - 0.002 or lng > wmax + 0.002:
-                continue
-            pts = w["points"]
-            for i in range(len(pts) - 1):
-                x0, y0 = pts[i]
-                x1, y1 = pts[i + 1]
-                dx, dy = x1 - x0, y1 - y0
-                denom = dx * dx + dy * dy
-                t = 0.0 if denom == 0 else max(0.0, min(1.0, ((lat - x0) * dx + (lng - y0) * dy) / denom))
-                px, py = x0 + t * dx, y0 + t * dy
-                d = _haversine_m(lat, lng, px, py)
-                if best is None or d < best[0]:
-                    best = (d, px, py, w.get("id"))
-        if best is None:
-            errors.append(999.0)
-            continue
-        d, px, py, wid = best
-        errors.append(d)
-        projected.append((px, py))
-        if wid:
-            matched_way_ids.add(wid)
-    if not projected:
-        return None
-    max_error = max(errors)
-    within = sum(1 for e in errors if e <= MATCH_MAX_ERROR_M)
-    coverage = within / max(1, len(errors))
-    if max_error > MATCH_MAX_ERROR_M or coverage < MATCH_MIN_COVERAGE:
-        return None
-    # Dedupe consecutive duplicates and build the snapped line
-    geom = []
-    for px, py in projected:
-        if not geom or _haversine_m(geom[-1][0], geom[-1][1], px, py) > 2.0:
-            geom.append([round(px, 6), round(py, 6)])
-    if len(geom) < 2:
-        return None
-    return {
-        "geometry": geom,
-        "way_ids": sorted(matched_way_ids),
-        "max_error_m": round(max_error, 1),
-        "coverage": round(coverage, 3),
-    }
 
 
 def _haversine_m(lat1, lng1, lat2, lng2) -> float:
@@ -152,6 +123,16 @@ def _haversine_m(lat1, lng1, lat2, lng2) -> float:
     dp, dl = math.radians(lat2 - lat1), math.radians(lng2 - lng1)
     a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _name_tokens(text) -> set:
+    out = set()
+    for part in re.split(r"[/|,;]+", text or ""):
+        for word in re.findall(r"[A-Za-zÄÖÜäöüß]{3,}", part):
+            w = word.lower()
+            if w not in _STREET_STOPWORDS:
+                out.add(w)
+    return out
 
 
 def _incident_geometry(incident: dict, max_points: int = 60) -> List[list]:
@@ -171,14 +152,53 @@ def _incident_geometry(incident: dict, max_points: int = 60) -> List[list]:
     return out
 
 
-async def sync_tomtom_restrictions() -> dict:
-    """Upsert live TomTom restrictions; remove stale TomTom ones.
+def _match_by_street_name(from_str: str, to_str: str, area: List[list], ways: List[dict]) -> Optional[dict]:
+    """Block by STREET NAME - the TomTom names are authoritative.
 
-    Every roadClosed incident is map-matched onto the Perix OSM road
-    graph: raw TomTom geometry is kept, but the canonical closure line
-    follows OUR road centerlines and blocks the EXACT matched OSM edges
-    (never parallel streets by proximity). Unmatched incidents stay
-    informational only - they never block routing."""
+    A closure reported for 'Halberstädter Straße' blocks Halberstädter
+    Straße, never the parallel Carl-Miller-Straße, no matter how offset
+    the provider geometry is. Only ways whose name matches AND that sit
+    near the incident area are taken."""
+    target = _name_tokens(from_str) | _name_tokens(to_str)
+    if not target or not area:
+        return None
+    lats = [p[0] for p in area]
+    lngs = [p[1] for p in area]
+    slat, nlat = min(lats) - 0.008, max(lats) + 0.008
+    wlng, elng = min(lngs) - 0.008, max(lngs) + 0.008
+    sample = area[::3] if len(area) > 3 else area
+    matched_ways = []
+    for w in ways:
+        wtokens = _name_tokens(w.get("name"))
+        if not (wtokens & target):
+            continue
+        pts = w.get("points") or []
+        if not pts:
+            continue
+        wlats = [p[0] for p in pts]
+        wlngs = [p[1] for p in pts]
+        if max(wlats) < slat or min(wlats) > nlat or max(wlngs) < wlng or min(wlngs) > elng:
+            continue
+        if not any(_haversine_m(p[0], p[1], rp[0], rp[1]) < 80.0 for p in pts for rp in sample):
+            continue
+        matched_ways.append(w)
+    if not matched_ways:
+        return None
+    geom = []
+    for w in matched_ways:
+        for p in w["points"]:
+            if not geom or _haversine_m(geom[-1][0], geom[-1][1], p[0], p[1]) > 2.0:
+                geom.append([round(p[0], 6), round(p[1], 6)])
+    if len(geom) < 2:
+        return None
+    return {
+        "geometry": geom,
+        "way_ids": sorted({int(w.get("id") or 0) for w in matched_ways if w.get("id")}),
+    }
+
+
+async def sync_tomtom_restrictions() -> dict:
+    """Upsert live TomTom restrictions; remove stale TomTom ones."""
     from database import db
 
     incidents = await fetch_incidents()
@@ -200,23 +220,19 @@ async def sync_tomtom_restrictions() -> dict:
         description = "; ".join(e.get("description") or "" for e in events) if events else ""
         from_str = props.get("from") or ""
         to_str = props.get("to") or ""
-        import hashlib
 
         # Feed ids can repeat across incidents - make the key unique per
         # closure location.
         rid = f"tomtom:{inc_id}:{hashlib.sha1(f'{from_str}|{to_str}|{category}'.encode('utf-8')).hexdigest()[:10]}"
         seen_keys.add(rid)
         if category == "roadClosed":
-            match = _snap_points_to_roads(geom, ways) if (geom and len(geom) >= 2) else None
+            match = _match_by_street_name(from_str, to_str, geom, ways) if len(geom) >= 2 else None
             if match:
                 doc = {
                     "restriction_id": rid,
                     "kind": "road_closed",
                     "geometry": match["geometry"],
-                    "raw_geometry": geom,
-                    "geometry_source": "OSM_MATCHED_TOMTOM",
-                    "match_confidence": match["coverage"],
-                    "max_match_error_m": match["max_error_m"],
+                    "geometry_source": "OSM_NAMED_TOMTOM",
                     "blocked_way_ids": match["way_ids"],
                     "verified": True,
                     "blocked_modes": ["car", "taxi", "bus"],
@@ -226,7 +242,6 @@ async def sync_tomtom_restrictions() -> dict:
                     "valid_from": props.get("startTime"),
                     "valid_until": props.get("endTime"),
                     "source": "TOMTOM_TRAFFIC",
-                    "road_numbers": props.get("roadNumbers") or [],
                     "from": from_str,
                     "to": to_str,
                     "description": description,
@@ -234,12 +249,11 @@ async def sync_tomtom_restrictions() -> dict:
                 }
                 verified += 1
             else:
-                # Not matched to our road network: informational only.
+                # Street name not found on our map: informational only.
                 doc = {
                     "restriction_id": rid,
                     "kind": "road_closed",
                     "geometry": geom or [],
-                    "raw_geometry": geom or [],
                     "geometry_source": "TOMTOM_TRAFFIC_RAW",
                     "verified": False,
                     "blocked_way_ids": [],
@@ -250,7 +264,6 @@ async def sync_tomtom_restrictions() -> dict:
                     "valid_from": props.get("startTime"),
                     "valid_until": props.get("endTime"),
                     "source": "TOMTOM_TRAFFIC",
-                    "road_numbers": props.get("roadNumbers") or [],
                     "from": from_str,
                     "to": to_str,
                     "description": description,
@@ -294,16 +307,14 @@ async def sync_tomtom_restrictions() -> dict:
 async def traffic_worker():
     """Poll TomTom every 5 minutes and keep the restriction overlay fresh.
 
-    Note: no geometry invalidation here. Closures are an informational
-    overlay on top of the resolved lines (the resolver does not route
-    around them yet), and invalidating would evict the geometry cache
-    every cycle - making lines/vehicles flicker for minutes."""
+    No geometry invalidation here: closures are an overlay on top of the
+    resolved lines and only block the exact matched OSM ways."""
     while True:
         try:
             res = await sync_tomtom_restrictions()
             if res.get("closures") or res.get("informational"):
                 print(
-                    f"[mobility] tomtom: {res['closures']} closures ({res.get('verified', 0)} OSM-matched), "
+                    f"[mobility] tomtom: {res['closures']} closures ({res.get('verified', 0)} named), "
                     f"{res['informational']} informational incidents",
                     flush=True,
                 )

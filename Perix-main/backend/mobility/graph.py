@@ -9,9 +9,6 @@ ordered-stop polyline - never a wrong street.
 import math
 from typing import List, Optional
 
-# Priority order of the Geometry Resolver
-RESOLVER_PRIORITY = ["GTFS_SHAPE", "OSM_ROUTE", "PERIX_MANUAL", "STOP_FALLBACK"]
-
 # A geometry is invalid when any platform is farther than this from it
 MAX_PLATFORM_DISTANCE_M = 120.0
 
