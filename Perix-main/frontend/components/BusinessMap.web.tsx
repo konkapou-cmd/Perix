@@ -682,6 +682,18 @@ export default function BusinessMap({
         });
 
         map.addListener("bounds_changed", () => {
+          // Freeze vehicle glide animations while the map moves: the icons
+          // must stay anchored to their GEOGRAPHIC position during a pan,
+          // never keep sliding (which reads as 'following the map').
+          markersRef.current.forEach((rec: any) => {
+            if (rec?.animStart != null) {
+              rec.animStart = null;
+              if (rec.path && rec.cum && rec.progNow != null) {
+                rec.overlay.pos = pointAtProgress(rec.path, rec.cum, rec.progNow);
+              }
+              try { rec.overlay.draw(); } catch (e) {}
+            }
+          });
           const bounds = map.getBounds();
           if (!bounds) return;
           const ne = bounds.getNorthEast();
