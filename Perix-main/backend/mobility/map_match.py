@@ -79,22 +79,19 @@ def snap_to_geometry(
 
 
 def _geometry_points(route: dict) -> List[list]:
-    """Route geometry as [[lat, lng], ...] - ONLY the verified route shape.
+    """DEPRECATED - route-level geometry must not decide snap targets.
 
-    No stop-to-stop fallback: without a real road/rail geometry there is
-    nothing honest to snap to, so the caller must keep the last valid
-    position instead of showing a raw off-road GPS fix."""
-    sh = route.get("shape") or []
-    if isinstance(sh, list) and len(sh) > 2:
-        return [[float(p[0]), float(p[1])] for p in sh]
+    Live bus/tram GPS snaps ONLY to the exact canonical pattern geometry
+    (geometry_cache[pattern_id]) the map draws. No route.shape fallback:
+    without a canonical line there is nothing honest to snap to."""
     return []
 
 
 def assign_trip(route: dict, vehicle: dict, lat: float, lng: float, now_sec: int, delays: dict) -> Optional[dict]:
     """Assign the GPS vehicle to a trip: the trip must be active now
     (delay-adjusted window), roughly match the declared direction, and the
-    GPS position must sit near that trip's pattern."""
-    from routes.mobility import _trip_shape, _trip_window
+    GPS position must sit near that trip's CANONICAL pattern geometry."""
+    from routes.mobility import _trip_window
 
     direction = str(vehicle.get("route_direction") or "")
     candidates = []
@@ -105,10 +102,18 @@ def assign_trip(route: dict, vehicle: dict, lat: float, lng: float, now_sec: int
             continue
         if direction and str(trip.get("headsign") or "") not in ("", direction):
             continue
-        shape = _trip_shape(route, trip)
-        pts = [[float(p[0]), float(p[1])] for p in shape] if isinstance(shape, list) and len(shape) > 2 else []
-        if not pts:
-            pts = _geometry_points(route)
+        # Canonical pattern geometry only - the exact line the map draws.
+        pts: List[list] = []
+        try:
+            from mobility.domain import _pattern_id as _dom_pattern_id, _pattern_key as _dom_pattern_key
+            from mobility.geometry_cache import get_cached
+
+            pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
+            cached = get_cached(pat_id)
+            if cached and len(cached) >= 2:
+                pts = [[float(p[0]), float(p[1])] for p in cached]
+        except Exception:
+            pts = []
         if not pts:
             continue
         proj = nearest_segment(lat, lng, pts)

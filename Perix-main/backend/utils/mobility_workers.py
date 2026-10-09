@@ -497,6 +497,17 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
         return 0
     domain = build_domain(network, NETWORK_ID)
     version = str(network.get("version_id"))
+    # Cleanup migration: the canonical geometry collection holds ONLY the
+    # Perix graph. Old GTFS_SHAPE / legacy OSM_ROUTE docs are dropped so
+    # the OSM reconstruction takes their place.
+    try:
+        removed = await db.mobility_road_geometries.delete_many(
+            {"version_id": version, "source": {"$in": ["GTFS_SHAPE", "OSM_ROUTE"]}}
+        )
+        if removed.deleted_count:
+            _log(f"roads: removed {removed.deleted_count} non-canonical geometries (GTFS_SHAPE/OSM_ROUTE)")
+    except Exception as e:
+        _log(f"roads: cleanup failed: {type(e).__name__}: {e}")
     # Warm the in-process geometry cache with everything already computed
     # (the sync estimator reads exactly the same resolved geometry).
     try:
@@ -525,10 +536,15 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
         existing = await db.mobility_road_geometries.find_one(
             {"pattern_id": pid, "version_id": version}, {"_id": 0}
         )
-        # Rebuild old docs that predate the road/rail mode split - but a
-        # TARGETED rebuild (closure/override change) must always recompute,
-        # even when a geometry already exists (it may cross a closed road).
-        if only_patterns is None and existing and existing.get("mode"):
+        # Rebuild docs that predate the directed-graph schema (graph_v 2:
+        # real OSM node ids + oneway). Older geometries were built on
+        # synthetic node ids with cut way junctions.
+        if (
+            only_patterns is None
+            and existing
+            and existing.get("mode")
+            and existing.get("graph_v") == 2
+        ):
             continue
         coords = []
         for sid in pat.get("stop_ids") or []:
@@ -544,6 +560,11 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
             # Segment registry: store EVERY resolved stop-pair so a single
             # unresolved pair never discards the rest of the pattern. Once
             # all pairs exist the pattern becomes canonical (see graph.py).
+            # Old segments without graph_v are replaced (node ids were
+            # synthetic and cut the graph at way junctions).
+            await db.mobility_geometry_segments.delete_many(
+                {"pattern_id": pid, "version_id": version, "graph_v": {"$ne": 2}}
+            )
             stored = 0
             for seg in res.get("segments") or []:
                 if not seg.get("ok") or not seg.get("points"):
@@ -562,6 +583,7 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                         "end_node_id": seg.get("end_node_id"),
                         "edge_ids": seg.get("edge_ids") or [],
                         "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
+                        "graph_v": 2,
                         "created_at": _berlin_now().isoformat(),
                     },
                     upsert=True,
@@ -588,6 +610,7 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                             "mode": mode,
                             "points": pts,
                             "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
+                            "graph_v": 2,
                             "created_at": _berlin_now().isoformat(),
                         },
                         upsert=True,
@@ -605,6 +628,9 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                 _log(f"roads: {pid} ({mode}) missing pairs {res['missing_pairs']} (stored {stored} segments)")
         except Exception as e:
             _log(f"roads: {pid} failed: {type(e).__name__}: {e}")
+            if "Overpass failed" in str(e):
+                # Rate-limited or down: stop the pass, retry next cycle.
+                break
         await asyncio.sleep(0.3)
     _log(f"roads: precomputed {done} pattern geometries")
     return done

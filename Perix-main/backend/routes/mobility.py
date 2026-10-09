@@ -647,12 +647,11 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> 
 
         pts = get_cached(pat_id)
         if pts and len(pts) >= 2:
-            pts_f = [[float(p[0]), float(p[1])] for p in pts]
-            # Only ride geometry the map actually draws (resolver validates
-            # the same way) - otherwise the marker floats on a line the
-            # passenger cannot see.
-            if _assembled_matches_timeline(pts_f, timeline):
-                points = pts_f
+            # The cache is seeded ONLY with resolver-validated geometry
+            # (the exact line the map draws) - trust it and ride it. The
+            # extra timeline check here used to reject good lines when the
+            # trip's stop set differs slightly from the pattern's.
+            points = [[float(p[0]), float(p[1])] for p in pts]
     except Exception:
         points = None
     if points is None:
@@ -686,31 +685,11 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> 
         if isinstance(shape, list) and len(shape) > 2:
             shape_pts = [[float(p[0]), float(p[1])] for p in shape]
             if _assembled_matches_timeline(shape_pts, timeline):
+                # Temporary vehicle position only (stop-anchored fallback
+                # quality). The GTFS shape is NEVER written into the
+                # canonical road geometry collection - only the Perix OSM
+                # graph produces canonical lines.
                 points = shape_pts
-                # Persist as canonical so the map draws the SAME line the
-                # vehicle rides (pattern-level shape_id may be missing even
-                # when the trip carries a verified shape).
-                try:
-                    from mobility.geometry_cache import set_cached
-
-                    net = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
-                    version_id = (net or {}).get("version_id")
-                    if version_id:
-                        await db.mobility_road_geometries.replace_one(
-                            {"pattern_id": pat_id},
-                            {
-                                "pattern_id": pat_id,
-                                "version_id": version_id,
-                                "mode": str(route.get("mode") or "bus"),
-                                "points": shape_pts,
-                                "source": "GTFS_SHAPE",
-                                "created_at": datetime.now().isoformat(),
-                            },
-                            upsert=True,
-                        )
-                    set_cached(pat_id, shape_pts)
-                except Exception:
-                    pass
     if not points:
         # Don't cache the miss - the background precompute may fill the
         # resolved geometry shortly after and the marker should appear then.

@@ -30,7 +30,7 @@ ATTRIBUTES = (
     "roadNumbers,events(description,code,iconCategory),probabilityOfOccurrence))"
 )
 
-_WAYS_CACHE = {"at": 0.0, "ways": []}
+_WAYS_CACHE = {"at": 0.0, "ways": [], "last_attempt": 0.0}
 
 _STREET_STOPWORDS = {
     "straße", "strasse", "str", "st", "weg", "allee", "platz", "ring",
@@ -83,6 +83,11 @@ async def _city_road_ways() -> List[dict]:
         if age < 24 * 3600:
             _WAYS_CACHE["at"] = stored.get("at") or now
             return _WAYS_CACHE["ways"]
+    # Back off for 30 minutes after a failed attempt - hammering a
+    # rate-limited Overpass only makes the outage worse.
+    if now - float(_WAYS_CACHE.get("last_attempt") or 0) < 1800:
+        return []
+    _WAYS_CACHE["last_attempt"] = now
     try:
         from mobility.roads import _fetch_ways_detailed
 
@@ -155,11 +160,15 @@ def _incident_geometry(incident: dict, max_points: int = 60) -> List[list]:
 def _match_by_street_name(from_str: str, to_str: str, area: List[list], ways: List[dict]) -> Optional[dict]:
     """Block by STREET NAME - the TomTom names are authoritative.
 
-    A closure reported for 'Halberstädter Straße' blocks Halberstädter
-    Straße, never the parallel Carl-Miller-Straße, no matter how offset
-    the provider geometry is. Only ways whose name matches AND that sit
-    near the incident area are taken."""
-    target = _name_tokens(from_str) | _name_tokens(to_str)
+    The FIRST name is the closed road; a '/cross-street' part is just the
+    closure's reference point, not another closed way. Only the way
+    SECTION near the incident trace is blocked (its exact edges), never
+    the whole way - so a closure on Halberstädter Straße never touches
+    the parallel Carl-Miller-Straße or unrelated crossings."""
+    first_from = (from_str or "").split("/")[0]
+    target = _name_tokens(first_from)
+    if not target:
+        target = _name_tokens(to_str)
     if not target or not area:
         return None
     lats = [p[0] for p in area]
@@ -167,38 +176,48 @@ def _match_by_street_name(from_str: str, to_str: str, area: List[list], ways: Li
     slat, nlat = min(lats) - 0.008, max(lats) + 0.008
     wlng, elng = min(lngs) - 0.008, max(lngs) + 0.008
     sample = area[::3] if len(area) > 3 else area
-    matched_ways = []
+    geom = []
+    way_ids = set()
+    edge_ids = []
     for w in ways:
         wtokens = _name_tokens(w.get("name"))
         if not (wtokens & target):
             continue
         pts = w.get("points") or []
+        nids = w.get("nodes") or []
         if not pts:
             continue
         wlats = [p[0] for p in pts]
         wlngs = [p[1] for p in pts]
         if max(wlats) < slat or min(wlats) > nlat or max(wlngs) < wlng or min(wlngs) > elng:
             continue
-        if not any(_haversine_m(p[0], p[1], rp[0], rp[1]) < 80.0 for p in pts for rp in sample):
+        wid = int(w.get("id") or 0)
+        # Keep only the way section inside the incident area: its points
+        # AND the exact graph edges between them.
+        keep_idx = [i for i, p in enumerate(pts) if any(_haversine_m(p[0], p[1], rp[0], rp[1]) < 100.0 for rp in sample)]
+        if not keep_idx:
             continue
-        matched_ways.append(w)
-    if not matched_ways:
-        return None
-    # Draw ONLY the part of the street near the incident (the whole OSM way
-    # could span kilometers and would look like a smudge). Each kept point
-    # must sit close to the provider's incident trace.
-    geom = []
-    for w in matched_ways:
-        for p in w["points"]:
-            if not any(_haversine_m(p[0], p[1], rp[0], rp[1]) < 100.0 for rp in sample):
-                continue
+        way_ids.add(wid)
+        for idx in keep_idx:
+            p = pts[idx]
             if not geom or _haversine_m(geom[-1][0], geom[-1][1], p[0], p[1]) > 2.0:
                 geom.append([round(p[0], 6), round(p[1], 6)])
+        for i in range(len(pts) - 1):
+            if i in keep_idx and (i + 1) in keep_idx:
+                na = nids[i] if i < len(nids) else None
+                nb = nids[i + 1] if i + 1 < len(nids) else None
+                if na is not None and nb is not None:
+                    edge_ids.append(f"{wid}:{na}:{nb}")
+                else:
+                    way_ids.add(wid)
+    if not way_ids:
+        return None
     if len(geom) < 2:
         return None
     return {
         "geometry": geom,
-        "way_ids": sorted({int(w.get("id") or 0) for w in matched_ways if w.get("id")}),
+        "way_ids": sorted(way_ids),
+        "edge_ids": edge_ids,
     }
 
 
@@ -240,6 +259,7 @@ async def sync_tomtom_restrictions() -> dict:
                     "geometry": match["geometry"],
                     "geometry_source": "OSM_NAMED_TOMTOM",
                     "blocked_way_ids": match["way_ids"],
+                    "blocked_edge_ids": match.get("edge_ids") or [],
                     "verified": True,
                     "blocked_modes": ["car", "taxi", "bus"],
                     "allowed_modes": ["tram"],
@@ -315,11 +335,10 @@ _PREV_BLOCKED_SIG = None
 
 
 async def traffic_worker():
-    """Poll TomTom every 5 minutes and keep the restriction overlay fresh.
-
-    When the set of blocked OSM ways actually CHANGES, the affected bus
-    patterns are rebuilt (targeted, last-known-good) so closures move bus
-    routes instead of just drawing a red overlay on top of them."""
+    """Poll TomTom every 6 HOURS. TomTom contributes ONLY street names +
+    validity for closures ('road X is reported closed') - nothing else.
+    When the named set changes, Perix maps the names onto its own graph
+    (targeted, last-known-good rebuild for affected bus patterns)."""
     global _PREV_BLOCKED_SIG
     while True:
         try:
@@ -358,4 +377,4 @@ async def traffic_worker():
                 _PREV_BLOCKED_SIG = new_sig
         except Exception as e:
             print(f"[mobility] tomtom worker error: {type(e).__name__}: {e}", flush=True)
-        await asyncio.sleep(300)
+        await asyncio.sleep(21600)

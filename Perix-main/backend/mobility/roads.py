@@ -45,10 +45,11 @@ async def _fetch_ways(bbox: Tuple[float, float, float, float], mode: str) -> Lis
 async def _fetch_ways_detailed(bbox: Tuple[float, float, float, float], mode: str, with_names: bool = False) -> List[dict]:
     """Overpass ways with OSM node ids and tags: [{id, nodes, points, name, tags}]."""
     s, w, n, e = bbox
-    # out body geom; -> node refs + tags + geometry (names AND coordinates
-    # together; a plain 'out body;' has no geometry and silently empties
-    # the graph on fresh deployments).
-    out_stmt = "out body geom;" if with_names else "out geom;"
+    # 'out body geom;' always: node refs + tags + geometry. Node ids are
+    # REQUIRED for way connectivity - a plain 'out geom;' has no node refs,
+    # so every way would get synthetic node ids and the graph would be cut
+    # at every way junction (segments failing without reason).
+    out_stmt = "out body geom;"
     if mode == "tram":
         query = (
             f'[out:json][timeout:90];way["railway"~"{RAILWAY_FILTER}"]({s},{w},{n},{e});{out_stmt}'
@@ -59,7 +60,7 @@ async def _fetch_ways_detailed(bbox: Tuple[float, float, float, float], mode: st
         )
     last_err: Optional[Exception] = None
     for url in OVERPASS_URLS:
-        for attempt in range(3):
+        for attempt in range(2):
             try:
                 async with httpx.AsyncClient(
                     timeout=150, headers={"User-Agent": "PerixMobility/1.0 (app.perixapp.com)"}
@@ -89,10 +90,10 @@ async def _fetch_ways_detailed(bbox: Tuple[float, float, float, float], mode: st
                 # as a failure and try the next mirror instead of returning
                 # an empty graph silently.
                 last_err = RuntimeError("empty response (0 ways)")
-                await asyncio.sleep(2 * (attempt + 1))
+                await asyncio.sleep(5 * (attempt + 1))
             except Exception as err:
                 last_err = err
-                await asyncio.sleep(2 * (attempt + 1))
+                await asyncio.sleep(5 * (attempt + 1))
     raise RuntimeError(f"Overpass failed: {last_err}")
 
 
@@ -227,6 +228,7 @@ def _route_stops_segments_sync(
     ways: List[dict],
     blocked_way_ids: Optional[set] = None,
     mode: str = "bus",
+    blocked_eids: Optional[set] = None,
 ) -> dict:
     """Route each consecutive stop pair independently (segment registry).
 
@@ -241,6 +243,7 @@ def _route_stops_segments_sync(
         mode,
     )
     blocked_way_ids = blocked_way_ids or set()
+    blocked_eids = blocked_eids or set()
     blocked_edges = set()
     for (a, b), wid in edge_way.items():
         if wid in blocked_way_ids:
@@ -248,6 +251,8 @@ def _route_stops_segments_sync(
             for nxt, d, eid in adj.get(a, []):
                 if nxt == b and edge_way.get((a, b)) == wid:
                     blocked_edges.add(eid)
+    for eid in blocked_eids:
+        blocked_edges.add(eid)
     segments = []
     for i in range(len(stops) - 1):
         if len(nodes) < 2:
@@ -319,17 +324,29 @@ async def compute_pattern_segments(stops: List[dict], mode: str = "bus") -> dict
         # mode (verified only - proximity-based blocking is gone, it kept
         # closing parallel streets by accident).
         blocked_way_ids: set = set()
+        blocked_eids: set = set()
         try:
-            from mobility.restrictions import blocked_way_ids_for, get_active_restrictions
+            from mobility.restrictions import (
+                blocked_edge_ids_for,
+                blocked_way_ids_for,
+                get_active_restrictions,
+            )
 
             restrictions = await get_active_restrictions()
             if restrictions:
                 blocked_way_ids = await blocked_way_ids_for(mode, restrictions)
+                blocked_eids = await blocked_edge_ids_for(mode, restrictions)
         except Exception:
             pass
         loop = asyncio.get_event_loop()
         res = await loop.run_in_executor(
-            None, _route_stops_segments_sync, pts, ways_detailed, blocked_way_ids, mode
+            None,
+            _route_stops_segments_sync,
+            pts,
+            ways_detailed,
+            blocked_way_ids,
+            mode,
+            blocked_eids,
         )
         if res["full"]:
             return res

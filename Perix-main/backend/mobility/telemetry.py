@@ -109,7 +109,7 @@ async def ingest_telemetry(request: Request, payload: dict = None):
     mode = vehicle.get("mode")
     if mode in ("bus", "tram") and vehicle.get("route_number"):
         try:
-            from mobility.map_match import assign_trip, snap_to_geometry, _geometry_points
+            from mobility.map_match import assign_trip, snap_to_geometry
             from routes.mobility import (
                 _get_active_network,
                 _network_route,
@@ -119,30 +119,34 @@ async def ingest_telemetry(request: Request, payload: dict = None):
 
             route = await _network_route(str(vehicle.get("route_number")))
             if route:
-                geometry = _geometry_points(route)
-                snap = snap_to_geometry(lat, lng, body.get("heading"), body.get("accuracy_m"), geometry)
-                if snap.get("snapped"):
-                    matched_lat, matched_lng = snap["latitude"], snap["longitude"]
-                    snapped = True
-                    snapped_distance_m = snap.get("distance_m")
-                    # Display heading = the road/rail bearing the vehicle is
-                    # riding, never the raw GPS compass (which can point
-                    # sideways during maneuvers).
-                    if snap.get("bearing") is not None:
-                        display_heading = snap["bearing"]
                 network = await _get_active_network()
                 trip_ids = [str(t.get("trip_id")) for t in route.get("trips", []) if t.get("trip_id")]
                 delays = await _realtime_delays_for(trip_ids)
-                trip = assign_trip(route, vehicle, matched_lat, matched_lng, _now_service_seconds(), delays)
+                # Canonical pattern geometry ONLY (the exact line the map
+                # draws). No route.shape, no Google fallback for transit.
+                trip = assign_trip(route, vehicle, lat, lng, _now_service_seconds(), delays)
                 if trip is not None:
                     trip_id = str(trip.get("trip_id"))
+                    from mobility.domain import _pattern_id as _dom_pattern_id, _pattern_key as _dom_pattern_key
+                    from mobility.geometry_cache import get_cached
+
+                    pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
+                    geometry = get_cached(pat_id) or []
+                    snap = snap_to_geometry(lat, lng, body.get("heading"), body.get("accuracy_m"), geometry)
+                    if snap.get("snapped"):
+                        matched_lat, matched_lng = snap["latitude"], snap["longitude"]
+                        snapped = True
+                        snapped_distance_m = snap.get("distance_m")
+                        # Display heading = the road/rail bearing the vehicle
+                        # is riding, never the raw GPS compass.
+                        if snap.get("bearing") is not None:
+                            display_heading = snap["bearing"]
         except Exception as e:
             print(f"[mobility] telemetry map-match failed: {type(e).__name__}: {e}", flush=True)
 
-    # Second opinion: Google Roads snap-to-road for bus/taxi GPS that did
-    # not land on our geometry (e.g. depot access, parallel street noise).
-    # Trams NEVER get a Google fallback: rails are ours.
-    if not snapped and mode in ("bus", "taxi"):
+    # Second opinion: Google Roads snap-to-road - TAXI ONLY. Transit GPS
+    # lives 100% on the Perix graph (canonical pattern or hidden).
+    if not snapped and mode == "taxi":
         try:
             from mobility.google_roads import snap_to_road
 

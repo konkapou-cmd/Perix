@@ -72,6 +72,22 @@ async def blocked_way_ids_for(mode: str, restrictions: List[dict]) -> set:
     return blocked
 
 
+async def blocked_edge_ids_for(mode: str, restrictions: List[dict]) -> set:
+    """Exact graph edge ids ('{way}:{node}:{node}') closed for this mode -
+    the closure blocks ONLY the incident section, not the whole way."""
+    blocked: set = set()
+    for r in restrictions:
+        if not r.get("verified", False):
+            continue
+        if r.get("route_numbers"):
+            continue
+        if not restriction_blocks_mode(r, mode):
+            continue
+        for eid in (r.get("blocked_edge_ids") or []):
+            blocked.add(str(eid))
+    return blocked
+
+
 async def invalidate_geometries(restriction: dict) -> None:
     """Rebuild ONLY the patterns affected by this restriction - and never
     delete the old geometry first (last-known-good): a line keeps its

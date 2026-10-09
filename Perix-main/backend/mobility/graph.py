@@ -86,10 +86,9 @@ def assemble_segments(segs: List[dict]) -> Optional[List[list]]:
     consecutive segments share the same graph node (segment[i].end_node_id
     == segment[i+1].start_node_id). Without a shared node there is NO
     continuous road/rail - joining coordinates would draw a fake line
-    across buildings, so the assembly is rejected instead.
-
-    Legacy segments without node ids are joined leniently (they predate
-    node tracking) but never mix with node-tracked ones."""
+    across buildings, so the assembly is rejected instead. STRICT: a
+    segment without node ids invalidates the whole assembly (legacy
+    segments are rebuilt by the worker, never joined leniently)."""
     segs = sorted(segs, key=lambda s: (int(s.get("a_idx", 0)), int(s.get("b_idx", 0))))
     assembled: List[list] = []
     prev_end = None
@@ -98,13 +97,16 @@ def assemble_segments(segs: List[dict]) -> Optional[List[list]]:
         if not pts:
             return None
         start_node = s.get("start_node_id")
-        if start_node is not None and prev_end is not None and int(start_node) != int(prev_end):
+        end_node = s.get("end_node_id")
+        if start_node is None or end_node is None:
+            return None
+        if prev_end is not None and int(start_node) != int(prev_end):
             return None
         if not assembled:
             assembled.extend(pts)
         else:
             assembled.extend(pts[1:])
-        prev_end = s.get("end_node_id")
+        prev_end = end_node
     return assembled if len(assembled) >= 2 else None
 
 
@@ -138,12 +140,10 @@ def resolve_pattern_geometry(
     ]
 
     candidates: List[tuple] = []
-    if pat.get("shape_id") and (pat.get("points") or []):
-        candidates.append(("GTFS_SHAPE", pat["points"]))
-    elif (pat.get("points") or []) and len(pat.get("points") or []) > 2:
-        # Import-validated legacy geometry (real OSM relation, pattern
-        # checked at import) - never the fake stop-to-stop line.
-        candidates.append(("OSM_ROUTE", pat["points"]))
+    # The Perix graph is the ONLY authority. GTFS shapes and legacy route
+    # polylines are NOT candidates anymore - they are import hints only
+    # (kept on the pattern doc for diagnostics). A line is either our
+    # canonical OSM edge chain, a verified manual correction, or hidden.
     for ov in overlays or []:
         if not ov.get("verified"):
             continue
