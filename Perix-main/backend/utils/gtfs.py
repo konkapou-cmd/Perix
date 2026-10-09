@@ -129,6 +129,7 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
                 "route_id": r["route_id"],
                 "headsign": (r.get("trip_headsign") or "").strip(),
                 "shape_id": (r.get("shape_id") or "").strip(),
+                "block_id": (r.get("block_id") or "").strip() or None,
                 "times": [],
             }
 
@@ -149,15 +150,20 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
             except Exception:
                 continue
 
-        # Stop times (streaming - the nationwide file has millions of rows)
+        # Stop times (streaming - the nationwide file has millions of rows).
+        # Arrival and departure are kept SEPARATE: a vehicle arrives, dwells
+        # and then departs - realistic stop behavior, not one shared time.
         for r in _iter_rows(zf, "stop_times.txt"):
             tid = r.get("trip_id")
             if tid not in trips or r.get("stop_id") not in stops:
                 continue
-            raw = r.get("departure_time") or r.get("arrival_time") or ""
-            if not raw:
+            arr = r.get("arrival_time") or ""
+            dep = r.get("departure_time") or arr
+            if not dep:
                 continue
-            trips[tid]["times"].append((int(r.get("stop_sequence") or 0), r["stop_id"], _hhmm(raw)))
+            trips[tid]["times"].append(
+                (int(r.get("stop_sequence") or 0), r["stop_id"], _hhmm(arr or dep), _hhmm(dep))
+            )
 
         # Shapes (streaming, keep only shapes referenced by the selected trips)
         needed_shape_ids = {t["shape_id"] for t in trips.values() if t.get("shape_id")}
@@ -198,23 +204,28 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
             if not g["shape_id"] and t["shape_id"]:
                 g["shape_id"] = t["shape_id"]
             stop_times = {}
-            for _seq, sid, hhmm in seqs:
-                stop_times.setdefault(sid, hhmm)
+            stop_times_arrival = {}
+            for _seq, sid, _arr, dep in seqs:
+                stop_times.setdefault(sid, dep)
                 if sid not in g["_seen"]:
                     g["_seen"].add(sid)
                     g["_stop_ids"].append(sid)
+            for _seq, sid, arr, _dep in seqs:
+                stop_times_arrival.setdefault(sid, arr)
             headsign = t["headsign"] or stops[seqs[-1][1]]["name"]
             g["trips"].append(
                 {
                     "trip_id": tid,
                     "headsign": headsign,
-                    "start": seqs[0][2],
-                    "end": seqs[-1][2],
+                    "start": seqs[0][3],
+                    "end": seqs[-1][3],
+                    "block_id": t["block_id"],
                     # Exact GTFS stop_sequence order for THIS trip.
                     # route.stops below is only a union for discovery/UI
                     # and must not define direction or progress.
-                    "stop_ids": [sid for _seq, sid, _hhmm_value in seqs],
+                    "stop_ids": [sid for _seq, sid, _arr, _dep in seqs],
                     "stop_times": stop_times,
+                    "stop_times_arrival": stop_times_arrival,
                     "shape_id": t["shape_id"] or None,
                 }
             )

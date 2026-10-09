@@ -475,7 +475,18 @@ export default function BusinessMap({
         return;
       }
     }
-    // Fallback: geographic lerp (no known line geometry).
+    // Fallback: geographic lerp (no known line geometry). Bus/tram NEVER
+    // interpolate through unknown space - they snap to the target (their
+    // position is always a stop anchor or a verified coordinate). Only
+    // taxis glide geographically.
+    if (rec.isTransit) {
+      rec.geoFrom = pos;
+      rec.geoTo = null;
+      rec.animStart = null;
+      rec.overlay.pos = pos;
+      try { rec.overlay.draw(); } catch (e) {}
+      return;
+    }
     let cur = rec.overlay.pos || pos;
     if (rec.animStart != null && rec.geoTo) {
       const t = Math.min(1, (nowTs - rec.animStart) / rec.animDuration);
@@ -798,14 +809,6 @@ export default function BusinessMap({
     // fromLatLngToPoint returns ZOOM-0 world coordinates (0-256 range) -
     // scale them to the current zoom so differences equal screen pixels.
     const worldScale = Math.pow(2, zoom);
-    // Nudge directions when two vehicles would overlap: keep BOTH visible
-    // instead of hiding one behind a cluster badge.
-    const NUDGES = [
-      { x: 26, y: -18 },
-      { x: -26, y: -18 },
-      { x: 26, y: 18 },
-      { x: -26, y: 18 },
-    ];
     try {
       if (projection) {
         const placed: { x: number; y: number; id: string; w: number; h: number }[] = [];
@@ -836,33 +839,12 @@ export default function BusinessMap({
             repOffsets.set(m.id, { x: 0, y: 0 });
             continue;
           }
-          // Try a small deterministic nudge first - both vehicles stay visible
-          let nudged = false;
-          for (const o of NUDGES) {
-            const nx = x + o.x;
-            const ny = y + o.y;
-            let free = true;
-            for (const pl of placed) {
-              if (overlaps(nx, ny, w, h, pl)) {
-                free = false;
-                break;
-              }
-            }
-            if (free) {
-              placed.push({ x: nx, y: ny, id: m.id, w, h });
-              clusterOf.set(m.id, m.id);
-              membersByRep.set(m.id, [m]);
-              repOffsets.set(m.id, o);
-              nudged = true;
-              break;
-            }
-          }
-          if (!nudged) {
-            // Truly crowded spot: join the nearest cluster
-            const repId = owner;
-            clusterOf.set(m.id, repId);
-            membersByRep.get(repId)!.push(m);
-          }
+          // Bus/tram must stay EXACTLY on their real coordinate (never
+          // visually displaced off the road/rail): join the nearest
+          // cluster badge instead of pixel-nudging them aside.
+          const repId = owner;
+          clusterOf.set(m.id, repId);
+          membersByRep.get(repId)!.push(m);
         }
       } else {
         throw new Error("no projection");
@@ -1166,6 +1148,7 @@ export default function BusinessMap({
         inner,
         heading,
         scale: vScale,
+        isTransit: rep.type === "bus" || rep.type === "tram",
         clusterIds: members.map((m) => m.id),
         clusterIdx: 0,
         badge,

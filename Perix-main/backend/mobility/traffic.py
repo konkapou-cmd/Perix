@@ -205,6 +205,7 @@ async def sync_tomtom_restrictions() -> dict:
     seen_keys = set()
     created = 0
     verified = 0
+    verified_docs = []
     informational = []
     ways = await _city_road_ways() if any(
         (i.get("properties") or {}).get("iconCategory") == "roadClosed" for i in incidents
@@ -248,6 +249,7 @@ async def sync_tomtom_restrictions() -> dict:
                     "updated_at": props.get("startTime") or "",
                 }
                 verified += 1
+                verified_docs.append(doc)
             else:
                 # Street name not found on our map: informational only.
                 doc = {
@@ -301,14 +303,19 @@ async def sync_tomtom_restrictions() -> dict:
             {"key": "current", "incidents": informational, "updated_at": _berlin_now().isoformat()},
             upsert=True,
         )
-    return {"closures": created, "verified": verified, "informational": len(informational)}
+    return {"closures": created, "verified": verified, "informational": len(informational), "restrictions": verified_docs}
+
+
+_PREV_BLOCKED_SIG = None
 
 
 async def traffic_worker():
     """Poll TomTom every 5 minutes and keep the restriction overlay fresh.
 
-    No geometry invalidation here: closures are an overlay on top of the
-    resolved lines and only block the exact matched OSM ways."""
+    When the set of blocked OSM ways actually CHANGES, the affected bus
+    patterns are rebuilt (targeted, last-known-good) so closures move bus
+    routes instead of just drawing a red overlay on top of them."""
+    global _PREV_BLOCKED_SIG
     while True:
         try:
             res = await sync_tomtom_restrictions()
@@ -318,6 +325,32 @@ async def traffic_worker():
                     f"{res['informational']} informational incidents",
                     flush=True,
                 )
+            new_sig = {
+                str(r.get("restriction_id")): set(r.get("blocked_way_ids") or [])
+                for r in (res.get("restrictions") or [])
+            }
+            if new_sig != _PREV_BLOCKED_SIG:
+                docs = list(res.get("restrictions") or [])
+                if docs:
+                    try:
+                        from mobility.restrictions import invalidate_geometries
+
+                        union = []
+                        for d in docs:
+                            union.extend(d.get("geometry") or [])
+                        if union:
+                            await invalidate_geometries(
+                                {
+                                    "route_numbers": [],
+                                    "geometry": union,
+                                    "blocked_modes": ["bus", "car", "taxi"],
+                                    "allowed_modes": ["tram"],
+                                }
+                            )
+                            print("[mobility] tomtom: closure set changed - rebuilding affected bus patterns", flush=True)
+                    except Exception as e:
+                        print(f"[mobility] tomtom: invalidation failed: {type(e).__name__}: {e}", flush=True)
+                _PREV_BLOCKED_SIG = new_sig
         except Exception as e:
             print(f"[mobility] tomtom worker error: {type(e).__name__}: {e}", flush=True)
         await asyncio.sleep(300)

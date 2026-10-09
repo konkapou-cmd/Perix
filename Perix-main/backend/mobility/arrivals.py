@@ -127,7 +127,20 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
         if not entry:
             continue
         gps = gps_by_trip.get(tid)
-        vehicle_id = (gps or {}).get("vehicle_id") if gps else f"est_{tt.get('route_number')}_{tid}"
+        if gps and gps.get("vehicle_id"):
+            vehicle_id = str(gps["vehicle_id"])
+        else:
+            # Use the SAME identity as the map: find the active vehicle
+            # currently on this trip (est_ vehicles are keyed by run).
+            matched = next(
+                (
+                    v.get("vehicle_id")
+                    for v in pos_by_id.values()
+                    if str(v.get("trip_id") or "") == tid
+                ),
+                None,
+            )
+            vehicle_id = matched or f"est_{tt.get('route_number')}_{tid}"
         distance_m = None
         if stop_lat is not None:
             veh = pos_by_id.get(vehicle_id)

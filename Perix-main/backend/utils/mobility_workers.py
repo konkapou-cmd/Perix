@@ -525,8 +525,10 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
         existing = await db.mobility_road_geometries.find_one(
             {"pattern_id": pid, "version_id": version}, {"_id": 0}
         )
-        # Rebuild old docs that predate the road/rail mode split
-        if existing and existing.get("mode"):
+        # Rebuild old docs that predate the road/rail mode split - but a
+        # TARGETED rebuild (closure/override change) must always recompute,
+        # even when a geometry already exists (it may cross a closed road).
+        if only_patterns is None and existing and existing.get("mode"):
             continue
         coords = []
         for sid in pat.get("stop_ids") or []:
@@ -556,6 +558,9 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                         "a_idx": seg["a_idx"],
                         "b_idx": seg["b_idx"],
                         "points": seg["points"],
+                        "start_node_id": seg.get("start_node_id"),
+                        "end_node_id": seg.get("end_node_id"),
+                        "edge_ids": seg.get("edge_ids") or [],
                         "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
                         "created_at": _berlin_now().isoformat(),
                     },

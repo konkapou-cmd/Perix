@@ -81,6 +81,33 @@ def validate_geometry(points: List[list], platforms: List[dict]) -> dict:
     return {"valid": missing == 0 and mono, "max_platform_distance_m": round(max_d, 1), "missing_platforms": missing}
 
 
+def assemble_segments(segs: List[dict]) -> Optional[List[list]]:
+    """Join stored stop-pair segments into ONE polyline - but only when
+    consecutive segments share the same graph node (segment[i].end_node_id
+    == segment[i+1].start_node_id). Without a shared node there is NO
+    continuous road/rail - joining coordinates would draw a fake line
+    across buildings, so the assembly is rejected instead.
+
+    Legacy segments without node ids are joined leniently (they predate
+    node tracking) but never mix with node-tracked ones."""
+    segs = sorted(segs, key=lambda s: (int(s.get("a_idx", 0)), int(s.get("b_idx", 0))))
+    assembled: List[list] = []
+    prev_end = None
+    for s in segs:
+        pts = [[float(p[0]), float(p[1])] for p in (s.get("points") or [])]
+        if not pts:
+            return None
+        start_node = s.get("start_node_id")
+        if start_node is not None and prev_end is not None and int(start_node) != int(prev_end):
+            return None
+        if not assembled:
+            assembled.extend(pts)
+        else:
+            assembled.extend(pts[1:])
+        prev_end = s.get("end_node_id")
+    return assembled if len(assembled) >= 2 else None
+
+
 def resolve_pattern_geometry(
     pat: dict,
     platforms_by_id: dict,
@@ -145,16 +172,8 @@ def resolve_pattern_geometry(
     if segs and expected_pairs > 0:
         covered = {(int(s.get("a_idx")), int(s.get("b_idx"))) for s in segs if s.get("points")}
         if len(covered) == expected_pairs:
-            assembled = []
-            for s in segs:
-                pts = [[float(p[0]), float(p[1])] for p in (s.get("points") or [])]
-                if not pts:
-                    break
-                if not assembled:
-                    assembled.extend(pts)
-                else:
-                    assembled.extend(pts[1:])
-            if len(assembled) >= 2:
+            assembled = assemble_segments(segs)
+            if assembled is not None:
                 candidates.append(
                     ("OSM_RAIL_SEGMENTS" if mode == "tram" else "OSM_ROADS_SEGMENTS", assembled)
                 )

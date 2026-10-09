@@ -673,16 +673,10 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> 
             n_stops = len(trip.get("stop_ids") or route.get("stop_ids") or [])
             covered = {(int(s.get("a_idx")), int(s.get("b_idx"))) for s in segs if s.get("points")}
             if segs and n_stops > 0 and len(covered) == max(0, n_stops - 1):
-                assembled: List[list] = []
-                for s in segs:
-                    pts_s = [[float(p[0]), float(p[1])] for p in (s.get("points") or [])]
-                    if not pts_s:
-                        break
-                    if not assembled:
-                        assembled.extend(pts_s)
-                    else:
-                        assembled.extend(pts_s[1:])
-                if len(assembled) >= 2 and _assembled_matches_timeline(assembled, timeline):
+                from mobility.graph import assemble_segments
+
+                assembled = assemble_segments(segs)
+                if assembled is not None and _assembled_matches_timeline(assembled, timeline):
                     points = assembled
                     set_cached(pat_id, assembled)
         except Exception:
