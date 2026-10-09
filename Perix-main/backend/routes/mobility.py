@@ -640,8 +640,9 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> 
 
     points: Optional[List[list]] = None
     # Resolved V2 geometry FIRST: it is exactly what the map renders as the
-    # line, so vehicles always ride ON the visible line. The raw GTFS shape
-    # is the fallback (it can deviate from the rendered OSM/rail line).
+    # line, so vehicles always ride ON the visible line. The exact trip
+    # shape is a temporary vehicle-position fallback only - the Perix
+    # graph is the sole canonical geometry authority.
     try:
         from mobility.geometry_cache import get_cached
 
@@ -908,6 +909,8 @@ async def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays:
         "next_stop_name": next_entry.get("name") or (next_entry.get("stop") or {}).get("name"),
         "distance_to_next_stop_m": distance_to_next_stop_m,
         "pattern_id": path.get("pattern_id"),
+        "position_state": "ON_PATTERN",
+        "geometry_pending": False,
     }
 
 def _park_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
@@ -942,6 +945,8 @@ def _park_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optio
         "next_stop_id": entry.get("stop_id"),
         "next_stop_name": (entry.get("stop") or {}).get("name") or entry.get("name"),
         "position_source": "REALTIME_ESTIMATE" if has_rt else "SCHEDULE_ESTIMATE",
+        "position_state": "STOP_ANCHOR",
+        "geometry_pending": True,
     }
 
 
@@ -1153,6 +1158,8 @@ async def _estimated_transit_vehicles() -> List[dict]:
             distance_to_next_stop_m = None
             pattern_id = None
             progress_m = None
+            position_state = "ON_PATTERN"
+            geometry_pending = False
             if active:
                 p = await _estimate_trip_position(route, active["trip"], now_sec, delays)
                 if p:
@@ -1178,11 +1185,15 @@ async def _estimated_transit_vehicles() -> List[dict]:
                         next_stop_id = park.get("next_stop_id")
                         distance_to_next_stop_m = 0
                         position_source = park.get("position_source") or "SCHEDULE_ESTIMATE"
+                        position_state = park.get("position_state") or "STOP_ANCHOR"
+                        geometry_pending = bool(park.get("geometry_pending"))
                     else:
                         continue
             if pos is None:
                 # Gap between trips (turnaround) or grace at the run ends:
                 # stand at the shared terminus stop, facing along the line.
+                position_state = "TURNAROUND_ANCHOR"
+                geometry_pending = False
                 heading_trip = (
                     after["trip"] if after is not None
                     else before["trip"] if before is not None
@@ -1246,6 +1257,8 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     "distance_to_next_stop_m": distance_to_next_stop_m,
                     "pattern_id": pattern_id,
                     "progress_m": progress_m,
+                    "position_state": position_state,
+                    "geometry_pending": geometry_pending,
                     "updated_at": datetime.now().isoformat(),
                 }
             )

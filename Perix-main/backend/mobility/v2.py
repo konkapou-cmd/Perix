@@ -379,6 +379,18 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
         except Exception:
             age_seconds = 0
         trip_id = v.get("trip_id")
+        # Observable position semantics for diagnostics:
+        # - estimated vehicles: ON_PATTERN (riding the canonical line) or
+        #   STOP_ANCHOR (parked at the next stop, geometry still pending)
+        # - live GPS: LIVE_MATCHED (snapped to the canonical pattern) or
+        #   LIVE_RAW (kept raw only for taxis).
+        pos_state = v.get("position_state")
+        geom_pending = bool(v.get("geometry_pending"))
+        if pos_state is None:
+            if not estimated:
+                pos_state = "LIVE_MATCHED" if v.get("snapped") else "LIVE_RAW"
+            else:
+                pos_state = "ON_PATTERN" if v.get("pattern_id") else "STOP_ANCHOR"
         out.append(
             {
                 "vehicle_id": v.get("vehicle_id"),
@@ -402,6 +414,8 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
                 "distance_to_next_stop_m": v.get("distance_to_next_stop_m"),
                 "pattern_id": v.get("pattern_id"),
                 "progress_m": v.get("progress_m"),
+                "position_state": pos_state,
+                "geometry_pending": geom_pending,
             }
         )
     return out
