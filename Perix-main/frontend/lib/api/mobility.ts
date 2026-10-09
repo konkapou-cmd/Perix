@@ -29,6 +29,8 @@ export type LiveVehicle = {
   next_stop_name?: string | null;
   distance_to_next_stop_m?: number | null;
   pattern_id?: string | null;
+  position_state?: "ON_PATTERN" | "STOP_ANCHOR" | "TURNAROUND_ANCHOR" | "LIVE_MATCHED" | "LIVE_RAW" | string | null;
+  geometry_pending?: boolean;
 };
 
 export type DriverSession = {
@@ -73,6 +75,8 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
       next_stop_name: v.next_stop_name ?? null,
       distance_to_next_stop_m: v.distance_to_next_stop_m ?? null,
       pattern_id: v.pattern_id ?? null,
+      position_state: v.position_state,
+      geometry_pending: v.geometry_pending ?? false,
     };
   });
 };
@@ -98,6 +102,8 @@ export type V2Vehicle = {
   next_stop_name?: string | null;
   distance_to_next_stop_m?: number | null;
   pattern_id?: string | null;
+  position_state?: string | null;
+  geometry_pending?: boolean;
 };
 
 export type V2Arrival = {
