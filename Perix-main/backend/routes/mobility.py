@@ -937,6 +937,41 @@ async def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays:
         "pattern_id": path.get("pattern_id"),
     }
 
+def _park_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
+    """Fallback position for a vehicle whose line geometry is not resolved
+    yet: stand ON the next stop (or the last passed one), never in the
+    air. Once the canonical geometry exists the estimator takes over."""
+    rt = delays.get(str(trip.get("trip_id") or ""))
+    timeline = _predicted_stop_timeline(route, trip, rt)
+    if len(timeline) < 2:
+        return None
+    start = timeline[0]["predicted_arrival"]
+    end = timeline[-1]["predicted_arrival"]
+    if now_sec < start - 60 or now_sec > end + 180:
+        return None
+    entry = next(
+        (e for e in timeline if e["predicted_arrival"] >= now_sec and e["relationship"] != "SKIPPED"),
+        timeline[-1],
+    )
+    s = entry.get("stop") or {}
+    if s.get("lat") is None or s.get("lng") is None:
+        return None
+    heading = None
+    idx = timeline.index(entry)
+    if idx + 1 < len(timeline):
+        nxt = timeline[idx + 1].get("stop") or {}
+        if nxt.get("lat") is not None:
+            heading = _bearing(s["lat"], s["lng"], nxt["lat"], nxt["lng"])
+    has_rt = bool(rt)
+    return {
+        "pos": {"lat": s["lat"], "lng": s["lng"]},
+        "heading": heading,
+        "next_stop_id": entry.get("stop_id"),
+        "next_stop_name": (entry.get("stop") or {}).get("name") or entry.get("name"),
+        "position_source": "REALTIME_ESTIMATE" if has_rt else "SCHEDULE_ESTIMATE",
+    }
+
+
 # Short-lived cache for the estimated vehicles so fast client polling
 # doesn't recompute the whole trip graph on every request.
 _ESTIMATES_CACHE = {"at": 0.0, "data": []}
@@ -1158,9 +1193,20 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     pattern_id = p.get("pattern_id")
                     progress_m = p.get("progress_m")
                 else:
-                    # Trip active but no verified geometry: skip this vehicle
-                    # entirely (the ETA stays in the arrivals list).
-                    continue
+                    # Trip active but no verified line geometry yet (e.g.
+                    # the nightly route is still computing): park the
+                    # vehicle ON its next stop instead of hiding it - the
+                    # passenger still sees it, never floating in the air.
+                    park = _park_position(route, active["trip"], now_sec, delays)
+                    if park:
+                        pos = {"lat": park["pos"]["lat"], "lng": park["pos"]["lng"]}
+                        heading = park.get("heading")
+                        next_stop_name = park.get("next_stop_name")
+                        next_stop_id = park.get("next_stop_id")
+                        distance_to_next_stop_m = 0
+                        position_source = park.get("position_source") or "SCHEDULE_ESTIMATE"
+                    else:
+                        continue
             if pos is None:
                 # Gap between trips (turnaround) or grace at the run ends:
                 # stand at the shared terminus stop, facing along the line.

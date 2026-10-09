@@ -1998,9 +1998,23 @@ export default function LocatorScreen() {
                 </Text>
               ) : (
                 servingBuses.map((b) => (
-                  <View key={b.vehicle_id} style={styles.mobilityRow}>
-                    <View style={[styles.mobilityRowIcon, { backgroundColor: "#59ABE3" }]}>
-                      <Ionicons name="bus" size={16} color="#fff" />
+                  <Pressable
+                    key={b.vehicle_id}
+                    style={styles.mobilityRow}
+                    onPress={() => {
+                      // Open the vehicle's full journey: every stop it
+                      // makes (passed/next with predicted times) + focus
+                      // the map on where it is right now.
+                      setSelectedVehicle(b.vehicle_id);
+                      const v = liveVehicles.find((x) => x.vehicle_id === b.vehicle_id);
+                      if (v && v.latitude != null && v.longitude != null) {
+                        setLocateFocus({ latitude: v.latitude, longitude: v.longitude });
+                        setLocateToken((n) => n + 1);
+                      }
+                    }}
+                  >
+                    <View style={[styles.mobilityRowIcon, { backgroundColor: b.mode === "tram" ? "#8B0000" : "#59ABE3" }]}>
+                      <Ionicons name={b.mode === "tram" ? "train" : "bus"} size={16} color="#fff" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.mobilityRowTitle}>
@@ -2014,10 +2028,13 @@ export default function LocatorScreen() {
                         {b.delay_minutes > 0 ? ` · ${t("mobility.delay", "+{{n}} min", { n: b.delay_minutes })}` : ""}
                         {" · "}
                         {t("mobility.estimated", "Estimated")}
+                        {" · "}
+                        {t("mobility.tapForJourney", "tap for journey")}
                       </Text>
                     </View>
                     <Text style={styles.mobilityEta}>{b.eta_minutes}′</Text>
-                  </View>
+                    <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                  </Pressable>
                 ))
               )}
             </View>
