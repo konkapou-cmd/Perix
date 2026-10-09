@@ -176,15 +176,12 @@ def _match_by_street_name(from_str: str, to_str: str, area: List[list], ways: Li
     slat, nlat = min(lats) - 0.008, max(lats) + 0.008
     wlng, elng = min(lngs) - 0.008, max(lngs) + 0.008
     sample = area[::3] if len(area) > 3 else area
-    geom = []
-    way_ids = set()
-    edge_ids = []
+    matched = []
     for w in ways:
         wtokens = _name_tokens(w.get("name"))
         if not (wtokens & target):
             continue
         pts = w.get("points") or []
-        nids = w.get("nodes") or []
         if not pts:
             continue
         wlats = [p[0] for p in pts]
@@ -192,26 +189,61 @@ def _match_by_street_name(from_str: str, to_str: str, area: List[list], ways: Li
         if max(wlats) < slat or min(wlats) > nlat or max(wlngs) < wlng or min(wlngs) > elng:
             continue
         wid = int(w.get("id") or 0)
-        # Keep only the way section inside the incident area: its points
-        # AND the exact graph edges between them.
         keep_idx = [i for i, p in enumerate(pts) if any(_haversine_m(p[0], p[1], rp[0], rp[1]) < 100.0 for rp in sample)]
         if not keep_idx:
             continue
+        matched.append({"w": w, "keep": keep_idx})
+    if not matched:
+        return None
+
+    # Chain the matching ways by SHARED GRAPH NODES: the closure is ONE
+    # continuous street section. Independent same-name ways elsewhere are
+    # discarded, so the drawn polyline can never jump across the city
+    # (the zig-zag 'smudges' came from concatenating unrelated chunks).
+    def way_nodes(w):
+        return {int(x) for x in (w.get("nodes") or []) if x is not None}
+
+    unused = {id(m["w"]): m for m in matched}
+    chains = []
+    while unused:
+        seed_id, seed = unused.popitem()
+        chain = [seed]
+        chain_nodes = way_nodes(seed["w"])
+        grew = True
+        while grew:
+            grew = False
+            for wid, m in list(unused.items()):
+                if way_nodes(m["w"]) & chain_nodes:
+                    chain.append(m)
+                    chain_nodes |= way_nodes(m["w"])
+                    del unused[wid]
+                    grew = True
+        chains.append(chain)
+    chains.sort(key=len, reverse=True)
+    best = chains[0]
+    best.sort(key=lambda m: (min(m["keep"]), max(m["keep"])))
+
+    geom = []
+    way_ids = set()
+    edge_ids = []
+    for m in best:
+        w = m["w"]
+        wid = int(w.get("id") or 0)
         way_ids.add(wid)
-        for idx in keep_idx:
+        pts = w["points"]
+        nids = w.get("nodes") or []
+        for idx in m["keep"]:
             p = pts[idx]
             if not geom or _haversine_m(geom[-1][0], geom[-1][1], p[0], p[1]) > 2.0:
                 geom.append([round(p[0], 6), round(p[1], 6)])
         for i in range(len(pts) - 1):
-            if i in keep_idx and (i + 1) in keep_idx:
+            if i in m["keep"] and (i + 1) in m["keep"]:
                 na = nids[i] if i < len(nids) else None
                 nb = nids[i + 1] if i + 1 < len(nids) else None
                 if na is not None and nb is not None:
                     edge_ids.append(f"{wid}:{na}:{nb}")
                 else:
                     way_ids.add(wid)
-    if not way_ids:
-        return None
     if len(geom) < 2:
         return None
     return {
@@ -335,10 +367,12 @@ _PREV_BLOCKED_SIG = None
 
 
 async def traffic_worker():
-    """Poll TomTom every 6 HOURS. TomTom contributes ONLY street names +
-    validity for closures ('road X is reported closed') - nothing else.
-    When the named set changes, Perix maps the names onto its own graph
-    (targeted, last-known-good rebuild for affected bus patterns)."""
+    """Poll TomTom every 6 HOURS. TomTom is READ-ONLY information:
+    'road X is reported closed' (+validity). Nothing else.
+
+    It never invalidates or rebuilds transit geometry and never touches
+    vehicle positions. Real reroutes will only come from operator-approved
+    Perix operational restrictions, later."""
     global _PREV_BLOCKED_SIG
     while True:
         try:
@@ -349,32 +383,10 @@ async def traffic_worker():
                     f"{res['informational']} informational incidents",
                     flush=True,
                 )
-            new_sig = {
+            _PREV_BLOCKED_SIG = {
                 str(r.get("restriction_id")): set(r.get("blocked_way_ids") or [])
                 for r in (res.get("restrictions") or [])
             }
-            if new_sig != _PREV_BLOCKED_SIG:
-                docs = list(res.get("restrictions") or [])
-                if docs:
-                    try:
-                        from mobility.restrictions import invalidate_geometries
-
-                        union = []
-                        for d in docs:
-                            union.extend(d.get("geometry") or [])
-                        if union:
-                            await invalidate_geometries(
-                                {
-                                    "route_numbers": [],
-                                    "geometry": union,
-                                    "blocked_modes": ["bus", "car", "taxi"],
-                                    "allowed_modes": ["tram"],
-                                }
-                            )
-                            print("[mobility] tomtom: closure set changed - rebuilding affected bus patterns", flush=True)
-                    except Exception as e:
-                        print(f"[mobility] tomtom: invalidation failed: {type(e).__name__}: {e}", flush=True)
-                _PREV_BLOCKED_SIG = new_sig
         except Exception as e:
             print(f"[mobility] tomtom worker error: {type(e).__name__}: {e}", flush=True)
         await asyncio.sleep(21600)

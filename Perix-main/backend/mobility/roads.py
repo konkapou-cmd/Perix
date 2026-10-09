@@ -314,30 +314,28 @@ async def compute_pattern_segments(stops: List[dict], mode: str = "bus") -> dict
     best_partial = None
     for margin in margins:
         bbox = (min(lats) - margin, min(lngs) - margin, max(lats) + margin, max(lngs) + margin)
+        # LOCAL FIRST: the Perix graph snapshot in our own DB - no public
+        # Overpass call, no third-party availability risk.
+        ways_detailed = []
         try:
-            ways_detailed = await _fetch_ways_detailed(bbox, mode)
+            from mobility.osm_store import get_local_ways
+
+            ways_detailed = await get_local_ways(bbox, mode)
         except Exception:
             ways_detailed = []
         if not ways_detailed:
+            # Bootstrap/refresh fallback: public Overpass as importer only.
+            try:
+                ways_detailed = await _fetch_ways_detailed(bbox, mode)
+            except Exception:
+                ways_detailed = []
+        if not ways_detailed:
             continue
-        # Mode-aware closures: block the EXACT matched OSM edges for this
-        # mode (verified only - proximity-based blocking is gone, it kept
-        # closing parallel streets by accident).
+        # TomTom is READ-ONLY closure information: it never blocks routing.
+        # (Operator-approved Perix restrictions may do so later - via the
+        # restrictions editor, never from a third-party feed.)
         blocked_way_ids: set = set()
         blocked_eids: set = set()
-        try:
-            from mobility.restrictions import (
-                blocked_edge_ids_for,
-                blocked_way_ids_for,
-                get_active_restrictions,
-            )
-
-            restrictions = await get_active_restrictions()
-            if restrictions:
-                blocked_way_ids = await blocked_way_ids_for(mode, restrictions)
-                blocked_eids = await blocked_edge_ids_for(mode, restrictions)
-        except Exception:
-            pass
         loop = asyncio.get_event_loop()
         res = await loop.run_in_executor(
             None,

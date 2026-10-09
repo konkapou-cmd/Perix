@@ -856,8 +856,11 @@ export default function LocatorScreen() {
   };
 
   const runPlan = async (destLat: number, destLng: number) => {
-    const originLat = contextLocation?.latitude ?? livePosition?.latitude ?? locateFocus?.latitude;
-    const originLng = contextLocation?.longitude ?? livePosition?.longitude ?? locateFocus?.longitude;
+    // Mobility origin = the user's ACTUAL position first (live GPS pin),
+    // browsing center second. A stale manual/context point must never make
+    // the journey plan start hundreds of meters behind the user.
+    const originLat = livePosition?.latitude ?? contextLocation?.latitude ?? locateFocus?.latitude;
+    const originLng = livePosition?.longitude ?? contextLocation?.longitude ?? locateFocus?.longitude;
     if (originLat == null || originLng == null) {
       setJourneyPlans([]);
       setPlanNote(t("mobility.planNoLocation", "Enable location to plan a journey from where you are."));

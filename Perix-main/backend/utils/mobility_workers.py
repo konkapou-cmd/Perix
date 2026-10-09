@@ -454,6 +454,10 @@ def start_mobility_workers():
     # Startup repair: rebuild road/rail geometry for any pattern missing it
     # (also covers networks that were already active before this deploy).
     asyncio.create_task(_precompute_road_geometries())
+    # Local OSM graph snapshot: import once, refresh ~daily. After this the
+    # pattern reconstruction reads OUR database - Overpass becomes an
+    # importer only, never a runtime dependency.
+    asyncio.create_task(_osm_snapshot_worker())
     # Live traffic incidents -> operational restrictions (TomTom)
     try:
         from mobility.traffic import traffic_worker
@@ -461,6 +465,57 @@ def start_mobility_workers():
         asyncio.create_task(traffic_worker())
     except Exception as e:
         _log(f"traffic worker not started: {type(e).__name__}: {e}")
+
+
+async def _osm_snapshot_worker():
+    """Import the full Magdeburg OSM road/rail graph into the local store
+    (mobility_osm_ways). Bootstrap immediately when empty, refresh every
+    ~24h. A successful import forces a full pattern rebuild from the NEW
+    snapshot (atomic activation in osm_store keeps last-known-good on
+    failure)."""
+    import time as _time
+
+    while True:
+        res = None
+        try:
+            from mobility.osm_store import active_version, import_snapshot
+
+            v = await active_version()
+            if v is None:
+                _log("osm snapshot: no local graph yet - importing...")
+                res = await import_snapshot()
+                if res.get("ok"):
+                    await _force_rebuild_after_snapshot()
+            else:
+                meta = await db.mobility_osm_graph_meta.find_one({"key": "graph_meta"})
+                age = _time.time() - float((meta or {}).get("imported_at") or 0)
+                if age > 12 * 3600:
+                    # >12h old: merge backfill for failed quadrants, or a
+                    # full new snapshot once per day.
+                    res = await import_snapshot(force_new=(age > 86400))
+                    if res.get("ok") and not res.get("merged"):
+                        await _force_rebuild_after_snapshot()
+                    elif res.get("ok"):
+                        # Backfill merge: let the periodic pass rebuild the
+                        # patterns that were missing ways before.
+                        await db.mobility_road_geometries.update_many(
+                            {"graph_v": 0}, {"$set": {"graph_v": 0}}
+                        )
+        except Exception as e:
+            _log(f"osm snapshot worker error: {type(e).__name__}: {e}")
+        # Failed quadrant fetches retry soon (30 min) to backfill the
+        # snapshot; otherwise re-check every 6 hours.
+        _last_failed = int((res or {}).get("failed") or 0)
+        await asyncio.sleep(1800 if _last_failed > 0 else 21600)
+
+
+async def _force_rebuild_after_snapshot():
+    from mobility import geometry_cache
+
+    await db.mobility_road_geometries.update_many({}, {"$set": {"graph_v": 0}})
+    await db.mobility_geometry_segments.delete_many({})
+    geometry_cache.clear()
+    _log("osm snapshot: full pattern rebuild scheduled (old geometries invalidated)")
 
 
 async def _precompute_road_geometries(only_patterns: Optional[set] = None):
@@ -565,6 +620,14 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
             await db.mobility_geometry_segments.delete_many(
                 {"pattern_id": pid, "version_id": version, "graph_v": {"$ne": 2}}
             )
+            # Replace ALL stored pairs of this pattern with THIS pass's
+            # result: mixing pairs from different passes (different bbox
+            # margins -> different nearest stop nodes) produced DISCONNECTED
+            # assemblies where consecutive segments shared no graph node.
+            if res.get("segments") and any(s.get("ok") for s in res["segments"]):
+                await db.mobility_geometry_segments.delete_many(
+                    {"pattern_id": pid, "version_id": version, "graph_v": 2}
+                )
             stored = 0
             for seg in res.get("segments") or []:
                 if not seg.get("ok") or not seg.get("points"):
