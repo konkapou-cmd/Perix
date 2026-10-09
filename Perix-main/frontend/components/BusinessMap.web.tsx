@@ -799,55 +799,41 @@ export default function BusinessMap({
       return (a.id || "").localeCompare(b.id || "");
     });
 
-    // Pixel-space collision resolution: each vehicle occupies a screen box
-    // (its icon footprint). Overlapping vehicles collapse into one cluster
-    // with a "+N" badge; tapping a cluster cycles through its members.
+    // Collision resolution in GEOGRAPHIC space (meters), not pixels:
+    // vehicles closer than ~35m share one icon with a "+N" badge. This is
+    // zoom-invariant - clustering never changes when you zoom in/out, so
+    // icons only scale, they never jump to different positions.
+    const CLUSTER_DIST_M = 35;
     const clusterOf = new Map<string, string>();
     const membersByRep = new Map<string, MapMarker[]>();
     const repOffsets = new Map<string, { x: number; y: number }>();
-    const projection = mapRef.current.getProjection();
-    // fromLatLngToPoint returns ZOOM-0 world coordinates (0-256 range) -
-    // scale them to the current zoom so differences equal screen pixels.
-    const worldScale = Math.pow(2, zoom);
     try {
-      if (projection) {
-        const placed: { x: number; y: number; id: string; w: number; h: number }[] = [];
-        for (const m of sortedTransit) {
-          const pt = projection.fromLatLngToPoint(new google.maps.LatLng(m.latitude, m.longitude));
-          if (!pt) continue;
-          const x = pt.x * worldScale;
-          const y = pt.y * worldScale;
-          const w = (m.type === "tram" ? 66 : 46) * vScale;
-          const h = (m.type === "tram" ? 30 : 26) * vScale;
-          const overlaps = (px: number, py: number, pw: number, ph: number, box: { x: number; y: number; w: number; h: number }) =>
-            Math.abs(px - box.x) < ((pw + box.w) / 2) * 0.9 && Math.abs(py - box.y) < ((ph + box.h) / 2) * 0.9;
-          let owner: string | null = null;
-          let best = Infinity;
-          for (const pl of placed) {
-            if (overlaps(x, y, w, h, pl)) {
-              const d = (x - pl.x) ** 2 + (y - pl.y) ** 2;
-              if (d < best) {
-                best = d;
-                owner = pl.id;
-              }
-            }
+      const placed: { lat: number; lng: number; id: string }[] = [];
+      for (const m of sortedTransit) {
+        let owner: string | null = null;
+        let best = Infinity;
+        for (const pl of placed) {
+          const d = haversineMeters(
+            { lat: m.latitude, lng: m.longitude },
+            { lat: pl.lat, lng: pl.lng }
+          );
+          if (d < CLUSTER_DIST_M && d < best) {
+            best = d;
+            owner = pl.id;
           }
-          if (!owner) {
-            placed.push({ x, y, id: m.id, w, h });
-            clusterOf.set(m.id, m.id);
-            membersByRep.set(m.id, [m]);
-            repOffsets.set(m.id, { x: 0, y: 0 });
-            continue;
-          }
-          // Bus/tram must stay EXACTLY on their real coordinate (never
-          // visually displaced off the road/rail): join the nearest
-          // cluster badge instead of pixel-nudging them aside.
-          const repId = owner;
-          clusterOf.set(m.id, repId);
-          membersByRep.get(repId)!.push(m);
         }
-      } else {
-        throw new Error("no projection");
+        if (!owner) {
+          placed.push({ lat: m.latitude, lng: m.longitude, id: m.id });
+          clusterOf.set(m.id, m.id);
+          membersByRep.set(m.id, [m]);
+          repOffsets.set(m.id, { x: 0, y: 0 });
+          continue;
+        }
+        // Bus/tram must stay EXACTLY on their real coordinate (never
+        // visually displaced off the road/rail): join the nearest
+        // cluster badge instead of pixel-nudging them aside.
+        clusterOf.set(m.id, owner);
+        membersByRep.get(owner)!.push(m);
       }
     } catch (e) {
       console.warn("[WebMap] collision layout failed, falling back", e);

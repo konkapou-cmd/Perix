@@ -114,6 +114,52 @@ async def _patterns_resolved(domain: dict) -> list:
     return out
 
 
+@router.get("/diagnostic/patterns")
+async def v2_diagnostic_patterns(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Per-pattern geometry state: exactly what is COMPLETE and which
+    stop-pairs are still missing or disconnected - the source of truth for
+    'gaps' between line segments."""
+    domain = await _domain()
+    if not domain:
+        return []
+    version_id = domain.get("network", {}).get("version_id")
+    seg_docs = await db.mobility_geometry_segments.find(
+        {"version_id": version_id}, {"_id": 0}
+    ).to_list(5000)
+    by_pid = {}
+    for d in seg_docs:
+        by_pid.setdefault(str(d.get("pattern_id")), []).append(d)
+    out = []
+    for pat in domain.get("patterns", []):
+        pid = str(pat.get("pattern_id") or "")
+        n_stops = len(pat.get("stop_ids") or [])
+        segs = sorted(by_pid.get(pid, []), key=lambda s: (int(s.get("a_idx", 0)), int(s.get("b_idx", 0))))
+        ok_pairs = {(int(s.get("a_idx")), int(s.get("b_idx"))) for s in segs if s.get("points")}
+        missing = [[i, i + 1] for i in range(max(0, n_stops - 1)) if (i, i + 1) not in ok_pairs]
+        state = "COMPLETE"
+        if not segs:
+            state = "NO_SEGMENTS"
+        elif missing:
+            state = "MISSING_PAIRS"
+        if segs and n_stops > 0 and len(ok_pairs) == n_stops - 1:
+            from mobility.graph import assemble_segments
+
+            state = "COMPLETE" if assemble_segments(segs) is not None else "DISCONNECTED"
+        out.append(
+            {
+                "pattern_id": pid,
+                "route_number": pat.get("route_number"),
+                "mode": pat.get("mode"),
+                "direction": pat.get("direction"),
+                "state": state,
+                "stops": n_stops,
+                "segments_ok": len(ok_pairs),
+                "missing_pairs": missing,
+            }
+        )
+    return out
+
+
 @router.get("/map")
 async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     """The stable map payload the Locator consumes: resolved lines
