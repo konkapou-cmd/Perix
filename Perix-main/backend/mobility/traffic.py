@@ -184,9 +184,14 @@ def _match_by_street_name(from_str: str, to_str: str, area: List[list], ways: Li
         matched_ways.append(w)
     if not matched_ways:
         return None
+    # Draw ONLY the part of the street near the incident (the whole OSM way
+    # could span kilometers and would look like a smudge). Each kept point
+    # must sit close to the provider's incident trace.
     geom = []
     for w in matched_ways:
         for p in w["points"]:
+            if not any(_haversine_m(p[0], p[1], rp[0], rp[1]) < 100.0 for rp in sample):
+                continue
             if not geom or _haversine_m(geom[-1][0], geom[-1][1], p[0], p[1]) > 2.0:
                 geom.append([round(p[0], 6), round(p[1], 6)])
     if len(geom) < 2:

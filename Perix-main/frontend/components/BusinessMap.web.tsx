@@ -292,6 +292,23 @@ const tramSvg = (label?: string | null) => {
 let googleScriptLoaded = false;
 let googleScriptPromise: Promise<void> | null = null;
 
+/** Native google.maps.Marker icon for a transit vehicle: SVG data URL,
+ *  scaled size + rotation. The map pins the marker to its geographic
+ *  coordinate through pan/zoom - it can never drift with the gesture. */
+const makeVehicleIcon = (google: any, rec: any) => {
+  const isTram = rec.type === "tram";
+  const w = Math.max(12, Math.round((isTram ? 66 : 46) * rec.scale));
+  const h = Math.max(8, Math.round((isTram ? 30 : 26) * rec.scale));
+  return {
+    url:
+      "data:image/svg+xml;charset=UTF-8," +
+      encodeURIComponent(isTram ? tramSvg(rec.label) : busSvg(rec.label)),
+    scaledSize: new google.maps.Size(w, h),
+    anchor: new google.maps.Point(Math.round(w / 2), Math.round(h / 2)),
+    rotation: (typeof rec.heading === "number" ? rec.heading : 0) - 90,
+  };
+};
+
 /** Kick off the Google Maps script load early (before a map mounts) so the
  *  first map opens immediately instead of waiting for the script. */
 export function preloadGoogleMaps() {
@@ -366,8 +383,6 @@ export default function BusinessMap({
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  const transitContainersRef = useRef<HTMLDivElement[]>([]);
-  const transitContainers = transitContainersRef.current;
   const [mapReady, setMapReady] = useState(false);
   const mapReadyRef = useRef(false);
   const [mapError, setMapError] = useState(false);
@@ -406,19 +421,18 @@ export default function BusinessMap({
     let active = false;
     const now = Date.now();
     markersRef.current.forEach((rec: any) => {
-      if (!rec || rec.animStart == null) return;
+      if (!rec || rec.animStart == null || !rec.marker) return;
       const t = Math.min(1, (now - rec.animStart) / rec.animDuration);
       if (rec.path && rec.cum) {
         // Progress interpolation along the canonical road/rail polyline:
         // the vehicle follows the curves, never a straight chord.
         rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * t;
-        rec.overlay.pos = pointAtProgress(rec.path, rec.cum, rec.progNow);
+        rec.marker.setPosition(pointAtProgress(rec.path, rec.cum, rec.progNow));
       } else if (rec.geoTo) {
         const lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * t;
         const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * t;
-        rec.overlay.pos = { lat, lng };
+        rec.marker.setPosition({ lat, lng });
       }
-      try { rec.overlay.draw(); } catch (e) {}
       if (t >= 1) rec.animStart = null;
       else active = true;
     });
@@ -464,7 +478,7 @@ export default function BusinessMap({
           rec.progTo = null;
           rec.animStart = null;
           rec.progNow = toProg;
-          rec.overlay.pos = pos;
+          rec.marker.setPosition(pos);
         } else {
           rec.progFrom = fromProg;
           rec.progTo = toProg;
@@ -483,11 +497,12 @@ export default function BusinessMap({
       rec.geoFrom = pos;
       rec.geoTo = null;
       rec.animStart = null;
-      rec.overlay.pos = pos;
-      try { rec.overlay.draw(); } catch (e) {}
+      rec.marker.setPosition(pos);
       return;
     }
-    let cur = rec.overlay.pos || pos;
+    let cur = rec.marker.getPosition();
+    if (cur) cur = { lat: cur.lat(), lng: cur.lng() };
+    else cur = pos;
     if (rec.animStart != null && rec.geoTo) {
       const t = Math.min(1, (nowTs - rec.animStart) / rec.animDuration);
       cur = {
@@ -503,7 +518,7 @@ export default function BusinessMap({
       rec.geoFrom = pos;
       rec.geoTo = null;
       rec.animStart = null;
-      rec.overlay.pos = pos;
+      rec.marker.setPosition(pos);
     } else {
       rec.geoFrom = cur;
       rec.geoTo = pos;
@@ -699,10 +714,9 @@ export default function BusinessMap({
           markersRef.current.forEach((rec: any) => {
             if (rec?.animStart != null) {
               rec.animStart = null;
-              if (rec.path && rec.cum && rec.progNow != null) {
-                rec.overlay.pos = pointAtProgress(rec.path, rec.cum, rec.progNow);
+              if (rec.marker && rec.path && rec.cum && rec.progNow != null) {
+                rec.marker.setPosition(pointAtProgress(rec.path, rec.cum, rec.progNow));
               }
-              try { rec.overlay.draw(); } catch (e) {}
             }
           });
           const bounds = map.getBounds();
@@ -760,9 +774,8 @@ export default function BusinessMap({
     }
     const google = (window as any).google;
 
-    // Preserve transit vehicle overlays so estimated positions animate
-    // smoothly between polls instead of jumping (CSS transitions on the
-    // same DOM node). Everything else is rebuilt.
+    // Preserve transit vehicle markers so estimated positions animate
+    // smoothly between polls instead of jumping.
     const existingTransit = new Map<string, any>();
     markersRef.current.forEach((rec: any) => {
       if (rec?.vehicleId) {
@@ -777,9 +790,7 @@ export default function BusinessMap({
     const zoomScale = Math.max(0.8, Math.min(1.7, zoom / 12));
     const vScale = vehicleScale(zoom);
 
-    // Split transit vehicles from the static pins. Transit markers are laid
-    // out separately with pixel-space collision resolution so vehicles never
-    // overlap each other on screen.
+    // Split transit vehicles from the static pins.
     const pinGroups: typeof groupedMarkers = [];
     const transitMarkers: MapMarker[] = [];
     groupedMarkers.forEach((group) => {
@@ -799,66 +810,10 @@ export default function BusinessMap({
       return (a.id || "").localeCompare(b.id || "");
     });
 
-    // Collision resolution in GEOGRAPHIC space (meters), not pixels:
-    // vehicles closer than ~35m share one icon with a "+N" badge. This is
-    // zoom-invariant - clustering never changes when you zoom in/out, so
-    // icons only scale, they never jump to different positions.
-    const CLUSTER_DIST_M = 35;
-    const clusterOf = new Map<string, string>();
-    const membersByRep = new Map<string, MapMarker[]>();
-    const repOffsets = new Map<string, { x: number; y: number }>();
-    try {
-      const placed: { lat: number; lng: number; id: string }[] = [];
-      for (const m of sortedTransit) {
-        let owner: string | null = null;
-        let best = Infinity;
-        for (const pl of placed) {
-          const d = haversineMeters(
-            { lat: m.latitude, lng: m.longitude },
-            { lat: pl.lat, lng: pl.lng }
-          );
-          if (d < CLUSTER_DIST_M && d < best) {
-            best = d;
-            owner = pl.id;
-          }
-        }
-        if (!owner) {
-          placed.push({ lat: m.latitude, lng: m.longitude, id: m.id });
-          clusterOf.set(m.id, m.id);
-          membersByRep.set(m.id, [m]);
-          repOffsets.set(m.id, { x: 0, y: 0 });
-          continue;
-        }
-        // Bus/tram must stay EXACTLY on their real coordinate (never
-        // visually displaced off the road/rail): join the nearest
-        // cluster badge instead of pixel-nudging them aside.
-        clusterOf.set(m.id, owner);
-        membersByRep.get(owner)!.push(m);
-      }
-    } catch (e) {
-      console.warn("[WebMap] collision layout failed, falling back", e);
-      membersByRep.clear();
-      sortedTransit.forEach((m) => {
-        clusterOf.set(m.id, m.id);
-        membersByRep.set(m.id, [m]);
-        repOffsets.set(m.id, { x: 0, y: 0 });
-      });
-    }
-
     console.log(
       "[WebMap] markers: pins=" + pinGroups.length + " transit=" + transitMarkers.length +
-      " reps=" + membersByRep.size + " vScale=" + vScale.toFixed(2)
+      " vScale=" + vScale.toFixed(2)
     );
-
-    const setBadge = (rec: any, extra: number) => {
-      if (!rec.badge) return;
-      if (extra <= 0) {
-        rec.badge.style.display = "none";
-        return;
-      }
-      rec.badge.style.display = "flex";
-      rec.badge.textContent = "+" + extra;
-    };
 
     pinGroups.forEach((group) => {
       const isGroup = group.count > 1;
@@ -1004,18 +959,11 @@ export default function BusinessMap({
       if (record) record.overlay = overlay;
     });
 
-    // Transit vehicles: one overlay per cluster (representative icon + badge)
-    membersByRep.forEach((members, repId) => {
-      const rep = members[0];
-      if (!rep) return;
-      const heading = typeof rep.heading === "number" ? rep.heading : 0;
-      const w = (rep.type === "tram" ? 66 : 46) * vScale;
-      const h = (rep.type === "tram" ? 30 : 26) * vScale;
-
-      // Reuse an existing transit overlay: only update its position and
-      // rotation - no CSS transition on position, so map pans never make
-      // vehicles lag behind and snap back.
-      const existing = existingTransit.get(repId);
+    // Transit vehicles: NATIVE google.maps.Marker with an SVG icon. The
+    // map itself pins each marker to its geographic coordinate through
+    // pan/zoom - no custom DOM overlay can drift with map gestures.
+    sortedTransit.forEach((rep) => {
+      const existing = existingTransit.get(rep.id);
       if (existing) {
         const rec = existing;
         // Keep the vehicle's canonical path fresh (the resolved line can
@@ -1023,121 +971,42 @@ export default function BusinessMap({
         if (rep.path && rep.path.length >= 2) {
           rec.path = rep.path;
           rec.cum = polylineCumulative(rep.path);
-          if (rec.progNow == null) {
-            rec.progNow = progressOfPoint(rec.path, rec.cum, rep.latitude, rep.longitude);
-            rec.progFrom = rec.progNow;
-            rec.progTo = null;
-            rec.animStart = null;
-            rec.overlay.pos = { lat: rep.latitude, lng: rep.longitude };
-          }
         } else {
           rec.path = null;
           rec.cum = null;
         }
-        setVehicleTarget(rec, { lat: rep.latitude, lng: rep.longitude }, Date.now());
-        rec.overlay.off = repOffsets.get(repId) || { x: 0, y: 0 };
-        rec.heading = heading;
+        rec.heading = typeof rep.heading === "number" ? rep.heading : 0;
         rec.scale = vScale;
-        rec.inner.innerHTML = rep.type === "bus" ? busSvg(rep.label) : tramSvg(rep.label);
-        rec.inner.style.transform = `rotate(${heading - 90}deg) scale(${vScale})`;
-        rec.inner.style.opacity = rep.estimated ? "0.72" : "1";
-        rec.clusterIds = members.map((m) => m.id);
-        if (!rec.clusterIds[rec.clusterIdx % rec.clusterIds.length]) rec.clusterIdx = 0;
-        setBadge(rec, members.length - 1);
-        try { rec.overlay.draw(); } catch (e) {}
+        rec.type = rep.type;
+        rec.label = rep.label;
+        rec.estimated = rep.estimated ?? false;
+        setVehicleTarget(rec, { lat: rep.latitude, lng: rep.longitude }, Date.now());
+        rec.marker.setIcon(makeVehicleIcon(google, rec));
+        rec.marker.setOpacity(rec.estimated ? 0.72 : 1);
         markersRef.current.push(rec);
         return;
       }
 
-      // Container div (positioned by OverlayView)
-      const container = document.createElement("div");
-      container.style.position = "absolute";
-      container.style.cursor = "pointer";
-      container.style.userSelect = "none";
-
-      // Cartoon vehicle icon showing its facing direction. Zoom-aware:
-      // zoomed out -> small vehicles "circulating" in the city.
-      const rotWrap = document.createElement("div");
-      rotWrap.style.position = "absolute";
-      rotWrap.style.transform = "translate(-50%, -50%)";
-      rotWrap.style.pointerEvents = "none";
-      const inner = document.createElement("div");
-      inner.style.transform = `rotate(${heading - 90}deg) scale(${vScale})`;
-      inner.style.transformOrigin = "center center";
-      inner.style.transition = "transform 0.4s ease-out";
-      inner.innerHTML = rep.type === "bus" ? busSvg(rep.label) : tramSvg(rep.label);
-      if (rep.estimated) inner.style.opacity = "0.72";
-      rotWrap.appendChild(inner);
-      container.appendChild(rotWrap);
-
-      let badge: HTMLDivElement | null = null;
-      if (members.length > 1) {
-        badge = document.createElement("div");
-        badge.textContent = "+" + (members.length - 1);
-        badge.style.position = "absolute";
-        badge.style.left = (w / 2 + 4) + "px";
-        badge.style.top = (-h / 2 - 4) + "px";
-        badge.style.transform = "translate(-50%, -50%)";
-        badge.style.backgroundColor = "#264348";
-        badge.style.color = "#ffffff";
-        badge.style.fontSize = "10px";
-        badge.style.fontWeight = "800";
-        badge.style.fontFamily = "Arial, sans-serif";
-        badge.style.borderRadius = "50%";
-        badge.style.minWidth = "18px";
-        badge.style.height = "18px";
-        badge.style.display = "flex";
-        badge.style.alignItems = "center";
-        badge.style.justifyContent = "center";
-        badge.style.padding = "0 3px";
-        badge.style.border = "2px solid #ffffff";
-        badge.style.boxShadow = "0 1px 3px rgba(0,0,0,0.4)";
-        badge.style.boxSizing = "border-box";
-        container.appendChild(badge);
-      }
-
-      const overlay = new (class extends google.maps.OverlayView {
-        div: HTMLDivElement;
-        pos: { lat: number; lng: number };
-        off: { x: number; y: number };
-        constructor(div: HTMLDivElement, pos: { lat: number; lng: number }, off: { x: number; y: number }) {
-          super();
-          this.div = div;
-          this.pos = pos;
-          this.off = off;
-        }
-        onAdd(this: any) {
-          this.getPanes().overlayMouseTarget.appendChild(this.div);
-        }
-        draw(this: any) {
-          const overlayProjection = this.getProjection();
-          const point = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
-          if (point) {
-            this.div.style.left = point.x + this.off.x + "px";
-            this.div.style.top = point.y + this.off.y + "px";
-          }
-        }
-        onRemove(this: any) {
-          if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
-        }
-      })(container, { lat: rep.latitude, lng: rep.longitude }, repOffsets.get(repId) || { x: 0, y: 0 });
-      overlay.setMap(mapRef.current);
-
+      const marker = new google.maps.Marker({
+        map: mapRef.current,
+        position: { lat: rep.latitude, lng: rep.longitude },
+        zIndex: google.maps.Marker.MAX_ZINDEX + 5,
+        clickable: true,
+      });
       const rec: any = {
-        overlay,
+        marker,
         resize: (_zoomScaleArg: number, vScaleArg?: number) => {
           const ns = vScaleArg ?? vehicleScale(mapRef.current?.getZoom?.() || 14);
           rec.scale = ns;
-          rec.inner.style.transform = `rotate(${rec.heading - 90}deg) scale(${ns})`;
+          rec.marker.setIcon(makeVehicleIcon(google, rec));
         },
-        vehicleId: repId,
-        inner,
-        heading,
+        vehicleId: rep.id,
+        heading: typeof rep.heading === "number" ? rep.heading : 0,
         scale: vScale,
-        isTransit: rep.type === "bus" || rep.type === "tram",
-        clusterIds: members.map((m) => m.id),
-        clusterIdx: 0,
-        badge,
+        type: rep.type,
+        label: rep.label,
+        estimated: rep.estimated ?? false,
+        isTransit: true,
         geoFrom: { lat: rep.latitude, lng: rep.longitude },
         geoTo: null,
         animStart: null,
@@ -1153,36 +1022,21 @@ export default function BusinessMap({
         rec.progFrom = rec.progNow;
         rec.progTo = null;
       }
-
-      // Tapping a cluster cycles through the vehicles stacked there.
-      container.addEventListener("click", (e: any) => {
-        e.stopPropagation();
-        rec.clusterIdx = (rec.clusterIdx + 1) % rec.clusterIds.length;
-        const target = members.find((m) => m.id === rec.clusterIds[rec.clusterIdx]) || members[0];
-        rec.heading = typeof target.heading === "number" ? target.heading : 0;
-        rec.inner.innerHTML = target.type === "bus" ? busSvg(target.label) : tramSvg(target.label);
-        rec.inner.style.transform = `rotate(${rec.heading - 90}deg) scale(${rec.scale})`;
-        rec.inner.style.opacity = target.estimated ? "0.72" : "1";
-        onMarkerPress?.(target.id);
+      marker.setIcon(makeVehicleIcon(google, rec));
+      marker.setOpacity(rec.estimated ? 0.72 : 1);
+      marker.addListener("click", () => {
+        onMarkerPress?.(rep.id);
       });
-
       markersRef.current.push(rec);
-      transitContainers.push(container);
     });
 
-    // Remove transit overlays whose vehicle is no longer active
+    // Remove transit markers whose vehicle is no longer active
     const reusedIds = new Set(
       markersRef.current.map((r: any) => r?.vehicleId).filter(Boolean)
     );
     existingTransit.forEach((rec, id) => {
       if (!reusedIds.has(id)) {
-        try { rec.overlay.setMap(null); } catch (e) {}
-      }
-    });
-    transitContainers.length = 0;
-    markersRef.current.forEach((r: any) => {
-      if (r?.vehicleId && r?.overlay?.div) {
-        transitContainers.push(r.overlay.div);
+        try { rec.marker.setMap(null); } catch (e) {}
       }
     });
   }, [groupedMarkers, mapReady, layoutTick]);
