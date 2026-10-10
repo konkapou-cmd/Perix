@@ -758,6 +758,17 @@ def _raw_timeline_progress(timeline: List[dict], stop_progress: List[float], now
     return stop_progress[-1]
 
 
+def _dwell_progress(timeline: List[dict], stop_progress: List[float], now_sec: int) -> Optional[float]:
+    """When the vehicle is between its predicted ARRIVAL and DEPARTURE at a
+    stop, it stands absolutely still (true dwell) - not even the crawl."""
+    for i, entry in enumerate(timeline):
+        arrival = int(entry.get("predicted_arrival", 0))
+        departure = int(entry.get("predicted_departure", arrival))
+        if arrival <= now_sec <= departure and i < len(stop_progress):
+            return float(stop_progress[i])
+    return None
+
+
 def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: float, mode: str, trip_duration_sec: int) -> float:
     """Forward-only ETA-constrained display progress.
 
@@ -857,13 +868,19 @@ async def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays:
         return None
 
     raw_progress = _raw_timeline_progress(timeline, stop_progress, now_sec)
-    shown_progress = _adaptive_forward_progress(
-        trip_id,
-        raw_progress,
-        float(path.get("total_m") or 0.0),
-        str(route.get("mode") or "bus"),
-        max(60, int(end - start)),
-    )
+    # True dwell: standing at a stop between arrival and departure is an
+    # absolute stop - no crawl, no interpolation.
+    dwell = _dwell_progress(timeline, stop_progress, now_sec)
+    if dwell is not None:
+        shown_progress = dwell
+    else:
+        shown_progress = _adaptive_forward_progress(
+            trip_id,
+            raw_progress,
+            float(path.get("total_m") or 0.0),
+            str(route.get("mode") or "bus"),
+            max(60, int(end - start)),
+        )
     pos, heading = _point_heading_at_progress(path, shown_progress)
     if not pos:
         return None

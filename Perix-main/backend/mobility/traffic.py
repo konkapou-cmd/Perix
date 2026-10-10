@@ -221,9 +221,24 @@ def _match_by_street_name(from_str: str, to_str: str, area: List[list], ways: Li
         chains.append(chain)
     chains.sort(key=len, reverse=True)
     best = chains[0]
-    best.sort(key=lambda m: (min(m["keep"]), max(m["keep"])))
 
-    geom = []
+    # Build geometry_parts: every part is a CONTIGUOUS run of indexes
+    # inside ONE OSM way. Parts are NEVER joined by us - the Google
+    # polyline connects part endpoints with straight lines, so joining
+    # unrelated chunks is exactly what created the zig-zag triangles.
+    def _contiguous_runs(indexes):
+        if not indexes:
+            return []
+        indexes = sorted(set(indexes))
+        runs = [[indexes[0]]]
+        for idx in indexes[1:]:
+            if idx == runs[-1][-1] + 1:
+                runs[-1].append(idx)
+            else:
+                runs.append([idx])
+        return runs
+
+    geometry_parts = []
     way_ids = set()
     edge_ids = []
     for m in best:
@@ -232,10 +247,10 @@ def _match_by_street_name(from_str: str, to_str: str, area: List[list], ways: Li
         way_ids.add(wid)
         pts = w["points"]
         nids = w.get("nodes") or []
-        for idx in m["keep"]:
-            p = pts[idx]
-            if not geom or _haversine_m(geom[-1][0], geom[-1][1], p[0], p[1]) > 2.0:
-                geom.append([round(p[0], 6), round(p[1], 6)])
+        for run in _contiguous_runs(m["keep"]):
+            part = [[round(pts[i][0], 6), round(pts[i][1], 6)] for i in run]
+            if len(part) >= 2:
+                geometry_parts.append(part)
         for i in range(len(pts) - 1):
             if i in m["keep"] and (i + 1) in m["keep"]:
                 na = nids[i] if i < len(nids) else None
@@ -244,10 +259,13 @@ def _match_by_street_name(from_str: str, to_str: str, area: List[list], ways: Li
                     edge_ids.append(f"{wid}:{na}:{nb}")
                 else:
                     way_ids.add(wid)
-    if len(geom) < 2:
+    if not geometry_parts:
         return None
+    # Backward compatibility: single geometry = the longest part.
+    longest = max(geometry_parts, key=len)
     return {
-        "geometry": geom,
+        "geometry": longest,
+        "geometry_parts": geometry_parts,
         "way_ids": sorted(way_ids),
         "edge_ids": edge_ids,
     }
@@ -289,6 +307,7 @@ async def sync_tomtom_restrictions() -> dict:
                     "restriction_id": rid,
                     "kind": "road_closed",
                     "geometry": match["geometry"],
+                    "geometry_parts": match.get("geometry_parts") or [],
                     "geometry_source": "OSM_NAMED_TOMTOM",
                     "blocked_way_ids": match["way_ids"],
                     "blocked_edge_ids": match.get("edge_ids") or [],

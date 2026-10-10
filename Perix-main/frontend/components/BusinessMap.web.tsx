@@ -25,6 +25,10 @@ type MapMarker = {
   /** The canonical line geometry the vehicle rides - animations follow
    *  every curve of the road/rail instead of cutting straight across. */
   path?: { latitude: number; longitude: number }[];
+  /** Backend progress along the canonical line (meters) - authoritative
+   *  position, never re-projected in the browser. */
+  progressM?: number | null;
+  positionState?: string | null;
 };
 
 type MapBounds = {
@@ -227,13 +231,16 @@ const busSvg = (label?: string | null, deg = 0) => {
     ? `<rect x="32.2" y="6" width="8" height="6.2" rx="1.6" fill="#1E3A8A"/>` +
       routePlateText(num, 36.2, num.length > 2 ? 3.4 : 4.6, 10.7)
     : "";
-  return `<svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://www.w3.org/2000/svg">
+  // Square transparent canvas: the 46x26 bus rotates inside a 64x64
+  // viewport without being clipped when pointing north/south.
+  return `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="bs" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/>
     </filter>
   </defs>
-  <g transform="rotate(${deg} 23 13)" filter="url(#bs)">
+  <g transform="translate(9 19)">
+    <g transform="rotate(${deg} 23 13)" filter="url(#bs)">
     <rect x="1.2" y="3" width="43.6" height="17" rx="5.5" fill="#ffffff" stroke="#1E3A8A" stroke-width="2"/>
     <rect x="4" y="6" width="6" height="6" rx="1.5" fill="#59ABE3"/>
     <rect x="12" y="6" width="5.5" height="6" rx="1.5" fill="#BFDFF7"/>
@@ -246,6 +253,7 @@ const busSvg = (label?: string | null, deg = 0) => {
     <circle cx="35" cy="20.5" r="3.4" fill="#1E3A8A"/>
     <circle cx="11" cy="20.5" r="1.4" fill="#ffffff"/>
     <circle cx="35" cy="20.5" r="1.4" fill="#ffffff"/>
+    </g>
   </g>
 </svg>`;
 };
@@ -256,13 +264,16 @@ const tramSvg = (label?: string | null, deg = 0) => {
     ? `<rect x="8.2" y="10.8" width="11" height="6.8" rx="1.6" fill="#166534"/>` +
       routePlateText(num, 13.7, num.length > 2 ? 3.9 : 5.2, 15.9)
     : "";
-  return `<svg width="66" height="30" viewBox="0 0 66 30" xmlns="http://www.w3.org/2000/svg">
+  // Square transparent canvas: the 66x30 tram rotates inside an 82x82
+  // viewport without being clipped when pointing north/south.
+  return `<svg width="82" height="82" viewBox="0 0 82 82" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="ts" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/>
     </filter>
   </defs>
-  <g transform="rotate(${deg} 33 15)" filter="url(#ts)">
+  <g transform="translate(8 26)">
+    <g transform="rotate(${deg} 33 15)" filter="url(#ts)">
     <line x1="8" y1="1.5" x2="8" y2="9" stroke="#166534" stroke-width="2.2"/>
     <line x1="3" y1="1.5" x2="26" y2="1.5" stroke="#166534" stroke-width="1.7"/>
     <rect x="1.2" y="9" width="29" height="13" rx="4" fill="#ffffff" stroke="#166534" stroke-width="2"/>
@@ -285,6 +296,7 @@ const tramSvg = (label?: string | null, deg = 0) => {
     <circle cx="22.5" cy="23.5" r="1.2" fill="#ffffff"/>
     <circle cx="43.5" cy="23.5" r="1.2" fill="#ffffff"/>
     <circle cx="57.5" cy="23.5" r="1.2" fill="#ffffff"/>
+    </g>
   </g>
 </svg>`;
 };
@@ -298,8 +310,8 @@ let googleScriptPromise: Promise<void> | null = null;
  *  its geographic coordinate through pan/zoom - it can never drift. */
 const makeVehicleIcon = (google: any, rec: any) => {
   const isTram = rec.type === "tram";
-  const w = Math.max(12, Math.round((isTram ? 66 : 46) * rec.scale));
-  const h = Math.max(8, Math.round((isTram ? 30 : 26) * rec.scale));
+  const canvas = isTram ? 82 : 64;
+  const w = Math.max(16, Math.round(canvas * rec.scale));
   const heading = typeof rec.heading === "number" ? rec.heading : 0;
   // SVG is drawn facing RIGHT (east): rotate so the nose points at the
   // heading. heading 0 (north) -> -90; heading 90 (east) -> 0.
@@ -308,8 +320,8 @@ const makeVehicleIcon = (google: any, rec: any) => {
     url:
       "data:image/svg+xml;charset=UTF-8," +
       encodeURIComponent(isTram ? tramSvg(rec.label, deg) : busSvg(rec.label, deg)),
-    scaledSize: new google.maps.Size(w, h),
-    anchor: new google.maps.Point(Math.round(w / 2), Math.round(h / 2)),
+    scaledSize: new google.maps.Size(w, w),
+    anchor: new google.maps.Point(Math.round(w / 2), Math.round(w / 2)),
   };
 };
 
@@ -450,20 +462,38 @@ export default function BusinessMap({
     animRunningRef.current = true;
     animRafRef.current = requestAnimationFrame(loopTick);
   };
-  const setVehicleTarget = (rec: any, pos: { lat: number; lng: number }, nowTs: number) => {
-    // Path mode: interpolate progress (meters along the line). If the new
-    // position does not lie on this path (wrong pattern, missing line),
-    // fall back to the geographic lerp instead of freezing the vehicle.
+  const setVehicleTarget = (rec: any, pos: { lat: number; lng: number }, nowTs: number, targetProgressM?: number | null) => {
+    // Anchored states never animate: the vehicle stands exactly on its
+    // stop (STOP_ANCHOR) or terminus (TURNAROUND_ANCHOR).
+    if (rec.positionState === "STOP_ANCHOR" || rec.positionState === "TURNAROUND_ANCHOR") {
+      rec.animStart = null;
+      rec.marker.setPosition(pos);
+      return;
+    }
+    // Path mode: interpolate progress (meters along the line). The
+    // backend progress_m is authoritative - no browser re-projection
+    // (which can grab the wrong segment on loops/returns).
     if (rec.path && rec.path.length >= 2 && rec.cum) {
-      const toProg = progressOfPoint(rec.path, rec.cum, pos.lat, pos.lng);
-      const onPath = pointAtProgress(rec.path, rec.cum, toProg);
-      const offDist = haversineMeters({ lat: pos.lat, lng: pos.lng }, { lat: onPath.latitude, lng: onPath.longitude });
-      if (offDist > 250) {
-        rec.path = null;
-        rec.cum = null;
-        rec.progNow = null;
-        rec.animStart = null;
-      } else {
+      const hasProgressM = typeof targetProgressM === "number" && Number.isFinite(targetProgressM);
+      const toProg = hasProgressM
+        ? (targetProgressM as number)
+        : progressOfPoint(rec.path, rec.cum, pos.lat, pos.lng);
+      if (!hasProgressM) {
+        // Only when re-projecting in the browser: drop the path if the
+        // position clearly does not belong to it. Backend progress_m
+        // needs no such check - it is the authoritative position.
+        const onPath = pointAtProgress(rec.path, rec.cum, toProg);
+        const offDist = haversineMeters({ lat: pos.lat, lng: pos.lng }, { lat: onPath.latitude, lng: onPath.longitude });
+        if (offDist > 250) {
+          rec.path = null;
+          rec.cum = null;
+          rec.progNow = null;
+          rec.animStart = null;
+          rec.marker.setPosition(pos);
+          return;
+        }
+      }
+      {
         let fromProg: number;
         if (rec.animStart != null) {
           const t = Math.min(1, (nowTs - rec.animStart) / rec.animDuration);
@@ -480,11 +510,17 @@ export default function BusinessMap({
           rec.progTo = null;
           rec.animStart = null;
           rec.progNow = toProg;
-          rec.marker.setPosition(pos);
+          rec.marker.setPosition(pointAtProgress(rec.path, rec.cum, toProg));
         } else {
           rec.progFrom = fromProg;
           rec.progTo = toProg;
-          rec.animDuration = Math.max(1500, Math.min(9000, dt));
+          // LIVE GPS: finish slightly before the next poll so the marker
+          // never lags one sample behind; estimates glide the full span.
+          if (rec.positionState === "LIVE_MATCHED") {
+            rec.animDuration = Math.min(3500, Math.max(800, dt * 0.85));
+          } else {
+            rec.animDuration = Math.max(1500, Math.min(9000, dt));
+          }
           rec.animStart = nowTs;
         }
         kickAnim();
@@ -632,7 +668,8 @@ export default function BusinessMap({
     allMarkers.forEach((m) => {
       parts.push(
         `${m.id}|${m.latitude}|${m.longitude}|${m.pinColor || ""}|${m.pinInnerColor || ""}` +
-        (m.path && m.path.length ? `|p${m.path.length}:${m.path[0]?.latitude}` : "")
+        `|s${m.positionState || ""}|p${m.progressM ?? ""}` +
+        (m.path && m.path.length ? `|l${m.path.length}:${m.path[0]?.latitude}` : "")
       );
     });
     return parts.join(";");
@@ -664,6 +701,8 @@ export default function BusinessMap({
         heading: items[0].heading ?? null,
         estimated: items[0].estimated ?? false,
         path: items[0].path,
+        progressM: items[0].progressM ?? null,
+        positionState: items[0].positionState ?? null,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -980,7 +1019,8 @@ export default function BusinessMap({
         rec.type = rep.type;
         rec.label = rep.label;
         rec.estimated = rep.estimated ?? false;
-        setVehicleTarget(rec, { lat: rep.latitude, lng: rep.longitude }, Date.now());
+        rec.positionState = rep.positionState ?? null;
+        setVehicleTarget(rec, { lat: rep.latitude, lng: rep.longitude }, Date.now(), rep.progressM ?? null);
         rec.marker.setIcon(makeVehicleIcon(google, rec));
         rec.marker.setOpacity(rec.estimated ? 0.72 : 1);
         markersRef.current.push(rec);
@@ -1007,6 +1047,7 @@ export default function BusinessMap({
         label: rep.label,
         estimated: rep.estimated ?? false,
         isTransit: true,
+        positionState: rep.positionState ?? null,
         geoFrom: { lat: rep.latitude, lng: rep.longitude },
         geoTo: null,
         animStart: null,
@@ -1018,8 +1059,12 @@ export default function BusinessMap({
       if (rep.path && rep.path.length >= 2) {
         rec.path = rep.path;
         rec.cum = polylineCumulative(rep.path);
-        rec.progNow = progressOfPoint(rec.path, rec.cum, rep.latitude, rep.longitude);
-        rec.progFrom = rec.progNow;
+        const startProg =
+          typeof rep.progressM === "number" && Number.isFinite(rep.progressM)
+            ? rep.progressM
+            : progressOfPoint(rec.path, rec.cum, rep.latitude, rep.longitude);
+        rec.progNow = startProg;
+        rec.progFrom = startProg;
         rec.progTo = null;
       }
       marker.setIcon(makeVehicleIcon(google, rec));
@@ -1041,17 +1086,29 @@ export default function BusinessMap({
     });
   }, [groupedMarkers, mapReady]);
 
-  // Transit route lines (thin polylines under the vehicle markers)
-  const transitLinesRef = useRef<any[]>([]);
+  // Transit route lines (thin polylines under the vehicle markers).
+  // PERSISTENT: polylines are reused per (route+pattern) key - only
+  // changed/new lines update, removed ones are deleted. Zoom/pan never
+  // destroys and recreates them.
+  const transitLinesRef = useRef<Map<string, any>>(new Map());
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return;
-    transitLinesRef.current.forEach((p) => {
-      try { p.setMap(null); } catch (e) {}
-    });
-    transitLinesRef.current = [];
     const google = (window as any).google;
+    const seen = new Set<string>();
     (transitLines || []).forEach((line) => {
       if (!line.points || line.points.length < 2) return;
+      const key = `${line.routeNumber || ""}:${(line as any).patternId || ""}`;
+      seen.add(key);
+      const existing = transitLinesRef.current.get(key);
+      if (existing) {
+        existing.setPath(line.points.map((p) => ({ lat: p.latitude, lng: p.longitude })));
+        existing.setOptions({
+          strokeColor: line.color,
+          strokeWeight: line.weight ?? 2,
+          strokeOpacity: line.opacity ?? 0.45,
+        });
+        return;
+      }
       const poly = new google.maps.Polyline({
         path: line.points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
         strokeColor: line.color,
@@ -1065,7 +1122,13 @@ export default function BusinessMap({
         });
       }
       poly.setMap(mapRef.current);
-      transitLinesRef.current.push(poly);
+      transitLinesRef.current.set(key, poly);
+    });
+    transitLinesRef.current.forEach((poly, key) => {
+      if (!seen.has(key)) {
+        try { poly.setMap(null); } catch (e) {}
+        transitLinesRef.current.delete(key);
+      }
     });
   }, [transitLines, mapReady]);
 
@@ -1095,16 +1158,20 @@ export default function BusinessMap({
 
   // Road closures (TomTom Traffic) as clickable red dashed segments, drawn
   // above the network lines so closures stay visible on busy corridors.
-  const closuresRef = useRef<any[]>([]);
+  // PERSISTENT: one polyline per closure part, reused across renders.
+  const closuresRef = useRef<Map<string, any>>(new Map());
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return;
-    closuresRef.current.forEach((p) => {
-      try { p.setMap(null); } catch (e) {}
-    });
-    closuresRef.current = [];
     const google = (window as any).google;
+    const seen = new Set<string>();
     (closures || []).forEach((closure) => {
       if (!closure.points || closure.points.length < 2) return;
+      seen.add(closure.id);
+      const existing = closuresRef.current.get(closure.id);
+      if (existing) {
+        existing.setPath(closure.points.map((p) => ({ lat: p.latitude, lng: p.longitude })));
+        return;
+      }
       const poly = new google.maps.Polyline({
         path: closure.points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
         strokeColor: "#DC2626",
@@ -1121,7 +1188,13 @@ export default function BusinessMap({
         });
       });
       poly.setMap(mapRef.current);
-      closuresRef.current.push(poly);
+      closuresRef.current.set(closure.id, poly);
+    });
+    closuresRef.current.forEach((poly, id) => {
+      if (!seen.has(id)) {
+        try { poly.setMap(null); } catch (e) {}
+        closuresRef.current.delete(id);
+      }
     });
   }, [closures, mapReady]);
 

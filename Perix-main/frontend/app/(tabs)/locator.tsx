@@ -642,38 +642,45 @@ export default function LocatorScreen() {
   const showClosures = (mapZoom ?? 14) >= 12;
   const closureLines = useMemo(() => {
     if (!showClosures) return [];
+    // One polyline per REAL closure part (contiguous run of one OSM way):
+    // parts are never joined client-side, so no zig-zag lines. No stride
+    // skipping - closure segments are small and must keep their curves.
     return trafficClosures
       // Only OSM-matched (verified) closures are drawn as blocked roads -
       // unmatched TomTom reports would show a red line on the wrong street.
       .filter((c) => c.verified !== false)
       .slice(0, 40)
-      .map((c) => {
-        const g = (c.geometry || []) as [number, number][];
-        const stride = Math.max(1, Math.ceil(g.length / 60));
-        const pts: { latitude: number; longitude: number }[] = [];
-        for (let i = 0; i < g.length; i += stride) {
-          const p = g[i];
-          if (
-            Array.isArray(p) &&
-            p.length === 2 &&
-            Number.isFinite(p[0]) &&
-            Number.isFinite(p[1]) &&
-            Math.abs(p[0]) <= 90 &&
-            Math.abs(p[1]) <= 180
-          ) {
-            pts.push({ latitude: p[0], longitude: p[1] });
-          }
-        }
-        return {
-          id: c.restriction_id,
-          points: pts,
-          from: c.from,
-          to: c.to,
-          description: c.description,
-          verified: c.verified,
-        };
-      })
-      .filter((c) => c.points.length >= 2);
+      .flatMap((c) => {
+        const parts: [number, number][][] = c.geometry_parts?.length
+          ? (c.geometry_parts as [number, number][][])
+          : c.geometry?.length
+          ? [c.geometry as [number, number][]]
+          : [];
+        return parts.flatMap((part, partIndex) => {
+          const pts = part
+            .filter(
+              (p) =>
+                Array.isArray(p) &&
+                p.length === 2 &&
+                Number.isFinite(p[0]) &&
+                Number.isFinite(p[1]) &&
+                Math.abs(p[0]) <= 90 &&
+                Math.abs(p[1]) <= 180
+            )
+            .map((p) => ({ latitude: p[0], longitude: p[1] }));
+          if (pts.length < 2) return [];
+          return [
+            {
+              id: `${c.restriction_id}:${partIndex}`,
+              points: pts,
+              from: c.from,
+              to: c.to,
+              description: c.description,
+              verified: c.verified,
+            },
+          ];
+        });
+      });
   }, [trafficClosures, showClosures]);
 
   // Results follow the MAP VIEWPORT (like business results): vehicles and
@@ -1392,24 +1399,13 @@ export default function LocatorScreen() {
                     // of cutting straight across between polls. ONLY the
                     // exact pattern match counts - a same-route fallback
                     // could be the OPPOSITE direction and would pull the
-                    // marker onto the wrong line.
+                    // marker onto the wrong line. The backend progress_m
+                    // is authoritative for WHERE on the line the vehicle
+                    // is (no browser-side re-projection).
                     let path: { latitude: number; longitude: number }[] | undefined;
                     const vLine = transitMapLines.find((l) => l.pattern_id != null && l.pattern_id === v.pattern_id);
-                    if (vLine && vLine.points && vLine.points.length >= 2) {
-                      const pts = vLine.points;
-                      let minD = Infinity;
-                      for (let i = 0; i < pts.length - 1; i++) {
-                        const x0 = pts[i].latitude, y0 = pts[i].longitude;
-                        const x1 = pts[i + 1].latitude, y1 = pts[i + 1].longitude;
-                        const dx = x1 - x0, dy = y1 - y0;
-                        const den = dx * dx + dy * dy;
-                        const t = den === 0 ? 0 : Math.max(0, Math.min(1, ((v.latitude! - x0) * dx + (v.longitude! - y0) * dy) / den));
-                        const px = x0 + t * dx, py = y0 + t * dy;
-                        const dLat = v.latitude! - px, dLng = v.longitude! - py;
-                        const dM = Math.sqrt(dLat * dLat + dLng * dLng) * 111000;
-                        if (dM < minD) minD = dM;
-                      }
-                      if (minD <= 400) path = pts;
+                    if (vLine && vLine.points && vLine.points.length >= 2 && v.pattern_id) {
+                      path = vLine.points;
                     }
                     return {
                       id: v.vehicle_id,
@@ -1426,6 +1422,8 @@ export default function LocatorScreen() {
                       heading: v.heading ?? null,
                       estimated: v.estimated ?? false,
                       path,
+                      progressM: v.progress_m ?? null,
+                      positionState: v.position_state ?? null,
                     };
                   })
               : undefined
