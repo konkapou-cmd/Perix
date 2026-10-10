@@ -2143,15 +2143,43 @@ async def plan_journey(
 
     Runs in a worker thread: the trip-graph search is CPU-heavy and must
     NEVER block the async event loop (a slow plan used to freeze every
-    other request and time out the edge gateway)."""
+    other request and time out the edge gateway).
+
+    The search uses the SAME predicted timeline as arrivals/vehicles
+    (GTFS-RT delays + canceled trips), not a separate static snapshot."""
     network = await _get_active_network()
     if not network:
         return {"itineraries": []}
-    return await asyncio.to_thread(_plan_core, network, from_lat, from_lng, to_lat, to_lng)
+    trip_ids = [
+        str(t.get("trip_id"))
+        for route in network.get("routes", [])
+        for t in route.get("trips", [])
+        if t.get("trip_id")
+    ]
+    delays = await _realtime_delays_for(trip_ids)
+    try:
+        from mobility.overrides import canceled_trip_ids
+
+        canceled = await canceled_trip_ids()
+    except Exception:
+        canceled = set()
+    return await asyncio.to_thread(
+        _plan_core, network, from_lat, from_lng, to_lat, to_lng, delays, canceled
+    )
 
 
-def _plan_core(network: dict, from_lat: float, from_lng: float, to_lat: float, to_lng: float) -> dict:
+def _plan_core(
+    network: dict,
+    from_lat: float,
+    from_lng: float,
+    to_lat: float,
+    to_lng: float,
+    delays: Optional[dict] = None,
+    canceled: Optional[set] = None,
+) -> dict:
     now_sec = _now_service_seconds()
+    delays = delays or {}
+    canceled = canceled or set()
 
     stops = {}
     for route in network.get("routes", []):
@@ -2196,18 +2224,29 @@ def _plan_core(network: dict, from_lat: float, from_lng: float, to_lat: float, t
                 neigh.append((b["id"], walk_sec(d)))
         transfer[a["id"]] = neigh
 
-    # Trips as ordered segments; also stop -> sorted departures for boarding
+    # Trips as ordered segments; also stop -> sorted departures for boarding.
+    # Times are PREDICTED (scheduled + GTFS-RT delays) - the same timeline
+    # arrivals and vehicle positions use. Canceled trips are excluded.
     trips = []
     for route in network.get("routes", []):
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
         for trip in route.get("trips", []):
+            tid = str(trip.get("trip_id") or "")
+            if tid in canceled:
+                continue
+            rt = delays.get(tid) or {}
+            trip_delay = int(rt.get("delay_seconds") or 0)
+            stop_delays = rt.get("stop_delays") or {}
             seq = []
             trip_stop_times = trip.get("stop_times") or {}
             for stop in _trip_stops(route, trip):
                 sid = stop.get("stop_id")
                 tsec = _time_to_seconds(trip_stop_times.get(sid, ""))
                 if sid is not None and tsec is not None and sid in stops:
-                    seq.append((sid, tsec))
+                    delay = stop_delays.get(str(sid))
+                    if delay is None:
+                        delay = trip_delay
+                    seq.append((sid, tsec + int(delay)))
             if len(seq) < 2:
                 continue
             segments = []
@@ -2305,14 +2344,16 @@ def _plan_core(network: dict, from_lat: float, from_lng: float, to_lat: float, t
     final_walk_km = _haversine_km(to_lat, to_lng, stops[reached[1]]["lat"], stops[reached[1]]["lng"])
     legs.append(("walk_dest", {"minutes": round(walk_sec(final_walk_km) / 60), "to_lat": to_lat, "to_lng": to_lng}, reached[1], None))
 
-    # Trip-specific shape lookup for ride polylines.
+    # Trip-specific CANONICAL geometry lookup for ride polylines - the
+    # exact Perix line the map draws, sliced between the two stops. NO
+    # GTFS-shape authority and NO straight stop-to-stop fallback: without
+    # a canonical line the leg simply carries no polyline.
     routes_by_num = {
         str(route.get("route_number")): route
         for route in network.get("routes", [])
     }
 
-    def _shape_slice(route_num, trip_id, from_stop_id, to_stop_id):
-        """Slice of THIS trip's shape between two stops (either direction)."""
+    def _canonical_slice(route_num, trip_id, from_stop_id, to_stop_id):
         route = routes_by_num.get(str(route_num))
         if not route:
             return None
@@ -2322,11 +2363,18 @@ def _plan_core(network: dict, from_lat: float, from_lng: float, to_lat: float, t
         )
         if not trip:
             return None
-        sh = _trip_shape(route, trip)
-        if len(sh) < 3:
+        try:
+            from mobility.domain import _pattern_id as _dom_pattern_id, _pattern_key as _dom_pattern_key
+            from mobility.geometry_cache import get_cached
+
+            pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
+            sh = get_cached(pat_id)
+        except Exception:
             return None
-        a = next((s for s in route.get("stops", []) if s.get("stop_id") == from_stop_id), None)
-        b = next((s for s in route.get("stops", []) if s.get("stop_id") == to_stop_id), None)
+        if not sh or len(sh) < 2:
+            return None
+        a = next((s for s in route.get("stops", []) if str(s.get("stop_id")) == str(from_stop_id)), None)
+        b = next((s for s in route.get("stops", []) if str(s.get("stop_id")) == str(to_stop_id)), None)
         if not a or not b:
             return None
         ia = _shape_index_for(sh, a.get("lat"), a.get("lng"))
@@ -2352,7 +2400,7 @@ def _plan_core(network: dict, from_lat: float, from_lng: float, to_lat: float, t
             })
             walking_total += payload["minutes"]
         elif kind == "ride":
-            shape_slice = _shape_slice(
+            shape_slice = _canonical_slice(
                 payload["route_number"],
                 payload.get("trip_id"),
                 payload["board"],
@@ -2368,10 +2416,7 @@ def _plan_core(network: dict, from_lat: float, from_lng: float, to_lat: float, t
                 "depart": _fmt_service_time(payload["depart"]),
                 "arrive": _fmt_service_time(payload["arrive"]),
                 "minutes": round((payload["arrive"] - payload["depart"]) / 60),
-                "points": shape_slice or [
-                    [stops.get(payload["board"], {}).get("lat"), stops.get(payload["board"], {}).get("lng")],
-                    [stops.get(payload["alight"], {}).get("lat"), stops.get(payload["alight"], {}).get("lng")],
-                ],
+                "points": shape_slice or [],
             })
         elif kind == "walk":
             p_stop = stops.get(prev_sid)
