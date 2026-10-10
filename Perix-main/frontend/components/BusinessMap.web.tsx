@@ -221,7 +221,7 @@ const escapeHtml = (s: string) =>
 const routePlateText = (num: string, x: number, fontSize: number, y: number) =>
   `<text x="${x}" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="${fontSize}" fill="#ffffff">${escapeHtml(num)}</text>`;
 
-const busSvg = (label?: string | null) => {
+const busSvg = (label?: string | null, deg = 0) => {
   const num = (label || "").trim();
   const plate = num
     ? `<rect x="32.2" y="6" width="8" height="6.2" rx="1.6" fill="#1E3A8A"/>` +
@@ -233,7 +233,7 @@ const busSvg = (label?: string | null) => {
       <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/>
     </filter>
   </defs>
-  <g filter="url(#bs)">
+  <g transform="rotate(${deg} 23 13)" filter="url(#bs)">
     <rect x="1.2" y="3" width="43.6" height="17" rx="5.5" fill="#ffffff" stroke="#1E3A8A" stroke-width="2"/>
     <rect x="4" y="6" width="6" height="6" rx="1.5" fill="#59ABE3"/>
     <rect x="12" y="6" width="5.5" height="6" rx="1.5" fill="#BFDFF7"/>
@@ -250,7 +250,7 @@ const busSvg = (label?: string | null) => {
 </svg>`;
 };
 
-const tramSvg = (label?: string | null) => {
+const tramSvg = (label?: string | null, deg = 0) => {
   const num = (label || "").trim();
   const plate = num
     ? `<rect x="8.2" y="10.8" width="11" height="6.8" rx="1.6" fill="#166534"/>` +
@@ -262,7 +262,7 @@ const tramSvg = (label?: string | null) => {
       <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/>
     </filter>
   </defs>
-  <g filter="url(#ts)">
+  <g transform="rotate(${deg} 33 15)" filter="url(#ts)">
     <line x1="8" y1="1.5" x2="8" y2="9" stroke="#166534" stroke-width="2.2"/>
     <line x1="3" y1="1.5" x2="26" y2="1.5" stroke="#166534" stroke-width="1.7"/>
     <rect x="1.2" y="9" width="29" height="13" rx="4" fill="#ffffff" stroke="#166534" stroke-width="2"/>
@@ -293,19 +293,23 @@ let googleScriptLoaded = false;
 let googleScriptPromise: Promise<void> | null = null;
 
 /** Native google.maps.Marker icon for a transit vehicle: SVG data URL,
- *  scaled size + rotation. The map pins the marker to its geographic
- *  coordinate through pan/zoom - it can never drift with the gesture. */
+ *  scaled size + SVG-internal rotation (deterministic - the icon faces
+ *  the direction of travel, never sideways). The map pins the marker to
+ *  its geographic coordinate through pan/zoom - it can never drift. */
 const makeVehicleIcon = (google: any, rec: any) => {
   const isTram = rec.type === "tram";
   const w = Math.max(12, Math.round((isTram ? 66 : 46) * rec.scale));
   const h = Math.max(8, Math.round((isTram ? 30 : 26) * rec.scale));
+  const heading = typeof rec.heading === "number" ? rec.heading : 0;
+  // SVG is drawn facing RIGHT (east): rotate so the nose points at the
+  // heading. heading 0 (north) -> -90; heading 90 (east) -> 0.
+  const deg = Math.round((heading - 90) * 10) / 10;
   return {
     url:
       "data:image/svg+xml;charset=UTF-8," +
-      encodeURIComponent(isTram ? tramSvg(rec.label) : busSvg(rec.label)),
+      encodeURIComponent(isTram ? tramSvg(rec.label, deg) : busSvg(rec.label, deg)),
     scaledSize: new google.maps.Size(w, h),
     anchor: new google.maps.Point(Math.round(w / 2), Math.round(h / 2)),
-    rotation: (typeof rec.heading === "number" ? rec.heading : 0) - 90,
   };
 };
 
