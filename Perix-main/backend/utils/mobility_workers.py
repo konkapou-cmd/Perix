@@ -591,14 +591,14 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
         existing = await db.mobility_road_geometries.find_one(
             {"pattern_id": pid, "version_id": version}, {"_id": 0}
         )
-        # Rebuild docs that predate the directed-graph schema (graph_v 2:
+        # Rebuild docs that predate the corridor-weighted schema (graph_v 3:
         # real OSM node ids + oneway). Older geometries were built on
         # synthetic node ids with cut way junctions.
         if (
             only_patterns is None
             and existing
             and existing.get("mode")
-            and existing.get("graph_v") == 2
+            and existing.get("graph_v") == 3
         ):
             continue
         coords = []
@@ -611,7 +611,11 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
         try:
             from mobility.roads import compute_pattern_segments
 
-            res = await compute_pattern_segments(coords, mode)
+            # MVB GTFS shape = corridor hint for the A* (the operator
+            # decides WHICH corridor the line uses; OUR OSM graph gives
+            # the exact coordinates). Never the line itself.
+            shape_hint = pat.get("points") if (pat.get("points") and len(pat["points"]) >= 2) else None
+            res = await compute_pattern_segments(coords, mode, shape_hint)
             # Segment registry: store EVERY resolved stop-pair so a single
             # unresolved pair never discards the rest of the pattern. Once
             # all pairs exist the pattern becomes canonical (see graph.py).
@@ -626,7 +630,7 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
             # assemblies where consecutive segments shared no graph node.
             if res.get("segments") and any(s.get("ok") for s in res["segments"]):
                 await db.mobility_geometry_segments.delete_many(
-                    {"pattern_id": pid, "version_id": version, "graph_v": 2}
+                    {"pattern_id": pid, "version_id": version, "graph_v": 3}
                 )
             stored = 0
             for seg in res.get("segments") or []:
@@ -646,7 +650,7 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                         "end_node_id": seg.get("end_node_id"),
                         "edge_ids": seg.get("edge_ids") or [],
                         "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
-                        "graph_v": 2,
+                        "graph_v": 3,
                         "created_at": _berlin_now().isoformat(),
                     },
                     upsert=True,
@@ -673,7 +677,7 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                             "mode": mode,
                             "points": pts,
                             "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
-                            "graph_v": 2,
+                            "graph_v": 3,
                             "created_at": _berlin_now().isoformat(),
                         },
                         upsert=True,

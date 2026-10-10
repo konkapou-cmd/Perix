@@ -175,16 +175,29 @@ def _nearest_node(nodes: Dict[int, Tuple[float, float]], lat: float, lng: float)
     return best
 
 
+def _point_seg_dist_m(lat, lng, x0, y0, x1, y1) -> float:
+    dx, dy = x1 - x0, y1 - y0
+    denom = dx * dx + dy * dy
+    t = 0.0 if denom == 0 else max(0.0, min(1.0, ((lat - x0) * dx + (lng - y0) * dy) / denom))
+    return _haversine_m(lat, lng, x0 + t * dx, y0 + t * dy)
+
+
 def _astar(
     adj: Dict[int, List[Tuple[int, float, str]]],
     nodes: Dict[int, Tuple[float, float]],
     start: int,
     goal: int,
     blocked_edges: Optional[set] = None,
-) -> List[int]:
+    edge_weight: Optional[Dict[str, float]] = None,
+) -> tuple:
+    """A* with per-edge cost multiplier (corridor weighting). The MVB GTFS
+    shape is a ROUTING HINT: edges near the intended corridor cost ~1x,
+    edges far from it cost up to ~4x - so the route sticks to the corridor
+    the operator chose, but a missing shape still routes normally."""
     if start == goal:
         return [start], []
     blocked_edges = blocked_edges or set()
+    edge_weight = edge_weight or {}
     open_heap = [(0.0, start)]
     g = {start: 0.0}
     came = {}
@@ -197,7 +210,8 @@ def _astar(
         for nxt, d, eid in adj.get(cur, []):
             if (cur, nxt) in blocked_edges or eid in blocked_edges:
                 continue
-            ng = cur_g + d
+            w = edge_weight.get(eid, 1.0)
+            ng = cur_g + d * w
             if ng < g.get(nxt, float("inf")):
                 g[nxt] = ng
                 glat, glng = nodes[goal]
@@ -206,7 +220,7 @@ def _astar(
                 came_edge[nxt] = eid
                 heapq.heappush(open_heap, (ng + _haversine_m(nlat, nlng, glat, glng), nxt))
     if goal not in came and start != goal:
-        return []
+        return [], []
     path = [goal]
     edges = []
     while path[-1] != start:
@@ -229,12 +243,17 @@ def _route_stops_segments_sync(
     blocked_way_ids: Optional[set] = None,
     mode: str = "bus",
     blocked_eids: Optional[set] = None,
+    shape_hint: Optional[List[list]] = None,
 ) -> dict:
     """Route each consecutive stop pair independently (segment registry).
 
     One failed pair NEVER rejects the whole pattern. Every segment records
     its start/end OSM node and the exact edge chain, so joining segments
-    later REQUIRES a shared graph node (no arbitrary coordinate joins)."""
+    later REQUIRES a shared graph node (no arbitrary coordinate joins).
+
+    shape_hint (MVB GTFS shape) acts as a CORRIDOR: edges near it get a
+    low cost multiplier so the route follows the corridor the operator
+    chose - while the exact coordinates always come from OUR graph."""
     nodes, adj, edge_way = _build_graph_detailed(
         [
             w if isinstance(w, dict) else {"id": i, "points": w, "nodes": [], "tags": {}}
@@ -253,6 +272,24 @@ def _route_stops_segments_sync(
                     blocked_edges.add(eid)
     for eid in blocked_eids:
         blocked_edges.add(eid)
+    # Corridor weights: distance of each edge midpoint to the shape hint.
+    edge_weight = {}
+    if shape_hint and len(shape_hint) >= 2:
+        hint = [[float(p[0]), float(p[1])] for p in shape_hint]
+        for a, nbrs in adj.items():
+            for nxt, d, eid in nbrs:
+                if eid in edge_weight:
+                    continue
+                alat, alng = nodes[a]
+                blat, blng = nodes[nxt]
+                mlat, mlng = (alat + blat) / 2, (alng + blng) / 2
+                best = float("inf")
+                for j in range(len(hint) - 1):
+                    dd = _point_seg_dist_m(mlat, mlng, hint[j][0], hint[j][1], hint[j + 1][0], hint[j + 1][1])
+                    if dd < best:
+                        best = dd
+                # 0-20m: x1.0  /  20-120m: ramps to x4  /  beyond: x4
+                edge_weight[eid] = 1.0 + min(3.0, max(0.0, (best - 20.0) / 25.0)) if best <= 120 else 4.0
     segments = []
     for i in range(len(stops) - 1):
         if len(nodes) < 2:
@@ -260,8 +297,8 @@ def _route_stops_segments_sync(
             continue
         a = _nearest_node(nodes, stops[i][0], stops[i][1])
         b = _nearest_node(nodes, stops[i + 1][0], stops[i + 1][1])
-        result = _astar(adj, nodes, a, b, blocked_edges)
-        if not result:
+        result = _astar(adj, nodes, a, b, blocked_edges, edge_weight)
+        if not result or not result[0]:
             segments.append({"a_idx": i, "b_idx": i + 1, "points": [], "ok": False})
             continue
         path, edges = result
@@ -297,10 +334,12 @@ async def compute_pattern_geometry(stops: List[dict], mode: str = "bus") -> List
     return res.get("full") or []
 
 
-async def compute_pattern_segments(stops: List[dict], mode: str = "bus") -> dict:
+async def compute_pattern_segments(stops: List[dict], mode: str = "bus", shape_hint: Optional[List[list]] = None) -> dict:
     """Per stop-pair routing (segment registry) with a larger retry bbox:
     rail networks can leave the immediate stop corridor, so a first pass
-    with a tight bbox may fail while a wider one succeeds."""
+    with a tight bbox may fail while a wider one succeeds. The MVB GTFS
+    shape (shape_hint) is a corridor hint for the A* - never the line
+    itself; the exact coordinates always come from OUR OSM graph."""
     pts = [
         (float(s.get("latitude") or s.get("lat")), float(s.get("longitude") or s.get("lng")))
         for s in stops
@@ -345,6 +384,7 @@ async def compute_pattern_segments(stops: List[dict], mode: str = "bus") -> dict
             blocked_way_ids,
             mode,
             blocked_eids,
+            shape_hint,
         )
         if res["full"]:
             return res
