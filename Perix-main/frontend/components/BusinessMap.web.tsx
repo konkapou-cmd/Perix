@@ -1007,12 +1007,26 @@ export default function BusinessMap({
         const rec = existing;
         // Keep the vehicle's canonical path fresh (the resolved line can
         // change once, e.g. when the geometry worker completes it).
+        const pathChanged = rep.path != null && rec.path !== rep.path;
         if (rep.path && rep.path.length >= 2) {
           rec.path = rep.path;
           rec.cum = polylineCumulative(rep.path);
         } else {
           rec.path = null;
           rec.cum = null;
+        }
+        if (pathChanged && rec.path && rec.cum) {
+          // The vehicle switched canonical line (direction change at the
+          // terminus): position directly at the backend progress on the
+          // NEW line - never glide across the city from the old line.
+          rec.progNow =
+            typeof rep.progressM === "number" && Number.isFinite(rep.progressM)
+              ? rep.progressM
+              : progressOfPoint(rec.path, rec.cum, rep.latitude, rep.longitude);
+          rec.progFrom = rec.progNow;
+          rec.progTo = null;
+          rec.animStart = null;
+          rec.marker.setPosition(pointAtProgress(rec.path, rec.cum, rec.progNow));
         }
         rec.heading = typeof rep.heading === "number" ? rep.heading : 0;
         rec.scale = vScale;

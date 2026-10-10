@@ -801,15 +801,22 @@ def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: flo
 
         if dt > 180:
             shown = max(0.0, min(total_m, raw_progress_m))
-        elif raw_progress_m <= previous:
-            # Delay got worse: WAIT - crawl instead of running ahead.
-            sched_speed = total_m / max(60.0, float(trip_duration_sec))
-            shown = min(total_m, previous + sched_speed * 0.12 * dt)
         else:
-            # Delay improved: catch up forward, no teleport.
-            max_kmh = 60.0 if mode == "tram" else 70.0
-            max_step = (max_kmh / 3.6) * min(dt, 30.0)
-            shown = min(raw_progress_m, previous + max_step)
+            diff = raw_progress_m - previous
+            if abs(diff) <= 50.0:
+                # Track the predicted timeline EXACTLY: normal pace, small
+                # realtime jitter never triggers catch-up bursts.
+                shown = max(0.0, min(total_m, raw_progress_m))
+            elif diff < 0:
+                # Delay got worse: WAIT - crawl instead of running ahead.
+                sched_speed = total_m / max(60.0, float(trip_duration_sec))
+                shown = min(total_m, previous + sched_speed * 0.12 * dt)
+            else:
+                # Delay improved: catch up at a REALISTIC speed cap (a
+                # tram does not sprint at 70 km/h through the city).
+                max_kmh = 45.0 if mode == "tram" else 50.0
+                max_step = (max_kmh / 3.6) * min(dt, 30.0)
+                shown = min(raw_progress_m, previous + max_step)
 
     shown = max(0.0, min(total_m, shown))
     states[trip_id] = {"progress_m": shown, "at": now_mono, "total_m": total_m}
@@ -1019,7 +1026,7 @@ def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Opti
             fs = w["first_stop"]
             if (
                 _haversine_km(ls.get("lat"), ls.get("lng"), fs.get("lat"), fs.get("lng")) < 0.08
-                and run["end"] <= w["start"] <= run["end"] + 420
+                and run["end"] <= w["start"] <= run["end"] + 900
             ):
                 run["trips"].append(w)
                 run["end"] = w["end"]
