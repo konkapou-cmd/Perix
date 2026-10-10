@@ -1388,8 +1388,28 @@ export default function BusinessMap({
       if (i % stride !== 0) return;
       const platforms = (s as any).platforms || [];
       // Both sides of the road: at close zoom show one pin per PLATFORM
-      // (each with its own directions), otherwise the single physical stop.
+      // ONLY when the platforms are truly apart (>= 25m). Near-duplicate
+      // platform records at almost the same spot must never render twice
+      // ('every stop twice, left and right').
+      let platformsApart = false;
       if (zoom >= 16 && platforms.length >= 2) {
+        outer: for (let a = 0; a < platforms.length; a++) {
+          for (let b = a + 1; b < platforms.length; b++) {
+            const pa = platforms[a];
+            const pb = platforms[b];
+            if (pa.latitude == null || pb.latitude == null) continue;
+            const d =
+              Math.sqrt(
+                (pa.latitude - pb.latitude) ** 2 + (pa.longitude - pb.longitude) ** 2
+              ) * 111000;
+            if (d >= 25) {
+              platformsApart = true;
+              break outer;
+            }
+          }
+        }
+      }
+      if (platformsApart) {
         platforms.forEach((p: any) => {
           if (p.latitude == null || p.longitude == null) return;
           const key = `plat:${p.platform_id}:${bucket}`;

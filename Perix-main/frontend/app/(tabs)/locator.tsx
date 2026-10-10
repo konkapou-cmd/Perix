@@ -1415,7 +1415,14 @@ export default function LocatorScreen() {
                         v.mode !== "taxi"
                           ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
                           : v.name,
-                      description: v.estimated ? "Estimated" : v.status,
+                      description:
+                        v.identity_kind === "PHYSICAL"
+                          ? "Live GPS"
+                          : v.identity_kind === "VIRTUAL_REALTIME"
+                          ? "Realtime estimate"
+                          : v.estimated
+                          ? "Schedule estimate"
+                          : v.status,
                       type: (v.mode === "bus" ? "bus" : v.mode === "tram" ? "tram" : "taxi") as "bus" | "tram" | "taxi",
                       label: v.route_number || undefined,
                       pinColor: v.mode === "bus" ? "#1E3A8A" : v.mode === "tram" ? "#8B0000" : "#FFC400",

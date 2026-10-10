@@ -6,6 +6,8 @@ export type LiveVehicle = {
   vehicle_id: string;
   business_id: string;
   mode: MobilityMode;
+  identity_kind?: "PHYSICAL" | "VIRTUAL_REALTIME" | "VIRTUAL_SCHEDULE" | string;
+  registered_vehicle_id?: string | null;
   fleet_number: string;
   name: string;
   registration?: string | null;
@@ -55,6 +57,8 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
       vehicle_id: v.vehicle_id,
       business_id: "",
       mode: v.mode as MobilityMode,
+      identity_kind: v.identity_kind,
+      registered_vehicle_id: v.registered_vehicle_id ?? null,
       fleet_number: String(v.route?.number ?? ""),
       name: String(v.route?.number ?? v.vehicle_id),
       route_number: v.route?.number ?? null,
@@ -85,6 +89,8 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
 
 export type V2Vehicle = {
   vehicle_id: string;
+  identity_kind?: "PHYSICAL" | "VIRTUAL_REALTIME" | "VIRTUAL_SCHEDULE" | string;
+  registered_vehicle_id?: string | null;
   mode: string;
   route?: { number?: string | null; direction?: string | null };
   position?: {

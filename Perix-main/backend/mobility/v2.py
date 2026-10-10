@@ -379,6 +379,18 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
         except Exception:
             age_seconds = 0
         trip_id = v.get("trip_id")
+        # Explicit identity: every map icon is either a registered PHYSICAL
+        # vehicle (own GPS) or a VIRTUAL representation of an active trip
+        # (realtime-constrained or schedule-only). Never ambiguous.
+        if not estimated:
+            identity_kind = "PHYSICAL"
+            registered_vehicle_id = v.get("vehicle_id")
+        elif source == "REALTIME_ESTIMATE":
+            identity_kind = "VIRTUAL_REALTIME"
+            registered_vehicle_id = None
+        else:
+            identity_kind = "VIRTUAL_SCHEDULE"
+            registered_vehicle_id = None
         # Observable position semantics for diagnostics:
         # - estimated vehicles: ON_PATTERN (riding the canonical line) or
         #   STOP_ANCHOR (parked at the next stop, geometry still pending)
@@ -394,6 +406,8 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
         out.append(
             {
                 "vehicle_id": v.get("vehicle_id"),
+                "identity_kind": identity_kind,
+                "registered_vehicle_id": registered_vehicle_id,
                 "mode": v.get("mode"),
                 "route": {"number": v.get("route_number"), "direction": v.get("route_direction")},
                 "position": {
