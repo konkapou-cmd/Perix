@@ -2000,6 +2000,16 @@ export default function LocatorScreen() {
                   : t("mobility.towardAny", "Transit going toward")}{" "}
                 {selectedStop.name}
               </Text>
+              {(() => {
+                const full = physicalStops.find((s) => s.stop_id === selectedStop.stop_id);
+                const aliases = (full?.aliases || []).filter((a) => a !== selectedStop.name);
+                if (!aliases.length) return null;
+                return (
+                  <Text style={styles.mobilityEmptyText}>
+                    {aliases.slice(0, 3).join(" · ")}
+                  </Text>
+                );
+              })()}
               {servingBuses.length === 0 ? (
                 <Text style={styles.mobilityEmptyText}>
                   {t("mobility.noBusesServing", "No live buses on this route right now")}

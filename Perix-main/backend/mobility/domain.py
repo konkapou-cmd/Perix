@@ -159,7 +159,68 @@ def _physical_stops(network: dict) -> List[dict]:
                 ],
             }
         )
-    return out
+    return _cluster_stop_places(out)
+
+
+STOP_PLACE_MERGE_KM = 0.08  # 80 meters - one passenger stop complex
+
+
+def _cluster_stop_places(stops: List[dict]) -> List[dict]:
+    """Second level: STOP PLACES (transit complexes) for the passenger map.
+
+    Two physical stops within 40m become ONE stop place even when their
+    GTFS names differ ('Betriebshof Nord' + 'Allee-Center / Eichplatz' at
+    almost the same spot) - the passenger sees one stop, the names are
+    kept as aliases, and every platform (L/R, per line) stays available
+    for close zoom. Far-apart stops never merge."""
+    if len(stops) <= 1:
+        return stops
+    places: List[dict] = []
+    for s in stops:
+        merged = None
+        for pl in places:
+            if (
+                pl.get("latitude") is not None
+                and s.get("latitude") is not None
+                and _haversine_km(pl["latitude"], pl["longitude"], s["latitude"], s["longitude"]) < STOP_PLACE_MERGE_KM
+            ):
+                merged = pl
+                break
+        if merged is None:
+            places.append(
+                {
+                    "stop_id": s["stop_id"],
+                    "stop_place_id": f"place:{s['stop_id'].split(':', 1)[-1][:40]}",
+                    "stop_ids": list(s.get("stop_ids") or []),
+                    "platforms": list(s.get("platforms") or []),
+                    "name": s.get("name") or s["stop_id"],
+                    "aliases": [s.get("name")] if s.get("name") else [],
+                    "latitude": s.get("latitude"),
+                    "longitude": s.get("longitude"),
+                    "modes": set(s.get("modes") or []),
+                    "routes": {r.get("route_number"): r for r in (s.get("routes") or [])},
+                }
+            )
+            continue
+        merged["stop_ids"].extend(x for x in (s.get("stop_ids") or []) if x not in merged["stop_ids"])
+        for p in s.get("platforms") or []:
+            if not any(pp.get("platform_id") == p.get("platform_id") for pp in merged["platforms"]):
+                merged["platforms"].append(p)
+        for nm in [s.get("name")]:
+            if nm and nm not in merged["aliases"]:
+                merged["aliases"].append(nm)
+        merged["modes"].update(s.get("modes") or [])
+        for r in s.get("routes") or []:
+            rn = r.get("route_number")
+            if rn not in merged["routes"]:
+                merged["routes"][rn] = r
+        # Anchor the place at the FIRST (main) stop - keeps a stable point.
+    for pl in places:
+        pl["modes"] = sorted(pl["modes"])
+        pl["routes"] = sorted(pl["routes"].values(), key=lambda x: (x["mode"] != "tram", x["route_number"]))
+        if len(pl["aliases"]) > 1:
+            pl["name"] = pl["aliases"][0]
+    return places
 
 
 def _apply_stop_overrides(stops: List[dict], overrides: Optional[List[dict]]) -> List[dict]:

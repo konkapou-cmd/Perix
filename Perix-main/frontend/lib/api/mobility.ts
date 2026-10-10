@@ -252,8 +252,10 @@ export type BusNetwork = {
 
 export type TransitStopMarker = {
   stop_id: string;
+  stop_place_id?: string;
   stop_ids: string[];
   name: string;
+  aliases?: string[];
   latitude: number;
   longitude: number;
   modes: ("bus" | "tram")[];
