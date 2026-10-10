@@ -749,17 +749,12 @@ export default function BusinessMap({
         });
 
         map.addListener("bounds_changed", () => {
-          // Freeze vehicle glide animations while the map moves: the icons
-          // must stay anchored to their GEOGRAPHIC position during a pan,
-          // never keep sliding (which reads as 'following the map').
-          markersRef.current.forEach((rec: any) => {
-            if (rec?.animStart != null) {
-              rec.animStart = null;
-              if (rec.marker && rec.path && rec.cum && rec.progNow != null) {
-                rec.marker.setPosition(pointAtProgress(rec.path, rec.cum, rec.progNow));
-              }
-            }
-          });
+          // NO animation state is touched here anymore. Vehicles are
+          // native google.maps.Marker objects - the map itself keeps them
+          // pinned to their geographic coordinate during pan/zoom, while
+          // the rAF glide continues normally. The old freeze workaround
+          // (for DOM overlays) cancelled every in-flight animation on
+          // every tiny gesture, which read as 'vehicles never move'.
           const bounds = map.getBounds();
           if (!bounds) return;
           const ne = bounds.getNorthEast();
