@@ -761,10 +761,11 @@ def _raw_timeline_progress(timeline: List[dict], stop_progress: List[float], now
 def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: float, mode: str, trip_duration_sec: int) -> float:
     """Forward-only ETA-constrained display progress.
 
-    - Delay improved: the marker accelerates forward (visual speed cap).
-    - Delay got worse: the marker NEVER stops - a real vehicle keeps
-      moving even when late, so it advances at the scheduled pace while
-      the ETA absorbs the delay. It never reverses.
+    - Delay improved: the marker accelerates forward (visual speed cap) -
+      the vehicle 'runs' to catch up.
+    - Delay got worse: the vehicle WAITS - it crawls at ~12% of the
+      scheduled pace (a real late vehicle stands at stops / creeps in
+      traffic, it never races ahead of its delayed ETA). Never reverses.
     """
     import time
 
@@ -790,10 +791,9 @@ def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: flo
         if dt > 180:
             shown = max(0.0, min(total_m, raw_progress_m))
         elif raw_progress_m <= previous:
-            # Delay got worse: keep moving at the scheduled pace so the
-            # marker never freezes kilometers behind the real vehicle.
+            # Delay got worse: WAIT - crawl instead of running ahead.
             sched_speed = total_m / max(60.0, float(trip_duration_sec))
-            shown = min(total_m, previous + sched_speed * dt)
+            shown = min(total_m, previous + sched_speed * 0.12 * dt)
         else:
             # Delay improved: catch up forward, no teleport.
             max_kmh = 60.0 if mode == "tram" else 70.0
