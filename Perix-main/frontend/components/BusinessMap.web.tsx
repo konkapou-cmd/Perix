@@ -174,9 +174,9 @@ const pointAtProgress = (
   points: { latitude: number; longitude: number }[],
   cum: number[],
   progress: number
-): { latitude: number; longitude: number } => {
-  if (points.length === 1) return points[0];
-  if (!Number.isFinite(progress)) return points[0];
+): { lat: number; lng: number } => {
+  if (points.length === 1) return { lat: points[0].latitude, lng: points[0].longitude };
+  if (!Number.isFinite(progress)) return { lat: points[0].latitude, lng: points[0].longitude };
   const total = cum[cum.length - 1] || 1;
   const p = Math.max(0, Math.min(total, progress));
   for (let i = 0; i < cum.length - 1; i++) {
@@ -184,11 +184,11 @@ const pointAtProgress = (
     const span = Math.max(0.001, cum[i + 1] - cum[i]);
     const f = Math.min(1, Math.max(0, (p - cum[i]) / span));
     return {
-      latitude: points[i].latitude + (points[i + 1].latitude - points[i].latitude) * f,
-      longitude: points[i].longitude + (points[i + 1].longitude - points[i].longitude) * f,
+      lat: points[i].latitude + (points[i + 1].latitude - points[i].latitude) * f,
+      lng: points[i].longitude + (points[i + 1].longitude - points[i].longitude) * f,
     };
   }
-  return points[points.length - 1];
+  return { lat: points[points.length - 1].latitude, lng: points[points.length - 1].longitude };
 };
 
 const progressOfPoint = (
@@ -453,7 +453,7 @@ export default function BusinessMap({
           // the vehicle follows the curves, never a straight chord.
           rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * tt;
           const np = pointAtProgress(rec.path, rec.cum, rec.progNow);
-          if (Number.isFinite(np.latitude) && Number.isFinite(np.longitude)) {
+          if (Number.isFinite(np.lat) && Number.isFinite(np.lng)) {
             rec.marker.setPosition(np);
           } else {
             rec.animStart = null;
@@ -521,7 +521,7 @@ export default function BusinessMap({
         // position clearly does not belong to it. Backend progress_m
         // needs no such check - it is the authoritative position.
         const onPath = pointAtProgress(rec.path, rec.cum, toProg);
-        const offDist = haversineMeters({ lat: pos.lat, lng: pos.lng }, { lat: onPath.latitude, lng: onPath.longitude });
+        const offDist = haversineMeters({ lat: pos.lat, lng: pos.lng }, { lat: onPath.lat, lng: onPath.lng });
         if (offDist > 250) {
           rec.path = null;
           rec.cum = null;
