@@ -176,6 +176,7 @@ const pointAtProgress = (
   progress: number
 ): { latitude: number; longitude: number } => {
   if (points.length === 1) return points[0];
+  if (!Number.isFinite(progress)) return points[0];
   const total = cum[cum.length - 1] || 1;
   const p = Math.max(0, Math.min(total, progress));
   for (let i = 0; i < cum.length - 1; i++) {
@@ -196,6 +197,7 @@ const progressOfPoint = (
   lat: number,
   lng: number
 ): number => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || points.length < 2) return 0;
   let best = 0;
   let bestD = Infinity;
   for (let i = 0; i < points.length - 1; i++) {
@@ -203,6 +205,7 @@ const progressOfPoint = (
     const y0 = points[i].longitude;
     const x1 = points[i + 1].latitude;
     const y1 = points[i + 1].longitude;
+    if (!Number.isFinite(x0) || !Number.isFinite(y0) || !Number.isFinite(x1) || !Number.isFinite(y1)) continue;
     const dx = x1 - x0;
     const dy = y1 - y0;
     const denom = dx * dx + dy * dy;
@@ -213,7 +216,7 @@ const progressOfPoint = (
       best = cum[i] + t * (cum[i + 1] - cum[i]);
     }
   }
-  return best;
+  return Number.isFinite(best) ? best : 0;
 };
 
 // Cartoon transit icons (SVG) with the route number on a side plate.
@@ -449,7 +452,12 @@ export default function BusinessMap({
           // Progress interpolation along the canonical road/rail polyline:
           // the vehicle follows the curves, never a straight chord.
           rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * tt;
-          rec.marker.setPosition(pointAtProgress(rec.path, rec.cum, rec.progNow));
+          const np = pointAtProgress(rec.path, rec.cum, rec.progNow);
+          if (Number.isFinite(np.latitude) && Number.isFinite(np.longitude)) {
+            rec.marker.setPosition(np);
+          } else {
+            rec.animStart = null;
+          }
         } else if (rec.geoTo) {
           const lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * tt;
           const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * tt;
@@ -496,9 +504,18 @@ export default function BusinessMap({
     // (which can grab the wrong segment on loops/returns).
     if (rec.path && rec.path.length >= 2 && rec.cum) {
       const hasProgressM = typeof targetProgressM === "number" && Number.isFinite(targetProgressM);
-      const toProg = hasProgressM
+      let toProg = hasProgressM
         ? (targetProgressM as number)
         : progressOfPoint(rec.path, rec.cum, pos.lat, pos.lng);
+      if (!Number.isFinite(toProg)) {
+        toProg = progressOfPoint(rec.path, rec.cum, pos.lat, pos.lng);
+      }
+      if (!Number.isFinite(toProg)) {
+        // Nothing usable: place the marker at the raw position, no path.
+        rec.animStart = null;
+        rec.marker.setPosition({ lat: pos.lat, lng: pos.lng });
+        return;
+      }
       if (!hasProgressM) {
         // Only when re-projecting in the browser: drop the path if the
         // position clearly does not belong to it. Backend progress_m
@@ -1090,10 +1107,11 @@ export default function BusinessMap({
       if (rep.path && rep.path.length >= 2) {
         rec.path = rep.path;
         rec.cum = polylineCumulative(rep.path);
-        const startProg =
+        let startProg =
           typeof rep.progressM === "number" && Number.isFinite(rep.progressM)
             ? rep.progressM
             : progressOfPoint(rec.path, rec.cum, rep.latitude, rep.longitude);
+        if (!Number.isFinite(startProg)) startProg = 0;
         rec.progNow = startProg;
         rec.progFrom = startProg;
         rec.progTo = null;
