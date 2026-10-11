@@ -1264,7 +1264,7 @@ export default function BusinessMap({
       }
     }
     const seenKeys = new Set<string>();
-    const buildPin = (s: any, lat: number, lng: number, withBadges: boolean, platformDirections?: string[], platformSide?: string | null, key?: string) => {
+    const buildPin = (s: any, lat: number, lng: number, withBadges: boolean, platformDirections?: string[], platformSide?: string | null, key?: string, nameOverride?: string) => {
       const hasBus = s.modes.includes("bus");
       const hasTram = s.modes.includes("tram");
       const pinColor = hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A";
@@ -1353,7 +1353,7 @@ export default function BusinessMap({
         }
         if (showNames && !platformDirections) {
           const nameEl = document.createElement("div");
-          nameEl.textContent = s.name;
+          nameEl.textContent = nameOverride || s.name;
           nameEl.style.fontSize = "10px";
           nameEl.style.fontWeight = "700";
           nameEl.style.fontFamily = "Arial, sans-serif";
@@ -1381,9 +1381,47 @@ export default function BusinessMap({
 
     list.forEach((s, i) => {
       if (i % stride !== 0) return;
-      // ONE stop place = ONE pin, at every zoom. Platforms (L/R, per
-      // line) are never drawn as separate pins - they live in the stop
-      // panel. This kills the 'every stop twice, left and right' effect.
+      const platforms = (s as any).platforms || [];
+      // ONE stop place = ONE pin normally. At deep zoom (>= 16) the
+      // opposite-direction stops of the same place become visible too:
+      // platform positions deduped by 25m, shown only when they are
+      // truly apart from the main stop pin.
+      if (zoom >= 16 && platforms.length >= 1) {
+        const clusters: { lat: number; lng: number; name: string; directions: string[] }[] = [];
+        for (const p of platforms) {
+          if (p.latitude == null || p.longitude == null) continue;
+          const near = clusters.find(
+            (c) =>
+              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 25
+          );
+          if (near) {
+            near.directions.push(...(p.directions || []));
+          } else {
+            clusters.push({
+              lat: p.latitude,
+              lng: p.longitude,
+              name: p.name || s.name,
+              directions: [...(p.directions || [])],
+            });
+          }
+        }
+        const mainKey = `stop:${s.stop_id}:${bucket}`;
+        seenKeys.add(mainKey);
+        if (!stopsCacheRef.current.has(mainKey)) {
+          buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
+        }
+        for (const c of clusters) {
+          const dMain =
+            Math.sqrt((s.latitude - c.lat) ** 2 + (s.longitude - c.lng) ** 2) * 111000;
+          if (dMain < 25) continue;
+          const k = `opp:${s.stop_id}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
+          seenKeys.add(k);
+          if (!stopsCacheRef.current.has(k)) {
+            buildPin(s, c.lat, c.lng, true, c.directions, null, k, c.name);
+          }
+        }
+        return;
+      }
       const key = `stop:${s.stop_id}:${bucket}:${s.modes.includes("bus") ? "b" : ""}${s.modes.includes("tram") ? "t" : ""}`;
       seenKeys.add(key);
       if (!stopsCacheRef.current.has(key)) {
