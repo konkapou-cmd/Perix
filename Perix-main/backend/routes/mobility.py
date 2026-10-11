@@ -803,14 +803,15 @@ def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: flo
             shown = max(0.0, min(total_m, raw_progress_m))
         else:
             diff = raw_progress_m - previous
-            if abs(diff) <= 50.0:
+            if abs(diff) <= 5.0:
                 # Track the predicted timeline EXACTLY: normal pace, small
                 # realtime jitter never triggers catch-up bursts.
                 shown = max(0.0, min(total_m, raw_progress_m))
             elif diff < 0:
-                # Delay got worse: WAIT - crawl instead of running ahead.
+                # Delay got worse: SLOW DOWN to half pace - the vehicle is
+                # visibly waiting (never frozen, never racing ahead).
                 sched_speed = total_m / max(60.0, float(trip_duration_sec))
-                shown = min(total_m, previous + sched_speed * 0.12 * dt)
+                shown = min(total_m, previous + sched_speed * 0.5 * dt)
             else:
                 # Delay improved: catch up at a REALISTIC speed cap (a
                 # tram does not sprint at 70 km/h through the city).
