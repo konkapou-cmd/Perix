@@ -114,6 +114,85 @@ async def _patterns_resolved(domain: dict) -> list:
     return out
 
 
+def _polyline_len_m(pts: list) -> float:
+    import math
+
+    total = 0.0
+    for i in range(len(pts) - 1):
+        total += math.sqrt((pts[i + 1][0] - pts[i][0]) ** 2 + (pts[i + 1][1] - pts[i][1]) ** 2)
+    return total * 111000.0
+
+
+def _avg_polyline_dist_m(a: list, b: list) -> float:
+    import math
+
+    total = 0.0
+    n = 0
+    step = max(1, len(a) // 40)
+    for i in range(0, len(a), step):
+        lat, lng = a[i]
+        best = float("inf")
+        for j in range(len(b) - 1):
+            x0, y0 = b[j]
+            x1, y1 = b[j + 1]
+            dx, dy = x1 - x0, y1 - y0
+            den = dx * dx + dy * dy
+            t = 0.0 if den == 0 else max(0.0, min(1.0, ((lat - x0) * dx + (lng - y0) * dy) / den))
+            d = math.sqrt((lat - (x0 + t * dx)) ** 2 + (lng - (y0 + t * dy)) ** 2)
+            if d < best:
+                best = d
+        total += best
+        n += 1
+    return (total / max(1, n)) * 111000.0
+
+
+@router.get("/diagnostic/pattern-conflicts")
+async def v2_pattern_conflicts(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+    """Pattern pairs with the SAME stop sequence but DIFFERENT geometry -
+    the cases where two patterns legitimately run on different roads/tracks
+    (directions, branches) or where the corridor hint routed them apart by
+    mistake. Lets us tell 'two real MVB patterns' from 'routing illusion'."""
+    domain = await _domain()
+    if not domain:
+        return []
+    patterns = await _patterns_resolved(domain)
+    by_key = {}
+    for p in patterns:
+        key = (str(p.get("route_number")), tuple(sorted(str(x) for x in (p.get("stop_ids") or []))))
+        by_key.setdefault(key, []).append(p)
+    out = []
+    for (rn, stops_key), pats in by_key.items():
+        if len(pats) < 2:
+            continue
+        for i in range(len(pats)):
+            for j in range(i + 1, len(pats)):
+                a, b = pats[i], pats[j]
+                ga = (a.get("geometry") or {}).get("points") or []
+                gb = (b.get("geometry") or {}).get("points") or []
+                if len(ga) < 2 or len(gb) < 2:
+                    continue
+                d = _avg_polyline_dist_m(ga, gb)
+                if d > 25:
+                    out.append(
+                        {
+                            "route_number": rn,
+                            "pattern_a": a.get("pattern_id"),
+                            "direction_a": a.get("direction"),
+                            "shape_a": a.get("shape_id"),
+                            "source_a": (a.get("geometry") or {}).get("source"),
+                            "pattern_b": b.get("pattern_id"),
+                            "direction_b": b.get("direction"),
+                            "shape_b": b.get("shape_id"),
+                            "source_b": (b.get("geometry") or {}).get("source"),
+                            "avg_distance_m": round(d, 1),
+                            "stops": len(stops_key),
+                            "len_a_m": round(_polyline_len_m(ga)),
+                            "len_b_m": round(_polyline_len_m(gb)),
+                        }
+                    )
+    return sorted(out, key=lambda x: -x["avg_distance_m"])[:60]
+
+
 @router.get("/diagnostic/patterns")
 async def v2_diagnostic_patterns(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     """Per-pattern geometry state: exactly what is COMPLETE and which
