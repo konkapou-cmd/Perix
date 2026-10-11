@@ -433,29 +433,38 @@ export default function BusinessMap({
   // geographic step cover more pixels - motion appears faster naturally.
   const animRunningRef = useRef(false);
   const animRafRef = useRef<number | null>(null);
+  const lastFrameRef = useRef<number>(0);
   const loopTick = () => {
     let active = false;
     const now = Date.now();
+    lastFrameRef.current = now;
     markersRef.current.forEach((rec: any) => {
       if (!rec || rec.animStart == null || !rec.marker) return;
-      const t = (now - rec.animStart) / rec.animDuration;
-      // Extrapolation cap: keep gliding at the same speed for up to 2x
-      // the glide duration after the target - a late poll stays smooth.
-      const tt = Math.min(t, 3.0);
-      if (rec.path && rec.cum && rec.progTo != null) {
-        // Progress interpolation along the canonical road/rail polyline:
-        // the vehicle follows the curves, never a straight chord.
-        rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * tt;
-        rec.marker.setPosition(pointAtProgress(rec.path, rec.cum, rec.progNow));
-      } else if (rec.geoTo) {
-        const lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * tt;
-        const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * tt;
-        rec.marker.setPosition({ lat, lng });
-      }
-      if (t >= 3.0) {
+      try {
+        const t = (now - rec.animStart) / Math.max(1, rec.animDuration || 1000);
+        // Extrapolation cap: keep gliding at the same speed for up to 3x
+        // the glide duration after the target - a late poll stays smooth.
+        const tt = Math.min(Math.max(t, 0), 3.0);
+        if (rec.path && rec.cum && rec.progTo != null && Number.isFinite(rec.progFrom) && Number.isFinite(rec.progTo)) {
+          // Progress interpolation along the canonical road/rail polyline:
+          // the vehicle follows the curves, never a straight chord.
+          rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * tt;
+          rec.marker.setPosition(pointAtProgress(rec.path, rec.cum, rec.progNow));
+        } else if (rec.geoTo) {
+          const lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * tt;
+          const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * tt;
+          rec.marker.setPosition({ lat, lng });
+        }
+        if (t >= 3.0) {
+          rec.animStart = null;
+        } else {
+          active = true;
+        }
+      } catch (e) {
+        // One bad record must never kill the whole animation loop (a
+        // silent death here made markers update only on re-renders).
         rec.animStart = null;
-      } else {
-        active = true;
+        console.warn("[WebMap] anim tick failed", e);
       }
     });
     if (active) {
@@ -466,7 +475,9 @@ export default function BusinessMap({
     }
   };
   const kickAnim = () => {
-    if (animRunningRef.current) return;
+    // Self-healing: if the loop died (exception or throttle), a poll can
+    // restart it even when the running flag is still set.
+    if (animRunningRef.current && Date.now() - lastFrameRef.current < 1000) return;
     animRunningRef.current = true;
     animRafRef.current = requestAnimationFrame(loopTick);
   };
