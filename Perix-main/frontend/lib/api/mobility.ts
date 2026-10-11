@@ -272,6 +272,7 @@ export type TransitStopMarker = {
     name?: string;
     platform_code?: string | null;
     directions?: string[];
+    routes?: string[];
     side?: string | null;
   }[];
   routes: {

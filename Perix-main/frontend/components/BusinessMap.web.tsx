@@ -427,7 +427,9 @@ export default function BusinessMap({
 
   // Continuous vehicle motion: positions are interpolated in GEOGRAPHIC
   // space between polls (requestAnimationFrame), so vehicles glide along
-  // their routes instead of jumping every 4s. Zooming in makes the same
+  // their routes instead of jumping every 4s. After reaching the latest
+  // poll target the marker EXTRAPOLATES at the same speed until the next
+  // poll - live-like continuous motion. Zooming in makes the same
   // geographic step cover more pixels - motion appears faster naturally.
   const animRunningRef = useRef(false);
   const animRafRef = useRef<number | null>(null);
@@ -436,19 +438,25 @@ export default function BusinessMap({
     const now = Date.now();
     markersRef.current.forEach((rec: any) => {
       if (!rec || rec.animStart == null || !rec.marker) return;
-      const t = Math.min(1, (now - rec.animStart) / rec.animDuration);
-      if (rec.path && rec.cum) {
+      const t = (now - rec.animStart) / rec.animDuration;
+      // Extrapolation cap: keep gliding at the same speed for up to 2x
+      // the glide duration after the target - a late poll stays smooth.
+      const tt = Math.min(t, 3.0);
+      if (rec.path && rec.cum && rec.progTo != null) {
         // Progress interpolation along the canonical road/rail polyline:
         // the vehicle follows the curves, never a straight chord.
-        rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * t;
+        rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * tt;
         rec.marker.setPosition(pointAtProgress(rec.path, rec.cum, rec.progNow));
       } else if (rec.geoTo) {
-        const lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * t;
-        const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * t;
+        const lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * tt;
+        const lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * tt;
         rec.marker.setPosition({ lat, lng });
       }
-      if (t >= 1) rec.animStart = null;
-      else active = true;
+      if (t >= 3.0) {
+        rec.animStart = null;
+      } else {
+        active = true;
+      }
     });
     if (active) {
       animRafRef.current = requestAnimationFrame(loopTick);
@@ -504,8 +512,9 @@ export default function BusinessMap({
         const d = Math.abs(toProg - fromProg);
         const dt = rec.lastTs ? nowTs - rec.lastTs : 0;
         rec.lastTs = nowTs;
-        if (d > 250 || dt <= 0 || dt > 30000) {
-          // Snap: brand-new vehicle, trip change, or a stale update.
+        if (d > 250 || dt <= 0 || dt > 30000 || toProg < fromProg) {
+          // Snap: brand-new vehicle, trip change, a stale update, or the
+          // extrapolation overshot the new poll target (never glide back).
           rec.progFrom = toProg;
           rec.progTo = null;
           rec.animStart = null;
@@ -1264,7 +1273,7 @@ export default function BusinessMap({
       }
     }
     const seenKeys = new Set<string>();
-    const buildPin = (s: any, lat: number, lng: number, withBadges: boolean, platformDirections?: string[], platformSide?: string | null, key?: string, nameOverride?: string) => {
+    const buildPin = (s: any, lat: number, lng: number, withBadges: boolean, platformDirections?: string[], platformSide?: string | null, key?: string, nameOverride?: string, badgeRoutes?: any[]) => {
       const hasBus = s.modes.includes("bus");
       const hasTram = s.modes.includes("tram");
       const pinColor = hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A";
@@ -1317,7 +1326,8 @@ export default function BusinessMap({
           badges.style.display = "flex";
           badges.style.gap = "2px";
           badges.style.marginTop = "1px";
-          s.routes.slice(0, 3).forEach((r: any) => {
+          const broutes = (badgeRoutes && badgeRoutes.length ? badgeRoutes : s.routes).slice(0, 3);
+          broutes.forEach((r: any) => {
             const b = document.createElement("span");
             b.textContent = r.route_number;
             b.style.backgroundColor = r.mode === "tram" ? "#8B0000" : "#1E3A8A";
@@ -1393,7 +1403,7 @@ export default function BusinessMap({
         if (!stopsCacheRef.current.has(mainKey)) {
           buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
         }
-        const clusters: { lat: number; lng: number; directions: string[] }[] = [];
+        const clusters: { lat: number; lng: number; directions: string[]; routeNums: Set<string> }[] = [];
         for (const p of platforms) {
           if (p.latitude == null || p.longitude == null) continue;
           const near = clusters.find(
@@ -1404,8 +1414,14 @@ export default function BusinessMap({
             for (const d of p.directions || []) {
               if (!near.directions.includes(d)) near.directions.push(d);
             }
+            for (const rn of p.routes || []) near.routeNums.add(rn);
           } else {
-            clusters.push({ lat: p.latitude, lng: p.longitude, directions: [...(p.directions || [])] });
+            clusters.push({
+              lat: p.latitude,
+              lng: p.longitude,
+              directions: [...(p.directions || [])],
+              routeNums: new Set<string>(p.routes || []),
+            });
           }
         }
         for (const c of clusters) {
@@ -1415,7 +1431,11 @@ export default function BusinessMap({
           const k = `dir:${s.stop_id}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
           seenKeys.add(k);
           if (!stopsCacheRef.current.has(k)) {
-            buildPin(s, c.lat, c.lng, true, c.directions, null, k);
+            const cRoutes = Array.from(c.routeNums).map((rn) => {
+              const rr = (s.routes || []).find((x: any) => x.route_number === rn);
+              return rr || { route_number: rn, mode: s.modes[0] || "bus" };
+            });
+            buildPin(s, c.lat, c.lng, true, c.directions, null, k, undefined, cRoutes);
           }
         }
         return;

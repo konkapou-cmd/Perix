@@ -78,11 +78,20 @@ def _physical_stops(network: dict) -> List[dict]:
     for route in network.get("routes", []):
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
         rn = str(route.get("route_number"))
-        directions = {
+        route_directions = {
             str(t.get("headsign") or "")
             for t in (route.get("trips") or [])
             if t.get("headsign")
         }
+        # stop_id -> set of headsigns of trips that REALLY stop there:
+        # a platform must never inherit directions of trips that do not
+        # serve it (opposite direction stops on the other road got
+        # overloaded with every headsign of the line).
+        stop_trips = {}
+        for t in route.get("trips") or []:
+            hs = str(t.get("headsign") or "")
+            for t_sid in t.get("stop_ids") or []:
+                stop_trips.setdefault(str(t_sid), set()).add(hs)
         for s in route.get("stops", []):
             sid = str(s.get("stop_id") or "")
             if not sid or s.get("lat") is None or s.get("lng") is None:
@@ -123,11 +132,15 @@ def _physical_stops(network: dict) -> List[dict]:
                     "name": str(s.get("name") or "").strip(),
                     "platform_code": s.get("platform_code"),
                     "directions": set(),
+                    "routes": set(),
                 },
             )
-            plat["directions"] |= directions
+            # Directions/Routes SPECIFIC to this platform (trips that
+            # actually include this stop), not the whole line.
+            plat["directions"] |= stop_trips.get(sid, set())
+            plat["routes"].add(rn)
             entry = g["routes"].setdefault(rn, {"route_number": rn, "mode": mode, "directions": set()})
-            entry["directions"] |= directions
+            entry["directions"] |= route_directions
     out = []
     for g in groups.values():
         out.append(
@@ -142,6 +155,7 @@ def _physical_stops(network: dict) -> List[dict]:
                         "name": p["name"],
                         "platform_code": p.get("platform_code"),
                         "directions": sorted(d for d in p["directions"] if d),
+                        "routes": sorted(r for r in p["routes"]),
                     }
                     for p in g["platforms"].values()
                 ],
@@ -162,23 +176,26 @@ def _physical_stops(network: dict) -> List[dict]:
     return _cluster_stop_places(out)
 
 
-STOP_PLACE_MERGE_KM = 0.08  # 80 meters - one passenger stop complex
+STOP_PLACE_MERGE_KM = 0.08  # 80 meters - same-NAME stops only
 
 
 def _cluster_stop_places(stops: List[dict]) -> List[dict]:
-    """Second level: STOP PLACES (transit complexes) for the passenger map.
+    """Second level: STOP PLACES for the passenger map - SAME NAME only.
 
-    Two physical stops within 40m become ONE stop place even when their
-    GTFS names differ ('Betriebshof Nord' + 'Allee-Center / Eichplatz' at
-    almost the same spot) - the passenger sees one stop, the names are
-    kept as aliases, and every platform (L/R, per line) stays available
-    for close zoom. Far-apart stops never merge."""
+    Two stops merge ONLY when their names match (normalized) and they are
+    within 80m. Differently-named stops NEVER merge by distance: a stop
+    on road A and a differently-named stop on the parallel road B are
+    different places, even 10m apart. (Explicit parent_station or a
+    manual alias is the only way to join differently-named stops.)"""
     if len(stops) <= 1:
         return stops
     places: List[dict] = []
     for s in stops:
         merged = None
+        s_name = str(s.get("name") or "").strip().lower()
         for pl in places:
+            if str(pl.get("name") or "").strip().lower() != s_name:
+                continue
             if (
                 pl.get("latitude") is not None
                 and s.get("latitude") is not None
