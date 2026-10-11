@@ -465,6 +465,8 @@ export default function BusinessMap({
         // silent death here made markers update only on re-renders).
         rec.animStart = null;
         console.warn("[WebMap] anim tick failed", e);
+        const dbg = (window as any).__perixDebug || ((window as any).__perixDebug = {});
+        dbg.lastAnimError = String(e);
       }
     });
     if (active) {
@@ -1113,6 +1115,10 @@ export default function BusinessMap({
         try { rec.marker.setMap(null); } catch (e) {}
       }
     });
+    // Diagnostics for live movement (visible in DevTools console):
+    const dbg = (window as any).__perixDebug || ((window as any).__perixDebug = {});
+    dbg.markerSyncs = (dbg.markerSyncs || 0) + 1;
+    dbg.vehicles = markersRef.current.filter((r: any) => r?.vehicleId).length;
   }, [groupedMarkers, mapReady]);
 
   // Transit route lines (thin polylines under the vehicle markers).
