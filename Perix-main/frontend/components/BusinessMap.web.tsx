@@ -1381,43 +1381,34 @@ export default function BusinessMap({
 
     list.forEach((s, i) => {
       if (i % stride !== 0) return;
-      const platforms = (s as any).platforms || [];
       // ONE stop place = ONE pin normally. At deep zoom (>= 16) the
-      // opposite-direction stops of the same place become visible too:
-      // platform positions deduped by 25m, shown only when they are
-      // truly apart from the main stop pin.
-      if (zoom >= 16 && platforms.length >= 1) {
-        const clusters: { lat: number; lng: number; name: string; directions: string[] }[] = [];
-        for (const p of platforms) {
-          if (p.latitude == null || p.longitude == null) continue;
-          const near = clusters.find(
-            (c) =>
-              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 25
-          );
-          if (near) {
-            near.directions.push(...(p.directions || []));
-          } else {
-            clusters.push({
-              lat: p.latitude,
-              lng: p.longitude,
-              name: p.name || s.name,
-              directions: [...(p.directions || [])],
-            });
-          }
-        }
+      // opposite-direction MEMBER stops of the same place appear too -
+      // one pin per member (deduped by 25m), only when truly apart from
+      // the main pin. Members are the merged physical stops, so a pair
+      // shows exactly 2 pins, never 4 platform twins.
+      const members = ((s as any).members || []) as { name: string; latitude?: number | null; longitude?: number | null }[];
+      if (zoom >= 16 && members.length >= 2) {
         const mainKey = `stop:${s.stop_id}:${bucket}`;
         seenKeys.add(mainKey);
         if (!stopsCacheRef.current.has(mainKey)) {
           buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
         }
-        for (const c of clusters) {
-          const dMain =
-            Math.sqrt((s.latitude - c.lat) ** 2 + (s.longitude - c.lng) ** 2) * 111000;
-          if (dMain < 25) continue;
-          const k = `opp:${s.stop_id}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
+        const placed: { lat: number; lng: number }[] = [{ lat: s.latitude, lng: s.longitude }];
+        for (const m of members) {
+          if (m.latitude == null || m.longitude == null) continue;
+          if (
+            placed.some(
+              (p) =>
+                Math.sqrt((p.lat - m.latitude!) ** 2 + (p.lng - m.longitude!) ** 2) * 111000 < 25
+            )
+          ) {
+            continue;
+          }
+          placed.push({ lat: m.latitude, lng: m.longitude });
+          const k = `opp:${s.stop_id}:${m.latitude.toFixed(5)},${m.longitude.toFixed(5)}`;
           seenKeys.add(k);
           if (!stopsCacheRef.current.has(k)) {
-            buildPin(s, c.lat, c.lng, true, c.directions, null, k, c.name);
+            buildPin(s, m.latitude, m.longitude, true, undefined, null, k, m.name);
           }
         }
         return;

@@ -195,6 +195,14 @@ def _cluster_stop_places(stops: List[dict]) -> List[dict]:
                     "platforms": list(s.get("platforms") or []),
                     "name": s.get("name") or s["stop_id"],
                     "aliases": [s.get("name")] if s.get("name") else [],
+                    "members": [
+                        {
+                            "stop_id": s["stop_id"],
+                            "name": s.get("name") or s["stop_id"],
+                            "latitude": s.get("latitude"),
+                            "longitude": s.get("longitude"),
+                        }
+                    ],
                     "latitude": s.get("latitude"),
                     "longitude": s.get("longitude"),
                     "modes": set(s.get("modes") or []),
@@ -203,6 +211,14 @@ def _cluster_stop_places(stops: List[dict]) -> List[dict]:
             )
             continue
         merged["stop_ids"].extend(x for x in (s.get("stop_ids") or []) if x not in merged["stop_ids"])
+        merged["members"].append(
+            {
+                "stop_id": s["stop_id"],
+                "name": s.get("name") or s["stop_id"],
+                "latitude": s.get("latitude"),
+                "longitude": s.get("longitude"),
+            }
+        )
         for p in s.get("platforms") or []:
             if not any(pp.get("platform_id") == p.get("platform_id") for pp in merged["platforms"]):
                 merged["platforms"].append(p)

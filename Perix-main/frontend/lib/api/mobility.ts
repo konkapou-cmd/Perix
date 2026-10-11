@@ -256,6 +256,12 @@ export type TransitStopMarker = {
   stop_ids: string[];
   name: string;
   aliases?: string[];
+  members?: {
+    stop_id: string;
+    name: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  }[];
   latitude: number;
   longitude: number;
   modes: ("bus" | "tram")[];
