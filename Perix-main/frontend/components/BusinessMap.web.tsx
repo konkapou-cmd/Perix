@@ -1381,34 +1381,41 @@ export default function BusinessMap({
 
     list.forEach((s, i) => {
       if (i % stride !== 0) return;
-      // ONE stop place = ONE pin normally. At deep zoom (>= 16) the
-      // opposite-direction MEMBER stops of the same place appear too -
-      // one pin per member (deduped by 25m), only when truly apart from
-      // the main pin. Members are the merged physical stops, so a pair
-      // shows exactly 2 pins, never 4 platform twins.
-      const members = ((s as any).members || []) as { name: string; latitude?: number | null; longitude?: number | null }[];
-      if (zoom >= 16 && members.length >= 2) {
+      // Normal zoom: ONE pin per stop place (clean, not overloaded).
+      // Deep zoom (>= 16): the opposite-direction stops appear too - one
+      // pin per REAL stop position (platform clusters deduped at 25m so
+      // L/R twins of the same island stay one), labeled with their
+      // directions instead of the name.
+      const platforms = (s as any).platforms || [];
+      if (zoom >= 16 && platforms.length >= 1) {
         const mainKey = `stop:${s.stop_id}:${bucket}`;
         seenKeys.add(mainKey);
         if (!stopsCacheRef.current.has(mainKey)) {
           buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
         }
-        const placed: { lat: number; lng: number }[] = [{ lat: s.latitude, lng: s.longitude }];
-        for (const m of members) {
-          if (m.latitude == null || m.longitude == null) continue;
-          if (
-            placed.some(
-              (p) =>
-                Math.sqrt((p.lat - m.latitude!) ** 2 + (p.lng - m.longitude!) ** 2) * 111000 < 25
-            )
-          ) {
-            continue;
+        const clusters: { lat: number; lng: number; directions: string[] }[] = [];
+        for (const p of platforms) {
+          if (p.latitude == null || p.longitude == null) continue;
+          const near = clusters.find(
+            (c) =>
+              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 25
+          );
+          if (near) {
+            for (const d of p.directions || []) {
+              if (!near.directions.includes(d)) near.directions.push(d);
+            }
+          } else {
+            clusters.push({ lat: p.latitude, lng: p.longitude, directions: [...(p.directions || [])] });
           }
-          placed.push({ lat: m.latitude, lng: m.longitude });
-          const k = `opp:${s.stop_id}:${m.latitude.toFixed(5)},${m.longitude.toFixed(5)}`;
+        }
+        for (const c of clusters) {
+          const dMain =
+            Math.sqrt((s.latitude - c.lat) ** 2 + (s.longitude - c.lng) ** 2) * 111000;
+          if (dMain < 25) continue;
+          const k = `dir:${s.stop_id}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
           seenKeys.add(k);
           if (!stopsCacheRef.current.has(k)) {
-            buildPin(s, m.latitude, m.longitude, true, undefined, null, k, m.name);
+            buildPin(s, c.lat, c.lng, true, c.directions, null, k);
           }
         }
         return;
