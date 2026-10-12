@@ -550,6 +550,121 @@ async def v2_diagnostic_traffic(
     }
 
 
+@router.get("/diagnostic/motion/summary")
+async def v2_diagnostic_motion_summary(
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Current fleet-level Phase-2.1 observability snapshot."""
+    from datetime import datetime, timezone
+
+    from mobility.motion.diagnostics import summarize_vehicle_motion
+    from mobility.regions import get_active_region
+    from routes.mobility import MOTION_ENGINE_ENABLED, _all_active_vehicles, _get_active_network
+
+    region = get_active_region()
+    network = await _get_active_network()
+    vehicles = await _all_active_vehicles()
+    summary = summarize_vehicle_motion(vehicles)
+    return {
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "version_id": (network or {}).get("version_id"),
+        "service_date": (network or {}).get("service_date"),
+        "motion_enabled": bool(MOTION_ENGINE_ENABLED),
+        "observed_at": datetime.now(timezone.utc).isoformat(),
+        **summary,
+    }
+
+
+@router.get("/diagnostic/motion/trips/{trip_id}")
+async def v2_diagnostic_motion_trip(
+    trip_id: str,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Explain every physical leg of one active-network trip."""
+    from mobility.motion.explain import explain_trip_plan
+    from mobility.regions import get_active_region
+    from routes.mobility import (
+        _get_active_network,
+        _predicted_stop_timeline,
+        _realtime_delays_for,
+        _trip_path_geometry,
+    )
+
+    region = get_active_region()
+    network = await _get_active_network()
+    if not network:
+        return {
+            "available": False,
+            "trip_id": str(trip_id),
+            "fallback_reason": "NO_ACTIVE_NETWORK",
+            "legs": [],
+        }
+
+    route = None
+    trip = None
+    for candidate_route in network.get("routes", []):
+        candidate_trip = next(
+            (
+                value
+                for value in candidate_route.get("trips", [])
+                if str(value.get("trip_id") or "") == str(trip_id)
+            ),
+            None,
+        )
+        if candidate_trip:
+            route = candidate_route
+            trip = candidate_trip
+            break
+
+    if route is None or trip is None:
+        return {
+            "available": False,
+            "trip_id": str(trip_id),
+            "fallback_reason": "TRIP_NOT_FOUND",
+            "legs": [],
+        }
+
+    realtime = (await _realtime_delays_for([str(trip_id)])).get(str(trip_id))
+    timeline = _predicted_stop_timeline(route, trip, realtime)
+    if len(timeline) < 2:
+        return {
+            "available": False,
+            "trip_id": str(trip_id),
+            "route_number": route.get("route_number"),
+            "fallback_reason": "TIMELINE_NOT_AVAILABLE",
+            "legs": [],
+        }
+
+    path = await _trip_path_geometry(route, trip, timeline)
+    if not path:
+        return {
+            "available": False,
+            "trip_id": str(trip_id),
+            "route_number": route.get("route_number"),
+            "fallback_reason": "NO_CANONICAL_PATH",
+            "legs": [],
+        }
+
+    report = await explain_trip_plan(
+        trip_id=str(trip_id),
+        mode=str(route.get("mode") or "bus"),
+        version_id=str(network.get("version_id") or ""),
+        timeline=timeline,
+        path=path,
+    )
+    return {
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "version_id": network.get("version_id"),
+        "service_date": network.get("service_date"),
+        "route_number": route.get("route_number"),
+        "direction": trip.get("headsign"),
+        "realtime_source": (realtime or {}).get("source"),
+        **report,
+    }
+
+
 @router.get("/traffic")
 async def v2_traffic(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     """TomTom removed from the product - the endpoint stays for client

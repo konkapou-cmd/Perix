@@ -919,6 +919,9 @@ async def _estimate_trip_position(
 
     raw_progress = _raw_timeline_progress(timeline, stop_progress, now_sec)
     motion_result = None
+    motion_failure_reason = None
+    if MOTION_ENGINE_ENABLED and not version_id:
+        motion_failure_reason = "NO_VERSION_ID"
     if version_id and MOTION_ENGINE_ENABLED:
         try:
             from mobility.motion import position_for_trip
@@ -930,8 +933,14 @@ async def _estimate_trip_position(
                 timeline=timeline,
                 path=path,
                 now_sec=now_sec,
+                include_failure_reason=True,
             )
+            if motion_result and motion_result.get("motion_available") is False:
+                motion_failure_reason = str(
+                    motion_result.get("fallback_reason") or "PLAN_BUILD_FAILED"
+                )
         except Exception as e:
+            motion_failure_reason = "ENGINE_EXCEPTION"
             logger.warning(
                 "motion fallback for trip %s: %s: %s",
                 trip_id,
@@ -939,7 +948,12 @@ async def _estimate_trip_position(
                 e,
             )
 
-    if motion_result:
+    motion_available = bool(
+        motion_result
+        and motion_result.get("motion_available", True)
+        and motion_result.get("progress_m") is not None
+    )
+    if motion_available:
         shown_progress = float(motion_result["progress_m"])
         next_idx = int(motion_result["next_timeline_index"])
         next_entry = timeline[max(0, min(len(timeline) - 1, next_idx))]
@@ -951,13 +965,45 @@ async def _estimate_trip_position(
             "quality": motion_result.get("motion_quality"),
             "state": motion_result.get("motion_state"),
             "speed_kmh": motion_result.get("speed_kmh"),
+            "leg_from_stop_id": motion_result.get("leg_from_stop_id"),
+            "leg_to_stop_id": motion_result.get("leg_to_stop_id"),
             "delay_delta_s": motion_result.get("delay_delta_s"),
+            "scheduled_duration_s": motion_result.get("scheduled_duration_s"),
+            "predicted_leg_duration_s": motion_result.get(
+                "predicted_leg_duration_s"
+            ),
+            "engine_available_duration_s": motion_result.get(
+                "engine_available_duration_s"
+            ),
+            "natural_duration_s": motion_result.get("natural_duration_s"),
+            "fastest_duration_s": motion_result.get("fastest_duration_s"),
+            "recovery_ratio": motion_result.get("recovery_ratio"),
             "physics_limited_s": motion_result.get("physics_limited_s"),
+            "arrival_target_error_s": motion_result.get(
+                "arrival_target_error_s"
+            ),
+            "incremental_physics_limited_s": motion_result.get(
+                "incremental_physics_limited_s"
+            ),
+            "carried_lateness_s": motion_result.get("carried_lateness_s"),
+            "recovered_lateness_s": motion_result.get("recovered_lateness_s"),
             "fit": motion_result.get("fit"),
             "traffic_edge_count": motion_result.get("traffic_edge_count"),
             "signal_stop_count": motion_result.get("signal_stop_count"),
             "traffic_provider": motion_result.get("traffic_provider"),
-            "traffic_profile_versions": motion_result.get("traffic_profile_versions") or [],
+            "traffic_profile_versions": (
+                motion_result.get("traffic_profile_versions") or []
+            ),
+            "plan_final_arrival_target_error_s": motion_result.get(
+                "plan_final_arrival_target_error_s"
+            ),
+            "plan_max_arrival_target_error_s": motion_result.get(
+                "plan_max_arrival_target_error_s"
+            ),
+            "plan_incremental_physics_limited_s": motion_result.get(
+                "plan_incremental_physics_limited_s"
+            ),
+            "fallback_reason": None,
         }
     else:
         # Compatibility fallback: keep today's forward-only behavior until
@@ -990,7 +1036,16 @@ async def _estimate_trip_position(
                     distance_to_next_stop_m = round(remaining)
         except Exception:
             distance_to_next_stop_m = None
-        motion = None
+        if MOTION_ENGINE_ENABLED:
+            motion = {
+                "model": None,
+                "quality": "LEGACY_FALLBACK",
+                "state": "LEGACY_FALLBACK",
+                "speed_kmh": None,
+                "fallback_reason": motion_failure_reason or "PLAN_UNAVAILABLE",
+            }
+        else:
+            motion = None
 
     pos, heading = _point_heading_at_progress(path, shown_progress)
     if not pos:

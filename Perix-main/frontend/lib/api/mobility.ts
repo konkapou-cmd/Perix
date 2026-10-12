@@ -7,13 +7,29 @@ export type MotionDiagnostics = {
   quality?: string | null;
   state?: string | null;
   speed_kmh?: number | null;
+  leg_from_stop_id?: string | null;
+  leg_to_stop_id?: string | null;
   delay_delta_s?: number | null;
+  scheduled_duration_s?: number | null;
+  predicted_leg_duration_s?: number | null;
+  engine_available_duration_s?: number | null;
+  natural_duration_s?: number | null;
+  fastest_duration_s?: number | null;
+  recovery_ratio?: number | null;
   physics_limited_s?: number | null;
+  arrival_target_error_s?: number | null;
+  incremental_physics_limited_s?: number | null;
+  carried_lateness_s?: number | null;
+  recovered_lateness_s?: number | null;
   fit?: string | null;
   traffic_edge_count?: number | null;
   signal_stop_count?: number | null;
   traffic_provider?: string | null;
   traffic_profile_versions?: string[];
+  plan_final_arrival_target_error_s?: number | null;
+  plan_max_arrival_target_error_s?: number | null;
+  plan_incremental_physics_limited_s?: number | null;
+  fallback_reason?: string | null;
 };
 
 export type LiveVehicle = {
