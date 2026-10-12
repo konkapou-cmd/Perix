@@ -2,6 +2,20 @@ import { apiRequest, API_BASE } from "./core";
 
 export type MobilityMode = "bus" | "tram" | "taxi";
 
+export type MotionDiagnostics = {
+  model?: string | null;
+  quality?: string | null;
+  state?: string | null;
+  speed_kmh?: number | null;
+  delay_delta_s?: number | null;
+  physics_limited_s?: number | null;
+  fit?: string | null;
+  traffic_edge_count?: number | null;
+  signal_stop_count?: number | null;
+  traffic_provider?: string | null;
+  traffic_profile_versions?: string[];
+};
+
 export type LiveVehicle = {
   vehicle_id: string;
   business_id: string;
@@ -34,6 +48,7 @@ export type LiveVehicle = {
   progress_m?: number | null;
   position_state?: "ON_PATTERN" | "STOP_ANCHOR" | "TURNAROUND_ANCHOR" | "LIVE_MATCHED" | "LIVE_RAW" | string | null;
   geometry_pending?: boolean;
+  motion?: MotionDiagnostics | null;
 };
 
 export type DriverSession = {
@@ -66,6 +81,7 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
       latitude: v.position?.latitude ?? null,
       longitude: v.position?.longitude ?? null,
       heading: v.position?.heading ?? null,
+      speed: v.motion?.speed_kmh ?? null,
       status: v.position?.source ?? "active",
       updated_at: new Date(Date.now() - ageSeconds * 1000).toISOString(),
       estimated: v.estimated ?? false,
@@ -83,6 +99,7 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
       progress_m: v.progress_m ?? null,
       position_state: v.position_state,
       geometry_pending: v.geometry_pending ?? false,
+      motion: v.motion ?? null,
     };
   });
 };
@@ -113,6 +130,7 @@ export type V2Vehicle = {
   progress_m?: number | null;
   position_state?: string | null;
   geometry_pending?: boolean;
+  motion?: MotionDiagnostics | null;
 };
 
 export type V2Arrival = {

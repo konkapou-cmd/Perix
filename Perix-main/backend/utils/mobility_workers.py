@@ -220,18 +220,24 @@ async def _realtime_worker():
                         "SCHEDULED",
                     )
 
-                    d = None
+                    arrival_delay = None
+                    departure_delay = None
                     if stu.HasField("arrival") and stu.arrival.HasField("delay"):
-                        d = int(stu.arrival.delay)
-                    elif stu.HasField("departure") and stu.departure.HasField("delay"):
-                        d = int(stu.departure.delay)
+                        arrival_delay = int(stu.arrival.delay)
+                    if stu.HasField("departure") and stu.departure.HasField("delay"):
+                        departure_delay = int(stu.departure.delay)
 
+                    d = arrival_delay if arrival_delay is not None else departure_delay
                     if d is not None:
                         stop_delays[sid] = d
                         if first_stop_delay is None:
                             first_stop_delay = d
 
                     prediction = {}
+                    if arrival_delay is not None:
+                        prediction["arrival_delay_seconds"] = arrival_delay
+                    if departure_delay is not None:
+                        prediction["departure_delay_seconds"] = departure_delay
                     if stu.HasField("arrival") and stu.arrival.HasField("time") and stu.arrival.time:
                         prediction["arrival_epoch"] = int(stu.arrival.time)
                     if stu.HasField("departure") and stu.departure.HasField("time") and stu.departure.time:
@@ -582,6 +588,12 @@ async def _force_rebuild_after_snapshot():
     await db.mobility_geometry_segments.delete_many(scope)
     await db.mobility_pattern_infrastructure.delete_many(scope)
     geometry_cache.clear()
+    try:
+        from mobility.motion import clear_motion_cache
+
+        clear_motion_cache()
+    except Exception:
+        pass
     _log("osm snapshot: current region geometry + infrastructure invalidated")
 
 
@@ -606,6 +618,12 @@ async def _precompute_road_geometries(only_patterns: Optional[set] = None):
                 from mobility import geometry_cache
 
                 geometry_cache.bump_revision()
+                try:
+                    from mobility.motion import clear_motion_cache
+
+                    clear_motion_cache()
+                except Exception:
+                    pass
         except Exception as e:
             _log(f"roads: precompute pass failed: {type(e).__name__}: {e}")
         if only_patterns is not None:

@@ -284,6 +284,94 @@ def _time_in_bucket(now_minutes: int, start: str, end: str) -> bool:
     return a <= value < b
 
 
+async def traffic_for_edges(
+    edges: list[dict],
+    when: datetime,
+    *,
+    region_id: Optional[str] = None,
+    network_id: Optional[str] = None,
+) -> dict:
+    """Batch traffic lookup keyed by canonical edge_id.
+
+    Hot-path motion code must never issue one Mongo query per road edge.
+    """
+    region = get_region(region_id) if region_id else get_active_region()
+    resolved_network_id = str(network_id or region.network_id)
+    way_ids = sorted(
+        {
+            int(edge.get("way_id"))
+            for edge in (edges or [])
+            if edge.get("way_id") is not None
+        }
+    )
+    if not way_ids:
+        return {}
+
+    profiles = await db.mobility_traffic_profiles.find(
+        {
+            "region_id": region.region_id,
+            "network_id": resolved_network_id,
+            "way_id": {"$in": way_ids},
+        },
+        {"_id": 0},
+    ).to_list(max(1, len(way_ids) * 3))
+
+    by_way = {}
+    for profile in profiles:
+        by_way.setdefault(int(profile.get("way_id")), []).append(profile)
+
+    day_type = "WEEKDAY"
+    if when.weekday() == 5:
+        day_type = "SATURDAY"
+    elif when.weekday() == 6:
+        day_type = "SUNDAY"
+    now_minutes = when.hour * 60 + when.minute
+
+    out = {}
+    for edge in edges or []:
+        edge_id = str(edge.get("edge_id") or "")
+        way_id = edge.get("way_id")
+        if not edge_id or way_id is None:
+            continue
+
+        follows = (edge.get("way") or {}).get("follows_osm_way")
+        if follows is True:
+            preferred_direction = "FORWARD"
+        elif follows is False:
+            preferred_direction = "BACKWARD"
+        else:
+            preferred_direction = "BOTH"
+
+        candidates = list(by_way.get(int(way_id)) or [])
+        candidates.sort(
+            key=lambda p: 0 if p.get("osm_direction") == preferred_direction else 1
+        )
+        for profile in candidates:
+            if profile.get("osm_direction") not in {preferred_direction, "BOTH"}:
+                continue
+            for bucket in (profile.get("buckets") or {}).values():
+                if bucket.get("day_type") != day_type:
+                    continue
+                if not _time_in_bucket(
+                    now_minutes,
+                    bucket.get("interval_start"),
+                    bucket.get("interval_end"),
+                ):
+                    continue
+                out[edge_id] = {
+                    **bucket,
+                    "profile_key": profile.get("profile_key"),
+                    "profile_version": profile.get("profile_version"),
+                    "model": profile.get("model"),
+                    "calibrated": bool(profile.get("calibrated")),
+                    "baseline": profile.get("baseline"),
+                }
+                break
+            if edge_id in out:
+                break
+    return out
+
+
 async def traffic_for_way(
     way_id: int,
     when: datetime,

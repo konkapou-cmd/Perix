@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Iterable, Optional, Tuple
 
 BBox = Tuple[float, float, float, float]
@@ -37,6 +37,7 @@ class MobilityRegion:
     realtime_url: str = ""
     realtime_interval_seconds: float = 15.0
     traffic_adapter: str = "normalized_csv"
+    motion: dict = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         return {
@@ -60,6 +61,7 @@ class MobilityRegion:
             "realtime_url": self.realtime_url,
             "realtime_interval_seconds": self.realtime_interval_seconds,
             "traffic_adapter": self.traffic_adapter,
+            "motion": dict(self.motion),
         }
 
 
@@ -123,6 +125,7 @@ def _region_from_dict(data: dict) -> MobilityRegion:
         realtime_url=str(data.get("realtime_url") or ""),
         realtime_interval_seconds=float(data.get("realtime_interval_seconds", 15.0)),
         traffic_adapter=str(data.get("traffic_adapter") or "normalized_csv"),
+        motion=dict(data.get("motion") or {}),
     )
 
 
@@ -198,6 +201,7 @@ def _apply_env_overrides(region: MobilityRegion) -> MobilityRegion:
             os.getenv("MOBILITY_REALTIME_INTERVAL_SECONDS") or region.realtime_interval_seconds
         ),
         traffic_adapter=str(os.getenv("MOBILITY_TRAFFIC_ADAPTER") or region.traffic_adapter),
+        motion=dict(region.motion),
     )
 
 

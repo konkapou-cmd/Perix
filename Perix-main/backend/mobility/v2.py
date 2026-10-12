@@ -638,6 +638,7 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
                 "progress_m": v.get("progress_m"),
                 "position_state": pos_state,
                 "geometry_pending": geom_pending,
+                "motion": v.get("motion"),
             }
         )
     return out

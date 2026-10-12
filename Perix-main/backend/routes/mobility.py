@@ -521,13 +521,14 @@ def _epoch_to_service_seconds(epoch_value) -> Optional[int]:
 
 
 def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) -> List[dict]:
-    """One canonical predicted timeline for marker, ETA and trip progress."""
+    """One canonical scheduled/predicted timeline for marker, ETA and motion."""
     realtime = realtime or {}
     trip_rel = str(realtime.get("trip_schedule_relationship") or "SCHEDULED").upper()
     if trip_rel in ("CANCELED", "DELETED"):
         return []
 
-    stop_times = trip.get("stop_times") or {}
+    stop_times_departure = trip.get("stop_times") or {}
+    stop_times_arrival = trip.get("stop_times_arrival") or stop_times_departure
     stop_delays = realtime.get("stop_delays") or {}
     stop_predictions = realtime.get("stop_predictions") or {}
     stop_relationships = realtime.get("stop_relationships") or {}
@@ -540,12 +541,27 @@ def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) 
         sid = stop.get("stop_id")
         if sid is None:
             continue
-        scheduled = _time_to_seconds(stop_times.get(sid, ""))
-        if scheduled is None:
-            continue
 
         sid_key = str(sid)
-        rel = str(stop_relationships.get(sid_key) or stop_relationships.get(sid) or "SCHEDULED").upper()
+        scheduled_arrival = _time_to_seconds(
+            stop_times_arrival.get(sid, stop_times_arrival.get(sid_key, ""))
+        )
+        scheduled_departure = _time_to_seconds(
+            stop_times_departure.get(sid, stop_times_departure.get(sid_key, ""))
+        )
+        if scheduled_arrival is None and scheduled_departure is None:
+            continue
+        if scheduled_arrival is None:
+            scheduled_arrival = scheduled_departure
+        if scheduled_departure is None:
+            scheduled_departure = scheduled_arrival
+        scheduled_departure = max(scheduled_arrival, scheduled_departure)
+
+        rel = str(
+            stop_relationships.get(sid_key)
+            or stop_relationships.get(sid)
+            or "SCHEDULED"
+        ).upper()
         prediction = stop_predictions.get(sid_key) or stop_predictions.get(sid) or {}
 
         use_rt = rel != "NO_DATA"
@@ -556,11 +572,24 @@ def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) 
             arrival = _epoch_to_service_seconds(prediction.get("arrival_epoch"))
             departure = _epoch_to_service_seconds(prediction.get("departure_epoch"))
 
+        fallback_delay = int(
+            stop_delays.get(sid_key, stop_delays.get(sid, trip_delay))
+        ) if use_rt else 0
+        arrival_delay = (
+            int(prediction["arrival_delay_seconds"])
+            if use_rt and prediction.get("arrival_delay_seconds") is not None
+            else fallback_delay
+        )
+        departure_delay = (
+            int(prediction["departure_delay_seconds"])
+            if use_rt and prediction.get("departure_delay_seconds") is not None
+            else fallback_delay
+        )
+
         if arrival is None:
-            delay = int(stop_delays.get(sid_key, stop_delays.get(sid, trip_delay))) if use_rt else 0
-            arrival = scheduled + delay
+            arrival = scheduled_arrival + arrival_delay
         if departure is None:
-            departure = arrival
+            departure = scheduled_departure + departure_delay
 
         if previous_departure is not None and arrival < previous_departure:
             arrival = previous_departure
@@ -571,10 +600,14 @@ def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) 
             {
                 "stop": stop,
                 "stop_id": sid,
-                "scheduled": scheduled,
+                # Keep `scheduled` as a compatibility alias for code that
+                # predates separate GTFS arrival/departure preservation.
+                "scheduled": scheduled_arrival,
+                "scheduled_arrival": scheduled_arrival,
+                "scheduled_departure": scheduled_departure,
                 "predicted_arrival": arrival,
                 "predicted_departure": departure,
-                "delay_seconds": int(arrival - scheduled),
+                "delay_seconds": int(arrival - scheduled_arrival),
                 "relationship": rel,
             }
         )
@@ -856,8 +889,14 @@ def _point_heading_at_progress(path: dict, progress_m: float) -> tuple:
     )
 
 
-async def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
-    """ETA-constrained, forward-only estimated position."""
+async def _estimate_trip_position(
+    route: dict,
+    trip: dict,
+    now_sec: int,
+    delays: dict,
+    version_id: Optional[str] = None,
+) -> Optional[dict]:
+    """Physics-first estimated position with the legacy timeline as fallback."""
     trip_id = str(trip.get("trip_id") or "")
     realtime = delays.get(trip_id) if trip_id else None
     timeline = _predicted_stop_timeline(route, trip, realtime)
@@ -879,42 +918,85 @@ async def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays:
         return None
 
     raw_progress = _raw_timeline_progress(timeline, stop_progress, now_sec)
-    # True dwell: standing at a stop between arrival and departure is an
-    # absolute stop - no crawl, no interpolation.
-    dwell = _dwell_progress(timeline, stop_progress, now_sec)
-    if dwell is not None:
-        shown_progress = dwell
-    else:
-        shown_progress = _adaptive_forward_progress(
-            trip_id,
-            raw_progress,
-            float(path.get("total_m") or 0.0),
-            str(route.get("mode") or "bus"),
-            max(60, int(end - start)),
+    motion_result = None
+    if version_id and MOTION_ENGINE_ENABLED:
+        try:
+            from mobility.motion import position_for_trip
+
+            motion_result = await position_for_trip(
+                trip_id=trip_id,
+                mode=str(route.get("mode") or "bus"),
+                version_id=str(version_id),
+                timeline=timeline,
+                path=path,
+                now_sec=now_sec,
+            )
+        except Exception as e:
+            logger.warning(
+                "motion fallback for trip %s: %s: %s",
+                trip_id,
+                type(e).__name__,
+                e,
+            )
+
+    if motion_result:
+        shown_progress = float(motion_result["progress_m"])
+        next_idx = int(motion_result["next_timeline_index"])
+        next_entry = timeline[max(0, min(len(timeline) - 1, next_idx))]
+        distance_to_next_stop_m = round(
+            float(motion_result.get("distance_to_next_stop_m") or 0.0)
         )
+        motion = {
+            "model": motion_result.get("motion_model"),
+            "quality": motion_result.get("motion_quality"),
+            "state": motion_result.get("motion_state"),
+            "speed_kmh": motion_result.get("speed_kmh"),
+            "delay_delta_s": motion_result.get("delay_delta_s"),
+            "physics_limited_s": motion_result.get("physics_limited_s"),
+            "fit": motion_result.get("fit"),
+            "traffic_edge_count": motion_result.get("traffic_edge_count"),
+            "signal_stop_count": motion_result.get("signal_stop_count"),
+            "traffic_provider": motion_result.get("traffic_provider"),
+            "traffic_profile_versions": motion_result.get("traffic_profile_versions") or [],
+        }
+    else:
+        # Compatibility fallback: keep today's forward-only behavior until
+        # Phase-1 infrastructure exists for the specific pattern.
+        dwell = _dwell_progress(timeline, stop_progress, now_sec)
+        if dwell is not None:
+            shown_progress = dwell
+        else:
+            shown_progress = _adaptive_forward_progress(
+                trip_id,
+                raw_progress,
+                float(path.get("total_m") or 0.0),
+                str(route.get("mode") or "bus"),
+                max(60, int(end - start)),
+            )
+        next_entry = next(
+            (
+                e
+                for e in timeline
+                if e["predicted_arrival"] >= now_sec and e["relationship"] != "SKIPPED"
+            ),
+            timeline[-1],
+        )
+        distance_to_next_stop_m = None
+        try:
+            next_idx = timeline.index(next_entry)
+            if next_idx < len(stop_progress):
+                remaining = float(stop_progress[next_idx]) - float(shown_progress)
+                if remaining >= 0:
+                    distance_to_next_stop_m = round(remaining)
+        except Exception:
+            distance_to_next_stop_m = None
+        motion = None
+
     pos, heading = _point_heading_at_progress(path, shown_progress)
     if not pos:
         return None
 
-    next_entry = next(
-        (e for e in timeline if e["predicted_arrival"] >= now_sec and e["relationship"] != "SKIPPED"),
-        timeline[-1],
-    )
     delay_seconds = int(next_entry.get("delay_seconds") or 0)
-
-    # Remaining distance ALONG THE RAIL/ROAD to the next stop (not the
-    # straight-line map distance) - the same canonical line the marker
-    # rides, so ETA, marker and distance all agree.
-    distance_to_next_stop_m = None
-    try:
-        next_idx = timeline.index(next_entry)
-        if next_idx < len(stop_progress):
-            remaining = float(stop_progress[next_idx]) - float(shown_progress)
-            if remaining >= 0:
-                distance_to_next_stop_m = round(remaining)
-    except Exception:
-        distance_to_next_stop_m = None
-
     has_rt = bool(
         realtime
         and (
@@ -939,6 +1021,7 @@ async def _estimate_trip_position(route: dict, trip: dict, now_sec: int, delays:
         "pattern_id": path.get("pattern_id"),
         "position_state": "ON_PATTERN",
         "geometry_pending": False,
+        "motion": motion,
     }
 
 def _park_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
@@ -983,6 +1066,7 @@ def _park_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optio
 _ESTIMATES_CACHE = {"at": 0.0, "data": []}
 
 REALTIME_FRESH_SECONDS = int(os.getenv("MOBILITY_REALTIME_FRESH_SECONDS", "420"))
+MOTION_ENGINE_ENABLED = os.getenv("MOBILITY_MOTION_ENABLED", "false").lower() == "true"
 
 
 def _trip_window(route: dict, trip: dict, realtime: Optional[dict] = None) -> Optional[dict]:
@@ -1193,8 +1277,15 @@ async def _estimated_transit_vehicles() -> List[dict]:
             progress_m = None
             position_state = "ON_PATTERN"
             geometry_pending = False
+            motion = None
             if active:
-                p = await _estimate_trip_position(route, active["trip"], now_sec, delays)
+                p = await _estimate_trip_position(
+                    route,
+                    active["trip"],
+                    now_sec,
+                    delays,
+                    version_id=str(network.get("version_id") or ""),
+                )
                 if p:
                     pos = {"lat": p["latitude"], "lng": p["longitude"]}
                     heading = p.get("heading")
@@ -1205,6 +1296,7 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     distance_to_next_stop_m = p.get("distance_to_next_stop_m")
                     pattern_id = p.get("pattern_id")
                     progress_m = p.get("progress_m")
+                    motion = p.get("motion")
                 else:
                     # Trip active but no verified line geometry yet (e.g.
                     # the nightly route is still computing): park the
@@ -1292,6 +1384,7 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     "progress_m": progress_m,
                     "position_state": position_state,
                     "geometry_pending": geometry_pending,
+                    "motion": motion,
                     "updated_at": datetime.now().isoformat(),
                 }
             )
