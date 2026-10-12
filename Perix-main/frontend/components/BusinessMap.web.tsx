@@ -96,20 +96,6 @@ type Props = {
     modes: ("bus" | "tram")[];
     routes: { route_number: string; mode: "bus" | "tram" }[];
   }) => void;
-  /** Live road closures (TomTom Traffic) as red dashed segments. */
-  closures?: {
-    id: string;
-    points: { latitude: number; longitude: number }[];
-    from?: string;
-    to?: string;
-    description?: string;
-  }[];
-  onClosureClick?: (closure: {
-    id: string;
-    from?: string;
-    to?: string;
-    description?: string;
-  }) => void;
   /** Journey-plan route: walking legs light blue, tram green, bus blue. */
   planLines?: {
     points: { latitude: number; longitude: number }[];
@@ -383,8 +369,6 @@ export default function BusinessMap({
   transitStops,
   onTransitStopPress,
   planLines,
-  closures,
-  onClosureClick,
   showUserLocation,
   userPinImage,
   pinLocation,
@@ -425,8 +409,6 @@ export default function BusinessMap({
   onRegionChangeCompleteRef.current = onRegionChangeComplete;
   const onZoomChangeRef = useRef(onZoomChange);
   onZoomChangeRef.current = onZoomChange;
-  const onClosureClickRef = useRef(onClosureClick);
-  onClosureClickRef.current = onClosureClick;
 
   // Continuous vehicle motion: positions are interpolated in GEOGRAPHIC
   // space between polls (requestAnimationFrame), so vehicles glide along
@@ -1208,48 +1190,6 @@ export default function BusinessMap({
       planLinesRef.current.push(poly);
     });
   }, [planLines, mapReady]);
-
-  // Road closures (TomTom Traffic) as clickable red dashed segments, drawn
-  // above the network lines so closures stay visible on busy corridors.
-  // PERSISTENT: one polyline per closure part, reused across renders.
-  const closuresRef = useRef<Map<string, any>>(new Map());
-  useEffect(() => {
-    if (!mapRef.current || !mapReadyRef.current) return;
-    const google = (window as any).google;
-    const seen = new Set<string>();
-    (closures || []).forEach((closure) => {
-      if (!closure.points || closure.points.length < 2) return;
-      seen.add(closure.id);
-      const existing = closuresRef.current.get(closure.id);
-      if (existing) {
-        existing.setPath(closure.points.map((p) => ({ lat: p.latitude, lng: p.longitude })));
-        return;
-      }
-      const poly = new google.maps.Polyline({
-        path: closure.points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
-        strokeColor: "#DC2626",
-        strokeWeight: 5,
-        strokeOpacity: 0.85,
-        zIndex: 3,
-      });
-      poly.addListener("click", () => {
-        onClosureClickRef.current?.({
-          id: closure.id,
-          from: closure.from,
-          to: closure.to,
-          description: closure.description,
-        });
-      });
-      poly.setMap(mapRef.current);
-      closuresRef.current.set(closure.id, poly);
-    });
-    closuresRef.current.forEach((poly, id) => {
-      if (!seen.has(id)) {
-        try { poly.setMap(null); } catch (e) {}
-        closuresRef.current.delete(id);
-      }
-    });
-  }, [closures, mapReady]);
 
   // Transit stops as CLICKABLE bus/tram pins (zoom-aware detail:
   // tiny icon < 12, full pin 12+, route numbers 14+, stop name 16+).

@@ -416,16 +416,9 @@ async def v2_alerts(current_user: Optional[UserPublic] = Depends(get_current_use
 
 @router.get("/traffic")
 async def v2_traffic(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    """Live traffic incidents (TomTom) + derived road closures."""
-    incidents = await db.mobility_traffic_incidents.find_one({"key": "current"}) or {}
-    closures = await db.mobility_restrictions.find(
-        {"source": "TOMTOM_TRAFFIC"}, {"_id": 0}
-    ).to_list(100)
-    return {
-        "incidents": incidents.get("incidents") or [],
-        "closures": closures,
-        "updated_at": incidents.get("updated_at"),
-    }
+    """TomTom removed from the product - the endpoint stays for client
+    compatibility but always returns empty."""
+    return {"incidents": [], "closures": [], "updated_at": None}
 
 
 @router.get("/vehicles")

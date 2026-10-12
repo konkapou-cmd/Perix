@@ -28,7 +28,7 @@ import ProgressivePicker from "../../components/navigation/ProgressivePicker";
 import LocatorSidebar, { SIDEBAR_WIDTH } from "../../components/locator/LocatorSidebar";
 import * as Location from "expo-location";
 import { getCurrentPositionWithPermission } from "../../lib/locationPermission";
-import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getVehicleTrip, VehicleTripProgress, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion, StreetSuggestion, TransitStopMarker, getV2Map, V2MapLine, getTraffic, TrafficClosure } from "../../lib/api/mobility";
+import { getLiveVehicles, LiveVehicle, searchBusStops, getBusesServing, ServingBus, createTaxiRequest, myTaxiRequests, cancelTaxiRequest, getTaxiPricing, getVehicleTrip, VehicleTripProgress, TaxiRequest, TaxiPricing, planJourney, JourneyPlan, searchPlaces, PlaceSuggestion, StopSuggestion, StreetSuggestion, TransitStopMarker, getV2Map, V2MapLine } from "../../lib/api/mobility";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -85,8 +85,6 @@ export default function LocatorScreen() {
   const [locating, setLocating] = useState(false);
   const [mobilityMode, setMobilityMode] = useState<"all" | "bus" | "tram" | "taxi">("all");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
-  const [trafficClosures, setTrafficClosures] = useState<TrafficClosure[]>([]);
-  const [selectedClosure, setSelectedClosure] = useState<{ id: string; from?: string; to?: string; description?: string; verified?: boolean } | null>(null);
   const [busQuery, setBusQuery] = useState("");
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
   const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string } | null>(null);
@@ -529,19 +527,8 @@ export default function LocatorScreen() {
         setPhysicalStops(map.stops || []);
       })
       .catch(() => {});
-    // Live road closures (TomTom Traffic) - refreshed every 5 minutes.
-    const loadTraffic = () => {
-      getTraffic(sessionToken)
-        .then((info) => {
-          if (!cancelled) setTrafficClosures(info?.closures || []);
-        })
-        .catch(() => {});
-    };
-    loadTraffic();
-    const trafficTimer = setInterval(loadTraffic, 5 * 60 * 1000);
     return () => {
       cancelled = true;
-      clearInterval(trafficTimer);
     };
   }, [activeTab, sessionToken]);
 
@@ -633,55 +620,6 @@ export default function LocatorScreen() {
       }))
       .filter((l) => l.points.length >= 2);
   }, [journeyPlans]);
-
-  // Live road closures (TomTom): red dashed segments on the map. Only shown
-  // when zoomed into the city scale where a closure is actionable. Capped
-  // and point-simplified so phones render them smoothly; identity stays
-  // stable across zoom ticks (bucket flip only) to avoid polyline rebuild
-  // churn on every pinch.
-  const showClosures = (mapZoom ?? 14) >= 12;
-  const closureLines = useMemo(() => {
-    if (!showClosures) return [];
-    // One polyline per REAL closure part (contiguous run of one OSM way):
-    // parts are never joined client-side, so no zig-zag lines. No stride
-    // skipping - closure segments are small and must keep their curves.
-    return trafficClosures
-      // Only OSM-matched (verified) closures are drawn as blocked roads -
-      // unmatched TomTom reports would show a red line on the wrong street.
-      .filter((c) => c.verified !== false)
-      .slice(0, 40)
-      .flatMap((c) => {
-        const parts: [number, number][][] = c.geometry_parts?.length
-          ? (c.geometry_parts as [number, number][][])
-          : c.geometry?.length
-          ? [c.geometry as [number, number][]]
-          : [];
-        return parts.flatMap((part, partIndex) => {
-          const pts = part
-            .filter(
-              (p) =>
-                Array.isArray(p) &&
-                p.length === 2 &&
-                Number.isFinite(p[0]) &&
-                Number.isFinite(p[1]) &&
-                Math.abs(p[0]) <= 90 &&
-                Math.abs(p[1]) <= 180
-            )
-            .map((p) => ({ latitude: p[0], longitude: p[1] }));
-          if (pts.length < 2) return [];
-          return [
-            {
-              id: `${c.restriction_id}:${partIndex}`,
-              points: pts,
-              from: c.from,
-              to: c.to,
-              description: c.description,
-              verified: c.verified,
-            },
-          ];
-        });
-      });
-  }, [trafficClosures, showClosures]);
 
   // Results follow the MAP VIEWPORT (like business results): vehicles and
   // stops are filtered to what the map currently shows and ordered by
@@ -1441,14 +1379,6 @@ export default function LocatorScreen() {
               ? transitStops
               : undefined
           }
-          closures={
-            activeTab === "mobility" && (mobilityMode === "all" || mobilityMode === "bus")
-              ? closureLines
-              : undefined
-          }
-          onClosureClick={(closure) => {
-            setSelectedClosure({ ...closure, verified: (closure as any).verified });
-          }}
           onTransitStopPress={(stop) => {
             setSelectedStop({ stop_id: stop.stop_id, name: stop.name });
             setBusQuery(stop.name);
@@ -1480,9 +1410,6 @@ export default function LocatorScreen() {
             if (selectedLine) {
               setSelectedLine(null);
               setSelectedPattern(null);
-            }
-            if (selectedClosure) {
-              setSelectedClosure(null);
             }
           }}
           showUserLocation
@@ -1668,35 +1595,6 @@ export default function LocatorScreen() {
                   </Pressable>
                 ))}
               </ScrollView>
-            </View>
-          )}
-
-          {selectedClosure && (mobilityMode !== "taxi") && (
-            <View style={styles.linePanel}>
-              <View style={styles.linePanelHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.linePanelTitle}>
-                    {selectedClosure.verified === false ? "⚠️ " : "⛔ "}
-                    {t("mobility.roadClosed", "Road closed")}
-                  </Text>
-                  <Text style={styles.linePanelHint}>
-                    {[selectedClosure.from, selectedClosure.to].filter(Boolean).join(" → ")}
-                  </Text>
-                  {selectedClosure.description ? (
-                    <Text style={styles.linePanelHint}>
-                      {selectedClosure.description}
-                    </Text>
-                  ) : null}
-                  <Text style={styles.linePanelHint}>
-                    {selectedClosure.verified === false
-                      ? t("mobility.closureUnverified", "Report from TomTom - not yet matched to a street on our map.")
-                      : t("mobility.closureHint", "Cars, taxis and buses are blocked. Trams are not affected.")}
-                  </Text>
-                </View>
-                <Pressable onPress={() => setSelectedClosure(null)} hitSlop={8}>
-                  <Ionicons name="close-circle" size={22} color="#264348" />
-                </Pressable>
-              </View>
             </View>
           )}
 

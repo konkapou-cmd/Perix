@@ -458,13 +458,7 @@ def start_mobility_workers():
     # pattern reconstruction reads OUR database - Overpass becomes an
     # importer only, never a runtime dependency.
     asyncio.create_task(_osm_snapshot_worker())
-    # Live traffic incidents -> operational restrictions (TomTom)
-    try:
-        from mobility.traffic import traffic_worker
-
-        asyncio.create_task(traffic_worker())
-    except Exception as e:
-        _log(f"traffic worker not started: {type(e).__name__}: {e}")
+    # TomTom removed entirely: closures are no longer part of the product.
 
 
 async def _osm_snapshot_worker():

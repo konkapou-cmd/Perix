@@ -289,35 +289,6 @@ export const getTransitStops = (token: string | null | undefined) =>
 export const getV2Map = (token: string | null | undefined) =>
   apiRequest<V2Map>(`/mobility/v2/map`, "GET", token || undefined);
 
-export type TrafficClosure = {
-  restriction_id: string;
-  kind: string;
-  geometry: [number, number][] | null;
-  geometry_parts?: [number, number][][];
-  blocked_modes?: string[];
-  allowed_modes?: string[];
-  verified?: boolean;
-  geometry_source?: string;
-  match_confidence?: number;
-  max_match_error_m?: number;
-  blocked_way_ids?: number[];
-  from?: string;
-  to?: string;
-  description?: string;
-  road_numbers?: string[];
-  valid_from?: string | null;
-  valid_until?: string | null;
-};
-
-export type TrafficInfo = {
-  incidents: Record<string, any>[];
-  closures: TrafficClosure[];
-  updated_at?: string | null;
-};
-
-export const getTraffic = (token: string | null | undefined) =>
-  apiRequest<TrafficInfo>(`/mobility/v2/traffic`, "GET", token || undefined);
-
 export type ServingBus = {
   vehicle_id: string;
   route_number: string;

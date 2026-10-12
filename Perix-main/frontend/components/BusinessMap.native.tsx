@@ -80,19 +80,6 @@ type Props = {
     modes: ("bus" | "tram")[];
     routes: { route_number: string; mode: "bus" | "tram" }[];
   }) => void;
-  closures?: {
-    id: string;
-    points: { latitude: number; longitude: number }[];
-    from?: string;
-    to?: string;
-    description?: string;
-  }[];
-  onClosureClick?: (closure: {
-    id: string;
-    from?: string;
-    to?: string;
-    description?: string;
-  }) => void;
   showUserLocation?: boolean;
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
@@ -126,8 +113,6 @@ export default function BusinessMap({
   onTransitLineClick,
   transitStops = [],
   onTransitStopPress,
-  closures,
-  onClosureClick,
   showUserLocation = false,
   onRegionChange,
   onRegionChangeComplete,
@@ -436,33 +421,6 @@ export default function BusinessMap({
             }}
           />
         ))}
-        {zoomLevel >= 13 &&
-          (closures || []).slice(0, 30).map((closure, i) => {
-            const pts = closure.points.filter(
-              (p) =>
-                Number.isFinite(p.latitude) &&
-                Number.isFinite(p.longitude) &&
-                Math.abs(p.latitude) <= 90 &&
-                Math.abs(p.longitude) <= 180
-            );
-            if (pts.length < 2) return null;
-            return (
-              <Polyline
-                key={`closure-${closure.id}-${i}`}
-                coordinates={pts}
-                strokeColor="#DC2626"
-                strokeWidth={5}
-                onPress={() =>
-                  onClosureClick?.({
-                    id: closure.id,
-                    from: closure.from,
-                    to: closure.to,
-                    description: closure.description,
-                  })
-                }
-              />
-            );
-          })}
         {zoomLevel >= 12 &&
           transitStops.map((stop) => {
             const hasBus = stop.modes.includes("bus");
