@@ -11,14 +11,7 @@ import heapq
 import math
 from typing import Dict, List, Optional, Tuple
 
-import httpx
-
-OVERPASS_URLS = [
-    "https://overpass.kumi.systems/api/interpreter",
-    "https://overpass-api.de/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter",
-    "https://overpass.osm.ch/api/interpreter",
-]
+from mobility.osm_client import overpass_json
 
 HIGHWAY_FILTER = (
     "^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street)$"
@@ -58,43 +51,26 @@ async def _fetch_ways_detailed(bbox: Tuple[float, float, float, float], mode: st
         query = (
             f'[out:json][timeout:90];way["highway"~"{HIGHWAY_FILTER}"]({s},{w},{n},{e});{out_stmt}'
         )
-    last_err: Optional[Exception] = None
-    for url in OVERPASS_URLS:
-        for attempt in range(2):
-            try:
-                async with httpx.AsyncClient(
-                    timeout=150, headers={"User-Agent": "PerixMobility/1.0 (app.perixapp.com)"}
-                ) as client:
-                    resp = await client.get(url, params={"data": query})
-                    resp.raise_for_status()
-                    data = resp.json()
-                ways = []
-                for el in data.get("elements", []):
-                    if el.get("type") != "way":
-                        continue
-                    pts = [[p.get("lat"), p.get("lon")] for p in (el.get("geometry") or [])]
-                    if len(pts) < 2:
-                        continue
-                    ways.append(
-                        {
-                            "id": int(el.get("id") or 0),
-                            "nodes": [int(x) for x in (el.get("nodes") or [])],
-                            "points": pts,
-                            "name": (el.get("tags") or {}).get("name") or None,
-                            "tags": el.get("tags") or {},
-                        }
-                    )
-                if ways:
-                    return ways
-                # A 200 with zero ways means a stale/empty mirror - treat it
-                # as a failure and try the next mirror instead of returning
-                # an empty graph silently.
-                last_err = RuntimeError("empty response (0 ways)")
-                await asyncio.sleep(5 * (attempt + 1))
-            except Exception as err:
-                last_err = err
-                await asyncio.sleep(5 * (attempt + 1))
-    raise RuntimeError(f"Overpass failed: {last_err}")
+    data = await overpass_json(query)
+    ways = []
+    for el in data.get("elements", []):
+        if el.get("type") != "way":
+            continue
+        pts = [[p.get("lat"), p.get("lon")] for p in (el.get("geometry") or [])]
+        if len(pts) < 2:
+            continue
+        ways.append(
+            {
+                "id": int(el.get("id") or 0),
+                "nodes": [int(x) for x in (el.get("nodes") or [])],
+                "points": pts,
+                "name": (el.get("tags") or {}).get("name") or None,
+                "tags": el.get("tags") or {},
+            }
+        )
+    if not ways:
+        raise RuntimeError("Overpass returned no usable ways")
+    return ways
 
 
 def _build_graph(ways: List[list]) -> Tuple[Dict[int, Tuple[float, float]], Dict[int, List[Tuple[int, float]]]]:
@@ -370,9 +346,8 @@ async def compute_pattern_segments(stops: List[dict], mode: str = "bus", shape_h
                 ways_detailed = []
         if not ways_detailed:
             continue
-        # TomTom is READ-ONLY closure information: it never blocks routing.
-        # (Operator-approved Perix restrictions may do so later - via the
-        # restrictions editor, never from a third-party feed.)
+        # External traffic data never blocks canonical routing. Only explicit
+        # operator-approved Perix restrictions may block graph edges.
         blocked_way_ids: set = set()
         blocked_eids: set = set()
         loop = asyncio.get_event_loop()

@@ -11,6 +11,7 @@ from typing import List
 from zoneinfo import ZoneInfo
 
 from database import db
+from mobility.regions import get_active_region
 
 
 def _now_utc() -> datetime:
@@ -38,7 +39,11 @@ def _active(ov: dict) -> bool:
 
 
 async def get_active_restrictions() -> List[dict]:
-    docs = await db.mobility_restrictions.find({}, {"_id": 0}).to_list(500)
+    region = get_active_region()
+    docs = await db.mobility_restrictions.find(
+        {"region_id": region.region_id, "network_id": region.network_id},
+        {"_id": 0},
+    ).to_list(500)
     return [d for d in docs if _active(d)]
 
 
@@ -110,7 +115,9 @@ async def invalidate_geometries(restriction: dict) -> None:
     lngs = [p[1] for p in geom if isinstance(p, (list, tuple)) and len(p) >= 2]
     margin = 0.01
 
-    network = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+    from routes.mobility import _get_active_network
+
+    network = await _get_active_network()
     if not network:
         return
     route_numbers = {str(x) for x in (restriction.get("route_numbers") or [])}

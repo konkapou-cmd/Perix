@@ -97,23 +97,27 @@ async def version():
     import os
     import time
 
-    from database import db
     from mobility import geometry_cache
+    from mobility.osm_store import active_version
+    from mobility.regions import get_active_region
+    from routes.mobility import _get_active_network
 
+    region = get_active_region()
     try:
-        network = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+        network = await _get_active_network()
         network_version = (network or {}).get("version_id")
     except Exception:
         network_version = None
     try:
-        meta = await db.mobility_osm_graph_meta.find_one({"key": "graph_meta"})
-        graph_v = (meta or {}).get("active_v")
+        graph_v = await active_version()
     except Exception:
         graph_v = None
     return {
         "service": "backend",
         "git_sha": os.getenv("GIT_SHA", ""),
         "built_at": os.getenv("BUILT_AT", ""),
+        "region_id": region.region_id,
+        "network_id": region.network_id,
         "network_version": network_version,
         "osm_graph_version": graph_v,
         "geometry_revision": geometry_cache.revision(),

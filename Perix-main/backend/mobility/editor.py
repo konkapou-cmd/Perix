@@ -10,10 +10,16 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 
 from database import db
+from mobility.regions import get_active_region
 from models.user import UserPublic
 from routes.dependencies import get_current_user_optional
 
 router = APIRouter(prefix="/mobility/v2", tags=["MobilityEditor"])
+
+
+def _scope() -> dict:
+    region = get_active_region()
+    return {"region_id": region.region_id, "network_id": region.network_id}
 
 
 async def _require_operator_user(current_user: Optional[UserPublic]) -> dict:
@@ -25,7 +31,7 @@ async def _require_operator_user(current_user: Optional[UserPublic]) -> dict:
 
 
 async def _get_overrides() -> list:
-    docs = await db.mobility_stop_overrides.find({}, {"_id": 0}).to_list(500)
+    docs = await db.mobility_stop_overrides.find(_scope(), {"_id": 0}).to_list(500)
     return list(docs)
 
 
@@ -63,6 +69,7 @@ async def v2_create_override(payload: dict, current_user: Optional[UserPublic] =
     from routes.mobility import now_utc
 
     doc = {
+        **_scope(),
         "override_id": f"ovr_{uuid.uuid4().hex[:12]}",
         "kind": kind,
         "target_stop_id": str(payload.get("target_stop_id") or ""),
@@ -84,14 +91,14 @@ async def v2_create_override(payload: dict, current_user: Optional[UserPublic] =
 @router.delete("/editor/overrides/{override_id}")
 async def v2_delete_override(override_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     await _require_operator_user(current_user)
-    await db.mobility_stop_overrides.delete_one({"override_id": override_id})
+    await db.mobility_stop_overrides.delete_one({**_scope(), "override_id": override_id})
     return {"ok": True}
 
 
 @router.get("/editor/trip-overrides")
 async def v2_list_trip_overrides(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     await _require_operator_user(current_user)
-    docs = await db.mobility_trip_overrides.find({}, {"_id": 0}).to_list(500)
+    docs = await db.mobility_trip_overrides.find(_scope(), {"_id": 0}).to_list(500)
     return docs
 
 
@@ -113,6 +120,7 @@ async def v2_create_trip_override(payload: dict, current_user: Optional[UserPubl
     from routes.mobility import now_utc
 
     doc = {
+        **_scope(),
         "override_id": f"tovr_{uuid.uuid4().hex[:12]}",
         "kind": kind,
         "trip_id": str(payload.get("trip_id")),
@@ -130,14 +138,14 @@ async def v2_create_trip_override(payload: dict, current_user: Optional[UserPubl
 @router.delete("/editor/trip-overrides/{override_id}")
 async def v2_delete_trip_override(override_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     await _require_operator_user(current_user)
-    await db.mobility_trip_overrides.delete_one({"override_id": override_id})
+    await db.mobility_trip_overrides.delete_one({**_scope(), "override_id": override_id})
     return {"ok": True}
 
 
 @router.get("/editor/restrictions")
 async def v2_list_restrictions(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     await _require_operator_user(current_user)
-    docs = await db.mobility_restrictions.find({}, {"_id": 0}).to_list(500)
+    docs = await db.mobility_restrictions.find(_scope(), {"_id": 0}).to_list(500)
     return docs
 
 
@@ -158,6 +166,7 @@ async def v2_create_restriction(payload: dict, current_user: Optional[UserPublic
     from routes.mobility import now_utc
 
     doc = {
+        **_scope(),
         "restriction_id": f"res_{uuid.uuid4().hex[:12]}",
         "kind": kind,
         "geometry": geometry,
@@ -185,10 +194,10 @@ async def v2_create_restriction(payload: dict, current_user: Optional[UserPublic
 @router.delete("/editor/restrictions/{restriction_id}")
 async def v2_delete_restriction(restriction_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     operator = await _require_operator_user(current_user)
-    doc = await db.mobility_restrictions.find_one({"restriction_id": restriction_id})
+    doc = await db.mobility_restrictions.find_one({**_scope(), "restriction_id": restriction_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Restriction not found")
-    await db.mobility_restrictions.delete_one({"restriction_id": restriction_id})
+    await db.mobility_restrictions.delete_one({**_scope(), "restriction_id": restriction_id})
     try:
         from mobility.restrictions import invalidate_geometries
 

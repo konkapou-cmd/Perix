@@ -1,7 +1,8 @@
-"""GTFS zip parser: converts a standard GTFS feed into the Perix Mobility
-network JSON (bus/tram routes with stops, trips, stop_times and shapes).
-Service calendars are resolved for ONE service date (default: today in
-Europe/Berlin)."""
+"""GTFS zip parser: converts a standard GTFS feed into Perix Mobility data.
+
+Agency selection and timezone are supplied by the active mobility region, so
+the parser is reusable across cities without city-specific code branches.
+"""
 import csv
 import io
 import zipfile
@@ -9,6 +10,7 @@ from collections import defaultdict
 from datetime import datetime, date
 from typing import Optional
 from zoneinfo import ZoneInfo
+from mobility.regions import get_active_region
 
 TRAM_TYPES = {"0"}
 BUS_TYPES = {"3"}
@@ -73,27 +75,38 @@ def _active_service_ids(zf: zipfile.ZipFile, service_date: date) -> set:
     return active
 
 
-def parse_gtfs_zip(content: bytes, service_date: Optional[str] = None, agency_regex: str = r"Magdeburger Verkehrsbetriebe|\bMVB\b") -> dict:
-    """Returns the Perix network payload {name, source, service_date,
-    timezone, routes: [...]} with bus/tram routes for the requested date."""
-    return _parse_zip(io.BytesIO(content), service_date, agency_regex)
+def parse_gtfs_zip(
+    content: bytes,
+    service_date: Optional[str] = None,
+    agency_regex: Optional[str] = None,
+    timezone: Optional[str] = None,
+) -> dict:
+    """Return one active region's bus/tram network payload."""
+    return _parse_zip(io.BytesIO(content), service_date, agency_regex, timezone)
 
 
-def parse_gtfs_zip_path(path, service_date: Optional[str] = None, agency_regex: str = r"Magdeburger Verkehrsbetriebe|\bMVB\b") -> dict:
-    """Same as parse_gtfs_zip but reads the zip from disk (memory-safe for
-    large nationwide feeds)."""
-    return _parse_zip(path, service_date, agency_regex)
+def parse_gtfs_zip_path(
+    path,
+    service_date: Optional[str] = None,
+    agency_regex: Optional[str] = None,
+    timezone: Optional[str] = None,
+) -> dict:
+    """Path-based equivalent used by the background static worker."""
+    return _parse_zip(path, service_date, agency_regex, timezone)
 
 
-def _parse_zip(source, service_date, agency_regex) -> dict:
+def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
     import re
 
+    region = get_active_region()
+    resolved_agency_regex = str(agency_regex or region.agency_regex)
+    resolved_timezone = str(timezone or region.timezone)
     sd = (
         datetime.strptime(service_date, "%Y-%m-%d").date()
         if service_date
-        else datetime.now(ZoneInfo("Europe/Berlin")).date()
+        else datetime.now(ZoneInfo(resolved_timezone)).date()
     )
-    agency_re = re.compile(agency_regex, re.I)
+    agency_re = re.compile(resolved_agency_regex, re.I)
 
     with zipfile.ZipFile(source) as zf:
         agencies = _rows(zf, "agency.txt")
@@ -101,7 +114,7 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
             r.get("agency_id", "") for r in agencies if agency_re.search(r.get("agency_name", "") or "")
         }
         if not agency_ids:
-            raise ValueError(f"No agency matched /{agency_regex}/ in agency.txt")
+            raise ValueError(f"No agency matched /{resolved_agency_regex}/ in agency.txt")
 
         service_ids = _active_service_ids(zf, sd)
         if not service_ids:
@@ -257,9 +270,12 @@ def _parse_zip(source, service_date, agency_regex) -> dict:
             routes_out.append(route)
 
         return {
-            "name": f"Magdeburg transit {sd.isoformat()}",
+            "name": f"{region.city} transit {sd.isoformat()}",
             "source": "GTFS",
+            "region_id": region.region_id,
+            "network_id": region.network_id,
             "service_date": sd.isoformat(),
-            "timezone": "Europe/Berlin",
+            "timezone": resolved_timezone,
+            "country": region.country,
             "routes": routes_out,
         }

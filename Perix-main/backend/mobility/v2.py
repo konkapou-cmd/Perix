@@ -18,12 +18,17 @@ router = APIRouter(prefix="/mobility/v2", tags=["MobilityV2"])
 
 
 async def _domain():
+    from mobility.regions import get_active_region
     from routes.mobility import _get_active_network
 
+    region = get_active_region()
     network = await _get_active_network()
     if not network:
         return None
-    overrides = await db.mobility_stop_overrides.find({}, {"_id": 0}).to_list(500)
+    overrides = await db.mobility_stop_overrides.find(
+        {"region_id": region.region_id, "network_id": region.network_id},
+        {"_id": 0},
+    ).to_list(500)
     return build_domain(network, NETWORK_ID, list(overrides))
 
 
@@ -410,8 +415,139 @@ async def v2_plan(
 async def v2_alerts(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     """GTFS-RT ServiceAlerts (Störung / Umleitung / Sperrung / Halt entfällt)
     imported from the realtime feed."""
-    docs = await db.mobility_service_alerts.find({}, {"_id": 0}).sort("updated_at", -1).to_list(50)
+    from mobility.regions import get_active_region
+
+    region = get_active_region()
+    docs = await db.mobility_service_alerts.find(
+        {"region_id": region.region_id, "network_id": region.network_id},
+        {"_id": 0},
+    ).sort("updated_at", -1).to_list(50)
     return docs
+
+
+@router.get("/diagnostic/region")
+async def v2_diagnostic_region(
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Active mobility region/network configuration (secrets excluded)."""
+    from mobility.regions import get_active_region
+
+    return get_active_region().as_dict()
+
+
+@router.get("/diagnostic/osm-signals")
+async def v2_diagnostic_osm_signals(
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Raw signal nodes from the active region's local OSM snapshot."""
+    from mobility.osm_store import active_version, get_local_signals
+    from mobility.regions import get_active_region
+
+    region = get_active_region()
+    osm_snapshot_v = await active_version(region.region_id)
+    if osm_snapshot_v is None:
+        return {
+            "region_id": region.region_id,
+            "network_id": region.network_id,
+            "osm_snapshot_v": None,
+            "count": 0,
+            "signals": [],
+        }
+    signals = await get_local_signals(
+        region_id=region.region_id,
+        graph_v=int(osm_snapshot_v),
+    )
+    return {
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "osm_snapshot_v": int(osm_snapshot_v),
+        "count": len(signals),
+        "signals": signals,
+    }
+
+
+@router.get("/diagnostic/infrastructure/{pattern_id}")
+async def v2_diagnostic_infrastructure(
+    pattern_id: str,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Full derived edge/signal infrastructure for one active pattern."""
+    from mobility.regions import get_active_region
+
+    region = get_active_region()
+    domain = await _domain()
+    if not domain:
+        return {"pattern_id": pattern_id, "state": "NO_NETWORK"}
+
+    version_id = str(domain.get("network", {}).get("version_id") or "")
+    pattern = next(
+        (p for p in domain.get("patterns", []) if str(p.get("pattern_id")) == str(pattern_id)),
+        None,
+    )
+    if not pattern:
+        return {"pattern_id": pattern_id, "state": "PATTERN_NOT_FOUND"}
+
+    from mobility.infrastructure import ensure_pattern_infrastructure
+
+    doc = await ensure_pattern_infrastructure(
+        str(pattern_id),
+        version_id,
+        str(pattern.get("mode") or "bus"),
+        region_id=region.region_id,
+        network_id=region.network_id,
+    )
+    if not doc:
+        return {"pattern_id": pattern_id, "state": "INFRASTRUCTURE_NOT_READY"}
+    return doc
+
+
+@router.get("/diagnostic/traffic/{pattern_id}")
+async def v2_diagnostic_traffic(
+    pattern_id: str,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Traffic profiles for OSM ways used by one active pattern."""
+    from mobility.regions import get_active_region
+
+    region = get_active_region()
+    domain = await _domain()
+    if not domain:
+        return {"pattern_id": pattern_id, "state": "NO_NETWORK", "profiles": []}
+
+    version_id = str(domain.get("network", {}).get("version_id") or "")
+    infra = await db.mobility_pattern_infrastructure.find_one(
+        {
+            "pattern_id": str(pattern_id),
+            "version_id": version_id,
+            "region_id": region.region_id,
+            "network_id": region.network_id,
+        },
+        {"_id": 0},
+    )
+    if not infra:
+        return {"pattern_id": pattern_id, "state": "INFRASTRUCTURE_NOT_READY", "profiles": []}
+
+    way_ids = sorted(
+        {int(e.get("way_id")) for e in (infra.get("edges") or []) if e.get("way_id") is not None}
+    )
+    profiles = await db.mobility_traffic_profiles.find(
+        {
+            "region_id": region.region_id,
+            "network_id": region.network_id,
+            "way_id": {"$in": way_ids},
+        },
+        {"_id": 0},
+    ).to_list(max(1, len(way_ids) * 3))
+    return {
+        "pattern_id": pattern_id,
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "version_id": version_id,
+        "osm_snapshot_v": infra.get("osm_snapshot_v"),
+        "way_count": len(way_ids),
+        "profile_count": len(profiles),
+        "profiles": profiles,
+    }
 
 
 @router.get("/traffic")

@@ -20,19 +20,20 @@ import httpx
 from pymongo import UpdateOne
 
 from database import db
+from mobility.regions import get_active_region
 
 logger = logging.getLogger(__name__)
 
-REALTIME_URL = os.getenv("MOBILITY_REALTIME_URL", "https://realtime.gtfs.de/realtime-free.pb")
-STATIC_GTFS_URL = os.getenv("MOBILITY_STATIC_GTFS_URL", "")
+_ACTIVE_REGION = get_active_region()
+REALTIME_URL = _ACTIVE_REGION.realtime_url
+STATIC_GTFS_URL = _ACTIVE_REGION.static_gtfs_url
 MIN_TRIPS = int(os.getenv("MOBILITY_SYNC_MIN_TRIPS", "500"))
 MIN_LINES = int(os.getenv("MOBILITY_SYNC_MIN_LINES", "10"))
 AUTO_ACTIVATE = os.getenv("MOBILITY_SYNC_AUTO_ACTIVATE", "true").lower() != "false"
 STATIC_INTERVAL_HOURS = float(os.getenv("MOBILITY_STATIC_INTERVAL_HOURS", "6"))
-REALTIME_INTERVAL_SECONDS = float(os.getenv("MOBILITY_REALTIME_INTERVAL_SECONDS", "15"))
-# Bump to force a one-time re-import when the network schema/derivation
-# logic changes (the feed hash alone is not enough).
-STATIC_SCHEMA_V = "7"
+REALTIME_INTERVAL_SECONDS = float(_ACTIVE_REGION.realtime_interval_seconds)
+# v8 adds region/network namespacing to static, realtime and derived data.
+STATIC_SCHEMA_V = "8"
 
 
 def _log(msg: str) -> None:
@@ -111,7 +112,9 @@ async def _merge_shapes(payload: dict, prev_network: Optional[dict]) -> None:
 
 
 async def _active_trip_ids() -> set:
-    network = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+    from routes.mobility import _get_active_network
+
+    network = await _get_active_network()
     if not network:
         return set()
     ids = set()
@@ -123,6 +126,15 @@ async def _active_trip_ids() -> set:
 
 
 async def _realtime_worker():
+    if not REALTIME_URL:
+        _log("realtime disabled for active mobility region")
+        return
+    if _ACTIVE_REGION.realtime_type != "GTFS_RT":
+        _log(
+            f"realtime type {_ACTIVE_REGION.realtime_type} needs a source adapter; "
+            "built-in worker supports GTFS_RT"
+        )
+        return
     try:
         from google.transit import gtfs_realtime_pb2
     except Exception as e:
@@ -232,6 +244,8 @@ async def _realtime_worker():
 
                 docs.append(
                     {
+                        "region_id": _ACTIVE_REGION.region_id,
+                        "network_id": _ACTIVE_REGION.network_id,
                         "trip_id": trip_id,
                         "delay_seconds": int(trip_delay),
                         "stop_delays": stop_delays,
@@ -257,7 +271,11 @@ async def _realtime_worker():
                 )
                 ops.append(
                     UpdateOne(
-                        {"trip_id": doc["trip_id"]},
+                        {
+                            "region_id": _ACTIVE_REGION.region_id,
+                            "network_id": _ACTIVE_REGION.network_id,
+                            "trip_id": doc["trip_id"],
+                        },
                         {"$set": doc},
                         upsert=True,
                     )
@@ -336,6 +354,8 @@ async def _store_alert(alert, now_iso: str) -> None:
     header = alert.header_text.translation[0].text if alert.header_text.translation else ""
     desc = alert.description_text.translation[0].text if alert.description_text.translation else ""
     doc = {
+        "region_id": _ACTIVE_REGION.region_id,
+        "network_id": _ACTIVE_REGION.network_id,
         "alert_hash": hashlib.sha256((header + desc).encode("utf-8")).hexdigest(),
         "effect": effect_names.get(int(alert.effect), "UNKNOWN_EFFECT"),
         "cause": cause_names.get(int(alert.cause), "UNKNOWN_CAUSE"),
@@ -346,7 +366,14 @@ async def _store_alert(alert, now_iso: str) -> None:
         "updated_at": now_iso,
         "source": "GTFS_RT_ALERT",
     }
-    existing = await db.mobility_service_alerts.find_one({"alert_hash": doc["alert_hash"]}, {"_id": 1})
+    existing = await db.mobility_service_alerts.find_one(
+        {
+            "region_id": _ACTIVE_REGION.region_id,
+            "network_id": _ACTIVE_REGION.network_id,
+            "alert_hash": doc["alert_hash"],
+        },
+        {"_id": 1},
+    )
     if existing:
         await db.mobility_service_alerts.update_one({"_id": existing["_id"]}, {"$set": doc})
     else:
@@ -354,8 +381,14 @@ async def _store_alert(alert, now_iso: str) -> None:
 
 
 async def _static_worker():
+    if _ACTIVE_REGION.static_transit_type != "GTFS":
+        _log(
+            f"static transit type {_ACTIVE_REGION.static_transit_type} needs a source adapter; "
+            "built-in worker supports GTFS"
+        )
+        return
     if not STATIC_GTFS_URL:
-        _log("static disabled (MOBILITY_STATIC_GTFS_URL not set)")
+        _log("static disabled (no GTFS URL configured for active mobility region)")
         return
     _log(f"static started ({STATIC_GTFS_URL}, every {STATIC_INTERVAL_HOURS}h)")
 
@@ -374,7 +407,8 @@ async def _static_worker():
                             sha.update(chunk)
             sha = sha.hexdigest()
             _log(f"static: downloaded, sha={sha[:12]}...")
-            state = await db.mobility_sync_state.find_one({"key": "static_sha256"}) or {}
+            sync_key = f"static_sha256:{_ACTIVE_REGION.region_id}:{_ACTIVE_REGION.network_id}"
+            state = await db.mobility_sync_state.find_one({"key": sync_key}) or {}
             # Skip only when the feed hash is unchanged AND the ACTIVE
             # network is today's timetable AND it carries the per-trip
             # fields (stop_ids) required by the trip-level estimator.
@@ -384,8 +418,10 @@ async def _static_worker():
             from datetime import datetime
             from zoneinfo import ZoneInfo
 
-            today = datetime.now(ZoneInfo("Europe/Berlin")).date().isoformat()
-            active = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+            today = datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)).date().isoformat()
+            from routes.mobility import _get_active_network
+
+            active = await _get_active_network()
             active_fresh = bool(active) and today in str(active.get("name") or "")
             has_trip_stops = False
             for r in (active or {}).get("routes", []):
@@ -415,7 +451,11 @@ async def _static_worker():
                 from utils.gtfs import parse_gtfs_zip_path
 
                 _log("static: parsing feed...")
-                payload = parse_gtfs_zip_path(tmp_path)
+                payload = parse_gtfs_zip_path(
+                    tmp_path,
+                    agency_regex=_ACTIVE_REGION.agency_regex,
+                    timezone=_ACTIVE_REGION.timezone,
+                )
                 routes = payload.get("routes", [])
                 trips = sum(len(r.get("trips", [])) for r in routes)
                 lines = len(routes)
@@ -430,7 +470,13 @@ async def _static_worker():
                 result = await _create_network_version(routes, payload.get("name") or "GTFS auto")
                 _log(f"static: imported version {result['version_id']} diff={result['diff']}")
                 if AUTO_ACTIVATE:
-                    await db.bus_network_versions.update_many({}, {"$set": {"active": False}})
+                    await db.bus_network_versions.update_many(
+                        {
+                            "region_id": _ACTIVE_REGION.region_id,
+                            "network_id": _ACTIVE_REGION.network_id,
+                        },
+                        {"$set": {"active": False}},
+                    )
                     await db.bus_network_versions.update_one(
                         {"version_id": result["version_id"]}, {"$set": {"active": True}}
                     )
@@ -439,8 +485,14 @@ async def _static_worker():
                     # the background (lines must never cross buildings).
                     asyncio.create_task(_precompute_road_geometries())
                 await db.mobility_sync_state.replace_one(
-                    {"key": "static_sha256"},
-                    {"key": "static_sha256", "value": sha, "schema_v": STATIC_SCHEMA_V},
+                    {"key": sync_key},
+                    {
+                        "key": sync_key,
+                        "region_id": _ACTIVE_REGION.region_id,
+                        "network_id": _ACTIVE_REGION.network_id,
+                        "value": sha,
+                        "schema_v": STATIC_SCHEMA_V,
+                    },
                     upsert=True,
                 )
         except Exception as e:
@@ -472,7 +524,7 @@ async def _osm_snapshot_worker():
     while True:
         res = None
         try:
-            from mobility.osm_store import active_version, import_snapshot
+            from mobility.osm_store import active_version, import_snapshot, snapshot_meta
 
             v = await active_version()
             if v is None:
@@ -481,7 +533,7 @@ async def _osm_snapshot_worker():
                 if res.get("ok"):
                     await _force_rebuild_after_snapshot()
             else:
-                meta = await db.mobility_osm_graph_meta.find_one({"key": "graph_meta"})
+                meta = await snapshot_meta(_ACTIVE_REGION.region_id)
                 age = _time.time() - float((meta or {}).get("imported_at") or 0)
                 if age > 12 * 3600:
                     # >12h old: merge backfill for failed quadrants, or a
@@ -490,10 +542,26 @@ async def _osm_snapshot_worker():
                     if res.get("ok") and not res.get("merged"):
                         await _force_rebuild_after_snapshot()
                     elif res.get("ok"):
-                        # Backfill merge: let the periodic pass rebuild the
-                        # patterns that were missing ways before.
-                        await db.mobility_road_geometries.update_many(
-                            {"graph_v": 0}, {"$set": {"graph_v": 0}}
+                        await db.mobility_pattern_infrastructure.delete_many(
+                            {
+                                "region_id": _ACTIVE_REGION.region_id,
+                                "network_id": _ACTIVE_REGION.network_id,
+                            }
+                        )
+                        _log("osm snapshot: merged backfill invalidated pattern infrastructure")
+                if res and res.get("ok"):
+                    try:
+                        from mobility.traffic_profiles import rebuild_traffic_profiles
+
+                        profile_result = await rebuild_traffic_profiles(
+                            region_id=_ACTIVE_REGION.region_id,
+                            network_id=_ACTIVE_REGION.network_id,
+                        )
+                        _log(f"osm snapshot: traffic profiles {profile_result}")
+                    except Exception as e:
+                        _log(
+                            "osm snapshot: traffic profile rebuild failed: "
+                            f"{type(e).__name__}: {e}"
                         )
         except Exception as e:
             _log(f"osm snapshot worker error: {type(e).__name__}: {e}")
@@ -506,10 +574,15 @@ async def _osm_snapshot_worker():
 async def _force_rebuild_after_snapshot():
     from mobility import geometry_cache
 
-    await db.mobility_road_geometries.update_many({}, {"$set": {"graph_v": 0}})
-    await db.mobility_geometry_segments.delete_many({})
+    scope = {
+        "region_id": _ACTIVE_REGION.region_id,
+        "network_id": _ACTIVE_REGION.network_id,
+    }
+    await db.mobility_road_geometries.update_many(scope, {"$set": {"graph_v": 0}})
+    await db.mobility_geometry_segments.delete_many(scope)
+    await db.mobility_pattern_infrastructure.delete_many(scope)
     geometry_cache.clear()
-    _log("osm snapshot: full pattern rebuild scheduled (old geometries invalidated)")
+    _log("osm snapshot: current region geometry + infrastructure invalidated")
 
 
 async def _precompute_road_geometries(only_patterns: Optional[set] = None):
@@ -541,11 +614,37 @@ async def _precompute_road_geometries(only_patterns: Optional[set] = None):
 
 
 async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _berlin_now, only_patterns: Optional[set] = None):
-    network = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+    from routes.mobility import _get_active_network
+
+    network = await _get_active_network()
     if not network:
         return 0
     domain = build_domain(network, NETWORK_ID)
     version = str(network.get("version_id"))
+    region_id = str(network.get("region_id") or _ACTIVE_REGION.region_id)
+    network_id = str(network.get("network_id") or _ACTIVE_REGION.network_id)
+
+    # Remove geometry documents produced before region/network namespacing.
+    # Otherwise V2 could see both the legacy and the newly scoped document.
+    await db.mobility_road_geometries.delete_many(
+        {"version_id": version, "region_id": {"$exists": False}}
+    )
+    await db.mobility_geometry_segments.delete_many(
+        {"version_id": version, "region_id": {"$exists": False}}
+    )
+
+    from mobility.osm_store import active_version
+
+    osm_snapshot_v = await active_version(region_id)
+    if osm_snapshot_v is None:
+        return 0
+    await db.mobility_pattern_infrastructure.delete_many(
+        {
+            "region_id": region_id,
+            "network_id": network_id,
+            "version_id": {"$ne": version},
+        }
+    )
     # Cleanup migration: the canonical geometry collection holds ONLY the
     # Perix graph. Old GTFS_SHAPE / legacy OSM_ROUTE docs are dropped so
     # the OSM reconstruction takes their place.
@@ -583,7 +682,13 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
         if only_patterns is not None and pid not in only_patterns:
             continue
         existing = await db.mobility_road_geometries.find_one(
-            {"pattern_id": pid, "version_id": version}, {"_id": 0}
+            {
+                "pattern_id": pid,
+                "version_id": version,
+                "region_id": region_id,
+                "network_id": network_id,
+            },
+            {"_id": 0},
         )
         # Rebuild docs that predate the corridor-weighted schema (graph_v 3:
         # real OSM node ids + oneway). Older geometries were built on
@@ -593,7 +698,20 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
             and existing
             and existing.get("mode")
             and existing.get("graph_v") == 3
+            and int(existing.get("osm_snapshot_v") or -1) == int(osm_snapshot_v)
         ):
+            try:
+                from mobility.infrastructure import ensure_pattern_infrastructure
+
+                await ensure_pattern_infrastructure(
+                    pid,
+                    version,
+                    mode,
+                    region_id=region_id,
+                    network_id=network_id,
+                )
+            except Exception as e:
+                _log(f"infrastructure: {pid} backfill failed: {type(e).__name__}: {e}")
             continue
         coords = []
         for sid in pat.get("stop_ids") or []:
@@ -631,11 +749,18 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                 if not seg.get("ok") or not seg.get("points"):
                     continue
                 await db.mobility_geometry_segments.replace_one(
-                    {"segment_id": f"{pid}:{seg['a_idx']}:{seg['b_idx']}"},
+                    {
+                        "segment_id": f"{pid}:{seg['a_idx']}:{seg['b_idx']}",
+                        "version_id": version,
+                        "region_id": region_id,
+                        "network_id": network_id,
+                    },
                     {
                         "segment_id": f"{pid}:{seg['a_idx']}:{seg['b_idx']}",
                         "pattern_id": pid,
                         "version_id": version,
+                        "region_id": region_id,
+                        "network_id": network_id,
                         "mode": mode,
                         "a_idx": seg["a_idx"],
                         "b_idx": seg["b_idx"],
@@ -645,6 +770,7 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                         "edge_ids": seg.get("edge_ids") or [],
                         "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
                         "graph_v": 3,
+                        "osm_snapshot_v": int(osm_snapshot_v),
                         "created_at": _berlin_now().isoformat(),
                     },
                     upsert=True,
@@ -664,14 +790,22 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                     valid_full = True
                 if valid_full:
                     await db.mobility_road_geometries.replace_one(
-                        {"pattern_id": pid},
                         {
                             "pattern_id": pid,
                             "version_id": version,
+                            "region_id": region_id,
+                            "network_id": network_id,
+                        },
+                        {
+                            "pattern_id": pid,
+                            "version_id": version,
+                            "region_id": region_id,
+                            "network_id": network_id,
                             "mode": mode,
                             "points": pts,
                             "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
                             "graph_v": 3,
+                            "osm_snapshot_v": int(osm_snapshot_v),
                             "created_at": _berlin_now().isoformat(),
                         },
                         upsert=True,
@@ -682,6 +816,19 @@ async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _
                         geometry_cache.set_cached(pid, pts)
                     except Exception:
                         pass
+                    try:
+                        from mobility.infrastructure import ensure_pattern_infrastructure
+
+                        await ensure_pattern_infrastructure(
+                            pid,
+                            version,
+                            mode,
+                            region_id=region_id,
+                            network_id=network_id,
+                            force=True,
+                        )
+                    except Exception as e:
+                        _log(f"infrastructure: {pid} build failed: {type(e).__name__}: {e}")
                     done += 1
                 else:
                     _log(f"roads: {pid} full geometry rejected by validator (segments kept)")

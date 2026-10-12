@@ -281,6 +281,88 @@ async def create_indexes():
     await db.event_reminders.create_index([("user_id", 1), ("status", 1)])
     await db.event_reminders.create_index([("status", 1), ("remind_at", 1)])
 
+    # Mobility region/network + OSM snapshot indexes
+    await _safe_create_index(
+        db.bus_network_versions,
+        [("region_id", 1), ("network_id", 1), ("active", 1)],
+    )
+    await _safe_create_index(
+        db.mobility_realtime,
+        [("region_id", 1), ("network_id", 1), ("trip_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_service_alerts,
+        [("region_id", 1), ("network_id", 1), ("updated_at", -1)],
+    )
+    await _safe_create_index(
+        db.mobility_stop_overrides,
+        [("region_id", 1), ("network_id", 1), ("override_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_trip_overrides,
+        [("region_id", 1), ("network_id", 1), ("override_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_graph_overlays,
+        [("region_id", 1), ("network_id", 1), ("overlay_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_restrictions,
+        [("region_id", 1), ("network_id", 1), ("restriction_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_osm_ways,
+        [("way_id", 1), ("region_id", 1), ("kind", 1), ("graph_v", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_osm_ways,
+        [("region_id", 1), ("kind", 1), ("graph_v", 1)],
+    )
+    await _safe_create_index(
+        db.mobility_osm_signals,
+        [("signal_id", 1), ("region_id", 1), ("graph_v", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_osm_signals,
+        [("region_id", 1), ("graph_v", 1), ("latitude", 1), ("longitude", 1)],
+    )
+    await _safe_create_index(
+        db.mobility_pattern_infrastructure,
+        [("pattern_id", 1), ("version_id", 1), ("region_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_pattern_infrastructure,
+        [("region_id", 1), ("network_id", 1), ("version_id", 1), ("osm_snapshot_v", 1)],
+    )
+
+    # Static traffic-count/profile indexes (city-scoped)
+    await _safe_create_index(
+        db.mobility_traffic_counts,
+        [("count_record_id", 1), ("region_id", 1), ("network_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_traffic_counts,
+        [("region_id", 1), ("network_id", 1), ("matched_way_id", 1), ("measurement_date", -1)],
+    )
+    await _safe_create_index(
+        db.mobility_traffic_profiles,
+        [("profile_key", 1), ("region_id", 1), ("network_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_traffic_profiles,
+        [("region_id", 1), ("network_id", 1), ("way_id", 1), ("osm_direction", 1)],
+    )
+
 
 def build_category_tree() -> None:
     """Build hardcoded category structure with all events enabled."""

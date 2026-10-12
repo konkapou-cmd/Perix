@@ -9,6 +9,7 @@ from typing import List, Optional, Set
 from zoneinfo import ZoneInfo
 
 from database import db
+from mobility.regions import get_active_region
 
 
 def _now_utc() -> datetime:
@@ -16,7 +17,11 @@ def _now_utc() -> datetime:
 
 
 async def get_trip_overrides() -> List[dict]:
-    docs = await db.mobility_trip_overrides.find({}, {"_id": 0}).to_list(500)
+    region = get_active_region()
+    docs = await db.mobility_trip_overrides.find(
+        {"region_id": region.region_id, "network_id": region.network_id},
+        {"_id": 0},
+    ).to_list(500)
     return list(docs)
 
 

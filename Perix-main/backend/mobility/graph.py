@@ -202,8 +202,13 @@ def resolve_pattern_geometry(
 
 async def get_overlays() -> List[dict]:
     from database import db
+    from mobility.regions import get_active_region
 
-    docs = await db.mobility_graph_overlays.find({}, {"_id": 0}).to_list(500)
+    region = get_active_region()
+    docs = await db.mobility_graph_overlays.find(
+        {"region_id": region.region_id, "network_id": region.network_id},
+        {"_id": 0},
+    ).to_list(500)
     return list(docs)
 
 
@@ -211,9 +216,13 @@ async def create_overlay(payload: dict) -> dict:
     import uuid
 
     from database import db
+    from mobility.regions import get_active_region
     from routes.mobility import now_utc
 
+    region = get_active_region()
     doc = {
+        "region_id": region.region_id,
+        "network_id": region.network_id,
         "overlay_id": f"ovl_{uuid.uuid4().hex[:12]}",
         "name": str(payload.get("name") or "").strip(),
         "geometry": [[float(p[0]), float(p[1])] for p in (payload.get("geometry") or []) if len(p) >= 2],

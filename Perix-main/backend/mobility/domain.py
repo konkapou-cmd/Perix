@@ -14,10 +14,13 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from zoneinfo import ZoneInfo
 
-NETWORK_ID = "magdeburg_mvb"
-NETWORK_TIMEZONE = "Europe/Berlin"
-NETWORK_COUNTRY = "DE"
-SERVICE_DAY_START_HOUR = 4
+from mobility.regions import get_active_region
+
+_ACTIVE_REGION = get_active_region()
+NETWORK_ID = _ACTIVE_REGION.network_id
+NETWORK_TIMEZONE = _ACTIVE_REGION.timezone
+NETWORK_COUNTRY = _ACTIVE_REGION.country
+SERVICE_DAY_START_HOUR = _ACTIVE_REGION.service_day_start_hour
 
 _DOMAIN_CACHE: dict = {"key": None, "data": None}
 
@@ -407,12 +410,13 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
 
     data = {
         "network": {
-            "network_id": network_id,
+            "network_id": str(network_doc.get("network_id") or network_id),
+            "region_id": str(network_doc.get("region_id") or _ACTIVE_REGION.region_id),
             "name": network_doc.get("name") or network_id,
             "version_id": version_id,
             "service_date": service_date,
-            "timezone": NETWORK_TIMEZONE,
-            "country": NETWORK_COUNTRY,
+            "timezone": str(network_doc.get("timezone") or NETWORK_TIMEZONE),
+            "country": str(network_doc.get("country") or NETWORK_COUNTRY),
         },
         "routes": routes,
         "patterns": patterns,

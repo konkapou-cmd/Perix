@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
 from database import db
+from mobility.regions import get_active_region
 from models.user import UserPublic
 from models.mobility import (
     VehicleCreate,
@@ -344,15 +345,16 @@ def _time_to_seconds(value: str) -> Optional[int]:
         return None
 
 
-# GTFS service days run from ~04:00 to ~28:00 (04:00 next day). The whole
-# engine works in "service-day seconds" so trips crossing midnight work.
-SERVICE_DAY_START_HOUR = 4
+# GTFS service-day boundary/timezone come from the active mobility region.
+# Keep the historical helper name `_berlin_now` for compatibility; its
+# behavior is region-aware after this patch.
+SERVICE_DAY_START_HOUR = get_active_region().service_day_start_hour
 
 
 def _now_service_seconds() -> int:
-    """Current time in Europe/Berlin expressed in service-day seconds
-    (e.g. 01:30 at night = 25:30 of yesterday's service day)."""
-    now = datetime.now(ZoneInfo("Europe/Berlin"))
+    """Current time expressed in the active region's service-day seconds."""
+    region = get_active_region()
+    now = datetime.now(ZoneInfo(region.timezone))
     sec = now.hour * 3600 + now.minute * 60 + now.second
     if now.hour < SERVICE_DAY_START_HOUR:
         sec += 24 * 3600
@@ -360,7 +362,7 @@ def _now_service_seconds() -> int:
 
 
 def _berlin_now() -> datetime:
-    return datetime.now(ZoneInfo("Europe/Berlin"))
+    return datetime.now(ZoneInfo(get_active_region().timezone))
 
 
 def _shape_index_for(shape: List[list], lat: float, lng: float) -> int:
@@ -506,9 +508,9 @@ def _service_date_key() -> str:
 
 
 def _epoch_to_service_seconds(epoch_value) -> Optional[int]:
-    """Convert a GTFS-RT Unix timestamp to Perix service-day seconds."""
+    """Convert a GTFS-RT Unix timestamp to active-region service-day seconds."""
     try:
-        tz = ZoneInfo("Europe/Berlin")
+        tz = ZoneInfo(get_active_region().timezone)
         dt = datetime.fromtimestamp(int(epoch_value), tz)
         now = _berlin_now()
         service_date = now.date() if now.hour >= SERVICE_DAY_START_HOUR else (now - timedelta(days=1)).date()
@@ -661,9 +663,10 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> 
         try:
             from mobility.geometry_cache import set_cached
 
-            net = await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+            net = await _get_active_network()
             version_id = (net or {}).get("version_id")
-            query = {"pattern_id": pat_id}
+            region = get_active_region()
+            query = {"pattern_id": pat_id, "region_id": region.region_id}
             if version_id:
                 query["version_id"] = version_id
             seg_docs = await db.mobility_geometry_segments.find(
@@ -1051,8 +1054,13 @@ async def _realtime_delays_for(trip_ids: List[str]) -> dict:
     if not trip_ids:
         return {}
 
+    region = get_active_region()
     docs = await db.mobility_realtime.find(
-        {"trip_id": {"$in": trip_ids}},
+        {
+            "region_id": region.region_id,
+            "network_id": region.network_id,
+            "trip_id": {"$in": trip_ids},
+        },
         {"_id": 0},
     ).to_list(len(trip_ids))
 
@@ -1310,7 +1318,42 @@ async def _all_active_vehicles() -> List[dict]:
 
 
 async def _get_active_network() -> Optional[dict]:
-    return await db.bus_network_versions.find_one({"active": True}, {"_id": 0})
+    region = get_active_region()
+    network = await db.bus_network_versions.find_one(
+        {
+            "active": True,
+            "region_id": region.region_id,
+            "network_id": region.network_id,
+        },
+        {"_id": 0},
+    )
+    if network:
+        return network
+
+    # One-time compatibility bridge only for the pre-existing Magdeburg
+    # deployment. Never claim a legacy network when another city is active.
+    if region.region_id != "magdeburg":
+        return None
+    legacy = await db.bus_network_versions.find_one(
+        {"active": True, "region_id": {"$exists": False}},
+        {"_id": 0},
+    )
+    if not legacy:
+        return None
+    version_id = legacy.get("version_id")
+    fields = {
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "timezone": region.timezone,
+        "country": region.country,
+        "service_day_start_hour": region.service_day_start_hour,
+    }
+    if version_id:
+        await db.bus_network_versions.update_one(
+            {"version_id": version_id},
+            {"$set": fields},
+        )
+    return {**legacy, **fields}
 
 
 async def _network_route(route_number: str) -> Optional[dict]:
@@ -1392,8 +1435,14 @@ async def _create_network_version(routes: List[dict], name: str) -> dict:
         new_stops = [s.get("stop_id") for s in new_routes[num].get("stops", [])]
         if old_stops != new_stops:
             changed_routes.append(num)
+    region = get_active_region()
     version = {
         "version_id": generate_id("net"),
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "timezone": region.timezone,
+        "country": region.country,
+        "service_day_start_hour": region.service_day_start_hour,
         "name": name,
         "routes": routes,
         "imported_at": now_utc().isoformat(),
@@ -1427,16 +1476,20 @@ async def import_gtfs_zip(
     date: Optional[str] = Form(None),
     operator: dict = Depends(_require_operator),
 ):
-    """Upload the official GTFS zip directly - the backend converts it into
-    the bus/tram network for the requested service date (default: today in
-    Europe/Berlin)."""
+    """Upload GTFS for the active mobility region/network."""
     content = await file.read()
     if len(content) > 50 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="GTFS file too large (max 50MB)")
     try:
         from utils.gtfs import parse_gtfs_zip
 
-        payload = parse_gtfs_zip(content, date)
+        region = get_active_region()
+        payload = parse_gtfs_zip(
+            content,
+            date,
+            agency_regex=region.agency_regex,
+            timezone=region.timezone,
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"GTFS parse failed: {e}")
     if not payload.get("routes"):
@@ -1456,11 +1509,24 @@ async def import_gtfs_zip(
 @router.post("/network/activate")
 async def activate_network(payload: dict, operator: dict = Depends(_require_operator)):
     version_id = payload.get("version_id")
-    version = await db.bus_network_versions.find_one({"version_id": version_id})
+    region = get_active_region()
+    version = await db.bus_network_versions.find_one(
+        {
+            "version_id": version_id,
+            "region_id": region.region_id,
+            "network_id": region.network_id,
+        }
+    )
     if not version:
-        raise HTTPException(status_code=404, detail="Version not found")
-    await db.bus_network_versions.update_many({}, {"$set": {"active": False}})
-    await db.bus_network_versions.update_one({"version_id": version_id}, {"$set": {"active": True}})
+        raise HTTPException(status_code=404, detail="Version not found for active mobility region")
+    await db.bus_network_versions.update_many(
+        {"region_id": region.region_id, "network_id": region.network_id},
+        {"$set": {"active": False}},
+    )
+    await db.bus_network_versions.update_one(
+        {"version_id": version_id},
+        {"$set": {"active": True}},
+    )
     _broadcast({"type": "network_activated", "version_id": version_id})
     return {"active": version_id}
 
