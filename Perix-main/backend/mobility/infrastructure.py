@@ -330,32 +330,32 @@ def _signal_instances(chain: dict, signals: List[dict], mode: str) -> List[dict]
     return sorted(out, key=lambda x: (float(x["progress_m"]), int(x["signal_id"])))
 
 
-async def build_pattern_infrastructure(
+async def derive_pattern_infrastructure(
     pattern_id: str,
     version_id: str,
     mode: str,
     *,
+    segments: List[dict],
     region_id: Optional[str] = None,
     network_id: Optional[str] = None,
+    osm_snapshot_v: Optional[int] = None,
 ) -> Optional[dict]:
-    """Build and persist infrastructure for one canonical pattern."""
+    """Derive infrastructure from an explicit immutable segment set.
+
+    No DB write occurs here. Atomic mobility generations use this helper
+    to build geometry + infrastructure in memory before committing one
+    generation document.
+    """
     region = get_region(region_id) if region_id else get_active_region()
     resolved_network_id = str(network_id or region.network_id)
-    osm_snapshot_v = await active_version(region.region_id)
-    if osm_snapshot_v is None:
+    snapshot = (
+        int(osm_snapshot_v)
+        if osm_snapshot_v is not None
+        else await active_version(region.region_id)
+    )
+    if snapshot is None:
         return None
 
-    segments = await db.mobility_geometry_segments.find(
-        {
-            "pattern_id": str(pattern_id),
-            "version_id": str(version_id),
-            "graph_v": GEOMETRY_SCHEMA_VERSION,
-            "osm_snapshot_v": int(osm_snapshot_v),
-            "region_id": region.region_id,
-            "network_id": resolved_network_id,
-        },
-        {"_id": 0},
-    ).sort([("a_idx", 1), ("b_idx", 1)]).to_list(1000)
     chain = _build_edge_chain(segments)
     if not chain:
         return None
@@ -364,7 +364,7 @@ async def build_pattern_infrastructure(
         list(chain["way_ids"]),
         mode,
         region_id=region.region_id,
-        graph_v=int(osm_snapshot_v),
+        graph_v=int(snapshot),
     )
     ways_by_id = {int(w.get("id") or 0): w for w in ways}
 
@@ -384,11 +384,11 @@ async def build_pattern_infrastructure(
     signals = await get_local_signals(
         (s - 0.0003, w - 0.0003, n + 0.0003, e + 0.0003),
         region_id=region.region_id,
-        graph_v=int(osm_snapshot_v),
+        graph_v=int(snapshot),
     )
     signal_instances = _signal_instances(chain, signals, mode)
 
-    doc = {
+    return {
         "pattern_id": str(pattern_id),
         "version_id": str(version_id),
         "mode": str(mode),
@@ -396,15 +396,57 @@ async def build_pattern_infrastructure(
         "network_id": resolved_network_id,
         "schema_v": INFRA_SCHEMA_VERSION,
         "geometry_schema_v": GEOMETRY_SCHEMA_VERSION,
-        "osm_snapshot_v": int(osm_snapshot_v),
+        "osm_snapshot_v": int(snapshot),
         "total_m": round(float(chain["total_m"]), 3),
         "edges": chain["edges"],
         "signals": signal_instances,
         "edge_count": len(chain["edges"]),
         "signal_count": len(signal_instances),
-        "motion_signal_count": sum(1 for x in signal_instances if x.get("usable_for_motion")),
+        "motion_signal_count": sum(
+            1 for x in signal_instances if x.get("usable_for_motion")
+        ),
         "built_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
+async def build_pattern_infrastructure(
+    pattern_id: str,
+    version_id: str,
+    mode: str,
+    *,
+    region_id: Optional[str] = None,
+    network_id: Optional[str] = None,
+) -> Optional[dict]:
+    """Legacy-compatible persisted infrastructure builder."""
+    region = get_region(region_id) if region_id else get_active_region()
+    resolved_network_id = str(network_id or region.network_id)
+    osm_snapshot_v = await active_version(region.region_id)
+    if osm_snapshot_v is None:
+        return None
+
+    segments = await db.mobility_geometry_segments.find(
+        {
+            "pattern_id": str(pattern_id),
+            "version_id": str(version_id),
+            "graph_v": GEOMETRY_SCHEMA_VERSION,
+            "osm_snapshot_v": int(osm_snapshot_v),
+            "region_id": region.region_id,
+            "network_id": resolved_network_id,
+        },
+        {"_id": 0},
+    ).sort([("a_idx", 1), ("b_idx", 1)]).to_list(1000)
+
+    doc = await derive_pattern_infrastructure(
+        pattern_id,
+        version_id,
+        mode,
+        segments=segments,
+        region_id=region.region_id,
+        network_id=resolved_network_id,
+        osm_snapshot_v=int(osm_snapshot_v),
+    )
+    if not doc:
+        return None
     await db.mobility_pattern_infrastructure.replace_one(
         {
             "pattern_id": str(pattern_id),

@@ -342,6 +342,22 @@ async def create_indexes():
         db.mobility_pattern_infrastructure,
         [("region_id", 1), ("network_id", 1), ("version_id", 1), ("osm_snapshot_v", 1)],
     )
+    # Phase 2.2 atomic geometry + infrastructure generations.
+    await _safe_create_index(
+        db.mobility_pattern_generations,
+        [("region_id", 1), ("network_id", 1), ("version_id", 1), ("pattern_id", 1)],
+        unique=True,
+    )
+    await _safe_create_index(
+        db.mobility_pattern_generations,
+        [
+            ("region_id", 1),
+            ("network_id", 1),
+            ("version_id", 1),
+            ("ready", 1),
+            ("osm_snapshot_v", 1),
+        ],
+    )
 
     # Static traffic-count/profile indexes (city-scoped)
     await _safe_create_index(

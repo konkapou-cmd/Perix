@@ -152,6 +152,6 @@ async def invalidate_geometries(restriction: dict) -> None:
     except Exception:
         affected = set()
     if affected:
-        from utils.mobility_workers import _precompute_road_geometries
+        from utils.mobility_workers import request_precompute
 
-        asyncio.create_task(_precompute_road_geometries(only_patterns=affected))
+        request_precompute(affected, reason="RESTRICTION_CHANGED")

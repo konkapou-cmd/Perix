@@ -179,22 +179,52 @@ async def _build_trip_plan(
     if not pattern_id:
         return _plan_failure(failure, "NO_PATTERN_ID")
 
-    infra = await db.mobility_pattern_infrastructure.find_one(
-        {
-            "pattern_id": pattern_id,
-            "version_id": str(version_id),
-            "region_id": region.region_id,
-            "network_id": region.network_id,
-        },
-        {"_id": 0},
+    from mobility.generations import (
+        atomic_generations_enabled,
+        generation_matches_path,
+        get_pattern_generation,
     )
-    if not infra:
-        return _plan_failure(
-            failure,
-            "INFRASTRUCTURE_NOT_FOUND",
-            pattern_id=pattern_id,
-            version_id=str(version_id),
+
+    if atomic_generations_enabled():
+        bundle = await get_pattern_generation(
+            pattern_id,
+            str(version_id),
+            region_id=region.region_id,
+            network_id=region.network_id,
         )
+        if not bundle:
+            return _plan_failure(
+                failure,
+                "GENERATION_NOT_FOUND",
+                pattern_id=pattern_id,
+                version_id=str(version_id),
+            )
+        if not generation_matches_path(bundle, path):
+            return _plan_failure(
+                failure,
+                "GENERATION_MISMATCH",
+                path_generation=path.get("derived_generation"),
+                bundle_generation=bundle.get("generation_id"),
+                path_source=path.get("geometry_source"),
+            )
+        infra = bundle.get("infrastructure") or {}
+    else:
+        infra = await db.mobility_pattern_infrastructure.find_one(
+            {
+                "pattern_id": pattern_id,
+                "version_id": str(version_id),
+                "region_id": region.region_id,
+                "network_id": region.network_id,
+            },
+            {"_id": 0},
+        )
+        if not infra:
+            return _plan_failure(
+                failure,
+                "INFRASTRUCTURE_NOT_FOUND",
+                pattern_id=pattern_id,
+                version_id=str(version_id),
+            )
     if not _infra_matches_path(infra, path, config):
         infra_total = float(infra.get("total_m") or 0.0)
         path_total = float(path.get("total_m") or 0.0)

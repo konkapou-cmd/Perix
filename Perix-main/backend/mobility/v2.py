@@ -57,9 +57,12 @@ async def v2_patterns(current_user: Optional[UserPublic] = Depends(get_current_u
 
 
 async def _patterns_resolved(domain: dict) -> list:
-    """Patterns with geometry resolved by the Geometry Resolver (validated
-    against their platforms; invalid geometries fall back to the
-    ordered-stop polyline)."""
+    """Patterns with one validated geometry authority per runtime mode."""
+    from mobility.generations import (
+        atomic_generations_enabled,
+        geometry_fingerprint,
+        geometry_inputs_for_version,
+    )
     from mobility.graph import get_overlays, resolve_pattern_geometry
 
     platforms_by_id = {}
@@ -67,47 +70,79 @@ async def _patterns_resolved(domain: dict) -> list:
         for p in stop.get("platforms", []):
             platforms_by_id[str(p.get("platform_id"))] = p
     overlays = await get_overlays()
-    # Precomputed real geometries (OSM road/rail reconstruction), scoped to
-    # the ACTIVE network version - a previous day's path must never leak.
-    version_id = domain.get("network", {}).get("version_id")
-    road_docs = await db.mobility_road_geometries.find(
-        {"version_id": version_id}, {"_id": 0}
-    ).to_list(1000)
-    roads_by_pattern = {
-        str(d.get("pattern_id")): d.get("points") or []
-        for d in road_docs
-        if (d.get("mode") or "bus") != "tram"
-    }
-    rails_by_pattern = {
-        str(d.get("pattern_id")): d.get("points") or []
-        for d in road_docs
-        if (d.get("mode") or "bus") == "tram"
-    }
-    # Segment registry (per stop-pair) for patterns without a full geometry
-    seg_docs = await db.mobility_geometry_segments.find(
-        {"version_id": version_id}, {"_id": 0}
-    ).to_list(3000)
-    segments_by_pattern = {}
-    for d in seg_docs:
-        segments_by_pattern.setdefault(str(d.get("pattern_id")), []).append(d)
+    version_id = str(domain.get("network", {}).get("version_id") or "")
+
+    generation_meta = {}
+    if atomic_generations_enabled():
+        inputs = await geometry_inputs_for_version(version_id)
+        roads_by_pattern = inputs["roads_by_pattern"]
+        rails_by_pattern = inputs["rails_by_pattern"]
+        segments_by_pattern = inputs["segments_by_pattern"]
+        generation_meta = inputs["meta_by_pattern"]
+    else:
+        road_docs = await db.mobility_road_geometries.find(
+            {"version_id": version_id}, {"_id": 0}
+        ).to_list(1000)
+        roads_by_pattern = {
+            str(doc.get("pattern_id")): doc.get("points") or []
+            for doc in road_docs
+            if (doc.get("mode") or "bus") != "tram"
+        }
+        rails_by_pattern = {
+            str(doc.get("pattern_id")): doc.get("points") or []
+            for doc in road_docs
+            if (doc.get("mode") or "bus") == "tram"
+        }
+        seg_docs = await db.mobility_geometry_segments.find(
+            {"version_id": version_id}, {"_id": 0}
+        ).to_list(3000)
+        segments_by_pattern = {}
+        for doc in seg_docs:
+            segments_by_pattern.setdefault(
+                str(doc.get("pattern_id")), []
+            ).append(doc)
+
     out = []
     for pat in domain.get("patterns", []):
+        pid = str(pat.get("pattern_id") or "")
         resolved = resolve_pattern_geometry(
             pat,
             platforms_by_id,
             overlays,
             roads_by_pattern,
             rails_by_pattern,
-            segments_by_pattern.get(str(pat.get("pattern_id"))),
+            segments_by_pattern.get(pid),
         )
-        # Vehicles read the SAME canonical geometry as the rendered line:
-        # seed the in-process cache with every resolved pattern so a marker
-        # never rides a geometry the map is not drawing.
-        if resolved.get("valid") and resolved.get("render") and resolved.get("points"):
+        if (
+            resolved.get("valid")
+            and resolved.get("render")
+            and resolved.get("points")
+        ):
             try:
                 from mobility import geometry_cache
 
-                geometry_cache.set_cached(str(pat.get("pattern_id")), resolved["points"])
+                meta = generation_meta.get(pid) or {}
+                source = str(resolved.get("source") or "")
+                if source == "PERIX_MANUAL":
+                    geom_fp = geometry_fingerprint(resolved["points"])
+                    generation_id = f"manual:{geom_fp[:18]}"
+                    osm_snapshot_v = None
+                else:
+                    geom_fp = meta.get("geometry_fingerprint")
+                    generation_id = meta.get("generation_id")
+                    osm_snapshot_v = meta.get("osm_snapshot_v")
+
+                geometry_cache.set_cached(
+                    pid,
+                    resolved["points"],
+                    version_id=version_id,
+                    generation_id=generation_id,
+                    source=source,
+                    osm_snapshot_v=osm_snapshot_v,
+                    geometry_fingerprint=geom_fp,
+                )
+                resolved["derived_generation"] = generation_id
+                resolved["osm_snapshot_v"] = osm_snapshot_v
             except Exception:
                 pass
         out.append(
@@ -199,27 +234,62 @@ async def v2_pattern_conflicts(current_user: Optional[UserPublic] = Depends(get_
 
 
 @router.get("/diagnostic/patterns")
-async def v2_diagnostic_patterns(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
-    """Per-pattern geometry state: exactly what is COMPLETE and which
-    stop-pairs are still missing or disconnected - the source of truth for
-    'gaps' between line segments."""
+async def v2_diagnostic_patterns(
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Per-pattern geometry/generation state for the active version."""
+    from mobility.generations import (
+        atomic_generations_enabled,
+        list_pattern_generations,
+    )
+
     domain = await _domain()
     if not domain:
         return []
-    version_id = domain.get("network", {}).get("version_id")
-    seg_docs = await db.mobility_geometry_segments.find(
-        {"version_id": version_id}, {"_id": 0}
-    ).to_list(5000)
+    version_id = str(domain.get("network", {}).get("version_id") or "")
+
     by_pid = {}
-    for d in seg_docs:
-        by_pid.setdefault(str(d.get("pattern_id")), []).append(d)
+    meta_by_pid = {}
+    if atomic_generations_enabled():
+        bundles = await list_pattern_generations(version_id)
+        for bundle in bundles:
+            pid = str(bundle.get("pattern_id") or "")
+            by_pid[pid] = bundle.get("segments") or []
+            infra = bundle.get("infrastructure") or {}
+            meta_by_pid[pid] = {
+                "generation_id": bundle.get("generation_id"),
+                "osm_snapshot_v": bundle.get("osm_snapshot_v"),
+                "signal_count": infra.get("signal_count"),
+                "motion_signal_count": infra.get("motion_signal_count"),
+            }
+    else:
+        seg_docs = await db.mobility_geometry_segments.find(
+            {"version_id": version_id}, {"_id": 0}
+        ).to_list(5000)
+        for doc in seg_docs:
+            by_pid.setdefault(str(doc.get("pattern_id")), []).append(doc)
+
     out = []
     for pat in domain.get("patterns", []):
         pid = str(pat.get("pattern_id") or "")
         n_stops = len(pat.get("stop_ids") or [])
-        segs = sorted(by_pid.get(pid, []), key=lambda s: (int(s.get("a_idx", 0)), int(s.get("b_idx", 0))))
-        ok_pairs = {(int(s.get("a_idx")), int(s.get("b_idx"))) for s in segs if s.get("points")}
-        missing = [[i, i + 1] for i in range(max(0, n_stops - 1)) if (i, i + 1) not in ok_pairs]
+        segs = sorted(
+            by_pid.get(pid, []),
+            key=lambda segment: (
+                int(segment.get("a_idx", 0)),
+                int(segment.get("b_idx", 0)),
+            ),
+        )
+        ok_pairs = {
+            (int(segment.get("a_idx")), int(segment.get("b_idx")))
+            for segment in segs
+            if segment.get("points")
+        }
+        missing = [
+            [i, i + 1]
+            for i in range(max(0, n_stops - 1))
+            if (i, i + 1) not in ok_pairs
+        ]
         state = "COMPLETE"
         if not segs:
             state = "NO_SEGMENTS"
@@ -228,7 +298,13 @@ async def v2_diagnostic_patterns(current_user: Optional[UserPublic] = Depends(ge
         if segs and n_stops > 0 and len(ok_pairs) == n_stops - 1:
             from mobility.graph import assemble_segments
 
-            state = "COMPLETE" if assemble_segments(segs) is not None else "DISCONNECTED"
+            state = (
+                "COMPLETE"
+                if assemble_segments(segs) is not None
+                else "DISCONNECTED"
+            )
+
+        meta = meta_by_pid.get(pid) or {}
         out.append(
             {
                 "pattern_id": pid,
@@ -239,6 +315,10 @@ async def v2_diagnostic_patterns(current_user: Optional[UserPublic] = Depends(ge
                 "stops": n_stops,
                 "segments_ok": len(ok_pairs),
                 "missing_pairs": missing,
+                "generation_id": meta.get("generation_id"),
+                "osm_snapshot_v": meta.get("osm_snapshot_v"),
+                "signal_count": meta.get("signal_count"),
+                "motion_signal_count": meta.get("motion_signal_count"),
             }
         )
     return out
@@ -471,7 +551,11 @@ async def v2_diagnostic_infrastructure(
     pattern_id: str,
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
-    """Full derived edge/signal infrastructure for one active pattern."""
+    """Full edge/signal infrastructure from the same runtime authority."""
+    from mobility.generations import (
+        atomic_generations_enabled,
+        get_pattern_generation,
+    )
     from mobility.regions import get_active_region
 
     region = get_active_region()
@@ -481,11 +565,36 @@ async def v2_diagnostic_infrastructure(
 
     version_id = str(domain.get("network", {}).get("version_id") or "")
     pattern = next(
-        (p for p in domain.get("patterns", []) if str(p.get("pattern_id")) == str(pattern_id)),
+        (
+            p
+            for p in domain.get("patterns", [])
+            if str(p.get("pattern_id")) == str(pattern_id)
+        ),
         None,
     )
     if not pattern:
         return {"pattern_id": pattern_id, "state": "PATTERN_NOT_FOUND"}
+
+    if atomic_generations_enabled():
+        bundle = await get_pattern_generation(
+            str(pattern_id),
+            version_id,
+            region_id=region.region_id,
+            network_id=region.network_id,
+        )
+        if not bundle:
+            return {
+                "pattern_id": pattern_id,
+                "state": "GENERATION_NOT_READY",
+            }
+        doc = dict(bundle.get("infrastructure") or {})
+        if not doc:
+            return {
+                "pattern_id": pattern_id,
+                "state": "INFRASTRUCTURE_NOT_READY",
+            }
+        doc["derived_generation"] = bundle.get("generation_id")
+        return doc
 
     from mobility.infrastructure import ensure_pattern_infrastructure
 
@@ -497,7 +606,10 @@ async def v2_diagnostic_infrastructure(
         network_id=region.network_id,
     )
     if not doc:
-        return {"pattern_id": pattern_id, "state": "INFRASTRUCTURE_NOT_READY"}
+        return {
+            "pattern_id": pattern_id,
+            "state": "INFRASTRUCTURE_NOT_READY",
+        }
     return doc
 
 
@@ -506,29 +618,57 @@ async def v2_diagnostic_traffic(
     pattern_id: str,
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
-    """Traffic profiles for OSM ways used by one active pattern."""
+    """Traffic profiles for ways used by the active runtime generation."""
+    from mobility.generations import (
+        atomic_generations_enabled,
+        get_pattern_generation,
+    )
     from mobility.regions import get_active_region
 
     region = get_active_region()
     domain = await _domain()
     if not domain:
-        return {"pattern_id": pattern_id, "state": "NO_NETWORK", "profiles": []}
+        return {
+            "pattern_id": pattern_id,
+            "state": "NO_NETWORK",
+            "profiles": [],
+        }
 
     version_id = str(domain.get("network", {}).get("version_id") or "")
-    infra = await db.mobility_pattern_infrastructure.find_one(
-        {
-            "pattern_id": str(pattern_id),
-            "version_id": version_id,
-            "region_id": region.region_id,
-            "network_id": region.network_id,
-        },
-        {"_id": 0},
-    )
+    generation_id = None
+    if atomic_generations_enabled():
+        bundle = await get_pattern_generation(
+            str(pattern_id),
+            version_id,
+            region_id=region.region_id,
+            network_id=region.network_id,
+        )
+        infra = (bundle or {}).get("infrastructure")
+        generation_id = (bundle or {}).get("generation_id")
+    else:
+        infra = await db.mobility_pattern_infrastructure.find_one(
+            {
+                "pattern_id": str(pattern_id),
+                "version_id": version_id,
+                "region_id": region.region_id,
+                "network_id": region.network_id,
+            },
+            {"_id": 0},
+        )
+
     if not infra:
-        return {"pattern_id": pattern_id, "state": "INFRASTRUCTURE_NOT_READY", "profiles": []}
+        return {
+            "pattern_id": pattern_id,
+            "state": "INFRASTRUCTURE_NOT_READY",
+            "profiles": [],
+        }
 
     way_ids = sorted(
-        {int(e.get("way_id")) for e in (infra.get("edges") or []) if e.get("way_id") is not None}
+        {
+            int(edge.get("way_id"))
+            for edge in (infra.get("edges") or [])
+            if edge.get("way_id") is not None
+        }
     )
     profiles = await db.mobility_traffic_profiles.find(
         {
@@ -543,10 +683,35 @@ async def v2_diagnostic_traffic(
         "region_id": region.region_id,
         "network_id": region.network_id,
         "version_id": version_id,
+        "derived_generation": generation_id,
         "osm_snapshot_v": infra.get("osm_snapshot_v"),
         "way_count": len(way_ids),
         "profile_count": len(profiles),
         "profiles": profiles,
+    }
+
+
+@router.get("/diagnostic/generations")
+async def v2_diagnostic_generations(
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Active-version atomic-generation readiness and OSM freshness."""
+    from mobility.generations import (
+        atomic_generations_enabled,
+        summarize_generation_version,
+    )
+
+    domain = await _domain()
+    if not domain:
+        return {
+            "state": "NO_NETWORK",
+            "atomic_generations_enabled": atomic_generations_enabled(),
+        }
+    version_id = str(domain.get("network", {}).get("version_id") or "")
+    summary = await summarize_generation_version(version_id)
+    return {
+        "atomic_generations_enabled": atomic_generations_enabled(),
+        **summary,
     }
 
 

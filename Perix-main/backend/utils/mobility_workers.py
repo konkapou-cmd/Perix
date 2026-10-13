@@ -476,20 +476,45 @@ async def _static_worker():
                 result = await _create_network_version(routes, payload.get("name") or "GTFS auto")
                 _log(f"static: imported version {result['version_id']} diff={result['diff']}")
                 if AUTO_ACTIVATE:
-                    await db.bus_network_versions.update_many(
-                        {
-                            "region_id": _ACTIVE_REGION.region_id,
-                            "network_id": _ACTIVE_REGION.network_id,
-                        },
-                        {"$set": {"active": False}},
+                    from mobility.generations import (
+                        atomic_generations_enabled,
+                        prepare_network_version,
                     )
-                    await db.bus_network_versions.update_one(
-                        {"version_id": result["version_id"]}, {"$set": {"active": True}}
-                    )
-                    _log(f"static: activated {result['version_id']}")
-                    # Rebuild real-road geometries for the new timetable in
-                    # the background (lines must never cross buildings).
-                    asyncio.create_task(_precompute_road_geometries())
+                    from routes.mobility import _activate_network_version
+
+                    if atomic_generations_enabled():
+                        _event, lock, _queue = _precompute_primitives()
+                        async with lock:
+                            preparation = await prepare_network_version(
+                                str(result["version_id"]),
+                                source_version_id=str((active or {}).get("version_id") or "") or None,
+                            )
+                        if preparation.get("state") == "READY":
+                            await _activate_network_version(
+                                str(result["version_id"]),
+                                require_ready=True,
+                            )
+                            _log(
+                                "static: warm-activated "
+                                f"{result['version_id']} "
+                                f"ready={preparation.get('ready')}/"
+                                f"{preparation.get('expected')} "
+                                f"reused={preparation.get('reused')} "
+                                f"rebuilt={preparation.get('rebuilt')}"
+                            )
+                        else:
+                            _log(
+                                "static: candidate NOT activated "
+                                f"{result['version_id']} state={preparation.get('state')} "
+                                f"blocking={preparation.get('blocking_missing')}"
+                            )
+                    else:
+                        await _activate_network_version(
+                            str(result["version_id"]),
+                            require_ready=False,
+                            force=True,
+                        )
+                        request_precompute(None, reason="NETWORK_ACTIVATED_LEGACY_MODE")
                 await db.mobility_sync_state.replace_one(
                     {"key": sync_key},
                     {
@@ -506,25 +531,51 @@ async def _static_worker():
         await asyncio.sleep(STATIC_INTERVAL_HOURS * 3600)
 
 
+_PRECOMPUTE_EVENT: Optional[asyncio.Event] = None
+_PRECOMPUTE_LOCK: Optional[asyncio.Lock] = None
+_PRECOMPUTE_QUEUE = None
+
+
+def _precompute_primitives():
+    global _PRECOMPUTE_EVENT, _PRECOMPUTE_LOCK, _PRECOMPUTE_QUEUE
+    if _PRECOMPUTE_EVENT is None:
+        _PRECOMPUTE_EVENT = asyncio.Event()
+    if _PRECOMPUTE_LOCK is None:
+        _PRECOMPUTE_LOCK = asyncio.Lock()
+    if _PRECOMPUTE_QUEUE is None:
+        from mobility.rebuild_queue import RebuildRequestQueue
+
+        _PRECOMPUTE_QUEUE = RebuildRequestQueue()
+    return _PRECOMPUTE_EVENT, _PRECOMPUTE_LOCK, _PRECOMPUTE_QUEUE
+
+
+def request_precompute(
+    pattern_ids: Optional[set[str]] = None,
+    *,
+    reason: str = "UNSPECIFIED",
+) -> None:
+    event, _lock, queue = _precompute_primitives()
+    queue.request(pattern_ids, reason=reason)
+    event.set()
+
+
 def start_mobility_workers():
+    _precompute_primitives()
     asyncio.create_task(_realtime_worker())
     asyncio.create_task(_static_worker())
-    # Startup repair: rebuild road/rail geometry for any pattern missing it
-    # (also covers networks that were already active before this deploy).
+    # EXACTLY ONE long-lived precompute coordinator per backend process.
     asyncio.create_task(_precompute_road_geometries())
-    # Local OSM graph snapshot: import once, refresh ~daily. After this the
-    # pattern reconstruction reads OUR database - Overpass becomes an
-    # importer only, never a runtime dependency.
+    request_precompute(None, reason="STARTUP")
     asyncio.create_task(_osm_snapshot_worker())
-    # TomTom removed entirely: closures are no longer part of the product.
 
 
 async def _osm_snapshot_worker():
-    """Import the full Magdeburg OSM road/rail graph into the local store
-    (mobility_osm_ways). Bootstrap immediately when empty, refresh every
-    ~24h. A successful import forces a full pattern rebuild from the NEW
-    snapshot (atomic activation in osm_store keeps last-known-good on
-    failure)."""
+    """Refresh raw OSM without destroying last-known-good derivatives.
+
+    A successful new/merged raw snapshot merely requests a background
+    pattern refresh. Each pattern keeps its previous atomic generation
+    until a replacement generation validates and commits.
+    """
     import time as _time
 
     while True:
@@ -532,331 +583,123 @@ async def _osm_snapshot_worker():
         try:
             from mobility.osm_store import active_version, import_snapshot, snapshot_meta
 
-            v = await active_version()
-            if v is None:
+            version = await active_version()
+            if version is None:
                 _log("osm snapshot: no local graph yet - importing...")
                 res = await import_snapshot()
-                if res.get("ok"):
-                    await _force_rebuild_after_snapshot()
             else:
                 meta = await snapshot_meta(_ACTIVE_REGION.region_id)
                 age = _time.time() - float((meta or {}).get("imported_at") or 0)
                 if age > 12 * 3600:
-                    # >12h old: merge backfill for failed quadrants, or a
-                    # full new snapshot once per day.
                     res = await import_snapshot(force_new=(age > 86400))
-                    if res.get("ok") and not res.get("merged"):
-                        await _force_rebuild_after_snapshot()
-                    elif res.get("ok"):
-                        await db.mobility_pattern_infrastructure.delete_many(
-                            {
-                                "region_id": _ACTIVE_REGION.region_id,
-                                "network_id": _ACTIVE_REGION.network_id,
-                            }
-                        )
-                        _log("osm snapshot: merged backfill invalidated pattern infrastructure")
-                if res and res.get("ok"):
-                    try:
-                        from mobility.traffic_profiles import rebuild_traffic_profiles
 
-                        profile_result = await rebuild_traffic_profiles(
-                            region_id=_ACTIVE_REGION.region_id,
-                            network_id=_ACTIVE_REGION.network_id,
-                        )
-                        _log(f"osm snapshot: traffic profiles {profile_result}")
-                    except Exception as e:
-                        _log(
-                            "osm snapshot: traffic profile rebuild failed: "
-                            f"{type(e).__name__}: {e}"
-                        )
-        except Exception as e:
-            _log(f"osm snapshot worker error: {type(e).__name__}: {e}")
-        # Failed quadrant fetches retry soon (30 min) to backfill the
-        # snapshot; otherwise re-check every 6 hours.
-        _last_failed = int((res or {}).get("failed") or 0)
-        await asyncio.sleep(1800 if _last_failed > 0 else 21600)
+            if res and res.get("ok"):
+                request_precompute(
+                    None,
+                    reason=(
+                        "OSM_MERGE_BACKFILL"
+                        if res.get("merged")
+                        else "OSM_SNAPSHOT_ROLLOVER"
+                    ),
+                )
+                _log(
+                    "osm snapshot: generation refresh requested; "
+                    "last-known-good pattern generations retained"
+                )
+                try:
+                    from mobility.traffic_profiles import rebuild_traffic_profiles
+
+                    profile_result = await rebuild_traffic_profiles(
+                        region_id=_ACTIVE_REGION.region_id,
+                        network_id=_ACTIVE_REGION.network_id,
+                    )
+                    _log(f"osm snapshot: traffic profiles {profile_result}")
+                except Exception as exc:
+                    _log(
+                        "osm snapshot: traffic profile rebuild failed: "
+                        f"{type(exc).__name__}: {exc}"
+                    )
+        except Exception as exc:
+            _log(f"osm snapshot worker error: {type(exc).__name__}: {exc}")
+
+        last_failed = int((res or {}).get("failed") or 0)
+        await asyncio.sleep(1800 if last_failed > 0 else 21600)
 
 
-async def _force_rebuild_after_snapshot():
+async def _refresh_active_generations(
+    *,
+    only_patterns: Optional[set[str]],
+    reasons: list[str],
+) -> dict:
+    from mobility.generations import refresh_network_version
+    from routes.mobility import _get_active_network
+
+    network = await _get_active_network()
+    if not network:
+        return {"state": "NO_ACTIVE_NETWORK", "refreshed": 0}
+
+    reason = "+".join(reasons) if reasons else "PERIODIC_REFRESH"
+    return await refresh_network_version(
+        str(network.get("version_id") or ""),
+        only_patterns=only_patterns,
+        reason=reason,
+    )
+
+
+async def _refresh_runtime_caches(version_id: str) -> None:
     from mobility import geometry_cache
+    from mobility.generations import atomic_generations_enabled
 
-    scope = {
-        "region_id": _ACTIVE_REGION.region_id,
-        "network_id": _ACTIVE_REGION.network_id,
-    }
-    await db.mobility_road_geometries.update_many(scope, {"$set": {"graph_v": 0}})
-    await db.mobility_geometry_segments.delete_many(scope)
-    await db.mobility_pattern_infrastructure.delete_many(scope)
     geometry_cache.clear()
+    if atomic_generations_enabled():
+        await geometry_cache.warm_from_generations(version_id)
+    else:
+        await geometry_cache.warm_from_db(version_id)
+    geometry_cache.bump_revision()
     try:
         from mobility.motion import clear_motion_cache
 
         clear_motion_cache()
     except Exception:
         pass
-    _log("osm snapshot: current region geometry + infrastructure invalidated")
 
 
-async def _precompute_road_geometries(only_patterns: Optional[set] = None):
-    """Rebuild every pattern's geometry over real OSM roads (bus) or rails
-    (tram) - road-center routing between consecutive stops. Stored per
-    version so the resolver can prefer real streets over nothing; lines
-    never cross buildings. Runs continuously: after the first pass it
-    re-checks every 20 minutes for missing/invalidated patterns (e.g.
-    after an operator created a restriction). `only_patterns` limits the
-    rebuild to the affected patterns (targeted invalidation)."""
-    from mobility.domain import NETWORK_ID, build_domain
-    from mobility.roads import compute_pattern_geometry
-    from routes.mobility import _berlin_now
+async def _precompute_road_geometries():
+    """Single coordinator; coalesces startup/OSM/restriction requests."""
+    event, lock, queue = _precompute_primitives()
 
     while True:
-        try:
-            changed = await _precompute_pass(
-                build_domain, NETWORK_ID, compute_pattern_geometry, _berlin_now, only_patterns
-            )
-            if changed:
-                from mobility import geometry_cache
-
-                geometry_cache.bump_revision()
-                try:
-                    from mobility.motion import clear_motion_cache
-
-                    clear_motion_cache()
-                except Exception:
-                    pass
-        except Exception as e:
-            _log(f"roads: precompute pass failed: {type(e).__name__}: {e}")
-        if only_patterns is not None:
-            return
-        await asyncio.sleep(1200)
-
-
-async def _precompute_pass(build_domain, NETWORK_ID, compute_pattern_geometry, _berlin_now, only_patterns: Optional[set] = None):
-    from routes.mobility import _get_active_network
-
-    network = await _get_active_network()
-    if not network:
-        return 0
-    domain = build_domain(network, NETWORK_ID)
-    version = str(network.get("version_id"))
-    region_id = str(network.get("region_id") or _ACTIVE_REGION.region_id)
-    network_id = str(network.get("network_id") or _ACTIVE_REGION.network_id)
-
-    # Remove geometry documents produced before region/network namespacing.
-    # Otherwise V2 could see both the legacy and the newly scoped document.
-    await db.mobility_road_geometries.delete_many(
-        {"version_id": version, "region_id": {"$exists": False}}
-    )
-    await db.mobility_geometry_segments.delete_many(
-        {"version_id": version, "region_id": {"$exists": False}}
-    )
-
-    from mobility.osm_store import active_version
-
-    osm_snapshot_v = await active_version(region_id)
-    if osm_snapshot_v is None:
-        return 0
-    await db.mobility_pattern_infrastructure.delete_many(
-        {
-            "region_id": region_id,
-            "network_id": network_id,
-            "version_id": {"$ne": version},
-        }
-    )
-    # Cleanup migration: the canonical geometry collection holds ONLY the
-    # Perix graph. Old GTFS_SHAPE / legacy OSM_ROUTE docs are dropped so
-    # the OSM reconstruction takes their place.
-    try:
-        removed = await db.mobility_road_geometries.delete_many(
-            {"version_id": version, "source": {"$in": ["GTFS_SHAPE", "OSM_ROUTE"]}}
-        )
-        if removed.deleted_count:
-            _log(f"roads: removed {removed.deleted_count} non-canonical geometries (GTFS_SHAPE/OSM_ROUTE)")
-    except Exception as e:
-        _log(f"roads: cleanup failed: {type(e).__name__}: {e}")
-    # Warm the in-process geometry cache with everything already computed
-    # (the sync estimator reads exactly the same resolved geometry).
-    try:
-        from mobility import geometry_cache
-
-        warmed = await geometry_cache.warm_from_db(version)
-        _log(f"roads: warmed {warmed} cached geometries for {version}")
-    except Exception as e:
-        _log(f"roads: cache warm failed: {type(e).__name__}: {e}")
-    platforms_by_id = {}
-    for stop in domain.get("stops", []):
-        for p in stop.get("platforms", []):
-            platforms_by_id[str(p.get("platform_id"))] = p
-    done = 0
-    # Trams first: rail geometry is the most visible gap.
-    patterns_sorted = sorted(
-        domain.get("patterns", []), key=lambda p: 0 if (p.get("mode") or "") == "tram" else 1
-    )
-    for pat in patterns_sorted:
-        pid = str(pat.get("pattern_id") or "")
-        mode = str(pat.get("mode") or "bus")
-        if not pid:
-            continue
-        if only_patterns is not None and pid not in only_patterns:
-            continue
-        existing = await db.mobility_road_geometries.find_one(
-            {
-                "pattern_id": pid,
-                "version_id": version,
-                "region_id": region_id,
-                "network_id": network_id,
-            },
-            {"_id": 0},
-        )
-        # Rebuild docs that predate the corridor-weighted schema (graph_v 3:
-        # real OSM node ids + oneway). Older geometries were built on
-        # synthetic node ids with cut way junctions.
-        if (
-            only_patterns is None
-            and existing
-            and existing.get("mode")
-            and existing.get("graph_v") == 3
-            and int(existing.get("osm_snapshot_v") or -1) == int(osm_snapshot_v)
-        ):
+        if not queue.pending():
             try:
-                from mobility.infrastructure import ensure_pattern_infrastructure
+                await asyncio.wait_for(event.wait(), timeout=1200)
+            except asyncio.TimeoutError:
+                queue.request(None, reason="PERIODIC_20M")
+        event.clear()
+        request = queue.drain()
+        only_patterns = None if request.all_patterns else request.pattern_ids
 
-                await ensure_pattern_infrastructure(
-                    pid,
-                    version,
-                    mode,
-                    region_id=region_id,
-                    network_id=network_id,
-                )
-            except Exception as e:
-                _log(f"infrastructure: {pid} backfill failed: {type(e).__name__}: {e}")
-            continue
-        coords = []
-        for sid in pat.get("stop_ids") or []:
-            p = platforms_by_id.get(str(sid))
-            if p and p.get("latitude") is not None and p.get("longitude") is not None:
-                coords.append({"latitude": p["latitude"], "longitude": p["longitude"]})
-        if len(coords) < 2:
-            continue
         try:
-            from mobility.roads import compute_pattern_segments
-
-            # MVB GTFS shape = corridor hint for the A* (the operator
-            # decides WHICH corridor the line uses; OUR OSM graph gives
-            # the exact coordinates). Never the line itself.
-            shape_hint = pat.get("points") if (pat.get("points") and len(pat["points"]) >= 2) else None
-            res = await compute_pattern_segments(coords, mode, shape_hint)
-            # Segment registry: store EVERY resolved stop-pair so a single
-            # unresolved pair never discards the rest of the pattern. Once
-            # all pairs exist the pattern becomes canonical (see graph.py).
-            # Old segments without graph_v are replaced (node ids were
-            # synthetic and cut the graph at way junctions).
-            await db.mobility_geometry_segments.delete_many(
-                {"pattern_id": pid, "version_id": version, "graph_v": {"$ne": 2}}
+            async with lock:
+                report = await _refresh_active_generations(
+                    only_patterns=only_patterns,
+                    reasons=request.reasons,
+                )
+                version_id = str(report.get("version_id") or "")
+                changed = int(report.get("refreshed") or 0)
+                if version_id and changed:
+                    await _refresh_runtime_caches(version_id)
+                _log(
+                    "generations: "
+                    f"state={report.get('state')} "
+                    f"refreshed={report.get('refreshed', 0)} "
+                    f"retained={report.get('retained_last_good', 0)} "
+                    f"stale={report.get('stale_count', 0)} "
+                    f"missing={report.get('missing_count', 0)} "
+                    f"reasons={request.reasons}"
+                )
+        except Exception as exc:
+            _log(
+                "generations: coordinator failed: "
+                f"{type(exc).__name__}: {exc}"
             )
-            # Replace ALL stored pairs of this pattern with THIS pass's
-            # result: mixing pairs from different passes (different bbox
-            # margins -> different nearest stop nodes) produced DISCONNECTED
-            # assemblies where consecutive segments shared no graph node.
-            if res.get("segments") and any(s.get("ok") for s in res["segments"]):
-                await db.mobility_geometry_segments.delete_many(
-                    {"pattern_id": pid, "version_id": version, "graph_v": 3}
-                )
-            stored = 0
-            for seg in res.get("segments") or []:
-                if not seg.get("ok") or not seg.get("points"):
-                    continue
-                await db.mobility_geometry_segments.replace_one(
-                    {
-                        "segment_id": f"{pid}:{seg['a_idx']}:{seg['b_idx']}",
-                        "version_id": version,
-                        "region_id": region_id,
-                        "network_id": network_id,
-                    },
-                    {
-                        "segment_id": f"{pid}:{seg['a_idx']}:{seg['b_idx']}",
-                        "pattern_id": pid,
-                        "version_id": version,
-                        "region_id": region_id,
-                        "network_id": network_id,
-                        "mode": mode,
-                        "a_idx": seg["a_idx"],
-                        "b_idx": seg["b_idx"],
-                        "points": seg["points"],
-                        "start_node_id": seg.get("start_node_id"),
-                        "end_node_id": seg.get("end_node_id"),
-                        "edge_ids": seg.get("edge_ids") or [],
-                        "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
-                        "graph_v": 3,
-                        "osm_snapshot_v": int(osm_snapshot_v),
-                        "created_at": _berlin_now().isoformat(),
-                    },
-                    upsert=True,
-                )
-                stored += 1
-            pts = res.get("full")
-            if pts and len(pts) >= 2:
-                # Only keep a full geometry the resolver would accept
-                # (platforms near + in order) - a bad OSM route must not
-                # become the line vehicles ride.
-                try:
-                    from mobility.graph import validate_geometry
-
-                    check = validate_geometry(pts, coords)
-                    valid_full = check.get("valid", False)
-                except Exception:
-                    valid_full = True
-                if valid_full:
-                    await db.mobility_road_geometries.replace_one(
-                        {
-                            "pattern_id": pid,
-                            "version_id": version,
-                            "region_id": region_id,
-                            "network_id": network_id,
-                        },
-                        {
-                            "pattern_id": pid,
-                            "version_id": version,
-                            "region_id": region_id,
-                            "network_id": network_id,
-                            "mode": mode,
-                            "points": pts,
-                            "source": "OSM_RAIL" if mode == "tram" else "OSM_ROADS",
-                            "graph_v": 3,
-                            "osm_snapshot_v": int(osm_snapshot_v),
-                            "created_at": _berlin_now().isoformat(),
-                        },
-                        upsert=True,
-                    )
-                    try:
-                        from mobility import geometry_cache
-
-                        geometry_cache.set_cached(pid, pts)
-                    except Exception:
-                        pass
-                    try:
-                        from mobility.infrastructure import ensure_pattern_infrastructure
-
-                        await ensure_pattern_infrastructure(
-                            pid,
-                            version,
-                            mode,
-                            region_id=region_id,
-                            network_id=network_id,
-                            force=True,
-                        )
-                    except Exception as e:
-                        _log(f"infrastructure: {pid} build failed: {type(e).__name__}: {e}")
-                    done += 1
-                else:
-                    _log(f"roads: {pid} full geometry rejected by validator (segments kept)")
-            elif res.get("missing_pairs"):
-                _log(f"roads: {pid} ({mode}) missing pairs {res['missing_pairs']} (stored {stored} segments)")
-        except Exception as e:
-            _log(f"roads: {pid} failed: {type(e).__name__}: {e}")
-            if "Overpass failed" in str(e):
-                # Rate-limited or down: stop the pass, retry next cycle.
-                break
-        await asyncio.sleep(0.3)
-    _log(f"roads: precomputed {done} pattern geometries")
-    return done
+            # Never spin: periodic retry remains available in 20m.

@@ -310,7 +310,13 @@ async def compute_pattern_geometry(stops: List[dict], mode: str = "bus") -> List
     return res.get("full") or []
 
 
-async def compute_pattern_segments(stops: List[dict], mode: str = "bus", shape_hint: Optional[List[list]] = None) -> dict:
+async def compute_pattern_segments(
+    stops: List[dict],
+    mode: str = "bus",
+    shape_hint: Optional[List[list]] = None,
+    *,
+    osm_snapshot_v: Optional[int] = None,
+) -> dict:
     """Per stop-pair routing (segment registry) with a larger retry bbox:
     rail networks can leave the immediate stop corridor, so a first pass
     with a tight bbox may fail while a wider one succeeds. The MVB GTFS
@@ -335,7 +341,7 @@ async def compute_pattern_segments(stops: List[dict], mode: str = "bus", shape_h
         try:
             from mobility.osm_store import get_local_ways
 
-            ways_detailed = await get_local_ways(bbox, mode)
+            ways_detailed = await get_local_ways(bbox, mode, graph_v=osm_snapshot_v)
         except Exception:
             ways_detailed = []
         if not ways_detailed:

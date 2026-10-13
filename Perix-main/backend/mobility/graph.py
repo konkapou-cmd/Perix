@@ -39,46 +39,123 @@ def _point_to_polyline_m(lat: float, lng: float, points: List[list]) -> float:
 
 
 def validate_geometry(points: List[list], platforms: List[dict]) -> dict:
-    """Check that every platform (in trip order) sits near the geometry AND
-    that their projections advance monotonically along it - a wrong loop or
-    opposite-direction geometry is rejected."""
+    """Validate platforms against geometry in TRAVEL ORDER.
+
+    Global nearest-point projection is wrong for loops/retraced corridors:
+    a later stop can be geometrically closest to an earlier occurrence of
+    the same street. For each platform, consider only projections that do
+    not move more than 60m behind the previously selected progress. When
+    repeated occurrences are similarly close, prefer the earliest forward
+    occurrence so the route cannot silently skip ahead by one loop.
+    """
     if not points or len(points) < 2 or not platforms:
-        return {"valid": False, "max_platform_distance_m": None, "missing_platforms": len(platforms) or None}
-    # cumulative lengths
+        return {
+            "valid": False,
+            "max_platform_distance_m": None,
+            "missing_platforms": len(platforms) or None,
+            "projection_ordered": False,
+            "projection_positions_m": [],
+        }
+
     cum = [0.0]
     for i in range(len(points) - 1):
-        cum.append(cum[-1] + _haversine_m(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]))
-    total = cum[-1]
-    if total <= 0:
-        return {"valid": False, "max_platform_distance_m": None, "missing_platforms": len(platforms)}
+        cum.append(
+            cum[-1]
+            + _haversine_m(
+                points[i][0],
+                points[i][1],
+                points[i + 1][0],
+                points[i + 1][1],
+            )
+        )
+    if cum[-1] <= 0:
+        return {
+            "valid": False,
+            "max_platform_distance_m": None,
+            "missing_platforms": len(platforms),
+            "projection_ordered": False,
+            "projection_positions_m": [],
+        }
+
     positions = []
     max_d = 0.0
     missing = 0
-    for p in platforms:
-        lat = p.get("latitude")
-        lng = p.get("longitude")
+    previous_pos = 0.0
+    backward_tolerance_m = 60.0
+    similar_distance_slack_m = 20.0
+
+    for platform in platforms:
+        lat = platform.get("latitude")
+        lng = platform.get("longitude")
         if lat is None or lng is None:
             missing += 1
             continue
-        best_d = float("inf")
-        best_pos = 0.0
+
+        candidates = []
         for i in range(len(points) - 1):
             x0, y0 = points[i]
             x1, y1 = points[i + 1]
             dx, dy = x1 - x0, y1 - y0
             denom = dx * dx + dy * dy
-            t = 0.0 if denom == 0 else max(0.0, min(1.0, ((lat - x0) * dx + (lng - y0) * dy) / denom))
-            d = _haversine_m(lat, lng, x0 + t * dx, y0 + t * dy)
-            if d < best_d:
-                best_d = d
-                best_pos = cum[i] + t * (cum[i + 1] - cum[i])
-        if best_d > MAX_PLATFORM_DISTANCE_M:
+            t = (
+                0.0
+                if denom == 0
+                else max(
+                    0.0,
+                    min(
+                        1.0,
+                        ((lat - x0) * dx + (lng - y0) * dy) / denom,
+                    ),
+                )
+            )
+            progress = cum[i] + t * (cum[i + 1] - cum[i])
+            if progress < previous_pos - backward_tolerance_m:
+                continue
+            d = _haversine_m(
+                lat,
+                lng,
+                x0 + t * dx,
+                y0 + t * dy,
+            )
+            candidates.append((d, progress))
+
+        if not candidates:
             missing += 1
-        max_d = max(max_d, best_d)
-        positions.append(best_pos)
-    # Monotonic (small backward tolerance for slight stop offsets)
-    mono = all(positions[i + 1] >= positions[i] - 60.0 for i in range(len(positions) - 1))
-    return {"valid": missing == 0 and mono, "max_platform_distance_m": round(max_d, 1), "missing_platforms": missing}
+            continue
+
+        best_distance = min(x[0] for x in candidates)
+        if best_distance > MAX_PLATFORM_DISTANCE_M:
+            missing += 1
+            max_d = max(max_d, best_distance)
+            continue
+
+        # Repeated corridors can have several nearly-equivalent
+        # projections. Choose the earliest forward one among candidates
+        # whose distance is still plausible.
+        plausible_limit = min(
+            MAX_PLATFORM_DISTANCE_M,
+            best_distance + similar_distance_slack_m,
+        )
+        plausible = [x for x in candidates if x[0] <= plausible_limit]
+        chosen_d, chosen_pos = min(plausible, key=lambda x: x[1])
+        positions.append(chosen_pos)
+        max_d = max(max_d, chosen_d)
+        previous_pos = max(previous_pos, chosen_pos)
+
+    ordered = len(positions) == len(
+        [
+            p
+            for p in platforms
+            if p.get("latitude") is not None and p.get("longitude") is not None
+        ]
+    )
+    return {
+        "valid": missing == 0 and ordered,
+        "max_platform_distance_m": round(max_d, 1),
+        "missing_platforms": missing,
+        "projection_ordered": ordered,
+        "projection_positions_m": [round(x, 1) for x in positions],
+    }
 
 
 def assemble_segments(segs: List[dict]) -> Optional[List[list]]:

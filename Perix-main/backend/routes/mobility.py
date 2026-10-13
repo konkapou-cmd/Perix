@@ -651,102 +651,174 @@ def _assembled_matches_timeline(points: List[list], timeline: List[dict]) -> boo
 
 
 async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> Optional[dict]:
-    """Travel-ordered path, cumulative meters and stop progress.
-
-    Uses ONLY verified real geometry: the trip's own GTFS shape, or the
-    RESOLVED V2 pattern geometry (OSM road/rail reconstruction). When
-    neither exists the marker is NOT drawn at all - a fake stop-to-stop
-    line must never cross buildings (the arrivals/ETA stay available)."""
+    """Travel-ordered path with generation metadata when available."""
     from mobility import geometry_cache
+    from mobility.generations import atomic_generations_enabled
 
-    pat_id = None
     try:
-        from mobility.domain import _pattern_id as _dom_pattern_id, _pattern_key as _dom_pattern_key
-
-        pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
+        from mobility.domain import (
+            _pattern_id as _dom_pattern_id,
+            _pattern_key as _dom_pattern_key,
+        )
+        pat_id = _dom_pattern_id(
+            str(route.get("route_number")),
+            _dom_pattern_key(trip),
+        )
     except Exception:
         pat_id = None
+
+    network = await _get_active_network()
+    version_id = str((network or {}).get("version_id") or "")
     key = (
-        f"{_service_date_key()}:{trip.get('trip_id')}:{pat_id}:{geometry_cache.revision()}"
+        f"{_service_date_key()}:{trip.get('trip_id')}:{pat_id}:"
+        f"{version_id}:{geometry_cache.revision()}"
     )
-    cached = _TRIP_PATH_CACHE.get(key)
-    if cached is not None:
-        return cached
+    cached_path = _TRIP_PATH_CACHE.get(key)
+    if cached_path is not None:
+        return cached_path
 
     points: Optional[List[list]] = None
-    # Resolved V2 geometry FIRST: it is exactly what the map renders as the
-    # line, so vehicles always ride ON the visible line. The exact trip
-    # shape is a temporary vehicle-position fallback only - the Perix
-    # graph is the sole canonical geometry authority.
-    try:
-        from mobility.geometry_cache import get_cached
+    path_meta = {
+        "derived_generation": None,
+        "geometry_source": None,
+        "osm_snapshot_v": None,
+        "geometry_fingerprint": None,
+    }
 
-        pts = get_cached(pat_id)
-        if pts and len(pts) >= 2:
-            # The cache is seeded ONLY with resolver-validated geometry
-            # (the exact line the map draws) - trust it and ride it. The
-            # extra timeline check here used to reject good lines when the
-            # trip's stop set differs slightly from the pattern's.
-            points = [[float(p[0]), float(p[1])] for p in pts]
-    except Exception:
-        points = None
-    if points is None:
-        # Segment registry: assemble the canonical line from stored
-        # stop-pairs when the full geometry is not cached yet.
+    entry = geometry_cache.get_entry(pat_id, version_id or None)
+    if entry and len(entry.get("points") or []) >= 2:
+        points = [
+            [float(p[0]), float(p[1])]
+            for p in entry.get("points") or []
+        ]
+        path_meta = {
+            "derived_generation": entry.get("generation_id"),
+            "geometry_source": entry.get("source"),
+            "osm_snapshot_v": entry.get("osm_snapshot_v"),
+            "geometry_fingerprint": entry.get("geometry_fingerprint"),
+        }
+
+    if points is None and atomic_generations_enabled() and version_id and pat_id:
         try:
-            from mobility.geometry_cache import set_cached
+            from mobility.generations import get_pattern_generation
 
-            net = await _get_active_network()
-            version_id = (net or {}).get("version_id")
-            region = get_active_region()
-            query = {"pattern_id": pat_id, "region_id": region.region_id}
+            bundle = await get_pattern_generation(pat_id, version_id)
+            if bundle and bundle.get("ready"):
+                geometry = bundle.get("geometry") or {}
+                bundle_points = geometry.get("points") or []
+                if len(bundle_points) >= 2:
+                    points = [
+                        [float(p[0]), float(p[1])]
+                        for p in bundle_points
+                    ]
+                    path_meta = {
+                        "derived_generation": bundle.get("generation_id"),
+                        "geometry_source": geometry.get("source"),
+                        "osm_snapshot_v": bundle.get("osm_snapshot_v"),
+                        "geometry_fingerprint": geometry.get("geometry_fingerprint"),
+                    }
+                    geometry_cache.set_cached(
+                        pat_id,
+                        points,
+                        version_id=version_id,
+                        generation_id=bundle.get("generation_id"),
+                        source=geometry.get("source"),
+                        osm_snapshot_v=bundle.get("osm_snapshot_v"),
+                        geometry_fingerprint=geometry.get("geometry_fingerprint"),
+                    )
+        except Exception:
+            points = None
+
+    if points is None and not atomic_generations_enabled():
+        try:
+            query = {
+                "pattern_id": pat_id,
+                "region_id": get_active_region().region_id,
+            }
             if version_id:
                 query["version_id"] = version_id
             seg_docs = await db.mobility_geometry_segments.find(
-                query, {"_id": 0}
+                query,
+                {"_id": 0},
             ).to_list(300)
-            segs = sorted(seg_docs, key=lambda s: (int(s.get("a_idx", 0)), int(s.get("b_idx", 0))))
-            n_stops = len(trip.get("stop_ids") or route.get("stop_ids") or [])
-            covered = {(int(s.get("a_idx")), int(s.get("b_idx"))) for s in segs if s.get("points")}
-            if segs and n_stops > 0 and len(covered) == max(0, n_stops - 1):
+            segs = sorted(
+                seg_docs,
+                key=lambda s: (
+                    int(s.get("a_idx", 0)),
+                    int(s.get("b_idx", 0)),
+                ),
+            )
+            n_stops = len(
+                trip.get("stop_ids")
+                or route.get("stop_ids")
+                or []
+            )
+            covered = {
+                (int(s.get("a_idx")), int(s.get("b_idx")))
+                for s in segs
+                if s.get("points")
+            }
+            if (
+                segs
+                and n_stops > 0
+                and len(covered) == max(0, n_stops - 1)
+            ):
                 from mobility.graph import assemble_segments
 
                 assembled = assemble_segments(segs)
-                if assembled is not None and _assembled_matches_timeline(assembled, timeline):
+                if (
+                    assembled is not None
+                    and _assembled_matches_timeline(assembled, timeline)
+                ):
                     points = assembled
-                    set_cached(pat_id, assembled)
+                    geometry_cache.set_cached(
+                        pat_id,
+                        assembled,
+                        version_id=version_id or None,
+                    )
         except Exception:
             points = None
+
+    # Position-only last fallback. Because it has no atomic generation,
+    # the motion engine will deliberately reject physics and use the
+    # existing compatibility estimator.
     if points is None:
         shape = _trip_shape(route, trip)
         if isinstance(shape, list) and len(shape) > 2:
             shape_pts = [[float(p[0]), float(p[1])] for p in shape]
             if _assembled_matches_timeline(shape_pts, timeline):
-                # Temporary vehicle position only (stop-anchored fallback
-                # quality). The GTFS shape is NEVER written into the
-                # canonical road geometry collection - only the Perix OSM
-                # graph produces canonical lines.
                 points = shape_pts
+                path_meta["geometry_source"] = "GTFS_POSITION_FALLBACK"
+
     if not points:
-        # Don't cache the miss - the background precompute may fill the
-        # resolved geometry shortly after and the marker should appear then.
         return None
 
     cumulative = [0.0]
     for i in range(len(points) - 1):
         cumulative.append(
             cumulative[-1]
-            + _haversine_km(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]) * 1000.0
+            + _haversine_km(
+                points[i][0],
+                points[i][1],
+                points[i + 1][0],
+                points[i + 1][1],
+            )
+            * 1000.0
         )
 
     stop_progress = []
     cursor = 0
-    for entry in timeline:
-        s = entry["stop"]
+    for entry_timeline in timeline:
+        stop = entry_timeline["stop"]
         best_i = cursor
         best_d = float("inf")
         for i in range(cursor, len(points)):
-            d = _haversine_km(s.get("lat"), s.get("lng"), points[i][0], points[i][1])
+            d = _haversine_km(
+                stop.get("lat"),
+                stop.get("lng"),
+                points[i][0],
+                points[i][1],
+            )
             if d < best_d:
                 best_d = d
                 best_i = i
@@ -759,6 +831,7 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> 
         "stop_progress": stop_progress,
         "total_m": cumulative[-1] if cumulative else 0.0,
         "pattern_id": pat_id,
+        **path_meta,
     }
     _TRIP_PATH_CACHE[key] = result
     return result
@@ -1595,6 +1668,8 @@ async def _create_network_version(routes: List[dict], name: str) -> dict:
         "routes": routes,
         "imported_at": now_utc().isoformat(),
         "active": False,
+        "generation_state": "UNPREPARED",
+        "generation_report": None,
     }
     await db.bus_network_versions.insert_one(version)
     diff = {
@@ -1654,29 +1729,116 @@ async def import_gtfs_zip(
     return result
 
 
-@router.post("/network/activate")
-async def activate_network(payload: dict, operator: dict = Depends(_require_operator)):
-    version_id = payload.get("version_id")
+async def _activate_network_version(
+    version_id: str,
+    *,
+    require_ready: bool = True,
+    force: bool = False,
+) -> dict:
     region = get_active_region()
     version = await db.bus_network_versions.find_one(
         {
-            "version_id": version_id,
+            "version_id": str(version_id),
             "region_id": region.region_id,
             "network_id": region.network_id,
-        }
+        },
+        {"_id": 0},
     )
     if not version:
-        raise HTTPException(status_code=404, detail="Version not found for active mobility region")
+        raise HTTPException(
+            status_code=404,
+            detail="Version not found for active mobility region",
+        )
+
+    from mobility.generations import atomic_generations_enabled
+
+    if (
+        atomic_generations_enabled()
+        and require_ready
+        and not force
+        and str(version.get("generation_state") or "") != "READY"
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "NETWORK_GENERATION_NOT_READY",
+                "version_id": str(version_id),
+                "generation_state": version.get("generation_state"),
+                "generation_report": version.get("generation_report"),
+            },
+        )
+
     await db.bus_network_versions.update_many(
-        {"region_id": region.region_id, "network_id": region.network_id},
+        {
+            "region_id": region.region_id,
+            "network_id": region.network_id,
+        },
         {"$set": {"active": False}},
     )
     await db.bus_network_versions.update_one(
-        {"version_id": version_id},
+        {
+            "version_id": str(version_id),
+            "region_id": region.region_id,
+            "network_id": region.network_id,
+        },
         {"$set": {"active": True}},
     )
-    _broadcast({"type": "network_activated", "version_id": version_id})
-    return {"active": version_id}
+
+    from mobility import geometry_cache
+
+    geometry_cache.clear()
+    if atomic_generations_enabled():
+        await geometry_cache.warm_from_generations(str(version_id))
+    else:
+        await geometry_cache.warm_from_db(str(version_id))
+    geometry_cache.bump_revision()
+    try:
+        from mobility.motion import clear_motion_cache
+
+        clear_motion_cache()
+    except Exception:
+        pass
+
+    _broadcast(
+        {"type": "network_activated", "version_id": str(version_id)}
+    )
+    return {
+        "active": str(version_id),
+        "generation_state": version.get("generation_state"),
+    }
+
+
+@router.post("/network/prepare")
+async def prepare_network(
+    payload: dict,
+    operator: dict = Depends(_require_operator),
+):
+    version_id = str(payload.get("version_id") or "")
+    if not version_id:
+        raise HTTPException(status_code=400, detail="version_id is required")
+    from mobility.generations import prepare_network_version
+
+    active = await _get_active_network()
+    return await prepare_network_version(
+        version_id,
+        source_version_id=str((active or {}).get("version_id") or "") or None,
+        reason="OPERATOR_PREPARE",
+    )
+
+
+@router.post("/network/activate")
+async def activate_network(
+    payload: dict,
+    operator: dict = Depends(_require_operator),
+):
+    version_id = str(payload.get("version_id") or "")
+    if not version_id:
+        raise HTTPException(status_code=400, detail="version_id is required")
+    return await _activate_network_version(
+        version_id,
+        require_ready=True,
+        force=bool(payload.get("force", False)),
+    )
 
 
 @router.get("/places/search")

@@ -217,15 +217,29 @@ async def explain_trip_plan(
             "legs": [],
         }
 
-    infra = await db.mobility_pattern_infrastructure.find_one(
-        {
-            "pattern_id": str(path.get("pattern_id") or ""),
-            "version_id": str(version_id),
-            "region_id": region.region_id,
-            "network_id": region.network_id,
-        },
-        {"_id": 0},
+    from mobility.generations import (
+        atomic_generations_enabled,
+        get_pattern_generation,
     )
+
+    if atomic_generations_enabled():
+        bundle = await get_pattern_generation(
+            str(path.get("pattern_id") or ""),
+            str(version_id),
+            region_id=region.region_id,
+            network_id=region.network_id,
+        )
+        infra = (bundle or {}).get("infrastructure")
+    else:
+        infra = await db.mobility_pattern_infrastructure.find_one(
+            {
+                "pattern_id": str(path.get("pattern_id") or ""),
+                "version_id": str(version_id),
+                "region_id": region.region_id,
+                "network_id": region.network_id,
+            },
+            {"_id": 0},
+        )
     if not infra:
         return {
             "schema_v": DIAGNOSTICS_SCHEMA_VERSION,
