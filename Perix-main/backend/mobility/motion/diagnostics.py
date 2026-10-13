@@ -10,8 +10,9 @@ from collections import Counter
 from typing import Optional
 
 from mobility.motion.common import turn_angle_degrees, turn_speed_cap_kmh
+from mobility.signal_semantics import signal_coverage_for_leg
 
-DIAGNOSTICS_SCHEMA_VERSION = 1
+DIAGNOSTICS_SCHEMA_VERSION = 2
 
 
 def _round(value, digits: int = 3):
@@ -261,15 +262,12 @@ def leg_input_coverage(
         ) or "UNKNOWN"
         road_classes[str(road_class)] += overlap
 
-    signals = []
-    signal_kind = "RAIL_SIGNAL" if str(mode) == "tram" else "ROAD_SIGNAL"
-    for signal in infra.get("signals") or []:
-        progress = float(signal.get("progress_m") or 0.0)
-        if not (float(start_m) < progress < float(end_m)):
-            continue
-        if signal_kind not in set(signal.get("kinds") or []):
-            continue
-        signals.append(signal)
+    signal_coverage = signal_coverage_for_leg(
+        infra=infra,
+        start_m=start_m,
+        end_m=end_m,
+        mode=str(mode),
+    )
 
     turn_caps = []
     turn_rules = config.get("turn_speed_kmh") or {}
@@ -300,13 +298,7 @@ def leg_input_coverage(
         "global_vehicle_cap_kmh": _round(config.get("max_speed_kmh"), 2),
         "traffic_profile_distance_m": _round(traffic_m),
         "traffic_profile_coverage_ratio": _round(_ratio(traffic_m, total_m), 4),
-        "signal_candidate_count": len(signals),
-        "motion_usable_signal_count": sum(
-            1 for signal in signals if signal.get("usable_for_motion")
-        ),
-        "direction_tagged_signal_count": sum(
-            1 for signal in signals if signal.get("direction_tag")
-        ),
+        **signal_coverage,
         "turn_cap_count": len(turn_caps),
         "minimum_turn_cap_kmh": _round(min(turn_caps), 2) if turn_caps else None,
         "road_class_distance_m": {
@@ -335,8 +327,15 @@ def diagnostic_warnings(
     traffic_ratio = float(coverage.get("traffic_profile_coverage_ratio") or 0.0)
     if str(mode) == "bus" and 0.0 < traffic_ratio < 0.70:
         warnings.append("TRAFFIC_PROFILE_COVERAGE_PARTIAL")
-    if int(coverage.get("direction_tagged_signal_count") or 0) > 0:
-        warnings.append("SIGNAL_DIRECTION_TAG_REVIEW")
+    if int(coverage.get("signal_direction_ambiguous_count") or 0) > 0:
+        warnings.append("SIGNAL_DIRECTION_AMBIGUOUS")
+    if int(coverage.get("signal_direction_mismatch_count") or 0) > 0:
+        warnings.append("SIGNAL_DIRECTION_FILTERED")
+    if (
+        coverage.get("signal_semantics_enabled")
+        and not coverage.get("signal_semantics_ready")
+    ):
+        warnings.append("SIGNAL_SEMANTICS_NOT_READY")
     if float(fastest_metrics.get("global_cap_pressure_ratio") or 0.0) >= 0.25:
         warnings.append("GLOBAL_CAP_PRESSURE_HIGH")
     if float(coverage.get("posted_above_vehicle_cap_ratio") or 0.0) > 0.0:

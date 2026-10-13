@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from database import db
 from mobility.motion.bus import build_bus_leg
+from mobility.motion.calibration import diagnose_leg_baseline
 from mobility.motion.config import motion_config_for
 from mobility.motion.diagnostics import (
     DIAGNOSTICS_SCHEMA_VERSION,
@@ -25,6 +26,10 @@ from mobility.motion.engine import _build_trip_plan
 from mobility.motion.traffic import traffic_snapshot_for_edges
 from mobility.motion.tram import build_tram_leg
 from mobility.regions import get_active_region
+from mobility.signal_semantics import (
+    motion_signals_for_infrastructure,
+    signal_semantics_enabled,
+)
 
 
 def _round(value, digits: int = 3):
@@ -134,6 +139,7 @@ def _trip_summary(legs: list[dict]) -> dict:
                     "incremental_physics_limited_s"
                 ),
                 "scheduled_floor_margin_s": leg.get("scheduled_floor_margin_s"),
+                "baseline_diagnosis": leg.get("baseline_diagnosis"),
                 "warnings": leg.get("warnings") or [],
             }
             for leg in legs
@@ -171,6 +177,28 @@ def _trip_summary(legs: list[dict]) -> dict:
         ),
         "signal_candidate_count": sum(
             int((leg.get("coverage") or {}).get("signal_candidate_count") or 0)
+            for leg in legs
+        ),
+        "signal_event_count": sum(
+            int((leg.get("coverage") or {}).get("signal_event_count") or 0)
+            for leg in legs
+        ),
+        "motion_signal_event_count": sum(
+            int(
+                (leg.get("coverage") or {}).get(
+                    "motion_signal_event_count"
+                )
+                or 0
+            )
+            for leg in legs
+        ),
+        "active_motion_signal_input_count": sum(
+            int(
+                (leg.get("coverage") or {}).get(
+                    "active_motion_signal_input_count"
+                )
+                or 0
+            )
             for leg in legs
         ),
         "signal_hold_count": sum(
@@ -262,6 +290,11 @@ async def explain_trip_plan(
         )
     traffic_by_edge = traffic_snapshot.get("by_edge") or {}
 
+    motion_signals = motion_signals_for_infrastructure(
+        infra,
+        str(mode),
+    )
+
     legs = []
     for segment in plan.get("segments") or []:
         if segment.get("kind") != "MOVE":
@@ -293,7 +326,7 @@ async def explain_trip_plan(
             def build_variant(recovery_ratio: float, *, signals=None):
                 return build_tram_leg(
                     edges=infra.get("edges") or [],
-                    signals=infra.get("signals") if signals is None else signals,
+                    signals=motion_signals if signals is None else signals,
                     start_m=start_m,
                     end_m=end_m,
                     departure_service_s=effective_departure,
@@ -314,7 +347,7 @@ async def explain_trip_plan(
             ):
                 return build_bus_leg(
                     edges=infra.get("edges") or [],
-                    signals=infra.get("signals") if signals is None else signals,
+                    signals=motion_signals if signals is None else signals,
                     traffic_by_edge=traffic_by_edge if traffic is None else traffic,
                     start_m=start_m,
                     end_m=end_m,
@@ -383,6 +416,23 @@ async def explain_trip_plan(
             mode=str(mode),
         )
 
+        soft_components = _soft_components(
+            mode=str(mode),
+            natural_duration_s=natural_duration,
+            fastest_duration_s=fastest_duration,
+            traffic_only_duration_s=traffic_only_duration,
+            signal_only_duration_s=signal_only_duration,
+        )
+        baseline_diagnosis = diagnose_leg_baseline(
+            distance_m=distance_m,
+            scheduled_duration_s=scheduled_duration,
+            natural_duration_s=natural_duration,
+            fastest_duration_s=fastest_duration,
+            coverage=coverage,
+            fastest_metrics=fastest_metrics,
+            soft_components=soft_components,
+        )
+
         legs.append(
             {
                 "from_timeline_index": current_index,
@@ -433,13 +483,8 @@ async def explain_trip_plan(
                 "selected_metrics": selected_metrics,
                 "natural_metrics": natural_metrics,
                 "fastest_metrics": fastest_metrics,
-                "soft_components": _soft_components(
-                    mode=str(mode),
-                    natural_duration_s=natural_duration,
-                    fastest_duration_s=fastest_duration,
-                    traffic_only_duration_s=traffic_only_duration,
-                    signal_only_duration_s=signal_only_duration,
-                ),
+                "soft_components": soft_components,
+                "baseline_diagnosis": baseline_diagnosis,
                 "coverage": coverage,
                 "fit": segment.get("fit"),
                 "traffic_edge_count": int(
@@ -464,6 +509,10 @@ async def explain_trip_plan(
         "motion_quality": plan.get("motion_quality"),
         "traffic_provider": traffic_snapshot.get("provider"),
         "traffic_profile_versions": traffic_snapshot.get("profile_versions") or [],
+        "signal_semantics_enabled": signal_semantics_enabled(),
+        "signal_semantics_schema_v": infra.get(
+            "signal_semantics_schema_v"
+        ),
         "plan": {
             "start_s": _round(plan.get("start_s")),
             "end_s": _round(plan.get("end_s")),

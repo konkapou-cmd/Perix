@@ -611,7 +611,9 @@ async def summarize_generation_version(
     network_id: Optional[str] = None,
 ) -> dict:
     from mobility.domain import build_domain
+    from mobility.infrastructure import INFRA_SCHEMA_VERSION
     from mobility.osm_store import active_version
+    from mobility.signal_semantics import SIGNAL_SEMANTICS_SCHEMA_VERSION
 
     region = get_active_region()
     resolved_region = str(region_id or region.region_id)
@@ -646,15 +648,50 @@ async def summarize_generation_version(
     )
     by_pid = {str(x.get("pattern_id")): x for x in bundles}
     snapshot = await active_version(resolved_region)
+
     stale = []
     signal_count = 0
     motion_signal_count = 0
+    signal_event_count = 0
+    motion_signal_event_count = 0
+    infrastructure_schema_ready = 0
+    signal_semantics_ready = 0
+    direction_mismatch_count = 0
+    direction_ambiguous_count = 0
+    clustered_head_reduction_count = 0
+
     for pid, bundle in by_pid.items():
-        if snapshot is not None and int(bundle.get("osm_snapshot_v") or -1) != int(snapshot):
+        if (
+            snapshot is not None
+            and int(bundle.get("osm_snapshot_v") or -1) != int(snapshot)
+        ):
             stale.append(pid)
         infra = bundle.get("infrastructure") or {}
         signal_count += int(infra.get("signal_count") or 0)
         motion_signal_count += int(infra.get("motion_signal_count") or 0)
+        signal_event_count += int(infra.get("signal_event_count") or 0)
+        motion_signal_event_count += int(
+            infra.get("motion_signal_event_count") or 0
+        )
+        if int(infra.get("schema_v") or 0) == INFRA_SCHEMA_VERSION:
+            infrastructure_schema_ready += 1
+        if (
+            int(infra.get("signal_semantics_schema_v") or 0)
+            == SIGNAL_SEMANTICS_SCHEMA_VERSION
+        ):
+            signal_semantics_ready += 1
+
+        semantics = infra.get("signal_semantics") or {}
+        direction_mismatch_count += int(
+            semantics.get("direction_mismatch_count") or 0
+        )
+        direction_ambiguous_count += int(
+            semantics.get("direction_ambiguous_count") or 0
+        )
+        clustered_head_reduction_count += int(
+            semantics.get("clustered_head_reduction_count") or 0
+        )
+
     ready_ids = pattern_ids & set(by_pid)
     missing = sorted(pattern_ids - ready_ids)
     expected = len(pattern_ids)
@@ -671,10 +708,21 @@ async def summarize_generation_version(
         "stale_patterns": sorted(stale),
         "missing_count": len(missing),
         "missing": missing,
+        "infrastructure_schema_v": INFRA_SCHEMA_VERSION,
+        "infrastructure_schema_ready": infrastructure_schema_ready,
+        "signal_semantics_schema_v": SIGNAL_SEMANTICS_SCHEMA_VERSION,
+        "signal_semantics_ready": signal_semantics_ready,
         "signal_count": signal_count,
         "motion_signal_count": motion_signal_count,
+        "signal_event_count": signal_event_count,
+        "motion_signal_event_count": motion_signal_event_count,
+        "direction_mismatch_count": direction_mismatch_count,
+        "direction_ambiguous_count": direction_ambiguous_count,
+        "clustered_head_reduction_count": clustered_head_reduction_count,
         "legacy_mirror_failed": sum(
-            1 for x in bundles if x.get("legacy_mirror_state") == "FAILED"
+            1
+            for x in bundles
+            if x.get("legacy_mirror_state") == "FAILED"
         ),
     }
 
@@ -736,10 +784,16 @@ async def prepare_network_version(
         if source
         else []
     )
+    from mobility.infrastructure import INFRA_SCHEMA_VERSION
+
     source_by_fp = {
         str(bundle.get("pattern_fingerprint") or ""): bundle
         for bundle in source_bundles
         if bundle.get("pattern_fingerprint")
+        and int(
+            ((bundle.get("infrastructure") or {}).get("schema_v") or 0)
+        )
+        == INFRA_SCHEMA_VERSION
     }
     source_pattern_fps = {
         pattern_fingerprint(pattern)
@@ -855,6 +909,7 @@ async def refresh_network_version(
     Failed candidate builds NEVER delete the last-known-good generation.
     """
     from mobility.domain import build_domain
+    from mobility.infrastructure import INFRA_SCHEMA_VERSION
     from mobility.osm_store import active_version
 
     region = get_active_region()
@@ -898,6 +953,10 @@ async def refresh_network_version(
             and existing.get("ready")
             and str(existing.get("pattern_fingerprint") or "") == fp
             and int(existing.get("osm_snapshot_v") or -1) == int(snapshot)
+            and int(
+                ((existing.get("infrastructure") or {}).get("schema_v") or 0)
+            )
+            == INFRA_SCHEMA_VERSION
         ):
             skipped.append(pid)
             continue

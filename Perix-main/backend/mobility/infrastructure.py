@@ -16,9 +16,13 @@ from typing import Dict, List, Optional, Tuple
 from database import db
 from mobility.osm_store import active_version, get_local_signals, get_local_ways_by_ids
 from mobility.regions import get_active_region, get_region
+from mobility.signal_semantics import (
+    SIGNAL_SEMANTICS_SCHEMA_VERSION,
+    build_signal_semantics,
+)
 from mobility.signals import RAIL_SIGNAL, ROAD_SIGNAL
 
-INFRA_SCHEMA_VERSION = 1
+INFRA_SCHEMA_VERSION = 2
 GEOMETRY_SCHEMA_VERSION = 3
 BUS_SPATIAL_SIGNAL_MAX_M = 8.0
 TRAM_SPATIAL_SIGNAL_MAX_M = 12.0
@@ -271,6 +275,7 @@ def _signal_instances(chain: dict, signals: List[dict], mode: str) -> List[dict]
         if not occurrences:
             continue
         exact_signal_ids.add(signal_id)
+        tags = signal.get("tags") or {}
         for occurrence_no, occurrence in enumerate(occurrences):
             out.append(
                 {
@@ -278,18 +283,27 @@ def _signal_instances(chain: dict, signals: List[dict], mode: str) -> List[dict]
                     "signal_id": signal_id,
                     "kinds": signal.get("kinds") or [],
                     "progress_m": round(float(occurrence["progress_m"]), 3),
+                    "latitude": signal.get("latitude"),
+                    "longitude": signal.get("longitude"),
                     "edge_seq": int(occurrence["edge_seq"]),
                     "match_method": "NODE_EXACT",
                     "distance_from_path_m": 0.0,
                     "confidence": 1.0,
+                    # Legacy flag stays unchanged while Phase 2.3 is shadowed.
+                    # The semantic layer derives a second, stricter eligibility.
                     "usable_for_motion": True,
-                    "direction_tag": (signal.get("tags") or {}).get("traffic_signals:direction")
-                    or (signal.get("tags") or {}).get("railway:signal:direction"),
-                    "tags": signal.get("tags") or {},
+                    "direction_tag": tags.get("traffic_signals:direction")
+                    or tags.get("direction")
+                    or tags.get("railway:signal:direction"),
+                    "tags": tags,
                 }
             )
 
-    threshold = TRAM_SPATIAL_SIGNAL_MAX_M if mode == "tram" else BUS_SPATIAL_SIGNAL_MAX_M
+    threshold = (
+        TRAM_SPATIAL_SIGNAL_MAX_M
+        if mode == "tram"
+        else BUS_SPATIAL_SIGNAL_MAX_M
+    )
     for signal in signals:
         signal_id = int(signal.get("signal_id") or 0)
         if signal_id in exact_signal_ids:
@@ -310,24 +324,37 @@ def _signal_instances(chain: dict, signals: List[dict], mode: str) -> List[dict]
             continue
 
         distance_m, progress_m, edge = best
+        tags = signal.get("tags") or {}
         out.append(
             {
                 "signal_instance_id": f"{signal_id}:spatial",
                 "signal_id": signal_id,
                 "kinds": signal.get("kinds") or [],
                 "progress_m": round(progress_m, 3),
+                "latitude": signal.get("latitude"),
+                "longitude": signal.get("longitude"),
                 "edge_seq": int(edge["seq"]),
                 "match_method": "SPATIAL_NEAR_PATH",
                 "distance_from_path_m": round(distance_m, 3),
-                "confidence": round(max(0.0, 1.0 - distance_m / max(1.0, threshold)), 3),
+                "confidence": round(
+                    max(0.0, 1.0 - distance_m / max(1.0, threshold)),
+                    3,
+                ),
                 "usable_for_motion": False,
-                "direction_tag": (signal.get("tags") or {}).get("traffic_signals:direction")
-                or (signal.get("tags") or {}).get("railway:signal:direction"),
-                "tags": signal.get("tags") or {},
+                "direction_tag": tags.get("traffic_signals:direction")
+                or tags.get("direction")
+                or tags.get("railway:signal:direction"),
+                "tags": tags,
             }
         )
 
-    return sorted(out, key=lambda x: (float(x["progress_m"]), int(x["signal_id"])))
+    return sorted(
+        out,
+        key=lambda x: (
+            float(x["progress_m"]),
+            int(x["signal_id"]),
+        ),
+    )
 
 
 async def derive_pattern_infrastructure(
@@ -387,6 +414,11 @@ async def derive_pattern_infrastructure(
         graph_v=int(snapshot),
     )
     signal_instances = _signal_instances(chain, signals, mode)
+    signal_semantics = build_signal_semantics(
+        signal_instances,
+        chain["edges"],
+        mode=mode,
+    )
 
     return {
         "pattern_id": str(pattern_id),
@@ -399,11 +431,21 @@ async def derive_pattern_infrastructure(
         "osm_snapshot_v": int(snapshot),
         "total_m": round(float(chain["total_m"]), 3),
         "edges": chain["edges"],
-        "signals": signal_instances,
+        "signals": signal_semantics["instances"],
+        "signal_events": signal_semantics["events"],
+        "signal_semantics_schema_v": SIGNAL_SEMANTICS_SCHEMA_VERSION,
+        "signal_semantics": signal_semantics["summary"],
         "edge_count": len(chain["edges"]),
         "signal_count": len(signal_instances),
+        # Legacy exact-node count kept for rollout comparison.
         "motion_signal_count": sum(
             1 for x in signal_instances if x.get("usable_for_motion")
+        ),
+        "signal_event_count": len(signal_semantics["events"]),
+        "motion_signal_event_count": sum(
+            1
+            for event in signal_semantics["events"]
+            if event.get("usable_for_motion")
         ),
         "built_at": datetime.now(timezone.utc).isoformat(),
     }

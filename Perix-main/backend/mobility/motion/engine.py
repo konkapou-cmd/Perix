@@ -24,6 +24,7 @@ from mobility.motion.config import motion_config_for
 from mobility.motion.diagnostics import lateness_flow, timeline_leg_contract
 from mobility.motion.traffic import traffic_snapshot_for_edges
 from mobility.motion.tram import build_tram_leg
+from mobility.signal_semantics import motion_signals_for_infrastructure
 from mobility.regions import get_active_region
 
 MOTION_SCHEMA_VERSION = 1
@@ -307,11 +308,16 @@ async def _build_trip_plan(
         scheduled_duration = float(contract["scheduled_duration_s"])
         delay_delta = int(contract["delay_delta_s"])
 
+        motion_signals = motion_signals_for_infrastructure(
+            infra,
+            str(mode),
+        )
+
         if str(mode) == "tram":
             def builder(recovery_ratio: float):
                 return build_tram_leg(
                     edges=infra.get("edges") or [],
-                    signals=infra.get("signals") or [],
+                    signals=motion_signals,
                     start_m=float(current["progress_m"]),
                     end_m=float(nxt["progress_m"]),
                     departure_service_s=effective_departure,
@@ -322,7 +328,7 @@ async def _build_trip_plan(
             def builder(recovery_ratio: float):
                 return build_bus_leg(
                     edges=infra.get("edges") or [],
-                    signals=infra.get("signals") or [],
+                    signals=motion_signals,
                     traffic_by_edge=traffic_by_edge,
                     start_m=float(current["progress_m"]),
                     end_m=float(nxt["progress_m"]),

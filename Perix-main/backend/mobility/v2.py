@@ -613,6 +613,91 @@ async def v2_diagnostic_infrastructure(
     return doc
 
 
+@router.get("/diagnostic/signals/{pattern_id}")
+async def v2_diagnostic_signals(
+    pattern_id: str,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Direction resolution + intersection clustering for one pattern."""
+    from mobility.generations import (
+        atomic_generations_enabled,
+        get_pattern_generation,
+    )
+    from mobility.regions import get_active_region
+    from mobility.signal_semantics import signal_semantics_enabled
+
+    region = get_active_region()
+    domain = await _domain()
+    if not domain:
+        return {
+            "pattern_id": str(pattern_id),
+            "state": "NO_NETWORK",
+        }
+
+    version_id = str(domain.get("network", {}).get("version_id") or "")
+    pattern = next(
+        (
+            p
+            for p in domain.get("patterns", [])
+            if str(p.get("pattern_id") or "") == str(pattern_id)
+        ),
+        None,
+    )
+    if not pattern:
+        return {
+            "pattern_id": str(pattern_id),
+            "state": "PATTERN_NOT_FOUND",
+        }
+
+    generation_id = None
+    if atomic_generations_enabled():
+        bundle = await get_pattern_generation(
+            str(pattern_id),
+            version_id,
+            region_id=region.region_id,
+            network_id=region.network_id,
+        )
+        infra = (bundle or {}).get("infrastructure")
+        generation_id = (bundle or {}).get("generation_id")
+    else:
+        infra = await db.mobility_pattern_infrastructure.find_one(
+            {
+                "pattern_id": str(pattern_id),
+                "version_id": version_id,
+                "region_id": region.region_id,
+                "network_id": region.network_id,
+            },
+            {"_id": 0},
+        )
+
+    if not infra:
+        return {
+            "pattern_id": str(pattern_id),
+            "state": "INFRASTRUCTURE_NOT_READY",
+        }
+
+    return {
+        "state": "READY",
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "version_id": version_id,
+        "pattern_id": str(pattern_id),
+        "route_number": pattern.get("route_number"),
+        "mode": pattern.get("mode"),
+        "direction": pattern.get("direction"),
+        "derived_generation": generation_id,
+        "osm_snapshot_v": infra.get("osm_snapshot_v"),
+        "signal_semantics_enabled": signal_semantics_enabled(),
+        "infrastructure_schema_v": infra.get("schema_v"),
+        "signal_semantics_schema_v": infra.get(
+            "signal_semantics_schema_v"
+        ),
+        "summary": infra.get("signal_semantics") or {},
+        "raw_signals": infra.get("signals") or [],
+        "signal_events": infra.get("signal_events") or [],
+    }
+
+
 @router.get("/diagnostic/traffic/{pattern_id}")
 async def v2_diagnostic_traffic(
     pattern_id: str,
