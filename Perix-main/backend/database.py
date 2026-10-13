@@ -358,6 +358,27 @@ async def create_indexes():
             ("osm_snapshot_v", 1),
         ],
     )
+    # Phase 2.4 physical alignment evidence over append-only raw GPS.
+    await _safe_create_index(
+        db.mobility_position_observations,
+        [
+            ("region_id", 1),
+            ("network_id", 1),
+            ("version_id", 1),
+            ("pattern_id", 1),
+            ("generation_id", 1),
+            ("observed_at", -1),
+        ],
+    )
+    await _safe_create_index(
+        db.mobility_position_observations,
+        [
+            ("pattern_id", 1),
+            ("generation_id", 1),
+            ("matched_edge_id", 1),
+            ("observed_at", -1),
+        ],
+    )
 
     # Static traffic-count/profile indexes (city-scoped)
     await _safe_create_index(

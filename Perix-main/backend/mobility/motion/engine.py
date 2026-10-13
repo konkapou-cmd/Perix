@@ -26,13 +26,23 @@ from mobility.motion.traffic import traffic_snapshot_for_edges
 from mobility.motion.tram import build_tram_leg
 from mobility.signal_semantics import motion_signals_for_infrastructure
 from mobility.regions import get_active_region
+from mobility.motion.handover import (
+    continuity_guard,
+    find_handover_leg_index,
+    handover_anchor_from_state,
+    handover_enabled,
+    stable_trip_identity,
+    state_from_sample,
+)
 
 MOTION_SCHEMA_VERSION = 1
 _PLAN_CACHE: dict = {}
+_HANDOVER_STATE: dict = {}
 
 
 def clear_motion_cache() -> None:
     _PLAN_CACHE.clear()
+    _HANDOVER_STATE.clear()
 
 
 def _timeline_signature(timeline: list[dict]) -> str:
@@ -171,6 +181,8 @@ async def _build_trip_plan(
     path: dict,
     now_local: datetime,
     failure: Optional[dict] = None,
+    handover: Optional[dict] = None,
+    now_service_s: Optional[float] = None,
 ) -> Optional[dict]:
     region = get_active_region()
     config = motion_config_for(mode, region)
@@ -251,6 +263,17 @@ async def _build_trip_plan(
             anchor_count=len(anchors),
         )
 
+    handover_leg_index = None
+    if handover is not None:
+        handover_leg_index = find_handover_leg_index(
+            anchors,
+            float(handover.get("progress_m") or 0.0),
+        )
+        if handover_leg_index is None:
+            handover = None
+
+    loop_start = handover_leg_index if handover_leg_index is not None else 0
+
     traffic_snapshot = {"provider": None, "profile_versions": [], "by_edge": {}}
     if str(mode) == "bus":
         traffic_snapshot = await traffic_snapshot_for_edges(
@@ -262,7 +285,11 @@ async def _build_trip_plan(
     traffic_by_edge = traffic_snapshot.get("by_edge") or {}
 
     trip_segments = []
-    effective_arrival = float(anchors[0]["entry"]["predicted_arrival"])
+    effective_arrival = (
+        float(handover.get("service_s"))
+        if handover is not None
+        else float(anchors[0]["entry"]["predicted_arrival"])
+    )
     final_arrival_target_error = 0.0
     max_arrival_target_error = 0.0
     total_incremental_physics_limited = 0.0
@@ -271,22 +298,59 @@ async def _build_trip_plan(
     traffic_edges = 0
     signal_stops = 0
 
-    for index in range(len(anchors) - 1):
+    for index in range(loop_start, len(anchors) - 1):
         current = anchors[index]
         nxt = anchors[index + 1]
         current_entry = current["entry"]
         next_entry = nxt["entry"]
 
+        is_handover_leg = (
+            handover is not None
+            and handover_leg_index is not None
+            and index == handover_leg_index
+        )
+        leg_start_m = (
+            max(
+                float(current["progress_m"]),
+                min(
+                    float(handover.get("progress_m") or 0.0),
+                    float(nxt["progress_m"]) - 0.001,
+                ),
+            )
+            if is_handover_leg
+            else float(current["progress_m"])
+        )
+        initial_speed_kmh = (
+            max(0.0, float(handover.get("speed_kmh") or 0.0))
+            if is_handover_leg
+            else 0.0
+        )
+
         predicted_departure = float(
             current_entry.get("predicted_departure") or effective_arrival
         )
-        effective_departure = max(effective_arrival, predicted_departure)
-        current_arrival_target_error = max(
-            0.0,
-            effective_arrival - float(current_entry.get("predicted_arrival") or effective_arrival),
-        )
+        if is_handover_leg:
+            effective_departure = float(
+                now_service_s
+                if now_service_s is not None
+                else handover.get("service_s")
+            )
+            current_arrival_target_error = max(
+                0.0,
+                float(handover.get("carried_lateness_s") or 0.0),
+            )
+        else:
+            effective_departure = max(effective_arrival, predicted_departure)
+            current_arrival_target_error = max(
+                0.0,
+                effective_arrival
+                - float(
+                    current_entry.get("predicted_arrival")
+                    or effective_arrival
+                ),
+            )
 
-        if effective_departure > effective_arrival:
+        if not is_handover_leg and effective_departure > effective_arrival:
             trip_segments.append(
                 {
                     "kind": "DWELL",
@@ -318,11 +382,12 @@ async def _build_trip_plan(
                 return build_tram_leg(
                     edges=infra.get("edges") or [],
                     signals=motion_signals,
-                    start_m=float(current["progress_m"]),
+                    start_m=leg_start_m,
                     end_m=float(nxt["progress_m"]),
                     departure_service_s=effective_departure,
                     config=config,
                     recovery_ratio=recovery_ratio,
+                    initial_speed_kmh=initial_speed_kmh,
                 )
         else:
             def builder(recovery_ratio: float):
@@ -330,11 +395,12 @@ async def _build_trip_plan(
                     edges=infra.get("edges") or [],
                     signals=motion_signals,
                     traffic_by_edge=traffic_by_edge,
-                    start_m=float(current["progress_m"]),
+                    start_m=leg_start_m,
                     end_m=float(nxt["progress_m"]),
                     departure_service_s=effective_departure,
                     config=config,
                     recovery_ratio=recovery_ratio,
+                    initial_speed_kmh=initial_speed_kmh,
                 )
 
         fitted = _fit_leg(
@@ -358,12 +424,42 @@ async def _build_trip_plan(
             )
 
         effective_next_arrival = effective_departure + duration
-        flow = lateness_flow(
-            predicted_departure_s=float(contract["predicted_departure_s"]),
-            effective_departure_s=effective_departure,
-            predicted_arrival_s=float(contract["predicted_arrival_s"]),
-            effective_arrival_s=effective_next_arrival,
-        )
+        if is_handover_leg:
+            carried = max(
+                0.0,
+                float(handover.get("carried_lateness_s") or 0.0),
+            )
+            arrival_target_error = max(
+                0.0,
+                effective_next_arrival
+                - float(contract["predicted_arrival_s"]),
+            )
+            flow = {
+                "carried_lateness_s": round(carried, 3),
+                "arrival_target_error_s": round(
+                    arrival_target_error,
+                    3,
+                ),
+                "incremental_physics_limited_s": round(
+                    max(0.0, arrival_target_error - carried),
+                    3,
+                ),
+                "recovered_lateness_s": round(
+                    max(0.0, carried - arrival_target_error),
+                    3,
+                ),
+            }
+        else:
+            flow = lateness_flow(
+                predicted_departure_s=float(
+                    contract["predicted_departure_s"]
+                ),
+                effective_departure_s=effective_departure,
+                predicted_arrival_s=float(
+                    contract["predicted_arrival_s"]
+                ),
+                effective_arrival_s=effective_next_arrival,
+            )
         arrival_target_error = float(flow["arrival_target_error_s"])
         incremental_physics_limited = float(flow["incremental_physics_limited_s"])
         recovered_lateness = float(flow["recovered_lateness_s"])
@@ -407,6 +503,17 @@ async def _build_trip_plan(
                     6,
                 ),
                 "delay_delta_s": delay_delta,
+                "handover_applied": bool(is_handover_leg),
+                "handover_from_progress_m": (
+                    round(float(handover["progress_m"]), 3)
+                    if is_handover_leg
+                    else None
+                ),
+                "handover_initial_speed_kmh": (
+                    round(initial_speed_kmh, 3)
+                    if is_handover_leg
+                    else None
+                ),
                 **flow,
                 # Backward-compatible diagnostic alias: this is the amount
                 # by which the effective arrival misses the realtime target.
@@ -472,6 +579,12 @@ async def _build_trip_plan(
         "motion_quality": "PHYSICS_TRAFFIC" if traffic_edges else "PHYSICS_BASELINE",
         "traffic_provider": traffic_snapshot.get("provider"),
         "traffic_profile_versions": traffic_snapshot.get("profile_versions") or [],
+        "handover_applied": bool(handover is not None),
+        "handover_from_progress_m": (
+            round(float(handover["progress_m"]), 3)
+            if handover is not None
+            else None
+        ),
     }
 
 
@@ -535,6 +648,9 @@ def _sample_trip_plan(
             "carried_lateness_s": target_error,
             "recovered_lateness_s": 0.0,
             "fit": "DWELL",
+            "handover_applied": False,
+            "handover_from_progress_m": None,
+            "handover_initial_speed_kmh": None,
         }
 
     sample = sample_trajectory(
@@ -576,6 +692,13 @@ def _sample_trip_plan(
             float(selected.get("recovered_lateness_s") or 0.0),
             2,
         ),
+        "handover_applied": bool(selected.get("handover_applied")),
+        "handover_from_progress_m": selected.get(
+            "handover_from_progress_m"
+        ),
+        "handover_initial_speed_kmh": selected.get(
+            "handover_initial_speed_kmh"
+        ),
         "fit": selected.get("fit"),
     }
 
@@ -593,6 +716,16 @@ async def position_for_trip(
     """Return physics progress, or an optional explainable legacy-fallback reason."""
     region = get_active_region()
     config = motion_config_for(mode, region)
+    timeline_signature = _timeline_signature(timeline)
+    identity = stable_trip_identity(
+        region_id=region.region_id,
+        network_id=region.network_id,
+        version_id=str(version_id),
+        pattern_id=str(path.get("pattern_id") or ""),
+        trip_id=str(trip_id),
+        derived_generation=path.get("derived_generation"),
+    )
+    previous_state = _HANDOVER_STATE.get(identity)
     now_local = datetime.now(ZoneInfo(region.timezone))
     traffic_bucket = f"{now_local.date().isoformat()}:{now_local.hour:02d}:{now_local.minute // 15}"
     key = (
@@ -601,7 +734,7 @@ async def position_for_trip(
         str(version_id),
         str(path.get("pattern_id") or ""),
         str(trip_id),
-        _timeline_signature(timeline),
+        timeline_signature,
         traffic_bucket,
     )
 
@@ -611,6 +744,13 @@ async def position_for_trip(
     if cached and now_mono - float(cached.get("cached_at") or 0.0) <= float(config["plan_cache_seconds"]):
         plan = cached["plan"]
     else:
+        handover_anchor = None
+        if handover_enabled():
+            handover_anchor = handover_anchor_from_state(
+                previous_state,
+                now_service_s=float(now_sec),
+                total_m=float(path.get("total_m") or 0.0),
+            )
         plan = await _build_trip_plan(
             trip_id=str(trip_id),
             mode=str(mode),
@@ -619,6 +759,8 @@ async def position_for_trip(
             path=path,
             now_local=now_local,
             failure=failure,
+            handover=handover_anchor,
+            now_service_s=float(now_sec),
         )
         if not plan:
             if include_failure_reason:
@@ -644,6 +786,12 @@ async def position_for_trip(
             }
         return None
 
+    if handover_enabled():
+        sampled = continuity_guard(
+            sampled,
+            previous_state,
+        )
+
     next_index = max(
         0,
         min(len(timeline) - 1, int(sampled["next_timeline_index"])),
@@ -661,6 +809,22 @@ async def position_for_trip(
         if next_index < len(stop_progress)
         else progress
     )
+    sampled["progress_m"] = progress
+    _HANDOVER_STATE[identity] = {
+        **state_from_sample(
+            sample=sampled,
+            service_s=float(now_sec),
+            timeline_signature=timeline_signature,
+        ),
+        "updated_mono": now_mono,
+    }
+    for stale_identity, stale_state in list(_HANDOVER_STATE.items()):
+        if (
+            now_mono
+            - float(stale_state.get("updated_mono") or now_mono)
+            > 300.0
+        ):
+            _HANDOVER_STATE.pop(stale_identity, None)
 
     return {
         **sampled,
@@ -685,5 +849,18 @@ async def position_for_trip(
         ),
         "plan_incremental_physics_limited_s": plan.get(
             "incremental_physics_limited_s"
+        ),
+        "handover_applied": bool(sampled.get("handover_applied")),
+        "handover_from_progress_m": sampled.get(
+            "handover_from_progress_m"
+        ),
+        "handover_initial_speed_kmh": sampled.get(
+            "handover_initial_speed_kmh"
+        ),
+        "continuity_clamp_m": float(
+            sampled.get("continuity_clamp_m") or 0.0
+        ),
+        "backward_resample_prevented_m": float(
+            sampled.get("backward_resample_prevented_m") or 0.0
         ),
     }

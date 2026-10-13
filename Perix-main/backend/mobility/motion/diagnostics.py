@@ -356,6 +356,9 @@ def summarize_vehicle_motion(vehicles: list[dict]) -> dict:
     estimated = 0
     physics = 0
     fallback = 0
+    handover_applied = 0
+    continuity_guard_count = 0
+    backward_prevented = []
 
     for vehicle in vehicles or []:
         if vehicle.get("estimated"):
@@ -372,6 +375,14 @@ def summarize_vehicle_motion(vehicles: list[dict]) -> dict:
                 fits[str(motion.get("fit"))] += 1
             if motion.get("speed_kmh") is not None:
                 speeds.append(float(motion.get("speed_kmh") or 0.0))
+            if motion.get("handover_applied"):
+                handover_applied += 1
+            prevented = float(
+                motion.get("backward_resample_prevented_m") or 0.0
+            )
+            if prevented > 0.0:
+                continuity_guard_count += 1
+                backward_prevented.append(prevented)
             miss = float(
                 motion.get("arrival_target_error_s")
                 if motion.get("arrival_target_error_s") is not None
@@ -427,4 +438,14 @@ def summarize_vehicle_motion(vehicles: list[dict]) -> dict:
         },
         "limited_vehicle_count": len(limited),
         "top_limited": limited[:20],
+        "handover_applied_vehicle_count": handover_applied,
+        "continuity_guard_vehicle_count": continuity_guard_count,
+        "backward_resample_prevented_m": {
+            "max": _round(max(backward_prevented), 2)
+            if backward_prevented
+            else 0.0,
+            "sum": _round(sum(backward_prevented), 2)
+            if backward_prevented
+            else 0.0,
+        },
     }

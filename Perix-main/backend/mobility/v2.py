@@ -776,6 +776,220 @@ async def v2_diagnostic_traffic(
     }
 
 
+@router.get("/diagnostic/geometry-conformance")
+async def v2_diagnostic_geometry_conformance(
+    current_user: Optional[UserPublic] = Depends(
+        get_current_user_optional
+    ),
+):
+    """Audit every rendered line against its atomic OSM edge chain."""
+    from mobility.generations import list_pattern_generations
+    from mobility.geometry_audit import (
+        audit_generation_bundle,
+        audit_rendered_geometry,
+    )
+
+    domain = await _domain()
+    if not domain:
+        return {"state": "NO_NETWORK", "patterns": []}
+
+    version_id = str(
+        domain.get("network", {}).get("version_id") or ""
+    )
+    resolved_patterns = await _patterns_resolved(domain)
+    bundles = await list_pattern_generations(version_id)
+    bundle_by_pid = {
+        str(bundle.get("pattern_id") or ""): bundle
+        for bundle in bundles
+    }
+
+    platforms_by_id = {}
+    for stop in domain.get("stops", []):
+        for platform in stop.get("platforms", []):
+            platforms_by_id[str(platform.get("platform_id"))] = platform
+
+    rows = []
+    for pattern in resolved_patterns:
+        pid = str(pattern.get("pattern_id") or "")
+        bundle = bundle_by_pid.get(pid)
+        stop_platforms = [
+            platforms_by_id.get(str(stop_id))
+            for stop_id in (pattern.get("stop_ids") or [])
+            if platforms_by_id.get(str(stop_id))
+        ]
+        generation_audit = (
+            audit_generation_bundle(
+                bundle,
+                platforms=stop_platforms,
+            )
+            if bundle
+            else {
+                "canonical_osm_conformant": False,
+                "failures": ["GENERATION_NOT_FOUND"],
+            }
+        )
+        render_audit = audit_rendered_geometry(
+            resolved_geometry=pattern.get("geometry") or {},
+            bundle=bundle,
+        )
+        rows.append(
+            {
+                "pattern_id": pid,
+                "route_number": pattern.get("route_number"),
+                "mode": pattern.get("mode"),
+                "direction": pattern.get("direction"),
+                **generation_audit,
+                **render_audit,
+            }
+        )
+
+    rendered = [row for row in rows if row.get("rendered")]
+    canonical = [
+        row
+        for row in rendered
+        if row.get("canonical_osm_rendered")
+        and row.get("canonical_osm_conformant")
+    ]
+    manual = [
+        row
+        for row in rendered
+        if row.get("render_authority")
+        == "VERIFIED_MANUAL_OVERRIDE"
+    ]
+    mismatched = [
+        row
+        for row in rendered
+        if row not in canonical and row not in manual
+    ]
+    hidden = [row for row in rows if not row.get("rendered")]
+
+    return {
+        "state": "READY",
+        "version_id": version_id,
+        "pattern_count": len(rows),
+        "rendered_count": len(rendered),
+        "canonical_osm_rendered_count": len(canonical),
+        "verified_manual_override_count": len(manual),
+        "hidden_count": len(hidden),
+        "mismatch_count": len(mismatched),
+        "all_rendered_lines_have_verified_authority": (
+            len(mismatched) == 0
+        ),
+        "all_rendered_lines_are_canonical_osm": (
+            len(rendered) > 0
+            and len(canonical) == len(rendered)
+        ),
+        "patterns": rows,
+    }
+
+
+@router.get("/diagnostic/physical-alignment/{pattern_id}")
+async def v2_diagnostic_physical_alignment(
+    pattern_id: str,
+    current_user: Optional[UserPublic] = Depends(
+        get_current_user_optional
+    ),
+):
+    """Aggregate raw GPS + GTFS reference vs canonical OSM generation.
+
+    Raw GPS observations are never returned; only aggregate evidence is
+    exposed.
+    """
+    from mobility.generations import get_pattern_generation
+    from mobility.physical_alignment import physical_alignment_report
+    from mobility.regions import get_active_region
+
+    region = get_active_region()
+    domain = await _domain()
+    if not domain:
+        return {
+            "state": "NO_NETWORK",
+            "pattern_id": str(pattern_id),
+        }
+
+    version_id = str(
+        domain.get("network", {}).get("version_id") or ""
+    )
+    pattern = next(
+        (
+            item
+            for item in domain.get("patterns", [])
+            if str(item.get("pattern_id") or "")
+            == str(pattern_id)
+        ),
+        None,
+    )
+    if not pattern:
+        return {
+            "state": "PATTERN_NOT_FOUND",
+            "pattern_id": str(pattern_id),
+        }
+
+    bundle = await get_pattern_generation(
+        str(pattern_id),
+        version_id,
+        region_id=region.region_id,
+        network_id=region.network_id,
+    )
+    if not bundle:
+        return {
+            "state": "GENERATION_NOT_FOUND",
+            "pattern_id": str(pattern_id),
+        }
+
+    generation_id = str(bundle.get("generation_id") or "")
+    observations = await db.mobility_position_observations.find(
+        {
+            "pattern_id": str(pattern_id),
+            "generation_id": generation_id,
+            "snapped": True,
+        },
+        {
+            "_id": 0,
+            "vehicle_id": 1,
+            "trip_id": 1,
+            "observed_at": 1,
+            "latitude": 1,
+            "longitude": 1,
+            "accuracy_m": 1,
+            "heading": 1,
+            "snapped_distance_m": 1,
+            "matched_bearing": 1,
+            "matched_edge_id": 1,
+        },
+    ).sort("observed_at", -1).to_list(10000)
+
+    # Only a real trip-specific GTFS shape is treated as operator/reference
+    # geometry. A legacy inherited route.shape is intentionally excluded.
+    operator_points = (
+        pattern.get("points") or []
+        if pattern.get("shape_id")
+        else []
+    )
+
+    report = physical_alignment_report(
+        pattern_id=str(pattern_id),
+        generation_id=generation_id,
+        canonical_points=(bundle.get("geometry") or {}).get(
+            "points"
+        )
+        or [],
+        operator_points=operator_points,
+        observations=observations,
+    )
+    return {
+        "state": "READY",
+        "region_id": region.region_id,
+        "network_id": region.network_id,
+        "version_id": version_id,
+        "route_number": pattern.get("route_number"),
+        "mode": pattern.get("mode"),
+        "direction": pattern.get("direction"),
+        "shape_id": pattern.get("shape_id"),
+        **report,
+    }
+
+
 @router.get("/diagnostic/generations")
 async def v2_diagnostic_generations(
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),

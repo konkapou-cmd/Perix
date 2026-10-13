@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from mobility.motion.common import (
     build_speed_trajectory,
+    kmh_to_mps,
     deterministic_signal_hold_seconds,
     trajectory_time_at_progress,
     turn_angle_degrees,
@@ -37,6 +38,7 @@ def build_tram_leg(
     departure_service_s: float,
     config: dict,
     recovery_ratio: float = 0.0,
+    initial_speed_kmh: float = 0.0,
 ) -> dict:
     """Build one tram leg.
 
@@ -77,6 +79,7 @@ def build_tram_leg(
         acceleration_mps2=float(config["acceleration_mps2"]),
         braking_mps2=float(config["braking_mps2"]),
         step_m=float(config["trajectory_step_m"]),
+        initial_speed_mps=kmh_to_mps(initial_speed_kmh),
     )
 
     mandatory = []
@@ -121,6 +124,7 @@ def build_tram_leg(
         acceleration_mps2=float(config["acceleration_mps2"]),
         braking_mps2=float(config["braking_mps2"]),
         step_m=float(config["trajectory_step_m"]),
+        initial_speed_mps=kmh_to_mps(initial_speed_kmh),
     )
     return {
         **trajectory,

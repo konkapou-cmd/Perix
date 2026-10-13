@@ -1076,6 +1076,21 @@ async def _estimate_trip_position(
             "plan_incremental_physics_limited_s": motion_result.get(
                 "plan_incremental_physics_limited_s"
             ),
+            "handover_applied": bool(
+                motion_result.get("handover_applied")
+            ),
+            "handover_from_progress_m": motion_result.get(
+                "handover_from_progress_m"
+            ),
+            "handover_initial_speed_kmh": motion_result.get(
+                "handover_initial_speed_kmh"
+            ),
+            "continuity_clamp_m": motion_result.get(
+                "continuity_clamp_m"
+            ),
+            "backward_resample_prevented_m": motion_result.get(
+                "backward_resample_prevented_m"
+            ),
             "fallback_reason": None,
         }
     else:

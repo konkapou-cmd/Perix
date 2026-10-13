@@ -107,6 +107,12 @@ async def ingest_telemetry(request: Request, payload: dict = None):
     display_heading = body.get("heading")
     trip_id = None
     mode = vehicle.get("mode")
+    pattern_id = None
+    generation_id = None
+    matched_segment_idx = None
+    matched_edge_id = None
+    matched_bearing = None
+    network = None
     if mode in ("bus", "tram") and vehicle.get("route_number"):
         try:
             from mobility.map_match import assign_trip, snap_to_geometry
@@ -130,17 +136,79 @@ async def ingest_telemetry(request: Request, payload: dict = None):
                     from mobility.domain import _pattern_id as _dom_pattern_id, _pattern_key as _dom_pattern_key
                     from mobility.geometry_cache import get_cached
 
-                    pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
+                    pat_id = _dom_pattern_id(
+                        str(route.get("route_number")),
+                        _dom_pattern_key(trip),
+                    )
+                    pattern_id = str(pat_id)
+
+                    from mobility.geometry_cache import (
+                        get_cached,
+                        get_entry,
+                    )
+
                     geometry = get_cached(pat_id) or []
-                    snap = snap_to_geometry(lat, lng, body.get("heading"), body.get("accuracy_m"), geometry)
+                    cache_entry = get_entry(
+                        pat_id,
+                        str((network or {}).get("version_id") or "") or None,
+                    )
+                    generation_id = (
+                        (cache_entry or {}).get("generation_id")
+                    )
+
+                    snap = snap_to_geometry(
+                        lat,
+                        lng,
+                        body.get("heading"),
+                        body.get("accuracy_m"),
+                        geometry,
+                    )
                     if snap.get("snapped"):
-                        matched_lat, matched_lng = snap["latitude"], snap["longitude"]
+                        matched_lat = snap["latitude"]
+                        matched_lng = snap["longitude"]
                         snapped = True
                         snapped_distance_m = snap.get("distance_m")
-                        # Display heading = the road/rail bearing the vehicle
-                        # is riding, never the raw GPS compass.
-                        if snap.get("bearing") is not None:
-                            display_heading = snap["bearing"]
+                        matched_segment_idx = snap.get("segment_idx")
+                        matched_bearing = snap.get("bearing")
+
+                        try:
+                            from mobility.generations import (
+                                get_pattern_generation,
+                            )
+                            from mobility.physical_alignment import (
+                                edge_id_for_segment_index,
+                            )
+
+                            bundle = await get_pattern_generation(
+                                pattern_id,
+                                str(
+                                    (network or {}).get("version_id")
+                                    or ""
+                                ),
+                            )
+                            if bundle:
+                                generation_id = (
+                                    bundle.get("generation_id")
+                                    or generation_id
+                                )
+                                matched_edge_id = (
+                                    edge_id_for_segment_index(
+                                        bundle,
+                                        matched_segment_idx,
+                                    )
+                                )
+                        except Exception as edge_exc:
+                            print(
+                                "[mobility] telemetry alignment metadata "
+                                f"failed: {type(edge_exc).__name__}: "
+                                f"{edge_exc}",
+                                flush=True,
+                            )
+
+                        # Display heading = canonical road/rail bearing,
+                        # never the raw GPS compass.
+                        if matched_bearing is not None:
+                            display_heading = matched_bearing
         except Exception as e:
             print(f"[mobility] telemetry map-match failed: {type(e).__name__}: {e}", flush=True)
 
@@ -186,6 +254,12 @@ async def ingest_telemetry(request: Request, payload: dict = None):
                     "source": source,
                     "snapped": False,
                     "hidden": True,
+                    "trip_id": trip_id,
+                    "pattern_id": pattern_id,
+                    "generation_id": generation_id,
+                    "region_id": (network or {}).get("region_id"),
+                    "network_id": (network or {}).get("network_id"),
+                    "version_id": (network or {}).get("version_id"),
                 }
             )
             return {"ok": True, "observation_id": obs_id_hidden, "source": source, "snapped": False, "hidden": True}
@@ -209,6 +283,14 @@ async def ingest_telemetry(request: Request, payload: dict = None):
         "snapped": snapped,
         "snapped_distance_m": snapped_distance_m,
         "trip_id": trip_id,
+        "region_id": (network or {}).get("region_id"),
+        "network_id": (network or {}).get("network_id"),
+        "version_id": (network or {}).get("version_id"),
+        "pattern_id": pattern_id,
+        "generation_id": generation_id,
+        "matched_segment_idx": matched_segment_idx,
+        "matched_edge_id": matched_edge_id,
+        "matched_bearing": matched_bearing,
     }
     await db.mobility_position_observations.insert_one(obs)
 
@@ -228,6 +310,9 @@ async def ingest_telemetry(request: Request, payload: dict = None):
             "source": source,
             "quality": "LIVE",
             "trip_id": trip_id,
+            "pattern_id": pattern_id,
+            "generation_id": generation_id,
+            "matched_edge_id": matched_edge_id,
             "observed_at": observed_dt.isoformat(),
             "updated_at": _utc_now_iso(),
         },
@@ -257,6 +342,9 @@ async def ingest_telemetry(request: Request, payload: dict = None):
         "trip_id": trip_id,
         "snapped": snapped,
         "estimated": False,
+        "pattern_id": pattern_id,
+        "generation_id": generation_id,
+        "matched_edge_id": matched_edge_id,
     }
     await db.mobility_live.replace_one({"vehicle_id": vehicle_id}, live, upsert=True)
     return {"ok": True, "observation_id": obs_id, "source": source, "snapped": snapped, "trip_id": trip_id}

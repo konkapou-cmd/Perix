@@ -205,6 +205,23 @@ def _astar(
         path.append(came[cur])
     path.reverse()
     edges.reverse()
+    # Edge ids are stored in OSM way order, not traversal order. Reorient
+    # each edge so its from-node equals the previous path node: a reversed
+    # edge otherwise flips follows_osm_way and every direction-sensitive
+    # attribute derived from it (directional lanes, signal direction
+    # resolution, traffic direction preference).
+    for i, eid in enumerate(edges):
+        if eid is None or i >= len(path) - 1:
+            continue
+        try:
+            way_id, from_node, to_node = str(eid).split(":", 2)
+            from_node = int(from_node)
+            to_node = int(to_node)
+        except Exception:
+            continue
+        previous_node = int(path[i])
+        if from_node != previous_node and to_node == previous_node:
+            edges[i] = f"{way_id}:{to_node}:{from_node}"
     return path, edges
 
 

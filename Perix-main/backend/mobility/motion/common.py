@@ -109,6 +109,7 @@ def build_speed_trajectory(
     acceleration_mps2: float,
     braking_mps2: float,
     step_m: float = 5.0,
+    initial_speed_mps: float = 0.0,
 ) -> dict:
     """Build a forward-only speed envelope and time/progress trajectory.
 
@@ -172,13 +173,17 @@ def build_speed_trajectory(
             "id": item.get("id"),
         }
 
-    caps[0] = 0.0
+    initial_speed = min(
+        caps[0],
+        max(0.0, float(initial_speed_mps)),
+    )
     caps[-1] = 0.0
     for i, p in enumerate(positions):
         if any(abs(p - sp) <= 0.001 for sp in stop_by_pos):
             caps[i] = 0.0
 
     speeds = [0.0 for _ in positions]
+    speeds[0] = initial_speed
     for i in range(1, len(positions)):
         ds = max(0.0, positions[i] - positions[i - 1])
         reachable = math.sqrt(max(0.0, speeds[i - 1] ** 2 + 2.0 * accel * ds))

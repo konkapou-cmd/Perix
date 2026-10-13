@@ -60,7 +60,7 @@ def test_input_coverage_is_distance_weighted():
                 "kinds": ["ROAD_SIGNAL"],
                 "progress_m": 100.0,
                 "usable_for_motion": True,
-                "direction_tag": "forward",
+                "resolved_direction_tag": "forward",
             }
         ],
     }
