@@ -14,6 +14,7 @@ from mobility.regions import get_active_region
 
 TRAM_TYPES = {"0"}
 BUS_TYPES = {"3"}
+TROLLEYBUS_TYPES = {"11"}
 
 
 def _rows(zf: zipfile.ZipFile, name: str) -> list:
@@ -125,9 +126,14 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
             if r.get("agency_id", "") not in agency_ids:
                 continue
             rt = str(r.get("route_type", "")).strip()
-            if rt not in TRAM_TYPES | BUS_TYPES:
+            if rt not in TRAM_TYPES | BUS_TYPES | TROLLEYBUS_TYPES:
                 continue
-            mode = "tram" if rt in TRAM_TYPES else "bus"
+            if rt in TRAM_TYPES:
+                mode = "tram"
+            elif rt in TROLLEYBUS_TYPES:
+                mode = "trolleybus"
+            else:
+                mode = "bus"
             selected_routes[r["route_id"]] = {
                 "route_number": (r.get("route_short_name") or r.get("route_long_name") or r["route_id"]).strip(),
                 "name": (r.get("route_long_name") or "").strip(),

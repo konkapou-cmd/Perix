@@ -79,7 +79,11 @@ def _physical_stops(network: dict) -> List[dict]:
     same name within 80m - same-name stops far apart never merge)."""
     groups: dict = {}
     for route in network.get("routes", []):
-        mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
+        mode = (
+            route.get("mode")
+            if route.get("mode") in ("bus", "tram", "trolleybus")
+            else "bus"
+        )
         rn = str(route.get("route_number"))
         route_directions = {
             str(t.get("headsign") or "")
@@ -349,7 +353,11 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
     trip_templates = []
     for route in network_doc.get("routes", []):
         rn = str(route.get("route_number"))
-        mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
+        mode = (
+            route.get("mode")
+            if route.get("mode") in ("bus", "tram", "trolleybus")
+            else "bus"
+        )
         stop_by_id = {str(s.get("stop_id")): s for s in route.get("stops", []) if s.get("stop_id") is not None}
         route_id = f"route:{rn}"
         pattern_map: dict = {}
