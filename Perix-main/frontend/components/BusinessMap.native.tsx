@@ -84,6 +84,7 @@ type Props = {
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onZoomChange?: (zoom: number) => void;
+  cameraScope?: "explore" | "mobility";
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;
@@ -117,6 +118,7 @@ export default function BusinessMap({
   onRegionChange,
   onRegionChangeComplete,
   onZoomChange,
+  cameraScope = "explore",
   onMarkerPress,
   onMapPress,
   height,
@@ -226,6 +228,9 @@ export default function BusinessMap({
   const { t } = useTranslation();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLocationRef = useRef<string>("");
+  const previousCameraScopeRef = useRef(cameraScope);
+  const regionByScopeRef = useRef<Partial<Record<"explore" | "mobility", Pick<Region, "latitudeDelta" | "longitudeDelta">>>>({});
+  const latestRegionRef = useRef<Region | null>(null);
   const readyRef = useRef(false);
   const [selectedGroup, setSelectedGroup] = useState<MapMarker[] | null>(null);
   const [zoomLevel, setZoomLevel] = useState(12);
@@ -284,8 +289,29 @@ export default function BusinessMap({
     return [...pinGroups, ...transitGroups];
   }, [mapMarkers]);
 
+  // Switching categories retains the center but not another mode's zoom.
   useEffect(() => {
-    if (!location || !mapRef.current) return;
+    if (!mapRef.current) return;
+    const previousScope = previousCameraScopeRef.current;
+    if (previousScope === cameraScope) return;
+    const current = latestRegionRef.current || resolvedInitialRegion;
+    previousCameraScopeRef.current = cameraScope;
+    if (!current) return;
+    regionByScopeRef.current[previousScope] = {
+      latitudeDelta: current.latitudeDelta, longitudeDelta: current.longitudeDelta,
+    };
+    const defaults = cameraScope === "mobility" ? 0.032 : 0.06;
+    const saved = regionByScopeRef.current[cameraScope] || {
+      latitudeDelta: defaults, longitudeDelta: defaults,
+    };
+    mapRef.current.animateToRegion({
+      ...current, latitudeDelta: saved.latitudeDelta, longitudeDelta: saved.longitudeDelta,
+    }, 250);
+  }, [cameraScope]);
+
+  useEffect(() => {
+    // GPS is not a camera command when Locator supplies its own viewport.
+    if (initialRegion || !location || !mapRef.current) return;
     const key = `${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
     if (key === prevLocationRef.current) return;
     prevLocationRef.current = key;
@@ -303,6 +329,7 @@ export default function BusinessMap({
   }, [focusToken]);
 
   const handleRegionChangeComplete = (region: Region) => {
+    latestRegionRef.current = region;
     const z = Math.max(2, Math.log2(360 / region.longitudeDelta));
     setZoomLevel(z);
     onZoomChange?.(z);

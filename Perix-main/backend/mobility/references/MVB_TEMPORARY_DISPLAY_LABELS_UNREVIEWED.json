@@ -1,0 +1,69 @@
+{
+  "region_id": "magdeburg",
+  "network_id": "de-magdeburg-mvb",
+  "valid_from": "2026-10-17",
+  "valid_until": "2026-11-01",
+  "operator_approved": false,
+  "approved_by": "",
+  "status": "PUBLIC_MVB_NOT_OPERATOR_APPROVED",
+  "source_url": "https://www.mvbnet.de/fahrinfo/netz_fahrplaene/",
+  "note": "Display aliases only, never rewrite GTFS routes or trip IDs. Validate complete ordered stop IDs and date.",
+  "patterns": {
+    "1:c92b785152": {
+      "label": "1N",
+      "route_number": "1",
+      "mode": "tram",
+      "stop_count": 24,
+      "stop_ids_sha24": "c6e8b49bb9ab053447228c4e"
+    },
+    "1:eae7aea366": {
+      "label": "1N",
+      "route_number": "1",
+      "mode": "tram",
+      "stop_count": 24,
+      "stop_ids_sha24": "a4f10bbea8fcd4b1fcf787b8"
+    },
+    "1:824f12ccde": {
+      "label": "1S",
+      "route_number": "1",
+      "mode": "tram",
+      "stop_count": 14,
+      "stop_ids_sha24": "c914a9dd8237ac63cf39e05f"
+    },
+    "1:e33c621f77": {
+      "label": "1S",
+      "route_number": "1",
+      "mode": "tram",
+      "stop_count": 14,
+      "stop_ids_sha24": "65226bbcc298e6c011c4634a"
+    },
+    "9:764d809e4d": {
+      "label": "9N",
+      "route_number": "9",
+      "mode": "tram",
+      "stop_count": 22,
+      "stop_ids_sha24": "0df4b9e749500a79b842c563"
+    },
+    "9:b5195e266f": {
+      "label": "9N",
+      "route_number": "9",
+      "mode": "tram",
+      "stop_count": 22,
+      "stop_ids_sha24": "931f99e841a5e84653d74cf0"
+    },
+    "9:c9c9f1e127": {
+      "label": "9S",
+      "route_number": "9",
+      "mode": "tram",
+      "stop_count": 20,
+      "stop_ids_sha24": "2b3ed4ac9014c0c3b3ddec25"
+    },
+    "9:f91684ff43": {
+      "label": "9S",
+      "route_number": "9",
+      "mode": "tram",
+      "stop_count": 20,
+      "stop_ids_sha24": "088dc82ce588f44b45a6068f"
+    }
+  }
+}
