@@ -1,0 +1,144 @@
+name: Perix Mobility staging backend safety checks
+
+# Baseline on the staging branch first. Once the cumulative V14+ changes are
+# deliberately committed to the same branch, rerun against the patched source.
+on:
+  push:
+    branches: [perix-mobility-staging]
+    paths:
+      - 'Perix-main/backend/**'
+      - '.github/workflows/perix_mobility_staging_ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobility-backend:
+    if: github.ref == 'refs/heads/perix-mobility-staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      MONGO_URL: mongodb://127.0.0.1:27017
+      DB_NAME: perix_mobility_ci_disposable
+      TEST_MONGO_URL: mongodb://127.0.0.1:27017
+      TEST_DB_NAME: perix_mobility_ci_disposable
+      REACT_APP_BACKEND_URL: http://127.0.0.1:8000
+      EXPO_PUBLIC_BACKEND_URL: http://127.0.0.1:8000
+      # No production secrets are required or supplied to this job.
+    defaults:
+      run:
+        working-directory: Perix-main/backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install backend requirements
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install pytest pytest-asyncio requests
+      - name: Verify MongoDB target and selected test scope
+        run: |
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          from urllib.parse import urlparse
+          u = urlparse(os.environ['MONGO_URL'])
+          assert u.scheme == 'mongodb' and u.hostname == '127.0.0.1' and u.port == 27017
+          assert os.environ['DB_NAME'] == 'perix_mobility_ci_disposable'
+          assert os.environ['TEST_MONGO_URL'] == os.environ['MONGO_URL']
+          assert os.environ['TEST_DB_NAME'] == os.environ['DB_NAME']
+          targets = list(Path('tests').glob('test_mobility_*.py'))
+          assert len(targets) >= 15, 'Missing mobility tests; refuse misleading CI success'
+          for f in targets:
+              content = f.read_text(encoding='utf-8')
+              for url in re.findall(r'https?://[^\s\"\']+', content):
+                  if any(x in url for x in ('perixapp.com', 'railway.app', 'emergentagent.com')):
+                      raise AssertionError(f'Known production/preview URL in {f}: {url}')
+          print(f'PASS: disposable DB and {len(targets)} Mobility modules selected')
+          PY
+      - name: Install Python test egress guard
+        run: |
+          mkdir -p "$RUNNER_TEMP/perix_ci_guard"
+          cat > "$RUNNER_TEMP/perix_ci_guard/perix_ci_no_egress.py" <<'PY'
+          """Only permit loopback TCP connections in the Perix staging pytest process."""
+          import ipaddress
+          import socket
+          _orig_resolve = socket.getaddrinfo
+          _orig_connect = socket.socket.connect
+          _orig_connect_ex = socket.socket.connect_ex
+          def _is_local(host):
+              if not isinstance(host, str):
+                  return False
+              if host.lower() == 'localhost':
+                  return True
+              try:
+                  return ipaddress.ip_address(host.split('%')[0]).is_loopback
+              except ValueError:
+                  return False
+          def _ensure_address(sock, address):
+              if sock.family in (socket.AF_INET, socket.AF_INET6):
+                  if not isinstance(address, tuple) or not address or not _is_local(address[0]):
+                      raise OSError('PERIX_CI_BLOCKED_NONLOCAL_NETWORK')
+          def _guard_resolve(host, *args, **kwargs):
+              if not _is_local(host):
+                  raise OSError('PERIX_CI_BLOCKED_NONLOCAL_DNS')
+              return _orig_resolve(host, *args, **kwargs)
+          def _guard_connect(sock, address):
+              _ensure_address(sock, address)
+              return _orig_connect(sock, address)
+          def _guard_connect_ex(sock, address):
+              _ensure_address(sock, address)
+              return _orig_connect_ex(sock, address)
+          socket.getaddrinfo = _guard_resolve
+          socket.socket.connect = _guard_connect
+          socket.socket.connect_ex = _guard_connect_ex
+          PY
+      - name: Prove external network is blocked
+        run: |
+          PYTHONPATH="$RUNNER_TEMP/perix_ci_guard:$GITHUB_WORKSPACE/Perix-main/backend" python - <<'PY'
+          import socket
+          import perix_ci_no_egress  # Explicit guard import; runs before pytest collection.
+          for host in ('8.8.8.8', 'backend-production-1968.up.railway.app'):
+              try:
+                  socket.getaddrinfo(host, 443)
+              except OSError as e:
+                  assert 'PERIX_CI_BLOCKED_NONLOCAL_DNS' in str(e)
+              else:
+                  raise AssertionError('Nonlocal DNS was not blocked')
+          try:
+              socket.socket().connect(('203.0.113.1', 443))
+          except OSError as e:
+              assert 'PERIX_CI_BLOCKED_NONLOCAL_NETWORK' in str(e)
+          else:
+              raise AssertionError('Nonlocal connection was not blocked')
+          assert socket.getaddrinfo('127.0.0.1', 27017)
+          print('PASS: nonlocal DNS and sockets blocked, loopback still allowed')
+          PY
+      - name: Compile backend
+        run: python -m compileall -q mobility routes utils
+      - name: Identify baseline or patched source
+        run: |
+          if [ -f mobility/realtime_order.py ]; then
+            echo 'PERIX_STAGE=V14_CANDIDATE' >> "$GITHUB_ENV"
+          else
+            echo 'PERIX_STAGE=BASELINE_ONLY_NO_V14_PATCHES' >> "$GITHUB_ENV"
+          fi
+      - name: Run selected Mobility tests with localhost MongoDB only
+        run: |
+          echo "Testing source stage: $PERIX_STAGE"
+          PYTHONPATH="$RUNNER_TEMP/perix_ci_guard:$GITHUB_WORKSPACE/Perix-main/backend" \
+            python -m pytest -p perix_ci_no_egress -q tests/test_mobility_*.py tests/test_date_range_utils.py
