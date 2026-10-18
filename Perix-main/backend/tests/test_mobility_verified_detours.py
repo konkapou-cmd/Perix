@@ -1,4 +1,9 @@
 """Verified closure selection and stop-pair routing regression tests."""
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+import pytest
+
 from mobility.restrictions import restriction_edges_for_pattern, restriction_signature
 from mobility.roads import _route_stops_segments_sync
 
@@ -57,3 +62,47 @@ def test_a_verified_closed_edge_forces_alternate_route():
     assert normal["segments"][0]["edge_ids"] == ["10:1:2", "10:2:3"]
     assert diverted["full"]
     assert diverted["segments"][0]["edge_ids"] == ["20:1:4", "20:4:3"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "edge", ["9" * 100000, "9" * 21 + ":1:2", "1:2:3:4", "1:x:3"],
+    ids=["oversized", "oversized-component", "extra-component", "non-numeric"],
+)
+async def test_editor_rejects_invalid_edge_ids(edge, monkeypatch):
+    from fastapi import HTTPException
+    from routes import mobility as mobility_routes
+    from mobility import editor
+
+    monkeypatch.setattr(mobility_routes, "_require_operator", AsyncMock(return_value={}))
+    with pytest.raises(HTTPException) as exc:
+        await editor.v2_create_restriction({
+            "geometry": [[52, 11], [52, 12]], "blocked_edge_ids": [edge],
+        }, SimpleNamespace(user_id="synthetic", is_admin=False))
+    assert exc.value.status_code == 400
+    assert exc.value.detail == "invalid blocked_edge_ids"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("edge", ["10:1:2", "-10:-1:-2"])
+async def test_editor_rebuild_errors_do_not_expose_internal_details(edge, test_db, monkeypatch):
+    from routes import mobility as mobility_routes
+    from mobility import editor, restrictions
+
+    monkeypatch.setattr(editor, "db", test_db)
+    monkeypatch.setattr(mobility_routes, "_require_operator", AsyncMock(return_value={}))
+    monkeypatch.setattr(
+        restrictions, "invalidate_geometries",
+        AsyncMock(side_effect=RuntimeError("internal connection detail")),
+    )
+    user = SimpleNamespace(user_id="synthetic", is_admin=False)
+    created = await editor.v2_create_restriction({
+        "geometry": [[52, 11], [52, 12]], "blocked_edge_ids": [edge],
+    }, user)
+    assert created["blocked_edge_ids"] == [edge]
+    assert created["rebuild_queued"] is False
+    assert created["rebuild_error"] == "Geometry rebuild failed"
+    deleted = await editor.v2_delete_restriction(created["restriction_id"], user)
+    assert deleted == {
+        "ok": True, "rebuild_queued": False, "rebuild_error": "Geometry rebuild failed",
+    }

@@ -198,7 +198,7 @@ async def v2_create_restriction(payload: dict, current_user: Optional[UserPublic
         except (ValueError, TypeError):
             raise HTTPException(status_code=400, detail="invalid blocked_way_ids")
     edges = [str(x) for x in (payload.get("blocked_edge_ids") or [])]
-    if any(not re.fullmatch(r"-?\d+:-?\d+:-?\d+", x) for x in edges):
+    if any(not re.fullmatch(r"-?\d{1,20}:-?\d{1,20}:-?\d{1,20}", x) for x in edges):
         raise HTTPException(status_code=400, detail="invalid blocked_edge_ids")
     verified = bool(payload.get("verified", False))
     if verified and not bool(getattr(current_user, "is_admin", False)):
@@ -248,8 +248,8 @@ async def v2_create_restriction(payload: dict, current_user: Optional[UserPublic
         from mobility.restrictions import invalidate_geometries
 
         await invalidate_geometries(doc)
-    except Exception as exc:
-        return {**doc, "rebuild_queued": False, "rebuild_error": str(exc)}
+    except Exception:
+        return {**doc, "rebuild_queued": False, "rebuild_error": "Geometry rebuild failed"}
     return {**doc, "rebuild_queued": bool(verified)}
 
 
@@ -266,6 +266,6 @@ async def v2_delete_restriction(restriction_id: str, current_user: Optional[User
         from mobility.restrictions import invalidate_geometries
 
         await invalidate_geometries(doc)
-    except Exception as exc:
-        return {"ok": True, "rebuild_queued": False, "rebuild_error": str(exc)}
+    except Exception:
+        return {"ok": True, "rebuild_queued": False, "rebuild_error": "Geometry rebuild failed"}
     return {"ok": True, "rebuild_queued": bool(doc.get("verified"))}
