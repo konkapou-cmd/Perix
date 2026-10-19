@@ -85,6 +85,7 @@ const { t, i18n } = useTranslation();
   const [locateToken, setLocateToken] = useState(0);
   const [mobilityLocateFocus, setMobilityLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mobilityLocateToken, setMobilityLocateToken] = useState(0);
+  const [mobilityGpsFix, setMobilityGpsFix] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [mobilityMode, setMobilityMode] = useState<"all" | "bus" | "tram" | "taxi">("all");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
@@ -496,6 +497,7 @@ const { t, i18n } = useTranslation();
           centerLng: loc.longitude,
         };
         if (isMobilityTab) {
+          setMobilityGpsFix({ latitude: loc.latitude, longitude: loc.longitude });
           setMobilityLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
           setMobilityLocateToken((t) => t + 1);
           setMobilityMapBounds(bounds);
@@ -875,8 +877,9 @@ const { t, i18n } = useTranslation();
     // Mobility origin = the user's ACTUAL position first (live GPS pin),
     // browsing center second. A stale manual/context point must never make
     // the journey plan start hundreds of meters behind the user.
-    const originLat = livePosition?.latitude ?? contextLocation?.latitude ?? mobilityLocateFocus?.latitude;
-    const originLng = livePosition?.longitude ?? contextLocation?.longitude ?? mobilityLocateFocus?.longitude;
+    const origin = mobilityGpsFix ?? livePosition;
+    const originLat = origin?.latitude;
+    const originLng = origin?.longitude;
     if (originLat == null || originLng == null) {
       setJourneyPlans([]);
       setPlanNote(t("mobility.planNoLocation", "Enable location to plan a journey from where you are."));
@@ -1383,7 +1386,7 @@ const { t, i18n } = useTranslation();
                 ? 0.09
                 : 0.05,
             }}
-            pinLocation={mobilityLocateFocus ?? (livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null)}
+            pinLocation={mobilityGpsFix ?? livePosition ?? null}
             focusRegion={mobilityLocateFocus ? { latitude: mobilityLocateFocus.latitude, longitude: mobilityLocateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
             focusToken={mobilityLocateToken || undefined}
             vehicles={mobilityMapVehicles}
