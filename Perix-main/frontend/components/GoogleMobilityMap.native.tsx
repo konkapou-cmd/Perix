@@ -31,6 +31,11 @@ const gmapsKey =
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_JS_KEY ||
   "";
 
+const APPROVED_MAP_ORIGINS: string[] = [
+  "https://app.perixapp.com",
+  // TODO: add the exact approved staging origin here (e.g. "https://<staging>.up.railway.app")
+];
+
 export default function GoogleMobilityMapNative(props: Props) {
   const {
     location,
@@ -68,7 +73,7 @@ export default function GoogleMobilityMapNative(props: Props) {
   if (mobilityMapUrl) {
     try {
       const parsed = new URL(mobilityMapUrl);
-      if (parsed.protocol === "https:" && parsed.pathname === "/google-mobility-map.html") {
+      if (parsed.protocol === "https:" && parsed.pathname === "/google-mobility-map.html" && APPROVED_MAP_ORIGINS.includes(parsed.origin)) {
         mapOrigin = parsed.origin;
         parsed.searchParams.set("key", gmapsKey);
         parsed.searchParams.set("locale", "de");

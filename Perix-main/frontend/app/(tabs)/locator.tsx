@@ -488,14 +488,19 @@ const { t, i18n } = useTranslation();
         setLocateToken((t) => t + 1);
         setManualLocation(loc.latitude, loc.longitude);
         const d = 0.02;
-        setGlobalMapBounds({
+        const bounds = {
           minLat: loc.latitude - d / 2,
           maxLat: loc.latitude + d / 2,
           minLng: loc.longitude - d / 2,
           maxLng: loc.longitude + d / 2,
           centerLat: loc.latitude,
           centerLng: loc.longitude,
-        });
+        };
+        if (isMobilityTab) {
+          setMobilityMapBounds(bounds);
+        } else {
+          setGlobalMapBounds(bounds);
+        }
       } else if (Platform.OS === "web" && typeof window !== "undefined") {
         const deniedWeb = t("common.locationDeniedWeb", "Location is blocked for this site. Tap the lock icon in the address bar, open Site settings and allow Location access.");
         window.alert(t("common.error") + "\n\n" + deniedWeb);
@@ -507,7 +512,7 @@ const { t, i18n } = useTranslation();
     } finally {
       setLocating(false);
     }
-  }, [locating, setManualLocation, setGlobalMapBounds, t]);
+  }, [locating, setManualLocation, setGlobalMapBounds, isMobilityTab, t]);
 
   // Live mobility vehicles (buses/taxis) - polled while the Mobility tab
   // is open. The WebSocket channel integration can replace polling later.
