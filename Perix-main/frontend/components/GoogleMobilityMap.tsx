@@ -95,13 +95,13 @@ const {
   } = props;
 
 const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [ready, setReady] = useState(false);
+  const [session, setSession] = useState<string | null>(null);
 
   const mapUrl = `${typeof window !== "undefined" ? window.location.origin : "https://app.perixapp.com"}/google-mobility-map.html?key=${encodeURIComponent(gmapsKey)}&locale=de`;
 
 // Parent -> map bridge
   useEffect(() => {
-    if (!iframeRef.current?.contentWindow) return;
+    if (!session || !iframeRef.current?.contentWindow) return;
     const payload = {
       lines: transitLines.map((l) => ({
         route_number: l.routeNumber,
@@ -140,7 +140,7 @@ const iframeRef = useRef<HTMLIFrameElement>(null);
       initialZoom: initialZoom ?? null,
     };
     iframeRef.current.contentWindow?.postMessage({ source: "perix-google-map", type: "update", payload }, window.location.origin);
-  }, [ready, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, initialRegion, initialZoom]);
+  }, [session, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, initialRegion, initialZoom]);
 
   // Map -> parent bridge
   useEffect(() => {
@@ -149,7 +149,7 @@ const iframeRef = useRef<HTMLIFrameElement>(null);
       if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (!data || data.source !== "perix-google-map") return;
-      if (data.type === "ready") setReady(true);
+      if (data.type === "ready") setSession(data.session || Date.now().toString());
       if (data.type === "mapPress" && onMapPress) onMapPress(data.lat, data.lng);
       if (data.type === "markerPress" && onMarkerPress) onMarkerPress(data.id);
       if (data.type === "stopPress" && onTransitStopPress) {
@@ -174,7 +174,6 @@ return (
         title="perix-google-map"
         style={{ width: "100%", height: "100%", border: 0, borderRadius: 12 }}
         allow="geolocation"
-        onLoad={() => setReady(false)}
       />
     </View>
   );

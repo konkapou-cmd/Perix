@@ -1355,11 +1355,11 @@ const { t, i18n } = useTranslation();
             }
             initialRegion={{
               latitude:
-                mapBounds?.centerLat ??
+                mobilityMapBounds?.centerLat ??
                 contextLocation?.latitude ??
                 (isMobilityTab ? 52.131 : 52.52),
               longitude:
-                mapBounds?.centerLng ??
+                mobilityMapBounds?.centerLng ??
                 contextLocation?.longitude ??
                 (isMobilityTab ? 11.64 : 13.405),
               latitudeDelta: mapBounds

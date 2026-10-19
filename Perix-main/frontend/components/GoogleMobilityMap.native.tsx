@@ -54,7 +54,9 @@ export default function GoogleMobilityMapNative(props: Props) {
   } = props;
 
   const webRef = useRef<WebView>(null);
-  const [ready, setReady] = useState(false);
+  const [session, setSession] = useState<string | null>(null);
+
+  const APPROVED_MAP_HOST_PATTERN = /(^|\.)(perixapp\.com|railway\.app)$/i;
 
   // The Mobility map page is served by the frontend, not the backend API.
   // No silent fallback to production: if the URL is missing or not HTTPS, we
@@ -68,7 +70,7 @@ export default function GoogleMobilityMapNative(props: Props) {
   if (mobilityMapUrl) {
     try {
       const parsed = new URL(mobilityMapUrl);
-      if (parsed.protocol === "https:") {
+      if (parsed.protocol === "https:" && APPROVED_MAP_HOST_PATTERN.test(parsed.hostname)) {
         mapOrigin = parsed.origin;
         parsed.searchParams.set("key", gmapsKey);
         parsed.searchParams.set("locale", "de");
@@ -80,7 +82,7 @@ export default function GoogleMobilityMapNative(props: Props) {
   }
 
   useEffect(() => {
-    if (!ready || !webRef.current || !mapUrl) return;
+    if (!session || !webRef.current || !mapUrl) return;
     const payload = {
       lines: transitLines.map((l) => ({
         route_number: l.routeNumber,
@@ -121,7 +123,7 @@ export default function GoogleMobilityMapNative(props: Props) {
     webRef.current.injectJavaScript(
       `window.postMessage(${JSON.stringify({ source: "perix-google-map", type: "update", payload })}); true;`
     );
-  }, [ready, mapUrl, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, initialRegion, initialZoom]);
+  }, [session, mapUrl, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, initialRegion, initialZoom]);
 
   const onMessage = (event: WebViewMessageEvent) => {
     let data: any;
@@ -131,7 +133,7 @@ export default function GoogleMobilityMapNative(props: Props) {
       return;
     }
     if (!data || data.source !== "perix-google-map") return;
-    if (data.type === "ready") setReady(true);
+    if (data.type === "ready") setSession(data.session || Date.now().toString());
     if (data.type === "mapPress" && onMapPress) onMapPress(data.lat, data.lng);
     if (data.type === "markerPress" && onMarkerPress) onMarkerPress(data.id);
     if (data.type === "stopPress" && onTransitStopPress) {
@@ -171,7 +173,6 @@ export default function GoogleMobilityMapNative(props: Props) {
         originWhitelist={mapOrigin ? [mapOrigin] : ["https://*"]}
         source={{ uri: mapUrl }}
         onMessage={onMessage}
-        onLoadStart={() => setReady(false)}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         javaScriptEnabled
         domStorageEnabled

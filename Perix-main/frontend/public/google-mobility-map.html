@@ -69,6 +69,7 @@
   var LAST_STOPS = [];
   var LAST_DEEP = null;
   var REGION_LAST = 0;
+  var SESSION_ID = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
 
   function initMap() {
     var el = document.getElementById("map");
@@ -104,7 +105,7 @@
       var ne = b.getNorthEast();
       post("regionChange", { minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() });
     });
-    post("ready", {});
+    post("ready", { session: SESSION_ID });
     if (PENDING) { var p = PENDING; PENDING = null; applyUpdate(p); }
   }
 
@@ -342,7 +343,7 @@
           });
           if (clusters.length) {
             clusters.forEach(function (c) {
-              var key = "plat:" + s.stop_id + ":" + (c.side || "unknown") + ":" + c.lat.toFixed(5) + "," + c.lng.toFixed(5);
+              var key = "plat:" + s.stop_id + ":" + (c.side || "unknown") + ":" + (c.platform_id || "noid") + ":" + c.lat.toFixed(5) + "," + c.lng.toFixed(5);
               seen[key] = true;
               if (!STOPS[key]) {
                 STOPS[key] = makeStopMarker(c.lat, c.lng, s.stop_id, s.name, c.platform_id, c.side);
@@ -371,7 +372,8 @@
       var key = line.pattern_id || line.route_number;
       if (!key) {
         var p0 = line.points && line.points[0];
-        key = "seg:" + (p0 ? p0.latitude + "," + p0.longitude : "0,0") + ":" + (line.points ? line.points.length : 0);
+        var pN = line.points && line.points[line.points.length - 1];
+        key = "seg:" + (p0 ? p0.latitude.toFixed(5) + "," + p0.longitude.toFixed(5) : "0,0") + ":" + (pN ? pN.latitude.toFixed(5) + "," + pN.longitude.toFixed(5) : "0,0") + ":" + (line.points ? line.points.length : 0);
       }
       var path = (line.points || []).map(function (p) { return { lat: p.latitude, lng: p.longitude }; });
       if (path.length < 2) return;
