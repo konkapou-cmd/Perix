@@ -28,7 +28,11 @@ type Props = {
 
 const gmapsKey =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_JS_KEY ||
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_GEO_KEY ||
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_JS_KEY ||
+  process.env.EXPO_PUBLIC_GEO_KEY ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
   "";
 
 const APPROVED_MAP_ORIGINS: string[] = [

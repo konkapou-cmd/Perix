@@ -877,7 +877,10 @@ const { t, i18n } = useTranslation();
     // Mobility origin = the user's ACTUAL position first (live GPS pin),
     // browsing center second. A stale manual/context point must never make
     // the journey plan start hundreds of meters behind the user.
-    const origin = mobilityGpsFix ?? livePosition;
+    // Freshness policy: livePosition is continuously watched and updated,
+    // so it is always preferred. mobilityGpsFix (a one-shot manual Locate Me
+    // fix) is only a fallback when no live position is available yet.
+    const origin = livePosition ?? mobilityGpsFix;
     const originLat = origin?.latitude;
     const originLng = origin?.longitude;
     if (originLat == null || originLng == null) {
@@ -1386,7 +1389,7 @@ const { t, i18n } = useTranslation();
                 ? 0.09
                 : 0.05,
             }}
-            pinLocation={mobilityGpsFix ?? livePosition ?? null}
+            pinLocation={livePosition ?? mobilityGpsFix ?? null}
             focusRegion={mobilityLocateFocus ? { latitude: mobilityLocateFocus.latitude, longitude: mobilityLocateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
             focusToken={mobilityLocateToken || undefined}
             vehicles={mobilityMapVehicles}
