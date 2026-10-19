@@ -32,8 +32,9 @@ const gmapsKey =
   "";
 
 const APPROVED_MAP_ORIGINS: string[] = [
-  "https://app.perixapp.com",
-  // TODO: add the exact approved staging origin here (e.g. "https://<staging>.up.railway.app")
+  ...(Constants.expoConfig?.extra?.EXPO_PUBLIC_MOBILITY_MAP_ORIGINS ||
+    process.env.EXPO_PUBLIC_MOBILITY_MAP_ORIGINS ||
+    "").split(",").map((s: string) => s.trim()).filter(Boolean),
 ];
 
 export default function GoogleMobilityMapNative(props: Props) {

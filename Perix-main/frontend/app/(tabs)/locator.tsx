@@ -486,7 +486,9 @@ const { t, i18n } = useTranslation();
       if (loc) {
         setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
         setLocateToken((t) => t + 1);
-        setManualLocation(loc.latitude, loc.longitude);
+        if (!isMobilityTab) {
+          setManualLocation(loc.latitude, loc.longitude);
+        }
         const d = 0.02;
         const bounds = {
           minLat: loc.latitude - d / 2,
