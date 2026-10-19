@@ -2,7 +2,7 @@
 import sys, os, pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal
 
 import database
@@ -15,7 +15,7 @@ from utils.helpers import generate_id, now_utc
 
 def _d(offset: int) -> str:
     """Future date relative to today — avoids time-bomb failures."""
-    return (date.today() + timedelta(days=offset)).isoformat()
+    return (now_utc().date() + timedelta(days=offset)).isoformat()
 
 
 @pytest.fixture
@@ -39,8 +39,8 @@ async def hotel_service(test_db):
         "check_out_time": "11:00",
         "min_nights": 1,
         "max_nights": 30,
-        "available_from": "2026-01-01",
-        "available_until": "2027-12-31",
+        "available_from": _d(-1),
+        "available_until": _d(120),
         "is_active": True,
         "status": "published",
         "created_at": now_utc(),
@@ -96,7 +96,7 @@ async def test_max_nights_rejected(hotel_service):
 
 @pytest.mark.asyncio
 async def test_outside_window_rejected(hotel_service):
-    hotel_service["available_from"] = "2026-10-01"
+    hotel_service["available_from"] = _d(8)
     with pytest.raises(Exception):
         await build_stay_quote(
             hotel_service,
@@ -252,3 +252,35 @@ async def test_partial_block_allowed(hotel_service):
         assert quote["available"]  # 3 - 1 blocked = 2 available, requesting 2 -> OK
     finally:
         await database.db.service_date_blocks.delete_one({"block_id": block_doc["block_id"]})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("client_id", "owner_user_id", "expected_ids"),
+    [
+        ("guest", "owner", {"guest", "owner"}),
+        ("guest", None, {"guest"}),
+    ],
+)
+async def test_booking_web_push_schedules_background_delivery(
+    monkeypatch, client_id, owner_user_id, expected_ids
+):
+    """The booking request must not fail when push tasks are scheduled."""
+    import asyncio
+    from routes import push_web
+
+    sent = set()
+    delivered = asyncio.Event()
+
+    async def fake_notify_web_push(user_id, *args, **kwargs):
+        sent.add(user_id)
+        if sent == expected_ids:
+            delivered.set()
+
+    monkeypatch.setattr(push_web, "notify_web_push", fake_notify_web_push)
+    await push_web.notify_booking_web_push(
+        client_id=client_id, owner_user_id=owner_user_id,
+        service_name="Synthetic Hotel", client_name="Guest",
+    )
+    await asyncio.wait_for(delivered.wait(), timeout=2)
+    assert sent == expected_ids

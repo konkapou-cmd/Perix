@@ -1,6 +1,8 @@
 """Hotel service validation tests."""
 import sys, os, pytest
+from datetime import timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.helpers import now_utc
 
 from fastapi import HTTPException
 from routes.services import validate_date_range_service_for_publish
@@ -8,6 +10,7 @@ from services.date_range_utils import parse_price_to_cents
 
 
 def make_valid_hotel():
+    today = now_utc().date()
     return {
         "inventory_count": 5,
         "max_guests": 2,
@@ -16,8 +19,8 @@ def make_valid_hotel():
         "min_nights": 1,
         "max_nights": 30,
         "price": "120.00",
-        "available_from": "2026-10-01",
-        "available_until": "2026-12-31",
+        "available_from": (today + timedelta(days=1)).isoformat(),
+        "available_until": (today + timedelta(days=120)).isoformat(),
         "check_in_time": "15:00",
         "check_out_time": "11:00",
     }
@@ -38,7 +41,7 @@ def test_missing_available_until():
 
 
 def test_end_before_start():
-    h = make_valid_hotel(); h["available_until"] = "2026-09-01"
+    h = make_valid_hotel(); h["available_until"] = (now_utc().date() - timedelta(days=1)).isoformat()
     with pytest.raises(HTTPException): validate_date_range_service_for_publish(h)
 
 

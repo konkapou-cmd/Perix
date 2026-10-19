@@ -296,4 +296,9 @@ async def notify_booking_web_push(
             )
         )
     if tasks:
-        asyncio.create_task(asyncio.gather(*tasks))
+        # create_task requires a coroutine, whereas gather returns a Future.
+        # Keep push delivery asynchronous without aborting the booking request.
+        async def deliver_in_background():
+            await asyncio.gather(*tasks)
+
+        asyncio.create_task(deliver_in_background())
