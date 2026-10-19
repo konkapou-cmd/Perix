@@ -1,28 +1,37 @@
 name: Hotel booking checks
 
+# Existing triggers preserved. Changes are limited to CI configuration.
 on:
   pull_request:
   push:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
-    # Frontend has ~130 pre-existing typecheck errors (t() typing pattern) that
-    # predate the hotel work. Keep install blocking; typecheck/lint advisory
-    # until the tech debt is paid down. Backend job below stays blocking.
+    defaults:
+      run:
+        working-directory: Perix-main/frontend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: yarn
-      - run: yarn install --frozen-lockfile
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Perix-main/frontend/package-lock.json
+      # Dependency installation must be blocking. Existing typecheck/lint debt
+      # is advisory and is deliberately NOT hidden by changing source files.
+      - name: Install locked dependencies
+        run: npm ci
+      - name: TypeScript diagnostics (advisory)
+        run: npm run typecheck
         continue-on-error: true
-      - run: yarn typecheck
-        continue-on-error: true
-      - run: yarn lint
+      - name: Lint diagnostics (advisory)
+        run: npm run lint
         continue-on-error: true
 
   backend-unit:
@@ -41,15 +50,84 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      MONGO_URL: mongodb://localhost:27017
-      DB_NAME: perix_hotel_test
-      # conftest imports `config` from the backend package root — bare `pytest`
-      # does not add the working directory to sys.path (python -m pytest does).
+      MONGO_URL: mongodb://127.0.0.1:27017
+      DB_NAME: perix_hotel_ci_disposable
+      TEST_MONGO_URL: mongodb://127.0.0.1:27017
+      TEST_DB_NAME: perix_hotel_ci_disposable
       PYTHONPATH: ${{ github.workspace }}/Perix-main/backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - run: pytest tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py
+          python-version: '3.12'
+      - name: Install backend and test dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install pytest pytest-asyncio
+      - name: Verify disposable MongoDB target before running destructive fixtures
+        run: |
+          python - <<'PY'
+          import os
+          from urllib.parse import urlparse
+          mongo = os.environ['MONGO_URL']
+          parsed = urlparse(mongo)
+          assert parsed.scheme == 'mongodb'
+          assert parsed.hostname == '127.0.0.1' and parsed.port == 27017
+          assert parsed.username is None and parsed.password is None
+          assert os.environ['DB_NAME'] == 'perix_hotel_ci_disposable'
+          assert os.environ['TEST_MONGO_URL'] == mongo
+          assert os.environ['TEST_DB_NAME'] == os.environ['DB_NAME']
+          print('PASS: localhost disposable MongoDB is configured')
+          PY
+      - name: Install Python-only localhost network guard
+        run: |
+          mkdir -p "$RUNNER_TEMP/perix_hotel_guard"
+          cat > "$RUNNER_TEMP/perix_hotel_guard/perix_hotel_no_egress.py" <<'PY'
+          """Block Python pytest process network egress except loopback sockets."""
+          import ipaddress
+          import socket
+          original_resolve = socket.getaddrinfo
+          original_connect = socket.socket.connect
+          original_connect_ex = socket.socket.connect_ex
+
+          def is_loopback(host):
+              if not isinstance(host, str):
+                  return False
+              if host.lower() == 'localhost':
+                  return True
+              try:
+                  return ipaddress.ip_address(host.split('%')[0]).is_loopback
+              except ValueError:
+                  return False
+
+          def check_target(sock, address):
+              if sock.family in (socket.AF_INET, socket.AF_INET6):
+                  if not isinstance(address, tuple) or not address or not is_loopback(address[0]):
+                      raise OSError('PERIX_HOTEL_CI_BLOCKED_EGRESS')
+
+          def guarded_resolve(host, *args, **kwargs):
+              if not is_loopback(host):
+                  raise OSError('PERIX_HOTEL_CI_BLOCKED_DNS')
+              return original_resolve(host, *args, **kwargs)
+
+          def guarded_connect(sock, address):
+              check_target(sock, address)
+              return original_connect(sock, address)
+
+          def guarded_connect_ex(sock, address):
+              check_target(sock, address)
+              return original_connect_ex(sock, address)
+
+          socket.getaddrinfo = guarded_resolve
+          socket.socket.connect = guarded_connect
+          socket.socket.connect_ex = guarded_connect_ex
+          PY
+      - name: Run hotel booking tests (fail on real test failures)
+        run: >-
+          PYTHONPATH="$RUNNER_TEMP/perix_hotel_guard:$GITHUB_WORKSPACE/Perix-main/backend"
+          python -m pytest -p perix_hotel_no_egress -q
+          tests/test_date_range_utils.py
+          tests/test_date_range_booking.py
+          tests/test_date_range_booking_concurrency.py
+          tests/test_hotel_service_validation.py
+          tests/test_migration.py
