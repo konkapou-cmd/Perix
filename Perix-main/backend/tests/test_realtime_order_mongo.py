@@ -157,6 +157,7 @@ async def test_motor_concurrent_new_row_upserts(test_db):
 async def test_realtime_worker_retries_actual_duplicate_key_bulk_write(test_db, monkeypatch):
     import httpx
     from google.transit import gtfs_realtime_pb2
+    from pymongo import InsertOne
     from pymongo.errors import BulkWriteError
     from routes import mobility
     from utils import mobility_workers as worker
@@ -244,11 +245,17 @@ async def test_realtime_worker_retries_actual_duplicate_key_bulk_write(test_db, 
                     "feed_timestamp": now - 200,
                     "delay_seconds": 1,
                 })
-            try:
-                return await original_bulk_write(self, requests, **kwargs)
-            except BulkWriteError as exc:
-                duplicate_errors.append(exc.details)
-                raise
+                try:
+                    await original_bulk_write(
+                        self,
+                        [InsertOne({**key, "feed_timestamp": now - 100})],
+                        ordered=False,
+                    )
+                except BulkWriteError as exc:
+                    duplicate_errors.append(exc.details)
+                    raise
+                raise AssertionError("MongoDB accepted a duplicate unique-key insert")
+            return await original_bulk_write(self, requests, **kwargs)
         return await original_bulk_write(self, requests, **kwargs)
 
     monkeypatch.setattr(
