@@ -109,6 +109,8 @@ type Props = {
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onZoomChange?: (zoom: number) => void;
+  /** Camera zoom belongs to a view, not to shared GPS/MapBounds. */
+  cameraScope?: "explore" | "mobility";
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;
@@ -118,8 +120,10 @@ type Props = {
 };
 
 const googleKey =
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_JS_KEY ||
   Constants.expoConfig?.extra?.EXPO_PUBLIC_GEO_KEY ||
   Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_JS_KEY ||
   process.env.EXPO_PUBLIC_GEO_KEY ||
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
   "";
@@ -375,6 +379,7 @@ export default function BusinessMap({
   onRegionChange,
   onRegionChangeComplete,
   onZoomChange,
+  cameraScope = "explore",
   onMarkerPress,
   onMapPress,
   height = 300,
@@ -384,6 +389,9 @@ export default function BusinessMap({
 }: Props) {
   const { t } = useTranslation();
   const mapDivRef = useRef<HTMLDivElement>(null);
+  const directionsRendererRef = useRef<any>(null);
+  const [dirSteps, setDirSteps] = useState<{ id: string; text: string }[]>([]);
+  const [dirSummary, setDirSummary] = useState("");
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const [mapReady, setMapReady] = useState(false);
@@ -392,11 +400,14 @@ export default function BusinessMap({
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
   const [enableError, setEnableError] = useState<string | null>(null);
-  const centerLat = location?.latitude ?? initialRegion?.latitude ?? 52.52;
-  const centerLng = location?.longitude ?? initialRegion?.longitude ?? 13.405;
+  // The map camera follows the shared viewport; location is only a GPS pin.
+  const centerLat = initialRegion?.latitude ?? location?.latitude ?? 52.52;
+  const centerLng = initialRegion?.longitude ?? location?.longitude ?? 13.405;
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const lastBoundsRef = useRef<string>("");
   const prevCenterRef = useRef<string>("");
+  const prevCameraScopeRef = useRef(cameraScope);
+  const zoomByScopeRef = useRef<Partial<Record<"explore" | "mobility", number>>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // The map's one-time listeners must always call the LATEST props (stale
@@ -742,7 +753,8 @@ export default function BusinessMap({
         const google = (window as any).google;
         const map = new google.maps.Map(mapDivRef.current, {
           center: { lat: centerLat, lng: centerLng },
-          zoom: 14,
+          // Do not inherit the tight Mobility zoom in other Locator categories.
+          zoom: cameraScope === "mobility" ? 15 : 14,
           disableDefaultUI: staticMode,
           zoomControl: !staticMode,
           mapTypeControl: false,
@@ -811,7 +823,7 @@ export default function BusinessMap({
         mapReadyRef.current = true;
         setMapReady(true);
         console.log("[WebMap] initialized zoom=" + map.getZoom());
-        onZoomChangeRef.current?.(map.getZoom() || 14);
+        onZoomChangeRef.current?.(map.getZoom() || (cameraScope === "mobility" ? 15 : 14));
       })
       .catch((e) => { console.error("[WebMap] init failed", e); setMapError(true); });
     return () => {
@@ -820,6 +832,22 @@ export default function BusinessMap({
       mapReadyRef.current = false;
     };
   }, [disabled, mapError]);
+
+  // Keep the same geographic center across tabs, but store zoom separately.
+  // No GPS write, no map recreation and no vehicle animation reset.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const previousScope = prevCameraScopeRef.current;
+    if (previousScope === cameraScope) return;
+    const map = mapRef.current;
+    const currentZoom = map.getZoom();
+    if (typeof currentZoom === "number" && Number.isFinite(currentZoom)) {
+      zoomByScopeRef.current[previousScope] = currentZoom;
+    }
+    prevCameraScopeRef.current = cameraScope;
+    const target = zoomByScopeRef.current[cameraScope] ?? (cameraScope === "mobility" ? 15 : 14);
+    if (Math.abs((map.getZoom() ?? target) - target) >= 0.25) map.setZoom(target);
+  }, [cameraScope, mapReady]);
 
   // Sync markers — DOM-based pins (OverlayView) for pixel-perfect app-style rendering
   useEffect(() => {
@@ -1373,17 +1401,16 @@ export default function BusinessMap({
       // directions instead of the name.
       const platforms = (s as any).platforms || [];
       if (zoom >= 16 && platforms.length >= 1) {
-        const mainKey = `stop:${s.stop_id}:${bucket}`;
-        seenKeys.add(mainKey);
-        if (!stopsCacheRef.current.has(mainKey)) {
-          buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
-        }
-        const clusters: { lat: number; lng: number; directions: string[]; routeNums: Set<string> }[] = [];
+        // Deep zoom: render the ACTUAL boarding points, not an extra
+        // aggregate marker on top of nearby opposing platforms.
+        const clusters: { lat: number; lng: number; side: string | null; directions: string[]; routeNums: Set<string> }[] = [];
         for (const p of platforms) {
           if (p.latitude == null || p.longitude == null) continue;
+          const side = p.side === "left" || p.side === "right" ? p.side : null;
+          // Never collapse opposite boarding sides into one marker.
           const near = clusters.find(
-            (c) =>
-              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 25
+            (c) => c.side === side &&
+              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 12
           );
           if (near) {
             for (const d of p.directions || []) {
@@ -1394,23 +1421,32 @@ export default function BusinessMap({
             clusters.push({
               lat: p.latitude,
               lng: p.longitude,
+              side,
               directions: [...(p.directions || [])],
               routeNums: new Set<string>(p.routes || []),
             });
           }
         }
+        if (!clusters.length) {
+          const mainKey = `stop:${s.stop_id}:${bucket}`;
+          seenKeys.add(mainKey);
+          if (!stopsCacheRef.current.has(mainKey)) {
+            buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
+          }
+        }
         for (const c of clusters) {
-          const dMain =
-            Math.sqrt((s.latitude - c.lat) ** 2 + (s.longitude - c.lng) ** 2) * 111000;
-          if (dMain < 25) continue;
-          const k = `dir:${s.stop_id}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
+          const k = `dir:${s.stop_id}:${c.side || "unknown"}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
           seenKeys.add(k);
           if (!stopsCacheRef.current.has(k)) {
             const cRoutes = Array.from(c.routeNums).map((rn) => {
               const rr = (s.routes || []).find((x: any) => x.route_number === rn);
               return rr || { route_number: rn, mode: s.modes[0] || "bus" };
             });
-            buildPin(s, c.lat, c.lng, true, c.directions, null, k, undefined, cRoutes);
+            buildPin(
+              s, c.lat, c.lng, true,
+              c.directions.length ? c.directions : [s.name],
+              c.side, k, undefined, cRoutes
+            );
           }
         }
         return;
@@ -1556,6 +1592,45 @@ export default function BusinessMap({
     if (!mapRef.current || !mapReadyRef.current || !focusToken || !focusRegion) return;
     mapRef.current.panTo({ lat: focusRegion.latitude, lng: focusRegion.longitude });
     mapRef.current.setZoom(14);
+    // Google Directions to the focused business/service/activity when the
+    // user location is known: the locator "go to map" action now also
+    // answers "how do I get there".
+    if (location && location.latitude != null && location.longitude != null && !disabled) {
+      try {
+        const g = (window as any).google;
+        const ds = new g.maps.DirectionsService();
+        const renderer =
+          directionsRendererRef.current || new g.maps.DirectionsRenderer({ map: mapRef.current, suppressMarkers: false, polylineOptions: { strokeColor: "#096BFF", strokeWeight: 5 } });
+        directionsRendererRef.current = renderer;
+        renderer.setMap(mapRef.current);
+        ds.route(
+          {
+            origin: { lat: location.latitude, lng: location.longitude },
+            destination: { lat: focusRegion.latitude, lng: focusRegion.longitude },
+            travelMode: g.maps.TravelMode.DRIVING,
+            provideRouteAlternatives: false,
+          },
+          (result: any, status: any) => {
+            if (status === "OK" && result) {
+              renderer.setDirections(result);
+              const legs = result.routes[0]?.legs || [];
+              const steps = legs[0]?.steps || [];
+              setDirSummary(legs[0] ? `${legs[0].distance?.text ?? ""} · ${legs[0].duration?.text ?? ""}` : "");
+              setDirSteps(steps.slice(0, 12).map((st: any, i: number) => ({ id: `${i}`, text: String(st.instructions ?? "").replace(/<[^>]+>/g, " ") })));
+            } else {
+              setDirSteps([]);
+              setDirSummary("");
+            }
+          }
+        );
+      } catch (e) {
+        setDirSteps([]);
+      }
+    } else {
+      setDirSteps([]);
+      setDirSummary("");
+      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null);
+    }
   }, [focusToken, mapReady]);
 
   if (disabled) {
@@ -1640,6 +1715,23 @@ export default function BusinessMap({
         ref={mapDivRef as any}
         style={{ flex: 1, borderRadius: 12 }}
       />
+
+      {dirSteps.length > 0 && (
+        <View style={s.dirPanel}>
+          <View style={s.dirPanelHeader}>
+            <Text style={s.dirPanelTitle}>{t("map.directions", "Directions")} · {dirSummary}</Text>
+            <Pressable onPress={() => { setDirSteps([]); setDirSummary(""); if (directionsRendererRef.current) directionsRendererRef.current.setMap(null); }} hitSlop={8}>
+              <Ionicons name="close" size={18} color="#444" />
+            </Pressable>
+          </View>
+          {dirSteps.map((step, idx) => (
+            <View key={step.id} style={s.dirStepRow}>
+              <Text style={s.dirStepNum}>{idx + 1}</Text>
+              <Text style={s.dirStepText}>{step.text}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       <Modal visible={!!selectedGroup} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
         <Pressable style={s.sheetOverlay} onPress={() => setSelectedGroup(null)}>
@@ -1739,6 +1831,26 @@ const s = StyleSheet.create({
   disabledOverlay: { flex: 1, backgroundColor: COLORS.borderGray, justifyContent: "center", alignItems: "center", gap: 12 },
   disabledText: { fontSize: 15, color: COLORS.textGray, fontWeight: "500" },
   loading: { ...StyleSheet.absoluteFillObject as any, justifyContent: "center", alignItems: "center", backgroundColor: "#f3f4f6", zIndex: 10 },
+  dirPanel: {
+    position: "absolute",
+    left: 10,
+    right: 10,
+    bottom: 10,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 12,
+    maxHeight: 220,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
+  dirPanelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+  dirPanelTitle: { fontSize: 13, fontWeight: "700", color: "#096BFF" },
+  dirStepRow: { flexDirection: "row", gap: 8, marginVertical: 2 },
+  dirStepNum: { width: 18, height: 18, borderRadius: 9, backgroundColor: "#096BFF", color: "#fff", fontSize: 11, fontWeight: "700", textAlign: "center", lineHeight: 18 },
+  dirStepText: { flex: 1, fontSize: 12.5, color: "#333", lineHeight: 17 },
   errorText: { color: "#ef4444", fontSize: 13, marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 20 },
   card: { backgroundColor: "#fff", borderRadius: 20, padding: 20, width: "100%", maxWidth: 340 },

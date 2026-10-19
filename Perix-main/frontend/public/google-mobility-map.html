@@ -1,0 +1,512 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Perix Mobility Map</title>
+<style>
+  html, body, #map { height: 100%; margin: 0; padding: 0; }
+  body { font-family: -apple-system, Roboto, Arial, sans-serif; overflow: hidden; background:#e8e8e8; }
+  .veh { display:flex; align-items:center; justify-content:center; width:34px; height:34px;
+         border-radius:50%; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.45);
+         font-weight:800; font-size:12px; color:#fff; text-align:center; }
+  .veh.bus { background:#1E3A8A; }
+  .veh.tram { background:#8B0000; }
+  .veh.taxi { background:#FFC400; color:#222; }
+  .veh.estimated { opacity:.55; }
+  .stop-dot { width:10px; height:10px; background:#0E7490; border:2px solid #fff; border-radius:50%;
+              box-shadow:0 0 3px rgba(0,0,0,.5); }
+  #dir-panel { position:absolute; left:0; right:0; bottom:0; max-height:38%; overflow:auto;
+               background:#fff; border-top-left-radius:14px; border-top-right-radius:14px;
+               box-shadow:0 -2px 10px rgba(0,0,0,.25); padding:12px 14px; display:none;
+               font-size:13px; color:#222; }
+  #dir-panel h4 { margin:0 0 6px; font-size:14px; }
+  #dir-panel .step { margin:6px 0; display:flex; gap:8px; }
+  #dir-panel .step b { color:#096BFF; min-width:34px; }
+  #dir-panel .close { float:right; border:0; background:#eee; border-radius:8px; padding:4px 10px; font-size:12px; }
+</style>
+<script>
+  var PERIX_STYLES = [
+    { featureType: "all", elementType: "labels.text.fill", stylers: [{ color: "#264348" }] },
+    { featureType: "all", elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }, { weight: 2 }] },
+    { featureType: "poi", stylers: [{ visibility: "off" }] },
+    { featureType: "transit", stylers: [{ visibility: "off" }] },
+    { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#d7dce0" }] },
+    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#c8d0d4" }] },
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#a8d4f0" }] },
+    { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f5f7f8" }] },
+    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#ddeedd" }] }
+  ];
+
+  function post(type, extra) {
+    var msg = { source: "perix-google-map", type: type };
+    if (extra) { for (var k in extra) msg[k] = extra[k]; }
+    // Web: reply only to the same-origin parent (never "*").
+    if (window.parent && window.parent !== window) {
+      try { window.parent.postMessage(msg, window.location.origin); } catch (e) {}
+    }
+    // Native: reply through the React Native bridge.
+    try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(msg)); } catch (e) {}
+  }
+
+  var MAP = null;
+  var PENDING = null;
+  var LINES = {};      // pattern_id -> polyline
+  var LINE_PATHS = {};  // pattern_id -> path fingerprint
+  var VEHICLES = {};   // id -> marker
+  var VEH_STATE = {};  // id -> {lat,lng,animId}
+  var VEH_LABELS = {}; // id -> {label,type,estimated}
+  var STOPS = {};      // stop_id -> {marker, div}
+  var PLAN = {};       // pattern_id -> polyline
+  var PLAN_PATHS = {};  // pattern_id -> path fingerprint
+  var USER = null;
+  var PIN = null;
+  var CENTER_APPLIED = false;
+  var ZOOM_APPLIED = false;
+  var LAST_FOCUS_TOKEN = null;
+  var LAST_STOPS = [];
+  var LAST_DEEP = null;
+  var REGION_LAST = 0;
+
+  function initMap() {
+    var el = document.getElementById("map");
+    MAP = new google.maps.Map(el, {
+      center: { lat: 52.131, lng: 11.64 },
+      zoom: 13,
+      zoomControl: true,
+      mapTypeControl: false,
+      fullscreenControl: false,
+      streetViewControl: false,
+      gestureHandling: "greedy",
+      styles: PERIX_STYLES
+    });
+    MAP.addListener("click", function (e) {
+      if (e.latLng) post("mapPress", { lat: e.latLng.lat(), lng: e.latLng.lng() });
+    });
+    MAP.addListener("zoom_changed", function () {
+      post("zoomChange", { zoom: MAP.getZoom() });
+      var deep = MAP.getZoom() >= 16;
+      if (LAST_DEEP !== deep) {
+        drawStops(LAST_STOPS);
+      } else {
+        resizeStops();
+      }
+    });
+    MAP.addListener("bounds_changed", function () {
+      var now = Date.now();
+      if (now - REGION_LAST < 400) return;
+      REGION_LAST = now;
+      var b = MAP.getBounds();
+      if (!b) return;
+      var sw = b.getSouthWest();
+      var ne = b.getNorthEast();
+      post("regionChange", { minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() });
+    });
+    post("ready", {});
+    if (PENDING) { var p = PENDING; PENDING = null; applyUpdate(p); }
+  }
+
+  function haversineMeters(a, b) {
+    var R = 6371000;
+    var dLat = (b.latitude - a.latitude) * Math.PI / 180;
+    var dLng = (b.longitude - a.longitude) * Math.PI / 180;
+    var s = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(a.latitude*Math.PI/180)*Math.cos(b.latitude*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+
+  function pathCumulative(points) {
+    var cum = [0];
+    for (var i = 1; i < points.length; i++) {
+      cum.push(cum[i-1] + haversineMeters(points[i-1], points[i]));
+    }
+    return cum;
+  }
+
+  function pointAtProgress(points, cum, progress) {
+    if (!points || points.length === 0) return null;
+    if (points.length === 1) return points[0];
+    var p = Math.max(0, Math.min(cum[cum.length-1], progress));
+    for (var i = 0; i < cum.length - 1; i++) {
+      if (cum[i+1] >= p) {
+        var span = Math.max(0.001, cum[i+1] - cum[i]);
+        var f = Math.min(1, Math.max(0, (p - cum[i]) / span));
+        return {
+          lat: points[i].latitude + (points[i+1].latitude - points[i].latitude) * f,
+          lng: points[i].longitude + (points[i+1].longitude - points[i].longitude) * f
+        };
+      }
+    }
+    return points[points.length - 1];
+  }
+
+  // Detach a marker regardless of whether it is a legacy google.maps.Marker
+  // (setMap) or an AdvancedMarkerElement (map property).
+  function detachMarker(marker) {
+    if (!marker) return;
+    if (typeof marker.setMap === "function") marker.setMap(null);
+    else if ("map" in marker) marker.map = null;
+  }
+
+  function markerFor(v) {
+    var div = document.createElement("div");
+    div.className = "veh " + (v.type || "bus") + (v.estimated ? " estimated" : "");
+    var span = document.createElement("span");
+    span.textContent = v.label || "";
+    div.appendChild(span);
+    var marker;
+    if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+      marker = new google.maps.marker.AdvancedMarkerElement({ map: MAP, position: { lat: v.latitude, lng: v.longitude }, content: div, zIndex: 10 });
+    } else {
+      marker = new google.maps.Marker({ map: MAP, position: { lat: v.latitude, lng: v.longitude }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: v.type === "tram" ? "#8B0000" : "#1E3A8A", fillOpacity: v.estimated ? 0.5 : 1, strokeColor: "#fff", strokeWeight: 2 }, label: v.label || "" });
+    }
+    marker.addListener("click", function () { post("markerPress", { id: v.id }); });
+    return marker;
+  }
+
+  function setMarkerPos(marker, lat, lng) {
+    if (marker.setPosition) marker.setPosition({ lat: lat, lng: lng });
+    else if (marker.position) marker.position = { lat: lat, lng: lng };
+  }
+
+  function animateTo(id, marker, targetLat, targetLng) {
+    var st = VEH_STATE[id] || (VEH_STATE[id] = { lat: null, lng: null, animId: null });
+    if (st.animId) cancelAnimationFrame(st.animId);
+    var startLat = st.lat != null ? st.lat : targetLat;
+    var startLng = st.lng != null ? st.lng : targetLng;
+    var t0 = null;
+    var dur = 650;
+    function step(ts) {
+      if (!t0) t0 = ts;
+      var f = Math.min(1, (ts - t0) / dur);
+      var ease = f < 0.5 ? 2*f*f : 1 - Math.pow(-2*f + 2, 2) / 2;
+      var lat = startLat + (targetLat - startLat) * ease;
+      var lng = startLng + (targetLng - startLng) * ease;
+      setMarkerPos(marker, lat, lng);
+      st.lat = lat; st.lng = lng;
+      if (f < 1) st.animId = requestAnimationFrame(step);
+      else st.animId = null;
+    }
+    st.animId = requestAnimationFrame(step);
+  }
+
+  function updateMarkerLabel(marker, v) {
+    if (marker.content) {
+      var div = marker.content;
+      div.className = "veh " + (v.type || "bus") + (v.estimated ? " estimated" : "");
+      var span = div.querySelector("span");
+      if (span) span.textContent = v.label || "";
+    } else if (typeof marker.setLabel === "function") {
+      marker.setLabel(v.label || "");
+    }
+  }
+
+  function drawVehicles(vehicles) {
+    var seen = {};
+    (vehicles || []).forEach(function (v) {
+      if (v.latitude == null || v.longitude == null) return;
+      seen[v.id] = true;
+      var target = { lat: v.latitude, lng: v.longitude };
+      if (v.path && v.path.length >= 2 && v.progressM != null) {
+        var cum = pathCumulative(v.path);
+        var p = pointAtProgress(v.path, cum, v.progressM);
+        if (p) target = p;
+      }
+      var marker = VEHICLES[v.id];
+      if (!marker) {
+        marker = markerFor({ id: v.id, type: v.type || "bus", label: v.label, estimated: v.estimated, latitude: target.lat, longitude: target.lng });
+        VEHICLES[v.id] = marker;
+        VEH_STATE[v.id] = { lat: target.lat, lng: target.lng, animId: null };
+        VEH_LABELS[v.id] = { label: v.label, type: v.type || "bus", estimated: !!v.estimated };
+      } else {
+        var lbl = VEH_LABELS[v.id];
+        if (lbl && (lbl.label !== v.label || lbl.type !== (v.type || "bus") || lbl.estimated !== !!v.estimated)) {
+          updateMarkerLabel(marker, { type: v.type || "bus", label: v.label, estimated: !!v.estimated });
+          VEH_LABELS[v.id] = { label: v.label, type: v.type || "bus", estimated: !!v.estimated };
+        }
+        animateTo(v.id, marker, target.lat, target.lng);
+      }
+    });
+    // Remove vehicles that disappeared.
+    Object.keys(VEHICLES).forEach(function (id) {
+      if (!seen[id]) { detachMarker(VEHICLES[id]); delete VEHICLES[id]; delete VEH_STATE[id]; delete VEH_LABELS[id]; }
+    });
+  }
+
+  function drawLines(lines) {
+    var seen = {};
+    (lines || []).forEach(function (line) {
+      var key = line.pattern_id || (line.route_number + ":" + (line.points && line.points.length));
+      seen[key] = true;
+      var path = (line.points || []).map(function (p) { return { lat: p.latitude, lng: p.longitude }; });
+      if (path.length < 2) return;
+      if (LINES[key]) {
+        // Same pattern but changed geometry (e.g. V14 detour): update in place.
+        var fp = JSON.stringify(path);
+        if (LINE_PATHS[key] !== fp) {
+          LINES[key].setPath(path);
+          LINE_PATHS[key] = fp;
+        }
+        return;
+      }
+      var color = line.mode === "tram" ? "#8B0000" : "#1E3A8A";
+      var poly = new google.maps.Polyline({
+        path: path,
+        strokeColor: color,
+        strokeOpacity: 0.85,
+        strokeWeight: line.weight || 3.5,
+        clickable: true,
+        zIndex: 2
+      });
+      poly.addListener("click", function () { post("lineClick", { routeNumber: line.route_number, patternId: line.pattern_id }); });
+      poly.setMap(MAP);
+      LINES[key] = poly;
+      LINE_PATHS[key] = JSON.stringify(path);
+    });
+    Object.keys(LINES).forEach(function (key) {
+      if (!seen[key]) { LINES[key].setMap(null); delete LINES[key]; delete LINE_PATHS[key]; }
+    });
+  }
+
+  function stopScale() {
+    var z = MAP.getZoom();
+    return Math.max(0.5, Math.min(1.6, z / 14));
+  }
+
+  function resizeStops() {
+    var s = stopScale();
+    Object.keys(STOPS).forEach(function (id) {
+      var div = STOPS[id].div;
+      var px = Math.round(10 * s);
+      div.style.width = px + "px";
+      div.style.height = px + "px";
+    });
+  }
+
+  function makeStopMarker(lat, lng, stop_id, name, platform_id, side) {
+    var div = document.createElement("div");
+    div.className = "stop-dot";
+    var marker;
+    if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+      marker = new google.maps.marker.AdvancedMarkerElement({ map: MAP, position: { lat: lat, lng: lng }, content: div, zIndex: 5 });
+    } else {
+      marker = new google.maps.Marker({ map: MAP, position: { lat: lat, lng: lng }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 4, fillColor: "#0E7490", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1.5 } });
+    }
+    marker.addListener("click", function () {
+      var msg = { stop_id: stop_id, name: name };
+      if (platform_id) msg.platform_id = platform_id;
+      if (side) msg.side = side;
+      post("stopPress", msg);
+    });
+    return { marker: marker, div: div };
+  }
+
+  function drawStops(stops) {
+    LAST_STOPS = stops || [];
+    var deep = MAP.getZoom() >= 16;
+    LAST_DEEP = deep;
+    var seen = {};
+    LAST_STOPS.forEach(function (s) {
+      if (s.latitude == null || s.longitude == null) return;
+      if (deep) {
+        var platforms = s.platforms || [];
+        if (platforms.length >= 1) {
+          // Deep zoom: render the ACTUAL boarding points, never collapsing
+          // opposite left/right sides into one marker.
+          var clusters = [];
+          platforms.forEach(function (p) {
+            if (p.latitude == null || p.longitude == null) return;
+            var side = (p.side === "left" || p.side === "right") ? p.side : null;
+            var near = null;
+            for (var i = 0; i < clusters.length; i++) {
+              var c = clusters[i];
+              if (c.side === side && Math.sqrt(Math.pow(c.lat - p.latitude, 2) + Math.pow(c.lng - p.longitude, 2)) * 111000 < 12) {
+                near = c;
+                break;
+              }
+            }
+            if (near) {
+              if (p.directions) near.directions = near.directions.concat(p.directions);
+              if (p.routes) near.routes = near.routes.concat(p.routes);
+            } else {
+              clusters.push({ lat: p.latitude, lng: p.longitude, side: side, platform_id: p.platform_id, name: p.name, directions: (p.directions || []).slice(), routes: (p.routes || []).slice() });
+            }
+          });
+          if (clusters.length) {
+            clusters.forEach(function (c) {
+              var key = "plat:" + s.stop_id + ":" + (c.side || "unknown") + ":" + c.lat.toFixed(5) + "," + c.lng.toFixed(5);
+              seen[key] = true;
+              if (!STOPS[key]) {
+                STOPS[key] = makeStopMarker(c.lat, c.lng, s.stop_id, s.name, c.platform_id, c.side);
+              }
+            });
+            return;
+          }
+        }
+      }
+      // Aggregate marker (normal zoom or no platform data).
+      var key = "stop:" + s.stop_id;
+      seen[key] = true;
+      if (!STOPS[key]) {
+        STOPS[key] = makeStopMarker(s.latitude, s.longitude, s.stop_id, s.name, null, null);
+      }
+    });
+    Object.keys(STOPS).forEach(function (key) {
+      if (!seen[key]) { detachMarker(STOPS[key].marker); delete STOPS[key]; }
+    });
+    resizeStops();
+  }
+
+  function drawPlanLines(lines) {
+    var seen = {};
+    (lines || []).forEach(function (line) {
+      var key = line.pattern_id || (line.route_number + ":" + (line.points && line.points.length));
+      seen[key] = true;
+      var path = (line.points || []).map(function (p) { return { lat: p.latitude, lng: p.longitude }; });
+      if (path.length < 2) return;
+      if (PLAN[key]) {
+        var fp = JSON.stringify(path);
+        if (PLAN_PATHS[key] !== fp) {
+          PLAN[key].setPath(path);
+          PLAN_PATHS[key] = fp;
+        }
+        return;
+      }
+      var poly = new google.maps.Polyline({ path: path, strokeColor: "#FF8C00", strokeOpacity: 0.9, strokeWeight: 4, clickable: true, zIndex: 4 });
+      poly.addListener("click", function () { post("lineClick", { routeNumber: line.route_number, patternId: line.pattern_id }); });
+      poly.setMap(MAP);
+      PLAN[key] = poly;
+      PLAN_PATHS[key] = JSON.stringify(path);
+    });
+    Object.keys(PLAN).forEach(function (key) {
+      if (!seen[key]) { PLAN[key].setMap(null); delete PLAN[key]; delete PLAN_PATHS[key]; }
+    });
+  }
+
+  function drawUser(userLocation) {
+    if (userLocation && userLocation.latitude != null) {
+      if (!USER) {
+        USER = new google.maps.Marker({ map: MAP, position: { lat: userLocation.latitude, lng: userLocation.longitude }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 5, fillColor: "#096BFF", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 2 }, zIndex: 8 });
+      } else {
+        USER.setPosition({ lat: userLocation.latitude, lng: userLocation.longitude });
+      }
+    } else if (USER) {
+      USER.setMap(null);
+      USER = null;
+    }
+  }
+
+  function drawPin(pin) {
+    if (pin && pin.latitude != null) {
+      if (!PIN) {
+        PIN = new google.maps.Marker({ map: MAP, position: { lat: pin.latitude, lng: pin.longitude }, zIndex: 12 });
+      } else {
+        PIN.setPosition({ lat: pin.latitude, lng: pin.longitude });
+      }
+    } else if (PIN) {
+      PIN.setMap(null);
+      PIN = null;
+    }
+  }
+
+  function applyUpdate(payload) {
+    if (!MAP) { PENDING = payload; return; }
+    drawLines(payload.lines);
+    drawVehicles(payload.vehicles);
+    drawStops(payload.stops);
+    drawPlanLines(payload.planLines);
+    drawUser(payload.userLocation);
+    drawPin(payload.pin);
+    // Initial center/zoom: applied once, from the parent's initialRegion.
+    if (!CENTER_APPLIED && payload.initialRegion && payload.initialRegion.latitude != null) {
+      MAP.setCenter({ lat: payload.initialRegion.latitude, lng: payload.initialRegion.longitude });
+      CENTER_APPLIED = true;
+    }
+    if (!ZOOM_APPLIED && payload.initialZoom != null) {
+      MAP.setZoom(payload.initialZoom);
+      ZOOM_APPLIED = true;
+    }
+    // Focus: only when the parent's focus token changes (explicit user action),
+    // not on every vehicle poll.
+    if (payload.focus && payload.focus.latitude != null && payload.focusToken != null && payload.focusToken !== LAST_FOCUS_TOKEN) {
+      LAST_FOCUS_TOKEN = payload.focusToken;
+      MAP.panTo({ lat: payload.focus.latitude, lng: payload.focus.longitude });
+      MAP.setZoom(Math.max(14, MAP.getZoom()));
+    }
+  }
+
+  function showDirections(origin, destination) {
+    var ds = new google.maps.DirectionsService();
+    var panel = document.getElementById("dir-panel");
+    var renderer = new google.maps.DirectionsRenderer({ map: MAP, suppressMarkers: false, polylineOptions: { strokeColor: "#096BFF", strokeWeight: 5 } });
+    ds.route({
+      origin: { lat: origin.lat, lng: origin.lng },
+      destination: { lat: destination.lat, lng: destination.lng },
+      travelMode: google.maps.TravelMode.DRIVING,
+      provideRouteAlternatives: false
+    }, function (result, status) {
+      if (status === "OK" && result) {
+        renderer.setDirections(result);
+        var legs = result.routes[0].legs;
+        // Build the panel with textContent only (no innerHTML with dynamic data).
+        while (panel.firstChild) panel.removeChild(panel.firstChild);
+        var closeBtn = document.createElement("button");
+        closeBtn.className = "close";
+        closeBtn.textContent = "\u00D7";
+        closeBtn.onclick = function () { panel.style.display = "none"; };
+        panel.appendChild(closeBtn);
+        var h4 = document.createElement("h4");
+        h4.textContent = destination.title || "Destination";
+        panel.appendChild(h4);
+        var steps = legs[0].steps || [];
+        steps.slice(0, 12).forEach(function (st, i) {
+          var row = document.createElement("div");
+          row.className = "step";
+          var b = document.createElement("b");
+          b.textContent = String(i + 1);
+          var span = document.createElement("span");
+          span.textContent = st.instructions || "";
+          row.appendChild(b);
+          row.appendChild(span);
+          panel.appendChild(row);
+        });
+        var sumRow = document.createElement("div");
+        sumRow.className = "step";
+        var sumB = document.createElement("b");
+        sumB.textContent = "\u23F1";
+        var sumSpan = document.createElement("span");
+        sumSpan.textContent = legs[0].duration.text + " (" + legs[0].distance.text + ")";
+        sumRow.appendChild(sumB);
+        sumRow.appendChild(sumSpan);
+        panel.appendChild(sumRow);
+        panel.style.display = "block";
+      }
+    });
+  }
+
+  window.addEventListener("message", function (event) {
+    // Only accept messages from our own origin and from the parent window.
+    if (event.origin !== window.location.origin) return;
+    if (event.source !== window.parent) return;
+    var data = event.data;
+    if (!data || data.source !== "perix-google-map") return;
+    if (data.type === "update") applyUpdate(data.payload || {});
+    if (data.type === "directions") showDirections(data.payload.origin, data.payload.destination);
+    if (data.type === "clearDirections") { document.getElementById("dir-panel").style.display = "none"; }
+  });
+</script>
+<script>
+  var qs = new URLSearchParams(window.location.search);
+  var KEY = qs.get("key") || "";
+  var LOCALE = qs.get("locale") || "de";
+  var s = document.createElement("script");
+  s.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(KEY) + "&v=weekly&loading=async&callback=initMap&language=" + encodeURIComponent(LOCALE);
+  document.head.appendChild(s);
+</script>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="dir-panel"></div>
+</body>
+</html>
