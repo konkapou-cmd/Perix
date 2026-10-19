@@ -245,7 +245,7 @@
     var seen = {};
     (lines || []).forEach(function (line) {
       var key = line.pattern_id || (line.route_number + ":" + (line.points && line.points.length));
-      var path = (line.points || []).map(function (p) { return { lat: p.latitude, lng: p.longitude }; });
+      var path = (line.points || []).filter(function (p) { return p && Number.isFinite(p.latitude) && Number.isFinite(p.longitude); }).map(function (p) { return { lat: p.latitude, lng: p.longitude }; });
       if (path.length < 2) return;
       seen[key] = true;
       var color = line.color || (line.mode === "tram" ? "#8B0000" : "#1E3A8A");
@@ -369,13 +369,13 @@
   function drawPlanLines(lines) {
     var seen = {};
     (lines || []).forEach(function (line) {
-      var key = line.pattern_id || line.route_number;
+      var key = line.pattern_id || line.segment_id || line.route_number;
       if (!key) {
         var p0 = line.points && line.points[0];
         var pN = line.points && line.points[line.points.length - 1];
-        key = "seg:" + (p0 ? p0.latitude.toFixed(5) + "," + p0.longitude.toFixed(5) : "0,0") + ":" + (pN ? pN.latitude.toFixed(5) + "," + pN.longitude.toFixed(5) : "0,0") + ":" + (line.points ? line.points.length : 0);
+        key = "seg:" + (p0 && Number.isFinite(p0.latitude) && Number.isFinite(p0.longitude) ? p0.latitude.toFixed(5) + "," + p0.longitude.toFixed(5) : "0,0") + ":" + (pN && Number.isFinite(pN.latitude) && Number.isFinite(pN.longitude) ? pN.latitude.toFixed(5) + "," + pN.longitude.toFixed(5) : "0,0") + ":" + (line.points ? line.points.length : 0);
       }
-      var path = (line.points || []).map(function (p) { return { lat: p.latitude, lng: p.longitude }; });
+      var path = (line.points || []).filter(function (p) { return p && Number.isFinite(p.latitude) && Number.isFinite(p.longitude); }).map(function (p) { return { lat: p.latitude, lng: p.longitude }; });
       if (path.length < 2) return;
       seen[key] = true;
       var color = line.color || "#FF8C00";

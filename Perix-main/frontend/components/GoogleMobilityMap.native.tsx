@@ -56,8 +56,6 @@ export default function GoogleMobilityMapNative(props: Props) {
   const webRef = useRef<WebView>(null);
   const [session, setSession] = useState<string | null>(null);
 
-  const APPROVED_MAP_HOST_PATTERN = /(^|\.)(perixapp\.com|railway\.app)$/i;
-
   // The Mobility map page is served by the frontend, not the backend API.
   // No silent fallback to production: if the URL is missing or not HTTPS, we
   // show an explicit "not configured" state instead of loading app.perixapp.com.
@@ -70,7 +68,7 @@ export default function GoogleMobilityMapNative(props: Props) {
   if (mobilityMapUrl) {
     try {
       const parsed = new URL(mobilityMapUrl);
-      if (parsed.protocol === "https:" && APPROVED_MAP_HOST_PATTERN.test(parsed.hostname)) {
+      if (parsed.protocol === "https:" && parsed.pathname === "/google-mobility-map.html") {
         mapOrigin = parsed.origin;
         parsed.searchParams.set("key", gmapsKey);
         parsed.searchParams.set("locale", "de");
@@ -107,6 +105,7 @@ export default function GoogleMobilityMapNative(props: Props) {
       planLines: planLines.map((l) => ({
         route_number: l.routeNumber,
         pattern_id: l.patternId,
+        segment_id: l.segmentId,
         mode: l.mode,
         points: l.points,
         color: l.color,
@@ -123,7 +122,7 @@ export default function GoogleMobilityMapNative(props: Props) {
     webRef.current.injectJavaScript(
       `window.postMessage(${JSON.stringify({ source: "perix-google-map", type: "update", payload })}); true;`
     );
-  }, [session, mapUrl, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, initialRegion, initialZoom]);
+  }, [session, mapUrl, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, focusRegion?.latitude, focusRegion?.longitude, showUserLocation, initialRegion, initialZoom]);
 
   const onMessage = (event: WebViewMessageEvent) => {
     let data: any;

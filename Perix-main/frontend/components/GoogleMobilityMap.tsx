@@ -5,6 +5,7 @@ import Constants from "expo-constants";
 export type GoogleTransitLine = {
   routeNumber?: string;
   patternId?: string;
+  segmentId?: string;
   headsign?: string;
   mode?: "bus" | "tram" | "taxi";
   points: { latitude: number; longitude: number }[];
@@ -126,6 +127,7 @@ const iframeRef = useRef<HTMLIFrameElement>(null);
       planLines: planLines.map((l) => ({
         route_number: l.routeNumber,
         pattern_id: l.patternId,
+        segment_id: l.segmentId,
         mode: l.mode,
         points: l.points,
         color: l.color,
@@ -140,7 +142,7 @@ const iframeRef = useRef<HTMLIFrameElement>(null);
       initialZoom: initialZoom ?? null,
     };
     iframeRef.current.contentWindow?.postMessage({ source: "perix-google-map", type: "update", payload }, window.location.origin);
-  }, [session, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, initialRegion, initialZoom]);
+  }, [session, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, focusRegion?.latitude, focusRegion?.longitude, showUserLocation, initialRegion, initialZoom]);
 
   // Map -> parent bridge
   useEffect(() => {

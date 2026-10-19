@@ -671,7 +671,8 @@ const { t, i18n } = useTranslation();
     const colors: Record<string, string> = { tram: "#166534", bus: "#1E3A8A" };
     return journeyPlans[0].legs
       .filter((leg) => Array.isArray(leg.points) && (leg.points as any[]).length >= 2)
-      .map((leg) => ({
+      .map((leg, idx) => ({
+        segmentId: "leg-" + idx,
         points: (leg.points as any[])
           .filter((p: any) => Array.isArray(p) && p.length === 2 && p[0] != null && p[1] != null)
           .map((p: any) => ({ latitude: p[0], longitude: p[1] })),
@@ -687,16 +688,16 @@ const { t, i18n } = useTranslation();
   // distance from the map center (or the user's location as fallback).
   const viewportRef = useMemo(() => {
     if (
-      mapBounds &&
-      mapBounds.minLat != null &&
-      mapBounds.maxLat != null &&
-      mapBounds.minLng != null &&
-      mapBounds.maxLng != null
+      mobilityMapBounds &&
+      mobilityMapBounds.minLat != null &&
+      mobilityMapBounds.maxLat != null &&
+      mobilityMapBounds.minLng != null &&
+      mobilityMapBounds.maxLng != null
     ) {
-      return mapBounds;
+      return mobilityMapBounds;
     }
     return null;
-  }, [mapBounds]);
+  }, [mobilityMapBounds]);
 
   const referencePoint = useMemo(() => {
     if (mobilityMapBounds?.centerLat != null && mobilityMapBounds?.centerLng != null) {
@@ -1362,13 +1363,13 @@ const { t, i18n } = useTranslation();
                 mobilityMapBounds?.centerLng ??
                 contextLocation?.longitude ??
                 (isMobilityTab ? 11.64 : 13.405),
-              latitudeDelta: mapBounds
-                ? mapBounds.maxLat - mapBounds.minLat
+              latitudeDelta: mobilityMapBounds
+                ? mobilityMapBounds.maxLat - mobilityMapBounds.minLat
                 : isMobilityTab
                 ? 0.09
                 : 0.05,
-              longitudeDelta: mapBounds
-                ? mapBounds.maxLng - mapBounds.minLng
+              longitudeDelta: mobilityMapBounds
+                ? mobilityMapBounds.maxLng - mobilityMapBounds.minLng
                 : isMobilityTab
                 ? 0.09
                 : 0.05,
