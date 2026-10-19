@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Constants from "expo-constants";
 
@@ -41,6 +41,8 @@ export type GoogleTransitStop = {
   latitude: number;
   longitude: number;
   platforms?: GoogleTransitPlatform[];
+  selected_platform_id?: string;
+  selected_side?: string | null;
 };
 
 type Props = {
@@ -126,6 +128,9 @@ const iframeRef = useRef<HTMLIFrameElement>(null);
         pattern_id: l.patternId,
         mode: l.mode,
         points: l.points,
+        color: l.color,
+        opacity: l.opacity,
+        weight: l.weight,
       })),
       userLocation: showUserLocation && location?.latitude != null ? location : null,
       pin: pinLocation || null,
@@ -149,7 +154,7 @@ const iframeRef = useRef<HTMLIFrameElement>(null);
       if (data.type === "markerPress" && onMarkerPress) onMarkerPress(data.id);
       if (data.type === "stopPress" && onTransitStopPress) {
         const stop = transitStops.find((s) => s.stop_id === data.stop_id);
-        if (stop) onTransitStopPress(stop);
+        if (stop) onTransitStopPress({ ...stop, selected_platform_id: data.platform_id, selected_side: data.side });
       }
       if (data.type === "lineClick" && onTransitLineClick) onTransitLineClick(data.routeNumber, data.patternId);
       if (data.type === "zoomChange" && onZoomChange) onZoomChange(data.zoom);
@@ -169,6 +174,7 @@ return (
         title="perix-google-map"
         style={{ width: "100%", height: "100%", border: 0, borderRadius: 12 }}
         allow="geolocation"
+        onLoad={() => setReady(false)}
       />
     </View>
   );

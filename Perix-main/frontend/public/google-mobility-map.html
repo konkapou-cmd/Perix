@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
@@ -199,6 +199,9 @@
       if (span) span.textContent = v.label || "";
     } else if (typeof marker.setLabel === "function") {
       marker.setLabel(v.label || "");
+      if (typeof marker.setIcon === "function") {
+        marker.setIcon({ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: v.type === "tram" ? "#8B0000" : "#1E3A8A", fillOpacity: v.estimated ? 0.5 : 1, strokeColor: "#fff", strokeWeight: 2 });
+      }
     }
   }
 
@@ -230,7 +233,10 @@
     });
     // Remove vehicles that disappeared.
     Object.keys(VEHICLES).forEach(function (id) {
-      if (!seen[id]) { detachMarker(VEHICLES[id]); delete VEHICLES[id]; delete VEH_STATE[id]; delete VEH_LABELS[id]; }
+      if (!seen[id]) {
+        if (VEH_STATE[id] && VEH_STATE[id].animId) cancelAnimationFrame(VEH_STATE[id].animId);
+        detachMarker(VEHICLES[id]); delete VEHICLES[id]; delete VEH_STATE[id]; delete VEH_LABELS[id];
+      }
     });
   }
 
@@ -238,31 +244,32 @@
     var seen = {};
     (lines || []).forEach(function (line) {
       var key = line.pattern_id || (line.route_number + ":" + (line.points && line.points.length));
-      seen[key] = true;
       var path = (line.points || []).map(function (p) { return { lat: p.latitude, lng: p.longitude }; });
       if (path.length < 2) return;
+      seen[key] = true;
+      var color = line.color || (line.mode === "tram" ? "#8B0000" : "#1E3A8A");
+      var opacity = line.opacity != null ? line.opacity : 0.85;
+      var weight = line.weight || 3.5;
+      var fp = JSON.stringify({ path: path, color: color, opacity: opacity, weight: weight });
       if (LINES[key]) {
-        // Same pattern but changed geometry (e.g. V14 detour): update in place.
-        var fp = JSON.stringify(path);
         if (LINE_PATHS[key] !== fp) {
-          LINES[key].setPath(path);
+          LINES[key].setOptions({ path: path, strokeColor: color, strokeOpacity: opacity, strokeWeight: weight });
           LINE_PATHS[key] = fp;
         }
         return;
       }
-      var color = line.mode === "tram" ? "#8B0000" : "#1E3A8A";
       var poly = new google.maps.Polyline({
         path: path,
         strokeColor: color,
-        strokeOpacity: 0.85,
-        strokeWeight: line.weight || 3.5,
+        strokeOpacity: opacity,
+        strokeWeight: weight,
         clickable: true,
         zIndex: 2
       });
       poly.addListener("click", function () { post("lineClick", { routeNumber: line.route_number, patternId: line.pattern_id }); });
       poly.setMap(MAP);
       LINES[key] = poly;
-      LINE_PATHS[key] = JSON.stringify(path);
+      LINE_PATHS[key] = fp;
     });
     Object.keys(LINES).forEach(function (key) {
       if (!seen[key]) { LINES[key].setMap(null); delete LINES[key]; delete LINE_PATHS[key]; }
@@ -321,7 +328,7 @@
             var near = null;
             for (var i = 0; i < clusters.length; i++) {
               var c = clusters[i];
-              if (c.side === side && Math.sqrt(Math.pow(c.lat - p.latitude, 2) + Math.pow(c.lng - p.longitude, 2)) * 111000 < 12) {
+              if (c.side === side && (c.platform_id || null) === (p.platform_id || null) && Math.sqrt(Math.pow(c.lat - p.latitude, 2) + Math.pow(c.lng - p.longitude, 2)) * 111000 < 12) {
                 near = c;
                 break;
               }
@@ -361,23 +368,30 @@
   function drawPlanLines(lines) {
     var seen = {};
     (lines || []).forEach(function (line) {
-      var key = line.pattern_id || (line.route_number + ":" + (line.points && line.points.length));
-      seen[key] = true;
+      var key = line.pattern_id || line.route_number;
+      if (!key) {
+        var p0 = line.points && line.points[0];
+        key = "seg:" + (p0 ? p0.latitude + "," + p0.longitude : "0,0") + ":" + (line.points ? line.points.length : 0);
+      }
       var path = (line.points || []).map(function (p) { return { lat: p.latitude, lng: p.longitude }; });
       if (path.length < 2) return;
+      seen[key] = true;
+      var color = line.color || "#FF8C00";
+      var opacity = line.opacity != null ? line.opacity : 0.9;
+      var weight = line.weight || 4;
+      var fp = JSON.stringify({ path: path, color: color, opacity: opacity, weight: weight });
       if (PLAN[key]) {
-        var fp = JSON.stringify(path);
         if (PLAN_PATHS[key] !== fp) {
-          PLAN[key].setPath(path);
+          PLAN[key].setOptions({ path: path, strokeColor: color, strokeOpacity: opacity, strokeWeight: weight });
           PLAN_PATHS[key] = fp;
         }
         return;
       }
-      var poly = new google.maps.Polyline({ path: path, strokeColor: "#FF8C00", strokeOpacity: 0.9, strokeWeight: 4, clickable: true, zIndex: 4 });
+      var poly = new google.maps.Polyline({ path: path, strokeColor: color, strokeOpacity: opacity, strokeWeight: weight, clickable: true, zIndex: 4 });
       poly.addListener("click", function () { post("lineClick", { routeNumber: line.route_number, patternId: line.pattern_id }); });
       poly.setMap(MAP);
       PLAN[key] = poly;
-      PLAN_PATHS[key] = JSON.stringify(path);
+      PLAN_PATHS[key] = fp;
     });
     Object.keys(PLAN).forEach(function (key) {
       if (!seen[key]) { PLAN[key].setMap(null); delete PLAN[key]; delete PLAN_PATHS[key]; }

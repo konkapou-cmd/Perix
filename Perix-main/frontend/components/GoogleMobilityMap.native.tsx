@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import Constants from "expo-constants";
@@ -63,13 +63,21 @@ export default function GoogleMobilityMapNative(props: Props) {
     Constants.expoConfig?.extra?.EXPO_PUBLIC_MOBILITY_MAP_URL ||
     process.env.EXPO_PUBLIC_MOBILITY_MAP_URL ||
     "";
-  const isValidMapUrl = /^https:\/\//i.test(mobilityMapUrl);
-  const mapUrl = isValidMapUrl
-    ? `${mobilityMapUrl}?key=${encodeURIComponent(gmapsKey)}&locale=de`
-    : "";
-  const mapOrigin = isValidMapUrl
-    ? mobilityMapUrl.replace(/^(https?:\/\/[^/]+).*/, "$1")
-    : "";
+  let mapOrigin = "";
+  let mapUrl = "";
+  if (mobilityMapUrl) {
+    try {
+      const parsed = new URL(mobilityMapUrl);
+      if (parsed.protocol === "https:") {
+        mapOrigin = parsed.origin;
+        parsed.searchParams.set("key", gmapsKey);
+        parsed.searchParams.set("locale", "de");
+        mapUrl = parsed.toString();
+      }
+    } catch (e) {
+      // invalid URL -> not configured
+    }
+  }
 
   useEffect(() => {
     if (!ready || !webRef.current || !mapUrl) return;
@@ -99,6 +107,9 @@ export default function GoogleMobilityMapNative(props: Props) {
         pattern_id: l.patternId,
         mode: l.mode,
         points: l.points,
+        color: l.color,
+        opacity: l.opacity,
+        weight: l.weight,
       })),
       userLocation: showUserLocation && location?.latitude != null ? location : null,
       pin: pinLocation || null,
@@ -125,7 +136,7 @@ export default function GoogleMobilityMapNative(props: Props) {
     if (data.type === "markerPress" && onMarkerPress) onMarkerPress(data.id);
     if (data.type === "stopPress" && onTransitStopPress) {
       const stop = transitStops.find((s) => s.stop_id === data.stop_id);
-      if (stop) onTransitStopPress(stop);
+      if (stop) onTransitStopPress({ ...stop, selected_platform_id: data.platform_id, selected_side: data.side });
     }
     if (data.type === "lineClick" && onTransitLineClick) onTransitLineClick(data.routeNumber, data.patternId);
     if (data.type === "zoomChange" && onZoomChange) onZoomChange(data.zoom);
@@ -138,7 +149,11 @@ export default function GoogleMobilityMapNative(props: Props) {
     // Only allow navigation within the configured map origin. The Google Maps
     // API script is a resource load, not a navigation, so it is unaffected.
     if (!mapOrigin) return false;
-    return request.url.startsWith(mapOrigin);
+    try {
+      return new URL(request.url).origin === mapOrigin;
+    } catch (e) {
+      return false;
+    }
   };
 
   if (!mapUrl) {

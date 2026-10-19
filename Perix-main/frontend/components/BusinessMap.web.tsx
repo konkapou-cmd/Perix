@@ -389,9 +389,6 @@ export default function BusinessMap({
 }: Props) {
   const { t } = useTranslation();
   const mapDivRef = useRef<HTMLDivElement>(null);
-  const directionsRendererRef = useRef<any>(null);
-  const [dirSteps, setDirSteps] = useState<{ id: string; text: string }[]>([]);
-  const [dirSummary, setDirSummary] = useState("");
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const [mapReady, setMapReady] = useState(false);
@@ -1592,45 +1589,6 @@ export default function BusinessMap({
     if (!mapRef.current || !mapReadyRef.current || !focusToken || !focusRegion) return;
     mapRef.current.panTo({ lat: focusRegion.latitude, lng: focusRegion.longitude });
     mapRef.current.setZoom(14);
-    // Google Directions to the focused business/service/activity when the
-    // user location is known: the locator "go to map" action now also
-    // answers "how do I get there".
-    if (location && location.latitude != null && location.longitude != null && !disabled) {
-      try {
-        const g = (window as any).google;
-        const ds = new g.maps.DirectionsService();
-        const renderer =
-          directionsRendererRef.current || new g.maps.DirectionsRenderer({ map: mapRef.current, suppressMarkers: false, polylineOptions: { strokeColor: "#096BFF", strokeWeight: 5 } });
-        directionsRendererRef.current = renderer;
-        renderer.setMap(mapRef.current);
-        ds.route(
-          {
-            origin: { lat: location.latitude, lng: location.longitude },
-            destination: { lat: focusRegion.latitude, lng: focusRegion.longitude },
-            travelMode: g.maps.TravelMode.DRIVING,
-            provideRouteAlternatives: false,
-          },
-          (result: any, status: any) => {
-            if (status === "OK" && result) {
-              renderer.setDirections(result);
-              const legs = result.routes[0]?.legs || [];
-              const steps = legs[0]?.steps || [];
-              setDirSummary(legs[0] ? `${legs[0].distance?.text ?? ""} · ${legs[0].duration?.text ?? ""}` : "");
-              setDirSteps(steps.slice(0, 12).map((st: any, i: number) => ({ id: `${i}`, text: String(st.instructions ?? "").replace(/<[^>]+>/g, " ") })));
-            } else {
-              setDirSteps([]);
-              setDirSummary("");
-            }
-          }
-        );
-      } catch (e) {
-        setDirSteps([]);
-      }
-    } else {
-      setDirSteps([]);
-      setDirSummary("");
-      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null);
-    }
   }, [focusToken, mapReady]);
 
   if (disabled) {
@@ -1715,23 +1673,6 @@ export default function BusinessMap({
         ref={mapDivRef as any}
         style={{ flex: 1, borderRadius: 12 }}
       />
-
-      {dirSteps.length > 0 && (
-        <View style={s.dirPanel}>
-          <View style={s.dirPanelHeader}>
-            <Text style={s.dirPanelTitle}>{t("map.directions", "Directions")} · {dirSummary}</Text>
-            <Pressable onPress={() => { setDirSteps([]); setDirSummary(""); if (directionsRendererRef.current) directionsRendererRef.current.setMap(null); }} hitSlop={8}>
-              <Ionicons name="close" size={18} color="#444" />
-            </Pressable>
-          </View>
-          {dirSteps.map((step, idx) => (
-            <View key={step.id} style={s.dirStepRow}>
-              <Text style={s.dirStepNum}>{idx + 1}</Text>
-              <Text style={s.dirStepText}>{step.text}</Text>
-            </View>
-          ))}
-        </View>
-      )}
 
       <Modal visible={!!selectedGroup} transparent animationType="slide" onRequestClose={() => setSelectedGroup(null)}>
         <Pressable style={s.sheetOverlay} onPress={() => setSelectedGroup(null)}>
@@ -1831,26 +1772,6 @@ const s = StyleSheet.create({
   disabledOverlay: { flex: 1, backgroundColor: COLORS.borderGray, justifyContent: "center", alignItems: "center", gap: 12 },
   disabledText: { fontSize: 15, color: COLORS.textGray, fontWeight: "500" },
   loading: { ...StyleSheet.absoluteFillObject as any, justifyContent: "center", alignItems: "center", backgroundColor: "#f3f4f6", zIndex: 10 },
-  dirPanel: {
-    position: "absolute",
-    left: 10,
-    right: 10,
-    bottom: 10,
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 12,
-    maxHeight: 220,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-  dirPanelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-  dirPanelTitle: { fontSize: 13, fontWeight: "700", color: "#096BFF" },
-  dirStepRow: { flexDirection: "row", gap: 8, marginVertical: 2 },
-  dirStepNum: { width: 18, height: 18, borderRadius: 9, backgroundColor: "#096BFF", color: "#fff", fontSize: 11, fontWeight: "700", textAlign: "center", lineHeight: 18 },
-  dirStepText: { flex: 1, fontSize: 12.5, color: "#333", lineHeight: 17 },
   errorText: { color: "#ef4444", fontSize: 13, marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 20 },
   card: { backgroundColor: "#fff", borderRadius: 20, padding: 20, width: "100%", maxWidth: 340 },

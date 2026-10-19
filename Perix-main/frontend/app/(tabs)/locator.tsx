@@ -88,7 +88,7 @@ const { t, i18n } = useTranslation();
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
   const [busQuery, setBusQuery] = useState("");
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
-  const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string } | null>(null);
+  const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string; platform_id?: string; side?: string | null } | null>(null);
   const [servingBuses, setServingBuses] = useState<ServingBus[]>([]);
   const [transitDestAddress, setTransitDestAddress] = useState("");
   const [transitDestLat, setTransitDestLat] = useState<number | null>(null);
@@ -112,6 +112,8 @@ const { t, i18n } = useTranslation();
   const [physicalStops, setPhysicalStops] = useState<TransitStopMarker[]>([]);
   const [diversionWarnings, setDiversionWarnings] = useState<{route_number: string; mode?: string; status: string}[]>([]);
   const [mapZoom, setMapZoom] = useState<number | null>(null);
+  const [mobilityMapZoom, setMobilityMapZoom] = useState<number | null>(null);
+  const [mobilityMapBounds, setMobilityMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number; centerLat: number; centerLng: number } | null>(null);
   const [selectedPattern, setSelectedPattern] = useState<string | null>(null);
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
@@ -456,6 +458,19 @@ const { t, i18n } = useTranslation();
     });
   }, [setGlobalMapBounds, sessionToken, radiusKm]);
 
+  const handleMobilityMapRegionChange = useCallback((bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+    const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+    setMobilityMapBounds({
+      minLat: bounds.minLat,
+      maxLat: bounds.maxLat,
+      minLng: bounds.minLng,
+      maxLng: bounds.maxLng,
+      centerLat,
+      centerLng,
+    });
+  }, []);
+
   // "Locate me": use the device's exact GPS position (not the searched
   // city/point) and fly the map there.
   const handleLocateMe = useCallback(async () => {
@@ -633,7 +648,7 @@ const { t, i18n } = useTranslation();
     if (mobilityMode !== "all") {
       list = list.filter((s) => s.modes.includes(mobilityMode as "bus" | "tram"));
     }
-    const z = mapZoom ?? 14;
+    const z = mobilityMapZoom ?? 14;
     if (selectedLine) {
       const line = transitMapLines.find((l) => l.route_number === selectedLine);
       const ids = new Set((line?.stops || []).map((s) => s.stop_id));
@@ -648,7 +663,7 @@ const { t, i18n } = useTranslation();
       list = [];
     }
     return list;
-  }, [physicalStops, selectedLine, selectedStop, mobilityMode, mapZoom, transitMapLines]);
+  }, [physicalStops, selectedLine, selectedStop, mobilityMode, mobilityMapZoom, transitMapLines]);
 
   // Journey-plan route on the map: walking light blue, tram green, bus blue.
   const planLines = useMemo(() => {
@@ -684,12 +699,12 @@ const { t, i18n } = useTranslation();
   }, [mapBounds]);
 
   const referencePoint = useMemo(() => {
-    if (mapBounds?.centerLat != null && mapBounds?.centerLng != null) {
-      return { latitude: mapBounds.centerLat, longitude: mapBounds.centerLng };
+    if (mobilityMapBounds?.centerLat != null && mobilityMapBounds?.centerLng != null) {
+      return { latitude: mobilityMapBounds.centerLat, longitude: mobilityMapBounds.centerLng };
     }
     if (contextLocation) return contextLocation;
     return null;
-  }, [mapBounds, contextLocation?.latitude, contextLocation?.longitude]);
+  }, [mobilityMapBounds, contextLocation?.latitude, contextLocation?.longitude]);
 
   const inViewport = (lat: number, lng: number) =>
     !viewportRef ||
@@ -1365,7 +1380,7 @@ const { t, i18n } = useTranslation();
             transitLines={mobilityMode !== "taxi" ? transitLines : undefined}
             transitStops={mobilityMode !== "taxi" ? transitStops : undefined}
             onTransitStopPress={(stop) => {
-              setSelectedStop({ stop_id: stop.stop_id, name: stop.name });
+              setSelectedStop({ stop_id: stop.stop_id, name: stop.name, platform_id: stop.selected_platform_id, side: stop.selected_side });
               setBusQuery(stop.name);
               setBusSuggestions([]);
               setServingBuses([]);
@@ -1378,9 +1393,9 @@ const { t, i18n } = useTranslation();
                 return patternId || null;
               });
             }}
-            onZoomChange={setMapZoom}
-            onRegionChangeComplete={handleMapRegionChange}
-            initialZoom={mapZoom}
+            onZoomChange={setMobilityMapZoom}
+            onRegionChangeComplete={handleMobilityMapRegionChange}
+            initialZoom={mobilityMapZoom}
             onMapPress={(lat, lng) => {
               if (isMobilityTab && (mobilityMode !== "taxi") && planPicking) {
                 setPlanPicking(false);
@@ -4389,4 +4404,3 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 });
-
