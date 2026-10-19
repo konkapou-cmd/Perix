@@ -83,6 +83,8 @@ const { t, i18n } = useTranslation();
   const { location: contextLocation, livePosition, setManualLocation, radiusKm } = useLocation();
   const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locateToken, setLocateToken] = useState(0);
+  const [mobilityLocateFocus, setMobilityLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [mobilityLocateToken, setMobilityLocateToken] = useState(0);
   const [locating, setLocating] = useState(false);
   const [mobilityMode, setMobilityMode] = useState<"all" | "bus" | "tram" | "taxi">("all");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
@@ -484,11 +486,6 @@ const { t, i18n } = useTranslation();
         new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
       ]);
       if (loc) {
-        setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
-        setLocateToken((t) => t + 1);
-        if (!isMobilityTab) {
-          setManualLocation(loc.latitude, loc.longitude);
-        }
         const d = 0.02;
         const bounds = {
           minLat: loc.latitude - d / 2,
@@ -499,8 +496,13 @@ const { t, i18n } = useTranslation();
           centerLng: loc.longitude,
         };
         if (isMobilityTab) {
+          setMobilityLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
+          setMobilityLocateToken((t) => t + 1);
           setMobilityMapBounds(bounds);
         } else {
+          setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
+          setLocateToken((t) => t + 1);
+          setManualLocation(loc.latitude, loc.longitude);
           setGlobalMapBounds(bounds);
         }
       } else if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -873,8 +875,8 @@ const { t, i18n } = useTranslation();
     // Mobility origin = the user's ACTUAL position first (live GPS pin),
     // browsing center second. A stale manual/context point must never make
     // the journey plan start hundreds of meters behind the user.
-    const originLat = livePosition?.latitude ?? contextLocation?.latitude ?? locateFocus?.latitude;
-    const originLng = livePosition?.longitude ?? contextLocation?.longitude ?? locateFocus?.longitude;
+    const originLat = livePosition?.latitude ?? contextLocation?.latitude ?? mobilityLocateFocus?.latitude;
+    const originLng = livePosition?.longitude ?? contextLocation?.longitude ?? mobilityLocateFocus?.longitude;
     if (originLat == null || originLng == null) {
       setJourneyPlans([]);
       setPlanNote(t("mobility.planNoLocation", "Enable location to plan a journey from where you are."));
@@ -1381,9 +1383,9 @@ const { t, i18n } = useTranslation();
                 ? 0.09
                 : 0.05,
             }}
-            pinLocation={locateFocus ?? (livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null)}
-            focusRegion={locateFocus ? { latitude: locateFocus.latitude, longitude: locateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
-            focusToken={locateToken || undefined}
+            pinLocation={mobilityLocateFocus ?? (livePosition ? { latitude: livePosition.latitude, longitude: livePosition.longitude } : null)}
+            focusRegion={mobilityLocateFocus ? { latitude: mobilityLocateFocus.latitude, longitude: mobilityLocateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
+            focusToken={mobilityLocateToken || undefined}
             vehicles={mobilityMapVehicles}
             transitLines={mobilityMode !== "taxi" ? transitLines : undefined}
             transitStops={mobilityMode !== "taxi" ? transitStops : undefined}
@@ -2030,8 +2032,8 @@ const { t, i18n } = useTranslation();
                       setSelectedVehicle(b.vehicle_id);
                       const v = liveVehicles.find((x) => x.vehicle_id === b.vehicle_id);
                       if (v && v.latitude != null && v.longitude != null) {
-                        setLocateFocus({ latitude: v.latitude, longitude: v.longitude });
-                        setLocateToken((n) => n + 1);
+                        setMobilityLocateFocus({ latitude: v.latitude, longitude: v.longitude });
+                        setMobilityLocateToken((n) => n + 1);
                       }
                     }}
                   >
