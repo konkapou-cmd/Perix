@@ -1282,18 +1282,34 @@ async def _realtime_delays_for(trip_ids: List[str]) -> dict:
         return {}
 
     region = get_active_region()
+    from mobility.realtime_trip_identity import _service_date
+
+    active = await _get_active_network()
+    version_id = str((active or {}).get("version_id") or "")
+    service_date = _service_date(active or {})
+    if not version_id or not service_date:
+        return {}
     docs = await db.mobility_realtime.find(
         {
             "region_id": region.region_id,
             "network_id": region.network_id,
+            "network_version_id": version_id,
+            "service_date": service_date,
             "trip_id": {"$in": trip_ids},
         },
         {"_id": 0},
     ).to_list(len(trip_ids))
 
+    from mobility.realtime_freshness import is_recent_feed_generation
+
+    now_epoch = int(datetime.now(ZoneInfo("UTC")).timestamp())
+    # A per-trip DB write can be fresh even when the feed snapshot is old.
+    max_feed_age = int(os.getenv("MOBILITY_REALTIME_FEED_FRESH_SECONDS", "180"))
     result = {}
     for doc in docs:
         if not _iso_is_fresh(doc.get("updated_at") or "", REALTIME_FRESH_SECONDS):
+            continue
+        if not is_recent_feed_generation(doc.get("feed_timestamp"), now_epoch, max_feed_age):
             continue
         result[str(doc.get("trip_id"))] = doc
     return result
@@ -1796,7 +1812,7 @@ async def _activate_network_version(
             "region_id": region.region_id,
             "network_id": region.network_id,
         },
-        {"$set": {"active": True}},
+        {"$set": {"active": True, "activated_at": now_utc().isoformat()}},
     )
 
     from mobility import geometry_cache

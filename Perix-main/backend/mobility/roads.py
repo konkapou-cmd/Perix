@@ -265,6 +265,11 @@ def _route_stops_segments_sync(
                     blocked_edges.add(eid)
     for eid in blocked_eids:
         blocked_edges.add(eid)
+        try:
+            way_id, node_a, node_b = str(eid).split(":", 2)
+            blocked_edges.add(f"{int(way_id)}:{int(node_b)}:{int(node_a)}")
+        except (ValueError, TypeError):
+            pass
     # Corridor weights: distance of each edge midpoint to the shape hint.
     edge_weight = {}
     if shape_hint and len(shape_hint) >= 2:
@@ -333,6 +338,8 @@ async def compute_pattern_segments(
     shape_hint: Optional[List[list]] = None,
     *,
     osm_snapshot_v: Optional[int] = None,
+    blocked_way_ids: Optional[set] = None,
+    blocked_edge_ids: Optional[set] = None,
 ) -> dict:
     """Per stop-pair routing (segment registry) with a larger retry bbox:
     rail networks can leave the immediate stop corridor, so a first pass
@@ -371,15 +378,17 @@ async def compute_pattern_segments(
             continue
         # External traffic data never blocks canonical routing. Only explicit
         # operator-approved Perix restrictions may block graph edges.
-        blocked_way_ids: set = set()
-        blocked_eids: set = set()
+        # These IDs were explicitly verified for this route/pattern upstream.
+        # Never infer closure geometry from a textual ServiceAlert.
+        blocked_ways = set(blocked_way_ids or ())
+        blocked_eids = set(blocked_edge_ids or ())
         loop = asyncio.get_event_loop()
         res = await loop.run_in_executor(
             None,
             _route_stops_segments_sync,
             pts,
             ways_detailed,
-            blocked_way_ids,
+            blocked_ways,
             mode,
             blocked_eids,
             shape_hint,
