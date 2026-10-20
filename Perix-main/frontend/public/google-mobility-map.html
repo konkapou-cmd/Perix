@@ -27,17 +27,22 @@
 </style>
 <script>
   var PERIX_STYLES = [
-    { featureType: "all", elementType: "labels.text.fill", stylers: [{ color: "#264348" }] },
-    { featureType: "all", elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }, { weight: 2 }] },
-    { featureType: "poi", stylers: [{ visibility: "off" }] },
+    { elementType: "geometry", stylers: [{ color: "#FFFFFF" }] },
+    { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#5C7A99" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#EDF4FB" }] },
+    { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#DCE8F4" }] },
+    { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#7C97B3" }] },
+    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#5C7A99" }] },
+    { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#C8E2F4" }] },
+    { featureType: "road", elementType: "geometry", stylers: [{ color: "#EDF4FB" }] },
+    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#7C97B3" }] },
+    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#E2EEF9" }] },
+    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#4A6B8C" }] },
     { featureType: "transit", stylers: [{ visibility: "off" }] },
-    { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#d7dce0" }] },
-    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#c8d0d4" }] },
-    { featureType: "water", elementType: "geometry", stylers: [{ color: "#a8d4f0" }] },
-    { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f5f7f8" }] },
-    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#ddeedd" }] }
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#59ABE3" }] },
+    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#FFFFFF" }] }
   ];
 
   function post(type, extra) {
@@ -75,7 +80,7 @@
     var el = document.getElementById("map");
     MAP = new google.maps.Map(el, {
       center: { lat: 52.131, lng: 11.64 },
-      zoom: 13,
+      zoom: 15,
       zoomControl: true,
       mapTypeControl: false,
       fullscreenControl: false,
