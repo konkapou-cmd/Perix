@@ -295,6 +295,12 @@ if WEB_DIST.exists():
             return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
         return JSONResponse({"detail": "test page not built"}, status_code=404)
 
+    @app.get("/google-mobility-map.html", include_in_schema=False)
+    async def web_google_mobility_map():
+        if (WEB_DIST / "google-mobility-map.html").exists():
+            return FileResponse(WEB_DIST / "google-mobility-map.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "mobility map not built"}, status_code=404)
+
     @app.get("/{full_path:path}", include_in_schema=False)
     async def web_spa_fallback(full_path: str):
         # SPA fallback: serve index.html for any non-API GET request.
