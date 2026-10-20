@@ -1,4 +1,4 @@
-"""Pure Perix GTFS day/temporary-pattern acceptance gate (Phase 4).
+﻿"""Pure Perix GTFS day/temporary-pattern acceptance gate (Phase 4).
 
 Does not fetch official data, infer closures, generate trips, or mutate a feed.
 A separately operator-reviewed contract may require exact route/stop sequences.
@@ -38,6 +38,12 @@ def _service_date(value):
 
 
 def _seconds(value, service_day_start_hour=4):
+    # Parse a GTFS "HH:MM[:SS]" time as seconds since service-day start.
+    # GTFS allows hours 24..47 for trips that run past midnight, so we keep
+    # the raw hour value. Midnight rollover is handled by the caller
+    # (audit_schedule) by detecting a time that goes backwards relative to
+    # the previous stop and shifting the remainder of the trip forward by
+    # 24h. This is robust to feeds that mix "24:xx" and "00:xx" notation.
     try:
         parts = str(value).split(':')
         if len(parts) not in (2, 3):
@@ -46,8 +52,6 @@ def _seconds(value, service_day_start_hour=4):
         second = int(parts[2]) if len(parts) == 3 else 0
         if hour < 0 or hour > 47 or not (0 <= minute < 60) or not (0 <= second < 60):
             return None
-        if hour < service_day_start_hour:
-            hour += 24
         return hour * 3600 + minute * 60 + second
     except (TypeError, ValueError):
         return None
@@ -151,10 +155,22 @@ def audit_schedule(network, *, contract=None, service_day_start_hour=4, previous
             departures = trip.get('stop_times') or {}
             arrivals = trip.get('stop_times_arrival') or departures
             prev_departure = None
+            day_offset = 0
             for sid in ids:
                 a = _seconds(arrivals.get(sid), service_day_start_hour)
                 d = _seconds(departures.get(sid), service_day_start_hour)
-                if a is None or d is None or a > d or (prev_departure is not None and a < prev_departure):
+                if a is None or d is None:
+                    errors.append({'code': 'INVALID_TRIP_TIMELINE', 'route': line, 'trip_id': tid, 'stop_id': sid})
+                    break
+                # Detect midnight rollover: if the arrival goes backwards
+                # relative to the previous departure, shift this and all
+                # subsequent stops forward by 24h so the timeline stays
+                # monotonic regardless of "24:xx" vs "00:xx" notation.
+                if prev_departure is not None and a < prev_departure:
+                    day_offset += 24 * 3600
+                a += day_offset
+                d += day_offset
+                if a > d or (prev_departure is not None and a < prev_departure):
                     errors.append({'code': 'INVALID_TRIP_TIMELINE', 'route': line, 'trip_id': tid, 'stop_id': sid})
                     break
                 prev_departure = d
