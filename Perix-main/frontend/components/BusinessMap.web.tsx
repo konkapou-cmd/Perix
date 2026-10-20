@@ -109,6 +109,8 @@ type Props = {
   onRegionChange?: (bounds: MapBounds) => void;
   onRegionChangeComplete?: (bounds: MapBounds) => void;
   onZoomChange?: (zoom: number) => void;
+  /** Camera zoom belongs to a view, not to shared GPS/MapBounds. */
+  cameraScope?: "explore" | "mobility";
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
   height?: number;
@@ -375,6 +377,7 @@ export default function BusinessMap({
   onRegionChange,
   onRegionChangeComplete,
   onZoomChange,
+  cameraScope = "explore",
   onMarkerPress,
   onMapPress,
   height = 300,
@@ -392,11 +395,14 @@ export default function BusinessMap({
   const [enabling, setEnabling] = useState(false);
   const enablingRef = useRef(false);
   const [enableError, setEnableError] = useState<string | null>(null);
-  const centerLat = location?.latitude ?? initialRegion?.latitude ?? 52.52;
-  const centerLng = location?.longitude ?? initialRegion?.longitude ?? 13.405;
+  // The map camera follows the shared viewport; location is only a GPS pin.
+  const centerLat = initialRegion?.latitude ?? location?.latitude ?? 52.52;
+  const centerLng = initialRegion?.longitude ?? location?.longitude ?? 13.405;
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const lastBoundsRef = useRef<string>("");
   const prevCenterRef = useRef<string>("");
+  const prevCameraScopeRef = useRef(cameraScope);
+  const zoomByScopeRef = useRef<Partial<Record<"explore" | "mobility", number>>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // The map's one-time listeners must always call the LATEST props (stale
@@ -742,7 +748,8 @@ export default function BusinessMap({
         const google = (window as any).google;
         const map = new google.maps.Map(mapDivRef.current, {
           center: { lat: centerLat, lng: centerLng },
-          zoom: 14,
+          // Do not inherit the tight Mobility zoom in other Locator categories.
+          zoom: cameraScope === "mobility" ? 15 : 14,
           disableDefaultUI: staticMode,
           zoomControl: !staticMode,
           mapTypeControl: false,
@@ -811,7 +818,7 @@ export default function BusinessMap({
         mapReadyRef.current = true;
         setMapReady(true);
         console.log("[WebMap] initialized zoom=" + map.getZoom());
-        onZoomChangeRef.current?.(map.getZoom() || 14);
+        onZoomChangeRef.current?.(map.getZoom() || (cameraScope === "mobility" ? 15 : 14));
       })
       .catch((e) => { console.error("[WebMap] init failed", e); setMapError(true); });
     return () => {
@@ -820,6 +827,22 @@ export default function BusinessMap({
       mapReadyRef.current = false;
     };
   }, [disabled, mapError]);
+
+  // Keep the same geographic center across tabs, but store zoom separately.
+  // No GPS write, no map recreation and no vehicle animation reset.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const previousScope = prevCameraScopeRef.current;
+    if (previousScope === cameraScope) return;
+    const map = mapRef.current;
+    const currentZoom = map.getZoom();
+    if (typeof currentZoom === "number" && Number.isFinite(currentZoom)) {
+      zoomByScopeRef.current[previousScope] = currentZoom;
+    }
+    prevCameraScopeRef.current = cameraScope;
+    const target = zoomByScopeRef.current[cameraScope] ?? (cameraScope === "mobility" ? 15 : 14);
+    if (Math.abs((map.getZoom() ?? target) - target) >= 0.25) map.setZoom(target);
+  }, [cameraScope, mapReady]);
 
   // Sync markers — DOM-based pins (OverlayView) for pixel-perfect app-style rendering
   useEffect(() => {
@@ -1373,17 +1396,16 @@ export default function BusinessMap({
       // directions instead of the name.
       const platforms = (s as any).platforms || [];
       if (zoom >= 16 && platforms.length >= 1) {
-        const mainKey = `stop:${s.stop_id}:${bucket}`;
-        seenKeys.add(mainKey);
-        if (!stopsCacheRef.current.has(mainKey)) {
-          buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
-        }
-        const clusters: { lat: number; lng: number; directions: string[]; routeNums: Set<string> }[] = [];
+        // Deep zoom: render the ACTUAL boarding points, not an extra
+        // aggregate marker on top of nearby opposing platforms.
+        const clusters: { lat: number; lng: number; side: string | null; directions: string[]; routeNums: Set<string> }[] = [];
         for (const p of platforms) {
           if (p.latitude == null || p.longitude == null) continue;
+          const side = p.side === "left" || p.side === "right" ? p.side : null;
+          // Never collapse opposite boarding sides into one marker.
           const near = clusters.find(
-            (c) =>
-              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 25
+            (c) => c.side === side &&
+              Math.sqrt((c.lat - p.latitude) ** 2 + (c.lng - p.longitude) ** 2) * 111000 < 12
           );
           if (near) {
             for (const d of p.directions || []) {
@@ -1394,23 +1416,32 @@ export default function BusinessMap({
             clusters.push({
               lat: p.latitude,
               lng: p.longitude,
+              side,
               directions: [...(p.directions || [])],
               routeNums: new Set<string>(p.routes || []),
             });
           }
         }
+        if (!clusters.length) {
+          const mainKey = `stop:${s.stop_id}:${bucket}`;
+          seenKeys.add(mainKey);
+          if (!stopsCacheRef.current.has(mainKey)) {
+            buildPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
+          }
+        }
         for (const c of clusters) {
-          const dMain =
-            Math.sqrt((s.latitude - c.lat) ** 2 + (s.longitude - c.lng) ** 2) * 111000;
-          if (dMain < 25) continue;
-          const k = `dir:${s.stop_id}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
+          const k = `dir:${s.stop_id}:${c.side || "unknown"}:${c.lat.toFixed(5)},${c.lng.toFixed(5)}`;
           seenKeys.add(k);
           if (!stopsCacheRef.current.has(k)) {
             const cRoutes = Array.from(c.routeNums).map((rn) => {
               const rr = (s.routes || []).find((x: any) => x.route_number === rn);
               return rr || { route_number: rn, mode: s.modes[0] || "bus" };
             });
-            buildPin(s, c.lat, c.lng, true, c.directions, null, k, undefined, cRoutes);
+            buildPin(
+              s, c.lat, c.lng, true,
+              c.directions.length ? c.directions : [s.name],
+              c.side, k, undefined, cRoutes
+            );
           }
         }
         return;
@@ -1544,7 +1575,6 @@ export default function BusinessMap({
   // Pan when the initialRegion-based center changes (e.g. home map bounds updates)
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return;
-    if (location) return;
     const key = `${centerLat.toFixed(4)},${centerLng.toFixed(4)}`;
     if (key === prevCenterRef.current) return;
     prevCenterRef.current = key;

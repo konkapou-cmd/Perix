@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  useWindowDimensions,
   Image,
   Linking,
   Modal,
@@ -76,6 +77,7 @@ interface DateFilter {
 export default function LocatorScreen() {
   const { t, i18n } = useTranslation();
   const { isDesktop } = useResponsiveLayout();
+  const { height: viewportHeight } = useWindowDimensions();
   const { sessionToken, user, activeIdentity } = useAuth();
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
   const { setMapBounds: setGlobalMapBounds, mapBounds, refreshKey } = useMapBounds();
@@ -109,6 +111,7 @@ export default function LocatorScreen() {
   const [taxiRequesting, setTaxiRequesting] = useState(false);
   const [transitMapLines, setTransitMapLines] = useState<V2MapLine[]>([]);
   const [physicalStops, setPhysicalStops] = useState<TransitStopMarker[]>([]);
+  const [diversionWarnings, setDiversionWarnings] = useState<{route_number: string; mode?: string; status: string}[]>([]);
   const [mapZoom, setMapZoom] = useState<number | null>(null);
   const [selectedPattern, setSelectedPattern] = useState<string | null>(null);
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
@@ -525,6 +528,7 @@ export default function LocatorScreen() {
         if (cancelled) return;
         setTransitMapLines(map.lines || []);
         setPhysicalStops(map.stops || []);
+        setDiversionWarnings(map.diversion_warnings || []);
       })
       .catch(() => {});
     return () => {
@@ -1286,6 +1290,8 @@ export default function LocatorScreen() {
           {/* Map Section */}
           <View style={styles.mapSection}>
         <BusinessMap
+          cameraScope={activeTab === "mobility" ? "mobility" : "explore"}
+          height={Math.round(Math.max(320, Math.min(480, viewportHeight * (isDesktop ? 0.48 : 0.43))))}
           location={
             contextLocation
               ? { latitude: contextLocation.latitude, longitude: contextLocation.longitude }
@@ -1351,7 +1357,7 @@ export default function LocatorScreen() {
                       longitude: v.longitude!,
                       title:
                         v.mode !== "taxi"
-                          ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
+                          ? `${v.display_route_number || v.route_number || v.fleet_number} → ${v.route_direction || ""}`
                           : v.name,
                       description:
                         v.identity_kind === "PHYSICAL"
@@ -1362,7 +1368,7 @@ export default function LocatorScreen() {
                           ? "Schedule estimate"
                           : v.status,
                       type: (v.mode === "bus" ? "bus" : v.mode === "tram" ? "tram" : "taxi") as "bus" | "tram" | "taxi",
-                      label: v.route_number || undefined,
+                      label: v.display_route_number || v.route_number || undefined,
                       pinColor: v.mode === "bus" ? "#1E3A8A" : v.mode === "tram" ? "#8B0000" : "#FFC400",
                       heading: v.heading ?? null,
                       estimated: v.estimated ?? false,
@@ -1458,6 +1464,15 @@ export default function LocatorScreen() {
       {/* Mobility: Bus/Taxi live view */}
       {activeTab === "mobility" && (
         <View style={styles.mobilityPanel}>
+          {diversionWarnings.length > 0 && (
+            <View style={{ padding: 9, borderRadius: 9, backgroundColor: "#EDF4FB", marginBottom: 8 }}>
+              <Text style={{ color: "#264348", fontSize: 12, fontWeight: "600" }}>
+                {t("mobility.detourPending", "Umleitung wird geprüft: {{lines}}", {
+                  lines: [...new Set(diversionWarnings.map((w) => w.route_number))].join(", "),
+                })}
+              </Text>
+            </View>
+          )}
           <View style={styles.mobilityToggle}>
             <Pressable
               style={[styles.mobilityToggleOption, mobilityMode === "all" && styles.mobilityToggleOptionActive]}
@@ -1934,16 +1949,26 @@ export default function LocatorScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.mobilityRowTitle}>
-                        {b.route_number} → {b.route_direction}
+                        {b.display_route_number ?? b.route_number} → {b.route_direction}
                       </Text>
                       <Text style={styles.mobilityRowSub}>
+                        {b.position_eta_consistency === 'INCONSISTENT'
+                           ? `${t("mobility.positionEtaMismatch", "Position/ETA discrepancy")} · ` : ''}
                         {b.distance_to_stop_m != null
                           ? `${b.distance_to_stop_m < 1000 ? b.distance_to_stop_m + " m" : (b.distance_to_stop_m / 1000).toFixed(1) + " km"} · `
                           : ""}
                         {t("mobility.eta", "Arrives ~{{n}} min", { n: b.eta_minutes })}
                         {b.delay_minutes > 0 ? ` · ${t("mobility.delay", "+{{n}} min", { n: b.delay_minutes })}` : ""}
+                        {b.delay_minutes < 0 ? ` · ${t("mobility.early", "{{n}} min früher", { n: Math.abs(b.delay_minutes) })}` : ""}
                         {" · "}
-                        {t("mobility.estimated", "Estimated")}
+                        {b.eta_source === "REALTIME" ? t("mobility.realtimeEta", "Echtzeit-Prognose") : t("mobility.estimated", "Geschätzt")}
+                        {b.position_source === "LIVE" ? " · GPS" : ""}
+                        {b.eta_source === "REALTIME" && b.realtime_feed_timestamp
+                          ? ` · ${t("mobility.feedAge", "Daten vor {{n}} Min.", {
+                              n: Math.max(0, Math.floor((Date.now() / 1000 - b.realtime_feed_timestamp) / 60))
+                            })}` : ""}
+                        {b.predicted_departure && b.predicted_departure !== b.predicted_arrival
+                          ? ` · ${t("mobility.departure", "Abfahrt")}: ${b.predicted_departure}` : ""}
                         {" · "}
                         {t("mobility.tapForJourney", "tap for journey")}
                       </Text>
@@ -2110,7 +2135,7 @@ export default function LocatorScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.mobilityRowTitle}>
                         {v.mode !== "taxi"
-                          ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
+                          ? `${v.display_route_number || v.route_number || v.fleet_number} → ${v.route_direction || ""}`
                           : v.name}
                       </Text>
                       <Text style={styles.mobilityRowSub}>

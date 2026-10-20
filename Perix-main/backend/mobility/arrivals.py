@@ -19,6 +19,9 @@ def _fmt_service_time(sec: int) -> str:
 async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
     from mobility.domain import NETWORK_ID, build_domain
     from mobility.overrides import canceled_trip_ids, skipped_stop_ids
+    from mobility.eta_quality import eta_source_for_stop
+    from mobility.eta_position import position_eta_consistency
+    from mobility.display_labels import display_alias
     from routes.mobility import (
         _get_active_network,
         _now_service_seconds,
@@ -30,6 +33,8 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
     if not network:
         return []
     domain = build_domain(network, NETWORK_ID)
+    net = domain.get('network') or {}
+    pat_by_id = {str(p.get('pattern_id')): p for p in domain.get('patterns') or []}
 
     platform_ids = set()
     for stop in domain["stops"]:
@@ -40,7 +45,13 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
     if not platform_ids:
         return []
 
-    routes_by_num = {str(r.get("route_number")): r for r in network.get("routes", [])}
+    # Route number alone is not a trip identity (branches/short turns share it).
+    trips_by_id = {
+        str(trip.get("trip_id")): (route, trip)
+        for route in network.get("routes", [])
+        for trip in (route.get("trips") or [])
+        if trip.get("trip_id") is not None
+    }
     candidates = [
         t
         for t in domain["trip_templates"]
@@ -102,12 +113,10 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
         tid = str(tt.get("trip_id") or "")
         if tid in canceled:
             continue
-        route = routes_by_num.get(str(tt.get("route_number")))
-        if not route:
+        trip_match = trips_by_id.get(tid)
+        if not trip_match:
             continue
-        trip = next((x for x in route.get("trips", []) if str(x.get("trip_id")) == tid), None)
-        if not trip:
-            continue
+        route, trip = trip_match
         rt = delays.get(tid)
         if rt and str(rt.get("trip_schedule_relationship") or "").upper() in ("CANCELED", "DELETED"):
             continue
@@ -146,6 +155,20 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
             veh = pos_by_id.get(vehicle_id)
             if veh:
                 distance_m = round(_hav_m(veh["latitude"], veh["longitude"], stop_lat, stop_lng))
+        eta_source = eta_source_for_stop(rt, entry.get("stop_id"))
+        eta_seconds = max(0, int(entry['predicted_arrival']) - now)
+        consistency = position_eta_consistency(tt.get('mode'), eta_seconds, distance_m)
+        if consistency['status'] == 'INCONSISTENT':
+            # Time and position disagree. Preserve GTFS-RT ETA and REAL GPS.
+            # Suppress only unverified distance from a VIRTUAL vehicle.
+            matched_vehicle = pos_by_id.get(vehicle_id)
+            if matched_vehicle and bool(matched_vehicle.get('estimated')):
+                distance_m = None
+        pat = pat_by_id.get(str(tt.get('pattern_id'))) or {}
+        alias = display_alias(
+            tt.get('pattern_id'), tt.get('route_number'), tt.get('mode'),
+            pat.get('stop_ids') or [], net.get('service_date'),
+            net.get('region_id'), net.get('network_id')) or {}
         out.append(
             {
                 "trip_instance_id": tt.get("trip_instance_id"),
@@ -153,12 +176,25 @@ async def unified_arrivals(stop_id: str, limit: int = 20) -> List[dict]:
                 "route_number": tt.get("route_number"),
                 "direction": trip.get("headsign"),
                 "mode": tt.get("mode"),
-                "eta_seconds": max(0, int(entry["predicted_arrival"]) - now),
+                "eta_seconds": eta_seconds,
+                **alias,
+                "position_eta_consistency": consistency['status'],
+                "position_required_kmh": consistency['required_kmh'],
                 "predicted": _fmt_service_time(int(entry["predicted_arrival"])),
+                "scheduled_arrival": _fmt_service_time(int(entry["scheduled_arrival"])),
+                "scheduled_departure": _fmt_service_time(int(entry["scheduled_departure"])),
+                "predicted_arrival": _fmt_service_time(int(entry["predicted_arrival"])),
+                "predicted_departure": _fmt_service_time(int(entry["predicted_departure"])),
                 "delay_seconds": int(entry.get("delay_seconds") or 0),
-                "source": "LIVE" if gps else ("REALTIME" if rt else "SCHEDULE"),
+                "departure_delay_seconds": int(entry["predicted_departure"] - entry["scheduled_departure"]),
+                "source": eta_source,  # source of the TIME, not the position
+                "eta_source": eta_source,
+                "position_source": "LIVE" if gps else "ESTIMATED",
+                "realtime_updated_at": rt.get("updated_at") if eta_source == "REALTIME" else None,
+                "realtime_feed_timestamp": rt.get("feed_timestamp") if eta_source == "REALTIME" else None,
                 "vehicle_id": vehicle_id,
                 "distance_to_stop_m": distance_m,
+                "distance_kind": "STRAIGHT_LINE" if distance_m is not None else None,
             }
         )
     out.sort(key=lambda x: x["eta_seconds"])

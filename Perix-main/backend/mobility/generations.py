@@ -325,11 +325,25 @@ async def build_pattern_generation(
     pattern: dict,
     reason: str,
     osm_snapshot_v: Optional[int] = None,
+    active_restrictions: Optional[list] = None,
 ) -> dict:
     from mobility.graph import validate_geometry
     from mobility.infrastructure import derive_pattern_infrastructure
     from mobility.osm_store import active_version
     from mobility.roads import compute_pattern_segments
+    from mobility.restrictions import (
+        get_active_restrictions, restriction_edges_for_pattern, restriction_signature,
+    )
+
+    if active_restrictions is None:
+        active_restrictions = await get_active_restrictions()
+    selector = {
+        "mode": str(pattern.get("mode") or "bus"),
+        "route_number": str(pattern.get("route_number") or ""),
+        "direction": str(pattern.get("direction") or ""),
+    }
+    blocked_ways, blocked_edges = restriction_edges_for_pattern(active_restrictions, **selector)
+    closure_sig = restriction_signature(active_restrictions, **selector)
 
     region = get_active_region()
     region_id = str(network.get("region_id") or region.region_id)
@@ -386,6 +400,8 @@ async def build_pattern_generation(
         mode,
         shape_hint,
         osm_snapshot_v=int(snapshot),
+        blocked_way_ids=blocked_ways,
+        blocked_edge_ids=blocked_edges,
     )
     missing_pairs = routed.get("missing_pairs") or []
     points = routed.get("full") or []
@@ -468,6 +484,7 @@ async def build_pattern_generation(
         "route_number": str(pattern.get("route_number") or ""),
         "direction": str(pattern.get("direction") or ""),
         "pattern_fingerprint": pattern_fp,
+        "restriction_fingerprint": closure_sig,
         "generation_id": generation_id,
         "osm_snapshot_v": int(snapshot),
         "geometry": {
@@ -800,6 +817,9 @@ async def prepare_network_version(
         for pattern in source_domain.get("patterns", [])
     }
 
+    from mobility.restrictions import get_active_restrictions, restriction_signature
+    active_restrictions = await get_active_restrictions()
+
     reused = []
     rebuilt = []
     baseline_missing = []
@@ -810,7 +830,13 @@ async def prepare_network_version(
         pid = str(pattern.get("pattern_id") or "")
         fp = pattern_fingerprint(pattern)
         source_bundle = source_by_fp.get(fp)
-        if source_bundle:
+        selector = {
+            "mode": str(pattern.get("mode") or "bus"),
+            "route_number": str(pattern.get("route_number") or ""),
+            "direction": str(pattern.get("direction") or ""),
+        }
+        closure_sig = restriction_signature(active_restrictions, **selector)
+        if source_bundle and str(source_bundle.get("restriction_fingerprint") or "") == closure_sig:
             result = await copy_generation_to_version(
                 source_bundle,
                 target_network=candidate,
@@ -826,6 +852,7 @@ async def prepare_network_version(
             domain=candidate_domain,
             pattern=pattern,
             reason=reason,
+            active_restrictions=active_restrictions,
         )
         if result.get("ok"):
             rebuilt.append(pid)
@@ -911,7 +938,9 @@ async def refresh_network_version(
     from mobility.domain import build_domain
     from mobility.infrastructure import INFRA_SCHEMA_VERSION
     from mobility.osm_store import active_version
+    from mobility.restrictions import get_active_restrictions, restriction_signature
 
+    active_restrictions = await get_active_restrictions()
     region = get_active_region()
     network = await db.bus_network_versions.find_one(
         {
@@ -948,10 +977,17 @@ async def refresh_network_version(
             continue
         existing = current.get(pid)
         fp = pattern_fingerprint(pattern)
+        selector = {
+            "mode": str(pattern.get("mode") or "bus"),
+            "route_number": str(pattern.get("route_number") or ""),
+            "direction": str(pattern.get("direction") or ""),
+        }
+        closure_sig = restriction_signature(active_restrictions, **selector)
         if (
             existing
             and existing.get("ready")
             and str(existing.get("pattern_fingerprint") or "") == fp
+            and str(existing.get("restriction_fingerprint") or "") == closure_sig
             and int(existing.get("osm_snapshot_v") or -1) == int(snapshot)
             and int(
                 ((existing.get("infrastructure") or {}).get("schema_v") or 0)
@@ -967,6 +1003,7 @@ async def refresh_network_version(
             pattern=pattern,
             reason=reason,
             osm_snapshot_v=int(snapshot),
+            active_restrictions=active_restrictions,
         )
         if result.get("ok"):
             refreshed.append(pid)

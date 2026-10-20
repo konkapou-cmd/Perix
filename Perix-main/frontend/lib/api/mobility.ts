@@ -42,6 +42,7 @@ export type LiveVehicle = {
   name: string;
   registration?: string | null;
   route_number?: string | null;
+  display_route_number?: string | null;
   route_direction?: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -93,6 +94,7 @@ export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicl
       fleet_number: String(v.route?.number ?? ""),
       name: String(v.route?.number ?? v.vehicle_id),
       route_number: v.route?.number ?? null,
+      display_route_number: v.display_route_number ?? null,
       route_direction: v.route?.direction ?? null,
       latitude: v.position?.latitude ?? null,
       longitude: v.position?.longitude ?? null,
@@ -125,6 +127,7 @@ export type V2Vehicle = {
   identity_kind?: "PHYSICAL" | "VIRTUAL_REALTIME" | "VIRTUAL_SCHEDULE" | string;
   registered_vehicle_id?: string | null;
   mode: string;
+  display_route_number?: string | null;
   route?: { number?: string | null; direction?: string | null };
   position?: {
     latitude?: number | null;
@@ -153,12 +156,25 @@ export type V2Arrival = {
   trip_instance_id?: string;
   trip_id?: string;
   route_number: string;
+  display_route_number?: string;
+  display_route_source?: string;
+  position_eta_consistency?: string;
+  position_required_kmh?: number | null;
   direction?: string | null;
   mode?: string;
   eta_seconds?: number;
   predicted?: string;
+  scheduled_arrival?: string;
+  scheduled_departure?: string;
+  predicted_arrival?: string;
+  predicted_departure?: string;
   delay_seconds?: number;
+  departure_delay_seconds?: number;
   source?: string;
+  eta_source?: "REALTIME" | "SCHEDULE" | string;
+  position_source?: "LIVE" | "ESTIMATED" | string;
+  realtime_updated_at?: string | null;
+  realtime_feed_timestamp?: number | null;
   vehicle_id: string;
   distance_to_stop_m?: number | null;
 };
@@ -173,6 +189,8 @@ export type V2MapLineStop = {
 export type V2MapLine = {
   pattern_id: string;
   route_number: string;
+  display_route_number?: string;
+  display_route_source?: string;
   mode?: "bus" | "tram";
   direction?: string;
   points: { latitude: number; longitude: number }[];
@@ -185,6 +203,7 @@ export type V2MapLine = {
 export type V2Map = {
   lines: V2MapLine[];
   stops: TransitStopMarker[];
+  diversion_warnings?: { route_number: string; mode?: string; direction?: string; status: string }[];
 };
 
 export const getMobilityOperatorInfo = (token: string) =>
@@ -326,10 +345,20 @@ export const getV2Map = (token: string | null | undefined) =>
 export type ServingBus = {
   vehicle_id: string;
   route_number: string;
+  display_route_number?: string;
+  position_eta_consistency?: string;
   route_direction: string;
   status: string;
-  delay_minutes: number;
+  delay_minutes: number; // signed: negative means early
   eta_minutes: number;
+  scheduled_arrival?: string;
+  scheduled_departure?: string;
+  predicted_arrival?: string;
+  predicted_departure?: string;
+  eta_source?: string;
+  position_source?: string;
+  realtime_updated_at?: string | null;
+  realtime_feed_timestamp?: number | null;
   distance_to_bus_m: number | null;
   distance_to_stop_m: number | null;
   mode?: string;
@@ -426,10 +455,20 @@ export const getBusesServing = async (
   return (raw || []).map((a) => ({
     vehicle_id: a.vehicle_id,
     route_number: a.route_number,
+    display_route_number: a.display_route_number,
+    position_eta_consistency: a.position_eta_consistency,
     route_direction: a.direction ?? "",
     status: a.source ?? "SCHEDULE",
-    delay_minutes: Math.max(0, Math.round((a.delay_seconds ?? 0) / 60)),
+    delay_minutes: Math.round((a.delay_seconds ?? 0) / 60),
     eta_minutes: Math.max(0, Math.ceil((a.eta_seconds ?? 0) / 60)),
+    scheduled_arrival: a.scheduled_arrival,
+    scheduled_departure: a.scheduled_departure,
+    predicted_arrival: a.predicted_arrival ?? a.predicted,
+    predicted_departure: a.predicted_departure,
+    eta_source: a.eta_source ?? a.source ?? "SCHEDULE",
+    position_source: a.position_source ?? "ESTIMATED",
+    realtime_updated_at: a.realtime_updated_at,
+    realtime_feed_timestamp: a.realtime_feed_timestamp,
     distance_to_bus_m: null,
     distance_to_stop_m: a.distance_to_stop_m ?? null,
     mode: a.mode,

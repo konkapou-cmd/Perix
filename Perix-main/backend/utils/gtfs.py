@@ -102,10 +102,12 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
     region = get_active_region()
     resolved_agency_regex = str(agency_regex or region.agency_regex)
     resolved_timezone = str(timezone or region.timezone)
+    from mobility.schedule_revision import service_day_for
+
     sd = (
         datetime.strptime(service_date, "%Y-%m-%d").date()
         if service_date
-        else datetime.now(ZoneInfo(resolved_timezone)).date()
+        else service_day_for(datetime.now(ZoneInfo(resolved_timezone)), region.service_day_start_hour)
     )
     agency_re = re.compile(resolved_agency_regex, re.I)
 
@@ -138,6 +140,7 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
                 "route_number": (r.get("route_short_name") or r.get("route_long_name") or r["route_id"]).strip(),
                 "name": (r.get("route_long_name") or "").strip(),
                 "mode": mode,
+                "agency_id": str(r.get("agency_id") or ""),
             }
 
         trips = {}
@@ -149,6 +152,8 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
                 "headsign": (r.get("trip_headsign") or "").strip(),
                 "shape_id": (r.get("shape_id") or "").strip(),
                 "block_id": (r.get("block_id") or "").strip() or None,
+                "service_id": str(r.get("service_id") or ""),
+                "direction_id": r.get("direction_id") or None,
                 "times": [],
             }
 
@@ -216,10 +221,15 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
                     "mode": base["mode"],
                     "_stop_ids": [],
                     "_seen": set(),
+                    "_gtfs_route_ids": set(),
+                    "_gtfs_agency_ids": set(),
                     "trips": [],
                     "shape_id": t["shape_id"] or None,
                 },
             )
+            g["_gtfs_route_ids"].add(str(t["route_id"]))
+            if base.get("agency_id"):
+                g["_gtfs_agency_ids"].add(str(base["agency_id"]))
             if not g["shape_id"] and t["shape_id"]:
                 g["shape_id"] = t["shape_id"]
             stop_times = {}
@@ -239,6 +249,13 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
                     "start": seqs[0][3],
                     "end": seqs[-1][3],
                     "block_id": t["block_id"],
+                    # Preserve the original static GTFS IDs for cross-feed
+                    # identity verification. A public route number is NOT
+                    # the same as the GTFS route_id.
+                    "gtfs_route_id": t["route_id"],
+                    "service_id": t["service_id"],
+                    "direction_id": t["direction_id"],
+                    "stop_sequences": [int(seq) for seq, *_ in seqs],
                     # Exact GTFS stop_sequence order for THIS trip.
                     # route.stops below is only a union for discovery/UI
                     # and must not define direction or progress.
@@ -255,6 +272,8 @@ def _parse_zip(source, service_date, agency_regex, timezone) -> dict:
                 "route_number": g["route_number"],
                 "name": g["name"],
                 "mode": g["mode"],
+                "gtfs_route_ids": sorted(g["_gtfs_route_ids"]),
+                "gtfs_agency_ids": sorted(g["_gtfs_agency_ids"]),
                 "stops": [stops[sid] for sid in g["_stop_ids"] if sid in stops],
                 "trips": sorted(g["trips"], key=lambda t: (t["start"], t["headsign"], t["trip_id"])),
             }

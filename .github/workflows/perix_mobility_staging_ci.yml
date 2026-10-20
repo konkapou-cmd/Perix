@@ -1,8 +1,12 @@
 name: Perix Mobility staging backend safety checks
 
-# Baseline on the staging branch first. Once the cumulative V14+ changes are
-# deliberately committed to the same branch, rerun against the patched source.
+# Validate staging and staging-bound PRs without production credentials.
 on:
+  pull_request:
+    branches: [perix-mobility-staging]
+    paths:
+      - 'Perix-main/backend/**'
+      - '.github/workflows/perix_mobility_staging_ci.yml'
   push:
     branches: [perix-mobility-staging]
     paths:
@@ -15,7 +19,9 @@ permissions:
 
 jobs:
   mobility-backend:
-    if: github.ref == 'refs/heads/perix-mobility-staging'
+    if: >-
+      github.ref == 'refs/heads/perix-mobility-staging' ||
+      (github.event_name == 'pull_request' && github.base_ref == 'perix-mobility-staging')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -62,7 +68,8 @@ jobs:
           assert os.environ['TEST_MONGO_URL'] == os.environ['MONGO_URL']
           assert os.environ['TEST_DB_NAME'] == os.environ['DB_NAME']
           targets = list(Path('tests').glob('test_mobility_*.py'))
-          assert len(targets) >= 15, 'Missing mobility tests; refuse misleading CI success'
+          expected = 35 if Path('mobility/realtime_order.py').is_file() else 23
+          assert len(targets) == expected, f'Expected {expected} Mobility modules, found {len(targets)}'
           for f in targets:
               content = f.read_text(encoding='utf-8')
               for url in re.findall(r'https?://[^\s\"\']+', content):
@@ -141,4 +148,4 @@ jobs:
         run: |
           echo "Testing source stage: $PERIX_STAGE"
           PYTHONPATH="$RUNNER_TEMP/perix_ci_guard:$GITHUB_WORKSPACE/Perix-main/backend" \
-            python -m pytest -p perix_ci_no_egress -q tests/test_mobility_*.py tests/test_date_range_utils.py
+            python -m pytest -p perix_ci_no_egress -q tests/test_mobility_*.py tests/test_realtime_order_mongo.py tests/test_date_range_utils.py
