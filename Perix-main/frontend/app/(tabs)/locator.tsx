@@ -520,27 +520,49 @@ const { t, i18n } = useTranslation();
     }
   }, [locating, setManualLocation, setGlobalMapBounds, isMobilityTab, t]);
 
-  // Live mobility vehicles (buses/taxis) - polled while the Mobility tab
+// Live mobility vehicles (buses/taxis) - polled while the Mobility tab
   // is open. The WebSocket channel integration can replace polling later.
+  //
+  // Single-flight polling: the backend can take 12-19s to answer, so a fixed
+  // 4s interval would stack overlapping requests and the latestSeq guard
+  // would keep discarding every response (never calling setLiveVehicles).
+  // We keep at most ONE in-flight request and schedule the next poll only
+  // after the previous one settles, with exponential backoff on failure.
   useEffect(() => {
     if (activeTab !== "mobility") return;
     let cancelled = false;
-    let latestSeq = 0;
-    const load = () => {
-      const seq = ++latestSeq;
-      getLiveVehicles(sessionToken)
-        .then((vehicles) => {
-          // Only the newest response may win - a slow stale poll must
-          // never overwrite newer positions.
-          if (!cancelled && seq === latestSeq) setLiveVehicles(vehicles || []);
-        })
-        .catch(() => {});
+    let inFlight = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let delay = 4000;
+
+    const schedule = (ms: number) => {
+      if (cancelled) return;
+      timer = setTimeout(load, ms);
     };
+
+    const load = async () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      try {
+        const vehicles = await getLiveVehicles(sessionToken);
+        if (!cancelled) {
+          setLiveVehicles(vehicles || []);
+          delay = 4000;
+        }
+      } catch (e) {
+        if (!cancelled) {
+          delay = Math.min(delay * 2, 30000);
+        }
+      } finally {
+        inFlight = false;
+        schedule(delay);
+      }
+    };
+
     load();
-    const interval = setInterval(load, 4000);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (timer) clearTimeout(timer);
     };
   }, [activeTab, sessionToken]);
 
