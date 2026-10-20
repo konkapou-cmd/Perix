@@ -154,25 +154,31 @@ def audit_schedule(network, *, contract=None, service_day_start_hour=4, previous
                 warnings.append({'code': 'REPEATED_STOP_ID_UNSUPPORTED', 'route': line, 'trip_id': tid})
             departures = trip.get('stop_times') or {}
             arrivals = trip.get('stop_times_arrival') or departures
+            prev_departure_raw = None
             prev_departure = None
             day_offset = 0
             for sid in ids:
-                a = _seconds(arrivals.get(sid), service_day_start_hour)
-                d = _seconds(departures.get(sid), service_day_start_hour)
-                if a is None or d is None:
+                a_raw = _seconds(arrivals.get(sid), service_day_start_hour)
+                d_raw = _seconds(departures.get(sid), service_day_start_hour)
+                if a_raw is None or d_raw is None:
                     errors.append({'code': 'INVALID_TRIP_TIMELINE', 'route': line, 'trip_id': tid, 'stop_id': sid})
                     break
-                # Detect midnight rollover: if the arrival goes backwards
-                # relative to the previous departure, shift this and all
-                # subsequent stops forward by 24h so the timeline stays
-                # monotonic regardless of "24:xx" vs "00:xx" notation.
-                if prev_departure is not None and a < prev_departure:
+                # Detect midnight rollover: if the RAW arrival goes backwards
+                # relative to the RAW previous departure AND the arrival is in
+                # the early-morning window (hour < service_day_start_hour),
+                # shift this and all subsequent stops forward by 24h. This
+                # handles feeds that write past-midnight times as "00:xx"
+                # instead of "24:xx", while still rejecting genuinely
+                # backwards times like "23:50" -> "23:40".
+                if (prev_departure_raw is not None and a_raw < prev_departure_raw
+                        and a_raw // 3600 < service_day_start_hour):
                     day_offset += 24 * 3600
-                a += day_offset
-                d += day_offset
+                a = a_raw + day_offset
+                d = d_raw + day_offset
                 if a > d or (prev_departure is not None and a < prev_departure):
                     errors.append({'code': 'INVALID_TRIP_TIMELINE', 'route': line, 'trip_id': tid, 'stop_id': sid})
                     break
+                prev_departure_raw = d_raw
                 prev_departure = d
     previous_stops = {}
     for route in (previous or {}).get('routes') or []:

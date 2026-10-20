@@ -164,3 +164,50 @@ def test_gtfs_service_day_before_0400_is_previous_date():
     assert seconds_until_next_service_day(early) == 20 * 60
     later = datetime(2026, 10, 19, 4, 1, tzinfo=ZoneInfo('Europe/Berlin'))
     assert service_day_for(later).isoformat() == '2026-10-19'
+
+
+def _trip_with_times(times):
+    stops = [{'stop_id': f'S{i}', 'name': f'S{i}', 'lat': 52.0, 'lng': 11.0} for i in range(len(times))]
+    return {
+        'region_id': 'magdeburg', 'network_id': 'de-magdeburg-mvb',
+        'service_date': '2026-10-18',
+        'routes': [{
+            'route_number': '54', 'mode': 'bus', 'stops': stops,
+            'trips': [{
+                'trip_id': 't1', 'stop_ids': [s['stop_id'] for s in stops],
+                'stop_times': {s['stop_id']: t for s, t in zip(stops, times)},
+            }],
+        }],
+    }
+
+
+def test_midnight_rollover_24xx_then_00xx_is_accepted():
+    # "24:30" (00:30 next day) followed by "00:35" (written as 00:xx instead
+    # of 24:xx) must be shifted forward by 24h, not rejected.
+    result = audit_schedule(_trip_with_times(['24:30', '00:35', '00:40']))
+    assert result['ready_to_import'] is True
+
+
+def test_4am_boundary_crossing_is_accepted():
+    # A trip crossing the 04:00 service-day boundary must not be rejected by
+    # the old "add 24h to hours < 4" heuristic.
+    result = audit_schedule(_trip_with_times(['03:50', '04:00']))
+    assert result['ready_to_import'] is True
+
+
+def test_midnight_crossing_23xx_then_00xx_is_accepted():
+    result = audit_schedule(_trip_with_times(['23:50', '00:05']))
+    assert result['ready_to_import'] is True
+
+
+def test_genuinely_backwards_24xx_then_00xx_is_rejected():
+    # "24:30" (00:30 next day) followed by "00:05" (00:05 next day) is
+    # genuinely backwards and must still be rejected (fail-closed).
+    result = audit_schedule(_trip_with_times(['24:30', '00:05']))
+    assert 'INVALID_TRIP_TIMELINE' in [x['code'] for x in result['blocking_errors']]
+
+
+def test_backwards_same_day_is_rejected():
+    # "23:50" -> "23:40" is genuinely backwards (same day) and must be rejected.
+    result = audit_schedule(_trip_with_times(['23:50', '23:40']))
+    assert 'INVALID_TRIP_TIMELINE' in [x['code'] for x in result['blocking_errors']]
