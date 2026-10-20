@@ -24,6 +24,9 @@ export type GoogleVehicleMarker = {
   heading?: number | null;
   path?: { latitude: number; longitude: number }[];
   progressM?: number | null;
+  positionState?: string | null;
+  speed?: number | null;
+  motionState?: string | null;
 };
 
 export type GoogleTransitPlatform = {
@@ -124,8 +127,12 @@ const iframeRef = useRef<HTMLIFrameElement>(null);
         type: v.type || "bus",
         label: v.label,
         estimated: !!v.estimated,
+        heading: v.heading,
         path: v.path,
         progressM: v.progressM,
+        positionState: v.positionState,
+        speed: v.speed,
+        motionState: v.motionState,
       })),
       stops: transitStops,
       planLines: planLines.map((l) => ({

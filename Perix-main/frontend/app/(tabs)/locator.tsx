@@ -644,6 +644,8 @@ const { t, i18n } = useTranslation();
           path,
           progressM: v.progress_m ?? null,
           positionState: v.position_state ?? null,
+          speed: v.speed ?? null,
+          motionState: v.motion?.state ?? null,
         };
       });
   }, [liveVehicles, mobilityMode, transitMapLines]);

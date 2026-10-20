@@ -60,9 +60,7 @@
   var PENDING = null;
   var LINES = {};      // pattern_id -> polyline
   var LINE_PATHS = {};  // pattern_id -> path fingerprint
-  var VEHICLES = {};   // id -> marker
-  var VEH_STATE = {};  // id -> {lat,lng,animId}
-  var VEH_LABELS = {}; // id -> {label,type,estimated}
+  var VEHICLES = {};   // id -> record {marker, path, cum, progNow, progFrom, progTo, animStart, animDuration, lastTs, heading, positionState, ...}
   var STOPS = {};      // stop_id -> {marker, div}
   var PLAN = {};       // pattern_id -> polyline
   var PLAN_PATHS = {};  // pattern_id -> path fingerprint
@@ -99,6 +97,15 @@
       } else {
         resizeStops();
       }
+      // Resize vehicle SVG icons in place (no marker recreation on zoom).
+      var vscale = vehicleScale(MAP.getZoom());
+      Object.keys(VEHICLES).forEach(function (id) {
+        var rec = VEHICLES[id];
+        if (rec && rec.marker) {
+          rec.scale = vscale;
+          try { rec.marker.setIcon(makeVehicleIcon(rec)); } catch (e) {}
+        }
+      });
     });
     MAP.addListener("bounds_changed", function () {
       var now = Date.now();
@@ -161,18 +168,93 @@
       p.longitude >= -180 && p.longitude <= 180;
   }
 
+  // --- Original Perix vehicle SVG icons (ported from BusinessMap.web.tsx) ---
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function routePlateText(num, x, fontSize, y) {
+    return '<text x="' + x + '" y="' + y + '" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="' + fontSize + '" fill="#ffffff">' + escapeHtml(num) + '</text>';
+  }
+
+  function busSvg(label, deg) {
+    var num = (label || "").trim();
+    var plate = num
+      ? '<rect x="32.2" y="6" width="8" height="6.2" rx="1.6" fill="#1E3A8A"/>' + routePlateText(num, 36.2, num.length > 2 ? 3.4 : 4.6, 10.7)
+      : "";
+    return '<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
+      '<defs><filter id="bs" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/></filter></defs>' +
+      '<g transform="translate(9 19)"><g transform="rotate(' + deg + ' 23 13)" filter="url(#bs)">' +
+      '<rect x="1.2" y="3" width="43.6" height="17" rx="5.5" fill="#ffffff" stroke="#1E3A8A" stroke-width="2"/>' +
+      '<rect x="4" y="6" width="6" height="6" rx="1.5" fill="#59ABE3"/>' +
+      '<rect x="12" y="6" width="5.5" height="6" rx="1.5" fill="#BFDFF7"/>' +
+      '<rect x="19" y="6" width="5.5" height="6" rx="1.5" fill="#BFDFF7"/>' +
+      '<rect x="26" y="6" width="5.5" height="6" rx="1.5" fill="#BFDFF7"/>' +
+      plate +
+      '<rect x="40.5" y="6.2" width="4.2" height="6" rx="1.4" fill="#59ABE3"/>' +
+      '<rect x="36.5" y="1" width="7" height="3.4" rx="1.7" fill="#59ABE3"/>' +
+      '<circle cx="11" cy="20.5" r="3.4" fill="#1E3A8A"/><circle cx="35" cy="20.5" r="3.4" fill="#1E3A8A"/>' +
+      '<circle cx="11" cy="20.5" r="1.4" fill="#ffffff"/><circle cx="35" cy="20.5" r="1.4" fill="#ffffff"/>' +
+      '</g></g></svg>';
+  }
+
+  function tramSvg(label, deg) {
+    var num = (label || "").trim();
+    var plate = num
+      ? '<rect x="8.2" y="10.8" width="11" height="6.8" rx="1.6" fill="#166534"/>' + routePlateText(num, 13.7, num.length > 2 ? 3.9 : 5.2, 15.9)
+      : "";
+    return '<svg width="82" height="82" viewBox="0 0 82 82" xmlns="http://www.w3.org/2000/svg">' +
+      '<defs><filter id="ts" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#0A143C" flood-opacity="0.35"/></filter></defs>' +
+      '<g transform="translate(8 26)"><g transform="rotate(' + deg + ' 33 15)" filter="url(#ts)">' +
+      '<line x1="8" y1="1.5" x2="8" y2="9" stroke="#166534" stroke-width="2.2"/>' +
+      '<line x1="3" y1="1.5" x2="26" y2="1.5" stroke="#166534" stroke-width="1.7"/>' +
+      '<rect x="1.2" y="9" width="29" height="13" rx="4" fill="#ffffff" stroke="#166534" stroke-width="2"/>' +
+      '<rect x="35.8" y="9" width="29" height="13" rx="4" fill="#ffffff" stroke="#166534" stroke-width="2"/>' +
+      '<rect x="30.3" y="12.2" width="5.5" height="6" rx="2" fill="#0E4022"/>' +
+      '<rect x="1.8" y="10.8" width="4.6" height="7" rx="1.8" fill="#BFE3C8"/>' +
+      '<rect x="21.5" y="11.5" width="4.5" height="5" rx="1.3" fill="#BFE3C8"/>' +
+      '<rect x="39" y="11.5" width="4.5" height="5" rx="1.3" fill="#BFE3C8"/>' +
+      '<rect x="45.5" y="11.5" width="4.5" height="5" rx="1.3" fill="#BFE3C8"/>' +
+      '<rect x="52" y="11.5" width="4.5" height="5" rx="1.3" fill="#BFE3C8"/>' +
+      '<rect x="58" y="10.8" width="4.6" height="7" rx="1.8" fill="#BFE3C8"/>' +
+      '<rect x="26.6" y="15.8" width="3.8" height="6" rx="0.9" fill="#0E4022"/>' +
+      '<rect x="46.5" y="16.2" width="4.6" height="5.4" rx="1" fill="#0E4022"/>' +
+      plate +
+      '<circle cx="8" cy="23.5" r="3" fill="#166534"/><circle cx="22.5" cy="23.5" r="3" fill="#166534"/>' +
+      '<circle cx="43.5" cy="23.5" r="3" fill="#166534"/><circle cx="57.5" cy="23.5" r="3" fill="#166534"/>' +
+      '<circle cx="8" cy="23.5" r="1.2" fill="#ffffff"/><circle cx="22.5" cy="23.5" r="1.2" fill="#ffffff"/>' +
+      '<circle cx="43.5" cy="23.5" r="1.2" fill="#ffffff"/><circle cx="57.5" cy="23.5" r="1.2" fill="#ffffff"/>' +
+      '</g></g></svg>';
+  }
+
+  function vehicleScale(zoom) {
+    return 0.78 * Math.max(0.45, Math.min(1.35, zoom / 14));
+  }
+
+  function makeVehicleIcon(v) {
+    var isTram = v.type === "tram";
+    var canvas = isTram ? 82 : 64;
+    var w = Math.max(16, Math.round(canvas * (v.scale || 1)));
+    var heading = typeof v.heading === "number" ? v.heading : 0;
+    var deg = Math.round((heading - 90) * 10) / 10;
+    return {
+      url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(isTram ? tramSvg(v.label, deg) : busSvg(v.label, deg)),
+      scaledSize: new google.maps.Size(w, w),
+      anchor: new google.maps.Point(Math.round(w / 2), Math.round(w / 2)),
+    };
+  }
+
   function markerFor(v) {
-    var div = document.createElement("div");
-    div.className = "veh " + (v.type || "bus") + (v.estimated ? " estimated" : "");
-    var span = document.createElement("span");
-    span.textContent = v.label || "";
-    div.appendChild(span);
-    var marker;
-    if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
-      marker = new google.maps.marker.AdvancedMarkerElement({ map: MAP, position: { lat: v.latitude, lng: v.longitude }, content: div, zIndex: 10 });
-    } else {
-      marker = new google.maps.Marker({ map: MAP, position: { lat: v.latitude, lng: v.longitude }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: v.type === "tram" ? "#8B0000" : "#1E3A8A", fillOpacity: v.estimated ? 0.5 : 1, strokeColor: "#fff", strokeWeight: 2 }, label: v.label || "" });
-    }
+    var marker = new google.maps.Marker({
+      map: MAP,
+      position: { lat: v.latitude, lng: v.longitude },
+      zIndex: 10,
+      clickable: true,
+    });
+    marker.setIcon(makeVehicleIcon(v));
+    marker.setOpacity(v.estimated ? 0.72 : 1);
     marker.addListener("click", function () { post("markerPress", { id: v.id }); });
     return marker;
   }
@@ -182,39 +264,117 @@
     else if (marker.position) marker.position = { lat: lat, lng: lng };
   }
 
-  function animateTo(id, marker, targetLat, targetLng) {
-    var st = VEH_STATE[id] || (VEH_STATE[id] = { lat: null, lng: null, animId: null });
-    if (st.animId) cancelAnimationFrame(st.animId);
-    var startLat = st.lat != null ? st.lat : targetLat;
-    var startLng = st.lng != null ? st.lng : targetLng;
-    var t0 = null;
-    var dur = 650;
-    function step(ts) {
-      if (!t0) t0 = ts;
-      var f = Math.min(1, (ts - t0) / dur);
-      var ease = f < 0.5 ? 2*f*f : 1 - Math.pow(-2*f + 2, 2) / 2;
-      var lat = startLat + (targetLat - startLat) * ease;
-      var lng = startLng + (targetLng - startLng) * ease;
-      setMarkerPos(marker, lat, lng);
-      st.lat = lat; st.lng = lng;
-      if (f < 1) st.animId = requestAnimationFrame(step);
-      else st.animId = null;
-    }
-    st.animId = requestAnimationFrame(step);
+  // --- Continuous vehicle motion (ported from BusinessMap.web.tsx) ---
+  // Vehicles glide along their canonical polyline via requestAnimationFrame,
+  // interpolating PROGRESS (meters) not lat/lng, so they follow every curve.
+  // After reaching the latest poll target they extrapolate at the same speed
+  // (up to 3x the glide duration) so a slow backend never reads as stop-and-go.
+  var ANIM_RUNNING = false;
+  var ANIM_RAF = null;
+  var ANIM_LAST = 0;
+
+  function loopTick() {
+    var active = false;
+    var now = Date.now();
+    ANIM_LAST = now;
+    Object.keys(VEHICLES).forEach(function (id) {
+      var rec = VEHICLES[id];
+      if (!rec || rec.animStart == null) return;
+      try {
+        var t = (now - rec.animStart) / Math.max(1, rec.animDuration || 1000);
+        var tt = Math.min(Math.max(t, 0), 3.0);
+        if (rec.path && rec.cum && rec.progTo != null && Number.isFinite(rec.progFrom) && Number.isFinite(rec.progTo)) {
+          rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * tt;
+          var np = pointAtProgress(rec.path, rec.cum, rec.progNow);
+          if (np && Number.isFinite(np.lat) && Number.isFinite(np.lng)) {
+            setMarkerPos(rec.marker, np.lat, np.lng);
+          } else {
+            rec.animStart = null;
+          }
+        } else if (rec.geoTo) {
+          var lat = rec.geoFrom.lat + (rec.geoTo.lat - rec.geoFrom.lat) * tt;
+          var lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * tt;
+          setMarkerPos(rec.marker, lat, lng);
+        }
+        if (t >= 3.0) rec.animStart = null;
+        else active = true;
+      } catch (e) {
+        rec.animStart = null;
+      }
+    });
+    if (active) ANIM_RAF = requestAnimationFrame(loopTick);
+    else { ANIM_RUNNING = false; ANIM_RAF = null; }
   }
 
-  function updateMarkerLabel(marker, v) {
-    if (marker.content) {
-      var div = marker.content;
-      div.className = "veh " + (v.type || "bus") + (v.estimated ? " estimated" : "");
-      var span = div.querySelector("span");
-      if (span) span.textContent = v.label || "";
-    } else if (typeof marker.setLabel === "function") {
-      marker.setLabel(v.label || "");
-      if (typeof marker.setIcon === "function") {
-        marker.setIcon({ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: v.type === "tram" ? "#8B0000" : "#1E3A8A", fillOpacity: v.estimated ? 0.5 : 1, strokeColor: "#fff", strokeWeight: 2 });
-      }
+  function kickAnim() {
+    if (ANIM_RUNNING && Date.now() - ANIM_LAST < 1000) return;
+    ANIM_RUNNING = true;
+    ANIM_RAF = requestAnimationFrame(loopTick);
+  }
+
+  function progressOfPoint(points, cum, lat, lng) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || points.length < 2) return 0;
+    var best = 0, bestD = Infinity;
+    for (var i = 0; i < points.length - 1; i++) {
+      var x0 = points[i].latitude, y0 = points[i].longitude;
+      var x1 = points[i + 1].latitude, y1 = points[i + 1].longitude;
+      if (!Number.isFinite(x0) || !Number.isFinite(y0) || !Number.isFinite(x1) || !Number.isFinite(y1)) continue;
+      var dx = x1 - x0, dy = y1 - y0;
+      var denom = dx * dx + dy * dy;
+      var t = denom === 0 ? 0 : Math.max(0, Math.min(1, ((lat - x0) * dx + (lng - y0) * dy) / denom));
+      var d = haversineMeters({ latitude: lat, longitude: lng }, { latitude: x0 + t * dx, longitude: y0 + t * dy });
+      if (d < bestD) { bestD = d; best = cum[i] + t * (cum[i + 1] - cum[i]); }
     }
+    return Number.isFinite(best) ? best : 0;
+  }
+
+  function setVehicleTarget(rec, pos, nowTs, targetProgressM) {
+    if (rec.positionState === "STOP_ANCHOR" || rec.positionState === "TURNAROUND_ANCHOR") {
+      rec.animStart = null;
+      setMarkerPos(rec.marker, pos.lat, pos.lng);
+      return;
+    }
+    if (rec.path && rec.path.length >= 2 && rec.cum) {
+      var hasProgressM = typeof targetProgressM === "number" && Number.isFinite(targetProgressM);
+      var toProg = hasProgressM ? targetProgressM : progressOfPoint(rec.path, rec.cum, pos.lat, pos.lng);
+      if (!Number.isFinite(toProg)) {
+        rec.animStart = null;
+        setMarkerPos(rec.marker, pos.lat, pos.lng);
+        return;
+      }
+      var fromProg;
+      if (rec.animStart != null) {
+        var t = Math.min(1, (nowTs - rec.animStart) / rec.animDuration);
+        fromProg = rec.progFrom + (rec.progTo - rec.progFrom) * t;
+      } else {
+        fromProg = rec.progNow != null ? rec.progNow : toProg;
+      }
+      var d = Math.abs(toProg - fromProg);
+      var dt = rec.lastTs ? nowTs - rec.lastTs : 0;
+      rec.lastTs = nowTs;
+      if (d > 250 || dt <= 0 || dt > 30000 || toProg < fromProg) {
+        rec.progFrom = toProg;
+        rec.progTo = null;
+        rec.animStart = null;
+        rec.progNow = toProg;
+        var snap = pointAtProgress(rec.path, rec.cum, toProg);
+        if (snap) setMarkerPos(rec.marker, snap.lat, snap.lng);
+      } else {
+        rec.progFrom = fromProg;
+        rec.progTo = toProg;
+        rec.animDuration = Math.max(1500, Math.min(9000, dt));
+        rec.animStart = nowTs;
+      }
+      kickAnim();
+      return;
+    }
+    rec.animStart = null;
+    setMarkerPos(rec.marker, pos.lat, pos.lng);
+  }
+
+  function updateMarkerIcon(marker, v) {
+    marker.setIcon(makeVehicleIcon(v));
+    marker.setOpacity(v.estimated ? 0.72 : 1);
   }
 
   function drawVehicles(vehicles) {
@@ -228,26 +388,59 @@
         var p = pointAtProgress(v.path, cum, v.progressM);
         if (p) target = p;
       }
-      var marker = VEHICLES[v.id];
-      if (!marker) {
-        marker = markerFor({ id: v.id, type: v.type || "bus", label: v.label, estimated: v.estimated, latitude: target.lat, longitude: target.lng });
-        VEHICLES[v.id] = marker;
-        VEH_STATE[v.id] = { lat: target.lat, lng: target.lng, animId: null };
-        VEH_LABELS[v.id] = { label: v.label, type: v.type || "bus", estimated: !!v.estimated };
+      var rec = VEHICLES[v.id];
+      if (!rec) {
+        var marker = markerFor({ id: v.id, type: v.type || "bus", label: v.label, estimated: v.estimated, heading: v.heading, scale: vehicleScale(MAP.getZoom()), latitude: target.lat, longitude: target.lng });
+        rec = {
+          marker: marker,
+          vehicleId: v.id,
+          type: v.type || "bus",
+          label: v.label,
+          estimated: !!v.estimated,
+          heading: typeof v.heading === "number" ? v.heading : 0,
+          positionState: v.positionState || null,
+          path: null, cum: null,
+          progNow: null, progFrom: null, progTo: null,
+          animStart: null, animDuration: 1000, lastTs: Date.now(),
+          geoFrom: { lat: target.lat, lng: target.lng }, geoTo: null,
+        };
+        VEHICLES[v.id] = rec;
       } else {
-        var lbl = VEH_LABELS[v.id];
-        if (lbl && (lbl.label !== v.label || lbl.type !== (v.type || "bus") || lbl.estimated !== !!v.estimated)) {
-          updateMarkerLabel(marker, { type: v.type || "bus", label: v.label, estimated: !!v.estimated });
-          VEH_LABELS[v.id] = { label: v.label, type: v.type || "bus", estimated: !!v.estimated };
+        var heading = typeof v.heading === "number" ? v.heading : 0;
+        if (rec.label !== v.label || rec.type !== (v.type || "bus") || rec.estimated !== !!v.estimated || rec.heading !== heading) {
+          rec.label = v.label;
+          rec.type = v.type || "bus";
+          rec.estimated = !!v.estimated;
+          rec.heading = heading;
+          updateMarkerIcon(rec.marker, rec);
         }
-        animateTo(v.id, marker, target.lat, target.lng);
+        rec.positionState = v.positionState || null;
       }
+      // Attach/refresh the canonical path (the resolved line can change once).
+      if (v.path && v.path.length >= 2) {
+        var pathChanged = rec.path !== v.path;
+        rec.path = v.path;
+        rec.cum = pathCumulative(v.path);
+        if (pathChanged) {
+          var startProg = typeof v.progressM === "number" && Number.isFinite(v.progressM) ? v.progressM : progressOfPoint(rec.path, rec.cum, target.lat, target.lng);
+          rec.progNow = startProg;
+          rec.progFrom = startProg;
+          rec.progTo = null;
+          rec.animStart = null;
+          var sp = pointAtProgress(rec.path, rec.cum, startProg);
+          if (sp) setMarkerPos(rec.marker, sp.lat, sp.lng);
+        }
+      } else {
+        rec.path = null;
+        rec.cum = null;
+      }
+      setVehicleTarget(rec, target, Date.now(), v.progressM != null ? v.progressM : null);
     });
     // Remove vehicles that disappeared.
     Object.keys(VEHICLES).forEach(function (id) {
       if (!seen[id]) {
-        if (VEH_STATE[id] && VEH_STATE[id].animId) cancelAnimationFrame(VEH_STATE[id].animId);
-        detachMarker(VEHICLES[id]); delete VEHICLES[id]; delete VEH_STATE[id]; delete VEH_LABELS[id];
+        detachMarker(VEHICLES[id].marker);
+        delete VEHICLES[id];
       }
     });
   }
