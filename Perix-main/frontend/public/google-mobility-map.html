@@ -91,12 +91,8 @@
     });
     MAP.addListener("zoom_changed", function () {
       post("zoomChange", { zoom: MAP.getZoom() });
-      var deep = MAP.getZoom() >= 16;
-      if (LAST_DEEP !== deep) {
-        drawStops(LAST_STOPS);
-      } else {
-        resizeStops();
-      }
+      // Rebuild stop pins at the new zoom bucket (mini/pin/badges/names).
+      drawStops(LAST_STOPS);
       // Resize vehicle SVG icons in place (no marker recreation on zoom).
       var vscale = vehicleScale(MAP.getZoom());
       Object.keys(VEHICLES).forEach(function (id) {
@@ -484,93 +480,183 @@
     });
   }
 
-  function stopScale() {
-    var z = MAP.getZoom();
-    return Math.max(0.5, Math.min(1.6, z / 14));
-  }
+  function buildStopPin(s, lat, lng, withBadges, platformDirections, platformSide, key, nameOverride, badgeRoutes) {
+    var modes = s.modes || [];
+    var hasBus = modes.indexOf("bus") >= 0;
+    var hasTram = modes.indexOf("tram") >= 0;
+    var pinColor = hasBus && hasTram ? "#264348" : hasTram ? "#8B0000" : "#1E3A8A";
+    var zoom = MAP.getZoom();
+    var container = document.createElement("div");
+    container.style.position = "absolute";
+    container.style.transform = "translate(-50%, -50%)";
+    container.style.pointerEvents = "auto";
+    container.style.cursor = "pointer";
+    container.style.userSelect = "none";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.alignItems = "center";
 
-  function resizeStops() {
-    var s = stopScale();
-    Object.keys(STOPS).forEach(function (id) {
-      var div = STOPS[id].div;
-      var px = Math.round(10 * s);
-      div.style.width = px + "px";
-      div.style.height = px + "px";
-    });
-  }
-
-  function makeStopMarker(lat, lng, stop_id, name, platform_id, side) {
-    var div = document.createElement("div");
-    div.className = "stop-dot";
-    var marker;
-    if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
-      marker = new google.maps.marker.AdvancedMarkerElement({ map: MAP, position: { lat: lat, lng: lng }, content: div, zIndex: 5 });
+    if (zoom < 12) {
+      var mini = document.createElement("div");
+      mini.textContent = hasBus && hasTram ? "\uD83D\uDE8F" : hasTram ? "\uD83D\uDE8B" : "\uD83D\uDE8C";
+      mini.style.fontSize = "13px";
+      mini.style.filter = "drop-shadow(0 1px 1px rgba(0,0,0,0.4))";
+      container.appendChild(mini);
     } else {
-      marker = new google.maps.Marker({ map: MAP, position: { lat: lat, lng: lng }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 4, fillColor: "#0E7490", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1.5 } });
+      var pin = document.createElement("div");
+      pin.style.display = "flex";
+      pin.style.alignItems = "center";
+      pin.style.justifyContent = "center";
+      pin.style.gap = "3px";
+      pin.style.padding = "3px 6px";
+      pin.style.borderRadius = "9px";
+      pin.style.backgroundColor = pinColor;
+      pin.style.border = "2px solid #ffffff";
+      pin.style.boxShadow = "0 1px 4px rgba(0,0,0,0.4)";
+      pin.style.boxSizing = "border-box";
+      pin.style.fontFamily = "Arial, sans-serif";
+      if (hasBus) {
+        var ic = document.createElement("span");
+        ic.textContent = "\uD83D\uDE8C";
+        ic.style.fontSize = "11px";
+        pin.appendChild(ic);
+      }
+      if (hasTram) {
+        var ic2 = document.createElement("span");
+        ic2.textContent = "\uD83D\uDE8B";
+        ic2.style.fontSize = "11px";
+        pin.appendChild(ic2);
+      }
+      container.appendChild(pin);
+
+      if (withBadges) {
+        var badges = document.createElement("div");
+        badges.style.display = "flex";
+        badges.style.gap = "2px";
+        badges.style.marginTop = "1px";
+        var broutes = (badgeRoutes && badgeRoutes.length ? badgeRoutes : (s.routes || [])).slice(0, 3);
+        broutes.forEach(function (r) {
+          var b = document.createElement("span");
+          b.textContent = r.route_number;
+          b.style.backgroundColor = r.mode === "tram" ? "#8B0000" : "#1E3A8A";
+          b.style.color = "#ffffff";
+          b.style.fontSize = "9px";
+          b.style.fontWeight = "800";
+          b.style.fontFamily = "Arial, sans-serif";
+          b.style.borderRadius = "6px";
+          b.style.padding = "0 4px";
+          b.style.border = "1px solid #ffffff";
+          b.style.lineHeight = "12px";
+          badges.appendChild(b);
+        });
+        container.appendChild(badges);
+      }
+      if (platformDirections && platformDirections.length > 0) {
+        var dirEl = document.createElement("div");
+        var sideLabel = (platformSide || "") ? (platformSide === "left" ? "L" : "R") + " \u00B7 " : "";
+        dirEl.textContent = sideLabel + platformDirections.slice(0, 2).join(" \u00B7 ");
+        dirEl.style.fontSize = "9px";
+        dirEl.style.fontWeight = "700";
+        dirEl.style.fontFamily = "Arial, sans-serif";
+        dirEl.style.color = "#264348";
+        dirEl.style.backgroundColor = "rgba(255,255,255,0.92)";
+        dirEl.style.borderRadius = "6px";
+        dirEl.style.padding = "1px 4px";
+        dirEl.style.marginTop = "1px";
+        dirEl.style.whiteSpace = "nowrap";
+        dirEl.style.maxWidth = "120px";
+        dirEl.style.overflow = "hidden";
+        dirEl.style.textOverflow = "ellipsis";
+        container.appendChild(dirEl);
+      }
+      if (zoom >= 16 && !platformDirections) {
+        var nameEl = document.createElement("div");
+        nameEl.textContent = nameOverride || s.name;
+        nameEl.style.fontSize = "10px";
+        nameEl.style.fontWeight = "700";
+        nameEl.style.fontFamily = "Arial, sans-serif";
+        nameEl.style.color = "#264348";
+        nameEl.style.backgroundColor = "rgba(255,255,255,0.92)";
+        nameEl.style.borderRadius = "6px";
+        nameEl.style.padding = "1px 4px";
+        nameEl.style.marginTop = "1px";
+        nameEl.style.whiteSpace = "nowrap";
+        container.appendChild(nameEl);
+      }
     }
-    marker.addListener("click", function () {
-      var msg = { stop_id: stop_id, name: name };
-      if (platform_id) msg.platform_id = platform_id;
-      if (side) msg.side = side;
+
+    container.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var msg = { stop_id: s.stop_id, name: s.name };
+      if (platformSide) msg.side = platformSide;
       post("stopPress", msg);
     });
-    return { marker: marker, div: div };
+
+    var marker;
+    if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+      marker = new google.maps.marker.AdvancedMarkerElement({ map: MAP, position: { lat: lat, lng: lng }, content: container, zIndex: 5 });
+    } else {
+      marker = new google.maps.Marker({ map: MAP, position: { lat: lat, lng: lng }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 4, fillColor: pinColor, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1.5 } });
+    }
+    return { marker: marker, div: container };
   }
 
   function drawStops(stops) {
     LAST_STOPS = stops || [];
-    var deep = MAP.getZoom() >= 16;
+    var zoom = MAP.getZoom();
+    var deep = zoom >= 16;
     LAST_DEEP = deep;
+    var showBadges = zoom >= 14;
+    var bucket = zoom < 12 ? "mini" : zoom < 14 ? "pin" : zoom < 16 ? "badges" : "names";
     var seen = {};
     LAST_STOPS.forEach(function (s) {
       if (s.latitude == null || s.longitude == null) return;
-      if (deep) {
-        var platforms = s.platforms || [];
-        if (platforms.length >= 1) {
-          // Deep zoom: render the ACTUAL boarding points, never collapsing
-          // opposite left/right sides into one marker.
-          var clusters = [];
-          platforms.forEach(function (p) {
-            if (p.latitude == null || p.longitude == null) return;
-            var side = (p.side === "left" || p.side === "right") ? p.side : null;
-            var near = null;
-            for (var i = 0; i < clusters.length; i++) {
-              var c = clusters[i];
-              if (c.side === side && (c.platform_id || null) === (p.platform_id || null) && Math.sqrt(Math.pow(c.lat - p.latitude, 2) + Math.pow(c.lng - p.longitude, 2)) * 111000 < 12) {
-                near = c;
-                break;
-              }
+      var platforms = s.platforms || [];
+      if (deep && platforms.length >= 1) {
+        var clusters = [];
+        platforms.forEach(function (p) {
+          if (p.latitude == null || p.longitude == null) return;
+          var side = (p.side === "left" || p.side === "right") ? p.side : null;
+          var near = null;
+          for (var i = 0; i < clusters.length; i++) {
+            var c = clusters[i];
+            if (c.side === side && Math.sqrt(Math.pow(c.lat - p.latitude, 2) + Math.pow(c.lng - p.longitude, 2)) * 111000 < 12) {
+              near = c;
+              break;
             }
-            if (near) {
-              if (p.directions) near.directions = near.directions.concat(p.directions);
-              if (p.routes) near.routes = near.routes.concat(p.routes);
-            } else {
-              clusters.push({ lat: p.latitude, lng: p.longitude, side: side, platform_id: p.platform_id, name: p.name, directions: (p.directions || []).slice(), routes: (p.routes || []).slice() });
-            }
-          });
-          if (clusters.length) {
-            clusters.forEach(function (c) {
-              var key = "plat:" + s.stop_id + ":" + (c.side || "unknown") + ":" + (c.platform_id || "noid") + ":" + c.lat.toFixed(5) + "," + c.lng.toFixed(5);
-              seen[key] = true;
-              if (!STOPS[key]) {
-                STOPS[key] = makeStopMarker(c.lat, c.lng, s.stop_id, s.name, c.platform_id, c.side);
-              }
-            });
-            return;
           }
+          if (near) {
+            (p.directions || []).forEach(function (d) { if (near.directions.indexOf(d) < 0) near.directions.push(d); });
+            (p.routes || []).forEach(function (rn) { near.routeNums.add(rn); });
+          } else {
+            clusters.push({ lat: p.latitude, lng: p.longitude, side: side, directions: (p.directions || []).slice(), routeNums: new Set(p.routes || []) });
+          }
+        });
+        if (!clusters.length) {
+          var mainKey = "stop:" + s.stop_id + ":" + bucket;
+          seen[mainKey] = true;
+          if (!STOPS[mainKey]) STOPS[mainKey] = buildStopPin(s, s.latitude, s.longitude, showBadges, undefined, null, mainKey);
         }
+        clusters.forEach(function (c) {
+          var k = "dir:" + s.stop_id + ":" + (c.side || "unknown") + ":" + c.lat.toFixed(5) + "," + c.lng.toFixed(5);
+          seen[k] = true;
+          if (!STOPS[k]) {
+            var cRoutes = Array.from(c.routeNums).map(function (rn) {
+              var rr = (s.routes || []).find(function (x) { return x.route_number === rn; });
+              return rr || { route_number: rn, mode: (s.modes || [])[0] || "bus" };
+            });
+            STOPS[k] = buildStopPin(s, c.lat, c.lng, true, c.directions.length ? c.directions : [s.name], c.side, k, undefined, cRoutes);
+          }
+        });
+        return;
       }
-      // Aggregate marker (normal zoom or no platform data).
-      var key = "stop:" + s.stop_id;
+      var key = "stop:" + s.stop_id + ":" + bucket + ":" + ((s.modes || []).indexOf("bus") >= 0 ? "b" : "") + ((s.modes || []).indexOf("tram") >= 0 ? "t" : "");
       seen[key] = true;
-      if (!STOPS[key]) {
-        STOPS[key] = makeStopMarker(s.latitude, s.longitude, s.stop_id, s.name, null, null);
-      }
+      if (!STOPS[key]) STOPS[key] = buildStopPin(s, s.latitude, s.longitude, showBadges, undefined, null, key);
     });
     Object.keys(STOPS).forEach(function (key) {
       if (!seen[key]) { detachMarker(STOPS[key].marker); delete STOPS[key]; }
     });
-    resizeStops();
   }
 
   function drawPlanLines(lines) {
