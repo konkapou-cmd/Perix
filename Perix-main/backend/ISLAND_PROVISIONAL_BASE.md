@@ -64,5 +64,32 @@ The existing importer has separate local improvements for cross-agency route
 collisions and occurrence-specific stop times. These reuse the existing network
 and motion pipeline, rather than introducing another importer or engine.
 
-Deployment was attempted only as a Railway status check; OAuth is expired.
+## Spatial Resolution Update
+
+Railway authentication now works. Direct scoped Mongo reads over Railway SSH
+found no network versions or pattern generations for either island, including
+the existing production island services. They have OSM road snapshots only.
+Staging has no dedicated island services; its backend remains Magdeburg. No
+remote data or service configuration was changed.
+
+The existing offline validator can now read `--osm-pbf` and optionally write
+`--osm-catalog-output`. This extracts bus nodes, station footprints and bus
+relations from an existing local PBF, without network calls or DB writes.
+PyOsmium is an optional offline dependency, not a runtime dependency.
+
+The local Greece PBF is dated 2026-10-15T20:21:00Z, SHA-256
+`511ff70e9b11b980688567cdfd3072c5c07171990089ac72b04cd354e1445adf`.
+Its island catalog contains 156 transport nodes, two station ways and two bus
+relations. Named aliases preserve spelling/number specificity. Matching uses
+actual OSM coordinates and retains station versus platform distinctions;
+ambiguous candidates stay unresolved, and polygon centroids are never used.
+
+Current result across 311 reference occurrences: 33 assigned provisional OSM
+candidates, 25 ambiguous and 253 unresolved. No complete reference route has
+all its stops spatially resolved. These are occurrence counts, not physical
+stop counts. Candidate IDs and spatial statuses are included in the refreshed
+CSV and JSON, with source attribution to OpenStreetMap contributors under ODbL.
+
 No island network, calendar, Google polling or runtime region was activated.
+A deployment of these offline tools alone would not put the islands on the
+map, so no such deployment is represented as a functional release.

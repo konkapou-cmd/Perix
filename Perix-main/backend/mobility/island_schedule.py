@@ -6,6 +6,8 @@ estimates have no geometry, traffic, vehicle-continuity or accuracy guarantees.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from copy import deepcopy
+from math import cos, hypot, isfinite, radians
 from statistics import median
 import unicodedata
 
@@ -16,6 +18,304 @@ def normalize_name(value: str) -> str:
         char for char in unicodedata.normalize("NFD", value.casefold())
         if not unicodedata.combining(char)
     ).split())
+
+
+# Explicit label vocabulary, not a general transliterator. Numbered labels and
+# street addresses deliberately have no locality/prefix fallback.
+_OSM_ALIAS_GROUPS = {
+    "Syros": [
+        ("Κίνι", "Kini"), ("Δανακός", "Danakos"),
+        ("Αζόλιμνο", "Αζόλιμνος", "Azolimnos"),
+        ("Πωσειδωνία", "Ποσειδωνία", "Poseidonia", "Posidonia"),
+        ("Φοίνικας", "Finikas", "Foinikas"),
+        ("Γεωργίου (Βάρη)", "Βάρη", "Vari"),
+        ("Τάλαντα", "Talanta"), ("Επισκοπείο", "Episkopio"),
+        ("Πάγο", "Πάγος", "Pagos"), ("Βήσσα", "Vissa"),
+        ("Αξαρλη", "Αξαρλή"),
+        ("Δόξα", "ΔΟΞΑ - ΤΕΡΜΑΤΙΚΟΣ ΣΤΑΘΜΟΣ", "Doxa"),
+        ("Κλειστό Γυμναστήριο Δημήτριος Βικέλας", "Κλειστό Γυμναστήριο"),
+        ("Αφετηρία Κτελ Σύρου", "Αφετηρία Υπεραστικών Συγκοινωνιών ΚΤΕΛ Σύρου",
+         "Central Bus Station KTEL"),
+    ] + [(f"Φοίνικας {n}", f"Finikas {n}", f"Foinikas {n}") for n in (1, 2, 3)]
+      + [(f"Ποσειδωνία {n}", f"Πωσειδωνία {n}", f"Poseidonia {n}") for n in (1, 2, 3, 4)],
+    "Mykonos": [
+        ("Νέο Λιμάνι", "New Port"), ("Παλιό Λιμάνι", "Παλαιό Λιμάνι", "Old Port"),
+        ("Όρνος", "Ορνός", "Ornos"),
+        ("Πλατύς Γιαλός", "Platys Gialos", "Platis Gialos"),
+        ("Paradise", "Paradise Beach"), ("Παράγκα", "Paraga"),
+        ("Άνω Μέρα", "Ano Mera"), ("Ελιά", "Elia"),
+        ("Καλαφάτη", "Kalafati", "Kalafatis"),
+        ("Καλό Λιβάδι", "Kalo Livadi"), ("Πάνορμος", "Panormos"),
+        ("Άγιος Στέφανος", "Agios Stefanos"),
+        # Mykonos locality only; never expand the source's road labels to it.
+        ("Άγιος Ιωάννης", "Άγιος Ιωάννης Διακόφτης", "Agios Ioannis", "Agios Ioannis Diakoftis"),
+        ("Δραφάκι", "Drafaki"), ("Μαράθι", "Marathi"),
+        ("Αμυγδαλίδι", "Amygdalidi"),
+    ],
+}
+_ISLAND_BBOXES = {"Syros": (37.32, 24.80, 37.55, 25.07),
+                  "Mykonos": (37.34, 25.23, 37.52, 25.51)}
+_GENERIC_STOP_NAMES = {normalize_name(name) for name in
+                       ("Στάση", "stop", "bus stop", "bus_stop", "public bus", "unnamed", "")}
+_OSM_NAME_KEYS = ("name", "official_name", "name:el", "name:en", "int_name", "local_ref")
+
+
+def resolve_osm_stops(schedule: dict, catalog: dict) -> dict:
+    """Return an independent, inactive preview with provisional OSM evidence.
+
+    Catalog is an offline Overpass-shaped {elements: [...], source: {...}}.
+    Only bus features are considered; polygons remain candidates without point
+    coordinates. No geocoding, nearest-stop inference or operator IDs are used.
+    """
+    result = deepcopy(schedule)
+    aliases = {island: {normalize_name(label): normalize_name(group[0])
+                        for group in groups for label in group}
+               for island, groups in _OSM_ALIAS_GROUPS.items()}
+
+    def canonical(value, island):
+        key = normalize_name(value)
+        return aliases.get(island, {}).get(key, key)
+
+    def inside(point, island):
+        box = _ISLAND_BBOXES.get(island)
+        return bool(box and point and box[0] <= point[0] <= box[2]
+                    and box[1] <= point[1] <= box[3])
+
+    features = {island: [] for island in _ISLAND_BBOXES}
+    for element in catalog.get("elements", []):
+        tags = element.get("tags", {})
+        if tags.get("bus") == "no" or tags.get("access") in ("private", "no"):
+            continue
+        station = tags.get("amenity") == "bus_station" or (
+            tags.get("public_transport") == "station" and tags.get("bus") == "yes")
+        platform = tags.get("highway") == "bus_stop" or (
+            tags.get("public_transport") == "platform" and tags.get("bus") == "yes")
+        position = tags.get("public_transport") == "stop_position" and tags.get("bus") == "yes"
+        if not (station or platform or position) or element.get("type") not in ("node", "way", "relation"):
+            continue
+        point = None
+        if element["type"] == "node":
+            lat, lon = element.get("lat"), element.get("lon")
+            if (isinstance(lat, (int, float)) and isinstance(lon, (int, float))
+                    and isfinite(lat) and isfinite(lon)):
+                point = [lat, lon]
+        geometry = element.get("geometry", [])
+        for island in features:
+            # All polygon vertices must be scoped; never use an Overpass centre.
+            if not inside(point, island) and not (point is None and geometry and all(
+                    inside([p.get("lat", -90), p.get("lon", -180)], island) for p in geometry)):
+                continue
+            names = [{"tag": key, "value": tags[key], "normalized": canonical(tags[key], island)}
+                     for key in _OSM_NAME_KEYS if isinstance(tags.get(key), str)
+                     and normalize_name(tags[key]) not in _GENERIC_STOP_NAMES]
+            features[island].append({
+                "osm_id": f"osm:{element['type']}:{element['id']}",
+                "osm_type": element["type"], "osm_ref": element["id"],
+                "coordinates": point, "level": "station" if station else "platform" if platform else "stop_position",
+                "names": names, "tags": deepcopy(tags), "candidate_cluster": [],
+                "station_geometry": deepcopy(geometry) if station and point is None else [],
+            })
+
+    # A platform/road-position pair is not two boarding sides. Only unique
+    # reciprocal pairs with equal names within 20 m can share candidate evidence.
+    for island, items in features.items():
+        partners = defaultdict(list)
+        for left in items:
+            if left["level"] != "stop_position" or not left["coordinates"]:
+                continue
+            for right in items:
+                if right["level"] != "platform" or not right["coordinates"]:
+                    continue
+                common = {n["normalized"] for n in left["names"]} & {n["normalized"] for n in right["names"]}
+                a, b = left["coordinates"], right["coordinates"]
+                distance = 111195 * hypot(a[0] - b[0], (a[1] - b[1]) * cos(radians(a[0])))
+                if common and distance <= 20:
+                    partners[left["osm_id"]].append(right)
+                    partners[right["osm_id"]].append(left)
+        for item in items:
+            pair = partners[item["osm_id"]]
+            if len(pair) == 1 and len(partners[pair[0]["osm_id"]]) == 1:
+                item["candidate_cluster"] = sorted([item["osm_id"], pair[0]["osm_id"]])
+
+    def candidates_for(label, island):
+        if normalize_name(label) in _GENERIC_STOP_NAMES:
+            return []
+        key = canonical(label, island)
+        found = []
+        for item in features.get(island, []):
+            evidence = [n for n in item["names"] if n["normalized"] == key]
+            if evidence:
+                found.append({**deepcopy(item), "matched_names": evidence})
+        platform_ids = {item["osm_id"] for item in found if item["level"] == "platform"}
+        found = [item for item in found if not (item["level"] == "stop_position"
+                 and platform_ids.intersection(item["candidate_cluster"]))]
+        # A matching station is context, not another boarding platform, only
+        # when physically associated. Remote same-name stations remain rivals.
+        context_ids = set()
+        for item in found:
+            if not item["coordinates"] or item["level"] not in ("platform", "station"):
+                continue
+            for station in found:
+                if station["level"] != "station" or station is item:
+                    continue
+                a, b = item["coordinates"], station["coordinates"]
+                if item["level"] == "station" and b:
+                    continue
+                associated = bool(b and 111195 * hypot(
+                    a[0] - b[0], (a[1] - b[1]) * cos(radians(a[0]))) <= 100)
+                polygon = station["station_geometry"]
+                if len(polygon) >= 4 and polygon[0] == polygon[-1]:
+                    # Point-in-footprint, not its centroid or bounding-box centre.
+                    contained = False
+                    for left, right in zip(polygon, polygon[1:]):
+                        if (left["lat"] > a[0]) != (right["lat"] > a[0]):
+                            crossing = left["lon"] + (a[0] - left["lat"]) * (
+                                right["lon"] - left["lon"]) / (right["lat"] - left["lat"])
+                            if a[1] < crossing:
+                                contained = not contained
+                    associated = contained
+                if associated:
+                    item.setdefault("station_context", []).append(deepcopy(station))
+                    context_ids.add(station["osm_id"])
+        return sorted([item for item in found if item["osm_id"] not in context_ids],
+                      key=lambda item: item["osm_id"])
+
+    def assign(stop, candidate, method, evidence):
+        stop.update(physical_stop_id=candidate["osm_id"], coordinates=list(candidate["coordinates"]),
+                    platform_id=candidate["osm_id"] if candidate["level"] == "platform" else None,
+                    spatial_status="MATCHED_OSM_STATION_CANDIDATE" if candidate["level"] == "station"
+                    else "MATCHED_OSM_NAMED_CANDIDATE" if method == "EXACT_NORMALIZED_OSM_NAME"
+                    else "MATCHED_OSM_RELATION_CANDIDATE",
+                    resolution_method=method, resolution_evidence=evidence,
+                    coordinate_level=candidate["level"])
+
+    relations = {str(e["id"]): e for e in catalog.get("elements", []) if e.get("type") == "relation"}
+    for route in result.get("routes", []):
+        source = route.get("source_reference", {})
+        island = source.get("city")
+        stops = route["stops"]
+        for stop in stops:
+            candidates = candidates_for(stop["label"], island)
+            stop.update(physical_stop_id=None, platform_id=None, coordinates=None, coordinate_level=None,
+                        authoritative=False, spatial_status="AMBIGUOUS" if candidates else "UNRESOLVED",
+                        resolution_method="NONE", resolution_evidence=[], spatial_candidates=candidates)
+            if len(candidates) == 1 and candidates[0]["coordinates"]:
+                evidence = deepcopy(candidates[0]["matched_names"])
+                if candidates[0].get("station_context"):
+                    evidence.append({"station_context": deepcopy(candidates[0]["station_context"]),
+                                     "basis": "SAME_NORMALIZED_NAME_AND_PROXIMITY_OR_CONTAINING_FOOTPRINT"})
+                assign(stop, candidates[0], "EXACT_NORMALIZED_OSM_NAME", evidence)
+
+        # Known A/B corridor only. MUNI_1 actually lists Doxa -> sports centre,
+        # hence 4594448, not the opposite direction 4594447. Other municipal
+        # neighbourhood loops cannot inherit this association.
+        relation_id = "4594448" if (source.get("operator") == "SYR_MINI"
+                                      and source.get("route_code") == "MUNI_1" and island == "Syros") else None
+        relation = relations.get(relation_id)
+        review = {"relation_id": f"osm:relation:{relation_id}" if relation_id else None,
+                  "status": "NOT_APPLICABLE" if not relation_id else "RELATION_NOT_AVAILABLE"}
+        if relation and relation.get("tags", {}).get("route") == "bus":
+            lookup = {item["osm_id"]: item for item in features[island]}
+            members, invalid = [], False
+            for member in relation.get("members", []):
+                role = member.get("role", "")
+                if role not in ("stop", "platform", "stop_entry_only", "stop_exit_only",
+                                "platform_entry_only", "platform_exit_only"):
+                    continue
+                item = lookup.get(f"osm:{member['type']}:{member['ref']}")
+                if not item or not item["coordinates"]:
+                    invalid = True
+                    break
+                paired = False
+                if members and {item["level"], members[-1]["level"]} == {"platform", "stop_position"}:
+                    previous = members[-1]
+                    a, b = item["coordinates"], previous["coordinates"]
+                    common = {n["normalized"] for n in item["names"]} & {
+                        n["normalized"] for n in previous["names"]}
+                    paired = bool(common and 111195 * hypot(
+                        a[0] - b[0], (a[1] - b[1]) * cos(radians(a[0]))) <= 20)
+                if paired:
+                    cluster = sorted([members[-1]["osm_id"], item["osm_id"]])
+                    if item["level"] == "platform":
+                        members[-1] = deepcopy(item)
+                    else:
+                        members[-1] = deepcopy(members[-1])
+                    members[-1]["candidate_cluster"] = cluster
+                    continue
+                members.append(item)
+            anchors = []
+            for index, stop in enumerate(stops):
+                ids = {c["osm_id"] for c in stop["spatial_candidates"]}
+                ids.update(cid for c in stop["spatial_candidates"] for cid in c["candidate_cluster"])
+                if ids:
+                    anchors.append((index, [j for j, item in enumerate(members)
+                                            if item["osm_id"] in ids or ids.intersection(item["candidate_cluster"])]))
+            # Retain every possible ordered alignment, not a greedy choice of
+            # the first repeated name. Forward/backward reachability is linear
+            # in anchors * members and detects direction conflicts.
+            forward, backward = [], []
+            for _, choices in anchors:
+                forward.append([j for j in choices if not forward or any(k < j for k in forward[-1])])
+            for _, choices in reversed(anchors):
+                backward.append([j for j in choices if not backward or any(k > j for k in backward[-1])])
+            allowed = [sorted(set(a) & set(b)) for a, b in zip(forward, reversed(backward))]
+            compatible = not invalid and len(anchors) >= 2 and all(allowed)
+            review["status"] = "ORDERED_NAMED_ANCHORS" if compatible else "ORDER_CONFLICT_OR_INCOMPLETE_MEMBERS"
+            review["anchors"] = [{"stop_index": i, "member_indices": choices}
+                                 for (i, _), choices in zip(anchors, allowed)]
+            if compatible:
+                assigned = {}
+                for (index, _), choices in zip(anchors, allowed):
+                    if len(choices) == 1:
+                        assigned[index] = choices[0]
+                        assign(stops[index], members[choices[0]], "ORDERED_OSM_RELATION_NAMED_ANCHORS",
+                               [{"relation_id": review["relation_id"], "member_index": choices[0],
+                                 "osm_id": members[choices[0]]["osm_id"],
+                                 "candidate_cluster": members[choices[0]]["candidate_cluster"],
+                                 "normalized_label": canonical(stops[index]["label"], island)}])
+                # Generic occurrences need a unique bracket and an exact count
+                # of intervening members. Unknown named/address labels block it.
+                bracketed = {}
+                for left, right in zip(sorted(assigned), sorted(assigned)[1:]):
+                    if assigned[right] - assigned[left] == right - left:
+                        bracketed.update({i: (left, right) for i in range(left + 1, right)
+                                          if normalize_name(stops[i]["label"]) in _GENERIC_STOP_NAMES})
+                all_accounted = all(i in assigned or i in bracketed for i in range(len(stops)))
+                if all_accounted:
+                    for index, (left, right) in bracketed.items():
+                        member_index = assigned[left] + index - left
+                        assign(stops[index], members[member_index], "UNIQUE_BRACKETED_OSM_RELATION_MEMBER",
+                               [{"relation_id": review["relation_id"], "member_index": member_index,
+                                 "preceding_sequence": stops[left]["sequence"],
+                                 "following_sequence": stops[right]["sequence"]}])
+        route["spatial_relation_review"] = review
+        counts = Counter("matched" if stop["physical_stop_id"] else "ambiguous"
+                         if stop["spatial_candidates"] else "unresolved" for stop in stops)
+        route["spatial_coverage"] = {key: counts[key] for key in ("matched", "ambiguous", "unresolved")}
+        route["spatial_coverage"].update(stop_occurrences=len(stops),
+                                          all_stops_resolved=bool(stops) and counts["matched"] == len(stops))
+    routes = result.get("routes", [])
+    coverage = {key: sum(r["spatial_coverage"][key] for r in routes)
+                for key in ("matched", "ambiguous", "unresolved", "stop_occurrences")}
+    coverage["routes_all_stops_resolved"] = sum(r["spatial_coverage"]["all_stops_resolved"] for r in routes)
+    coverage["reference_variants"] = len(routes)
+    coverage["by_island"] = {
+        island: {key: sum(r["spatial_coverage"][key] for r in routes
+                          if r.get("source_reference", {}).get("city") == island)
+                 for key in ("matched", "ambiguous", "unresolved", "stop_occurrences")}
+        for island in sorted(_ISLAND_BBOXES)
+    }
+    result["spatial_coverage"] = coverage
+    result.setdefault("coverage", {})["spatial"] = deepcopy(coverage)
+    result["spatial_resolution"] = {
+        "schema_version": 1, "status": "PROVISIONAL_OSM_NOT_OPERATOR_CONFIRMED", "authoritative": False,
+        "source": deepcopy(catalog.get("source", {})), "coordinate_order": ["latitude", "longitude"],
+        "policy": "Exact normalized names and explicit label aliases within island bounding boxes; "
+                  "no fuzzy addresses, polygon centroids, nearest-stop interpolation or boarding-side inference.",
+        "attribution": "OpenStreetMap contributors, ODbL https://www.openstreetmap.org/copyright",
+    }
+    result.update(active=False, runtime_eligible=False, public_release_allowed=False)
+    return result
 
 
 def _clock(value: str) -> int:

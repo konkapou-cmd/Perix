@@ -23,7 +23,107 @@ PROVISIONAL_STOP_COLUMNS = (
     "island", "agency", "route_reference", "direction", "sequence", "label",
     "from_previous_seconds", "offset_seconds", "method", "confidence",
     "physical_stop_id", "coordinates", "source", "departure_observation_count",
+    "spatial_status", "candidate_osm_ids", "coordinate_source",
 )
+
+
+def extract_island_stop_catalog(pbf_path: Path) -> dict:
+    """Read the existing local OSM snapshot only; no roads, network or DB writes."""
+    try:
+        import osmium
+    except ImportError as exc:
+        raise RuntimeError("--osm-pbf requires optional PyOsmium; install `osmium>=4,<5`.") from exc
+
+    path = Path(pbf_path)
+    before = path.stat()
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    bboxes = {"syros": (37.32, 24.80, 37.55, 25.07),
+              "mykonos": (37.34, 25.23, 37.52, 25.51)}
+    nodes, selected, ways, relations = {}, {}, {}, {}
+    tag_keys = {"name", "name:el", "name:en", "alt_name", "alt_name:el", "alt_name:en",
+                "official_name", "short_name", "int_name", "ref", "local_ref", "highway", "public_transport",
+                "bus", "amenity", "type", "route", "from", "to", "via", "operator", "network",
+                "wheelchair", "shelter", "bench", "covered", "area", "building", "access"}
+
+    def tags_of(obj):
+        return {key: value for key, value in obj.tags if key in tag_keys}
+
+    def is_stop(tags):
+        return (tags.get("highway") == "bus_stop" or tags.get("amenity") == "bus_station"
+                or (tags.get("public_transport") in {"platform", "stop_position"}
+                    and (tags.get("bus") == "yes" or
+                         (tags.get("public_transport") == "platform" and "bus" not in tags))))
+
+    class Handler(osmium.SimpleHandler):
+        def node(self, node):
+            if not node.location.valid():
+                return
+            lat, lon = node.location.lat, node.location.lon
+            island = next((name for name, (s, w, n, e) in bboxes.items()
+                           if s <= lat <= n and w <= lon <= e), None)
+            if island is None:
+                return
+            tags = tags_of(node)
+            record = {"type": "node", "id": int(node.id), "lat": lat, "lon": lon,
+                      "tags": tags, "island": island}
+            nodes[node.id] = record
+            if is_stop(tags):
+                selected[node.id] = record
+
+        def way(self, way):
+            tags = tags_of(way)
+            if not is_stop(tags):
+                return
+            refs = [int(node.ref) for node in way.nodes]
+            points = [nodes[ref] for ref in refs if ref in nodes]
+            islands = {point["island"] for point in points}
+            if len(islands) != 1:
+                return
+            record = {"type": "way", "id": int(way.id), "nodes": refs,
+                      "tags": tags, "island": islands.pop()}
+            # Partial polygons are not complete geometry, and never become a centroid.
+            if len(points) == len(refs) and points:
+                record["geometry"] = [{"lat": point["lat"], "lon": point["lon"]} for point in points]
+            ways[way.id] = record
+
+        def relation(self, relation):
+            tags = tags_of(relation)
+            if tags.get("route") != "bus" and relation.id not in {4594447, 4594448}:
+                return
+            members = [{"type": {"n": "node", "w": "way", "r": "relation"}[member.type],
+                        "ref": int(member.ref), "role": member.role} for member in relation.members]
+            islands = {nodes[member["ref"]]["island"] for member in members
+                       if member["type"] == "node" and member["ref"] in nodes}
+            islands.update(ways[member["ref"]]["island"] for member in members
+                           if member["type"] == "way" and member["ref"] in ways)
+            if len(islands) != 1:
+                return
+            for member in members:
+                if (member["type"] == "node" and member["ref"] in nodes
+                        and (member["role"].startswith(("stop", "platform"))
+                             or member["ref"] in selected)):
+                    selected[member["ref"]] = nodes[member["ref"]]
+            relations[relation.id] = {"type": "relation", "id": int(relation.id),
+                                      "members": members, "tags": tags, "island": islands.pop()}
+
+    with osmium.io.Reader(str(path)) as reader:
+        header = reader.header()
+        snapshot = {key: header.get(key) for key in (
+            "osmosis_replication_timestamp", "osmosis_replication_sequence_number", "generator")
+                    if header.get(key)}
+    Handler().apply_file(str(path))
+    after = path.stat()
+    require((before.st_size, before.st_mtime_ns) == (after.st_size, after.st_mtime_ns),
+            "OSM source changed during catalog extraction")
+    return {"source": {"path": path.name, "sha256": digest.hexdigest(), "size_bytes": before.st_size,
+                       "snapshot": snapshot, "attribution": "OpenStreetMap contributors",
+                       "license": "ODbL-1.0", "license_url": "https://www.openstreetmap.org/copyright",
+                       "bboxes": {key: list(value) for key, value in bboxes.items()}},
+            "elements": [record for records in (selected, ways, relations)
+                         for _, record in sorted(records.items())]}
 
 
 def require(condition, message):
@@ -32,7 +132,8 @@ def require(condition, message):
 
 
 def validate_review(root: Path, manifests: Path | None = None,
-                    date_evidence: Path | None = None, *, provisional_schedule: bool = False) -> dict:
+                    date_evidence: Path | None = None, *, provisional_schedule: bool = False,
+                    osm_catalog: dict | None = None) -> dict:
     names = [
         "FULL_342_DEPARTURES.csv", "FULL_988_BASELINE_TIMELINES.csv",
         "FULL_31_ROUTE_REVIEW.csv",
@@ -313,15 +414,31 @@ def validate_review(root: Path, manifests: Path | None = None,
         schedule["source_sha256"] = dict(hashes)
         schedule["manifest_sha256"] = manifest_hashes
         schedule["date_evidence_sha256"] = date_hash
+        if osm_catalog is not None:
+            from mobility.island_schedule import resolve_osm_stops
+
+            schedule = resolve_osm_stops(schedule, osm_catalog)
+            for route in schedule["routes"]:
+                for stop in route["stops"]:
+                    stop["candidate_osm_ids"] = [candidate["osm_id"]
+                                                  for candidate in stop["spatial_candidates"]]
+                    stop["coordinate_source"] = ({
+                        "osm_id": stop["physical_stop_id"], "path": osm_catalog["source"]["path"],
+                        "sha256": osm_catalog["source"]["sha256"],
+                        "method": stop["resolution_method"],
+                    } if stop["coordinates"] is not None else None)
         report["provisional_schedule"] = schedule
     return report
 
 
 def validate_output_paths(source: Path, manifests: Path | None, date_evidence: Path | None,
-                          outputs: list[Path]) -> None:
+                          outputs: list[Path], *, osm_pbf: Path | None = None) -> None:
     """Check every destination before writing anything, including output collisions."""
     resolved = [path.resolve() for path in outputs]
     require(len(set(resolved)) == len(resolved), "Review outputs must use distinct paths")
+    require(all(not first.exists() or not second.exists() or not first.samefile(second)
+                for index, first in enumerate(resolved) for second in resolved[index + 1:]),
+            "Review outputs must use distinct paths")
     for output in resolved:
         for directory in (source, manifests):
             if directory is not None:
@@ -331,10 +448,11 @@ def validate_output_paths(source: Path, manifests: Path | None, date_evidence: P
                 if directory.exists():
                     require(all(not path.is_file() or not output.exists() or not output.samefile(path)
                                 for path in directory.iterdir()), "Review output must not overwrite an input")
-        if date_evidence is not None:
-            require(output != date_evidence.resolve()
-                    and (not output.exists() or not output.samefile(date_evidence)),
-                    "Review output must not overwrite an input")
+        for input_path in (date_evidence, osm_pbf):
+            if input_path is not None:
+                require(output != input_path.resolve()
+                        and (not output.exists() or not output.samefile(input_path)),
+                        "Review output must not overwrite an input")
         require(output.parent.is_dir(), f"Review output parent does not exist: {output.parent}")
 
 
@@ -350,13 +468,25 @@ if __name__ == "__main__":
                         help="Write internal provisional JSON only; never a runtime feed")
     parser.add_argument("--provisional-stop-times", type=Path,
                         help="Write all local reference occurrences as internal provisional UTF-8 CSV")
+    parser.add_argument("--osm-pbf", type=Path, help="Read a local OSM snapshot offline for stop resolution")
+    parser.add_argument("--osm-catalog-output", type=Path, help="Write the extracted Overpass-style stop catalog")
     args = parser.parse_args()
+    if args.osm_catalog_output is not None and args.osm_pbf is None:
+        parser.error("--osm-catalog-output requires --osm-pbf")
     validate_output_paths(args.source, args.manifests, args.date_evidence,
                           [path for path in (args.exceptions_csv, args.provisional_schedule,
-                                             args.provisional_stop_times) if path is not None])
+                                             args.provisional_stop_times, args.osm_catalog_output) if path is not None],
+                          osm_pbf=args.osm_pbf)
+    catalog = extract_island_stop_catalog(args.osm_pbf) if args.osm_pbf is not None else None
     report = validate_review(args.source, args.manifests, args.date_evidence,
                              provisional_schedule=(args.provisional_schedule is not None
-                                                   or args.provisional_stop_times is not None))
+                                                   or args.provisional_stop_times is not None),
+                             osm_catalog=catalog)
+    if args.osm_catalog_output is not None:
+        args.osm_catalog_output.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+    if catalog is not None:
+        report["osm_catalog_source"] = catalog["source"]
+        report["osm_catalog_elements"] = dict(Counter(element["type"] for element in catalog["elements"]))
     if "provisional_schedule" in report:
         schedule = report.pop("provisional_schedule")
         if args.provisional_schedule is not None:
@@ -378,7 +508,11 @@ if __name__ == "__main__":
                             "offset_seconds": stop["estimated_offset_seconds"],
                             "method": leg["method"] if leg else "REFERENCE_START_ZERO_NOT_PUBLISHED_ARRIVAL",
                             "confidence": leg["confidence"] if leg else "LOCAL_REFERENCE_ORIGIN_ONLY",
-                            "physical_stop_id": "", "coordinates": "",
+                            "physical_stop_id": stop.get("physical_stop_id") or "",
+                            "coordinates": json.dumps(stop["coordinates"], sort_keys=True) if stop.get("coordinates") is not None else "",
+                            "spatial_status": stop.get("spatial_status", ""),
+                            "candidate_osm_ids": json.dumps(stop.get("candidate_osm_ids", [])),
+                            "coordinate_source": json.dumps(stop["coordinate_source"], sort_keys=True) if stop.get("coordinate_source") is not None else "",
                             "source": json.dumps(leg["source"] if leg else {
                                 "source_label": "LOCAL_REFERENCE_START_NOT_PHYSICAL_STOP", "reference_id": route["reference_id"]
                             }, ensure_ascii=False, sort_keys=True),
