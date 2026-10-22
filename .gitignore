@@ -71,6 +71,10 @@ test_reports/
 # ---- Local opencode plans ----
 .opencode/plans/
 
+# Internal third-party research previews, not redistributable runtime feeds.
+Perix-main/backend/data/review/ISLAND_PROVISIONAL_SCHEDULE_*.json
+Perix-main/backend/data/review/ISLAND_PROVISIONAL_STOP_TIMES_*.csv
+
 # ---- User notes ----
 Perix Reset gut zustand .txt
 
