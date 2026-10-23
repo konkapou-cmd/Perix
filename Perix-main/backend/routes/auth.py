@@ -230,14 +230,22 @@ async def get_me(current_user: UserPublic = Depends(get_current_user)):
 
 @router.post("/logout")
 async def logout_user(request: Request, response: Response):
-    token = request.cookies.get("session_token")
+    tokens = set()
+    cookie_token = request.cookies.get("session_token")
+    if cookie_token:
+        tokens.add(cookie_token)
     auth_header = request.headers.get("Authorization")
-    if not token and auth_header and auth_header.lower().startswith("bearer "):
-        token = auth_header.split(" ", 1)[1].strip()
+    if auth_header and auth_header.lower().startswith("bearer "):
+        tokens.add(auth_header.split(" ", 1)[1].strip())
 
-    if token:
+    for token in tokens:
         await db.user_sessions.delete_one({"session_token": token})
-    response.delete_cookie("session_token")
+    response.delete_cookie(
+        "session_token",
+        path="/",
+        samesite="none",
+        secure=True,
+    )
     return {"status": "logged_out"}
 
 
