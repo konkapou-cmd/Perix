@@ -18,7 +18,6 @@ type Props = {
   disabled?: boolean;
   initialZoom?: number | null;
   height?: number;
-  onTransitLineClick?: (routeNumber: string, patternId?: string) => void;
   onTransitStopPress?: (stop: GoogleTransitStop) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
@@ -55,7 +54,6 @@ export default function GoogleMobilityMapNative(props: Props) {
     showUserLocation,
     initialZoom,
     height = 300,
-    onTransitLineClick,
     onTransitStopPress,
     onMarkerPress,
     onMapPress,
@@ -103,11 +101,16 @@ export default function GoogleMobilityMapNative(props: Props) {
       })),
       vehicles: vehicles.map((v) => ({
         id: v.id,
+        journeyId: v.journeyId ?? null,
         latitude: v.latitude,
         longitude: v.longitude,
         type: v.type || "bus",
         label: v.label,
         estimated: !!v.estimated,
+        heading: v.heading,
+        speed: v.speed,
+        motionState: v.motionState,
+        positionState: v.positionState,
         path: v.path,
         progressM: v.progressM,
       })),
@@ -149,7 +152,6 @@ export default function GoogleMobilityMapNative(props: Props) {
       const stop = transitStops.find((s) => s.stop_id === data.stop_id);
       if (stop) onTransitStopPress({ ...stop, selected_platform_id: data.platform_id, selected_side: data.side });
     }
-    if (data.type === "lineClick" && onTransitLineClick) onTransitLineClick(data.routeNumber, data.patternId);
     if (data.type === "zoomChange" && onZoomChange) onZoomChange(data.zoom);
     if (data.type === "regionChange" && onRegionChangeComplete) {
       onRegionChangeComplete({ minLat: data.minLat, maxLat: data.maxLat, minLng: data.minLng, maxLng: data.maxLng });

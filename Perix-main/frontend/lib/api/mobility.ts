@@ -484,10 +484,13 @@ export type TripStopProgress = {
   delay_seconds: number;
   predicted: string;
   passed: boolean;
+  skipped?: boolean;
+  schedule_relationship?: string;
 };
 
 export type VehicleTripProgress = {
   vehicle_id: string;
+  trip_id?: string | null;
   route_number: string;
   route_direction: string;
   mode: string;

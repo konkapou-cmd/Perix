@@ -66,7 +66,6 @@ type Props = {
   height?: number;
   onReadyChange?: (ready: boolean) => void;
   showTrafficLayer?: boolean;
-  onTransitLineClick?: (routeNumber: string, patternId?: string) => void;
   onTransitStopPress?: (stop: GoogleTransitStop) => void;
   onMarkerPress?: (markerId: string) => void;
   onMapPress?: (latitude: number, longitude: number) => void;
@@ -101,7 +100,6 @@ export default function GoogleMobilityMap(props: Props) {
     height = 300,
     onReadyChange,
     showTrafficLayer = false,
-    onTransitLineClick,
     onTransitStopPress,
     onMarkerPress,
     onMapPress,
@@ -218,7 +216,6 @@ export default function GoogleMobilityMap(props: Props) {
         const stop = transitStops.find((s) => s.stop_id === data.stop_id);
         if (stop) onTransitStopPress({ ...stop, selected_platform_id: data.platform_id, selected_side: data.side });
       }
-      if (data.type === "lineClick" && onTransitLineClick) onTransitLineClick(data.routeNumber, data.patternId);
       if (data.type === "zoomChange" && onZoomChange) onZoomChange(data.zoom);
       if (data.type === "regionChange" && onRegionChangeComplete) {
         onRegionChangeComplete({ minLat: data.minLat, maxLat: data.maxLat, minLng: data.minLng, maxLng: data.maxLng });
@@ -226,7 +223,7 @@ export default function GoogleMobilityMap(props: Props) {
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onMapPress, onMarkerPress, onTransitStopPress, onTransitLineClick, onZoomChange, onRegionChangeComplete, transitStops]);
+  }, [onMapPress, onMarkerPress, onTransitStopPress, onZoomChange, onRegionChangeComplete, transitStops]);
 
   return (
     <View style={[styles.wrap, { height }]}>

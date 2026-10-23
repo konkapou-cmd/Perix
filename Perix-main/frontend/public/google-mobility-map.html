@@ -176,6 +176,14 @@
     return '<text x="' + x + '" y="' + y + '" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="' + fontSize + '" fill="#ffffff">' + escapeHtml(num) + '</text>';
   }
 
+  function routeBadge(label, canvas, color) {
+    var text = String(label || "").trim();
+    if (!text) return "";
+    var x = canvas - 29, y = canvas - 18;
+    return '<g data-perix-route-badge="true"><rect x="' + x + '" y="' + y + '" width="28" height="17" rx="5" fill="' + color + '" stroke="#ffffff" stroke-width="1.5"/>' +
+      routePlateText(text, x + 14, text.length > 3 ? 7.5 : text.length > 2 ? 9 : 11, y + 12) + '</g>';
+  }
+
   function busSvg(label, deg) {
     var num = (label || "").trim();
     var plate = num
@@ -194,7 +202,7 @@
       '<rect x="36.5" y="1" width="7" height="3.4" rx="1.7" fill="#59ABE3"/>' +
       '<circle cx="11" cy="20.5" r="3.4" fill="#1E3A8A"/><circle cx="35" cy="20.5" r="3.4" fill="#1E3A8A"/>' +
       '<circle cx="11" cy="20.5" r="1.4" fill="#ffffff"/><circle cx="35" cy="20.5" r="1.4" fill="#ffffff"/>' +
-      '</g></g></svg>';
+      '</g></g>' + routeBadge(num, 64, '#1E3A8A') + '</svg>';
   }
 
   function tramSvg(label, deg) {
@@ -223,7 +231,7 @@
       '<circle cx="43.5" cy="23.5" r="3" fill="#166534"/><circle cx="57.5" cy="23.5" r="3" fill="#166534"/>' +
       '<circle cx="8" cy="23.5" r="1.2" fill="#ffffff"/><circle cx="22.5" cy="23.5" r="1.2" fill="#ffffff"/>' +
       '<circle cx="43.5" cy="23.5" r="1.2" fill="#ffffff"/><circle cx="57.5" cy="23.5" r="1.2" fill="#ffffff"/>' +
-      '</g></g></svg>';
+      '</g></g>' + routeBadge(num, 82, '#166534') + '</svg>';
   }
 
   function vehicleScale(zoom) {
@@ -249,6 +257,7 @@
       position: { lat: v.latitude, lng: v.longitude },
       zIndex: 10,
       clickable: true,
+      title: [v.type === 'tram' ? 'Tram' : v.type === 'taxi' ? 'Taxi' : 'Bus', v.label || ''].join(' ').trim(),
     });
     marker.setIcon(makeVehicleIcon(v));
     marker.setOpacity(v.estimated ? 0.72 : 1);
@@ -489,10 +498,9 @@
         strokeColor: color,
         strokeOpacity: opacity,
         strokeWeight: weight,
-        clickable: true,
+        clickable: false,
         zIndex: 2
       });
-      poly.addListener("click", function () { post("lineClick", { routeNumber: line.route_number, patternId: line.pattern_id }); });
       poly.setMap(MAP);
       LINES[key] = poly;
       LINE_PATHS[key] = fp;
@@ -607,18 +615,22 @@
       }
     }
 
-    container.addEventListener("click", function (e) {
-      e.stopPropagation();
+    function selectStop(e) {
+      if (e && typeof e.stopPropagation === "function") e.stopPropagation();
       var msg = { stop_id: s.stop_id, name: s.name };
       if (platformSide) msg.side = platformSide;
       post("stopPress", msg);
-    });
+    }
+    container.addEventListener("click", selectStop);
 
     var marker;
     if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
       marker = new google.maps.marker.AdvancedMarkerElement({ map: MAP, position: { lat: lat, lng: lng }, content: container, zIndex: 5 });
     } else {
-      marker = new google.maps.Marker({ map: MAP, position: { lat: lat, lng: lng }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 4, fillColor: pinColor, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1.5 } });
+      marker = new google.maps.Marker({ map: MAP, position: { lat: lat, lng: lng }, clickable: true, title: s.name, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 4, fillColor: pinColor, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1.5 } });
+      // The DOM container is not rendered by classic Marker. Attach the actual
+      // map marker's listener too, rather than relying on an invisible div.
+      marker.addListener("click", selectStop);
     }
     return { marker: marker, div: container };
   }
@@ -707,8 +719,7 @@
         }
         return;
       }
-      var poly = new google.maps.Polyline({ path: path, strokeColor: color, strokeOpacity: opacity, strokeWeight: weight, clickable: true, zIndex: 4 });
-      poly.addListener("click", function () { post("lineClick", { routeNumber: line.route_number, patternId: line.pattern_id }); });
+      var poly = new google.maps.Polyline({ path: path, strokeColor: color, strokeOpacity: opacity, strokeWeight: weight, clickable: false, zIndex: 4 });
       poly.setMap(MAP);
       PLAN[key] = poly;
       PLAN_PATHS[key] = fp;

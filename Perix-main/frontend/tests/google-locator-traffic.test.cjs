@@ -204,7 +204,7 @@ test("Locator gates Google context and retains existing polling cancellation and
   assert.match(source, /getLiveVehicles\(sessionToken, trafficContext\)/);
   assert.match(source, /getVehicleTrip\(sessionToken, selectedVehicle, trafficContext\)/);
   assert.match(source, /contextLocation\?\.longitude \?\? null,\s*trafficContext/);
-  assert.match(source, /if \(!cancelled && request === sequence\) setTripProgress/);
+  assert.match(source, /if \(cancelled \|\| request !== sequence\) return;\s*setTripProgress/);
   assert.match(source, /if \(cancelled \|\| request !== sequence\) return/);
   assert.match(source, /let delay = 4000/);
   assert.match(source, /delay = Math\.min\(delay \* 2, 30000\)/);
@@ -241,7 +241,7 @@ test("actual polling effects reject out-of-order and cancelled-context results",
   const source = read("app/(tabs)/locator.tsx");
   for (const config of [
     { start: "// Live mobility vehicles", end: "// Active transit network", api: "getLiveVehicles", setter: "setLiveVehicles", interval: 4000 },
-    { start: "// Selected vehicle trip progress", end: "// Bus destination search", api: "getVehicleTrip", setter: "setTripProgress", interval: 15000 },
+    { start: "// Selected vehicle: upcoming", end: "// Bus destination search", api: "getVehicleTrip", setter: "setTripProgress", interval: 15000 },
     { start: "// Refresh the serving-bus list", end: "// Transit \"any area\"", api: "getBusesServing", setter: "setServingBuses", interval: 5000 },
   ]) {
     const code = source.slice(source.indexOf(config.start), source.indexOf(config.end));
@@ -263,6 +263,8 @@ test("actual polling effects reject out-of-order and cancelled-context results",
         return new Promise((resolve, reject) => requests.push({ resolve, reject }));
       },
       [config.setter]: (result) => results.push(result),
+      setTripLoadFailed() {}, setTripLoading() {},
+      setArrivalsLoadFailed() {}, setArrivalsLoading() {},
       setInterval(fn, delay) { tick = fn; scheduledDelay = delay; return 1; },
       setTimeout(fn, delay) { tick = fn; scheduledDelay = delay; return 1; },
       clearInterval() { cleared = true; },
@@ -280,30 +282,16 @@ test("actual polling effects reject out-of-order and cancelled-context results",
       requests[1].resolve([{ vehicle_id: "old-context" }]);
       await flush();
       assert.equal(results.length, 1);
-    } else if (config.api === "getBusesServing") {
-      assert.equal(scheduledDelay, config.interval);
-      tick();
-      assert.equal(requests.length, 1);
-      requests[0].resolve([{ vehicle_id: "new", mode: "bus" }]);
-      await flush();
-      assert.equal(results.length, 1);
-      tick();
-      cleanup();
-      requests[1].resolve([{ vehicle_id: "old-context", mode: "bus" }]);
-      await flush();
-      assert.equal(results.length, 1);
     } else {
       assert.equal(scheduledDelay, config.interval);
       tick();
-      const value = config.api === "getBusesServing" ? [{ vehicle_id: "new", mode: "bus" }] : { vehicle_id: "new" };
-      requests[1].resolve(value);
-      await flush();
-      requests[0].resolve(config.api === "getBusesServing" ? [] : { vehicle_id: "old" });
+      assert.equal(requests.length, 1);
+      requests[0].resolve(config.api === "getBusesServing" ? [{ vehicle_id: "new", mode: "bus" }] : { vehicle_id: "new" });
       await flush();
       assert.equal(results.length, 1);
       tick();
       cleanup();
-      requests[2].resolve(value);
+      requests[1].resolve(config.api === "getBusesServing" ? [{ vehicle_id: "old-context", mode: "bus" }] : { vehicle_id: "old-context" });
       await flush();
       assert.equal(results.length, 1);
     }
@@ -328,6 +316,7 @@ test("slow stop polls do not starve, retry errors, and isolate stop/context chan
         return new Promise((resolve, reject) => requests.push({ args, resolve, reject }));
       },
       setServingBuses(value) { results.push(Array.from(value)); },
+      setArrivalsLoading() {}, setArrivalsLoadFailed() {},
       setInterval(fn, delay) { assert.equal(delay, 5000); tick = fn; return 1; },
       clearInterval() {},
     };

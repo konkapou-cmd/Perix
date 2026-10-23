@@ -118,10 +118,46 @@ const { t, i18n } = useTranslation();
   const [mapZoom, setMapZoom] = useState<number | null>(null);
   const [mobilityMapZoom, setMobilityMapZoom] = useState<number | null>(null);
   const [mobilityMapBounds, setMobilityMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number; centerLat: number; centerLng: number } | null>(null);
-  const [selectedPattern, setSelectedPattern] = useState<string | null>(null);
-  const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [tripProgress, setTripProgress] = useState<VehicleTripProgress | null>(null);
+  const [tripLoading, setTripLoading] = useState(false);
+  const [tripLoadFailed, setTripLoadFailed] = useState(false);
+  const [arrivalsLoading, setArrivalsLoading] = useState(false);
+  const [arrivalsLoadFailed, setArrivalsLoadFailed] = useState(false);
+  const upcomingTripStops = useMemo(() => {
+    const stops = tripProgress?.stops || [];
+    const vehicle = liveVehicles.find((value) => value.vehicle_id === selectedVehicle);
+    if (vehicle?.trip_id && tripProgress?.trip_id && vehicle.trip_id !== tripProgress.trip_id) return [];
+    const sameTrip = !!vehicle?.trip_id && vehicle.trip_id === tripProgress?.trip_id
+      && vehicle.vehicle_id === tripProgress?.vehicle_id;
+    const matches = sameTrip && vehicle?.next_stop_id
+      ? stops.map((stop, index) => stop.stop_id === vehicle.next_stop_id ? index : -1).filter((index) => index >= 0)
+      : [];
+    // Prefer the model's current next-stop anchor when unambiguous. Do not
+    // guess an occurrence on loops or pretend a source time has been corrected.
+    const upcoming = matches.length === 1 ? stops.slice(matches[0]) : stops.filter((stop) => !stop.passed);
+    return upcoming.filter((stop) => !stop.skipped && stop.schedule_relationship !== "SKIPPED");
+  }, [tripProgress, liveVehicles, selectedVehicle]);
+  const selectArrivalStop = useCallback((stop: { stop_id: string; name: string; platform_id?: string; side?: string | null }) => {
+    setSelectedVehicle(null);
+    setTripProgress(null);
+    setSelectedStop(stop);
+    setBusQuery(stop.name);
+    setBusSuggestions([]);
+    setServingBuses([]);
+    setArrivalsLoading(true);
+    setArrivalsLoadFailed(false);
+  }, []);
+  const selectTransitVehicle = useCallback((id: string) => {
+    setSelectedStop(null);
+    setServingBuses([]);
+    setBusQuery("");
+    setBusSuggestions([]);
+    setSelectedVehicle((previous) => previous === id ? null : id);
+    setTripProgress(null);
+    setTripLoading(true);
+    setTripLoadFailed(false);
+  }, []);
   const router = useRouter();
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [selectedRoot, setSelectedRoot] = useState("All");
@@ -599,7 +635,6 @@ const { t, i18n } = useTranslation();
     return transitMapLines
       .filter((l) => mobilityMode === "all" || l.mode === mobilityMode)
       .map((l) => {
-        const isSelected = selectedLine != null && l.route_number === selectedLine;
         return {
           routeNumber: l.route_number,
           patternId: l.pattern_id,
@@ -607,11 +642,11 @@ const { t, i18n } = useTranslation();
           mode: l.mode,
           points: l.points,
           color: l.mode === "tram" ? "#8B0000" : "#1E3A8A",
-          opacity: isSelected ? 0.9 : selectedLine != null ? 0.1 : 0.22,
-          weight: isSelected ? 5 : 2,
+          opacity: 0.22,
+          weight: 2,
         };
       });
-  }, [transitMapLines, selectedLine, mobilityMode]);
+  }, [transitMapLines, mobilityMode]);
 
   const mobilityMapVehicles = useMemo(() => {
     return liveVehicles
@@ -659,55 +694,26 @@ const { t, i18n } = useTranslation();
       });
   }, [liveVehicles, mobilityMode, transitMapLines]);
 
-  const selectedRoute = useMemo(() => {
-    if (!selectedLine) return null;    // A selected PATTERN shows exactly that direction's stops (from the
-    // stable v2 map payload), not the union of the whole line.
-    const line = transitMapLines.find(
-      (l) =>
-        l.route_number === selectedLine &&
-        (!selectedPattern || l.pattern_id === selectedPattern)
-    ) || transitMapLines.find((l) => l.route_number === selectedLine);
-    if (!line) return null;
-    return {
-      route_number: line.route_number,
-      name: line.route_number,
-      mode: line.mode,
-      headsign: line.direction,
-      stops: (line.stops || []).map((s) => ({
-        stop_id: s.stop_id,
-        name: s.name || s.stop_id,
-        lat: s.latitude,
-        lng: s.longitude,
-      })),
-    };
-  }, [transitMapLines, selectedLine, selectedPattern]);
-
   // Zoom-aware stop visibility (vehicles and lines always visible):
   //  < 13.2: no stops (except selected pattern/stop)
   //  13.2-15.3: major stops only (interchanges: 2+ routes or 2+ modes)
   //  >= 15.3: all stops
-  // A selected line always shows ITS stops; a selected stop is forced.
+  // A selected stop is forced, without hiding the other visible stops.
   const transitStops = useMemo(() => {
     let list = physicalStops;
     if (mobilityMode !== "all") {
       list = list.filter((s) => s.modes.includes(mobilityMode as "bus" | "tram"));
     }
     const z = mobilityMapZoom ?? 14;
-    if (selectedLine) {
-      const line = transitMapLines.find((l) => l.route_number === selectedLine);
-      const ids = new Set((line?.stops || []).map((s) => s.stop_id));
-      list = list.filter((s) => ids.has(s.stop_id) || s.routes.some((r) => r.route_number === selectedLine));
-    } else if (selectedStop) {
-      list = list.filter((s) => s.stop_id === selectedStop.stop_id);
-    } else if (z >= 15.3) {
+    if (z >= 15.3) {
       // all stops
     } else if (z >= 13.2) {
-      list = list.filter((s) => s.routes.length >= 2 || s.modes.length >= 2);
+      list = list.filter((s) => s.stop_id === selectedStop?.stop_id || s.routes.length >= 2 || s.modes.length >= 2);
     } else {
-      list = [];
+      list = list.filter((s) => s.stop_id === selectedStop?.stop_id);
     }
     return list;
-  }, [physicalStops, selectedLine, selectedStop, mobilityMode, mobilityMapZoom, transitMapLines]);
+  }, [physicalStops, selectedStop, mobilityMode, mobilityMapZoom]);
 
   // Journey-plan route on the map: walking light blue, tram green, bus blue.
   const planLines = useMemo(() => {
@@ -798,18 +804,27 @@ const { t, i18n } = useTranslation();
     return visible.slice(0, 8);
   }, [physicalStops, viewportRef, referencePoint, mobilityMode]);
 
-  // Selected vehicle trip progress (passed stops + arrival times)
+  // Selected vehicle: upcoming, non-skipped stops and their arrival predictions.
   useEffect(() => {
     if (activeTab !== "mobility" || !selectedVehicle) return;
     let cancelled = false;
     let sequence = 0;
+    let inFlight = false;
     const load = () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
       const request = ++sequence;
       getVehicleTrip(sessionToken, selectedVehicle, trafficContext)
         .then((t) => {
-          if (!cancelled && request === sequence) setTripProgress(t);
+          if (cancelled || request !== sequence) return;
+          setTripProgress(t);
+          setTripLoadFailed(false);
         })
-        .catch(() => {});
+        .catch(() => { if (!cancelled && request === sequence) setTripLoadFailed(true); })
+        .finally(() => {
+          inFlight = false;
+          if (!cancelled && request === sequence) setTripLoading(false);
+        });
     };
     load();
     const interval = setInterval(load, 15000);
@@ -862,9 +877,13 @@ const { t, i18n } = useTranslation();
           // The All/Bus/Tram toggle filters arrivals too - a stop serves
           // both modes but the user asked for one.
           setServingBuses((res || []).filter((b) => mobilityMode === "all" || b.mode === mobilityMode));
+          setArrivalsLoadFailed(false);
         })
-        .catch(() => {})
-        .finally(() => { inFlight = false; });
+        .catch(() => { if (!cancelled && request === sequence) setArrivalsLoadFailed(true); })
+        .finally(() => {
+          inFlight = false;
+          if (!cancelled && request === sequence) setArrivalsLoading(false);
+        });
     };
     load();
     const interval = setInterval(load, 5000);
@@ -1440,19 +1459,9 @@ const { t, i18n } = useTranslation();
             transitLines={mobilityMode !== "taxi" ? transitLines : undefined}
             transitStops={mobilityMode !== "taxi" ? transitStops : undefined}
             onTransitStopPress={(stop) => {
-              setSelectedStop({ stop_id: stop.stop_id, name: stop.name, platform_id: stop.selected_platform_id, side: stop.selected_side });
-              setBusQuery(stop.name);
-              setBusSuggestions([]);
-              setServingBuses([]);
+              selectArrivalStop({ stop_id: stop.stop_id, name: stop.name, platform_id: stop.selected_platform_id, side: stop.selected_side });
             }}
             planLines={mobilityMode !== "taxi" ? planLines : undefined}
-            onTransitLineClick={(routeNumber, patternId) => {
-              setSelectedLine((prev) => (prev === routeNumber ? null : routeNumber));
-              setSelectedPattern((prev) => {
-                if (selectedLine === routeNumber) return null;
-                return patternId || null;
-              });
-            }}
             onZoomChange={setMobilityMapZoom}
             onRegionChangeComplete={handleMobilityMapRegionChange}
             initialZoom={mobilityMapZoom}
@@ -1465,16 +1474,11 @@ const { t, i18n } = useTranslation();
                 runPlan(lat, lng);
                 return;
               }
-              if (selectedLine) {
-                setSelectedLine(null);
-                setSelectedPattern(null);
-              }
             }}
             showUserLocation
             onMarkerPress={(id) => {
               if (mobilityMode === "taxi") return;
-              setSelectedVehicle((prev) => (prev === id ? null : id));
-              setTripProgress(null);
+              selectTransitVehicle(id);
             }}
           />
         ) : (
@@ -1528,23 +1532,13 @@ const { t, i18n } = useTranslation();
               : undefined
           }
           onTransitStopPress={(stop) => {
-            setSelectedStop({ stop_id: stop.stop_id, name: stop.name });
-            setBusQuery(stop.name);
-            setBusSuggestions([]);
-            setServingBuses([]);
+            selectArrivalStop({ stop_id: stop.stop_id, name: stop.name });
           }}
           planLines={
             isMobilityTab && (mobilityMode !== "taxi")
               ? planLines
               : undefined
           }
-          onTransitLineClick={(routeNumber, patternId) => {
-            setSelectedLine((prev) => (prev === routeNumber ? null : routeNumber));
-            setSelectedPattern((prev) => {
-              if (selectedLine === routeNumber) return null;
-              return patternId || null;
-            });
-          }}
           onZoomChange={setMapZoom}
           onMapPress={(lat, lng) => {
             if (isMobilityTab && (mobilityMode !== "taxi") && planPicking) {
@@ -1555,18 +1549,13 @@ const { t, i18n } = useTranslation();
               runPlan(lat, lng);
               return;
             }
-            if (selectedLine) {
-              setSelectedLine(null);
-              setSelectedPattern(null);
-            }
           }}
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
             if (isMobilityTab) {
               if (mobilityMode === "taxi") return;
-              setSelectedVehicle((prev) => (prev === id ? null : id));
-              setTripProgress(null);
+              selectTransitVehicle(id);
               return;
             }
             if (activeTab === "businesses") {
@@ -1655,6 +1644,22 @@ const { t, i18n } = useTranslation();
             </Pressable>
           </View>
 
+          {selectedVehicle && !tripProgress && mobilityMode !== "taxi" && (
+            <View style={styles.linePanel}>
+              <View style={styles.linePanelHeader}>
+                {tripLoading ? <ActivityIndicator size="small" color="#264348" /> : null}
+                <Text style={styles.linePanelTitle}>
+                  {tripLoadFailed
+                    ? t("mobility.tripLoadFailed", "Couldn't load the next stops. Retrying…")
+                    : t("mobility.loadingNextStops", "Loading next stops…")}
+                </Text>
+                <Pressable onPress={() => { setSelectedVehicle(null); setTripProgress(null); }} hitSlop={8}>
+                  <Ionicons name="close-circle" size={22} color="#264348" />
+                </Pressable>
+              </View>
+            </View>
+          )}
+
           {selectedVehicle && tripProgress && (mobilityMode !== "taxi") && (
             <View style={styles.linePanel}>
               <View style={styles.linePanelHeader}>
@@ -1683,74 +1688,32 @@ const { t, i18n } = useTranslation();
                   <Ionicons name="close-circle" size={22} color="#264348" />
                 </Pressable>
               </View>
+              <Text style={styles.linePanelHint}>{t("mobility.nextStops", "Next stops")}</Text>
+              {tripLoadFailed ? <Text style={styles.linePanelHint}>
+                {t("mobility.tripLoadFailed", "Couldn't load the next stops. Retrying…")}
+              </Text> : null}
               <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                {tripProgress.stops.map((s, i) => (
-                  <View key={`${s.stop_id}-${i}`} style={[styles.lineStopRow, s.passed && { opacity: 0.45 }]}>
-                    <View style={[styles.lineStopNum, s.passed && { backgroundColor: "#D1FAE5" }]}>
-                      <Ionicons
-                        name={s.passed ? "checkmark" : "ellipse-outline"}
-                        size={11}
-                        color={s.passed ? "#166534" : "#264348"}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.lineStopName, s.passed && { textDecorationLine: "line-through" }]} numberOfLines={1}>
-                        {s.name}
-                      </Text>
-                      {!s.passed && (
-                        <Text style={styles.stopTimeText}>
-                          {t("mobility.arrival", "Arrival")} {s.predicted}
-                          {s.delay_seconds > 0 ? ` (+${Math.round(s.delay_seconds / 60)}′)` : ""}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {selectedRoute && !selectedVehicle && (mobilityMode !== "taxi") && (
-            <View style={styles.linePanel}>
-              <View style={styles.linePanelHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.linePanelTitle}>
-                    {selectedRoute.route_number}
-                    {selectedPattern && (selectedRoute as any).headsign
-                      ? ` → ${(selectedRoute as any).headsign}`
-                      : ` · ${selectedRoute.name}`}
-                  </Text>
-                  <Text style={styles.linePanelHint}>
-                    {t("mobility.lineStopsHint", "Tap a stop to see live arrivals")}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => {
-                    setSelectedLine(null);
-                    setSelectedPattern(null);
-                  }}
-                  hitSlop={8}
-                >
-                  <Ionicons name="close-circle" size={22} color="#264348" />
-                </Pressable>
-              </View>
-              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                {selectedRoute.stops.map((s, i) => (
-                  <Pressable
-                    key={`${s.stop_id}-${i}`}
-                    style={styles.lineStopRow}
-                    onPress={() => {
-                      setSelectedStop({ stop_id: s.stop_id, name: s.name });
-                      setBusQuery(s.name);
-                      setBusSuggestions([]);
-                    }}
-                  >
+                {upcomingTripStops.length === 0 ? <Text style={styles.mobilityEmptyText}>
+                  {t("mobility.noNextStops", "No upcoming stops reported for this trip.")}
+                </Text> : null}
+                {upcomingTripStops.map((s, i) => (
+                  <View key={`${s.stop_id}-${i}`} style={styles.lineStopRow}>
                     <View style={styles.lineStopNum}>
                       <Text style={styles.lineStopNumText}>{i + 1}</Text>
                     </View>
-                    <Text style={styles.lineStopName} numberOfLines={1}>{s.name}</Text>
-                    <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
-                  </Pressable>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.lineStopName} numberOfLines={1}>
+                        {s.name}
+                      </Text>
+                      <Text style={styles.stopTimeText}>
+                           {t("mobility.arrival", "Arrival")} {s.predicted}
+                           {s.delay_seconds > 0 ? ` (+${Math.round(s.delay_seconds / 60)}′)` : ""}
+                      </Text>
+                      {s.passed ? <Text style={styles.stopTimeText}>
+                        {t("mobility.sourceTimeElapsed", "Source time has passed; estimated position has not reached this stop.")}
+                      </Text> : null}
+                    </View>
+                  </View>
                 ))}
               </ScrollView>
             </View>
@@ -2027,9 +1990,7 @@ const { t, i18n } = useTranslation();
                       key={s.stop_id}
                       style={styles.busSuggestionRow}
                       onPress={() => {
-                        setSelectedStop({ stop_id: s.stop_id, name: s.name });
-                        setBusQuery(s.name);
-                        setBusSuggestions([]);
+                        selectArrivalStop({ stop_id: s.stop_id, name: s.name });
                       }}
                     >
                       <Ionicons name="location-outline" size={14} color="#59ABE3" />
@@ -2049,12 +2010,7 @@ const { t, i18n } = useTranslation();
           {selectedStop && (mobilityMode !== "taxi") ? (
             <View>
               <Text style={styles.mobilityHeading}>
-                {mobilityMode === "tram"
-                  ? t("mobility.towardTram", "Trams going toward")
-                  : mobilityMode === "bus"
-                  ? t("mobility.towardBus", "Buses going toward")
-                  : t("mobility.towardAny", "Transit going toward")}{" "}
-                {selectedStop.name}
+                {t("mobility.arrivalsAt", "Arrivals at {{stop}}", { stop: selectedStop.name })}
               </Text>
               {(() => {
                 const full = physicalStops.find((s) => s.stop_id === selectedStop.stop_id);
@@ -2068,7 +2024,11 @@ const { t, i18n } = useTranslation();
               })()}
               {servingBuses.length === 0 ? (
                 <Text style={styles.mobilityEmptyText}>
-                  {t("mobility.noBusesServing", "No live buses on this route right now")}
+                  {arrivalsLoadFailed
+                    ? t("mobility.arrivalsLoadFailed", "Couldn't load arrivals. Retrying…")
+                    : arrivalsLoading
+                    ? t("mobility.loadingArrivals", "Loading arrivals…")
+                    : t("mobility.noUpcomingArrivals", "No upcoming arrivals reported for this stop.")}
                 </Text>
               ) : (
                 servingBuses.map((b) => (
@@ -2076,10 +2036,7 @@ const { t, i18n } = useTranslation();
                     key={b.vehicle_id}
                     style={styles.mobilityRow}
                     onPress={() => {
-                      // Open the vehicle's full journey: every stop it
-                      // makes (passed/next with predicted times) + focus
-                      // the map on where it is right now.
-                      setSelectedVehicle(b.vehicle_id);
+                      selectTransitVehicle(b.vehicle_id);
                       const v = liveVehicles.find((x) => x.vehicle_id === b.vehicle_id);
                       if (v && v.latitude != null && v.longitude != null) {
                         setMobilityLocateFocus({ latitude: v.latitude, longitude: v.longitude });
@@ -2223,9 +2180,7 @@ const { t, i18n } = useTranslation();
                   key={"ns_" + s.stop_id}
                   style={styles.mobilityRow}
                   onPress={() => {
-                    setSelectedStop({ stop_id: s.stop_id, name: s.name });
-                    setBusQuery(s.name);
-                    setBusSuggestions([]);
+                    selectArrivalStop({ stop_id: s.stop_id, name: s.name });
                   }}
                 >
                   <View style={[styles.mobilityRowIcon, { backgroundColor: "#264348" }]}>
