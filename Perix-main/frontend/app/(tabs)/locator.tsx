@@ -630,6 +630,7 @@ const { t, i18n } = useTranslation();
         }
         return {
           id: v.vehicle_id,
+          journeyId: v.trip_instance_id ?? v.trip_id ?? null,
           latitude: v.latitude!,
           longitude: v.longitude!,
           title:

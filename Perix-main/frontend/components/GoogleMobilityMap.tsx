@@ -16,6 +16,7 @@ export type GoogleTransitLine = {
 
 export type GoogleVehicleMarker = {
   id: string;
+  journeyId?: string | null;
   latitude: number;
   longitude: number;
   type?: "bus" | "tram" | "taxi";
@@ -149,10 +150,11 @@ export default function GoogleMobilityMap(props: Props) {
     const paths = new Map<string, string>();
     const payload = {
       vehicles: vehicles.map((v) => {
-        const signature = JSON.stringify(v.path?.map((p) => [p.latitude, p.longitude]) ?? null);
+        const signature = JSON.stringify([v.journeyId ?? null, v.path?.map((p) => [p.latitude, p.longitude]) ?? null]);
         paths.set(v.id, signature);
         return {
           id: v.id,
+          journeyId: v.journeyId ?? null,
           latitude: v.latitude,
           longitude: v.longitude,
           type: v.type || "bus",

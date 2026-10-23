@@ -264,8 +264,8 @@
   // --- Continuous vehicle motion (ported from BusinessMap.web.tsx) ---
   // Vehicles glide along their canonical polyline via requestAnimationFrame,
   // interpolating PROGRESS (meters) not lat/lng, so they follow every curve.
-  // After reaching the latest poll target they extrapolate at the same speed
-  // (up to 3x the glide duration) so a slow backend never reads as stop-and-go.
+  // Never extrapolate beyond the latest authoritative sample. Running ahead
+  // then snapping back on the next poll made normal movement look unstable.
   var ANIM_RUNNING = false;
   var ANIM_RAF = null;
   var ANIM_LAST = 0;
@@ -279,7 +279,7 @@
       if (!rec || rec.animStart == null) return;
       try {
         var t = (now - rec.animStart) / Math.max(1, rec.animDuration || 1000);
-        var tt = Math.min(Math.max(t, 0), 3.0);
+        var tt = Math.min(Math.max(t, 0), 1.0);
         if (rec.path && rec.cum && rec.progTo != null && Number.isFinite(rec.progFrom) && Number.isFinite(rec.progTo)) {
           rec.progNow = rec.progFrom + (rec.progTo - rec.progFrom) * tt;
           var np = pointAtProgress(rec.path, rec.cum, rec.progNow);
@@ -293,7 +293,7 @@
           var lng = rec.geoFrom.lng + (rec.geoTo.lng - rec.geoFrom.lng) * tt;
           setMarkerPos(rec.marker, lat, lng);
         }
-        if (t >= 3.0) rec.animStart = null;
+        if (t >= 1.0) rec.animStart = null;
         else active = true;
       } catch (e) {
         rec.animStart = null;
@@ -326,8 +326,14 @@
   }
 
   function setVehicleTarget(rec, pos, nowTs, targetProgressM) {
-    if (rec.positionState === "STOP_ANCHOR" || rec.positionState === "TURNAROUND_ANCHOR") {
+    var holding = rec.positionState === "STOP_ANCHOR" || rec.positionState === "TURNAROUND_ANCHOR"
+      || ["DWELL", "AT_STOP", "SIGNAL_HOLD", "TURNAROUND", "PARKED"].indexOf(rec.motionState) >= 0
+      || rec.speed === 0;
+    if (holding) {
       rec.animStart = null;
+      rec.lastTs = nowTs;
+      if (Number.isFinite(targetProgressM)) rec.progNow = rec.progFrom = targetProgressM;
+      rec.progTo = null;
       setMarkerPos(rec.marker, pos.lat, pos.lng);
       return;
     }
@@ -341,15 +347,14 @@
       }
       var fromProg;
       if (rec.animStart != null) {
-        var t = Math.min(1, (nowTs - rec.animStart) / rec.animDuration);
+        var t = Math.max(0, Math.min(1, (nowTs - rec.animStart) / rec.animDuration));
         fromProg = rec.progFrom + (rec.progTo - rec.progFrom) * t;
       } else {
         fromProg = rec.progNow != null ? rec.progNow : toProg;
       }
-      var d = Math.abs(toProg - fromProg);
       var dt = rec.lastTs ? nowTs - rec.lastTs : 0;
       rec.lastTs = nowTs;
-      if (d > 250 || dt <= 0 || dt > 30000 || toProg < fromProg) {
+      if (dt <= 0 || dt > 30000) {
         rec.progFrom = toProg;
         rec.progTo = null;
         rec.animStart = null;
@@ -357,9 +362,12 @@
         var snap = pointAtProgress(rec.path, rec.cum, toProg);
         if (snap) setMarkerPos(rec.marker, snap.lat, snap.lng);
       } else {
+        // Same-journey corrections must not visibly drive backwards. A new
+        // trip/geometry explicitly resets this state in drawVehicles.
+        toProg = Math.max(fromProg, toProg);
         rec.progFrom = fromProg;
         rec.progTo = toProg;
-        rec.animDuration = Math.max(1500, Math.min(9000, dt));
+        rec.animDuration = Math.max(100, Math.min(30000, dt));
         rec.animStart = nowTs;
       }
       kickAnim();
@@ -380,11 +388,12 @@
       if (v.latitude == null || v.longitude == null) return;
       seen[v.id] = true;
       var rec = VEHICLES[v.id];
+      var journeyChanged = !!rec && rec.journeyId !== (v.journeyId || null);
       var hasPath = Object.prototype.hasOwnProperty.call(v, "path");
       var path = hasPath ? (v.path && v.path.length >= 2 ? v.path : null) : (rec && rec.path);
       // Structured cloning changes array identity, not canonical geometry.
       var pathKey = hasPath ? (path ? JSON.stringify(path.map(function (p) { return [p.latitude, p.longitude]; })) : null) : (rec && rec.pathKey);
-      var pathChanged = hasPath && (!rec || rec.pathKey !== pathKey);
+      var pathChanged = journeyChanged || (hasPath && (!rec || rec.pathKey !== pathKey));
       var cum = pathChanged ? (path ? pathCumulative(path) : null) : (rec && rec.cum);
       var target = { lat: v.latitude, lng: v.longitude };
       if (path && cum && v.progressM != null) {
@@ -396,11 +405,14 @@
         rec = {
           marker: marker,
           vehicleId: v.id,
+          journeyId: v.journeyId || null,
           type: v.type || "bus",
           label: v.label,
           estimated: !!v.estimated,
           heading: typeof v.heading === "number" ? v.heading : 0,
           positionState: v.positionState || null,
+          motionState: v.motionState || null,
+          speed: typeof v.speed === "number" && Number.isFinite(v.speed) ? v.speed : null,
           path: null, pathKey: null, cum: null,
           progNow: null, progFrom: null, progTo: null,
           animStart: null, animDuration: 1000, lastTs: Date.now(),
@@ -417,8 +429,12 @@
           updateMarkerIcon(rec.marker, rec);
         }
         rec.positionState = v.positionState || null;
+        rec.journeyId = v.journeyId || null;
+        rec.motionState = v.motionState || null;
+        rec.speed = typeof v.speed === "number" && Number.isFinite(v.speed) ? v.speed : null;
       }
       if (pathChanged) {
+        rec.lastTs = Date.now();
         rec.path = path;
         rec.pathKey = pathKey;
         rec.cum = cum;
