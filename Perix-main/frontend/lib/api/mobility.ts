@@ -1,6 +1,7 @@
 import { apiRequest, API_BASE } from "./core";
 
 export type MobilityMode = "bus" | "tram" | "taxi";
+export type TrafficContext = "baseline" | "google_locator";
 
 export type MotionDiagnostics = {
   model?: string | null;
@@ -80,9 +81,9 @@ export type DriverSession = {
   status: string;
 };
 
-export const getLiveVehicles = async (token?: string | null): Promise<LiveVehicle[]> => {
+export const getLiveVehicles = async (token?: string | null, trafficContext: TrafficContext = "baseline"): Promise<LiveVehicle[]> => {
   // Stable V2 API: the Locator no longer knows GTFS/GPS internals.
-  const raw = await apiRequest<V2Vehicle[]>("/mobility/v2/vehicles", "GET", token || undefined);
+  const raw = await apiRequest<V2Vehicle[]>(`/mobility/v2/vehicles${trafficContext === "google_locator" ? "?traffic_context=google_locator" : ""}`, "GET", token || undefined);
   return (raw || []).map((v) => {
     const ageSeconds = Math.max(0, Number(v.position?.age_seconds ?? 0));
     return {
@@ -444,11 +445,12 @@ export const getBusesServing = async (
   token: string | null | undefined,
   stopId: string,
   _lat?: number | null,
-  _lng?: number | null
+  _lng?: number | null,
+  trafficContext: TrafficContext = "baseline"
 ): Promise<ServingBus[]> => {
   // Stable V2 unified arrivals engine (LIVE / REALTIME / SCHEDULE).
   const raw = await apiRequest<V2Arrival[]>(
-    `/mobility/v2/stops/${encodeURIComponent(stopId)}/arrivals`,
+    `/mobility/v2/stops/${encodeURIComponent(stopId)}/arrivals${trafficContext === "google_locator" ? "?traffic_context=google_locator" : ""}`,
     "GET",
     token || undefined
   );
@@ -495,9 +497,9 @@ export type VehicleTripProgress = {
   stops: TripStopProgress[];
 };
 
-export const getVehicleTrip = (token: string | null | undefined, vehicleId: string) =>
+export const getVehicleTrip = (token: string | null | undefined, vehicleId: string, trafficContext: TrafficContext = "baseline") =>
   apiRequest<VehicleTripProgress>(
-    `/mobility/vehicles/${encodeURIComponent(vehicleId)}/trip`,
+    `/mobility/vehicles/${encodeURIComponent(vehicleId)}/trip${trafficContext === "google_locator" ? "?traffic_context=google_locator" : ""}`,
     "GET",
     token || undefined
   );

@@ -57,6 +57,7 @@
   }
 
   var MAP = null;
+  var TRAFFIC = null;
   var PENDING = null;
   var LINES = {};      // pattern_id -> polyline
   var LINE_PATHS = {};  // pattern_id -> path fingerprint
@@ -724,6 +725,12 @@
 
   function applyUpdate(payload) {
     if (!MAP) { PENDING = payload; return; }
+    if (payload.showTrafficLayer === true) {
+      if (!TRAFFIC) TRAFFIC = new google.maps.TrafficLayer();
+      if (TRAFFIC.getMap() !== MAP) TRAFFIC.setMap(MAP);
+    } else if (TRAFFIC) {
+      TRAFFIC.setMap(null);
+    }
     drawLines(payload.lines);
     drawVehicles(payload.vehicles);
     drawStops(payload.stops);
@@ -803,9 +810,14 @@
     if (event.source !== window.parent) return;
     var data = event.data;
     if (!data || data.source !== "perix-google-map") return;
+    if (data.type === "requestReady" && MAP) post("ready", { session: SESSION_ID });
     if (data.type === "update") applyUpdate(data.payload || {});
     if (data.type === "directions") showDirections(data.payload.origin, data.payload.destination);
     if (data.type === "clearDirections") { document.getElementById("dir-panel").style.display = "none"; }
+  });
+  window.addEventListener("pagehide", function () {
+    if (TRAFFIC) TRAFFIC.setMap(null);
+    post("notReady", { session: SESSION_ID });
   });
 </script>
 <script>

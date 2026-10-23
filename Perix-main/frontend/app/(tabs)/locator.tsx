@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import BusinessMap from "../../components/BusinessMap";
 import GoogleMobilityMap from "../../components/GoogleMobilityMap";
+import type { TrafficContext } from "../../lib/api/mobility";
 import { SkeletonBox, EmptyState } from "../../components/shared";
 import DatePickerModal from "../../components/shared/DatePickerModal";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
@@ -154,6 +155,13 @@ const { t, i18n } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<TabType>("businesses");
   const isMobilityTab = activeTab === "mobility";
+  const [googleMapReady, setGoogleMapReady] = useState(false);
+  const trafficContext: TrafficContext =
+    Platform.OS === "web" && activeTab === "mobility" && googleMapReady &&
+    (mobilityMode === "all" || mobilityMode === "bus") &&
+    process.env.EXPO_PUBLIC_PERIX_GOOGLE_LOCATOR_TRAFFIC === "true"
+      ? "google_locator"
+      : "baseline";
   const [businessAvailabilityFilter, setBusinessAvailabilityFilter] = useState<"all" | "open_now">("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
@@ -544,7 +552,7 @@ const { t, i18n } = useTranslation();
       if (cancelled || inFlight) return;
       inFlight = true;
       try {
-        const vehicles = await getLiveVehicles(sessionToken);
+        const vehicles = await getLiveVehicles(sessionToken, trafficContext);
         if (!cancelled) {
           setLiveVehicles(vehicles || []);
           delay = 4000;
@@ -564,7 +572,7 @@ const { t, i18n } = useTranslation();
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [activeTab, sessionToken]);
+  }, [activeTab, sessionToken, trafficContext]);
 
   // Active transit network -> thin route lines on the map
   useEffect(() => {
@@ -793,10 +801,12 @@ const { t, i18n } = useTranslation();
   useEffect(() => {
     if (activeTab !== "mobility" || !selectedVehicle) return;
     let cancelled = false;
+    let sequence = 0;
     const load = () => {
-      getVehicleTrip(sessionToken, selectedVehicle)
+      const request = ++sequence;
+      getVehicleTrip(sessionToken, selectedVehicle, trafficContext)
         .then((t) => {
-          if (!cancelled) setTripProgress(t);
+          if (!cancelled && request === sequence) setTripProgress(t);
         })
         .catch(() => {});
     };
@@ -806,7 +816,7 @@ const { t, i18n } = useTranslation();
       cancelled = true;
       clearInterval(interval);
     };
-  }, [activeTab, selectedVehicle, sessionToken]);
+  }, [activeTab, selectedVehicle, sessionToken, trafficContext]);
 
   // Bus destination search (debounced)
   useEffect(() => {
@@ -832,20 +842,28 @@ const { t, i18n } = useTranslation();
   useEffect(() => {
     if (activeTab !== "mobility" || mobilityMode === "taxi" || !selectedStop) return;
     let cancelled = false;
+    let sequence = 0;
+    let inFlight = false;
     const load = () => {
+      // Slow arrivals must complete before another tick can supersede them.
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      const request = ++sequence;
       getBusesServing(
         sessionToken,
         selectedStop.stop_id,
         contextLocation?.latitude ?? null,
-        contextLocation?.longitude ?? null
+        contextLocation?.longitude ?? null,
+        trafficContext
       )
         .then((res) => {
-          if (cancelled) return;
+          if (cancelled || request !== sequence) return;
           // The All/Bus/Tram toggle filters arrivals too - a stop serves
           // both modes but the user asked for one.
           setServingBuses((res || []).filter((b) => mobilityMode === "all" || b.mode === mobilityMode));
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => { inFlight = false; });
     };
     load();
     const interval = setInterval(load, 5000);
@@ -853,7 +871,7 @@ const { t, i18n } = useTranslation();
       cancelled = true;
       clearInterval(interval);
     };
-  }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude]);
+  }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude, trafficContext]);
 
   // Transit "any area" destination suggestions (Perix's own map: venues,
   // stops and real streets from OpenStreetMap)
@@ -1388,6 +1406,7 @@ const { t, i18n } = useTranslation();
           <View style={styles.mapSection}>
         {isMobilityTab ? (
           <GoogleMobilityMap
+            {...(Platform.OS === "web" ? { onReadyChange: setGoogleMapReady, showTrafficLayer: trafficContext === "google_locator" } : {})}
             location={
               livePosition
                 ? { latitude: livePosition.latitude, longitude: livePosition.longitude }

@@ -63,6 +63,8 @@ type Props = {
   disabled?: boolean;
   initialZoom?: number | null;
   height?: number;
+  onReadyChange?: (ready: boolean) => void;
+  showTrafficLayer?: boolean;
   onTransitLineClick?: (routeNumber: string, patternId?: string) => void;
   onTransitStopPress?: (stop: GoogleTransitStop) => void;
   onMarkerPress?: (markerId: string) => void;
@@ -94,6 +96,8 @@ const {
     showUserLocation,
     initialZoom,
     height = 300,
+    onReadyChange,
+    showTrafficLayer = false,
     onTransitLineClick,
     onTransitStopPress,
     onMarkerPress,
@@ -104,6 +108,13 @@ const {
 
 const iframeRef = useRef<HTMLIFrameElement>(null);
   const [session, setSession] = useState<string | null>(null);
+  const onReadyChangeRef = useRef(onReadyChange);
+  onReadyChangeRef.current = onReadyChange;
+
+  useEffect(() => {
+    onReadyChangeRef.current?.(false);
+    return () => onReadyChangeRef.current?.(false);
+  }, []);
 
   const mapUrl = `${typeof window !== "undefined" ? window.location.origin : "https://app.perixapp.com"}/google-mobility-map.html?key=${encodeURIComponent(gmapsKey)}&locale=de`;
 
@@ -151,9 +162,10 @@ const iframeRef = useRef<HTMLIFrameElement>(null);
       focusToken: focusToken ?? null,
       initialRegion: initialRegion ? { latitude: initialRegion.latitude, longitude: initialRegion.longitude } : null,
       initialZoom: initialZoom ?? null,
+      showTrafficLayer,
     };
     iframeRef.current.contentWindow?.postMessage({ source: "perix-google-map", type: "update", payload }, window.location.origin);
-  }, [session, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, focusRegion?.latitude, focusRegion?.longitude, showUserLocation, initialRegion, initialZoom]);
+  }, [session, transitLines, vehicles, transitStops, planLines, location, pinLocation, focusToken, focusRegion?.latitude, focusRegion?.longitude, showUserLocation, initialRegion, initialZoom, showTrafficLayer]);
 
   // Map -> parent bridge
   useEffect(() => {
@@ -162,7 +174,14 @@ const iframeRef = useRef<HTMLIFrameElement>(null);
       if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (!data || data.source !== "perix-google-map") return;
-      if (data.type === "ready") setSession(data.session || Date.now().toString());
+      if (data.type === "ready" && typeof data.session === "string" && data.session) {
+        setSession(data.session);
+        onReadyChangeRef.current?.(true);
+      }
+      if (data.type === "notReady") {
+        setSession(null);
+        onReadyChangeRef.current?.(false);
+      }
       if (data.type === "mapPress" && onMapPress) onMapPress(data.lat, data.lng);
       if (data.type === "markerPress" && onMarkerPress) onMarkerPress(data.id);
       if (data.type === "stopPress" && onTransitStopPress) {
@@ -184,6 +203,12 @@ return (
       <iframe
         ref={iframeRef}
         src={mapUrl}
+        onLoad={() => {
+          setSession(null);
+          onReadyChangeRef.current?.(false);
+          // initMap may finish before iframe load; ask the loaded document again.
+          iframeRef.current?.contentWindow?.postMessage({ source: "perix-google-map", type: "requestReady" }, window.location.origin);
+        }}
         title="perix-google-map"
         style={{ width: "100%", height: "100%", border: 0, borderRadius: 12 }}
         allow="geolocation"

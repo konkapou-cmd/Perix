@@ -35,6 +35,4 @@ rndevtoolsFiles.forEach(file => {
   }
 });
 
-config.resolver.sourceExts = ['js.flow', ...config.resolver.sourceExts];
-
 module.exports = config;
