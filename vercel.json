@@ -4,6 +4,18 @@
   "outputDirectory": "dist",
   "redirects": [
     {
+      "source": "/",
+      "has": [{ "type": "host", "value": "^perix\\.eu$" }],
+      "destination": "https://app.perix.eu/",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "^www\\.perix\\.eu$" }],
+      "destination": "https://app.perix.eu/",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "^perix\\.eu$" }],
       "destination": "https://app.perix.eu/:path*",
