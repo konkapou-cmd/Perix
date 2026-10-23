@@ -45,7 +45,7 @@ export const logoutUser = async (token: string): Promise<void> => {
   await apiRequest("/auth/logout", "POST", token);
 };
 
-export const forgotPassword = async (email: string): Promise<{ status: string; message?: string; reset_token?: string }> => {
+export const forgotPassword = async (email: string): Promise<{ status: string; message?: string }> => {
   return apiRequest("/auth/forgot-password", "POST", null, { email });
 };
 

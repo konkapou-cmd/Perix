@@ -1291,29 +1291,25 @@ const handleUpdateSlug = async (newSlug: string) => {
   };
 
     const handleLogout = useCallback(async () => {
-      Alert.alert(
-        t('profile.logout'),
-        t('common.confirm') + '?',
-        [
-          {
-            text: t('common.cancel'),
-            onPress: () => {},
-            style: 'cancel'
-          },
-          {
-            text: t('profile.logout'),
-            onPress: async () => {
-              try {
-                await clearMapBounds();
-                await logout();
-              } catch (error) {
-                Alert.alert(t('common.error'), 'Failed to logout');
-              }
-            },
-            style: 'destructive'
-          }
-        ]
-      );
+      const ok = await confirmAction({
+        title: t('profile.logout'),
+        message: (t('common.confirm') || 'Confirm') + '?',
+        confirmText: t('profile.logout'),
+        cancelText: t('common.cancel'),
+        destructive: true,
+      });
+      if (!ok) return;
+      try {
+        await clearMapBounds();
+        await logout();
+        router.replace("/login" as any);
+      } catch (error) {
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          window.alert(`${t('common.error')}\n\nFailed to logout`);
+        } else {
+          Alert.alert(t('common.error'), 'Failed to logout');
+        }
+      }
     }, [logout, clearMapBounds, t]);
 
    const handleAddPhoto = async () => {

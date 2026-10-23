@@ -190,7 +190,18 @@ async def impressum_page(lang: str = "en"):
 
 # --- Web app static hosting (SPA) ---
 WEB_DIST = Path(__file__).parent / "webdist"
-
+WEB_DIST_ZIP = Path(__file__).parent / "webdist.dat"
+# Allow deploying the frontend as a single zip (avoids upload timeouts with
+# many small files). Extract on first boot if webdist is missing.
+# Extract frontend bundle if needed (handles stale/partial webdist).
+import shutil as _shutil
+if WEB_DIST_ZIP.exists() and not (WEB_DIST / "_expo").exists():
+    if WEB_DIST.exists():
+        _shutil.rmtree(WEB_DIST, ignore_errors=True)
+    WEB_DIST.mkdir(parents=True, exist_ok=True)
+    import zipfile
+    with zipfile.ZipFile(WEB_DIST_ZIP) as _zf:
+        _zf.extractall(WEB_DIST)
 
 @app.api_route("/mux-hls/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
 async def mux_hls_proxy(path: str, request: Request):
@@ -294,6 +305,12 @@ if WEB_DIST.exists():
         if (WEB_DIST / "test-player.html").exists():
             return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
         return JSONResponse({"detail": "test page not built"}, status_code=404)
+
+    @app.get("/google-mobility-map.html", include_in_schema=False)
+    async def web_google_mobility_map():
+        if (WEB_DIST / "google-mobility-map.html").exists():
+            return FileResponse(WEB_DIST / "google-mobility-map.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "mobility map not built"}, status_code=404)
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def web_spa_fallback(full_path: str):

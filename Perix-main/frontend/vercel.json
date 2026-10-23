@@ -2,10 +2,23 @@
   "installCommand": "npm install",
   "buildCommand": "node scripts/patch-reanimated.js && EXPO_NO_MINIFY=1 npx expo export --platform web --clear",
   "outputDirectory": "dist",
-  "routes": [
-    { "src": "/api/mux-hls/(.*)", "dest": "https://backend-production-1968.up.railway.app/api/mux-hls/$1" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "^perix\\.eu$" }],
+      "destination": "https://app.perix.eu/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "^www\\.perix\\.eu$" }],
+      "destination": "https://app.perix.eu/:path*",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    { "source": "/api/mux-hls/:path*", "destination": "https://backend-production-1968.up.railway.app/api/mux-hls/:path*" },
+    { "source": "/:path*", "destination": "/index.html" }
   ],
   "headers": [
     {

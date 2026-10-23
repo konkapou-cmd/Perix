@@ -82,7 +82,12 @@ def continuity_guard(sampled: dict, previous_state: Optional[dict],
     out["backward_resample_prevented_m"] = round(regression, 3)
     out["continuity_clamp_m"] = round(regression, 3)
     out["progress_m"] = previous
-    out["speed_kmh"] = 0.0
+    # Do NOT zero the speed: a plan rebuild can produce a small backward
+    # jitter (or an AT_STOP sample) while the vehicle is genuinely moving.
+    # Clamp the position to prevent a visible backward jump, but keep the
+    # previous speed so the vehicle keeps gliding forward instead of
+    # freezing in CONTINUITY_GUARD.
+    out["speed_kmh"] = max(0.0, float(previous_state.get("speed_kmh") or 0.0))
     out["motion_state"] = "CONTINUITY_GUARD"
     return out
 

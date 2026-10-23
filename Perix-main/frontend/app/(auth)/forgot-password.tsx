@@ -23,7 +23,6 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [token, setToken] = useState("");
   const [sent, setSent] = useState(false);
   const [sentMessage, setSentMessage] = useState("");
 
@@ -36,13 +35,8 @@ export default function ForgotPasswordScreen() {
     setError("");
     try {
       const result = await forgotPassword(email.trim());
-      if (result.reset_token) {
-        // Development fallback (no email provider configured)
-        setToken(result.reset_token);
-      } else {
-        setSent(true);
-        setSentMessage(result.message || t("auth.resetEmailSent", "Wenn die E-Mail existiert, wurde ein Link gesendet."));
-      }
+      setSent(true);
+      setSentMessage(result.message || t("auth.resetEmailSent", "Wenn die E-Mail existiert, wurde ein Link gesendet."));
     } catch (e: any) {
       setError(e?.message || t("auth.forgotError", "Fehler beim Senden der E-Mail"));
     }
@@ -63,33 +57,6 @@ export default function ForgotPasswordScreen() {
             >
               <Text style={styles.primaryButtonText}>
                 {t("auth.backToLogin", "Back to Login")}
-              </Text>
-            </Pressable>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  if (token) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scroll}>
-          <View style={styles.card}>
-            <Ionicons name="checkmark-circle" size={64} color={COLORS.success} style={{ marginBottom: 20 }} />
-            <Text style={styles.title}>{t("auth.resetTokenReady", "Passwort-Reset-Token")}</Text>
-            <Text style={styles.desc}>
-              {t("auth.resetTokenDesc", "Kopiere diesen Code, um dein Passwort zurückzusetzen:")}
-            </Text>
-            <View style={styles.tokenBox}>
-              <Text style={styles.tokenText} selectable>{token}</Text>
-            </View>
-            <Pressable
-              style={styles.primaryButton}
-              onPress={() => router.replace("/reset-password")}
-            >
-              <Text style={styles.primaryButtonText}>
-                {t("auth.continueToReset", "Zum Zurücksetzen")}
               </Text>
             </Pressable>
           </View>
@@ -169,14 +136,4 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   errorText: { color: COLORS.danger, marginTop: 12, fontSize: 14, textAlign: "center" },
   backBtn: { padding: 16 },
-  tokenBox: {
-    width: "100%",
-    backgroundColor: COLORS.backgroundPage,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  tokenText: { fontSize: 13, color: COLORS.textPrimary, fontFamily: "monospace", textAlign: "center" },
 });

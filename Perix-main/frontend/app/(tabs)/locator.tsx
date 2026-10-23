@@ -18,6 +18,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BusinessMap from "../../components/BusinessMap";
+import GoogleMobilityMap from "../../components/GoogleMobilityMap";
+import type { TrafficContext } from "../../lib/api/mobility";
 import { SkeletonBox, EmptyState } from "../../components/shared";
 import DatePickerModal from "../../components/shared/DatePickerModal";
 import { COLORS, SPACING, FONT_SIZES, FONT_WEIGHTS, BORDER_RADIUS, SHADOWS } from "../../lib/designTokens";
@@ -74,7 +76,7 @@ interface DateFilter {
 }
 
 export default function LocatorScreen() {
-  const { t, i18n } = useTranslation();
+const { t, i18n } = useTranslation();
   const { isDesktop } = useResponsiveLayout();
   const { sessionToken, user, activeIdentity } = useAuth();
   const params = useLocalSearchParams<{ tab?: string; root_category?: string }>();
@@ -82,12 +84,15 @@ export default function LocatorScreen() {
   const { location: contextLocation, livePosition, setManualLocation, radiusKm } = useLocation();
   const [locateFocus, setLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locateToken, setLocateToken] = useState(0);
+  const [mobilityLocateFocus, setMobilityLocateFocus] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [mobilityLocateToken, setMobilityLocateToken] = useState(0);
+  const [mobilityGpsFix, setMobilityGpsFix] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [mobilityMode, setMobilityMode] = useState<"all" | "bus" | "tram" | "taxi">("all");
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
   const [busQuery, setBusQuery] = useState("");
   const [busSuggestions, setBusSuggestions] = useState<any[]>([]);
-  const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string } | null>(null);
+  const [selectedStop, setSelectedStop] = useState<{ stop_id: string; name: string; platform_id?: string; side?: string | null } | null>(null);
   const [servingBuses, setServingBuses] = useState<ServingBus[]>([]);
   const [transitDestAddress, setTransitDestAddress] = useState("");
   const [transitDestLat, setTransitDestLat] = useState<number | null>(null);
@@ -109,7 +114,10 @@ export default function LocatorScreen() {
   const [taxiRequesting, setTaxiRequesting] = useState(false);
   const [transitMapLines, setTransitMapLines] = useState<V2MapLine[]>([]);
   const [physicalStops, setPhysicalStops] = useState<TransitStopMarker[]>([]);
+  const [diversionWarnings, setDiversionWarnings] = useState<{route_number: string; mode?: string; status: string}[]>([]);
   const [mapZoom, setMapZoom] = useState<number | null>(null);
+  const [mobilityMapZoom, setMobilityMapZoom] = useState<number | null>(null);
+  const [mobilityMapBounds, setMobilityMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number; centerLat: number; centerLng: number } | null>(null);
   const [selectedPattern, setSelectedPattern] = useState<string | null>(null);
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
@@ -146,6 +154,14 @@ export default function LocatorScreen() {
   const [suggesting, setSuggesting] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabType>("businesses");
+  const isMobilityTab = activeTab === "mobility";
+  const [googleMapReady, setGoogleMapReady] = useState(false);
+  const trafficContext: TrafficContext =
+    Platform.OS === "web" && activeTab === "mobility" && googleMapReady &&
+    (mobilityMode === "all" || mobilityMode === "bus") &&
+    process.env.EXPO_PUBLIC_PERIX_GOOGLE_LOCATOR_TRAFFIC === "true"
+      ? "google_locator"
+      : "baseline";
   const [businessAvailabilityFilter, setBusinessAvailabilityFilter] = useState<"all" | "open_now">("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
@@ -453,6 +469,19 @@ export default function LocatorScreen() {
     });
   }, [setGlobalMapBounds, sessionToken, radiusKm]);
 
+  const handleMobilityMapRegionChange = useCallback((bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => {
+    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+    const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+    setMobilityMapBounds({
+      minLat: bounds.minLat,
+      maxLat: bounds.maxLat,
+      minLng: bounds.minLng,
+      maxLng: bounds.maxLng,
+      centerLat,
+      centerLng,
+    });
+  }, []);
+
   // "Locate me": use the device's exact GPS position (not the searched
   // city/point) and fly the map there.
   const handleLocateMe = useCallback(async () => {
@@ -466,18 +495,26 @@ export default function LocatorScreen() {
         new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
       ]);
       if (loc) {
-        setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
-        setLocateToken((t) => t + 1);
-        setManualLocation(loc.latitude, loc.longitude);
         const d = 0.02;
-        setGlobalMapBounds({
+        const bounds = {
           minLat: loc.latitude - d / 2,
           maxLat: loc.latitude + d / 2,
           minLng: loc.longitude - d / 2,
           maxLng: loc.longitude + d / 2,
           centerLat: loc.latitude,
           centerLng: loc.longitude,
-        });
+        };
+        if (isMobilityTab) {
+          setMobilityGpsFix({ latitude: loc.latitude, longitude: loc.longitude });
+          setMobilityLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
+          setMobilityLocateToken((t) => t + 1);
+          setMobilityMapBounds(bounds);
+        } else {
+          setLocateFocus({ latitude: loc.latitude, longitude: loc.longitude });
+          setLocateToken((t) => t + 1);
+          setManualLocation(loc.latitude, loc.longitude);
+          setGlobalMapBounds(bounds);
+        }
       } else if (Platform.OS === "web" && typeof window !== "undefined") {
         const deniedWeb = t("common.locationDeniedWeb", "Location is blocked for this site. Tap the lock icon in the address bar, open Site settings and allow Location access.");
         window.alert(t("common.error") + "\n\n" + deniedWeb);
@@ -489,31 +526,53 @@ export default function LocatorScreen() {
     } finally {
       setLocating(false);
     }
-  }, [locating, setManualLocation, setGlobalMapBounds, t]);
+  }, [locating, setManualLocation, setGlobalMapBounds, isMobilityTab, t]);
 
-  // Live mobility vehicles (buses/taxis) - polled while the Mobility tab
+// Live mobility vehicles (buses/taxis) - polled while the Mobility tab
   // is open. The WebSocket channel integration can replace polling later.
+  //
+  // Single-flight polling: the backend can take 12-19s to answer, so a fixed
+  // 4s interval would stack overlapping requests and the latestSeq guard
+  // would keep discarding every response (never calling setLiveVehicles).
+  // We keep at most ONE in-flight request and schedule the next poll only
+  // after the previous one settles, with exponential backoff on failure.
   useEffect(() => {
     if (activeTab !== "mobility") return;
     let cancelled = false;
-    let latestSeq = 0;
-    const load = () => {
-      const seq = ++latestSeq;
-      getLiveVehicles(sessionToken)
-        .then((vehicles) => {
-          // Only the newest response may win - a slow stale poll must
-          // never overwrite newer positions.
-          if (!cancelled && seq === latestSeq) setLiveVehicles(vehicles || []);
-        })
-        .catch(() => {});
+    let inFlight = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let delay = 4000;
+
+    const schedule = (ms: number) => {
+      if (cancelled) return;
+      timer = setTimeout(load, ms);
     };
+
+    const load = async () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      try {
+        const vehicles = await getLiveVehicles(sessionToken, trafficContext);
+        if (!cancelled) {
+          setLiveVehicles(vehicles || []);
+          delay = 4000;
+        }
+      } catch (e) {
+        if (!cancelled) {
+          delay = Math.min(delay * 2, 30000);
+        }
+      } finally {
+        inFlight = false;
+        schedule(delay);
+      }
+    };
+
     load();
-    const interval = setInterval(load, 4000);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (timer) clearTimeout(timer);
     };
-  }, [activeTab, sessionToken]);
+  }, [activeTab, sessionToken, trafficContext]);
 
   // Active transit network -> thin route lines on the map
   useEffect(() => {
@@ -525,6 +584,7 @@ export default function LocatorScreen() {
         if (cancelled) return;
         setTransitMapLines(map.lines || []);
         setPhysicalStops(map.stops || []);
+        setDiversionWarnings(map.diversion_warnings || []);
       })
       .catch(() => {});
     return () => {
@@ -553,9 +613,53 @@ export default function LocatorScreen() {
       });
   }, [transitMapLines, selectedLine, mobilityMode]);
 
+  const mobilityMapVehicles = useMemo(() => {
+    return liveVehicles
+      .filter((v) => (mobilityMode === "all" || v.mode === mobilityMode) && v.latitude != null && v.longitude != null)
+      .map((v) => {
+        // The canonical line geometry the vehicle rides: the marker follows
+        // every curve of the road/rail instead of cutting straight across
+        // between polls. ONLY the exact pattern match counts - a same-route
+        // fallback could be the OPPOSITE direction and would pull the marker
+        // onto the wrong line. The backend progress_m is authoritative for
+        // WHERE on the line the vehicle is (no browser-side re-projection).
+        let path: { latitude: number; longitude: number }[] | undefined;
+        const vLine = transitMapLines.find((l) => l.pattern_id != null && l.pattern_id === v.pattern_id);
+        if (vLine && vLine.points && vLine.points.length >= 2 && v.pattern_id) {
+          path = vLine.points;
+        }
+        return {
+          id: v.vehicle_id,
+          latitude: v.latitude!,
+          longitude: v.longitude!,
+          title:
+            v.mode !== "taxi"
+              ? `${v.display_route_number || v.route_number || v.fleet_number} → ${v.route_direction || ""}`
+              : v.name,
+          description:
+            v.identity_kind === "PHYSICAL"
+              ? "Live GPS"
+              : v.identity_kind === "VIRTUAL_REALTIME"
+              ? "Realtime estimate"
+              : v.estimated
+              ? "Schedule estimate"
+              : v.status,
+          type: (v.mode === "bus" ? "bus" : v.mode === "tram" ? "tram" : "taxi") as "bus" | "tram" | "taxi",
+          label: v.display_route_number || v.route_number || undefined,
+          pinColor: v.mode === "bus" ? "#1E3A8A" : v.mode === "tram" ? "#8B0000" : "#FFC400",
+          heading: v.heading ?? null,
+          estimated: v.estimated ?? false,
+          path,
+          progressM: v.progress_m ?? null,
+          positionState: v.position_state ?? null,
+          speed: v.speed ?? null,
+          motionState: v.motion?.state ?? null,
+        };
+      });
+  }, [liveVehicles, mobilityMode, transitMapLines]);
+
   const selectedRoute = useMemo(() => {
-    if (!selectedLine) return null;
-    // A selected PATTERN shows exactly that direction's stops (from the
+    if (!selectedLine) return null;    // A selected PATTERN shows exactly that direction's stops (from the
     // stable v2 map payload), not the union of the whole line.
     const line = transitMapLines.find(
       (l) =>
@@ -587,7 +691,7 @@ export default function LocatorScreen() {
     if (mobilityMode !== "all") {
       list = list.filter((s) => s.modes.includes(mobilityMode as "bus" | "tram"));
     }
-    const z = mapZoom ?? 14;
+    const z = mobilityMapZoom ?? 14;
     if (selectedLine) {
       const line = transitMapLines.find((l) => l.route_number === selectedLine);
       const ids = new Set((line?.stops || []).map((s) => s.stop_id));
@@ -602,7 +706,7 @@ export default function LocatorScreen() {
       list = [];
     }
     return list;
-  }, [physicalStops, selectedLine, selectedStop, mobilityMode, mapZoom, transitMapLines]);
+  }, [physicalStops, selectedLine, selectedStop, mobilityMode, mobilityMapZoom, transitMapLines]);
 
   // Journey-plan route on the map: walking light blue, tram green, bus blue.
   const planLines = useMemo(() => {
@@ -610,7 +714,8 @@ export default function LocatorScreen() {
     const colors: Record<string, string> = { tram: "#166534", bus: "#1E3A8A" };
     return journeyPlans[0].legs
       .filter((leg) => Array.isArray(leg.points) && (leg.points as any[]).length >= 2)
-      .map((leg) => ({
+      .map((leg, idx) => ({
+        segmentId: "leg-" + idx,
         points: (leg.points as any[])
           .filter((p: any) => Array.isArray(p) && p.length === 2 && p[0] != null && p[1] != null)
           .map((p: any) => ({ latitude: p[0], longitude: p[1] })),
@@ -626,24 +731,24 @@ export default function LocatorScreen() {
   // distance from the map center (or the user's location as fallback).
   const viewportRef = useMemo(() => {
     if (
-      mapBounds &&
-      mapBounds.minLat != null &&
-      mapBounds.maxLat != null &&
-      mapBounds.minLng != null &&
-      mapBounds.maxLng != null
+      mobilityMapBounds &&
+      mobilityMapBounds.minLat != null &&
+      mobilityMapBounds.maxLat != null &&
+      mobilityMapBounds.minLng != null &&
+      mobilityMapBounds.maxLng != null
     ) {
-      return mapBounds;
+      return mobilityMapBounds;
     }
     return null;
-  }, [mapBounds]);
+  }, [mobilityMapBounds]);
 
   const referencePoint = useMemo(() => {
-    if (mapBounds?.centerLat != null && mapBounds?.centerLng != null) {
-      return { latitude: mapBounds.centerLat, longitude: mapBounds.centerLng };
+    if (mobilityMapBounds?.centerLat != null && mobilityMapBounds?.centerLng != null) {
+      return { latitude: mobilityMapBounds.centerLat, longitude: mobilityMapBounds.centerLng };
     }
     if (contextLocation) return contextLocation;
     return null;
-  }, [mapBounds, contextLocation?.latitude, contextLocation?.longitude]);
+  }, [mobilityMapBounds, contextLocation?.latitude, contextLocation?.longitude]);
 
   const inViewport = (lat: number, lng: number) =>
     !viewportRef ||
@@ -696,10 +801,12 @@ export default function LocatorScreen() {
   useEffect(() => {
     if (activeTab !== "mobility" || !selectedVehicle) return;
     let cancelled = false;
+    let sequence = 0;
     const load = () => {
-      getVehicleTrip(sessionToken, selectedVehicle)
+      const request = ++sequence;
+      getVehicleTrip(sessionToken, selectedVehicle, trafficContext)
         .then((t) => {
-          if (!cancelled) setTripProgress(t);
+          if (!cancelled && request === sequence) setTripProgress(t);
         })
         .catch(() => {});
     };
@@ -709,7 +816,7 @@ export default function LocatorScreen() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [activeTab, selectedVehicle, sessionToken]);
+  }, [activeTab, selectedVehicle, sessionToken, trafficContext]);
 
   // Bus destination search (debounced)
   useEffect(() => {
@@ -735,20 +842,28 @@ export default function LocatorScreen() {
   useEffect(() => {
     if (activeTab !== "mobility" || mobilityMode === "taxi" || !selectedStop) return;
     let cancelled = false;
+    let sequence = 0;
+    let inFlight = false;
     const load = () => {
+      // Slow arrivals must complete before another tick can supersede them.
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      const request = ++sequence;
       getBusesServing(
         sessionToken,
         selectedStop.stop_id,
         contextLocation?.latitude ?? null,
-        contextLocation?.longitude ?? null
+        contextLocation?.longitude ?? null,
+        trafficContext
       )
         .then((res) => {
-          if (cancelled) return;
+          if (cancelled || request !== sequence) return;
           // The All/Bus/Tram toggle filters arrivals too - a stop serves
           // both modes but the user asked for one.
           setServingBuses((res || []).filter((b) => mobilityMode === "all" || b.mode === mobilityMode));
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => { inFlight = false; });
     };
     load();
     const interval = setInterval(load, 5000);
@@ -756,7 +871,7 @@ export default function LocatorScreen() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude]);
+  }, [activeTab, mobilityMode, selectedStop, sessionToken, contextLocation?.latitude, contextLocation?.longitude, trafficContext]);
 
   // Transit "any area" destination suggestions (Perix's own map: venues,
   // stops and real streets from OpenStreetMap)
@@ -804,8 +919,12 @@ export default function LocatorScreen() {
     // Mobility origin = the user's ACTUAL position first (live GPS pin),
     // browsing center second. A stale manual/context point must never make
     // the journey plan start hundreds of meters behind the user.
-    const originLat = livePosition?.latitude ?? contextLocation?.latitude ?? locateFocus?.latitude;
-    const originLng = livePosition?.longitude ?? contextLocation?.longitude ?? locateFocus?.longitude;
+    // Freshness policy: livePosition is continuously watched and updated,
+    // so it is always preferred. mobilityGpsFix (a one-shot manual Locate Me
+    // fix) is only a fallback when no live position is available yet.
+    const origin = livePosition ?? mobilityGpsFix;
+    const originLat = origin?.latitude;
+    const originLng = origin?.longitude;
     if (originLat == null || originLng == null) {
       setJourneyPlans([]);
       setPlanNote(t("mobility.planNoLocation", "Enable location to plan a journey from where you are."));
@@ -994,7 +1113,7 @@ export default function LocatorScreen() {
   useEffect(() => {
     if (!mapBounds) return;
     // Mobility doesn't load business/event data - it polls live vehicles.
-    if (activeTab === "mobility") return;
+    if (isMobilityTab) return;
     const currentRequestId = ++requestIdRef.current;
     const loadId = ++loadIdRef.current;
     const timer = setTimeout(() => {
@@ -1285,11 +1404,84 @@ export default function LocatorScreen() {
         >
           {/* Map Section */}
           <View style={styles.mapSection}>
+        {isMobilityTab ? (
+          <GoogleMobilityMap
+            {...(Platform.OS === "web" ? { onReadyChange: setGoogleMapReady, showTrafficLayer: trafficContext === "google_locator" } : {})}
+            location={
+              livePosition
+                ? { latitude: livePosition.latitude, longitude: livePosition.longitude }
+                : undefined
+            }
+            initialRegion={{
+              latitude:
+                mobilityMapBounds?.centerLat ??
+                contextLocation?.latitude ??
+                (isMobilityTab ? 52.131 : 52.52),
+              longitude:
+                mobilityMapBounds?.centerLng ??
+                contextLocation?.longitude ??
+                (isMobilityTab ? 11.64 : 13.405),
+              latitudeDelta: mobilityMapBounds
+                ? mobilityMapBounds.maxLat - mobilityMapBounds.minLat
+                : isMobilityTab
+                ? 0.09
+                : 0.05,
+              longitudeDelta: mobilityMapBounds
+                ? mobilityMapBounds.maxLng - mobilityMapBounds.minLng
+                : isMobilityTab
+                ? 0.09
+                : 0.05,
+            }}
+            pinLocation={livePosition ?? mobilityGpsFix ?? null}
+            focusRegion={mobilityLocateFocus ? { latitude: mobilityLocateFocus.latitude, longitude: mobilityLocateFocus.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 } : undefined}
+            focusToken={mobilityLocateToken || undefined}
+            vehicles={mobilityMapVehicles}
+            transitLines={mobilityMode !== "taxi" ? transitLines : undefined}
+            transitStops={mobilityMode !== "taxi" ? transitStops : undefined}
+            onTransitStopPress={(stop) => {
+              setSelectedStop({ stop_id: stop.stop_id, name: stop.name, platform_id: stop.selected_platform_id, side: stop.selected_side });
+              setBusQuery(stop.name);
+              setBusSuggestions([]);
+              setServingBuses([]);
+            }}
+            planLines={mobilityMode !== "taxi" ? planLines : undefined}
+            onTransitLineClick={(routeNumber, patternId) => {
+              setSelectedLine((prev) => (prev === routeNumber ? null : routeNumber));
+              setSelectedPattern((prev) => {
+                if (selectedLine === routeNumber) return null;
+                return patternId || null;
+              });
+            }}
+            onZoomChange={setMobilityMapZoom}
+            onRegionChangeComplete={handleMobilityMapRegionChange}
+            initialZoom={mobilityMapZoom}
+            onMapPress={(lat, lng) => {
+              if (isMobilityTab && (mobilityMode !== "taxi") && planPicking) {
+                setPlanPicking(false);
+                setTransitDestLat(lat);
+                setTransitDestLng(lng);
+                setTransitDestAddress("");
+                runPlan(lat, lng);
+                return;
+              }
+              if (selectedLine) {
+                setSelectedLine(null);
+                setSelectedPattern(null);
+              }
+            }}
+            showUserLocation
+            onMarkerPress={(id) => {
+              if (mobilityMode === "taxi") return;
+              setSelectedVehicle((prev) => (prev === id ? null : id));
+              setTripProgress(null);
+            }}
+          />
+        ) : (
         <BusinessMap
           location={
             contextLocation
               ? { latitude: contextLocation.latitude, longitude: contextLocation.longitude }
-              : activeTab === "mobility"
+              : isMobilityTab
               ? { latitude: 52.131, longitude: 11.64 }
               : undefined
           }
@@ -1297,19 +1489,19 @@ export default function LocatorScreen() {
             latitude:
               mapBounds?.centerLat ??
               contextLocation?.latitude ??
-              (activeTab === "mobility" ? 52.131 : 52.52),
+              (isMobilityTab ? 52.131 : 52.52),
             longitude:
               mapBounds?.centerLng ??
               contextLocation?.longitude ??
-              (activeTab === "mobility" ? 11.64 : 13.405),
+              (isMobilityTab ? 11.64 : 13.405),
             latitudeDelta: mapBounds
               ? mapBounds.maxLat - mapBounds.minLat
-              : activeTab === "mobility"
+              : isMobilityTab
               ? 0.09
               : 0.05,
             longitudeDelta: mapBounds
               ? mapBounds.maxLng - mapBounds.minLng
-              : activeTab === "mobility"
+              : isMobilityTab
               ? 0.09
               : 0.05,
           }}
@@ -1327,55 +1519,10 @@ export default function LocatorScreen() {
               : []
           }
           jobs={activeTab === "jobs" ? jobs : []}
-          extraMarkers={
-            activeTab === "mobility"
-              ? liveVehicles
-                  .filter((v) => (mobilityMode === "all" || v.mode === mobilityMode) && v.latitude != null && v.longitude != null)
-                  .map((v) => {
-                    // The canonical line geometry the vehicle rides: the
-                    // marker follows every curve of the road/rail instead
-                    // of cutting straight across between polls. ONLY the
-                    // exact pattern match counts - a same-route fallback
-                    // could be the OPPOSITE direction and would pull the
-                    // marker onto the wrong line. The backend progress_m
-                    // is authoritative for WHERE on the line the vehicle
-                    // is (no browser-side re-projection).
-                    let path: { latitude: number; longitude: number }[] | undefined;
-                    const vLine = transitMapLines.find((l) => l.pattern_id != null && l.pattern_id === v.pattern_id);
-                    if (vLine && vLine.points && vLine.points.length >= 2 && v.pattern_id) {
-                      path = vLine.points;
-                    }
-                    return {
-                      id: v.vehicle_id,
-                      latitude: v.latitude!,
-                      longitude: v.longitude!,
-                      title:
-                        v.mode !== "taxi"
-                          ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
-                          : v.name,
-                      description:
-                        v.identity_kind === "PHYSICAL"
-                          ? "Live GPS"
-                          : v.identity_kind === "VIRTUAL_REALTIME"
-                          ? "Realtime estimate"
-                          : v.estimated
-                          ? "Schedule estimate"
-                          : v.status,
-                      type: (v.mode === "bus" ? "bus" : v.mode === "tram" ? "tram" : "taxi") as "bus" | "tram" | "taxi",
-                      label: v.route_number || undefined,
-                      pinColor: v.mode === "bus" ? "#1E3A8A" : v.mode === "tram" ? "#8B0000" : "#FFC400",
-                      heading: v.heading ?? null,
-                      estimated: v.estimated ?? false,
-                      path,
-                      progressM: v.progress_m ?? null,
-                      positionState: v.position_state ?? null,
-                    };
-                  })
-              : undefined
-          }
-          transitLines={activeTab === "mobility" && (mobilityMode !== "taxi") ? transitLines : undefined}
+          extraMarkers={isMobilityTab ? mobilityMapVehicles : undefined}
+          transitLines={isMobilityTab && (mobilityMode !== "taxi") ? transitLines : undefined}
           transitStops={
-            activeTab === "mobility" && (mobilityMode !== "taxi")
+            isMobilityTab && (mobilityMode !== "taxi")
               ? transitStops
               : undefined
           }
@@ -1386,7 +1533,7 @@ export default function LocatorScreen() {
             setServingBuses([]);
           }}
           planLines={
-            activeTab === "mobility" && (mobilityMode !== "taxi")
+            isMobilityTab && (mobilityMode !== "taxi")
               ? planLines
               : undefined
           }
@@ -1399,7 +1546,7 @@ export default function LocatorScreen() {
           }}
           onZoomChange={setMapZoom}
           onMapPress={(lat, lng) => {
-            if (activeTab === "mobility" && (mobilityMode !== "taxi") && planPicking) {
+            if (isMobilityTab && (mobilityMode !== "taxi") && planPicking) {
               setPlanPicking(false);
               setTransitDestLat(lat);
               setTransitDestLng(lng);
@@ -1415,7 +1562,7 @@ export default function LocatorScreen() {
           showUserLocation
           onRegionChangeComplete={handleMapRegionChange}
           onMarkerPress={(id) => {
-            if (activeTab === "mobility") {
+            if (isMobilityTab) {
               if (mobilityMode === "taxi") return;
               setSelectedVehicle((prev) => (prev === id ? null : id));
               setTripProgress(null);
@@ -1442,6 +1589,7 @@ export default function LocatorScreen() {
             if (activeTab === "activities") { router.push(`/activity/${id}` as any); return; }
           }}
         />
+        )}
         <Pressable style={styles.locateMeButton} onPress={handleLocateMe} disabled={locating}>
           <Ionicons name={locating ? "hourglass-outline" : "locate"} size={20} color="#096BFF" />
         </Pressable>
@@ -1456,8 +1604,17 @@ export default function LocatorScreen() {
       />
 
       {/* Mobility: Bus/Taxi live view */}
-      {activeTab === "mobility" && (
+      {isMobilityTab && (
         <View style={styles.mobilityPanel}>
+          {diversionWarnings.length > 0 && (
+            <View style={{ padding: 9, borderRadius: 9, backgroundColor: "#EDF4FB", marginBottom: 8 }}>
+              <Text style={{ color: "#264348", fontSize: 12, fontWeight: "600" }}>
+                {t("mobility.detourPending", "Umleitung wird geprüft: {{lines}}", {
+                  lines: [...new Set(diversionWarnings.map((w) => w.route_number))].join(", "),
+                })}
+              </Text>
+            </View>
+          )}
           <View style={styles.mobilityToggle}>
             <Pressable
               style={[styles.mobilityToggleOption, mobilityMode === "all" && styles.mobilityToggleOptionActive]}
@@ -1924,8 +2081,8 @@ export default function LocatorScreen() {
                       setSelectedVehicle(b.vehicle_id);
                       const v = liveVehicles.find((x) => x.vehicle_id === b.vehicle_id);
                       if (v && v.latitude != null && v.longitude != null) {
-                        setLocateFocus({ latitude: v.latitude, longitude: v.longitude });
-                        setLocateToken((n) => n + 1);
+                        setMobilityLocateFocus({ latitude: v.latitude, longitude: v.longitude });
+                        setMobilityLocateToken((n) => n + 1);
                       }
                     }}
                   >
@@ -1934,16 +2091,26 @@ export default function LocatorScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.mobilityRowTitle}>
-                        {b.route_number} → {b.route_direction}
+                        {b.display_route_number ?? b.route_number} → {b.route_direction}
                       </Text>
                       <Text style={styles.mobilityRowSub}>
+                        {b.position_eta_consistency === 'INCONSISTENT'
+                           ? `${t("mobility.positionEtaMismatch", "Position/ETA discrepancy")} · ` : ''}
                         {b.distance_to_stop_m != null
                           ? `${b.distance_to_stop_m < 1000 ? b.distance_to_stop_m + " m" : (b.distance_to_stop_m / 1000).toFixed(1) + " km"} · `
                           : ""}
                         {t("mobility.eta", "Arrives ~{{n}} min", { n: b.eta_minutes })}
                         {b.delay_minutes > 0 ? ` · ${t("mobility.delay", "+{{n}} min", { n: b.delay_minutes })}` : ""}
+                        {b.delay_minutes < 0 ? ` · ${t("mobility.early", "{{n}} min früher", { n: Math.abs(b.delay_minutes) })}` : ""}
                         {" · "}
-                        {t("mobility.estimated", "Estimated")}
+                        {b.eta_source === "REALTIME" ? t("mobility.realtimeEta", "Echtzeit-Prognose") : t("mobility.estimated", "Geschätzt")}
+                        {b.position_source === "LIVE" ? " · GPS" : ""}
+                        {b.eta_source === "REALTIME" && b.realtime_feed_timestamp
+                          ? ` · ${t("mobility.feedAge", "Daten vor {{n}} Min.", {
+                              n: Math.max(0, Math.floor((Date.now() / 1000 - b.realtime_feed_timestamp) / 60))
+                            })}` : ""}
+                        {b.predicted_departure && b.predicted_departure !== b.predicted_arrival
+                          ? ` · ${t("mobility.departure", "Abfahrt")}: ${b.predicted_departure}` : ""}
                         {" · "}
                         {t("mobility.tapForJourney", "tap for journey")}
                       </Text>
@@ -2110,7 +2277,7 @@ export default function LocatorScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.mobilityRowTitle}>
                         {v.mode !== "taxi"
-                          ? `${v.route_number || v.fleet_number} → ${v.route_direction || ""}`
+                          ? `${v.display_route_number || v.route_number || v.fleet_number} → ${v.route_direction || ""}`
                           : v.name}
                       </Text>
                       <Text style={styles.mobilityRowSub}>

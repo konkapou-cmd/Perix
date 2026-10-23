@@ -26,6 +26,7 @@ import { getNotificationPreferences, updateNotificationPreferences, Notification
 import { getMyBusinesses, updateBusiness } from "../lib/api/businesses";
 import OpeningHoursModal from "../components/business/OpeningHoursModal";
 import { deleteUserAccount } from "../lib/api/social";
+import { confirmAction } from "../lib/confirm";
 import { COLORS } from "../lib/designTokens";
 
 const APP_VERSION = Constants.expoConfig?.version || "1.0.0";
@@ -125,24 +126,20 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      t("profile.logout"),
-      t("settings.logoutConfirm") || "Are you sure you want to logout?",
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("profile.logout"),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await logout();
-            } catch (e) {
-              console.error("Logout error:", e);
-            }
-          },
-        },
-      ]
-    );
+    const ok = await confirmAction({
+      title: t("profile.logout"),
+      message: t("settings.logoutConfirm") || "Are you sure you want to logout?",
+      confirmText: t("profile.logout"),
+      cancelText: t("common.cancel"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await logout();
+      router.replace("/login" as any);
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
   };
 
   const handleDeleteAccount = () => {

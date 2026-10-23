@@ -129,6 +129,12 @@ const config: ExpoConfig = {
       process.env.EXPO_PUBLIC_BACKEND_URL || "https://backend-production-1968.up.railway.app",
     EXPO_PUBLIC_GOOGLE_MAPS_API_KEY:
       process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    EXPO_PUBLIC_GOOGLE_MAPS_JS_KEY:
+      process.env.EXPO_PUBLIC_GOOGLE_MAPS_JS_KEY || "",
+    EXPO_PUBLIC_MOBILITY_MAP_URL:
+      process.env.EXPO_PUBLIC_MOBILITY_MAP_URL || "",
+    EXPO_PUBLIC_MOBILITY_MAP_ORIGINS:
+      process.env.EXPO_PUBLIC_MOBILITY_MAP_ORIGINS || "",
     EXPO_PUBLIC_VAPID_PUBLIC_KEY:
       process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ||
       "BHiFoYBuhNN-oEo_gXWwAt4RClJrNVZUIzGvb36Nf52iuaHAwI0c7QyrKGvdkxKhgXY7imBnjXma-nreQtf4ZvE",

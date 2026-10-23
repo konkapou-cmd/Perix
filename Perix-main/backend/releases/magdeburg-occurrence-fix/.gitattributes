@@ -1,0 +1,4 @@
+source-delta.patch -text -whitespace
+*.json text eol=lf
+*.md text eol=lf
+*.py text eol=lf
