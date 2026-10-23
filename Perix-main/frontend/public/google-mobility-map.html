@@ -379,13 +379,18 @@
     (vehicles || []).forEach(function (v) {
       if (v.latitude == null || v.longitude == null) return;
       seen[v.id] = true;
+      var rec = VEHICLES[v.id];
+      var hasPath = Object.prototype.hasOwnProperty.call(v, "path");
+      var path = hasPath ? (v.path && v.path.length >= 2 ? v.path : null) : (rec && rec.path);
+      // Structured cloning changes array identity, not canonical geometry.
+      var pathKey = hasPath ? (path ? JSON.stringify(path.map(function (p) { return [p.latitude, p.longitude]; })) : null) : (rec && rec.pathKey);
+      var pathChanged = hasPath && (!rec || rec.pathKey !== pathKey);
+      var cum = pathChanged ? (path ? pathCumulative(path) : null) : (rec && rec.cum);
       var target = { lat: v.latitude, lng: v.longitude };
-      if (v.path && v.path.length >= 2 && v.progressM != null) {
-        var cum = pathCumulative(v.path);
-        var p = pointAtProgress(v.path, cum, v.progressM);
+      if (path && cum && v.progressM != null) {
+        var p = pointAtProgress(path, cum, v.progressM);
         if (p) target = p;
       }
-      var rec = VEHICLES[v.id];
       if (!rec) {
         var marker = markerFor({ id: v.id, type: v.type || "bus", label: v.label, estimated: v.estimated, heading: v.heading, scale: vehicleScale(MAP.getZoom()), latitude: target.lat, longitude: target.lng });
         rec = {
@@ -396,7 +401,7 @@
           estimated: !!v.estimated,
           heading: typeof v.heading === "number" ? v.heading : 0,
           positionState: v.positionState || null,
-          path: null, cum: null,
+          path: null, pathKey: null, cum: null,
           progNow: null, progFrom: null, progTo: null,
           animStart: null, animDuration: 1000, lastTs: Date.now(),
           geoFrom: { lat: target.lat, lng: target.lng }, geoTo: null,
@@ -413,12 +418,15 @@
         }
         rec.positionState = v.positionState || null;
       }
-      // Attach/refresh the canonical path (the resolved line can change once).
-      if (v.path && v.path.length >= 2) {
-        var pathChanged = rec.path !== v.path;
-        rec.path = v.path;
-        rec.cum = pathCumulative(v.path);
-        if (pathChanged) {
+      if (pathChanged) {
+        rec.path = path;
+        rec.pathKey = pathKey;
+        rec.cum = cum;
+        rec.progNow = null;
+        rec.progFrom = null;
+        rec.progTo = null;
+        rec.animStart = null;
+        if (path) {
           var startProg = typeof v.progressM === "number" && Number.isFinite(v.progressM) ? v.progressM : progressOfPoint(rec.path, rec.cum, target.lat, target.lng);
           rec.progNow = startProg;
           rec.progFrom = startProg;
@@ -427,9 +435,6 @@
           var sp = pointAtProgress(rec.path, rec.cum, startProg);
           if (sp) setMarkerPos(rec.marker, sp.lat, sp.lng);
         }
-      } else {
-        rec.path = null;
-        rec.cum = null;
       }
       setVehicleTarget(rec, target, Date.now(), v.progressM != null ? v.progressM : null);
     });
@@ -724,19 +729,20 @@
   }
 
   function applyUpdate(payload) {
-    if (!MAP) { PENDING = payload; return; }
-    if (payload.showTrafficLayer === true) {
+    if (!MAP) { PENDING = Object.assign(PENDING || {}, payload); return; }
+    var has = function (key) { return Object.prototype.hasOwnProperty.call(payload, key); };
+    if (has("showTrafficLayer") && payload.showTrafficLayer === true) {
       if (!TRAFFIC) TRAFFIC = new google.maps.TrafficLayer();
       if (TRAFFIC.getMap() !== MAP) TRAFFIC.setMap(MAP);
-    } else if (TRAFFIC) {
+    } else if (has("showTrafficLayer") && TRAFFIC) {
       TRAFFIC.setMap(null);
     }
-    drawLines(payload.lines);
-    drawVehicles(payload.vehicles);
-    drawStops(payload.stops);
-    drawPlanLines(payload.planLines);
-    drawUser(payload.userLocation);
-    drawPin(payload.pin);
+    if (has("lines")) drawLines(payload.lines);
+    if (has("vehicles")) drawVehicles(payload.vehicles);
+    if (has("stops")) drawStops(payload.stops);
+    if (has("planLines")) drawPlanLines(payload.planLines);
+    if (has("userLocation")) drawUser(payload.userLocation);
+    if (has("pin")) drawPin(payload.pin);
     // Initial center/zoom: applied once, from the parent's initialRegion.
     if (!CENTER_APPLIED && payload.initialRegion && payload.initialRegion.latitude != null) {
       MAP.setCenter({ lat: payload.initialRegion.latitude, lng: payload.initialRegion.longitude });

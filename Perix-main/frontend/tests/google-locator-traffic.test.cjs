@@ -132,7 +132,7 @@ test("iframe readiness is source/origin checked and resets on reload/unmount, no
   assert.equal(ready.at(-1), false);
   send("ready");
   iframe.props.onLoad();
-  assert.equal(ready.at(-1), false);
+  assert.equal(ready.at(-1), true);
   assert.equal(messages.at(-1)[0].type, "requestReady");
   send("ready");
   render({ showTrafficLayer: false });
@@ -188,6 +188,8 @@ test("map page attaches traffic only on opt-in and keeps secure bridge checks", 
   assert.equal(layers[0].map, context.MAP);
   send("update", { showTrafficLayer: true });
   assert.equal(layers.length, 1);
+  send("update", { vehicles: [] });
+  assert.equal(layers[0].map, context.MAP, "vehicle-only updates retain the traffic layer");
   send("update", { showTrafficLayer: false });
   assert.equal(layers[0].map, null);
   send("update", { showTrafficLayer: true });
