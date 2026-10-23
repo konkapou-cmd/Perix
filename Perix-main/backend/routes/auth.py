@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+import asyncio
 import httpx
 import secrets
 
@@ -338,10 +339,7 @@ async def forgot_password(payload: ForgotPasswordInput):
     if not can_receive_email(user_doc):
         return generic
     if not user_doc.get("email_verified", True):
-        return {
-            "status": "email_not_verified",
-            "message": "Please verify your email address before resetting your password. Check your inbox for the verification link.",
-        }
+        return generic
 
     token = secrets.token_urlsafe(32)
     now = datetime.utcnow()
@@ -353,14 +351,9 @@ async def forgot_password(payload: ForgotPasswordInput):
         "used": False,
     })
 
-    from utils.email_utils import send_password_reset_email, email_configured
-    sent = await send_password_reset_email(email, token)
-    if sent:
-        return generic
-    if not email_configured():
-        # Development fallback: no email provider configured
-        return {"status": "reset_token_created", "reset_token": token, "message": "Email not configured — use this token for development."}
-    return {"status": "reset_email_failed", "message": "Failed to send the reset email. Please try again later."}
+    from utils.email_utils import send_password_reset_email
+    await send_password_reset_email(email, token)
+    return generic
 
 
 @router.get("/verify-email", summary="Verify a user's email address")
