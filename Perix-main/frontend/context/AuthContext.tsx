@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
@@ -46,10 +46,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     AuthContextValue["activeIdentity"]
   >(null);
   const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
+  // Invalidate work started before logout (including bootstrap and refreshes).
+  const authRevision = useRef(0);
+  const storageWrites = useRef<Promise<void>>(Promise.resolve());
+  const remoteLogout = useRef<Promise<void>>(Promise.resolve());
+  const writeAuthStorage = (operation: () => Promise<void>) => {
+    const next = storageWrites.current.catch(() => {}).then(operation);
+    storageWrites.current = next;
+    return next;
+  };
 
   const persistSession = async (token: string) => {
     setSessionToken(token);
-    await AsyncStorage.setItem("session_token", token);
+    await writeAuthStorage(() => AsyncStorage.setItem("session_token", token));
   };
 
   const persistIdentity = async (
@@ -57,19 +66,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   ) => {
     setActiveIdentityState(identity);
     if (identity) {
-      await AsyncStorage.setItem("active_identity", JSON.stringify(identity));
+      await writeAuthStorage(() => AsyncStorage.setItem("active_identity", JSON.stringify(identity)));
     } else {
-      await AsyncStorage.removeItem("active_identity");
+      await writeAuthStorage(() => AsyncStorage.removeItem("active_identity"));
     }
   };
 
   const clearSession = async () => {
     setUser(null);
     setSessionToken(null);
-    await AsyncStorage.removeItem("session_token");
+    await writeAuthStorage(() => AsyncStorage.multiRemove(["session_token", "active_identity"]));
   };
 
   const bootstrapAuth = useCallback(async () => {
+    const revision = authRevision.current;
     try {
       const storedToken = await AsyncStorage.getItem("session_token");
       const storedIdentity = await AsyncStorage.getItem("active_identity");
@@ -82,7 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ]);
 
         const stillHasToken = await AsyncStorage.getItem("session_token");
-        if (!stillHasToken) {
+        if (revision !== authRevision.current || stillHasToken !== storedToken) {
           setLoading(false);
           return;
         }
@@ -120,7 +130,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     } catch (error) {
-      await clearSession();
+      if (revision === authRevision.current) await clearSession();
     } finally {
       setLoading(false);
     }
@@ -131,13 +141,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [bootstrapAuth]);
 
   const login = async (email: string, password: string) => {
+    const revision = ++authRevision.current;
+    await remoteLogout.current;
+    if (revision !== authRevision.current) return;
     const response = await loginUser(email, password);
+    if (revision !== authRevision.current) return;
     setUser(response.user);
     await persistSession(response.session_token);
+    if (revision !== authRevision.current) return;
     try {
       const businesses = await getMyBusinesses(response.session_token);
+      if (revision !== authRevision.current) return;
       setMyBusinesses(businesses || []);
     } catch {
+      if (revision !== authRevision.current) return;
       setMyBusinesses([]);
     }
     const isBiz = response.user.role === "business" && response.business;
@@ -150,13 +167,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const register = async (firstName: string, lastName: string, email: string, password: string, city: string, role: string, rootCategory?: string, subcategory?: string, businessName?: string, latitude?: number, longitude?: number, acceptedTerms: boolean = false, accessCode?: string) => {
+    const revision = ++authRevision.current;
+    await remoteLogout.current;
+    if (revision !== authRevision.current) return;
     const response = await registerUser(firstName, lastName, email, password, city, role, rootCategory, subcategory, businessName, latitude, longitude, acceptedTerms, accessCode);
+    if (revision !== authRevision.current) return;
     setUser(response.user);
     await persistSession(response.session_token);
+    if (revision !== authRevision.current) return;
     try {
       const businesses = await getMyBusinesses(response.session_token);
+      if (revision !== authRevision.current) return;
       setMyBusinesses(businesses || []);
     } catch {
+      if (revision !== authRevision.current) return;
       setMyBusinesses([]);
     }
     const isBiz = response.user.role === "business" && response.business;
@@ -169,28 +193,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    try {
-      if (sessionToken) {
-        await logoutUser(sessionToken);
-        // Disconnect web push so the account stops receiving notifications
-        // on this device.
-        if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+    const token = sessionToken;
+    ++authRevision.current;
+    setUser(null);
+    setSessionToken(null);
+    setMyBusinesses([]);
+    setActiveIdentityState(null);
+    // Revoke remotely, but do not make the sign-out button wait for the network.
+    // A failed request never restores local authentication.
+    // Clear the old cookie before a subsequent login can set a new one.
+    remoteLogout.current = (async () => {
+      if (token && typeof window !== "undefined" && "serviceWorker" in navigator) {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
           const { removeWebPushSubscription } = await import("../lib/webPush");
-          await removeWebPushSubscription(sessionToken).catch(() => {});
-        }
+          // Unsubscribe while the token is still valid, but never let push
+          // cleanup prevent session revocation. Local logout is already done.
+          await Promise.race([
+            removeWebPushSubscription(token),
+            new Promise<void>(resolve => { timer = setTimeout(resolve, 1500); }),
+          ]);
+        } catch { /* Best effort; still revoke the server session. */ }
+        finally { if (timer !== undefined) clearTimeout(timer); }
       }
-    } catch {
-      // Ignore API error — always clear local session
-    }
-    await clearSession();
-    await persistIdentity(null);
+      await logoutUser(token);
+    })().catch(() => {});
+    await writeAuthStorage(() => AsyncStorage.multiRemove(["session_token", "active_identity"]));
   };
 
   const refreshUser = async () => {
     if (!sessionToken) return;
+    const revision = authRevision.current;
     try {
       const profile = await getMe(sessionToken);
-      setUser(profile);
+      if (revision === authRevision.current) setUser(profile);
     } catch (error) {
       // Silent
     }
@@ -198,9 +234,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const refreshMyBusinesses = async () => {
     if (!sessionToken) return;
+    const revision = authRevision.current;
     try {
       const businesses = await getMyBusinesses(sessionToken);
-      setMyBusinesses(businesses || []);
+      if (revision === authRevision.current) setMyBusinesses(businesses || []);
     } catch (error) {
       // Silent
     }

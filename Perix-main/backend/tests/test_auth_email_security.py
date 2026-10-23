@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from fastapi import HTTPException, Response
+from fastapi import HTTPException, Response, Request
 
 from routes import auth
 from services import entity_ownership
@@ -25,6 +25,7 @@ def isolated_auth(monkeypatch):
             insert_one=AsyncMock(),
             update_one=AsyncMock(return_value=SimpleNamespace(modified_count=1)),
         ),
+        user_sessions=SimpleNamespace(delete_one=AsyncMock(), delete_many=AsyncMock()),
     )
     monkeypatch.setattr(auth, "db", db)
     monkeypatch.setattr(entity_ownership, "can_receive_email", Mock(return_value=True))
@@ -59,7 +60,7 @@ async def test_forgot_password_is_generic_and_only_eligible_users_get_tokens(mon
         entity_ownership.can_receive_email.assert_not_called()
     else:
         entity_ownership.can_receive_email.assert_called_once_with(user)
-    if branch in ("unknown", "ineligible", "unverified"):
+    if branch in ("unknown", "ineligible"):
         token.assert_not_called()
         db.password_reset_tokens.insert_one.assert_not_awaited()
         email_utils.send_password_reset_email.assert_not_awaited()
@@ -164,7 +165,7 @@ async def test_reset_rejects_expired_or_used_tokens(monkeypatch, isolated_auth, 
 async def test_reset_requires_atomic_one_use_token_consumption(isolated_auth, modified_count):
     db = isolated_auth
     db.password_reset_tokens.find_one.return_value = {"email": "reader@example.com"}
-    db.users.find_one.return_value = {"email": "reader@example.com"}
+    db.users.find_one.return_value = {"user_id": "reader", "email": "reader@example.com"}
     db.password_reset_tokens.update_one.return_value.modified_count = modified_count
     payload = auth.ResetPasswordInput(token="test-reset-token", new_password="new-password")
 
@@ -174,6 +175,7 @@ async def test_reset_requires_atomic_one_use_token_consumption(isolated_auth, mo
             {"email": "reader@example.com"}, {"$set": {"password_hash": "test-password-hash"}}
         )
         auth.pwd_context.hash.assert_called_once_with("new-password")
+        db.user_sessions.delete_many.assert_awaited_once_with({"user_id": "reader"})
     else:
         with pytest.raises(HTTPException) as error:
             await auth.reset_password(payload)
@@ -181,7 +183,33 @@ async def test_reset_requires_atomic_one_use_token_consumption(isolated_auth, mo
         assert error.value.detail == "Token already used"
         db.users.update_one.assert_not_awaited()
         auth.pwd_context.hash.assert_not_called()
-    db.password_reset_tokens.update_one.assert_awaited_once_with(
-        {"token": "test-reset-token", "used": False}, {"$set": {"used": True}}
-    )
+        db.user_sessions.delete_many.assert_not_awaited()
+    consume, update = db.password_reset_tokens.update_one.await_args.args
+    assert consume["token"] == "test-reset-token" and consume["used"] is False
+    assert isinstance(consume["expires_at"]["$gt"], datetime)
+    assert update == {"$set": {"used": True}}
     entity_ownership.can_receive_email.assert_called_once_with(db.users.find_one.return_value)
+
+
+async def test_logout_revokes_cookie_and_bearer_and_expires_cookie(isolated_auth):
+    request = Request({"type": "http", "headers": [
+        (b"cookie", b"session_token=cookie-session"),
+        (b"authorization", b"Bearer bearer-session"),
+    ]})
+    response = Response()
+    assert await auth.logout_user(request, response) == {"status": "logged_out"}
+    deleted = {call.args[0]["session_token"] for call in isolated_auth.user_sessions.delete_one.await_args_list}
+    assert deleted == {"cookie-session", "bearer-session"}
+    cookie = response.headers["set-cookie"]
+    assert "Max-Age=0" in cookie and "Path=/" in cookie and "Secure" in cookie
+
+
+async def test_token_expiring_between_read_and_consume_cannot_change_password(isolated_auth):
+    isolated_auth.password_reset_tokens.find_one.return_value = {"email": "reader@example.com"}
+    isolated_auth.users.find_one.return_value = {"user_id": "reader", "email": "reader@example.com"}
+    isolated_auth.password_reset_tokens.update_one.return_value.modified_count = 0
+    with pytest.raises(HTTPException):
+        await auth.reset_password(auth.ResetPasswordInput(token="expired-in-flight", new_password="new-password"))
+    assert "expires_at" in isolated_auth.password_reset_tokens.update_one.await_args.args[0]
+    isolated_auth.users.update_one.assert_not_awaited()
+    isolated_auth.user_sessions.delete_many.assert_not_awaited()

@@ -28,17 +28,17 @@ export default function ForgotPasswordScreen() {
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      setError(t("auth.emailRequired", "E-Mail ist erforderlich"));
+      setError(t("auth.emailRequired", "Enter your email address"));
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const result = await forgotPassword(email.trim());
+      await forgotPassword(email.trim());
       setSent(true);
-      setSentMessage(result.message || t("auth.resetEmailSent", "Wenn die E-Mail existiert, wurde ein Link gesendet."));
+      setSentMessage(t("auth.recoveryEmailNotice", "If an eligible account uses this email, you'll receive a password reset link. Please check your inbox and spam folder."));
     } catch (e: any) {
-      setError(e?.message || t("auth.forgotError", "Fehler beim Senden der E-Mail"));
+      setError(e?.message || t("auth.forgotError", "Couldn't request a reset link. Please try again."));
     }
     setLoading(false);
   };
@@ -76,9 +76,9 @@ export default function ForgotPasswordScreen() {
         </Pressable>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.card}>
-            <Text style={styles.title}>{t("auth.forgotPassword", "Passwort vergessen?")}</Text>
+            <Text style={styles.title}>{t("auth.forgotPassword", "Forgot password?")}</Text>
             <Text style={styles.desc}>
-              {t("auth.forgotPasswordDesc", "Gib deine E-Mail ein, um den Reset-Token zu erhalten.")}
+              {t("auth.recoveryEmailIntro", "Enter your account email and we'll help you get back to Perix with a secure reset link.")}
             </Text>
             <TextInput
               style={styles.input}
@@ -98,7 +98,7 @@ export default function ForgotPasswordScreen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.primaryButtonText}>{t("auth.sendResetToken", "Token senden")}</Text>
+                <Text style={styles.primaryButtonText}>{t("auth.sendRecoveryLink", "Send reset link")}</Text>
               )}
             </Pressable>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}

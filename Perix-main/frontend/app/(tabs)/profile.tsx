@@ -1300,7 +1300,7 @@ const handleUpdateSlug = async (newSlug: string) => {
       });
       if (!ok) return;
       try {
-        await clearMapBounds();
+        try { clearMapBounds(); } catch { /* Map preferences must not block logout. */ }
         await logout();
         router.replace("/login" as any);
       } catch (error) {
@@ -1310,7 +1310,7 @@ const handleUpdateSlug = async (newSlug: string) => {
           Alert.alert(t('common.error'), 'Failed to logout');
         }
       }
-    }, [logout, clearMapBounds, t]);
+    }, [logout, clearMapBounds, t, router]);
 
    const handleAddPhoto = async () => {
     if (!sessionToken || gallerySaving) return;

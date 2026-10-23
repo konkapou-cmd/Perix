@@ -158,7 +158,10 @@ from routes.account_deletion import (
 
 @app.get("/account-deletion", include_in_schema=False)
 async def account_deletion_page():
-    return HTMLResponse(deletion_request_page_html())@app.get("/account-deletion/confirm", include_in_schema=False)
+    return HTMLResponse(deletion_request_page_html())
+
+
+@app.get("/account-deletion/confirm", include_in_schema=False)
 async def account_deletion_confirm_page(token: str = ""):
     user = await resolve_deletion_token(token.strip())
     if user is None:

@@ -346,8 +346,9 @@ async def forgot_password(payload: ForgotPasswordInput):
     from services.entity_ownership import can_receive_email
     if not can_receive_email(user_doc):
         return generic
-    if not user_doc.get("email_verified", True):
-        return generic
+    # Recovery proves access to the mailbox through the single-use link. An
+    # unverified account must not become permanently unable to recover a lost
+    # password; completing recovery does not mark its email as verified.
 
     token = secrets.token_urlsafe(32)
     now = datetime.utcnow()
@@ -415,7 +416,7 @@ async def reset_password(payload: ResetPasswordInput):
 
     # Atomically consume token
     result = await db.password_reset_tokens.update_one(
-        {"token": payload.token, "used": False},
+        {"token": payload.token, "used": False, "expires_at": {"$gt": datetime.utcnow()}},
         {"$set": {"used": True}},
     )
     if result.modified_count != 1:
@@ -425,4 +426,7 @@ async def reset_password(payload: ResetPasswordInput):
         {"email": reset_doc["email"]},
         {"$set": {"password_hash": pwd_context.hash(payload.new_password)}}
     )
+    # A recovered password must also invalidate sessions on other devices.
+    if user_doc.get("user_id"):
+        await db.user_sessions.delete_many({"user_id": user_doc["user_id"]})
     return {"status": "password_reset", "email": reset_doc["email"]}
