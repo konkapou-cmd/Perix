@@ -58,3 +58,14 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -m pip install pytest==9.0.2 pytest-asyncio==1.4.0
       - run: python -m pytest tests/test_date_range_utils.py tests/test_date_range_booking.py tests/test_date_range_booking_concurrency.py tests/test_hotel_service_validation.py tests/test_migration.py tests/test_booking_web_push_tasks.py
+      - name: Line-derived initialization and same-plan publication regressions
+        run: >-
+          python -m pytest
+          tests/test_mobility_source_initialization.py
+          tests/test_mobility_reference_clock.py
+          tests/test_effective_eta_physics.py
+          tests/test_effective_eta_consistency.py
+          tests/test_source_reconciliation.py
+          tests/test_spatial_slowdown.py
+          tests/test_motion_preview.py
+          tests/test_publication_sampling.py

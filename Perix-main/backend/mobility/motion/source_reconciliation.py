@@ -66,3 +66,24 @@ def source_start_index(timeline, now_sec):
     if result is not None:
         result = min(result, max(0, len(timeline) - 2))
     return result
+
+
+def initial_source_index(timeline, now_sec):
+    """Choose an initial modeled source interval, not an observed passage.
+
+    A fresh page can initialize from timetable/propagated clocks. Do not replay
+    accumulated simulated lateness from the first stop as historical fact.
+    Arrived-but-not-departed occurrences remain the current source interval.
+    """
+    usable=[i for i,e in enumerate(timeline) if e.get('relationship')!='SKIPPED'
+            and not e.get('timing_order_adjusted')]
+    if len(usable)<2:
+        return None
+    index=usable[0]
+    for candidate in usable:
+        if float(timeline[candidate]['predicted_arrival'])>now_sec:
+            break
+        index=candidate
+        if float(timeline[candidate]['predicted_departure'])>now_sec:
+            break
+    return index if index!=usable[-1] else usable[-2]

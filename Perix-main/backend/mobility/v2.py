@@ -1353,7 +1353,8 @@ async def v2_traffic(current_user: Optional[UserPublic] = Depends(get_current_us
 
 
 @router.get("/vehicles")
-async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+                      initial_sync: bool = False):
     """Canonical vehicle state: position always carries source/quality, and
     every scheduled vehicle has a stable trip_instance_id. Adding a new
     position source later only changes `source` - never the shape."""
@@ -1361,7 +1362,7 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
     received_ms = time.time() * 1000
     from routes.mobility import _all_active_vehicles, networks_for_journey_window, _vehicle_in_network
     networks = await networks_for_journey_window()
-    vehicles = await _all_active_vehicles(networks=networks)
+    vehicles = await _all_active_vehicles(networks=networks,**({'initial_sync':True} if initial_sync else {}))
     out = []
     assigned = set()
     for network in networks:

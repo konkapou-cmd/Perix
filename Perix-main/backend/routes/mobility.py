@@ -1012,6 +1012,7 @@ async def _estimate_trip_position(
     delays: dict,
     version_id: Optional[str] = None,
     network: Optional[dict] = None,
+    initial_sync: bool = False,
 ) -> Optional[dict]:
     """Physics-first projection; fallback shares one stop-constrained ETA plan."""
     trip_id = str(trip.get("trip_id") or "")
@@ -1054,6 +1055,8 @@ async def _estimate_trip_position(
                 path=path,
                 now_sec=now_sec,
                 include_failure_reason=True,
+                initial_sync=initial_sync,
+                reference_clock=(lambda:_now_service_seconds(path.get('service_date'))) if initial_sync else None,
             )
             if motion_result and motion_result.get("motion_available") is False:
                 motion_failure_reason = str(
@@ -1081,6 +1084,7 @@ async def _estimate_trip_position(
             return None  # Retain board ETAs; do not draw an unbounded marker.
     motion_available = True
     if motion_available:
+        now_sec=motion_result.get('reference_service_s',now_sec)
         timeline = motion_result.get("effective_timeline") or timeline
         start = timeline[0]["predicted_arrival"]
         end = timeline[-1]["predicted_departure"]
@@ -1154,6 +1158,7 @@ async def _estimate_trip_position(
             "fallback_reason": None if detailed_motion_available else motion_failure_reason or "DETAILED_MOTION_UNAVAILABLE",
             "motion_plan_revision": motion_result.get("motion_plan_revision"),
             "preview": motion_result.get("motion_preview"),
+            "initialization": motion_result.get('initialization'),
             "next_timeline_index": next_idx,
         }
     pos, heading = _point_heading_at_progress(path, shown_progress)
@@ -1466,7 +1471,7 @@ def _active_trip_for(route: dict, vehicle: dict, now_sec: int, delays: dict) -> 
     candidates.sort(key=lambda x: not x[1])
     return candidates[0][0]
 
-async def _estimated_transit_vehicles(network: Optional[dict] = None) -> List[dict]:
+async def _estimated_transit_vehicles(network: Optional[dict] = None, *, initial_sync: bool = False) -> List[dict]:
     from mobility import geometry_cache
     from mobility.realtime_trip_identity import _service_date
 
@@ -1476,10 +1481,10 @@ async def _estimated_transit_vehicles(network: Optional[dict] = None) -> List[di
         return []
     region = get_active_region()
     key = (region.region_id, region.network_id, str(network.get("version_id") or ""),
-           _service_date(network), _service_date_key(), geometry_cache.revision())
+           _service_date(network), _service_date_key(), geometry_cache.revision(), bool(initial_sync))
     task = _ESTIMATES_INFLIGHT.get(key)
     if task is None or task.done():
-        task = asyncio.create_task(_compute_estimated_transit_vehicles(network))
+        task = asyncio.create_task(_compute_estimated_transit_vehicles(network,**({'initial_sync':True} if initial_sync else {})))
         _ESTIMATES_INFLIGHT[key] = task
 
         def finished(done):
@@ -1494,7 +1499,7 @@ async def _estimated_transit_vehicles(network: Optional[dict] = None) -> List[di
     return await asyncio.shield(task)
 
 
-async def _compute_estimated_transit_vehicles(network: dict) -> List[dict]:
+async def _compute_estimated_transit_vehicles(network: dict, *, initial_sync: bool = False) -> List[dict]:
     """Virtual vehicles for every currently running vehicle run of the
     active network (bus/tram), unless a real vehicle already covers that
     route and direction. Consecutive trips at a terminus chain into ONE
@@ -1538,6 +1543,10 @@ async def _compute_estimated_transit_vehicles(network: dict) -> List[dict]:
         route_number = str(route.get("route_number"))
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
         for run in _chain_trips(route, delays, canceled_ids, known_windows):
+            # Source reads and preceding vehicle fits can outlive the original
+            # fleet snapshot. Select and fit THIS source leg against NOW, not
+            # the clock captured before those data/calculation delays.
+            now_sec = _now_service_seconds(_network_service_date(network))
             first = run["trips"][0]
             headsign = str(first["trip"].get("headsign") or route.get("name") or "")
             if now_sec < run["start"] - 60 or now_sec > run["end"] + 60:
@@ -1591,6 +1600,7 @@ async def _compute_estimated_transit_vehicles(network: dict) -> List[dict]:
                     delays,
                     version_id=str(network.get("version_id") or ""),
                     network=network,
+                    **({'initial_sync':True} if initial_sync else {}),
                 )
                 if p:
                     projection = p
@@ -1715,7 +1725,8 @@ async def _compute_estimated_transit_vehicles(network: dict) -> List[dict]:
     return estimates
 
 
-async def _all_active_vehicles(network: Optional[dict] = None, *, networks: Optional[List[dict]] = None) -> List[dict]:
+async def _all_active_vehicles(network: Optional[dict] = None, *, networks: Optional[List[dict]] = None,
+                               initial_sync: bool = False) -> List[dict]:
     live = (
         await db.mobility_live.find(
             {"updated_at": {"$gt": (now_utc() - timedelta(minutes=5)).isoformat()}},
@@ -1730,10 +1741,10 @@ async def _all_active_vehicles(network: Optional[dict] = None, *, networks: Opti
         if v.get("mode") == "taxi" or _iso_is_fresh(v.get("updated_at") or "", 90)
     ]
     if network is not None:
-        return [v for v in live if v.get("mode") == "taxi" or _vehicle_in_network(v, network)] + await _estimated_transit_vehicles(network=network)
+        return [v for v in live if v.get("mode") == "taxi" or _vehicle_in_network(v, network)] + await _estimated_transit_vehicles(network=network,**({'initial_sync':True} if initial_sync else {}))
     estimates = []
     for dated in networks if networks is not None else await networks_for_journey_window():
-        estimates.extend(await _estimated_transit_vehicles(network=dated))
+        estimates.extend(await _estimated_transit_vehicles(network=dated,**({'initial_sync':True} if initial_sync else {})))
     return live + estimates
 
 
