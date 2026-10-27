@@ -1120,6 +1120,7 @@ async def _estimate_trip_position(
             "carried_lateness_s": motion_result.get("carried_lateness_s"),
             "recovered_lateness_s": motion_result.get("recovered_lateness_s"),
             "fit": motion_result.get("fit"),
+            "spatial_slowdown": motion_result.get("spatial_slowdown"),
             "traffic_edge_count": motion_result.get("traffic_edge_count"),
             "signal_stop_count": motion_result.get("signal_stop_count"),
             "traffic_provider": motion_result.get("traffic_provider"),
@@ -1152,6 +1153,7 @@ async def _estimate_trip_position(
             ),
             "fallback_reason": None if detailed_motion_available else motion_failure_reason or "DETAILED_MOTION_UNAVAILABLE",
             "motion_plan_revision": motion_result.get("motion_plan_revision"),
+            "preview": motion_result.get("motion_preview"),
             "next_timeline_index": next_idx,
         }
     pos, heading = _point_heading_at_progress(path, shown_progress)
@@ -1297,6 +1299,13 @@ def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Opti
         rt = (delays or {}).get(str(trip.get("trip_id") or ""))
         if str((rt or {}).get("trip_schedule_relationship") or "").upper() in ("CANCELED", "DELETED"):
             continue
+        if rt:
+            operational_timeline = _predicted_stop_timeline(route, trip, rt)
+            if operational_timeline and all(e.get("relationship") == "SKIPPED" for e in operational_timeline):
+                # Source explicitly withdraws every passenger call. Do not
+                # turn its missing motion anchors into a fictitious parked
+                # vehicle/geometry_pending marker. Partial skips stay active.
+                continue
         w = _trip_window(route, trip)
         if w:
             windows.append({"trip": trip, **w})

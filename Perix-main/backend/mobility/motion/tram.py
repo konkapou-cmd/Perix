@@ -8,6 +8,8 @@ from mobility.motion.common import (
     trajectory_time_at_progress,
     turn_angle_degrees,
     turn_speed_cap_kmh,
+    spatial_slowdown_spans,
+    remaining_eta_spans,
 )
 
 MODEL_NAME = "TRAM_PHYSICS_V1"
@@ -39,6 +41,9 @@ def build_tram_leg(
     config: dict,
     recovery_ratio: float = 0.0,
     initial_speed_kmh: float = 0.0,
+    slowdowns: list | None = None,
+    slowdown_strength: float = 0.0,
+    remaining_strength: float = 0.0,
 ) -> dict:
     """Build one tram leg.
 
@@ -69,6 +74,10 @@ def build_tram_leg(
         cap = turn_speed_cap_kmh(turn_angle_degrees(a, b), turn_rules)
         if cap is not None:
             point_caps.append({"progress_m": boundary, "speed_cap_kmh": cap})
+
+    remaining = remaining_eta_spans(spans,start_m,end_m,config,initial_speed_kmh,remaining_strength)
+    spans.extend(spatial_slowdown_spans(spans,slowdowns,start_m,end_m,config,initial_speed_kmh,slowdown_strength))
+    spans.extend(remaining)
 
     preliminary = build_speed_trajectory(
         start_m=start_m,
@@ -115,7 +124,7 @@ def build_tram_leg(
             )
             cumulative_hold += hold
 
-    trajectory = build_speed_trajectory(
+    trajectory = preliminary if not mandatory else build_speed_trajectory(
         start_m=start_m,
         end_m=end_m,
         spans=spans,

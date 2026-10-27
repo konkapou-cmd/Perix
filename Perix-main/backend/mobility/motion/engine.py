@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
+import json
 import asyncio
 import time
 from datetime import datetime
@@ -21,7 +23,7 @@ from zoneinfo import ZoneInfo
 
 from database import db
 from mobility.motion.bus import build_bus_leg
-from mobility.motion.common import sample_trajectory
+from mobility.motion.common import sample_trajectory, directed_turn_caps, remaining_trajectory
 from mobility.motion.config import motion_config_for
 from mobility.motion.diagnostics import lateness_flow, timeline_leg_contract
 from mobility.motion.traffic import traffic_snapshot_for_edges
@@ -135,7 +137,11 @@ def effective_timeline_from_plan(timeline: list[dict], plan: dict,
             raise ValueError("Invalid motion timeline occurrence")
         if str(result[index].get("relationship")).upper() == "SKIPPED":
             return
-        result[index][field] = int(math.ceil(float(value)))
+        clock = float(value)
+        nearest = round(clock)
+        if abs(clock - nearest) < 1e-7:
+            clock = nearest  # Do not publish 61 for a numerical 60.00000000001.
+        result[index][field] = int(math.ceil(clock))
         result[index]["prediction_basis"] = "PERIX_MOTION_PLAN"
 
     for segment in segments:
@@ -196,12 +202,106 @@ def _plan_failure(failure: Optional[dict], reason: str, **details):
     return None
 
 
-def _fit_leg(builder, desired_duration_s: float, iterations: int) -> dict:
+def _spatial_slowdown_priors(infra, mode, start_m, end_m, traffic, config):
+    """Only actual upcoming topology; no phase/queue observations are invented."""
+    candidates=[]
+    family='RAIL_SIGNAL' if mode=='tram' else 'ROAD_SIGNAL'
+    for event in motion_signals_for_infrastructure(infra,mode):
+        p=float(event.get('progress_m') or 0)
+        exact=(event.get('match_method') in ('NODE_EXACT','EXACT_NODE','SEMANTIC_CLUSTER')
+               or event.get('direction_status') in ('MATCH','BOTH','UNTAGGED_EXACT'))
+        if family not in (event.get('kinds') or []) or not event.get('usable_for_motion') or not exact:
+            continue
+        covered=any(e['from_m']<p<=e['to_m'] and (traffic.get(str(e.get('edge_id'))) or {}).get('includes_signal_delay')
+                    and (traffic.get(str(e.get('edge_id'))) or {}).get('constraint')=='NON_RECOVERABLE'
+                    for e in infra.get('edges') or [])
+        if not covered:
+            candidates.append({'progress_m':p,'kind':'MODELED_SIGNAL_APPROACH','anchor_id':str(event.get('signal_instance_id') or event.get('signal_id'))})
+    edges=infra.get('edges') or []
+    candidates.extend(directed_turn_caps(edges,start_m,end_m,config.get('turn_speed_kmh') or {}))
+    neighbors={}
+    for edge in edges:
+        a,b=edge.get('from_node'),edge.get('to_node')
+        if a is not None and b is not None:
+            neighbors.setdefault(a,set()).add(b);neighbors.setdefault(b,set()).add(a)
+    for a,b in zip(edges,edges[1:]):
+        node=a.get('to_node')
+        if node is None or node!=b.get('from_node'):
+            continue
+        roundabout=(b.get('way') or {}).get('junction')=='roundabout' and (a.get('way') or {}).get('junction')!='roundabout'
+        if roundabout or len(neighbors.get(node,()))>=3:
+            candidates.append({'progress_m':float(a['to_m']),'kind':'MODELED_JUNCTION_APPROACH','anchor_id':str(node)})
+    out=[]
+    for point in sorted(candidates,key=lambda p:p['progress_m']):
+        if not start_m+5 < point['progress_m'] < end_m-20:
+            continue  # Past obstacles and station service are not counted again.
+        if out and point['progress_m']-out[-1]['progress_m']<20:
+            continue
+        out.append(point)
+    # No mapped obstacle means no extra delay zone. Station service/braking is
+    # already handled by the existing solver; it is not a substitute obstacle.
+    return out[:3]
+
+
+def _fit_leg(builder, desired_duration_s: float, iterations: int, *, spatial_builder=None,
+             remaining_builder=None, initial_speed_kmh=0.0) -> dict:
     """Fit soft traffic/signal delays without exceeding hard physical caps.
 
-    Phase 2.1 adds observability fields only; the trajectory-selection behavior
-    remains identical to Phase 2.
+    Prefer upcoming mapped slowing. A revised ETA may additionally adapt the
+    remaining moving envelope from NOW, never a fabricated obstacle/hold.
     """
+    if spatial_builder is not None:
+        baseline=_fit_leg(builder,desired_duration_s,iterations)
+        if baseline['fit'] in ('EMPTY','PHYSICS_LIMITED'):
+            return baseline
+        # Reallocate recoverable *uniform* flow delay into the upcoming zones.
+        # NON_RECOVERABLE edge constraints remain hard in the existing builder.
+        ratio=1.0;target=max(1.0,float(desired_duration_s))
+        free=spatial_builder(ratio,0.0);slow=spatial_builder(ratio,1.0)
+        if not free.get('segments') or not slow.get('segments'):
+            return baseline
+        speed=lambda t:float(t['segments'][0]['v0'])*3.6
+        if abs(speed(free)-initial_speed_kmh)>.05 or abs(speed(slow)-initial_speed_kmh)>.05:
+            return {**baseline,'spatial_slowdown':{'fallback':'INITIAL_SPEED_CONFLICT','modeled_not_observed':True}}
+        if slow['duration_s'] + 1e-6 < target and remaining_builder is not None:
+            adaptive_free = remaining_builder(0.0)
+            adaptive_slow = remaining_builder(1.0)
+            if (adaptive_free.get('segments') and adaptive_slow.get('segments')
+                    and abs(speed(adaptive_free)-initial_speed_kmh) <= .05
+                    and abs(speed(adaptive_slow)-initial_speed_kmh) <= .05
+                    and adaptive_free['duration_s'] <= target + 1e-6 <= adaptive_slow['duration_s'] + 1e-6):
+                low, high = 0.0, 1.0
+                best = adaptive_free
+                for _ in range(max(18, min(22, int(iterations)+8))):
+                    strength = (low+high)/2
+                    candidate = remaining_builder(strength)
+                    if candidate['duration_s'] <= target:
+                        low, best = strength, candidate
+                    else:
+                        high = strength
+                return {**baseline, 'trajectory':best, 'time_scale':1.0,
+                        'fit':'REMAINING_ETA_ADJUSTMENT', 'recovery_ratio':ratio,
+                        'fastest_duration_s':free['duration_s'],
+                        'spatial_slowdown':{'remaining_strength':low,
+                            'allocation_basis':'UPDATED_ETA_REMAINING_MOTION',
+                            'modeled_not_observed':True,
+                            'unallocated_delay_s':max(0.0,target-best['duration_s'])}}
+        if slow['duration_s']+1e-6<target or free['duration_s']>target+1e-6:
+            return {**baseline,'trajectory':free,'time_scale':1.0,'fit':'LOCAL_DELAY_UNALLOCATED',
+                    'recovery_ratio':ratio,'fastest_duration_s':free['duration_s'],
+                    'physics_limited_s':max(0.0,free['duration_s']-target),
+                    'spatial_slowdown':{'fallback':'INSUFFICIENT_LOCAL_DELAY_CAPACITY',
+                        'modeled_not_observed':True,'unallocated_delay_s':max(0.0,target-free['duration_s'])}}
+        low,high=0.0,1.0;best=free
+        for _ in range(max(18,min(22,int(iterations)+8))):
+            strength=(low+high)/2;candidate=spatial_builder(ratio,strength)
+            if candidate['duration_s']<=target:
+                low=strength;best=candidate
+            else:
+                high=strength
+        return {**baseline,'trajectory':best,'time_scale':1.0,'fit':'SPATIAL_SLOWDOWN','recovery_ratio':ratio,
+                'fastest_duration_s':free['duration_s'],
+                'spatial_slowdown':{'strength':low,'modeled_not_observed':True,'unallocated_delay_s':max(0.0,target-best['duration_s'])}}
     desired = max(1.0, float(desired_duration_s))
     natural = builder(0.0)
     natural_duration = float(natural.get("duration_s") or 0.0)
@@ -282,6 +382,7 @@ async def _build_trip_plan(
 ) -> Optional[dict]:
     region = get_active_region()
     config = motion_config_for(mode, region)
+    spatial_enabled=os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true'
     pattern_id = str(path.get("pattern_id") or "")
     if not version_id:
         return _plan_failure(failure, "NO_VERSION_ID")
@@ -364,6 +465,7 @@ async def _build_trip_plan(
         handover_leg_index = find_handover_leg_index(
             anchors,
             float(handover.get("progress_m") or 0.0),
+            tolerance_m=1e-6 if spatial_enabled else 1.0,
         )
         if handover_leg_index is None:
             handover = None
@@ -384,6 +486,11 @@ async def _build_trip_plan(
             network_id=region.network_id,
         )
     traffic_by_edge = traffic_snapshot.get("by_edge") or {}
+    traffic_fingerprint=hashlib.sha256(json.dumps(traffic_by_edge,sort_keys=True,default=str).encode()).hexdigest()
+    if (spatial_enabled and previous_plan and previous_plan.get('spatial_origin_index')==int(anchors[loop_start]['timeline_index'])
+            and previous_plan.get('spatial_traffic_fingerprint')==traffic_fingerprint
+            and _timeline_signature(_source_timeline(previous_plan['effective_timeline']))==_timeline_signature(timeline)):
+        return previous_plan  # Cache refresh alone must not invent a new speed wave.
 
     trip_segments = []
     effective_arrival = (
@@ -417,7 +524,7 @@ async def _build_trip_plan(
                 float(current["progress_m"]),
                 min(
                     float(handover.get("progress_m") or 0.0),
-                    float(nxt["progress_m"]) - 0.001,
+                    float(nxt["progress_m"]) - (1e-8 if spatial_enabled else 0.001),
                 ),
             )
             if is_handover_leg
@@ -487,21 +594,29 @@ async def _build_trip_plan(
             infra,
             str(mode),
         )
+        spatial_points=(_spatial_slowdown_priors(infra,mode,leg_start_m,float(nxt['progress_m']),traffic_by_edge,config)
+                        if spatial_enabled and index==loop_start else [])
+        leg_config=config
+        if spatial_enabled:
+            # Unknown signal phases become local speed valleys, not full stops.
+            leg_config={**config,'road_signal_enabled':False,'rail_signal_enabled':False}
 
         if str(mode) == "tram":
-            def builder(recovery_ratio: float):
+            def builder(recovery_ratio: float, slowdown_strength=0.0, remaining_strength=0.0):
                 return build_tram_leg(
                     edges=infra.get("edges") or [],
                     signals=motion_signals,
                     start_m=leg_start_m,
                     end_m=float(nxt["progress_m"]),
                     departure_service_s=effective_departure,
-                    config=config,
+                    config=leg_config,
                     recovery_ratio=recovery_ratio,
                     initial_speed_kmh=initial_speed_kmh,
+                    slowdowns=spatial_points,slowdown_strength=slowdown_strength,
+                    remaining_strength=remaining_strength,
                 )
         else:
-            def builder(recovery_ratio: float):
+            def builder(recovery_ratio: float, slowdown_strength=0.0, remaining_strength=0.0):
                 return build_bus_leg(
                     edges=infra.get("edges") or [],
                     signals=motion_signals,
@@ -509,16 +624,33 @@ async def _build_trip_plan(
                     start_m=leg_start_m,
                     end_m=float(nxt["progress_m"]),
                     departure_service_s=effective_departure,
-                    config=config,
+                    config=leg_config,
                     recovery_ratio=recovery_ratio,
                     initial_speed_kmh=initial_speed_kmh,
+                    slowdowns=spatial_points,slowdown_strength=slowdown_strength,
+                    remaining_strength=remaining_strength,
                 )
 
         fitted = _fit_leg(
             builder,
             desired_duration,
             int(config["calibration_iterations"]),
+            spatial_builder=builder if spatial_enabled and index==loop_start else None,
+            remaining_builder=(lambda strength:builder(1.0, 1.0 if spatial_points else 0.0, strength))
+                if spatial_enabled and index==loop_start else None,
+            initial_speed_kmh=initial_speed_kmh,
         )
+        if (spatial_enabled and is_handover_leg and previous_plan
+                and previous_plan.get('spatial_traffic_fingerprint')==traffic_fingerprint
+                and fitted.get('spatial_slowdown',{}).get('fallback')):
+            prior_leg=next((s for s in previous_plan['segments'] if s['kind']=='MOVE'
+                and s['next_timeline_index']==int(nxt['timeline_index']) and s['t0']<=effective_departure<s['t1']),None)
+            if prior_leg:
+                retained=remaining_trajectory(prior_leg['trajectory'],effective_departure-prior_leg['t0'],prior_leg.get('time_scale',1))
+                fitted={**fitted,'trajectory':retained,'time_scale':1.0,'fit':'RETAIN_REMAINING_PHYSICS',
+                    'physics_limited_s':max(0.0,retained['duration_s']-desired_duration),
+                    'spatial_slowdown':{'fallback':'NO_SUPPORTED_NEW_DELAY_LOCATION','modeled_not_observed':True,
+                        'unallocated_delay_s':max(0.0,desired_duration-retained['duration_s'])}}
         trajectory = fitted["trajectory"]
         duration = (
             float(trajectory.get("duration_s") or 0.0)
@@ -630,6 +762,8 @@ async def _build_trip_plan(
                 # by which the effective arrival misses the realtime target.
                 "physics_limited_s": round(arrival_target_error, 3),
                 "fit": fitted.get("fit"),
+                **({'spatial_slowdown':{**fitted['spatial_slowdown'],'priors':spatial_points}}
+                   if 'spatial_slowdown' in fitted else {}),
             }
         )
         effective_arrival = effective_next_arrival
@@ -664,6 +798,8 @@ async def _build_trip_plan(
 
     plan = {
         "schema_v": MOTION_SCHEMA_VERSION,
+        **({'spatial_origin_index':int(anchors[loop_start]['timeline_index'])} if spatial_enabled else {}),
+        **({'spatial_traffic_fingerprint':traffic_fingerprint} if spatial_enabled else {}),
         "trip_id": str(trip_id),
         "pattern_id": pattern_id,
         "mode": str(mode),
@@ -817,7 +953,139 @@ def _sample_trip_plan(
             "handover_initial_speed_kmh"
         ),
         "fit": selected.get("fit"),
+        "spatial_slowdown": selected.get("spatial_slowdown"),
     }
+
+
+def _precise_handover_sample(plan, now_s, timeline, stop_progress):
+    sample=_sample_trip_plan(plan,now_s,timeline,stop_progress)
+    if sample.get('motion_state') not in ('DWELL','AT_STOP'):
+        leg=next((s for s in plan['segments'] if s['kind']=='MOVE' and s['t0']<=now_s<=s['t1']),None)
+        if leg and leg.get('trajectory'):
+            exact=sample_trajectory(leg['trajectory'],now_s-leg['t0'],leg.get('time_scale',1))
+            sample['speed_kmh']=exact['speed_kmh']  # Do not reuse rounded UI diagnostics as physics state.
+            index=int(leg['next_timeline_index'])
+            if (index<len(stop_progress) and abs(sample['progress_m']-stop_progress[index])<=1e-6
+                    and exact['speed_kmh']<=1e-6 and now_s>=leg['t1']-1e-7):
+                sample['motion_state']='AT_STOP'  # Actual modeled endpoint, not a provider ETA inference.
+    return sample
+
+
+def _motion_preview(plan, now_s, now_local, path, revision, journey_id, progress):
+    """Export <=8s of the existing legal trajectory, not another prediction."""
+    if os.getenv("MOBILITY_MOTION_PREVIEW_ENABLED", "false").lower() != "true":
+        return None
+    from mobility.service_clock import service_seconds
+    day = path.get("service_date")
+    if not day or now_local.tzinfo is None:
+        return None
+    age = service_seconds(now_local, day, str(now_local.tzinfo)) - now_s + now_local.microsecond / 1e6
+    if abs(age) < 1e-7:
+        age = 0.0  # Cancellation noise when sampling fractional NOW seconds.
+    if not 0 <= age <= 30:  # Includes ambiguous clock transitions: fail closed.
+        return None
+    sampled_ms = (now_local.timestamp() - age) * 1000
+    active = next((s for s in plan.get("segments") or [] if s["t0"] <= now_s <= s["t1"]), None)
+    if active is None:
+        return None
+    # A new packet is required to cross an arrival/departure boundary.
+    end = min(now_s + 8.0, float(active["t1"]), float(plan["end_s"]))
+    if active.get("kind") == "DWELL":
+        # A model may reach a stop before an unallocated source arrival. Keep
+        # its stationary preview on the same curve, but require a new packet
+        # at that source-clock boundary as well. Never silently animate across
+        # the discrepancy or change physical motion to conceal it.
+        occurrence = int(active.get("timeline_index", 0))
+        entries = plan.get("effective_timeline") or []
+        if 0 <= occurrence < len(entries):
+            source_arrival = entries[occurrence].get("source_predicted_arrival")
+            if source_arrival is not None and now_s < float(source_arrival):
+                end = min(end, float(source_arrival))
+    phases = []
+    for leg in plan.get("segments") or []:
+        if leg["t1"] <= now_s or leg["t0"] >= end:
+            continue
+        if leg["kind"] == "DWELL":
+            sources = [(leg["t0"], leg["t1"], leg["progress_m"], leg["progress_m"], 0.0, 0.0, "DWELL")]
+        else:
+            scale = max(1.0, float(leg.get("time_scale") or 1.0))
+            sources = [(leg["t0"] + p["t0"] * scale, leg["t0"] + p["t1"] * scale,
+                        p["p0"], p["p1"], p["v0"] / scale,
+                        (p["v1"] - p["v0"]) / max(.001, p["t1"] - p["t0"]) / scale ** 2,
+                        p.get("state", "MOVING")) for p in leg["trajectory"]["segments"]]
+        for t0, t1, p0, p1, v0, acceleration, state in sources:
+            start, stop = max(now_s, t0), min(end, t1, leg["t1"])
+            if stop <= start:
+                continue
+            if len(phases) >= 32:
+                break
+            expected = now_s + (phases[-1]["t1"] if phases else 0.0)
+            if abs(start - expected) > 1e-5:
+                return None  # No fabricated motion across a gap in the plan.
+            dt = start - t0
+            first = max(p0, min(p1, p0 + v0 * dt + .5 * acceleration * dt * dt))
+            duration = stop - start
+            speed = v0 + acceleration * dt
+            last = max(first, min(p1, first + speed * duration + .5 * acceleration * duration * duration))
+            phases.append({"t0": start - now_s, "t1": stop - now_s, "p0": first,
+                           "p1": last, "v0": speed, "a": acceleration, "state": state})
+        if len(phases) >= 32:
+            break
+    if not phases or phases[-1]["t1"] < 1e-5 or abs(phases[0]["p0"] - progress) > 1e-4:
+        return None  # A continuity-clamped packet cannot advertise another curve.
+    endpoint = datetime.fromtimestamp(sampled_ms / 1000 + phases[-1]["t1"], now_local.tzinfo)
+    if endpoint.utcoffset() != now_local.utcoffset():
+        return None  # Never project a wall-clock trajectory across a DST jump.
+    index = int(active.get("next_timeline_index", active.get("timeline_index", 0)))
+    effective_arrival = plan["effective_timeline"][index]["predicted_arrival"]
+    physical_arrival = active["t1"] if active["kind"] == "MOVE" else active["t0"]
+    return {"schema": 1, "revision": revision, "journey_id": journey_id,
+            "deployment_id": os.getenv("RAILWAY_DEPLOYMENT_ID"),
+            "pattern_id": path.get("pattern_id"), "sampled_at_ms": sampled_ms,
+            "stop_occurrence_index": index, "stop_progress_m": path["stop_progress"][index],
+            "arrival_at_ms": sampled_ms + (physical_arrival - now_s) * 1000,
+            "effective_arrival_at_ms": sampled_ms + (effective_arrival - now_s) * 1000,
+            "valid_until_ms": sampled_ms + phases[-1]["t1"] * 1000, "phases": phases}
+
+
+def sample_cached_publication(*, trip_id, version_id, pattern_id, service_date,
+                              revision, estimate_revision, now_local, minimum_progress_m):
+    """Read the same immutable plan at send time; no solver/DB/source refresh.
+
+    A slow fleet calculation must not send an already-expired trajectory
+    window. This samples authorized physical motion, not client extrapolation,
+    and cannot borrow another journey, generation or estimate revision.
+    """
+    if not revision or now_local.tzinfo is None:
+        return None
+    region = get_active_region()
+    now_local = now_local.astimezone(ZoneInfo(region.timezone))
+    snapshot = next((value for key,value in reversed(list(_PLAN_CACHE.items()))
+        if len(key)>6 and key[:2]==(region.region_id,region.network_id)
+        and key[2:5]==(str(version_id),str(pattern_id),str(trip_id))
+        and key[6]==str(service_date)
+        and value.get('motion_plan_revision')==revision
+        and value.get('estimate_revision')==estimate_revision),None)
+    if not snapshot or not 0 <= time.monotonic()-snapshot['cached_at'] <= 90:
+        return None
+    plan,path = snapshot['plan'],snapshot.get('path') or {}
+    timeline = plan.get('effective_timeline') or []
+    if not timeline or len(path.get('stop_progress') or [])!=len(timeline):
+        return None
+    from mobility.service_clock import service_seconds
+    try:
+        now_s = service_seconds(now_local,str(service_date),region.timezone)+now_local.microsecond/1e6
+    except (ValueError,TypeError):
+        return None
+    sample = _sample_trip_plan(plan,now_s,timeline,path['stop_progress'])
+    if not sample or sample['progress_m'] < float(minimum_progress_m)-.15:
+        return None
+    index = int(sample['next_timeline_index'])
+    if not 0 <= index < len(timeline):
+        return None
+    return {**sample,'now_service_s':now_s,'effective_timeline':timeline,'path':path,
+        'motion_preview':_motion_preview(plan,now_s,now_local,path,revision,
+            f'{region.network_id}:{version_id}:{service_date}:{trip_id}',sample['progress_m'])}
 
 
 async def position_for_trip(**kwargs) -> Optional[dict]:
@@ -889,6 +1157,13 @@ async def _position_for_trip_locked(
     ):
         previous_state = None
     cached = _PLAN_CACHE.get(key)
+    if (cached and cached['plan'].get('spatial_origin_index') is not None
+            and os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true'):
+        active=next((s for s in cached['plan']['segments'] if s['t0']<=now_sec<=s['t1']),None)
+        origin=(active.get('from_timeline_index') if active and active['kind']=='MOVE'
+                else active.get('timeline_index') if active else None)
+        if origin is not None and origin!=cached['plan'].get('spatial_origin_index'):
+            cached=None  # Reuse the normal NOW handover with the new stop triad.
     failure: dict = {}
     source_correction = None
     reconciled_now = False
@@ -913,7 +1188,9 @@ async def _position_for_trip_locked(
             if (candidate.get("effective_timeline")
                     and [e.get("stop_id") for e in candidate["effective_timeline"]] == [e.get("stop_id") for e in timeline]
                     and float(now_sec) >= candidate["start_s"]):
-                sample = _sample_trip_plan(candidate, now_sec, timeline, path.get("stop_progress") or [])
+                sampler=(_precise_handover_sample if os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true'
+                         else _sample_trip_plan)
+                sample = sampler(candidate, now_sec, timeline, path.get("stop_progress") or [])
                 if sample:
                     old_progress = float(sample["progress_m"])
                     previous_source = prior.get("source_timeline") or _source_timeline(candidate["effective_timeline"])
@@ -923,7 +1200,7 @@ async def _position_for_trip_locked(
                         previous_state = None
                         reconciled_now = True
                         revision_token = estimate_revision(identity, timeline_signature)
-                    elif handover_enabled():
+                    elif handover_enabled() or os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true':
                         previous_plan = candidate
                         if sample.get("motion_state") in ("DWELL", "AT_STOP"):
                             history_index = int(sample["next_timeline_index"])
@@ -954,6 +1231,24 @@ async def _position_for_trip_locked(
                     "fallback_details": failure.get("details") or {},
                 }
             return None
+        if (os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true' and previous_plan is None
+                and plan.get('spatial_origin_index') is not None):
+            active=next((s for s in plan['segments'] if s['t0']<=now_sec<=s['t1']),None)
+            origin=(active.get('from_timeline_index') if active and active['kind']=='MOVE'
+                    else active.get('timeline_index') if active else None)
+            if origin is not None and origin!=plan.get('spatial_origin_index'):
+                # Cold schedule-only bootstrap: use the existing NOW handover,
+                # not an inferred real-world passage or a new position solver.
+                sample=_precise_handover_sample(plan,now_sec,timeline,path.get('stop_progress') or [])
+                moving=sample.get('motion_state') not in ('DWELL','AT_STOP')
+                anchor=(handover_anchor_from_state(state_from_sample(sample=sample,service_s=float(now_sec),
+                        timeline_signature=timeline_signature),now_service_s=float(now_sec),total_m=float(path.get('total_m') or 0))
+                        if moving else None)
+                plan=await _build_trip_plan(trip_id=str(trip_id),mode=str(mode),version_id=str(version_id),
+                    timeline=timeline,path=path,now_local=now_local,now_service_s=float(now_sec),
+                    previous_plan=plan,handover=anchor,history_index=None if moving else int(sample['next_timeline_index']))
+                if not plan:
+                    return None
         for stale_key, stale_value in list(_PLAN_CACHE.items()):
             if now_mono - float(stale_value.get("cached_at") or 0.0) > 60.0:
                 _PLAN_CACHE.pop(stale_key, None)
@@ -962,6 +1257,7 @@ async def _position_for_trip_locked(
                 if value.get("identity") == identity:
                     _PLAN_CACHE.pop(stale_key, None)
         _PLAN_CACHE[key] = {"cached_at": now_mono, "plan": plan, "identity": identity,
+                            "path": path,
                             "source_timeline": [dict(e) for e in timeline],
                             "estimate_revision": revision_token, "source_correction": source_correction,
                             "source_signature": timeline_signature,
@@ -984,6 +1280,7 @@ async def _position_for_trip_locked(
     # A refresh produces a new revision; every consumer receives clocks from it.
     cached_at = _PLAN_CACHE[key]["cached_at"]
     revision = hashlib.sha256(repr((key, cached_at)).encode()).hexdigest()[:20]
+    _PLAN_CACHE[key]['motion_plan_revision'] = revision
     effective_timeline = plan.get("effective_timeline") or effective_timeline_from_plan(timeline, plan)
 
     stop_progress = path.get("stop_progress") or []
@@ -997,7 +1294,7 @@ async def _position_for_trip_locked(
             }
         return None
 
-    if handover_enabled() and not reconciled_now:
+    if (handover_enabled() or os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true') and not reconciled_now:
         sampled = continuity_guard(
             sampled,
             previous_state,
@@ -1048,6 +1345,8 @@ async def _position_for_trip_locked(
         **sampled,
         "effective_timeline": [dict(entry) for entry in effective_timeline],
         "motion_plan_revision": revision,
+        "motion_preview": _motion_preview(plan, float(now_sec), now_local, path, revision,
+            f"{region.network_id}:{version_id}:{path.get('service_date')}:{trip_id}", progress),
         "motion_available": True,
         "estimate_revision": revision_token,
         "source_correction": source_correction,

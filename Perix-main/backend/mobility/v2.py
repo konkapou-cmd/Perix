@@ -10,6 +10,9 @@ import asyncio
 from copy import deepcopy
 import json
 import hashlib
+import math
+import os
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
@@ -1354,6 +1357,8 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
     """Canonical vehicle state: position always carries source/quality, and
     every scheduled vehicle has a stable trip_instance_id. Adding a new
     position source later only changes `source` - never the shape."""
+    import time
+    received_ms = time.time() * 1000
     from routes.mobility import _all_active_vehicles, networks_for_journey_window, _vehicle_in_network
     networks = await networks_for_journey_window()
     vehicles = await _all_active_vehicles(networks=networks)
@@ -1366,6 +1371,93 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
     # External GPS IDs remain unchanged, without a guessed daily identity.
     out.extend(await _dated_vehicles(None, [v for v in vehicles
         if not v.get("estimated") and str(v.get("vehicle_id")) not in assigned]))
+    if os.getenv('MOBILITY_MOTION_PREVIEW_ENABLED','false').lower()=='true':
+        out = _refresh_estimated_publications(out,datetime.now(timezone.utc))
+    sent_ms = time.time() * 1000
+    for vehicle in out:
+        motion = vehicle.get("motion") or {}
+        preview = motion.get("preview")
+        if vehicle.get("estimated") and preview:
+            vehicle["motion"] = {**motion, "preview": {**preview,
+                "server_received_at_ms": received_ms, "server_sent_at_ms": sent_ms}}
+    return out
+
+
+def _refresh_estimated_publications(vehicles, now_local):
+    """Publish position, ETA and window from one same-revision send-time sample.
+
+    No source fetch, new fit, GPS alteration or freshness promotion occurs here.
+    Original generation/service-date/revision mismatches retain the safe packet.
+    """
+    from mobility.motion.engine import sample_cached_publication
+    from routes.mobility import _point_heading_at_progress, _fmt_service_time
+    from mobility.timing_evidence import timing_evidence, has_realtime_timing
+    out=[]
+    for vehicle in vehicles:
+        if (not vehicle.get('estimated') or vehicle.get('mode') not in ('bus','tram')
+                or vehicle.get('progress_m') is None or not vehicle.get('trip_id')
+                or not vehicle.get('motion_plan_revision')):
+            out.append(vehicle)
+            continue
+        sample=sample_cached_publication(trip_id=vehicle['trip_id'],
+            version_id=vehicle.get('network_version_id'),pattern_id=vehicle.get('pattern_id'),
+            service_date=vehicle.get('service_date'),revision=vehicle['motion_plan_revision'],
+            estimate_revision=vehicle.get('estimate_revision'),now_local=now_local,
+            minimum_progress_m=vehicle['progress_m'])
+        if not sample:
+            out.append(vehicle)
+            continue
+        point,heading=_point_heading_at_progress(sample['path'],sample['progress_m'])
+        if not point:
+            out.append(vehicle)
+            continue
+        index=sample['next_timeline_index']
+        timeline=sample['effective_timeline']
+        entry=timeline[index]
+        distance=max(0.0,float(sample['path']['stop_progress'][index])-sample['progress_m'])
+        stopped=sample.get('motion_state') in ('DWELL','AT_STOP') and distance<=1e-6
+        eta=0 if stopped else max(0,math.ceil(float(entry['predicted_arrival'])-sample['now_service_s']))
+        evidence=timing_evidence(entry)
+        old_evidence=vehicle.get('timing_evidence') or {}
+        for field in ('source_status','trip_update_timestamp','feed_timestamp','received_at',
+                      'position_assurance','source_correction'):
+            if field in old_evidence:evidence[field]=old_evidence[field]
+        for id_field,name_field in [('timing_anchor_stop_id','anchor_stop_name'),
+                                    ('timing_next_anchor_stop_id','next_anchor_stop_name')]:
+            anchor=next((e for e in timeline if e.get('stop_id')==evidence.get(id_field)),{})
+            evidence[name_field]=anchor.get('name') or (anchor.get('stop') or {}).get('name')
+        position={**(vehicle.get('position') or {}),'latitude':point['lat'],
+                  'longitude':point['lng'],'heading':heading}
+        identity_kind=vehicle.get('identity_kind')
+        if entry.get('timing_basis') is not None:
+            realtime=has_realtime_timing(entry)
+            position.update(source='REALTIME_ESTIMATE' if realtime else 'SCHEDULE_ESTIMATE',
+                            quality='REALTIME' if realtime else 'SCHEDULE')
+            identity_kind='VIRTUAL_REALTIME' if realtime else 'VIRTUAL_SCHEDULE'
+        motion={**(vehicle.get('motion') or {}),'state':sample.get('motion_state'),
+                'speed_kmh':sample.get('speed_kmh'),'fit':sample.get('fit'),
+                'spatial_slowdown':sample.get('spatial_slowdown'),
+                'leg_from_stop_id':sample.get('leg_from_stop_id'),
+                'leg_to_stop_id':sample.get('leg_to_stop_id'),
+                'next_timeline_index':index,'preview':sample['motion_preview'],
+                'publication_resampled':True}
+        for field in ('delay_delta_s','scheduled_duration_s','predicted_leg_duration_s',
+                      'engine_available_duration_s','natural_duration_s','fastest_duration_s',
+                      'recovery_ratio','physics_limited_s','arrival_target_error_s',
+                      'incremental_physics_limited_s','carried_lateness_s','recovered_lateness_s',
+                      'handover_applied','handover_from_progress_m','handover_initial_speed_kmh'):
+            motion[field]=sample.get(field)
+        out.append({**vehicle,'position':position,'identity_kind':identity_kind,
+            'progress_m':sample['progress_m'],'next_timeline_index':index,
+            'next_stop_id':entry.get('stop_id'),
+            'next_stop_name':entry.get('name') or (entry.get('stop') or {}).get('name'),
+            'distance_to_next_stop_m':distance,'next_stop_eta_seconds':eta,
+            'next_stop_predicted_arrival':_fmt_service_time(int(entry['predicted_arrival'])),
+            'source_next_stop_predicted_arrival':_fmt_service_time(int(entry.get('source_predicted_arrival',entry['predicted_arrival']))),
+            'prediction_basis':entry.get('prediction_basis','SOURCE_TIMELINE'),
+            'next_stop_eta_source':'PERIX_ESTIMATE' if entry.get('prediction_basis')=='PERIX_MOTION_PLAN' else vehicle.get('next_stop_eta_source'),
+            'delay_minutes':round(float(entry.get('delay_seconds') or 0)/60),
+            'timing_evidence':evidence,'motion':motion})
     return out
 
 

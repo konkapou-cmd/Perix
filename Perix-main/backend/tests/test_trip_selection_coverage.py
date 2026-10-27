@@ -83,6 +83,18 @@ def test_provider_cancellation_is_never_replaced_by_a_virtual_vehicle(relationsh
     assert identity(routes._chain_trips(route_fixture(), skip_trip_ids={"out"})) == [["back"]]
 
 
+def test_source_all_skipped_trip_is_not_invented_as_a_geometry_pending_passenger_vehicle():
+    route=route_fixture()
+    realtime={'out':{'stop_relationships':{'A':'SKIPPED','B':'SKIPPED'}}}
+    assert identity(routes._chain_trips(route,realtime))==[['back']]
+
+
+@pytest.mark.parametrize('relationships',[{'A':'SKIPPED'},{'A':'NO_DATA','B':'NO_DATA'}])
+def test_partial_skip_or_missing_timing_does_not_remove_an_active_journey(relationships):
+    route=route_fixture()
+    assert identity(routes._chain_trips(route,{'out':{'stop_relationships':relationships}}))==[['out'],['back']]
+
+
 @pytest.fixture
 def fleet(monkeypatch):
     route = route_fixture()

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import heapq
 import math
 from typing import Iterable, Optional
 
@@ -80,6 +81,133 @@ def turn_speed_cap_kmh(angle_deg: float, rules: dict) -> Optional[float]:
     return selected
 
 
+def directed_turn_caps(edges, start_m, end_m, rules, window_m=20.0):
+    """Existing WIP fixed-distance bearing refinement, used only for soft priors.
+
+    Original hard turn constraints remain in place. Never bridge topology gaps.
+    """
+    def point(progress):
+        for edge in edges:
+            a, b = float(edge['from_m']), float(edge['to_m'])
+            if a <= progress <= b and b > a:
+                ratio = (progress - a) / (b - a)
+                p, q = edge['from_point'], edge['to_point']
+                return [p[i] + ratio * (q[i] - p[i]) for i in (0, 1)]
+        return None
+    out = []
+    for a, b in zip(edges, edges[1:]):
+        p = float(a.get('to_m') or 0)
+        if not start_m < p < end_m or a.get('to_node') is None or a.get('to_node') != b.get('from_node'):
+            continue
+        lo, hi = max(start_m, p - window_m), min(end_m, p + window_m)
+        chain = [e for e in edges if e['to_m'] > lo and e['from_m'] < hi]
+        if any(x.get('to_node') != y.get('from_node') or abs(x['to_m'] - y['from_m']) > .01
+               for x, y in zip(chain, chain[1:])):
+            continue
+        try:
+            before, center, after = point(lo), point(p), point(hi)
+            if not before or not center or not after:
+                continue
+            angle = turn_angle_degrees({'from_point':before,'to_point':center},
+                                       {'from_point':center,'to_point':after})
+        except (KeyError, TypeError, ValueError):
+            continue
+        cap = turn_speed_cap_kmh(angle, rules)
+        if cap is not None:
+            out.append({'progress_m':p,'speed_cap_kmh':cap,'angle_deg':angle,'kind':'MODELED_TURN'})
+    return out
+
+
+def spatial_slowdown_spans(spans, points, start_m, end_m, config, initial_speed_kmh, strength):
+    """Positive approach/crawl/recovery caps; existing solver supplies braking.
+
+    Geometry-based representation, NOT observed traffic/signal phase. Overlap
+    uses the strictest cap once. No new stops and no change to posted limits.
+    """
+    strength = max(0.0, min(1.0, float(strength)))
+    if not points or strength <= 0:
+        return []
+    approach = max(20.0, min(150.0, float(config.get('spatial_approach_m',90))))
+    exit_m = max(10.0, min(50.0, float(config.get('spatial_exit_m',25))))
+    plateau = min(approach / 2, max(5.0, float(config.get('spatial_plateau_m',35))))
+    floor = kmh_to_mps(max(1.0, float(config.get('spatial_min_speed_kmh',1))))
+    brake = max(.05, float(config['braking_mps2']))
+    initial = kmh_to_mps(max(0.0, float(initial_speed_kmh)))
+    out = []
+    for point in points:
+        anchor = float(point['progress_m'])
+        if not start_m < anchor < end_m:
+            continue
+        local_approach=max(20.0,min(150.0,float(point.get('approach_m',approach))))
+        local_plateau=min(local_approach/2,max(5.0,float(point.get('plateau_m',plateau))))
+        # Stronger modeled delay also sustains the crawl longer, bounded by
+        # half this SAME approach zone. No inferred queue or wider road zone.
+        # This leaves at least half the approach available for deceleration.
+        local_plateau += strength * (local_approach / 2 - local_plateau)
+        lo, hi = max(start_m,anchor-local_approach), min(end_m,anchor+exit_m)
+        positions = [lo, hi, anchor, max(lo,anchor-local_plateau)]
+        cursor = lo
+        while cursor < hi:
+            positions.append(cursor);cursor += 5.0
+        caps = {}
+        for p in positions:
+            if not start_m <= p <= end_m:
+                continue
+            weight = (min(1.0,(p-(anchor-local_approach))/(local_approach-local_plateau)) if p<=anchor
+                      else max(0.0,1.0-(p-anchor)/exit_m))
+            base = _cap_at(p,spans)
+            desired = base - strength * weight * max(0.0,base-floor)
+            # A newly learned delay cannot require instantaneous deceleration.
+            reachable = math.sqrt(max(0.0,initial*initial-2*brake*(p-start_m)))
+            cap = min(base,max(desired,reachable)) * 3.6
+            key = round(p,6);caps[key] = min(caps.get(key,cap),cap)
+        # A speed valley is a continuous road zone, not isolated low-speed
+        # knots that would cause fake acceleration between sampling grids.
+        ordered=sorted(caps.items())
+        for (a,va),(b,vb) in zip(ordered,ordered[1:]):
+            if b>a:
+                out.append({'from_m':a,'to_m':b,'speed_cap_kmh':max(va,vb)})
+    return out
+
+
+def remaining_eta_spans(spans, start_m, end_m, config, initial_speed_kmh, strength):
+    """Adapt remaining moving speed to a revised ETA, without inventing a site.
+
+    Unlike mapped obstacle zones this envelope covers only the untravelled
+    leg. The initial braking envelope preserves NOW speed; the existing solver
+    supplies acceleration, station braking and all hard edge/vehicle limits.
+    No hold, guessed queue, past intersection or global time scaling is added.
+    """
+    strength = max(0.0, min(1.0, float(strength)))
+    if strength <= 0 or end_m <= start_m:
+        return []
+    floor = kmh_to_mps(max(1.0, float(config.get('spatial_min_speed_kmh', 1))))
+    brake = max(.05, float(config['braking_mps2']))
+    initial = kmh_to_mps(max(0.0, float(initial_speed_kmh)))
+    out = []
+    for source in spans:
+        a = max(float(start_m), float(source['from_m']))
+        b = min(float(end_m), float(source['to_m']))
+        if b <= a:
+            continue
+        base = kmh_to_mps(float(source['speed_cap_kmh']))
+        desired = base - strength * max(0.0, base - floor)
+        braking_end = start_m + max(0.0, initial * initial - desired * desired) / (2 * brake)
+        positions = [a, b]
+        cursor = a + 5.0
+        while cursor < min(b, braking_end):
+            positions.append(cursor)
+            cursor += 5.0
+        if a < braking_end < b:
+            positions.append(braking_end)
+        positions.sort()
+        for lo, hi in zip(positions, positions[1:]):
+            reachable = math.sqrt(max(0.0, initial * initial - 2 * brake * (lo - start_m)))
+            out.append({'from_m':lo, 'to_m':hi,
+                        'speed_cap_kmh':min(base, max(desired, reachable)) * 3.6})
+    return out
+
+
 def _unique_positions(values: Iterable[float], epsilon: float = 0.001) -> list[float]:
     out = []
     for value in sorted(float(x) for x in values):
@@ -97,6 +225,29 @@ def _cap_at(progress_m: float, spans: list[dict]) -> float:
         return max(0.1, min(caps))
     fallback = [kmh_to_mps(float(x["speed_cap_kmh"])) for x in spans]
     return max(0.1, min(fallback)) if fallback else kmh_to_mps(10.0)
+
+
+def _caps_at_positions(positions: list[float], spans: list[dict]) -> list[float]:
+    """The exact existing cap rule, swept over sorted trajectory positions.
+
+    Preserve the inclusive 1 mm boundary tolerance and the legacy gap fallback.
+    Only the lookup cost changes: O(N*S) becomes O(N + S*log(S)).
+    """
+    intervals=sorted((float(s['from_m'])-.001,float(s['to_m'])+.001,
+                      kmh_to_mps(float(s['speed_cap_kmh'])),i) for i,s in enumerate(spans))
+    fallback=max(.1,min(item[2] for item in intervals)) if intervals else kmh_to_mps(10)
+    active=[]
+    cursor=0
+    out=[]
+    for position in positions:
+        while cursor<len(intervals) and intervals[cursor][0]<=position:
+            _,end,cap,index=intervals[cursor]
+            heapq.heappush(active,(cap,end,index))
+            cursor+=1
+        while active and active[0][1]<position:
+            heapq.heappop(active)
+        out.append(max(.1,active[0][0]) if active else fallback)
+    return out
 
 
 def build_speed_trajectory(
@@ -155,7 +306,7 @@ def build_speed_trajectory(
         cursor += step
 
     positions = _unique_positions(positions)
-    caps = [_cap_at(p, spans) for p in positions]
+    caps = _caps_at_positions(positions, spans)
 
     for i, p in enumerate(positions):
         for item in point_speed_caps:
@@ -293,6 +444,27 @@ def sample_trajectory(trajectory: dict, elapsed_s: float, time_scale: float = 1.
         "speed_kmh": 0.0,
         "state": "AT_STOP",
     }
+
+
+def remaining_trajectory(trajectory, elapsed_s, time_scale=1.0):
+    """Existing WIP NOW clipping: retain legal motion without a speed reset."""
+    scale=max(1.0,float(time_scale));elapsed=max(0.0,elapsed_s/scale)
+    segments=[];total=0.0
+    for source in trajectory.get('segments') or []:
+        if source['t1']<=elapsed:
+            continue
+        offset=max(0.0,elapsed-source['t0'])
+        acceleration=(source['v1']-source['v0'])/max(.001,source['t1']-source['t0'])
+        p0=source['p0']+source['v0']*offset+.5*acceleration*offset*offset
+        dt=(source['t1']-max(elapsed,source['t0']))*scale
+        segments.append({'t0':total,'t1':total+dt,'p0':p0,'p1':source['p1'],
+            'v0':(source['v0']+acceleration*offset)/scale,'v1':source['v1']/scale,
+            'state':source.get('state','MOVING')})
+        total+=dt
+    return {'start_m':segments[0]['p0'] if segments else trajectory['end_m'],
+            'end_m':trajectory['end_m'],'duration_s':total,'segments':segments,
+            'model':trajectory.get('model'),'traffic_edge_count':trajectory.get('traffic_edge_count',0),
+            'signal_stop_count':sum(s['state']!='MOVING' for s in segments)}
 
 
 def trajectory_time_at_progress(trajectory: dict, progress_m: float) -> float:

@@ -9,6 +9,9 @@ on:
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Perix-main/frontend
     # Frontend has ~130 pre-existing typecheck errors (t() typing pattern) that
     # predate the hotel work. Keep install blocking; typecheck/lint advisory
     # until the tech debt is paid down. Backend job below stays blocking.
@@ -17,12 +20,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-      - run: yarn install --frozen-lockfile
+          cache: npm
+          cache-dependency-path: Perix-main/frontend/package-lock.json
+      - run: npm ci
         continue-on-error: true
-      - run: yarn typecheck
+      - run: npm run typecheck
         continue-on-error: true
-      - run: yarn lint
+      - run: npm run lint
         continue-on-error: true
 
   backend-unit:
