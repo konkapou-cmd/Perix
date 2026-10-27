@@ -84,3 +84,30 @@ The actual Locator iframe loaded the Google raster map; 75 active windows matche
 their packet equations with zero error or revision mismatch. The observed live UI
 window had no pending transitions; those transitions were verified in compiled
 replay tests, while actual pending/recovery was verified in the API cohort above.
+
+## Timeline-only fallback follow-up
+
+The first production cohort on `61dbabf9da01003477bebf16e71d9ab7e65759f9`
+revealed one additional readiness case: a `TIMELINE_SPEED_ENVELOPE` fallback had
+no detailed cached plan, no curve and no explicit publication status. The strict
+coverage gate failed; the packet was retained, not excluded from validation.
+
+With preview publication enabled, estimated bus/tram rows that declare a motion
+revision but have neither a ready detailed publication nor a preview now become
+explicitly `PENDING` with `DETAILED_MOTION_NOT_READY`. Their safe source-constrained
+position is retained and ordinary polls can replace them when ready. GPS/taxis,
+normal station/turnaround anchors and the default-off behavior are unchanged.
+
+This follow-up changes only the endpoint readiness classification and its
+regression test. The physics, compiled frontend, keys, clock/revision guards and
+existing CI configuration are byte-for-byte unchanged. The new regression failed
+before the fix; 554 backend cases per mode and the 145-case CI motion step passed
+afterward. The same 2 database-dependent editor cases remain excluded locally.
+
+Staging follow-up `07c0d818-bacd-4b7b-af84-16a2199f83a6` verified all 287 backend
+hashes. The concurrent ordinary request returned 62 ready and 15 pending journeys;
+all 15 recovered in subsequent ordinary polls. All four responses had zero expired
+advertised previews, and every modeled row was explicitly READY or PENDING. The
+actual Locator checked 77 render callbacks/windows with zero same-frame equation
+or coordinate error and zero revision mismatch. Clock/validator behavior was not
+overridden; high transport uncertainty continued to fail closed as designed.

@@ -70,7 +70,7 @@
     "Perix-main/backend/mobility/timing_evidence.py": "24a8cedd943870b0efae052c83297f43e4c544b62179a0f1fd5c05647ebb3cbb",
     "Perix-main/backend/mobility/traffic_counts.py": "49b4e1da7d44af6d241b944dbf34454c5ca18b42d2dadf58aeb7259c61a2665d",
     "Perix-main/backend/mobility/traffic_profiles.py": "a3d0b83014461d3cdfa6efbc05c94486fe7a7ed9d0a7805a648620314a1a8b90",
-    "Perix-main/backend/mobility/v2.py": "438006f893a02c2bcb1ed6b15af1e104db4b6faa72514723d65f9b98907b43b9",
+    "Perix-main/backend/mobility/v2.py": "95a135042a36b2dbd225cb2cb5e31ce53d3fde851be3875c2b6e68264b1a4997",
     "Perix-main/backend/mobility/verified_closure.py": "32e1d0a3917065de29e97b4b4469e32b19ab84fb79722775953a8d369d2d2f0a",
     "Perix-main/backend/models/__init__.py": "27810c638e28c55634348910525cfbc54249486c8c47a754b307bdd55db894cd",
     "Perix-main/backend/models/activity.py": "451488f0caa74d078ecdddd50e906fa8b26daad8a0341906fe34c4d86537e017",
@@ -291,7 +291,7 @@
     "Perix-main/backend/tests/test_booking_web_push_tasks.py": "90b79e439f6527a6f4f1bbd3e6047f89543fb0abd5e3523068eb39fb7ba4880c",
     "Perix-main/backend/tests/test_mobility_reference_clock.py": "06118ad23f7dcd9f807e48177c36100ef6685f72183c421c452a7ddb02217a79",
     "Perix-main/backend/tests/test_mobility_source_initialization.py": "b4d64af2ead757f5563bc2addd33b6499b66ecd07d88fcd91b72f3d59aefed97",
-    "Perix-main/backend/tests/test_publication_handover.py": "676d57cc72b9f969d246cd51b7cdec8cdb72afe4fd92c1ae5b78c667ae617e02"
+    "Perix-main/backend/tests/test_publication_handover.py": "6e72c98d0ab7ffea5111e5caf6eccdcc59a8cdcd8456247b3a6b4450332b72f2"
   },
   "backend_cases_per_mode": 467,
   "db_cases_deselected_in_these_runs": 2,
@@ -341,6 +341,21 @@
     "staging_pending_recovered_later": 20,
     "staging_expired_previews_at_send": 0,
     "actual_locator_active_windows_verified": 75,
+    "actual_locator_maximum_canonical_error_m": 0
+  },
+  "fallback_pending_followup": {
+    "base_commit": "61dbabf9da01003477bebf16e71d9ab7e65759f9",
+    "backend_cases_per_mode": 554,
+    "ci_motion_cases": 145,
+    "timeline_fallback_explicitly_pending": true,
+    "physics_and_frontend_bytes_unchanged": true,
+    "production_validation": "PENDING",
+    "validated_staging_deployment": "07c0d818-bacd-4b7b-af84-16a2199f83a6",
+    "runtime_backend_hashes_verified": 287,
+    "staging_initial_pending_journeys": 15,
+    "staging_pending_recovered_later": 15,
+    "staging_expired_previews_at_send": 0,
+    "actual_locator_render_callbacks_checked": 77,
     "actual_locator_maximum_canonical_error_m": 0
   }
 }

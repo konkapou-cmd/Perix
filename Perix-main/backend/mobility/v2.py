@@ -1393,6 +1393,15 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
             else:
                 vehicle["motion"] = {**motion, "preview": {**preview,
                     "server_received_at_ms": received_ms, "server_sent_at_ms": sent_ms}}
+        elif (vehicle.get('estimated') and vehicle.get('mode') in ('bus','tram')
+                and vehicle.get('motion_plan_revision')
+                and os.getenv('MOBILITY_MOTION_PREVIEW_ENABLED','false').lower()=='true'
+                and motion.get('publication_status') not in ('READY','PENDING')):
+            # A source-constrained timeline fallback is a safe position, not a
+            # ready detailed trajectory. It participates in the same per-trip
+            # wait/retry contract instead of bypassing publication readiness.
+            vehicle['motion']={**motion,'preview':None,'publication_status':'PENDING',
+                'publication_pending_reason':'DETAILED_MOTION_NOT_READY'}
     return out
 
 

@@ -129,3 +129,21 @@ def test_binding_cannot_hide_a_changed_canonical_geometry_in_the_same_identity(b
     result=v2._refresh_estimated_publications([case.row],EPOCH+timedelta(seconds=28))[0]
     assert result['motion']['publication_status']=='PENDING'
     assert result['motion']['preview'] is None
+
+
+def test_timeline_fallback_without_a_detailed_cached_plan_is_explicitly_pending(publication,monkeypatch):
+    from routes import mobility
+    original={**publication.row,'motion_plan_revision':'timeline:fallback',
+        'motion':{'model':'TIMELINE_SPEED_ENVELOPE','quality':'TIMELINE_CONSTRAINED_FALLBACK',
+                  'fit':'TIMELINE_FALLBACK','state':'MOVING','speed_kmh':0.0,
+                  'preview':None,'publication_binding':None}}
+    before=deepcopy(original)
+    monkeypatch.setattr(mobility,'networks_for_journey_window',AsyncMock(return_value=[{'version_id':'v'}]))
+    monkeypatch.setattr(mobility,'_all_active_vehicles',AsyncMock(return_value=[original]))
+    monkeypatch.setattr(mobility,'_vehicle_in_network',lambda *args:True)
+    monkeypatch.setattr(v2,'_dated_vehicles',AsyncMock(side_effect=lambda network,rows:[{**r} for r in rows]))
+    result=asyncio.run(v2.v2_vehicles(None))[0]
+    assert result['motion']['publication_status']=='PENDING'
+    assert result['motion']['publication_pending_reason']=='DETAILED_MOTION_NOT_READY'
+    assert result['motion']['preview'] is None and result['progress_m']==original['progress_m']
+    assert original==before
