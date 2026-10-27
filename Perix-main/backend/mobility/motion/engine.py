@@ -1113,42 +1113,87 @@ def _motion_preview(plan, now_s, now_local, path, revision, journey_id, progress
             "valid_until_ms": sampled_ms + phases[-1]["t1"] * 1000, "phases": phases}
 
 
+def _publication_binding(snapshot):
+    """Bind a server-generated row to its dated identity and canonical geometry.
+
+    This is request provenance, not permission to relax any client clock guard.
+    No old trajectory is retained or resurrected when a cached plan is replaced.
+    """
+    identity=snapshot.get('identity')
+    if not identity or not snapshot.get('motion_plan_revision'):
+        return None
+    path=snapshot.get('path') or {}
+    geometry=(path.get('derived_generation'),path.get('geometry_fingerprint'),
+              path.get('geometry_source'),path.get('osm_snapshot_v'),snapshot['plan'].get('mode'))
+    return {'identity_hash':hashlib.sha256(repr(identity).encode()).hexdigest(),
+            'geometry_hash':hashlib.sha256(repr(geometry).encode()).hexdigest(),
+            'plan_revision':snapshot['motion_plan_revision'],
+            'estimate_revision':snapshot.get('estimate_revision'),'cached_at':snapshot['cached_at']}
+
+
 def sample_cached_publication(*, trip_id, version_id, pattern_id, service_date,
-                              revision, estimate_revision, now_local, minimum_progress_m):
+                              revision, estimate_revision, now_local, minimum_progress_m,
+                              publication_binding=None, failure=None):
     """Read the same immutable plan at send time; no solver/DB/source refresh.
 
     A slow fleet calculation must not send an already-expired trajectory
     window. This samples authorized physical motion, not client extrapolation,
     and cannot borrow another journey, generation or estimate revision.
     """
-    if not revision or now_local.tzinfo is None:
+    def unavailable(reason):
+        if failure is not None:failure['reason']=reason
         return None
+    if not revision or now_local.tzinfo is None:
+        return unavailable('PUBLICATION_CLOCK_OR_REVISION_INVALID')
     region = get_active_region()
     now_local = now_local.astimezone(ZoneInfo(region.timezone))
-    snapshot = next((value for key,value in reversed(list(_PLAN_CACHE.items()))
+    candidates = [value for key,value in list(_PLAN_CACHE.items())
         if len(key)>6 and key[:2]==(region.region_id,region.network_id)
         and key[2:5]==(str(version_id),str(pattern_id),str(trip_id))
-        and key[6]==str(service_date)
-        and value.get('motion_plan_revision')==revision
-        and value.get('estimate_revision')==estimate_revision),None)
+        and key[6]==str(service_date)]
+    snapshot = next((v for v in reversed(candidates)
+        if v.get('motion_plan_revision')==revision and v.get('estimate_revision')==estimate_revision),None)
+    if publication_binding is not None:
+        binding=publication_binding
+        if (not isinstance(binding,dict) or binding.get('plan_revision')!=revision
+                or binding.get('estimate_revision')!=estimate_revision):
+            return unavailable('PUBLICATION_BINDING_INVALID')
+        # A concurrent request may replace a plan while this fleet is still
+        # loading. Adopt a complete newer cached packet, never splice phases
+        # into the old revision or refit at send time. Identity/generation,
+        # geometry, estimate-correction epoch and forward continuity must agree.
+        related=[v for v in candidates if (b:=_publication_binding(v)) is not None
+                 and b['identity_hash']==binding.get('identity_hash')]
+        latest=max(related,key=lambda v:v['cached_at'],default=None)
+        latest_binding=_publication_binding(latest) if latest else None
+        if (not latest_binding or latest_binding['geometry_hash']!=binding.get('geometry_hash')
+                or latest_binding['estimate_revision']!=estimate_revision
+                or not isinstance(binding.get('cached_at'),(int,float))
+                or not math.isfinite(binding['cached_at'])
+                or not 0<=time.monotonic()-binding['cached_at']<=90
+                or latest['cached_at']<binding['cached_at']):
+            return unavailable('PUBLICATION_IDENTITY_NOT_READY')
+        snapshot=latest
+        revision=latest_binding['plan_revision']
     if not snapshot or not 0 <= time.monotonic()-snapshot['cached_at'] <= 90:
-        return None
+        return unavailable('PUBLICATION_REVISION_NOT_READY')
     plan,path = snapshot['plan'],snapshot.get('path') or {}
     timeline = plan.get('effective_timeline') or []
     if not timeline or len(path.get('stop_progress') or [])!=len(timeline):
-        return None
+        return unavailable('PUBLICATION_GEOMETRY_NOT_READY')
     from mobility.service_clock import service_seconds
     try:
         now_s = service_seconds(now_local,str(service_date),region.timezone)+now_local.microsecond/1e6
     except (ValueError,TypeError):
-        return None
+        return unavailable('PUBLICATION_SERVICE_CLOCK_INVALID')
     sample = _sample_trip_plan(plan,now_s,timeline,path['stop_progress'])
     if not sample or sample['progress_m'] < float(minimum_progress_m)-.15:
-        return None
+        return unavailable('PUBLICATION_FORWARD_SAMPLE_NOT_READY')
     index = int(sample['next_timeline_index'])
     if not 0 <= index < len(timeline):
-        return None
+        return unavailable('PUBLICATION_STOP_INDEX_INVALID')
     return {**sample,'now_service_s':now_s,'effective_timeline':timeline,'path':path,
+         'motion_plan_revision':revision,'publication_binding':_publication_binding(snapshot),
         'motion_preview':_motion_preview(plan,now_s,now_local,path,revision,
             f'{region.network_id}:{version_id}:{service_date}:{trip_id}',sample['progress_m'])}
 
@@ -1448,6 +1493,7 @@ async def _position_for_trip_locked(
         "reference_service_s": float(now_sec),
         "initialization": plan.get('initialization'),
         "motion_plan_revision": revision,
+        "publication_binding": _publication_binding(_PLAN_CACHE[key]),
         "motion_preview": _motion_preview(plan, float(now_sec), now_local, path, revision,
             f"{region.network_id}:{version_id}:{path.get('service_date')}:{trip_id}", progress),
         "motion_available": True,

@@ -69,3 +69,4 @@ jobs:
           tests/test_spatial_slowdown.py
           tests/test_motion_preview.py
           tests/test_publication_sampling.py
+          tests/test_publication_handover.py

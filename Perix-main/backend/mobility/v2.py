@@ -1379,8 +1379,20 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
         motion = vehicle.get("motion") or {}
         preview = motion.get("preview")
         if vehicle.get("estimated") and preview:
-            vehicle["motion"] = {**motion, "preview": {**preview,
-                "server_received_at_ms": received_ms, "server_sent_at_ms": sent_ms}}
+            bounded_window=('sampled_at_ms' in preview or 'valid_until_ms' in preview
+                            or motion.get('publication_binding') is not None)
+            if bounded_window and (not isinstance(preview.get('sampled_at_ms'),(int,float))
+                    or not isinstance(preview.get('valid_until_ms'),(int,float))
+                    or not preview['sampled_at_ms']<=sent_ms<preview['valid_until_ms']
+                    or preview.get('revision')!=vehicle.get('motion_plan_revision')
+                    or preview.get('journey_id')!=vehicle.get('trip_instance_id')):
+                # Ready journeys are unaffected. This one waits for the next
+                # ordinary poll; an expired curve is never advertised as ready.
+                vehicle['motion']={**motion,'preview':None,'publication_status':'PENDING',
+                    'publication_pending_reason':'WINDOW_NOT_VALID_AT_SEND'}
+            else:
+                vehicle["motion"] = {**motion, "preview": {**preview,
+                    "server_received_at_ms": received_ms, "server_sent_at_ms": sent_ms}}
     return out
 
 
@@ -1400,13 +1412,17 @@ def _refresh_estimated_publications(vehicles, now_local):
                 or not vehicle.get('motion_plan_revision')):
             out.append(vehicle)
             continue
+        binding=(vehicle.get('motion') or {}).get('publication_binding')
+        failure={}
         sample=sample_cached_publication(trip_id=vehicle['trip_id'],
             version_id=vehicle.get('network_version_id'),pattern_id=vehicle.get('pattern_id'),
             service_date=vehicle.get('service_date'),revision=vehicle['motion_plan_revision'],
             estimate_revision=vehicle.get('estimate_revision'),now_local=now_local,
-            minimum_progress_m=vehicle['progress_m'])
+            minimum_progress_m=vehicle['progress_m'],publication_binding=binding,failure=failure)
         if not sample:
-            out.append(vehicle)
+            out.append({**vehicle,'motion':{**(vehicle.get('motion') or {}),'preview':None,
+                'publication_status':'PENDING','publication_pending_reason':failure.get('reason') or 'PLAN_NOT_READY'}}
+                if binding is not None else vehicle)
             continue
         point,heading=_point_heading_at_progress(sample['path'],sample['progress_m'])
         if not point:
@@ -1441,7 +1457,9 @@ def _refresh_estimated_publications(vehicles, now_local):
                 'leg_from_stop_id':sample.get('leg_from_stop_id'),
                 'leg_to_stop_id':sample.get('leg_to_stop_id'),
                 'next_timeline_index':index,'preview':sample['motion_preview'],
-                'publication_resampled':True}
+                'publication_resampled':True,'publication_status':'READY','publication_pending_reason':None,
+                'publication_binding':sample.get('publication_binding'),
+                'publication_revision_replaced':sample.get('motion_plan_revision',vehicle['motion_plan_revision'])!=vehicle['motion_plan_revision']}
         for field in ('delay_delta_s','scheduled_duration_s','predicted_leg_duration_s',
                       'engine_available_duration_s','natural_duration_s','fastest_duration_s',
                       'recovery_ratio','physics_limited_s','arrival_target_error_s',
@@ -1449,6 +1467,7 @@ def _refresh_estimated_publications(vehicles, now_local):
                       'handover_applied','handover_from_progress_m','handover_initial_speed_kmh'):
             motion[field]=sample.get(field)
         out.append({**vehicle,'position':position,'identity_kind':identity_kind,
+            'motion_plan_revision':sample.get('motion_plan_revision',vehicle['motion_plan_revision']),
             'progress_m':sample['progress_m'],'next_timeline_index':index,
             'next_stop_id':entry.get('stop_id'),
             'next_stop_name':entry.get('name') or (entry.get('stop') or {}).get('name'),

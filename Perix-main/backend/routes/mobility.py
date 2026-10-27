@@ -1159,6 +1159,7 @@ async def _estimate_trip_position(
             "motion_plan_revision": motion_result.get("motion_plan_revision"),
             "preview": motion_result.get("motion_preview"),
             "initialization": motion_result.get('initialization'),
+            "publication_binding": motion_result.get('publication_binding'),
             "next_timeline_index": next_idx,
         }
     pos, heading = _point_heading_at_progress(path, shown_progress)
