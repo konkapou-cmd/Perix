@@ -1057,6 +1057,8 @@ async def _estimate_trip_position(
                 include_failure_reason=True,
                 initial_sync=initial_sync,
                 reference_clock=(lambda:_now_service_seconds(path.get('service_date'))) if initial_sync else None,
+                require_station_reforecast=True,
+                source_update_epoch=(realtime or {}).get('trip_update_timestamp'),
             )
             if motion_result and motion_result.get("motion_available") is False:
                 motion_failure_reason = str(
@@ -1160,6 +1162,7 @@ async def _estimate_trip_position(
             "preview": motion_result.get("motion_preview"),
             "initialization": motion_result.get('initialization'),
             "publication_binding": motion_result.get('publication_binding'),
+            "station_forecast_pending": motion_result.get('station_forecast_pending',False),
             "next_timeline_index": next_idx,
         }
     pos, heading = _point_heading_at_progress(path, shown_progress)

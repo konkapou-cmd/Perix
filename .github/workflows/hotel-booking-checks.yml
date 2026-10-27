@@ -70,3 +70,4 @@ jobs:
           tests/test_motion_preview.py
           tests/test_publication_sampling.py
           tests/test_publication_handover.py
+          tests/test_station_reforecast_gate.py

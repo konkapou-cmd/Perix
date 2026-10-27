@@ -35,7 +35,7 @@
     "Perix-main/backend/mobility/motion/common.py": "7c28045eceab28dcad0ec6940b05f1732eedac911fd91c54f5caa89dacea9f77",
     "Perix-main/backend/mobility/motion/config.py": "645d0540b09e7ef87eb43bf6e88f999f5987e7f31c0b2e0bb4ad12bba5796eab",
     "Perix-main/backend/mobility/motion/diagnostics.py": "77dc83a7210a60071552755b3be31d3977586eae8c2ab810714862291964558e",
-    "Perix-main/backend/mobility/motion/engine.py": "feea9f0d1b8ed6cb5209f591e5d240d9be758f28f03b0e9f2fe66160b2e6969b",
+    "Perix-main/backend/mobility/motion/engine.py": "34d449af89c11aa2e3005df5f9ab5cd13ca05c3c0481002f699220d33e38a354",
     "Perix-main/backend/mobility/motion/explain.py": "b44ba354292a3097fcda69ff3211cb72d23e8272f8292faf2567c859250b46bc",
     "Perix-main/backend/mobility/motion/google_traffic.py": "2395e9024cc22ed35579dcf3238a807af015d44c2b5ccf0273b64f5e5831f1b2",
     "Perix-main/backend/mobility/motion/handover.py": "a60a2a58345e64d613633d278326cb52c0578c24bf0e22edbb002435d467b550",
@@ -70,7 +70,7 @@
     "Perix-main/backend/mobility/timing_evidence.py": "24a8cedd943870b0efae052c83297f43e4c544b62179a0f1fd5c05647ebb3cbb",
     "Perix-main/backend/mobility/traffic_counts.py": "49b4e1da7d44af6d241b944dbf34454c5ca18b42d2dadf58aeb7259c61a2665d",
     "Perix-main/backend/mobility/traffic_profiles.py": "a3d0b83014461d3cdfa6efbc05c94486fe7a7ed9d0a7805a648620314a1a8b90",
-    "Perix-main/backend/mobility/v2.py": "95a135042a36b2dbd225cb2cb5e31ce53d3fde851be3875c2b6e68264b1a4997",
+    "Perix-main/backend/mobility/v2.py": "d42d0da68f30d7165ed50770848118bd656696794c0b0e0fdcf38b4bfd28857b",
     "Perix-main/backend/mobility/verified_closure.py": "32e1d0a3917065de29e97b4b4469e32b19ab84fb79722775953a8d369d2d2f0a",
     "Perix-main/backend/models/__init__.py": "27810c638e28c55634348910525cfbc54249486c8c47a754b307bdd55db894cd",
     "Perix-main/backend/models/activity.py": "451488f0caa74d078ecdddd50e906fa8b26daad8a0341906fe34c4d86537e017",
@@ -111,7 +111,7 @@
     "Perix-main/backend/routes/listings.py": "764d8b1d1833c3e9b5cb61f43bd20edbd842c4c130fa766df01c1491ce976e67",
     "Perix-main/backend/routes/media.py": "472032e0c1191c688d72be6c84ac20caa323f3bc8683feb68e51bd6a3a771768",
     "Perix-main/backend/routes/messages.py": "b47b4519a257dcdfe8130b2827498bfa93994b9bc5e1ff13891bd8d61859e9f6",
-    "Perix-main/backend/routes/mobility.py": "f3b204cc0f8d6c794c14c38fb03dc49b9639223c1ccbc2b74628bd2cd69b450f",
+    "Perix-main/backend/routes/mobility.py": "86de6db951f0dd29c19ab560e3d0b36a3d20a61d94ab32e800c5343f7d31c7e8",
     "Perix-main/backend/routes/music.py": "74916a9d8638d33e00e8498aebd910e6092445766d72ab1eaa409db7a7d66fcd",
     "Perix-main/backend/routes/mux.py": "aed83a4582c3c6f5c463238b0314ef9a3c6281f14ade5b6710efff6e04292737",
     "Perix-main/backend/routes/mux_proxy.py": "f4d77bf6ad99da4a8a229eb61fe9bfbbe751c116837ddaf730b0f28530732b61",
@@ -291,7 +291,8 @@
     "Perix-main/backend/tests/test_booking_web_push_tasks.py": "90b79e439f6527a6f4f1bbd3e6047f89543fb0abd5e3523068eb39fb7ba4880c",
     "Perix-main/backend/tests/test_mobility_reference_clock.py": "06118ad23f7dcd9f807e48177c36100ef6685f72183c421c452a7ddb02217a79",
     "Perix-main/backend/tests/test_mobility_source_initialization.py": "b4d64af2ead757f5563bc2addd33b6499b66ecd07d88fcd91b72f3d59aefed97",
-    "Perix-main/backend/tests/test_publication_handover.py": "6e72c98d0ab7ffea5111e5caf6eccdcc59a8cdcd8456247b3a6b4450332b72f2"
+    "Perix-main/backend/tests/test_publication_handover.py": "6e72c98d0ab7ffea5111e5caf6eccdcc59a8cdcd8456247b3a6b4450332b72f2",
+    "Perix-main/backend/tests/test_station_reforecast_gate.py": "80e4467a6164c95c4024209f239f56b7e3a16918f6aaf15c73f4054d8ce94607"
   },
   "backend_cases_per_mode": 467,
   "db_cases_deselected_in_these_runs": 2,
@@ -357,5 +358,12 @@
     "staging_expired_previews_at_send": 0,
     "actual_locator_render_callbacks_checked": 77,
     "actual_locator_maximum_canonical_error_m": 0
+  },
+  "station_gate": {
+    "base_commit": "fce37c10c3e71e841e302d22e2ce3c67adaad4cd",
+    "backend_cases_per_mode": 558,
+    "frontend_cases": 81,
+    "hold_at_station_until_new_relevant_forecast": true,
+    "production_validation": "PENDING"
   }
 }

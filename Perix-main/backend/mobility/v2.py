@@ -1467,6 +1467,7 @@ def _refresh_estimated_publications(vehicles, now_local):
                 'leg_to_stop_id':sample.get('leg_to_stop_id'),
                 'next_timeline_index':index,'preview':sample['motion_preview'],
                 'publication_resampled':True,'publication_status':'READY','publication_pending_reason':None,
+                'station_forecast_pending':sample.get('station_forecast_pending',False),
                 'publication_binding':sample.get('publication_binding'),
                 'publication_revision_replaced':sample.get('motion_plan_revision',vehicle['motion_plan_revision'])!=vehicle['motion_plan_revision']}
         for field in ('delay_delta_s','scheduled_duration_s','predicted_leg_duration_s',

@@ -381,6 +381,7 @@ async def _build_trip_plan(
     source_anchor_index: Optional[int] = None,
     modeled_station_dwell_s: Optional[float] = None,
     handover_trajectory: Optional[dict] = None,
+    station_release_index: Optional[int] = None,
 ) -> Optional[dict]:
     region = get_active_region()
     config = motion_config_for(mode, region)
@@ -491,7 +492,7 @@ async def _build_trip_plan(
         )
     traffic_by_edge = traffic_snapshot.get("by_edge") or {}
     traffic_fingerprint=hashlib.sha256(json.dumps(traffic_by_edge,sort_keys=True,default=str).encode()).hexdigest()
-    if (spatial_enabled and previous_plan and previous_plan.get('spatial_origin_index')==int(anchors[loop_start]['timeline_index'])
+    if (station_release_index is None and spatial_enabled and previous_plan and previous_plan.get('spatial_origin_index')==int(anchors[loop_start]['timeline_index'])
             and float(previous_plan.get('modeled_station_dwell_s',0.0))==modeled_dwell
             and previous_plan.get('spatial_traffic_fingerprint')==traffic_fingerprint
             and _timeline_signature(_source_timeline(previous_plan['effective_timeline']))==_timeline_signature(timeline)):
@@ -549,6 +550,10 @@ async def _build_trip_plan(
             and current_entry.get('provider_predicted_departure_s') is None else 0.0)
         if history_leg is not None and index == history_leg and now_service_s is not None:
             predicted_departure = max(predicted_departure, float(now_service_s))
+        if station_release_index==int(current['timeline_index']) and now_service_s is not None:
+            # Only a new post-arrival forecast authorizes this decision. Start
+            # again HERE, from rest and NOW, never from an expired departure.
+            predicted_departure=max(predicted_departure,float(now_service_s))
         if is_handover_leg:
             effective_departure = float(
                 now_service_s
@@ -857,7 +862,59 @@ async def _build_trip_plan(
     }
     plan["effective_timeline"] = effective_timeline_from_plan(timeline, plan, previous_plan)
     plan['modeled_station_dwell_s']=modeled_dwell
+    plan['station_departure_authorized_index']=(station_release_index if station_release_index is not None
+        else (previous_plan or {}).get('station_departure_authorized_index'))
     return plan
+
+
+def _station_forecast_key(timeline,index):
+    nxt=next((i for i in range(index+1,len(timeline)) if timeline[i].get('relationship')!='SKIPPED'),None)
+    if nxt is None:return None
+    current,following=timeline[index],timeline[nxt]
+    return (current.get('stop_id'),current.get('stop_sequence'),current['predicted_departure'],
+        current.get('provider_predicted_departure_s'),current.get('departure_timing_basis'),
+        following.get('stop_id'),following.get('stop_sequence'),following['predicted_arrival'],
+        following.get('provider_predicted_arrival_s'),following.get('timing_basis'))
+
+
+def _station_gate(plan,now_s):
+    gate=plan.get('station_reforecast_gate')
+    return gate if gate and now_s>=gate['arrival_s'] else None
+
+
+def _new_station_forecast(gate,timeline,source_epoch):
+    from mobility.timing_evidence import REALTIME_BASES
+    index=gate['timeline_index']
+    if not 0<=index<len(timeline) or timeline[index].get('relationship') in ('SKIPPED','NO_DATA'):
+        return False
+    key=_station_forecast_key(timeline,index)
+    if not key or key[:2]!=gate['source_key'][:2]:return False
+    relevant=key[4] in REALTIME_BASES or key[9] in REALTIME_BASES
+    if not relevant:return False
+    newer_clock=(isinstance(source_epoch,(int,float)) and source_epoch>=gate['arrival_epoch']
+        and source_epoch>float(gate.get('source_epoch') or 0))
+    if source_epoch is not None and not newer_clock:return False
+    # A repeated feed/old origin observation is not a new stop forecast. Same
+    # values can confirm departure only with a newer relevant provider clock.
+    return key!=gate['source_key'] or (newer_clock and (key[3] is not None or key[8] is not None))
+
+
+def _arm_station_gate(plan,timeline,path,now_s,now_local,source_epoch):
+    if 'station_reforecast_gate' in plan:return plan
+    authorized=plan.get('station_departure_authorized_index')
+    active=next((s for s in plan['segments'] if s['kind']=='DWELL' and s['t0']<=now_s<=s['t1']
+        and int(s['timeline_index'])>0 and s['timeline_index']!=authorized),None)
+    if active:
+        index,arrival=int(active['timeline_index']),float(active['t0'])
+    else:
+        active=next((s for s in plan['segments'] if s['kind']=='MOVE' and s['t1']>=now_s),None)
+        if not active:return {**plan,'station_reforecast_gate':None}
+        index,arrival=int(active['next_timeline_index']),float(active['t1'])
+    key=_station_forecast_key(timeline,index)
+    gate=({'timeline_index':index,'arrival_s':arrival,'arrival_epoch':now_local.timestamp()+arrival-now_s,
+        'progress_m':float(path['stop_progress'][index]),
+        'source_key':key,'source_epoch':source_epoch} if key else None)
+    return {**plan,'station_reforecast_gate':gate}
 
 
 def _sample_trip_plan(
@@ -869,6 +926,11 @@ def _sample_trip_plan(
     segments = plan.get("segments") or []
     if not segments:
         return {}
+    gate=_station_gate(plan,float(now_sec))
+    if gate:
+        return {'progress_m':gate['progress_m'],'speed_kmh':0.0,'motion_state':'DWELL',
+                'next_timeline_index':gate['timeline_index'],'fit':'STATION_REFORECAST_HOLD',
+                'station_forecast_pending':True}
 
     now_value = float(now_sec)
     # At a handover's exact t0, sample the partial trajectory's actual start;
@@ -1040,6 +1102,8 @@ def _motion_preview(plan, now_s, now_local, path, revision, journey_id, progress
     """Export <=8s of the existing legal trajectory, not another prediction."""
     if os.getenv("MOBILITY_MOTION_PREVIEW_ENABLED", "false").lower() != "true":
         return None
+    if _station_gate(plan,float(now_s)):
+        return None  # Stationary authoritative hold; never export the old departure.
     from mobility.service_clock import service_seconds
     day = path.get("service_date")
     if not day or now_local.tzinfo is None:
@@ -1228,6 +1292,8 @@ async def _position_for_trip_locked(
     include_failure_reason: bool = False,
     initial_sync: bool = False,
     reference_clock=None,
+    require_station_reforecast: bool = False,
+    source_update_epoch=None,
 ) -> Optional[dict]:
     """Return physics progress, or an optional explainable legacy-fallback reason."""
     if reference_clock is not None:
@@ -1284,7 +1350,20 @@ async def _position_for_trip_locked(
     old_progress = None
     from mobility.motion.source_reconciliation import estimate_revision, source_frontier_conflict, source_start_index, MODEL_EPOCH
     revision_token = estimate_revision(identity)
-    if initial_sync and os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true':
+    station_release_index=None
+    station_prior=next((v for v in reversed(list(_PLAN_CACHE.values())) if v.get('identity')==identity
+        and 0<=now_mono-v.get('cached_at',0)<=90),None) if require_station_reforecast else None
+    station_wait=_station_gate(station_prior['plan'],float(now_sec)) if station_prior else None
+    if station_wait:
+        if _new_station_forecast(station_wait,timeline,source_update_epoch):
+            station_release_index=station_wait['timeline_index']
+            cached=None
+        else:
+            # Renew only the stationary publication, not source timestamps or
+            # its original arrival. Reload/100 m initialization cannot bypass it.
+            cached={**station_prior,'cached_at':now_mono}
+            _PLAN_CACHE[key]=cached
+    if initial_sync and not station_wait and os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true':
         prior=next((v for v in reversed(list(_PLAN_CACHE.values())) if v.get('identity')==identity
                     and 0<=now_mono-v.get('cached_at',0)<=90),None)
         fresh=await _initial_source_plan(trip_id=str(trip_id),mode=str(mode),version_id=str(version_id),
@@ -1341,7 +1420,11 @@ async def _position_for_trip_locked(
                     previous_source = prior.get("source_timeline") or _source_timeline(candidate["effective_timeline"])
                     source_correction = source_frontier_conflict(previous_source, timeline,
                         path.get("stop_progress") or [], old_progress, float(now_sec))
-                    if source_correction:
+                    if station_release_index is not None:
+                        source_correction=None
+                        previous_plan=candidate
+                        history_index=station_release_index
+                    elif source_correction:
                         previous_state = None
                         reconciled_now = True
                         revision_token = estimate_revision(identity, timeline_signature)
@@ -1368,6 +1451,7 @@ async def _position_for_trip_locked(
             history_index=history_index,
             source_anchor_index=source_start_index(timeline, now_sec) if previous_plan is None and handover_anchor is None else None,
             modeled_station_dwell_s=10.0 if initial_sync and os.getenv('MOBILITY_SPATIAL_SLOWDOWN_ENABLED','false').lower()=='true' else None,
+            station_release_index=station_release_index,
         )
         if not plan:
             if include_failure_reason:
@@ -1423,6 +1507,9 @@ async def _position_for_trip_locked(
                 e["predicted_arrival"], e["predicted_departure"], e.get("timing_basis"),
                 e.get("timing_anchor_stop_id"), e.get("timing_anchor_delay_seconds")] for e in timeline]})
 
+    if require_station_reforecast:
+        plan=_arm_station_gate(plan,timeline,path,float(now_sec),now_local,source_update_epoch)
+        _PLAN_CACHE[key]['plan']=plan
     # A refresh produces a new revision; every consumer receives clocks from it.
     cached_at = _PLAN_CACHE[key]["cached_at"]
     revision = hashlib.sha256(repr((key, cached_at, revision_token)).encode()).hexdigest()[:20]
