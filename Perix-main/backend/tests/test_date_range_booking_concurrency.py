@@ -2,13 +2,17 @@
 import sys, os, pytest, asyncio
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from datetime import timedelta
+from datetime import date as calendar_date, timedelta
 import database
 from services.date_range_booking import (
     build_stay_quote, create_date_range_booking, confirm_date_range_booking,
 )
 from models.service import BookingCreate
 from utils.helpers import generate_id, now_utc
+
+
+def _d(offset: int) -> str:
+    return (calendar_date.today() + timedelta(days=offset)).isoformat()
 
 
 @pytest.fixture
@@ -19,8 +23,8 @@ async def hotel_service_single(test_db):
         "root_category": "local-hotels", "name": "Single Room Hotel", "price": "100.00",
         "currency": "EUR", "inventory_count": 1, "max_guests": 2, "max_adults": 2,
         "max_children": 0, "check_in_time": "15:00", "check_out_time": "11:00",
-        "min_nights": 1, "max_nights": 30, "available_from": "2026-01-01",
-        "available_until": "2027-12-31", "is_active": True, "status": "published",
+        "min_nights": 1, "max_nights": 30, "available_from": _d(0),
+        "available_until": _d(365), "is_active": True, "status": "published",
         "created_at": now_utc(),
     }
     await database.db.services.insert_one(doc)
@@ -38,8 +42,8 @@ async def hotel_service_multi(test_db):
         "root_category": "local-hotels", "name": "Multi Room Hotel", "price": "100.00",
         "currency": "EUR", "inventory_count": 5, "max_guests": 2, "max_adults": 2,
         "max_children": 1, "check_in_time": "15:00", "check_out_time": "11:00",
-        "min_nights": 1, "max_nights": 30, "available_from": "2026-01-01",
-        "available_until": "2027-12-31", "is_active": True, "status": "published",
+        "min_nights": 1, "max_nights": 30, "available_from": _d(0),
+        "available_until": _d(365), "is_active": True, "status": "published",
         "created_at": now_utc(),
     }
     await database.db.services.insert_one(doc)
@@ -49,9 +53,11 @@ async def hotel_service_multi(test_db):
     await database.db.service_date_blocks.delete_many({"service_id": svc_id})
 
 
-def make_booking(service_id: str, client_id: str, date="2026-10-01"):
+def make_booking(service_id: str, client_id: str, date=None):
+    check_in = date or _d(7)
+    check_out = (calendar_date.fromisoformat(check_in) + timedelta(days=3)).isoformat()
     return BookingCreate(
-        service_id=service_id, date=date, end_date="2026-10-04",
+        service_id=service_id, date=check_in, end_date=check_out,
         client_name=f"Guest {client_id}", room_count=1, adults=1, children=0)
 
 
@@ -106,11 +112,12 @@ async def test_double_confirm_only_one_succeeds(hotel_service_single):
 @pytest.mark.asyncio
 async def test_booking_vs_block_race(hotel_service_single):
     svc = hotel_service_single
+    check_in, check_out = _d(14), _d(17)
 
     async def do_book():
         try:
             return await create_date_range_booking(
-                make_booking(svc["service_id"], "a", "2026-11-01"), service=svc, business_id="test-biz-rc", client_id="a")
+                make_booking(svc["service_id"], "a", check_in), service=svc, business_id="test-biz-rc", client_id="a")
         except Exception as e:
             return {"error": str(e)}
 
@@ -118,7 +125,7 @@ async def test_booking_vs_block_race(hotel_service_single):
         try:
             from services.date_range_booking import create_service_date_block
             return await create_service_date_block(
-                svc["service_id"], start_date="2026-11-01", end_date="2026-11-04", blocked_units=1)
+                svc["service_id"], start_date=check_in, end_date=check_out, blocked_units=1)
         except Exception as e:
             return {"error": str(e)}
 

@@ -120,7 +120,7 @@
     "Perix-main/backend/routes/posts.py": "0d9204cb1a4f9f5ccd0c99b0d877fdabf9a581dd28cbc867ffde4426011d8bfa",
     "Perix-main/backend/routes/preview.py": "32996252a6b749d15b9c07c8011217d65e525fe5e6d4b5c6ca1c426b4e91766d",
     "Perix-main/backend/routes/profiles.py": "94bfb51552feee6f92d852a79da27a8256ea0374a2708132a0a40fd6f5bc6ba7",
-    "Perix-main/backend/routes/push_web.py": "27f9c27042c4f73d3ec616fab5e27237a9a454683dfe35d996c78460715e1378",
+    "Perix-main/backend/routes/push_web.py": "6e423160aa9ffda0c4f205e77cf2d6f7064ec54750df2fc66904f7f14a764628",
     "Perix-main/backend/routes/rentals.py": "bb908b8832e044e2d0a89e439829a766dceae7eece236db3bf19548066300d50",
     "Perix-main/backend/routes/reports.py": "36a6649a69c9e014837791456c144a98582f5bcc0f446665f95e93d8adaac72b",
     "Perix-main/backend/routes/saved.py": "5de6b75f96f26b69c57c2db43b839ec9a92bcbce92799dd7ebc0ad6f66002e9f",
@@ -189,8 +189,8 @@
     "Perix-main/backend/tests/test_calls_subscriptions_messages.py": "3b0b48b299790e15c95a8f6048a95638a41bb1e0ede86c9db9374413c1b4a21f",
     "Perix-main/backend/tests/test_chunked_upload_and_calls.py": "9cf776e3041c112545b97f5e99bac66bb97774cb1fdbf4d4155c5bde8f976f87",
     "Perix-main/backend/tests/test_daily_network_recovery.py": "367d82134bdb87f994d28dda2de04cd9d92097160aff8d52cdd757a77700d962",
-    "Perix-main/backend/tests/test_date_range_booking.py": "723f47e39b09175068617e2688805a243219bf81c554d69bc74053ac85f03764",
-    "Perix-main/backend/tests/test_date_range_booking_concurrency.py": "88e1455a186736a8f551306aaf0550982b7ca692ee622d4aa276862d5ab90984",
+    "Perix-main/backend/tests/test_date_range_booking.py": "71c112000059420d1062f3525dfe6ca9322f2c279c6dcfdfd69e0119b5e8d61a",
+    "Perix-main/backend/tests/test_date_range_booking_concurrency.py": "31a27fae9a5eb283e5d8f5742a019cb52218214ab421b01ddb534546b2cd6b43",
     "Perix-main/backend/tests/test_date_range_utils.py": "c4bb15ee0216db821029a91af949774041dedb44ed950147a7d174f981147a95",
     "Perix-main/backend/tests/test_delete_profiles.py": "4ef1c4d8fde163d5dc62dff39ae225cf5785854df8da1733d70d0ee54572058a",
     "Perix-main/backend/tests/test_deletion_resolution.py": "27329835066d0efe31d9ac65c7694772796d5d6c1593ba505a1913d03acb54ca",
@@ -287,9 +287,21 @@
     "Perix-main/backend/tests/test_spatial_slowdown.py": "fc42a352f2ad580fbd1513b47a4eec64754bd2253a41dc6c224d5a7a39817bbf",
     "Perix-main/backend/tests/test_obstacle_eta_cases.py": "b9cf776c83c1dd905bbca749f5c4e0dc7bcdd0db600b93e9116f9a03b55445ce",
     "Perix-main/backend/tests/test_publication_sampling.py": "4d4492a76e9e47daaedafaf8368498b2f9ee856b495813a2967bb84d55f7daac",
-    "Perix-main/backend/tests/test_mobility_motion_caps_sweep.py": "674563409d2b6b5aad66daff90438347c2c5cb2e8dede4ef1db7665b70ae0e03"
+    "Perix-main/backend/tests/test_mobility_motion_caps_sweep.py": "674563409d2b6b5aad66daff90438347c2c5cb2e8dede4ef1db7665b70ae0e03",
+    "Perix-main/backend/tests/test_booking_web_push_tasks.py": "90b79e439f6527a6f4f1bbd3e6047f89543fb0abd5e3523068eb39fb7ba4880c"
   },
   "backend_cases_per_mode": 467,
   "db_cases_deselected_in_these_runs": 2,
-  "source_clocks_are_live_marker_position_is_modeled": true
+  "source_clocks_are_live_marker_position_is_modeled": true,
+  "approved_ci_additional_changes": {
+    "explicit_user_approval": true,
+    "paths": [
+      "routes/push_web.py",
+      "tests/test_date_range_booking.py",
+      "tests/test_date_range_booking_concurrency.py",
+      "tests/test_booking_web_push_tasks.py"
+    ],
+    "booking_assertions_and_exception_expectations_unchanged": true,
+    "motion_component_bytes_unchanged_from_validated_v6": true
+  }
 }

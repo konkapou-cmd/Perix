@@ -39,8 +39,8 @@ async def hotel_service(test_db):
         "check_out_time": "11:00",
         "min_nights": 1,
         "max_nights": 30,
-        "available_from": "2026-01-01",
-        "available_until": "2027-12-31",
+        "available_from": _d(0),
+        "available_until": _d(365),
         "is_active": True,
         "status": "published",
         "created_at": now_utc(),
@@ -96,7 +96,7 @@ async def test_max_nights_rejected(hotel_service):
 
 @pytest.mark.asyncio
 async def test_outside_window_rejected(hotel_service):
-    hotel_service["available_from"] = "2026-10-01"
+    hotel_service["available_from"] = _d(30)
     with pytest.raises(Exception):
         await build_stay_quote(
             hotel_service,

@@ -295,5 +295,7 @@ async def notify_booking_web_push(
                 data={"type": "booking"},
             )
         )
-    if tasks:
-        asyncio.create_task(asyncio.gather(*tasks))
+    for task in tasks:
+        # create_task accepts a coroutine, not gather's already-created Future.
+        # Each sender is best-effort and remains non-blocking for the booking.
+        asyncio.create_task(task)

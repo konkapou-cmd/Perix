@@ -66,6 +66,19 @@ a service-latency guarantee or a real-world positional-accuracy claim.
 
 ## Operations and boundaries
 
+### Approved release-blocking CI fixes
+
+The first normal main deployment was skipped because CI did not install
+`pytest`. The workflow now installs the same pinned pytest/pytest-asyncio used
+for validation. Running the unchanged required suite then exposed expired
+hotel test dates and an existing `create_task(gather(...))` error in booking
+web-push scheduling. With explicit user approval, fixtures now use relative
+future dates (including a genuine overlapping booking/block window), and push
+delivery schedules each existing coroutine directly. Original assertions and
+exception expectations were retained; four offline push-task regressions were
+added. Booking business rules, required CI targets and blocking checks are not
+weakened. No real push is sent by these tests.
+
 Production uses the existing GitHub repository `konkapou-cmd/Perix`, branch
 `main`, service `94882f6a-8179-43bc-bdf5-73eb1de4a059`, root `/Perix-main`.
 No production CLI archive upload, forced GTFS activation, provider/billing
