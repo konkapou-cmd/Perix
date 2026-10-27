@@ -1,0 +1,17 @@
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.env
+**/.env.*
+**/.git
+deployed-*.zip
+candidate-*.zip
+*.patch
+capture_*.py
+prepare_validation.py
+remote_validation.py
+review_candidate.py
+baseline-manifest.json
+validation.json
+candidate-manifest.json
+RELEASE_NOTES.md

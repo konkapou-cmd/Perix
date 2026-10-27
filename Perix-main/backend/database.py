@@ -292,6 +292,11 @@ async def create_indexes():
         unique=True,
     )
     await _safe_create_index(
+        db.mobility_trip_realtime_journeys,
+        [(key, 1) for key in ("region_id", "network_id", "network_version_id", "service_date", "trip_id")],
+        unique=True,
+    )
+    await _safe_create_index(
         db.mobility_service_alerts,
         [("region_id", 1), ("network_id", 1), ("updated_at", -1)],
     )

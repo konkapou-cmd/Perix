@@ -356,6 +356,7 @@ def summarize_vehicle_motion(vehicles: list[dict]) -> dict:
     estimated = 0
     physics = 0
     fallback = 0
+    constrained_fallback = 0
     handover_applied = 0
     continuity_guard_count = 0
     backward_prevented = []
@@ -366,7 +367,7 @@ def summarize_vehicle_motion(vehicles: list[dict]) -> dict:
         motion = vehicle.get("motion") or {}
         model = motion.get("model")
         quality = str(motion.get("quality") or "")
-        if model:
+        if model and quality != "TIMELINE_CONSTRAINED_FALLBACK":
             physics += 1
             models[str(model)] += 1
             if motion.get("state"):
@@ -410,6 +411,9 @@ def summarize_vehicle_motion(vehicles: list[dict]) -> dict:
         elif quality == "LEGACY_FALLBACK":
             fallback += 1
             fallback_reasons[str(motion.get("fallback_reason") or "UNKNOWN")] += 1
+        elif quality == "TIMELINE_CONSTRAINED_FALLBACK":
+            constrained_fallback += 1
+            fallback_reasons[str(motion.get("fallback_reason") or "UNKNOWN")] += 1
 
     limited.sort(
         key=lambda item: float(item["arrival_target_error_s"]),
@@ -422,6 +426,7 @@ def summarize_vehicle_motion(vehicles: list[dict]) -> dict:
         "estimated_vehicles": estimated,
         "physics_vehicles": physics,
         "legacy_fallback_vehicles": fallback,
+        "constrained_fallback_vehicles": constrained_fallback,
         "physics_coverage_ratio": round(
             physics / max(1, estimated),
             4,

@@ -6,6 +6,10 @@ sources (own GPS boxes, phone trackers, manual networks) can be added
 without touching the client.
 """
 from typing import Optional
+import asyncio
+from copy import deepcopy
+import json
+import hashlib
 
 from fastapi import APIRouter, Depends
 
@@ -15,14 +19,17 @@ from models.user import UserPublic
 from routes.dependencies import get_current_user_optional
 
 router = APIRouter(prefix="/mobility/v2", tags=["MobilityV2"])
+_MAP_CACHE = {}
+_MAP_INFLIGHT = {}
 
 
-async def _domain():
+async def _domain(network: Optional[dict] = None):
     from mobility.regions import get_active_region
     from routes.mobility import _get_active_network
 
     region = get_active_region()
-    network = await _get_active_network()
+    if network is None:
+        network = await _get_active_network()
     if not network:
         return None
     overrides = await db.mobility_stop_overrides.find(
@@ -56,7 +63,7 @@ async def v2_patterns(current_user: Optional[UserPublic] = Depends(get_current_u
     return await _patterns_resolved(domain)
 
 
-async def _patterns_resolved(domain: dict) -> list:
+async def _patterns_resolved(domain: dict, *, overlays=None, detour_states=None) -> list:
     """Patterns with one validated geometry authority per runtime mode."""
     from mobility.generations import (
         atomic_generations_enabled,
@@ -69,7 +76,8 @@ async def _patterns_resolved(domain: dict) -> list:
     for stop in domain.get("stops", []):
         for p in stop.get("platforms", []):
             platforms_by_id[str(p.get("platform_id"))] = p
-    overlays = await get_overlays()
+    if overlays is None:
+        overlays = await get_overlays()
     version_id = str(domain.get("network", {}).get("version_id") or "")
 
     generation_meta = {}
@@ -102,6 +110,18 @@ async def _patterns_resolved(domain: dict) -> list:
                 str(doc.get("pattern_id")), []
             ).append(doc)
 
+    from mobility.detour_guard import detour_states_for_domain
+
+    if detour_states is None:
+        detour_states = await detour_states_for_domain(domain)
+    return await asyncio.to_thread(_resolve_patterns, domain, platforms_by_id, overlays,
+        roads_by_pattern, rails_by_pattern, segments_by_pattern, generation_meta, detour_states, version_id)
+
+
+def _resolve_patterns(domain, platforms_by_id, overlays, roads_by_pattern, rails_by_pattern,
+                      segments_by_pattern, generation_meta, detour_states, version_id):
+    from mobility.generations import geometry_fingerprint
+    from mobility.graph import resolve_pattern_geometry
     out = []
     for pat in domain.get("patterns", []):
         pid = str(pat.get("pattern_id") or "")
@@ -113,6 +133,12 @@ async def _patterns_resolved(domain: dict) -> list:
             rails_by_pattern,
             segments_by_pattern.get(pid),
         )
+        gate = detour_states.get(pid) or {"safe": True, "status": "NO_VERIFIED_CLOSURE"}
+        if not gate["safe"]:
+            # Fail closed: a retained last-known-good shape can cross an
+            # active closure or represent a diversion whose period expired.
+            resolved = {**resolved, "points": [], "valid": False, "render": False}
+        resolved["detour_status"] = gate["status"]
         if (
             resolved.get("valid")
             and resolved.get("render")
@@ -328,10 +354,83 @@ async def v2_diagnostic_patterns(
 async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     """The stable map payload the Locator consumes: resolved lines
     (validated geometry + source + per-line stops) and physical stops."""
-    domain = await _domain()
+    from routes.mobility import networks_for_journey_window, _berlin_now, _network_service_date
+    from mobility.service_clock import _static_service_date
+    from mobility.regions import get_active_region
+    today = _static_service_date(_berlin_now(), get_active_region().timezone)
+    lines, stops, warnings = [], {}, []
+    for network in await networks_for_journey_window():
+        domain = await _domain(network=network)
+        if not domain:
+            continue
+        if _network_service_date(network) != today:
+            from routes.mobility import _now_service_seconds, _predicted_stop_timeline, _realtime_delays_for
+            from mobility.domain import _pattern_id, _pattern_key
+            ids = [t["trip_id"] for r in network.get("routes", []) for t in r.get("trips", []) if t.get("trip_id")]
+            rt = await _realtime_delays_for(ids, network=network)
+            clock = _now_service_seconds(_network_service_date(network))
+            active_patterns = set()
+            for route in network.get("routes", []):
+                for trip in route.get("trips", []):
+                    timeline = _predicted_stop_timeline(route, trip, rt.get(str(trip.get("trip_id"))))
+                    if timeline and timeline[0]["predicted_arrival"] - 60 <= clock <= timeline[-1]["predicted_departure"] + 60:
+                        active_patterns.add(_pattern_id(str(route.get("route_number")), _pattern_key(trip)))
+            domain = {**domain, "patterns": [p for p in domain["patterns"] if p["pattern_id"] in active_patterns]}
+            if not domain["patterns"]:
+                continue
+        result = await _map_dated(domain)
+        for line in result["lines"]:
+            line.update(network_version_id=network.get("version_id"), service_date=_network_service_date(network))
+        lines.extend(result["lines"])
+        for stop in result["stops"]:
+            stops.setdefault(stop["stop_id"], stop)
+        warnings.extend(result["diversion_warnings"])
+    return {"lines": lines, "stops": list(stops.values()), "diversion_warnings": warnings[:100]}
+
+
+async def _map_dated(domain):
+    """Reuse static rendering only after checking current safety/geometry inputs."""
+    if not domain:
+        return {"lines": [], "stops": [], "diversion_warnings": []}
+    from mobility.generations import atomic_generations_enabled
+    from mobility.detour_guard import detour_states_for_domain
+    from mobility.graph import get_overlays
+    from mobility.osm_store import active_version
+    net = domain["network"]
+    # Legacy geometry lacks an atomic generation identity: do not cache it.
+    if not atomic_generations_enabled():
+        return await _build_map_dated(domain)
+    scope = {"region_id": net["region_id"], "network_id": net["network_id"], "version_id": net["version_id"]}
+    generations, overlays, gates, snapshot = await asyncio.gather(
+        db.mobility_pattern_generations.find(scope, {"_id": 0, "pattern_id": 1,
+            "generation_id": 1, "ready": 1, "osm_snapshot_v": 1,
+            "geometry.geometry_fingerprint": 1, "restriction_fingerprint": 1}).to_list(5000),
+        get_overlays(), detour_states_for_domain(domain), active_version(net["region_id"]))
+    key = hashlib.sha256(json.dumps([net, domain.get("patterns"), domain.get("stops"),
+        sorted(generations, key=lambda g: str(g.get("pattern_id"))), overlays, gates, snapshot],
+        sort_keys=True, default=str).encode()).hexdigest()
+    if key in _MAP_CACHE:
+        return deepcopy(_MAP_CACHE[key])
+    task = _MAP_INFLIGHT.get(key)
+    if task is None:
+        task = asyncio.create_task(_build_map_dated(domain, overlays=overlays, detour_states=gates))
+        _MAP_INFLIGHT[key] = task
+        def finished(done):
+            _MAP_INFLIGHT.pop(key, None)
+            if not done.cancelled() and done.exception() is None:
+                if len(_MAP_CACHE) >= 4:
+                    _MAP_CACHE.pop(next(iter(_MAP_CACHE)))
+                _MAP_CACHE[key] = done.result()
+        task.add_done_callback(finished)
+    return deepcopy(await asyncio.shield(task))
+
+
+async def _build_map_dated(domain, *, overlays=None, detour_states=None):
+    from mobility.approach import path_fingerprint
     if not domain:
         return {"lines": [], "stops": []}
-    patterns = await _patterns_resolved(domain)
+    patterns = await _patterns_resolved(domain, overlays=overlays, detour_states=detour_states)
+    from mobility.display_labels import display_alias
     # stop lookup for per-line stop lists
     stop_by_id = {}
     for stop in domain.get("stops", []):
@@ -359,17 +458,34 @@ async def v2_map(current_user: Optional[UserPublic] = Depends(get_current_user_o
             {
                 "pattern_id": p.get("pattern_id"),
                 "route_number": p.get("route_number"),
+                **(display_alias(
+                    p.get("pattern_id"), p.get("route_number"), p.get("mode"),
+                    p.get("stop_ids") or [], domain['network'].get('service_date'),
+                    domain['network'].get('region_id'), domain['network'].get('network_id'),
+                ) or {}),
                 "mode": p.get("mode"),
                 "direction": p.get("direction"),
                 "points": [{"latitude": pt[0], "longitude": pt[1]} for pt in points],
+                "approach_geometry_fingerprint": path_fingerprint(points),
                 "source": g.get("source"),
                 "valid": g.get("valid"),
                 "max_platform_distance_m": g.get("max_platform_distance_m"),
                 "stops": line_stops,
             }
         )
-    stops = _stops_with_sides(domain.get("stops", []), lines)
-    return {"lines": lines, "stops": stops}
+    stops = await asyncio.to_thread(_stops_with_sides, deepcopy(domain.get("stops", [])), lines)
+    warning_states = {"NO_VERIFIED_CLOSURE", "VERIFIED_DETOUR_READY"}
+    diversion_warnings = [
+        {"route_number": p.get("route_number"), "mode": p.get("mode"),
+         "direction": p.get("direction"),
+         "status": (p.get("geometry") or {}).get("detour_status")}
+        for p in patterns
+        if (p.get("geometry") or {}).get("detour_status") not in warning_states
+    ]
+    from mobility.service_notices import notices_for_domain
+    diversion_warnings.extend(notices_for_domain(domain).values())
+    return {"lines": lines, "stops": stops,
+            "diversion_warnings": diversion_warnings[:100]}
 
 
 def _side_of_road(points: list, lat: float, lng: float) -> Optional[str]:
@@ -454,6 +570,8 @@ async def v2_create_overlay(payload: dict, current_user: UserPublic = Depends(ge
         await _require_operator(current_user)
     except HTTPException:
         raise
+    if (payload or {}).get("verified") and not bool(getattr(current_user, "is_admin", False)):
+        raise HTTPException(status_code=403, detail="Admin verification required for graph overlays")
     try:
         return await create_overlay(payload or {})
     except ValueError as e:
@@ -469,12 +587,13 @@ async def v2_stops(current_user: Optional[UserPublic] = Depends(get_current_user
 
 
 @router.get("/stops/{stop_id}/arrivals")
-async def v2_stop_arrivals(stop_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
+async def v2_stop_arrivals(stop_id: str, current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+                          platform_id: Optional[str] = None):
     """Unified arrivals for a physical stop: LIVE GPS, realtime and
     schedule arrivals from one engine, honoring canceled/skipped."""
     from mobility.arrivals import unified_arrivals
 
-    return await unified_arrivals(stop_id)
+    return await unified_arrivals(stop_id, platform_id=platform_id)
 
 
 @router.get("/plan")
@@ -495,14 +614,77 @@ async def v2_plan(
 async def v2_alerts(current_user: Optional[UserPublic] = Depends(get_current_user_optional)):
     """GTFS-RT ServiceAlerts (Störung / Umleitung / Sperrung / Halt entfällt)
     imported from the realtime feed."""
+    from datetime import datetime, timezone
+    from mobility.alert_scope import visible_scoped_alert
     from mobility.regions import get_active_region
 
     region = get_active_region()
+    from routes.mobility import _get_active_network
+    active = await _get_active_network()
+    version_id = str((active or {}).get('version_id') or '')
+    if not version_id:
+        return []
     docs = await db.mobility_service_alerts.find(
+        {"region_id": region.region_id, "network_id": region.network_id,
+         "network_version_id": version_id, "scope_verified": True},
+        {"_id": 0},
+    ).sort("updated_at", -1).to_list(250)
+    now_epoch = int(datetime.now(timezone.utc).timestamp())
+    # Public alerts are informational only. Verified graph closures are separate.
+    return [doc for doc in docs if visible_scoped_alert(doc, version_id, now_epoch)][:50]
+
+
+
+
+@router.get("/diagnostic/detours")
+async def v2_diagnostic_detours(
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Operator-only snapshot. READY does not attest MVB stop/timetable parity."""
+    from collections import Counter
+    from fastapi import HTTPException
+    from routes.mobility import _require_operator
+    from mobility.detour_guard import detour_states_for_domain
+    from mobility.generations import atomic_generations_enabled
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Operator authentication required")
+    await _require_operator(current_user)
+    domain = await _domain()
+    if not domain:
+        return {"state": "NO_NETWORK", "patterns": [], "status_counts": {}}
+    states = await detour_states_for_domain(domain)
+    patterns = sorted(states.values(), key=lambda s: (s["route_number"], s["direction"], s["pattern_id"]))
+    return {
+        "state": "READY" if all(s["safe"] for s in patterns) else "NEEDS_REVIEW",
+        "atomic_generations_enabled": atomic_generations_enabled(),
+        "status_counts": dict(Counter(s["status"] for s in patterns)),
+        "patterns": patterns,
+    }
+
+
+@router.get("/diagnostic/schedule-revision")
+async def v2_diagnostic_schedule_revision(
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Operator-only audit of GTFS special-service-day candidates.
+
+    A ready audit says the parser/declared manifest passed, NOT that the
+    live operator feed is guaranteed correct or GPS observations agree.
+    """
+    from fastapi import HTTPException
+    from mobility.regions import get_active_region
+    from routes.mobility import _require_operator
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    await _require_operator(current_user)
+    region = get_active_region()
+    audits = await db.mobility_schedule_audits.find(
         {"region_id": region.region_id, "network_id": region.network_id},
         {"_id": 0},
-    ).sort("updated_at", -1).to_list(50)
-    return docs
+    ).sort("audited_at", -1).to_list(15)
+    return {"region_id": region.region_id, "network_id": region.network_id,
+            "audits": audits}
 
 
 @router.get("/diagnostic/region")
@@ -1014,6 +1196,37 @@ async def v2_diagnostic_generations(
     }
 
 
+@router.get("/diagnostic/source-timing")
+async def v2_source_timing(
+    trip_id: Optional[str] = None, service_date: Optional[str] = None,
+    network_version_id: Optional[str] = None, limit: int = 50,
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
+):
+    """Bounded current-worker virtual timing history; never GPS/account data."""
+    from fastapi import HTTPException
+    from datetime import date
+    from mobility.regions import get_active_region
+    from mobility.source_diagnostics import source_events
+    from routes.mobility import _get_active_network, _network_service_date
+    if not 1 <= limit <= 100 or (trip_id and len(trip_id) > 128) or (network_version_id and len(network_version_id) > 128):
+        raise HTTPException(422, "Invalid diagnostic scope/limit")
+    if trip_id and (not service_date or not network_version_id):
+        raise HTTPException(422, "An exact service date and version are required for a trip")
+    if service_date:
+        try:
+            date.fromisoformat(service_date)
+        except ValueError:
+            raise HTTPException(422, "Invalid service date")
+    region = get_active_region()
+    network = await _get_active_network()
+    version = network_version_id or str((network or {}).get("version_id") or "")
+    day = service_date or (_network_service_date(network) if network else None)
+    return {"region_id": region.region_id, "network_id": region.network_id,
+            "version_id": version, "service_date": day,
+            **source_events(region_id=region.region_id, network_id=region.network_id,
+                version_id=version, service_date=day, trip_id=trip_id, limit=limit)}
+
+
 @router.get("/diagnostic/motion/summary")
 async def v2_diagnostic_motion_summary(
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
@@ -1141,18 +1354,58 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
     """Canonical vehicle state: position always carries source/quality, and
     every scheduled vehicle has a stable trip_instance_id. Adding a new
     position source later only changes `source` - never the shape."""
+    from routes.mobility import _all_active_vehicles, networks_for_journey_window, _vehicle_in_network
+    networks = await networks_for_journey_window()
+    vehicles = await _all_active_vehicles(networks=networks)
+    out = []
+    assigned = set()
+    for network in networks:
+        scoped = [v for v in vehicles if _vehicle_in_network(v, network)]
+        assigned.update(str(v.get("vehicle_id")) for v in scoped)
+        out.extend(await _dated_vehicles(network, scoped))
+    # External GPS IDs remain unchanged, without a guessed daily identity.
+    out.extend(await _dated_vehicles(None, [v for v in vehicles
+        if not v.get("estimated") and str(v.get("vehicle_id")) not in assigned]))
+    return out
+
+
+async def _dated_vehicles(network, vehicles):
     from datetime import datetime
 
-    from routes.mobility import _all_active_vehicles
-
-    domain = await _domain()
+    domain = await _domain(network=network) if network else None
     service_date = (domain or {}).get("network", {}).get("service_date")
-    vehicles = await _all_active_vehicles()
+    from mobility.display_labels import display_alias
+    net = (domain or {}).get('network') or {}
+    alias_by_pattern = {
+        str(p['pattern_id']): display_alias(
+            p['pattern_id'], p.get('route_number'), p.get('mode'), p.get('stop_ids') or [],
+            net.get('service_date'), net.get('region_id'), net.get('network_id'))
+        for p in (domain or {}).get('patterns') or [] if p.get('pattern_id')
+    }
+    from mobility.detour_guard import detour_states_for_domain
+    detour_states = await detour_states_for_domain(domain) if domain else {}
+    from mobility.service_notices import notices_for_domain
+    service_notices = notices_for_domain(domain) if domain else {}
     now = datetime.now().astimezone()
     out = []
     for v in vehicles:
         source = str(v.get("position_source") or "VEHICLE_GPS")
         estimated = bool(v.get("estimated"))
+        gate = detour_states.get(str(v.get("pattern_id") or ""), {})
+        # Virtual vehicles are computed from canonical geometry; when a
+        # verified detour has not rebuilt, do not simulate across a closure.
+        if estimated and not v.get("pattern_id"):
+            # Some imported/legacy vehicles lack a pattern assignment. If a
+            # verified closure affects their line and mode, do not guess.
+            if any(
+                not state.get("safe", True)
+                and str(state.get("route_number")) == str(v.get("route_number") or "")
+                and str(state.get("mode")) == str(v.get("mode") or "")
+                for state in detour_states.values()
+            ):
+                continue
+        if estimated and gate and not gate.get("safe", True):
+            continue
         quality = "LIVE" if not estimated else ("REALTIME" if source == "REALTIME_ESTIMATE" else "SCHEDULE")
         age_seconds = 0
         try:
@@ -1206,17 +1459,35 @@ async def v2_vehicles(current_user: Optional[UserPublic] = Depends(get_current_u
                     "accuracy_m": v.get("accuracy_m"),
                     "age_seconds": age_seconds,
                 },
-                "trip_instance_id": f"{NETWORK_ID}:{service_date}:{trip_id}" if trip_id and service_date else None,
+                "trip_instance_id": f"{NETWORK_ID}:{network['version_id']}:{service_date}:{trip_id}" if trip_id and service_date else None,
+                "network_version_id": (network or {}).get("version_id"),
+                "service_date": service_date,
                 "trip_id": trip_id,
+                "trip_selection_basis": v.get("trip_selection_basis"),
+                "run_identity_basis": v.get("run_identity_basis"),
+                "service_notice": service_notices.get(str(v.get("pattern_id") or "")) if estimated else None,
                 "delay_minutes": v.get("delay_minutes") or 0,
                 "estimated": estimated,
                 "next_stop_id": v.get("next_stop_id"),
                 "next_stop_name": v.get("next_stop_name"),
                 "distance_to_next_stop_m": v.get("distance_to_next_stop_m"),
+                "next_stop_eta_seconds": v.get("next_stop_eta_seconds"),
+                "next_stop_predicted_arrival": v.get("next_stop_predicted_arrival"),
+                "source_next_stop_predicted_arrival": v.get("source_next_stop_predicted_arrival"),
+                "prediction_basis": v.get("prediction_basis", "SOURCE_TIMELINE"),
+                "next_stop_eta_source": v.get("next_stop_eta_source"),
+                "motion_plan_revision": v.get("_motion_plan_revision") if estimated else None,
+                "estimate_revision": v.get("estimate_revision") if estimated else None,
+                "timing_evidence": v.get("timing_evidence") if estimated else None,
+                "next_timeline_index": v.get("_motion_next_timeline_index") if estimated else None,
+                "realtime_feed_timestamp": v.get("realtime_feed_timestamp"),
+                "realtime_updated_at": v.get("realtime_updated_at"),
                 "pattern_id": v.get("pattern_id"),
+                **(alias_by_pattern.get(str(v.get('pattern_id'))) or {}),
                 "progress_m": v.get("progress_m"),
                 "position_state": pos_state,
-                "geometry_pending": geom_pending,
+                "geometry_pending": geom_pending or bool(gate and not gate.get("safe", True)),
+                "detour_status": gate.get("status", "NO_VERIFIED_CLOSURE"),
                 "motion": v.get("motion"),
             }
         )

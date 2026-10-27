@@ -120,17 +120,30 @@ async def ingest_telemetry(request: Request, payload: dict = None):
                 _get_active_network,
                 _network_route,
                 _now_service_seconds,
+                _network_service_date,
                 _realtime_delays_for,
             )
 
-            route = await _network_route(str(vehicle.get("route_number")))
+            from routes.mobility import networks_for_journey_window
+            matches = []
+            for dated in await networks_for_journey_window():
+                candidate_route = next((r for r in dated.get("routes", [])
+                    if str(r.get("route_number")) == str(vehicle.get("route_number"))), None)
+                if candidate_route is None:
+                    continue
+                ids = [str(t["trip_id"]) for t in candidate_route.get("trips", []) if t.get("trip_id")]
+                rt = await _realtime_delays_for(ids, network=dated)
+                candidate = assign_trip(candidate_route, vehicle, lat, lng,
+                    _now_service_seconds(_network_service_date(dated)), rt, network=dated)
+                if candidate is not None:
+                    matches.append((dated, candidate_route, candidate))
+            # An ambiguous GPS fix cannot claim either same-ID daily journey.
+            route = None
+            if len(matches) == 1:
+                network, route, trip = matches[0]
             if route:
-                network = await _get_active_network()
-                trip_ids = [str(t.get("trip_id")) for t in route.get("trips", []) if t.get("trip_id")]
-                delays = await _realtime_delays_for(trip_ids)
                 # Canonical pattern geometry ONLY (the exact line the map
                 # draws). No route.shape, no Google fallback for transit.
-                trip = assign_trip(route, vehicle, lat, lng, _now_service_seconds(), delays)
                 if trip is not None:
                     trip_id = str(trip.get("trip_id"))
                     from mobility.domain import _pattern_id as _dom_pattern_id, _pattern_key as _dom_pattern_key
@@ -147,7 +160,7 @@ async def ingest_telemetry(request: Request, payload: dict = None):
                         get_entry,
                     )
 
-                    geometry = get_cached(pat_id) or []
+                    geometry = get_cached(pat_id, str(network.get("version_id") or "")) or []
                     cache_entry = get_entry(
                         pat_id,
                         str((network or {}).get("version_id") or "") or None,
@@ -236,6 +249,8 @@ async def ingest_telemetry(request: Request, payload: dict = None):
             matched_lat, matched_lng = prev["latitude"], prev["longitude"]
             display_heading = prev.get("heading")
             trip_id = trip_id or prev.get("trip_id")
+            network = {"version_id": prev.get("network_version_id"),
+                       "service_date": prev.get("service_date")}
             snapped = bool(prev.get("snapped"))
         else:
             # Hide: record the raw observation for diagnostics only.
@@ -265,7 +280,10 @@ async def ingest_telemetry(request: Request, payload: dict = None):
             return {"ok": True, "observation_id": obs_id_hidden, "source": source, "snapped": False, "hidden": True}
 
     obs_id = f"obs_{uuid.uuid4().hex[:12]}"
+    dated_identity = {"network_version_id": (network or {}).get("version_id"),
+                      "service_date": (network or {}).get("service_date")}
     obs = {
+        **dated_identity,
         "observation_id": obs_id,
         "device_id": device.get("device_id"),
         "vehicle_id": vehicle_id,
@@ -299,6 +317,7 @@ async def ingest_telemetry(request: Request, payload: dict = None):
         {"vehicle_id": vehicle_id},
         {
             "vehicle_id": vehicle_id,
+            **dated_identity,
             "latitude": matched_lat,
             "longitude": matched_lng,
             "raw_latitude": lat,
@@ -323,6 +342,7 @@ async def ingest_telemetry(request: Request, payload: dict = None):
     from routes.mobility import now_utc
 
     live = {
+        **dated_identity,
         "vehicle_id": vehicle_id,
         "business_id": vehicle.get("business_id"),
         "mode": vehicle.get("mode"),

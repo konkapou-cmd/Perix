@@ -7,7 +7,7 @@ and telemetry callers.
 """
 from typing import Dict, List, Optional
 
-_RESOLVED: Dict[str, dict] = {}
+_RESOLVED: Dict[object, dict] = {}
 _VERSION: Optional[str] = None
 _REVISION: int = 0
 
@@ -34,7 +34,8 @@ def set_cached(
 ) -> None:
     if not points or len(points) < 2:
         return
-    _RESOLVED[str(pattern_id)] = {
+    key = (str(pattern_id), str(version_id)) if version_id else str(pattern_id)
+    _RESOLVED[key] = {
         "points": [[float(p[0]), float(p[1])] for p in points],
         "version_id": str(version_id) if version_id else None,
         "generation_id": str(generation_id) if generation_id else None,
@@ -45,10 +46,14 @@ def set_cached(
 
 
 def get_entry(pattern_id: str, version_id: Optional[str] = None) -> Optional[dict]:
-    entry = _RESOLVED.get(str(pattern_id))
+    entry = _RESOLVED.get((str(pattern_id), str(version_id))) if version_id else None
+    if entry is None:
+        entry = _RESOLVED.get(str(pattern_id))
+    if entry is None and not version_id and _VERSION:
+        entry = _RESOLVED.get((str(pattern_id), _VERSION))
     if not entry:
         return None
-    if version_id and entry.get("version_id") not in (None, str(version_id)):
+    if version_id and entry.get("version_id") != str(version_id):
         return None
     return entry
 

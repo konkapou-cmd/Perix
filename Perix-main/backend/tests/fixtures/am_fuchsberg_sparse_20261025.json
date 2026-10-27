@@ -1,0 +1,40 @@
+{
+  "capture_berlin": "2026-10-25T18:12:55+01:00",
+  "network_version_id": "net_7f0605d2409e",
+  "service_date": "2026-10-25",
+  "route": {
+    "route_number": "9",
+    "mode": "tram",
+    "stops": [
+      {"stop_id": "480331", "name": "Südfriedhof", "lat": 52.10699, "lng": 11.620149},
+      {"stop_id": "340825", "name": "Raiffeisenstraße", "lat": 52.109383, "lng": 11.620027},
+      {"stop_id": "639170", "name": "Am Fuchsberg", "lat": 52.11422, "lng": 11.619653},
+      {"stop_id": "89420", "name": "Halberst. Str./Leipz. Str.", "lat": 52.117317, "lng": 11.619689},
+      {"stop_id": "163308", "name": "Hasselbachplatz", "lat": 52.12127, "lng": 11.627505}
+    ]
+  },
+  "trip": {
+    "trip_id": "1221147",
+    "headsign": "Hbf / Willy-Brandt-Platz",
+    "stop_ids": ["480331", "340825", "639170", "89420", "163308"],
+    "stop_times": {"480331": "18:03:00", "340825": "18:04:00", "639170": "18:06:00", "89420": "18:07:00", "163308": "18:10:00"},
+    "stop_times_arrival": {"480331": "18:03:00", "340825": "18:04:00", "639170": "18:06:00", "89420": "18:07:00", "163308": "18:10:00"}
+  },
+  "realtime": {
+    "network_version_id": "net_7f0605d2409e",
+    "service_date": "2026-10-25",
+    "trip_id": "1221147",
+    "source": "GTFS_RT",
+    "delay_seconds": -8,
+    "trip_delay_observed": true,
+    "feed_timestamp": 1792948345,
+    "stop_delays": {"480331": 28, "340825": 27},
+    "stop_predictions": {
+      "480331": {"arrival_epoch": 1792947808, "departure_epoch": 1792947823, "arrival_delay_seconds": 28, "departure_delay_seconds": 43},
+      "340825": {"arrival_epoch": 1792947867, "departure_epoch": 1792947927, "arrival_delay_seconds": 27, "departure_delay_seconds": 87}
+    },
+    "stop_relationships": {"480331": "SCHEDULED", "340825": "SCHEDULED"}
+  },
+  "later_provider_arrival_am_fuchsberg": "2026-10-25T18:07:15+01:00",
+  "caveat": "Reduced five-stop regression from captured source clocks. Not measured GPS or invented original GTFS occurrence sequences."
+}

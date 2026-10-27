@@ -254,9 +254,29 @@ async def driver_location(payload: DriverLocationUpdate):
     # Bus stop tracking: snap to the route, detect passed stops and measure
     # the delay against the imported timetable.
     if vehicle["mode"] == "bus" and live.get("route_number"):
-        route = await _network_route(live["route_number"])
+        from mobility.map_match import assign_trip
+        matches = []
+        for dated in await networks_for_journey_window():
+            candidate_route = next((r for r in dated.get("routes", [])
+                if str(r.get("route_number")) == str(live["route_number"])), None)
+            if candidate_route is None:
+                continue
+            ids = [str(t["trip_id"]) for t in candidate_route.get("trips", []) if t.get("trip_id")]
+            delays = await _realtime_delays_for(ids, network=dated)
+            trip = assign_trip(candidate_route, live, payload.latitude, payload.longitude,
+                _now_service_seconds(_network_service_date(dated)), delays, network=dated)
+            if trip is not None:
+                matches.append((dated, candidate_route, trip, delays))
+        route = None
+        if len(matches) == 1:
+            network, route, trip, delays = matches[0]
+            live.update(trip_id=trip["trip_id"], network_version_id=network["version_id"],
+                        service_date=_network_service_date(network))
         if route:
-            next_stop = _next_stop_on_route(route, payload.latitude, payload.longitude)
+            timeline = _predicted_stop_timeline(route, trip, delays.get(str(trip["trip_id"])))
+            nearest = min(timeline, key=lambda e: _haversine_km(payload.latitude, payload.longitude,
+                e["stop"]["lat"], e["stop"]["lng"]), default=None)
+            next_stop = ({**nearest["stop"], "scheduled": _fmt_service_time(nearest["scheduled"])} if nearest else None)
             if next_stop:
                 live["next_stop_id"] = next_stop.get("stop_id")
                 live["delay_minutes"] = (existing or {}).get("delay_minutes") or 0
@@ -268,9 +288,9 @@ async def driver_location(payload: DriverLocationUpdate):
                 if dist * 1000 < 60:
                     passed = next_stop
                     live["passed_stop_id"] = passed.get("stop_id")
-                    scheduled = _time_to_seconds(passed.get("scheduled", ""))
+                    scheduled = nearest["scheduled"]
                     if scheduled is not None:
-                        now_sec = _now_service_seconds()
+                        now_sec = _now_service_seconds(_network_service_date(network))
                         live["delay_minutes"] = max(0, round((now_sec - scheduled) / 60))
 
     await db.mobility_live.replace_one({"vehicle_id": vehicle["vehicle_id"]}, live, upsert=True)
@@ -331,18 +351,9 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 
 def _time_to_seconds(value: str) -> Optional[int]:
-    """Parse HH:MM into service-day seconds. Hours >= 24 are preserved
-    (GTFS post-midnight times), and times before the service-day boundary
-    (04:00) are shifted to the next day - night lines write 00:xx meaning
-    24:xx, otherwise their stops land a full day off."""
-    try:
-        h, m = str(value).split(":")
-        h = int(h)
-        if h < SERVICE_DAY_START_HOUR:
-            h += 24
-        return h * 3600 + int(m) * 60
-    except Exception:
-        return None
+    """Raw GTFS clock: 00:20 and 24:20 are not interchangeable."""
+    from mobility.realtime_trip_identity import _time_seconds
+    return _time_seconds(value)
 
 
 # GTFS service-day boundary/timezone come from the active mobility region.
@@ -351,14 +362,17 @@ def _time_to_seconds(value: str) -> Optional[int]:
 SERVICE_DAY_START_HOUR = get_active_region().service_day_start_hour
 
 
-def _now_service_seconds() -> int:
-    """Current time expressed in the active region's service-day seconds."""
-    region = get_active_region()
-    now = datetime.now(ZoneInfo(region.timezone))
-    sec = now.hour * 3600 + now.minute * 60 + now.second
-    if now.hour < SERVICE_DAY_START_HOUR:
-        sec += 24 * 3600
-    return sec
+def _network_service_date(network: Optional[dict]) -> str:
+    from mobility.realtime_trip_identity import _service_date
+    day = _service_date(network or {})
+    if not day:
+        raise ValueError("A dated network is required for the GTFS clock")
+    return day
+
+
+def _now_service_seconds(service_date: str) -> int:
+    from mobility.service_clock import service_seconds
+    return service_seconds(_berlin_now(), service_date, get_active_region().timezone)
 
 
 def _berlin_now() -> datetime:
@@ -497,7 +511,6 @@ def _trip_shape(route: dict, trip: dict) -> List[list]:
 
 
 _TRIP_PATH_CACHE: dict = {}
-_DISPLAY_PROGRESS = {"date": None, "trips": {}}
 
 
 def _service_date_key() -> str:
@@ -507,15 +520,15 @@ def _service_date_key() -> str:
     return now.date().isoformat()
 
 
-def _epoch_to_service_seconds(epoch_value) -> Optional[int]:
-    """Convert a GTFS-RT Unix timestamp to active-region service-day seconds."""
+def _epoch_to_service_seconds(epoch_value, service_date: str) -> Optional[int]:
+    """Convert RT onto the same dated local clock as raw scheduled times."""
+    if epoch_value is None:
+        return None
     try:
         tz = ZoneInfo(get_active_region().timezone)
         dt = datetime.fromtimestamp(int(epoch_value), tz)
-        now = _berlin_now()
-        service_date = now.date() if now.hour >= SERVICE_DAY_START_HOUR else (now - timedelta(days=1)).date()
-        base = datetime(service_date.year, service_date.month, service_date.day, tzinfo=tz)
-        return int((dt - base).total_seconds())
+        from mobility.service_clock import service_seconds
+        return service_seconds(dt, service_date, str(tz))
     except Exception:
         return None
 
@@ -529,24 +542,45 @@ def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) 
 
     stop_times_departure = trip.get("stop_times") or {}
     stop_times_arrival = trip.get("stop_times_arrival") or stop_times_departure
-    stop_delays = realtime.get("stop_delays") or {}
-    stop_predictions = realtime.get("stop_predictions") or {}
-    stop_relationships = realtime.get("stop_relationships") or {}
+    from mobility.stop_occurrences import stop_occurrence_times
+    try:
+        visits = stop_occurrence_times(trip)
+    except ValueError:
+        return []
     trip_delay = int(realtime.get("delay_seconds") or 0)
+    # A first StopTimeUpdate is not an explicit trip-wide delay. New worker
+    # rows retain that distinction; legacy rows remain compatible until refresh.
+    derived_trip_delay = realtime.get("trip_delay_kind") == "FIRST_STOP_DERIVED"
+    propagated_delay = 0 if derived_trip_delay else trip_delay
+    propagated_basis = ("TRIP_DELAY" if realtime.get("trip_delay_observed", bool(trip_delay))
+                        and not derived_trip_delay else "SCHEDULE")
+    anchor_stop = None
+    anchor_sequence = None
+    from mobility.timing_evidence import occurrence_counts, stop_evidence
 
     timeline: List[dict] = []
-    previous_departure = None
+    previous_scheduled_departure = None
 
-    for stop in _trip_stops(route, trip):
+    ordered_stops = _trip_stops(route, trip)
+    counts = occurrence_counts(ordered_stops)
+    if visits is not None and (
+        len(ordered_stops) != len(visits)
+        or any(str(stop.get("stop_id")) != str(visit["stop_id"])
+               for stop, visit in zip(ordered_stops, visits))
+    ):
+        return []
+    for position, stop in enumerate(ordered_stops):
         sid = stop.get("stop_id")
         if sid is None:
             continue
 
         sid_key = str(sid)
         scheduled_arrival = _time_to_seconds(
+            visits[position]["arrival_time"] if visits is not None else
             stop_times_arrival.get(sid, stop_times_arrival.get(sid_key, ""))
         )
         scheduled_departure = _time_to_seconds(
+            visits[position]["departure_time"] if visits is not None else
             stop_times_departure.get(sid, stop_times_departure.get(sid_key, ""))
         )
         if scheduled_arrival is None and scheduled_departure is None:
@@ -555,26 +589,27 @@ def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) 
             scheduled_arrival = scheduled_departure
         if scheduled_departure is None:
             scheduled_departure = scheduled_arrival
-        scheduled_departure = max(scheduled_arrival, scheduled_departure)
+        if (scheduled_departure < scheduled_arrival
+                or (previous_scheduled_departure is not None
+                    and scheduled_arrival < previous_scheduled_departure)):
+            return []
+        previous_scheduled_departure = scheduled_departure
 
-        rel = str(
-            stop_relationships.get(sid_key)
-            or stop_relationships.get(sid)
-            or "SCHEDULED"
-        ).upper()
-        prediction = stop_predictions.get(sid_key) or stop_predictions.get(sid) or {}
+        sequence = visits[position]["stop_sequence"] if visits is not None else None
+        prediction, local_delay, rel, ambiguous = stop_evidence(
+            realtime, sid, sequence, counts[sid_key] > 1)
 
-        use_rt = rel != "NO_DATA"
+        use_rt = rel not in ("NO_DATA", "SKIPPED")
         arrival = None
         departure = None
 
         if use_rt:
-            arrival = _epoch_to_service_seconds(prediction.get("arrival_epoch"))
-            departure = _epoch_to_service_seconds(prediction.get("departure_epoch"))
+            # RT queries already enforce the dated/versioned namespace. Never
+            # guess a date from the current display grouping for epoch data.
+            arrival = _epoch_to_service_seconds(prediction.get("arrival_epoch"), realtime.get("service_date"))
+            departure = _epoch_to_service_seconds(prediction.get("departure_epoch"), realtime.get("service_date"))
 
-        fallback_delay = int(
-            stop_delays.get(sid_key, stop_delays.get(sid, trip_delay))
-        ) if use_rt else 0
+        fallback_delay = int(local_delay if local_delay is not None else propagated_delay) if use_rt else 0
         arrival_delay = (
             int(prediction["arrival_delay_seconds"])
             if use_rt and prediction.get("arrival_delay_seconds") is not None
@@ -586,15 +621,34 @@ def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) 
             else fallback_delay
         )
 
+        direct_arrival = arrival is not None or (use_rt and prediction.get("arrival_delay_seconds") is not None)
+        direct_departure = departure is not None or (use_rt and prediction.get("departure_delay_seconds") is not None)
         if arrival is None:
             arrival = scheduled_arrival + arrival_delay
         if departure is None:
+            # An arrival-only update shifts the explicit scheduled dwell too;
+            # do not erase it by falling back to an older generic trip delay.
+            if direct_arrival and not direct_departure:
+                departure_delay = arrival - scheduled_arrival
             departure = scheduled_departure + departure_delay
+        arrival_from_departure = not direct_arrival and direct_departure and arrival > departure
+        if arrival_from_departure:
+            # An inferred arrival cannot postpone an explicit early departure.
+            # Retain its provenance; this is not a provider arrival timestamp.
+            arrival = departure
+        provider_arrival = arrival if direct_arrival else None
+        provider_departure = departure if direct_departure else None
+        basis = (rel if not use_rt else "DIRECT_STOP_UPDATE" if direct_arrival
+                 else "FROM_DEPARTURE_UPDATE" if arrival_from_departure
+                 else "STOP_DELAY" if local_delay is not None else propagated_basis)
+        departure_basis = (rel if not use_rt else "DIRECT_STOP_UPDATE" if direct_departure
+                           else "FROM_ARRIVAL_UPDATE" if direct_arrival
+                           else "STOP_DELAY" if local_delay is not None else propagated_basis)
+        arrival_anchor = (sid_key if direct_arrival or arrival_from_departure or local_delay is not None else anchor_stop) if use_rt else None
+        arrival_anchor_sequence = (sequence if direct_arrival or arrival_from_departure or local_delay is not None else anchor_sequence) if use_rt else None
 
-        if previous_departure is not None and arrival < previous_departure:
-            arrival = previous_departure
-        if departure < arrival:
-            departure = arrival
+        # Do not clamp against an inferred intermediate clock before using the
+        # next direct source anchor. Ordering is validated after neighbour fit.
 
         timeline.append(
             {
@@ -609,11 +663,39 @@ def _predicted_stop_timeline(route: dict, trip: dict, realtime: Optional[dict]) 
                 "predicted_departure": departure,
                 "delay_seconds": int(arrival - scheduled_arrival),
                 "relationship": rel,
+                "stop_sequence": sequence,
+                "timing_basis": basis,
+                "departure_timing_basis": departure_basis,
+                "timing_anchor_stop_id": arrival_anchor,
+                "timing_anchor_sequence": arrival_anchor_sequence,
+                "timing_anchor_delay_seconds": int(arrival - scheduled_arrival) if direct_arrival or arrival_from_departure else fallback_delay,
+                "provider_predicted_arrival_s": provider_arrival,
+                "provider_predicted_departure_s": provider_departure,
+                "ambiguous_stop_update": ambiguous,
+                "timing_order_adjusted": False,
             }
         )
-        previous_departure = departure
+        if rel == "NO_DATA":
+            propagated_delay = 0
+            propagated_basis = "SCHEDULE"
+            anchor_stop = anchor_sequence = None
+        elif use_rt and (direct_arrival or direct_departure or local_delay is not None):
+            propagated_delay = int(departure - scheduled_departure)
+            propagated_basis = "PROPAGATED_STOP_DEPARTURE"
+            anchor_stop, anchor_sequence = sid_key, sequence
 
-    return timeline
+    from mobility.neighbor_timing import combine_neighbor_timings, order_timeline
+    return order_timeline(combine_neighbor_timings(timeline))
+
+
+def _timeline_for_vehicle(route: dict, trip: dict, realtime: Optional[dict], vehicle: Optional[dict]) -> List[dict]:
+    """Read the position's exact cached projection; GPS retains provider times."""
+    projected = (vehicle or {}).get("_effective_timeline")
+    if (vehicle and vehicle.get("estimated") and projected
+            and vehicle.get("_motion_plan_revision")
+            and str(vehicle.get("trip_id")) == str(trip.get("trip_id"))):
+        return [dict(entry) for entry in projected]
+    return _predicted_stop_timeline(route, trip, realtime)
 
 
 def _assembled_matches_timeline(points: List[list], timeline: List[dict]) -> bool:
@@ -650,7 +732,7 @@ def _assembled_matches_timeline(points: List[list], timeline: List[dict]) -> boo
     return all(positions[i + 1] >= positions[i] - 0.06 for i in range(len(positions) - 1))
 
 
-async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> Optional[dict]:
+async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict], network: Optional[dict] = None) -> Optional[dict]:
     """Travel-ordered path with generation metadata when available."""
     from mobility import geometry_cache
     from mobility.generations import atomic_generations_enabled
@@ -667,15 +749,30 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> 
     except Exception:
         pat_id = None
 
-    network = await _get_active_network()
+    if network is None:
+        network = await _get_active_network()
     version_id = str((network or {}).get("version_id") or "")
+    region = get_active_region()
+    from mobility.realtime_trip_identity import _service_date
+    import time
+
+    entry = geometry_cache.get_entry(pat_id, version_id or None)
     key = (
-        f"{_service_date_key()}:{trip.get('trip_id')}:{pat_id}:"
-        f"{version_id}:{geometry_cache.revision()}"
+        region.region_id, region.network_id, version_id,
+        _service_date(network or {}) or _service_date_key(), pat_id,
+        (entry or {}).get("generation_id"),
+        (entry or {}).get("geometry_fingerprint"),
+        (entry or {}).get("source"), (entry or {}).get("osm_snapshot_v"),
+        geometry_cache.revision(),
+        tuple((e.get("stop_id"), e["stop"].get("lat"), e["stop"].get("lng")) for e in timeline),
     )
     cached_path = _TRIP_PATH_CACHE.get(key)
-    if cached_path is not None:
-        return cached_path
+    # Share static projection across trips, not their realtime timelines.
+    # Unversioned/fallback paths must periodically retry canonical geometry.
+    if cached_path is not None and (
+        (entry or {}).get("generation_id") or time.monotonic() - cached_path["at"] < 15
+    ):
+        return cached_path["path"]
 
     points: Optional[List[list]] = None
     path_meta = {
@@ -685,7 +782,6 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> 
         "geometry_fingerprint": None,
     }
 
-    entry = geometry_cache.get_entry(pat_id, version_id or None)
     if entry and len(entry.get("points") or []) >= 2:
         points = [
             [float(p[0]), float(p[1])]
@@ -833,7 +929,9 @@ async def _trip_path_geometry(route: dict, trip: dict, timeline: List[dict]) -> 
         "pattern_id": pat_id,
         **path_meta,
     }
-    _TRIP_PATH_CACHE[key] = result
+    if len(_TRIP_PATH_CACHE) >= 2048:
+        _TRIP_PATH_CACHE.pop(next(iter(_TRIP_PATH_CACHE)))
+    _TRIP_PATH_CACHE[key] = {"at": time.monotonic(), "path": result}
     return result
 
 
@@ -878,61 +976,6 @@ def _dwell_progress(timeline: List[dict], stop_progress: List[float], now_sec: i
     return None
 
 
-def _adaptive_forward_progress(trip_id: str, raw_progress_m: float, total_m: float, mode: str, trip_duration_sec: int) -> float:
-    """Forward-only ETA-constrained display progress.
-
-    - Delay improved: the marker accelerates forward (visual speed cap) -
-      the vehicle 'runs' to catch up.
-    - Delay got worse: the vehicle WAITS - it crawls at ~12% of the
-      scheduled pace (a real late vehicle stands at stops / creeps in
-      traffic, it never races ahead of its delayed ETA). Never reverses.
-    """
-    import time
-
-    service_date = _service_date_key()
-    if _DISPLAY_PROGRESS.get("date") != service_date:
-        _DISPLAY_PROGRESS["date"] = service_date
-        _DISPLAY_PROGRESS["trips"] = {}
-
-    states = _DISPLAY_PROGRESS["trips"]
-    now_mono = time.monotonic()
-
-    for key, value in list(states.items()):
-        if now_mono - float(value.get("at", now_mono)) > 1800:
-            states.pop(key, None)
-
-    state = states.get(trip_id)
-    if not state:
-        shown = max(0.0, min(total_m, raw_progress_m))
-    else:
-        dt = max(0.0, now_mono - float(state.get("at", now_mono)))
-        previous = float(state.get("progress_m", 0.0))
-
-        if dt > 180:
-            shown = max(0.0, min(total_m, raw_progress_m))
-        else:
-            diff = raw_progress_m - previous
-            if abs(diff) <= 5.0:
-                # Track the predicted timeline EXACTLY: normal pace, small
-                # realtime jitter never triggers catch-up bursts.
-                shown = max(0.0, min(total_m, raw_progress_m))
-            elif diff < 0:
-                # Delay got worse: SLOW DOWN to half pace - the vehicle is
-                # visibly waiting (never frozen, never racing ahead).
-                sched_speed = total_m / max(60.0, float(trip_duration_sec))
-                shown = min(total_m, previous + sched_speed * 0.5 * dt)
-            else:
-                # Delay improved: catch up at a REALISTIC speed cap (a
-                # tram does not sprint at 70 km/h through the city).
-                max_kmh = 45.0 if mode == "tram" else 50.0
-                max_step = (max_kmh / 3.6) * min(dt, 30.0)
-                shown = min(raw_progress_m, previous + max_step)
-
-    shown = max(0.0, min(total_m, shown))
-    states[trip_id] = {"progress_m": shown, "at": now_mono, "total_m": total_m}
-    return shown
-
-
 def _point_heading_at_progress(path: dict, progress_m: float) -> tuple:
     points = path.get("points") or []
     cumulative = path.get("cumulative") or []
@@ -968,8 +1011,9 @@ async def _estimate_trip_position(
     now_sec: int,
     delays: dict,
     version_id: Optional[str] = None,
+    network: Optional[dict] = None,
 ) -> Optional[dict]:
-    """Physics-first estimated position with the legacy timeline as fallback."""
+    """Physics-first projection; fallback shares one stop-constrained ETA plan."""
     trip_id = str(trip.get("trip_id") or "")
     realtime = delays.get(trip_id) if trip_id else None
     timeline = _predicted_stop_timeline(route, trip, realtime)
@@ -978,10 +1022,13 @@ async def _estimate_trip_position(
 
     start = timeline[0]["predicted_arrival"]
     end = timeline[-1]["predicted_arrival"]
-    if now_sec < start - 60 or now_sec > end + 180:
+    if now_sec < start - 60:
         return None
 
-    path = await _trip_path_geometry(route, trip, timeline)
+    path = await _trip_path_geometry(route, trip, timeline, network=network)
+    if path and network:
+        from mobility.realtime_trip_identity import _service_date
+        path = {**path, "service_date": _service_date(network) or _service_date_key()}
     if not path:
         # No verified real geometry: the marker is not drawn (ETA remains
         # available via arrivals) - never a fake line through buildings.
@@ -1021,12 +1068,24 @@ async def _estimate_trip_position(
                 e,
             )
 
-    motion_available = bool(
+    detailed_motion_available = bool(
         motion_result
         and motion_result.get("motion_available", True)
         and motion_result.get("progress_m") is not None
     )
+    if not detailed_motion_available:
+        from mobility.motion.timeline_fallback import position_from_timeline
+        motion_result = position_from_timeline(trip_id=trip_id, mode=str(route.get("mode") or "bus"),
+            version_id=version_id, timeline=timeline, path=path, now_sec=now_sec)
+        if not motion_result:
+            return None  # Retain board ETAs; do not draw an unbounded marker.
+    motion_available = True
     if motion_available:
+        timeline = motion_result.get("effective_timeline") or timeline
+        start = timeline[0]["predicted_arrival"]
+        end = timeline[-1]["predicted_departure"]
+        if now_sec < start - 60 or now_sec > end + 180:
+            return None
         shown_progress = float(motion_result["progress_m"])
         next_idx = int(motion_result["next_timeline_index"])
         next_entry = timeline[max(0, min(len(timeline) - 1, next_idx))]
@@ -1091,64 +1150,38 @@ async def _estimate_trip_position(
             "backward_resample_prevented_m": motion_result.get(
                 "backward_resample_prevented_m"
             ),
-            "fallback_reason": None,
+            "fallback_reason": None if detailed_motion_available else motion_failure_reason or "DETAILED_MOTION_UNAVAILABLE",
+            "motion_plan_revision": motion_result.get("motion_plan_revision"),
+            "next_timeline_index": next_idx,
         }
-    else:
-        # Compatibility fallback: keep today's forward-only behavior until
-        # Phase-1 infrastructure exists for the specific pattern.
-        dwell = _dwell_progress(timeline, stop_progress, now_sec)
-        if dwell is not None:
-            shown_progress = dwell
-        else:
-            shown_progress = _adaptive_forward_progress(
-                trip_id,
-                raw_progress,
-                float(path.get("total_m") or 0.0),
-                str(route.get("mode") or "bus"),
-                max(60, int(end - start)),
-            )
-        next_entry = next(
-            (
-                e
-                for e in timeline
-                if e["predicted_arrival"] >= now_sec and e["relationship"] != "SKIPPED"
-            ),
-            timeline[-1],
-        )
-        distance_to_next_stop_m = None
-        try:
-            next_idx = timeline.index(next_entry)
-            if next_idx < len(stop_progress):
-                remaining = float(stop_progress[next_idx]) - float(shown_progress)
-                if remaining >= 0:
-                    distance_to_next_stop_m = round(remaining)
-        except Exception:
-            distance_to_next_stop_m = None
-        if MOTION_ENGINE_ENABLED:
-            motion = {
-                "model": None,
-                "quality": "LEGACY_FALLBACK",
-                "state": "LEGACY_FALLBACK",
-                "speed_kmh": None,
-                "fallback_reason": motion_failure_reason or "PLAN_UNAVAILABLE",
-            }
-        else:
-            motion = None
-
     pos, heading = _point_heading_at_progress(path, shown_progress)
     if not pos:
         return None
 
     delay_seconds = int(next_entry.get("delay_seconds") or 0)
-    has_rt = bool(
+    has_rt_legacy = bool(
         realtime
         and (
             realtime.get("stop_predictions")
             or realtime.get("stop_delays")
-            or realtime.get("delay_seconds") is not None
-            or realtime.get("trip_schedule_relationship")
+            or realtime.get("trip_delay_observed") is True
+            or (realtime.get("trip_delay_observed") is None and realtime.get("delay_seconds"))
         )
     )
+    from mobility.timing_evidence import timing_evidence, has_realtime_timing
+    has_rt = has_realtime_timing(next_entry) if next_entry.get("timing_basis") is not None else has_rt_legacy
+    evidence = timing_evidence(next_entry)
+    anchor = next((s for s in route.get("stops", []) if str(s.get("stop_id")) == str(evidence.get("timing_anchor_stop_id"))), {})
+    next_anchor = next((s for s in route.get("stops", []) if str(s.get("stop_id")) == str(evidence.get("timing_next_anchor_stop_id"))), {})
+    evidence.update(anchor_stop_name=anchor.get("name"),
+        next_anchor_stop_name=next_anchor.get("name"),
+        source_status=(realtime or {}).get("source_timing_status") or
+            ("TRIP_CLOCK_UNKNOWN" if realtime and realtime.get("trip_update_timestamp") is None else "CURRENT" if realtime else "SCHEDULE_ONLY"),
+        trip_update_timestamp=(realtime or {}).get("trip_update_timestamp"),
+        feed_timestamp=(realtime or {}).get("feed_timestamp"),
+        received_at=(realtime or {}).get("received_at", (realtime or {}).get("updated_at")),
+        position_assurance="MODEL_ESTIMATE" if detailed_motion_available else "TIMELINE_CONSTRAINED_FALLBACK",
+        source_correction=motion_result.get("source_correction") if motion_available else None)
 
     return {
         "latitude": pos["lat"],
@@ -1165,6 +1198,16 @@ async def _estimate_trip_position(
         "position_state": "ON_PATTERN",
         "geometry_pending": False,
         "motion": motion,
+        "_effective_timeline": motion_result.get("effective_timeline") if motion_available else None,
+        "_motion_plan_revision": motion_result.get("motion_plan_revision") if motion_available else None,
+        "_motion_next_timeline_index": next_idx if motion_available else None,
+        "next_stop_eta_seconds": max(0, int(next_entry["predicted_arrival"])-now_sec),
+        "next_stop_predicted_arrival": _fmt_service_time(int(next_entry["predicted_arrival"])),
+        "source_next_stop_predicted_arrival": _fmt_service_time(int(next_entry.get("source_predicted_arrival", next_entry["predicted_arrival"]))),
+        "prediction_basis": next_entry.get("prediction_basis", "SOURCE_TIMELINE"),
+        "timing_evidence": evidence,
+        "estimate_revision": motion_result.get("estimate_revision") if motion_available else None,
+        "next_stop_eta_source": "PERIX_ESTIMATE" if next_entry.get("prediction_basis") == "PERIX_MOTION_PLAN" else ("REALTIME" if has_rt else "SCHEDULE"),
     }
 
 def _park_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optional[dict]:
@@ -1192,7 +1235,8 @@ def _park_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optio
         nxt = timeline[idx + 1].get("stop") or {}
         if nxt.get("lat") is not None:
             heading = _bearing(s["lat"], s["lng"], nxt["lat"], nxt["lng"])
-    has_rt = bool(rt)
+    from mobility.timing_evidence import has_realtime_timing
+    has_rt = has_realtime_timing(entry)
     return {
         "pos": {"lat": s["lat"], "lng": s["lng"]},
         "heading": heading,
@@ -1204,9 +1248,8 @@ def _park_position(route: dict, trip: dict, now_sec: int, delays: dict) -> Optio
     }
 
 
-# Short-lived cache for the estimated vehicles so fast client polling
-# doesn't recompute the whole trip graph on every request.
-_ESTIMATES_CACHE = {"at": 0.0, "data": []}
+# Only overlapping callers share a sample. Completed positions are never cached.
+_ESTIMATES_INFLIGHT: dict = {}
 
 REALTIME_FRESH_SECONDS = int(os.getenv("MOBILITY_REALTIME_FRESH_SECONDS", "420"))
 MOTION_ENGINE_ENABLED = os.getenv("MOBILITY_MOTION_ENABLED", "false").lower() == "true"
@@ -1236,26 +1279,40 @@ def _iso_is_fresh(ts: str, seconds: int) -> bool:
         return False
 
 
-def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Optional[set] = None) -> List[dict]:
-    """Group consecutive predicted trips into one physical vehicle run.
-    Trips in skip_trip_ids (operator-canceled) are excluded entirely."""
+def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Optional[set] = None,
+                 effective_windows: Optional[dict] = None) -> List[dict]:
+    """Source-identified virtual journeys; join only source-verified blocks.
+
+    Build topology from scheduled clocks before applying realtime/retention.
+    A delay refresh must not regroup journeys or change an icon's run identity.
+    Terminus proximity is not proof that two trips share a physical vehicle.
+    Without a source block, keep each existing dated trip as its own virtual
+    journey using the existing source-derived ID function, never a made-up GPS
+    vehicle. This also prevents simultaneous source trips masking each other.
+    """
     windows = []
     for trip in route.get("trips", []):
         if skip_trip_ids and str(trip.get("trip_id") or "") in skip_trip_ids:
             continue
         rt = (delays or {}).get(str(trip.get("trip_id") or ""))
-        w = _trip_window(route, trip, rt)
+        if str((rt or {}).get("trip_schedule_relationship") or "").upper() in ("CANCELED", "DELETED"):
+            continue
+        w = _trip_window(route, trip)
         if w:
             windows.append({"trip": trip, **w})
 
-    windows.sort(key=lambda x: x["start"])
+    windows.sort(key=lambda x: (x["start"], str(x["trip"].get("trip_id") or "")))
     runs: List[dict] = []
     for w in windows:
         attached = False
-        for run in runs:
+        for run in (runs if w["trip"].get("block_id") else ()):
             ls = run["last_stop"]
             fs = w["first_stop"]
+            previous_block = str(run["trips"][-1]["trip"].get("block_id") or "")
+            next_block = str(w["trip"].get("block_id") or "")
             if (
+                bool(previous_block) and previous_block == next_block
+                and
                 _haversine_km(ls.get("lat"), ls.get("lng"), fs.get("lat"), fs.get("lng")) < 0.08
                 and run["end"] <= w["start"] <= run["end"] + 900
             ):
@@ -1273,29 +1330,99 @@ def _chain_trips(route: dict, delays: Optional[dict] = None, skip_trip_ids: Opti
                     "last_stop": w["last_stop"],
                 }
             )
+    # Keep source clocks distinct from PERIX retention. An extended predecessor
+    # must not mask a successor whose own source window has already started.
+    for run in runs:
+        for window in run["trips"]:
+            realtime = (delays or {}).get(str(window["trip"].get("trip_id")))
+            source = _trip_window(route, window["trip"], realtime) if realtime else None
+            if source:
+                window.update(source)
+            window["source_start"] = window["start"]
+            window["source_end"] = window["end"]
+            known = (effective_windows or {}).get(str(window["trip"].get("trip_id")))
+            if known:
+                window["start"] = max(window["start"], known["start"])
+                window["end"] = max(window["end"], known["end"])
+        run["start"] = min(w["start"] for w in run["trips"])
+        run["end"] = max(w["end"] for w in run["trips"])
     return runs
 
 
-async def _realtime_delays_for(trip_ids: List[str]) -> dict:
+def _select_run_trip(run: dict, now_sec: int) -> tuple:
+    """Resolve source-active journeys before cache-only inferred continuity.
+
+    No additional vehicles, replacement positions or changed clocks are made.
+    A verified same-block predecessor may still be held by its effective plan;
+    mere terminus proximity is not evidence of a shared physical vehicle.
+    """
+    retained = next((w for w in run["trips"] if w["start"] <= now_sec <= w["end"]), None)
+    source_active = [w for w in run["trips"]
+                     if w.get("source_start", w["start"]) <= now_sec <= w.get("source_end", w["end"])]
+    if source_active:
+        current = max(source_active, key=lambda w: (w.get("source_start", w["start"]),
+                                                   str(w["trip"].get("trip_id") or "")))
+        current_block = str(current["trip"].get("block_id") or "")
+        if (retained is not None and retained is not current and current_block
+                and current_block == str(retained["trip"].get("block_id") or "")):
+            return retained, "VERIFIED_BLOCK_RETAINED"
+        return current, "SOURCE_ACTIVE"
+    return retained, "PERIX_RETAINED" if retained is not None else "NO_ACTIVE_WINDOW"
+
+
+async def _realtime_delays_for(trip_ids: List[str], network: Optional[dict] = None, *, collection=None) -> dict:
     """Fresh GTFS-RT state. Do not mutate delay values to prevent reverse motion."""
     if not trip_ids:
         return {}
 
     region = get_active_region()
-    docs = await db.mobility_realtime.find(
-        {
+    from mobility.realtime_trip_identity import _service_date
+
+    active = network if network is not None else await _get_active_network()
+    version_id = str((active or {}).get("version_id") or "")
+    service_date = _service_date(active or {})
+    if not version_id or not service_date:
+        return {}
+    query = {
             "region_id": region.region_id,
             "network_id": region.network_id,
+            "network_version_id": version_id,
+            "service_date": service_date,
             "trip_id": {"$in": trip_ids},
-        },
-        {"_id": 0},
-    ).to_list(len(trip_ids))
+        }
+    if collection is None:
+        # Never inherit legacy state across dates/versions. A dated row, even
+        # stale, supersedes its rollback row rather than reviving old evidence.
+        legacy = await db.mobility_realtime.find(query, {"_id": 0}).to_list(len(trip_ids))
+        dated = await db.mobility_trip_realtime_journeys.find(query, {"_id": 0}).to_list(len(trip_ids))
+        docs = list({str(d["trip_id"]): d for d in legacy + dated}.values())
+    else:
+        docs = await collection.find(query, {"_id": 0}).to_list(len(trip_ids))
 
+    from mobility.realtime_freshness import is_recent_feed_generation, is_recent_trip_update, operational_only
+
+    now_epoch = int(datetime.now(ZoneInfo("UTC")).timestamp())
+    # A per-trip DB write can be fresh even when the feed snapshot is old.
+    max_feed_age = int(os.getenv("MOBILITY_REALTIME_FEED_FRESH_SECONDS", "180"))
     result = {}
     for doc in docs:
-        if not _iso_is_fresh(doc.get("updated_at") or "", REALTIME_FRESH_SECONDS):
+        receipt_fresh = _iso_is_fresh(doc.get("updated_at") or "", REALTIME_FRESH_SECONDS)
+        feed_fresh = is_recent_feed_generation(doc.get("feed_timestamp"), now_epoch, max_feed_age)
+        trip_fresh = is_recent_trip_update(doc.get("trip_update_timestamp"), now_epoch, max_feed_age)
+        if receipt_fresh and feed_fresh and trip_fresh:
+            result[str(doc.get("trip_id"))] = doc
             continue
-        result[str(doc.get("trip_id"))] = doc
+        # Source-validated operational exceptions remain in this exact dated
+        # namespace during an outage. Expired timing never becomes live again.
+        validated = (doc.get("source_match_validated") is True
+                     and doc.get("network_version_id") == version_id
+                     and doc.get("service_date") == service_date)
+        rels = list((doc.get("stop_relationships") or {}).values())
+        rels += [r.get("relationship") for r in (doc.get("stop_relationships_by_sequence") or {}).values() if isinstance(r, dict)]
+        exceptional = str(doc.get("trip_schedule_relationship") or "").upper() in ("CANCELED", "DELETED") or "SKIPPED" in rels
+        if validated and exceptional:
+            reason = "STALE_FEED" if not feed_fresh else "STALE_TRIP_UPDATE" if not trip_fresh else "STALE_RECEIPT"
+            result[str(doc.get("trip_id"))] = operational_only(doc, reason)
     return result
 
 
@@ -1330,19 +1457,39 @@ def _active_trip_for(route: dict, vehicle: dict, now_sec: int, delays: dict) -> 
     candidates.sort(key=lambda x: not x[1])
     return candidates[0][0]
 
-async def _estimated_transit_vehicles() -> List[dict]:
+async def _estimated_transit_vehicles(network: Optional[dict] = None) -> List[dict]:
+    from mobility import geometry_cache
+    from mobility.realtime_trip_identity import _service_date
+
+    if network is None:
+        network = await _get_active_network()
+    if not network:
+        return []
+    region = get_active_region()
+    key = (region.region_id, region.network_id, str(network.get("version_id") or ""),
+           _service_date(network), _service_date_key(), geometry_cache.revision())
+    task = _ESTIMATES_INFLIGHT.get(key)
+    if task is None or task.done():
+        task = asyncio.create_task(_compute_estimated_transit_vehicles(network))
+        _ESTIMATES_INFLIGHT[key] = task
+
+        def finished(done):
+            if _ESTIMATES_INFLIGHT.get(key) is done:
+                _ESTIMATES_INFLIGHT.pop(key, None)
+            # Retrieve failures even if every HTTP waiter has disconnected.
+            if not done.cancelled():
+                done.exception()
+
+        task.add_done_callback(finished)
+    # A disconnected caller must not cancel another caller's shared work.
+    return await asyncio.shield(task)
+
+
+async def _compute_estimated_transit_vehicles(network: dict) -> List[dict]:
     """Virtual vehicles for every currently running vehicle run of the
     active network (bus/tram), unless a real vehicle already covers that
     route and direction. Consecutive trips at a terminus chain into ONE
     vehicle so lines run at their real frequency."""
-    import time
-
-    now_ts = time.time()
-    if now_ts - _ESTIMATES_CACHE["at"] < 3:
-        return _ESTIMATES_CACHE["data"]
-    network = await _get_active_network()
-    if not network:
-        return []
     live = await db.mobility_live.find(
         {"mode": {"$in": ["bus", "tram"]}, "latitude": {"$ne": None}}, {"_id": 0}
     ).to_list(500)
@@ -1352,9 +1499,10 @@ async def _estimated_transit_vehicles() -> List[dict]:
     covered_trip_ids = {
         str(v.get("trip_id"))
         for v in live
-        if v.get("trip_id") and _iso_is_fresh(v.get("updated_at") or "", 90)
+        if v.get("trip_id") and _vehicle_in_network(v, network)
+        and _iso_is_fresh(v.get("updated_at") or "", 90)
     }
-    now_sec = _now_service_seconds()
+    now_sec = _now_service_seconds(_network_service_date(network))
     estimates: List[dict] = []
     trip_ids = [
         t.get("trip_id")
@@ -1362,12 +1510,8 @@ async def _estimated_transit_vehicles() -> List[dict]:
         for t in route.get("trips", [])
         if t.get("trip_id")
     ]
-    # One batched query for all realtime delays (not one per trip). Trip
-    # ids are unique per service day, so docs from previous days can never
-    # match today's ids - no freshness filter needed. Delays are smoothed
-    # monotonically: a vehicle NEVER moves backwards, even when the feed's
-    # delay value oscillates or drops.
-    delays = await _realtime_delays_for(trip_ids)
+    # Preserve strict region/version/service-date matching and feed freshness.
+    delays = await _realtime_delays_for(trip_ids, network=network)
     # Operator overrides: canceled trips produce no vehicle at all.
     canceled_ids: set = set()
     try:
@@ -1376,21 +1520,22 @@ async def _estimated_transit_vehicles() -> List[dict]:
         canceled_ids = await canceled_trip_ids()
     except Exception:
         pass
+    from mobility.motion.engine import cached_trip_windows
+    region = get_active_region()
+    known_windows = cached_trip_windows(region_id=region.region_id, network_id=region.network_id,
+                                       version_id=str(network.get("version_id") or ""),
+                                       service_date=_network_service_date(network)) if MOTION_ENGINE_ENABLED else {}
     for route in network.get("routes", []):
         route_number = str(route.get("route_number"))
         mode = route.get("mode") if route.get("mode") in ("bus", "tram") else "bus"
-        for run in _chain_trips(route, delays, canceled_ids):
+        for run in _chain_trips(route, delays, canceled_ids, known_windows):
             first = run["trips"][0]
             headsign = str(first["trip"].get("headsign") or route.get("name") or "")
             if now_sec < run["start"] - 60 or now_sec > run["end"] + 60:
                 continue
             # Determine the trip the vehicle is on RIGHT NOW first (window
             # check), so suppression can be trip-scoped.
-            active = None
-            for w in run["trips"]:
-                if w["start"] <= now_sec <= w["end"]:
-                    active = w
-                    break
+            active, selection_basis = _select_run_trip(run, now_sec)
             before = None
             after = None
             for w in run["trips"]:
@@ -1398,6 +1543,13 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     before = w
                 if w["start"] >= now_sec and after is None:
                     after = w
+            # A geometric schedule chain does not locate an actual vehicle in
+            # its layover. Do not park a speculative bus/tram for a whole gap.
+            # Preserve only the existing 60s trip-edge grace and active trips
+            # whose canonical geometry is still pending.
+            if (active is None and before is not None and after is not None
+                    and now_sec > before["end"] + 60 and now_sec < after["start"] - 60):
+                continue
             current_trip = None
             if active is not None:
                 current_trip = active["trip"]
@@ -1421,6 +1573,7 @@ async def _estimated_transit_vehicles() -> List[dict]:
             position_state = "ON_PATTERN"
             geometry_pending = False
             motion = None
+            projection = {}
             if active:
                 p = await _estimate_trip_position(
                     route,
@@ -1428,8 +1581,10 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     now_sec,
                     delays,
                     version_id=str(network.get("version_id") or ""),
+                    network=network,
                 )
                 if p:
+                    projection = p
                     pos = {"lat": p["latitude"], "lng": p["longitude"]}
                     heading = p.get("heading")
                     delay_minutes = p["delay_minutes"]
@@ -1503,7 +1658,9 @@ async def _estimated_transit_vehicles() -> List[dict]:
             # stop sequence instead of guessing from the run's first trip.
             estimates.append(
                 {
-                    "vehicle_id": f"est_{route_number}_{first['trip'].get('trip_id', '')}",
+                    "vehicle_id": _estimated_vehicle_id(network, route_number, first['trip'].get('trip_id', '')),
+                    "network_version_id": network.get("version_id"),
+                    "service_date": _network_service_date(network),
                     "business_id": network.get("business_id") or "mvb",
                     "mode": mode,
                     "fleet_number": route_number,
@@ -1513,6 +1670,8 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     # directions at each turnaround)
                     "route_direction": str(current_trip.get("headsign") or headsign),
                     "trip_id": current_trip.get("trip_id"),
+                    "trip_selection_basis": selection_basis,
+                    "run_identity_basis": "GTFS_BLOCK" if current_trip.get("block_id") else "DATED_SOURCE_TRIP",
                     "latitude": pos["lat"],
                     "longitude": pos["lng"],
                     "heading": heading,
@@ -1528,15 +1687,26 @@ async def _estimated_transit_vehicles() -> List[dict]:
                     "position_state": position_state,
                     "geometry_pending": geometry_pending,
                     "motion": motion,
+                    "_effective_timeline": projection.get("_effective_timeline"),
+                    "_motion_plan_revision": projection.get("_motion_plan_revision"),
+                    "_motion_next_timeline_index": projection.get("_motion_next_timeline_index"),
+                    "_prediction_realtime": delays.get(str(current_trip.get("trip_id"))) if projection.get("_effective_timeline") else None,
+                    "next_stop_eta_seconds": projection.get("next_stop_eta_seconds"),
+                    "next_stop_predicted_arrival": projection.get("next_stop_predicted_arrival"),
+                    "source_next_stop_predicted_arrival": projection.get("source_next_stop_predicted_arrival"),
+                    "prediction_basis": projection.get("prediction_basis", "SOURCE_TIMELINE"),
+                    "timing_evidence": projection.get("timing_evidence"),
+                    "estimate_revision": projection.get("estimate_revision"),
+                    "next_stop_eta_source": projection.get("next_stop_eta_source"),
+                    "realtime_feed_timestamp": (delays.get(str(current_trip.get("trip_id"))) or {}).get("feed_timestamp"),
+                    "realtime_updated_at": (delays.get(str(current_trip.get("trip_id"))) or {}).get("updated_at"),
                     "updated_at": datetime.now().isoformat(),
                 }
             )
-    _ESTIMATES_CACHE["at"] = time.time()
-    _ESTIMATES_CACHE["data"] = estimates
     return estimates
 
 
-async def _all_active_vehicles() -> List[dict]:
+async def _all_active_vehicles(network: Optional[dict] = None, *, networks: Optional[List[dict]] = None) -> List[dict]:
     live = (
         await db.mobility_live.find(
             {"updated_at": {"$gt": (now_utc() - timedelta(minutes=5)).isoformat()}},
@@ -1550,10 +1720,44 @@ async def _all_active_vehicles() -> List[dict]:
         for v in live
         if v.get("mode") == "taxi" or _iso_is_fresh(v.get("updated_at") or "", 90)
     ]
-    return live + await _estimated_transit_vehicles()
+    if network is not None:
+        return [v for v in live if v.get("mode") == "taxi" or _vehicle_in_network(v, network)] + await _estimated_transit_vehicles(network=network)
+    estimates = []
+    for dated in networks if networks is not None else await networks_for_journey_window():
+        estimates.extend(await _estimated_transit_vehicles(network=dated))
+    return live + estimates
+
+
+def _estimated_vehicle_id(network: dict, route_number: str, trip_id: str) -> str:
+    region = get_active_region()
+    return f"est_{region.region_id}:{region.network_id}:{network['version_id']}:{_network_service_date(network)}:{route_number}:{trip_id}"
+
+
+def _vehicle_in_network(vehicle: dict, network: dict) -> bool:
+    return (str(vehicle.get("network_version_id") or vehicle.get("version_id") or "") == str(network.get("version_id") or "")
+            and vehicle.get("service_date") == _network_service_date(network))
+
+
+_NETWORK_READS = {}
 
 
 async def _get_active_network() -> Optional[dict]:
+    region = get_active_region()
+    key = (region.region_id, region.network_id, "active")
+    task = _NETWORK_READS.get(key)
+    if task is None or task.done():
+        task = asyncio.create_task(_load_active_network())
+        _NETWORK_READS[key] = task
+        def finished(done):
+            if _NETWORK_READS.get(key) is done:
+                _NETWORK_READS.pop(key, None)
+            if not done.cancelled():
+                done.exception()
+        task.add_done_callback(finished)
+    return await asyncio.shield(task)
+
+
+async def _load_active_network() -> Optional[dict]:
     region = get_active_region()
     network = await db.bus_network_versions.find_one(
         {
@@ -1590,6 +1794,111 @@ async def _get_active_network() -> Optional[dict]:
             {"$set": fields},
         )
     return {**legacy, **fields}
+
+
+async def networks_for_journey_window(network: Optional[dict] = None, *, now: Optional[datetime] = None) -> List[dict]:
+    region = get_active_region()
+    from mobility.service_clock import _static_service_date
+    observed = now or _berlin_now()
+    key = (region.region_id, region.network_id, "window",
+           _static_service_date(observed, region.timezone),
+           str((network or {}).get("version_id") or ""),
+           _network_service_date(network) if network else None)
+    task = _NETWORK_READS.get(key)
+    if task is None or task.done():
+        task = asyncio.create_task(_load_journey_networks(network, now=observed))
+        _NETWORK_READS[key] = task
+        def finished(done):
+            if _NETWORK_READS.get(key) is done:
+                _NETWORK_READS.pop(key, None)
+            if not done.cancelled():
+                done.exception()
+        task.add_done_callback(finished)
+    return await asyncio.shield(task)
+
+
+async def _load_journey_networks(network: Optional[dict] = None, *, now: Optional[datetime] = None) -> List[dict]:
+    """Read active + last activated previous civil date; never union trip IDs.
+
+    Historical name dating supports already shipped versions without an
+    explicit service_date. Unactivated candidates are never journey evidence.
+    Individual trip windows must still be checked in each network's clock.
+    """
+    from mobility.service_clock import _static_service_date
+    from mobility.realtime_trip_identity import _service_date
+    region = get_active_region()
+    now = now or _berlin_now()
+    today = _static_service_date(now, region.timezone)
+    previous = (datetime.fromisoformat(today) - timedelta(days=1)).date().isoformat()
+    if network is None:
+        network = await _get_active_network()
+    selected = []
+    if network and _service_date(network) in (today, previous):
+        selected.append(network)
+    if any(_service_date(n) == previous for n in selected):
+        return selected
+    prior = await db.bus_network_versions.find_one(
+        {
+            "region_id": region.region_id,
+            "network_id": region.network_id,
+            "activated_at": {"$exists": True, "$ne": None},
+            "$or": [
+                {"service_date": previous},
+                {"service_date": {"$exists": False},
+                 "name": {"$regex": rf"\b{previous}\b"}},
+            ],
+        },
+        {"_id": 0},
+        sort=[("activated_at", -1), ("imported_at", -1)],
+    )
+    if prior and _service_date(prior) == previous:
+        selected.append(prior)
+    return selected
+
+
+async def _journey_window_evidence():
+    """Dated overlap evidence, NOT a merged map/arrivals or RT ingestion API."""
+    from mobility.service_clock import service_seconds
+    region = get_active_region()
+    now = _berlin_now()
+    networks = await networks_for_journey_window(now=now)
+    out = []
+    for network in networks:
+        day = _network_service_date(network)
+        clock = service_seconds(now, day, region.timezone)
+        ids = [str(t["trip_id"]) for r in network.get("routes", [])
+               for t in r.get("trips", []) if t.get("trip_id")]
+        realtime = await _realtime_delays_for(ids, network=network)
+        journeys = []
+        seen = set()
+        for route in network.get("routes", []):
+            for trip in route.get("trips", []):
+                tid = str(trip.get("trip_id") or "")
+                timeline = _predicted_stop_timeline(route, trip, realtime.get(tid))
+                if not tid or not timeline:
+                    continue
+                start = timeline[0]["predicted_arrival"]
+                end = timeline[-1]["predicted_departure"]
+                key = (region.region_id, region.network_id, str(network["version_id"]), day, tid)
+                if key in seen or not start <= clock <= end:
+                    continue
+                seen.add(key)
+                journeys.append({
+                    "journey_key": list(key), "trip_id": tid,
+                    "route_number": route.get("route_number"),
+                    "scheduled_start_seconds": timeline[0]["scheduled_arrival"],
+                    "scheduled_end_seconds": timeline[-1]["scheduled_departure"],
+                    "predicted_start_seconds": start, "predicted_end_seconds": end,
+                    "realtime_present": tid in realtime,
+                })
+        out.append({
+            "network_version_id": network.get("version_id"), "service_date": day,
+            "activated_at": network.get("activated_at"), "now_service_seconds": clock,
+            "journeys": journeys,
+        })
+    return {"observed_at": now.isoformat(), "networks": out,
+            "scope": "READ_ONLY_DATED_OVERLAP_EVIDENCE",
+            "limits": ["A missing previously activated date cannot be reconstructed here"]}
 
 
 async def _network_route(route_number: str) -> Optional[dict]:
@@ -1658,7 +1967,7 @@ async def get_network(current_user: Optional[UserPublic] = Depends(get_current_u
     }
 
 
-async def _create_network_version(routes: List[dict], name: str) -> dict:
+async def _create_network_version(routes: List[dict], name: str, *, service_date: Optional[str] = None) -> dict:
     """Create an inactive network version and diff it against the active one."""
     active = await _get_active_network()
     old_routes = {str(r.get("route_number")): r for r in (active or {}).get("routes", [])}
@@ -1686,6 +1995,9 @@ async def _create_network_version(routes: List[dict], name: str) -> dict:
         "generation_state": "UNPREPARED",
         "generation_report": None,
     }
+    if service_date is not None:
+        from datetime import date
+        version["service_date"] = date.fromisoformat(service_date).isoformat()
     await db.bus_network_versions.insert_one(version)
     diff = {
         "added_routes": added_routes,
@@ -1733,7 +2045,8 @@ async def import_gtfs_zip(
     if not payload.get("routes"):
         raise HTTPException(status_code=400, detail="No bus/tram routes found in the feed")
     result = await _create_network_version(
-        payload["routes"], payload.get("name") or f"GTFS {date or 'today'}"
+        payload["routes"], payload.get("name") or f"GTFS {date or 'today'}",
+        service_date=payload["service_date"],
     )
     result["summary"] = {
         "bus_lines": sum(1 for r in payload["routes"] if r.get("mode") == "bus"),
@@ -1796,7 +2109,7 @@ async def _activate_network_version(
             "region_id": region.region_id,
             "network_id": region.network_id,
         },
-        {"$set": {"active": True}},
+        {"$set": {"active": True, "activated_at": now_utc().isoformat()}},
     )
 
     from mobility import geometry_cache
@@ -2132,7 +2445,14 @@ async def buses_serving_stop(
     current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     """Vehicles whose CURRENT trip will still serve the requested stop."""
-    network = await _get_active_network()
+    results = []
+    for network in await networks_for_journey_window():
+        results.extend(await _buses_serving_stop(network, stop_id, lat, lng))
+    results.sort(key=lambda x: x["eta_minutes"])
+    return results
+
+
+async def _buses_serving_stop(network: dict, stop_id: str, lat=None, lng=None):
     if not network:
         return []
 
@@ -2145,19 +2465,19 @@ async def buses_serving_stop(
 
     live = [
         v
-        for v in await _all_active_vehicles()
+        for v in await _all_active_vehicles(network=network)
         if v.get("mode") in ("bus", "tram")
         and str(v.get("route_number")) in route_numbers
     ]
 
-    now_sec = _now_service_seconds()
+    now_sec = _now_service_seconds(_network_service_date(network))
     all_trip_ids = [
         str(t.get("trip_id"))
         for r in serving_routes
         for t in r.get("trips", [])
         if t.get("trip_id")
     ]
-    realtime_by_trip = await _realtime_delays_for(all_trip_ids)
+    realtime_by_trip = await _realtime_delays_for(all_trip_ids, network=network)
     results = []
 
     for vehicle in live:
@@ -2231,6 +2551,8 @@ async def buses_serving_stop(
             {
                 "vehicle_id": vehicle.get("vehicle_id"),
                 "trip_id": trip_id,
+                "network_version_id": network.get("version_id"),
+                "service_date": _network_service_date(network),
                 "route_number": vehicle.get("route_number"),
                 "route_direction": vehicle.get("route_direction") or trip.get("headsign") or route.get("name", ""),
                 "status": vehicle.get("status"),
@@ -2482,29 +2804,35 @@ async def vehicle_trip_progress(
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
-    route = await _network_route(vehicle.get("route_number"))
+    network = next((n for n in await networks_for_journey_window()
+                    if _vehicle_in_network(vehicle, n)), None)
+    route = next((r for r in (network or {}).get("routes", [])
+                  if str(r.get("route_number")) == str(vehicle.get("route_number"))), None)
     if not route:
         raise HTTPException(status_code=404, detail="Route not found")
 
-    now_sec = _now_service_seconds()
+    now_sec = _now_service_seconds(_network_service_date(network))
     trip_ids = [
         str(t.get("trip_id"))
         for t in route.get("trips", [])
         if t.get("trip_id")
     ]
-    realtime_by_trip = await _realtime_delays_for(trip_ids)
+    realtime_by_trip = await _realtime_delays_for(trip_ids, network=network)
     trip = _active_trip_for(route, vehicle, now_sec, realtime_by_trip)
     if not trip:
         raise HTTPException(status_code=404, detail="Active trip not found")
 
     trip_id = str(trip.get("trip_id") or "")
     realtime = realtime_by_trip.get(trip_id)
-    timeline = _predicted_stop_timeline(route, trip, realtime)
+    timeline = _timeline_for_vehicle(route, trip, realtime, vehicle)
     if not timeline:
         raise HTTPException(status_code=404, detail="Trip cancelled or unavailable")
 
+    revision = vehicle.get("_motion_plan_revision") if vehicle.get("estimated") else None
+    from mobility.timing_evidence import timing_evidence
+    physical_next_index = vehicle.get("_motion_next_timeline_index") if revision else None
     stops_out = []
-    for entry in timeline:
+    for index, entry in enumerate(timeline):
         predicted = int(entry["predicted_arrival"])
         relationship = entry.get("relationship") or "SCHEDULED"
         stops_out.append(
@@ -2514,7 +2842,14 @@ async def vehicle_trip_progress(
                 "scheduled": _fmt_service_time(int(entry["scheduled"])),
                 "delay_seconds": int(entry.get("delay_seconds") or 0),
                 "predicted": _fmt_service_time(predicted),
-                "passed": predicted <= now_sec,
+                "passed": index < physical_next_index if type(physical_next_index) is int
+                          else int(entry["predicted_departure"]) < now_sec,
+                "predicted_departure": _fmt_service_time(int(entry["predicted_departure"])),
+                "source_predicted": _fmt_service_time(int(entry.get("source_predicted_arrival", entry["predicted_arrival"]))),
+                "prediction_basis": entry.get("prediction_basis", "SOURCE_TIMELINE"),
+                "timing_evidence": timing_evidence(entry),
+                "provider_predicted": _fmt_service_time(entry["provider_predicted_arrival_s"]) if entry.get("provider_predicted_arrival_s") is not None else None,
+                "passed_basis": "MODEL_PROGRESS" if vehicle.get("estimated") else "GPS_POSITION" if physical_next_index is not None else "TIME_PREDICTION",
                 "skipped": relationship == "SKIPPED",
                 "schedule_relationship": relationship,
             }
@@ -2532,12 +2867,18 @@ async def vehicle_trip_progress(
     return {
         "vehicle_id": vehicle.get("vehicle_id"),
         "trip_id": trip_id,
+        "network_version_id": network.get("version_id"),
+        "service_date": _network_service_date(network),
         "route_number": vehicle.get("route_number"),
         "route_direction": vehicle.get("route_direction") or trip.get("headsign"),
         "mode": vehicle.get("mode"),
         "delay_minutes": round(int(next_entry.get("delay_seconds") or 0) / 60),
         "position_source": vehicle.get("position_source", "VEHICLE_GPS"),
         "estimated": bool(vehicle.get("estimated")),
+        "motion_plan_revision": revision,
+        "next_timeline_index": physical_next_index,
+        "timing_evidence": vehicle.get("timing_evidence") if vehicle.get("estimated") else None,
+        "estimate_revision": vehicle.get("estimate_revision") if vehicle.get("estimated") else None,
         "stops": stops_out,
     }
 
@@ -2563,25 +2904,63 @@ async def plan_journey(
 
     The search uses the SAME predicted timeline as arrivals/vehicles
     (GTFS-RT delays + canceled trips), not a separate static snapshot."""
-    network = await _get_active_network()
-    if not network:
-        return {"itineraries": []}
+    itineraries = []
+    for network in await networks_for_journey_window():
+        result = await _plan_dated_network(network, from_lat, from_lng, to_lat, to_lng)
+        for itinerary in result["itineraries"]:
+            itinerary["network_version_id"] = network.get("version_id")
+            itinerary["service_date"] = _network_service_date(network)
+            itineraries.append(itinerary)
+    return {"itineraries": itineraries}
+
+
+async def _plan_dated_network(network, from_lat, from_lng, to_lat, to_lng):
     trip_ids = [
         str(t.get("trip_id"))
         for route in network.get("routes", [])
         for t in route.get("trips", [])
         if t.get("trip_id")
     ]
-    delays = await _realtime_delays_for(trip_ids)
+    delays = await _realtime_delays_for(trip_ids, network=network)
     try:
-        from mobility.overrides import canceled_trip_ids
+        from mobility.overrides import canceled_trip_ids, skipped_stop_ids
 
         canceled = await canceled_trip_ids()
+        skipped = await skipped_stop_ids()
     except Exception:
         canceled = set()
-    return await asyncio.to_thread(
-        _plan_core, network, from_lat, from_lng, to_lat, to_lng, delays, canceled
+        skipped = {}
+    active = await _all_active_vehicles(network=network)
+    by_trip = {str(v.get("trip_id")): v for v in active if v.get("trip_id")}
+    result = await asyncio.to_thread(
+        _plan_core, network, from_lat, from_lng, to_lat, to_lng, delays, canceled, by_trip, skipped
     )
+    # Exact dated identity and ordered platform occurrence, never display names.
+    from mobility.domain import NETWORK_ID
+    for itinerary in result.get("itineraries", []):
+        for leg in itinerary.get("legs", []):
+            if leg.get("type") != "ride":
+                continue
+            match = next(((r, t) for r in network.get("routes", [])
+                          for t in r.get("trips", [])
+                          if str(t.get("trip_id")) == str(leg.get("trip_id"))), None)
+            if not match:
+                continue
+            route, trip = match
+            timeline = _predicted_stop_timeline(route, trip, delays.get(str(trip.get("trip_id"))))
+            path = await _trip_path_geometry(route, trip, timeline, network=network)
+            leg["trip_instance_id"] = f"{NETWORK_ID}:{network.get('version_id')}:{_network_service_date(network)}:{trip.get('trip_id')}"
+            if path and path.get("geometry_source") != "GTFS_POSITION_FALLBACK" and path.get("points"):
+                from mobility.approach import path_fingerprint
+                leg["board_geometry_fingerprint"] = path_fingerprint(path["points"])
+                leg["pattern_id"] = path.get("pattern_id")
+                index = leg.get("board_timeline_index")
+                progress = path.get("stop_progress") or []
+                if (type(index) is int and 0 <= index < len(progress) and index < len(timeline)
+                        and str(timeline[index].get("stop_id")) == leg.get("board_stop_id")
+                        and timeline[index].get("relationship") != "SKIPPED"):
+                    leg["board_progress_m"] = progress[index]
+    return result
 
 
 def _plan_core(
@@ -2592,8 +2971,10 @@ def _plan_core(
     to_lng: float,
     delays: Optional[dict] = None,
     canceled: Optional[set] = None,
+    active_by_trip: Optional[dict] = None,
+    skipped: Optional[dict] = None,
 ) -> dict:
-    now_sec = _now_service_seconds()
+    now_sec = _now_service_seconds(_network_service_date(network))
     delays = delays or {}
     canceled = canceled or set()
 
@@ -2651,23 +3032,18 @@ def _plan_core(
             if tid in canceled:
                 continue
             rt = delays.get(tid) or {}
-            trip_delay = int(rt.get("delay_seconds") or 0)
-            stop_delays = rt.get("stop_delays") or {}
             seq = []
-            trip_stop_times = trip.get("stop_times") or {}
-            for stop in _trip_stops(route, trip):
-                sid = stop.get("stop_id")
-                tsec = _time_to_seconds(trip_stop_times.get(sid, ""))
-                if sid is not None and tsec is not None and sid in stops:
-                    delay = stop_delays.get(str(sid))
-                    if delay is None:
-                        delay = trip_delay
-                    seq.append((sid, tsec + int(delay)))
+            timeline = _timeline_for_vehicle(route, trip, rt, (active_by_trip or {}).get(tid))
+            for index, entry in enumerate(timeline):
+                sid = entry.get("stop_id")
+                if (sid in stops and entry.get("relationship") != "SKIPPED"
+                        and str(sid) not in (skipped or {}).get(tid, set())):
+                    seq.append((sid, entry["predicted_arrival"], entry["predicted_departure"], index))
             if len(seq) < 2:
                 continue
             segments = []
             for i in range(len(seq) - 1):
-                segments.append((seq[i][0], seq[i][1], seq[i + 1][0], seq[i + 1][1]))
+                segments.append((seq[i][0], seq[i][2], seq[i + 1][0], seq[i + 1][1]))
             trips.append(
                 {
                     "route_number": route.get("route_number"),
@@ -2675,6 +3051,7 @@ def _plan_core(
                     "direction": trip.get("headsign") or route.get("name") or "",
                     "trip_id": trip.get("trip_id"),
                     "segments": segments,
+                    "timeline_indices": [e[3] for e in seq],
                 }
             )
 
@@ -2732,6 +3109,7 @@ def _plan_core(
                         "direction": trip["direction"],
                         "trip_id": trip.get("trip_id"),
                         "board": sid,
+                        "board_timeline_index": trip["timeline_indices"][pos],
                         "alight": nxt2,
                         "depart": trip["segments"][pos][1],
                         "arrive": segk[3],
@@ -2784,7 +3162,7 @@ def _plan_core(
             from mobility.geometry_cache import get_cached
 
             pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
-            sh = get_cached(pat_id)
+            sh = get_cached(pat_id, str(network.get("version_id") or ""))
         except Exception:
             return None
         if not sh or len(sh) < 2:
@@ -2828,6 +3206,10 @@ def _plan_core(
                 "mode": payload["mode"],
                 "direction": payload["direction"],
                 "board": stops.get(payload["board"], {}).get("name", ""),
+                "board_stop_id": str(payload["board"]),
+                "alight_stop_id": str(payload["alight"]),
+                "board_timeline_index": payload["board_timeline_index"],
+                "trip_id": str(payload["trip_id"]),
                 "alight": stops.get(payload["alight"], {}).get("name", ""),
                 "depart": _fmt_service_time(payload["depart"]),
                 "arrive": _fmt_service_time(payload["arrive"]),

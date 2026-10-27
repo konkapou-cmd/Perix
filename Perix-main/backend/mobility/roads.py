@@ -230,6 +230,34 @@ def _route_stops_sync(stops: List[Tuple[float, float]], ways: List[list]) -> Lis
     return res["full"] or []
 
 
+def _bounded_stop_snaps(stops, nodes, adj):
+    """Reject missing road coverage before routing, without enlarging tolerance.
+
+    A long OSM edge can pass close to a platform while its endpoints are farther
+    away. In that case keep the existing node routing and let the unchanged
+    full-path validator decide. Never fabricate virtual nodes or new edges.
+    """
+    from mobility.graph import MAX_PLATFORM_DISTANCE_M
+    limit = float(MAX_PLATFORM_DISTANCE_M)
+    result = []
+    for lat, lng in stops:
+        node = _nearest_node(nodes, lat, lng)
+        if node not in nodes:
+            result.append({'node_id': None, 'accepted': False, 'reason': 'EMPTY_LOCAL_GRAPH'})
+            continue
+        distance = _haversine_m(lat, lng, *nodes[node])
+        edge_distance = distance
+        if distance > limit:
+            for a, neighbors in adj.items():
+                for b, _length, _eid in neighbors:
+                    edge_distance = min(edge_distance, _point_seg_dist_m(lat, lng, *nodes[a], *nodes[b]))
+        accepted = min(distance, edge_distance) <= limit
+        result.append({'node_id': node, 'node_distance_m': distance,
+            'edge_distance_m': edge_distance, 'limit_m': limit, 'accepted': accepted,
+            'reason': 'LOCAL_GRAPH_COVERAGE' if accepted else 'PLATFORM_OUTSIDE_LOCAL_GRAPH'})
+    return result
+
+
 def _route_stops_segments_sync(
     stops: List[Tuple[float, float]],
     ways: List[dict],
@@ -265,6 +293,12 @@ def _route_stops_segments_sync(
                     blocked_edges.add(eid)
     for eid in blocked_eids:
         blocked_edges.add(eid)
+        try:
+            way_id, node_a, node_b = str(eid).split(":", 2)
+            blocked_edges.add(f"{int(way_id)}:{int(node_b)}:{int(node_a)}")
+        except (ValueError, TypeError):
+            pass
+    snaps = _bounded_stop_snaps(stops, nodes, adj) if mode in ('bus', 'taxi') else None
     # Corridor weights: distance of each edge midpoint to the shape hint.
     edge_weight = {}
     if shape_hint and len(shape_hint) >= 2:
@@ -288,11 +322,16 @@ def _route_stops_segments_sync(
         if len(nodes) < 2:
             segments.append({"a_idx": i, "b_idx": i + 1, "points": [], "ok": False})
             continue
-        a = _nearest_node(nodes, stops[i][0], stops[i][1])
-        b = _nearest_node(nodes, stops[i + 1][0], stops[i + 1][1])
+        if snaps is not None and (not snaps[i]['accepted'] or not snaps[i+1]['accepted']):
+            segments.append({'a_idx': i, 'b_idx': i+1, 'points': [], 'ok': False,
+                             'reason': 'PLATFORM_OUTSIDE_LOCAL_GRAPH'})
+            continue
+        a = snaps[i]['node_id'] if snaps is not None else _nearest_node(nodes, stops[i][0], stops[i][1])
+        b = snaps[i+1]['node_id'] if snaps is not None else _nearest_node(nodes, stops[i+1][0], stops[i+1][1])
         result = _astar(adj, nodes, a, b, blocked_edges, edge_weight)
         if not result or not result[0]:
-            segments.append({"a_idx": i, "b_idx": i + 1, "points": [], "ok": False})
+            segments.append({"a_idx": i, "b_idx": i + 1, "points": [], "ok": False,
+                             "reason": "NO_DIRECTED_PATH"})
             continue
         path, edges = result
         coords = [[nodes[nid][0], nodes[nid][1]] for nid in path]
@@ -316,7 +355,8 @@ def _route_stops_segments_sync(
             else:
                 full.extend(s["points"][1:])
     missing = [[s["a_idx"], s["b_idx"]] for s in segments if not s["ok"]]
-    return {"segments": segments, "full": full or None, "missing_pairs": missing}
+    return {"segments": segments, "full": full or None, "missing_pairs": missing,
+            **({'snap_diagnostics': snaps} if snaps is not None else {})}
 
 
 async def compute_pattern_geometry(stops: List[dict], mode: str = "bus") -> List[list]:
@@ -333,6 +373,8 @@ async def compute_pattern_segments(
     shape_hint: Optional[List[list]] = None,
     *,
     osm_snapshot_v: Optional[int] = None,
+    blocked_way_ids: Optional[set] = None,
+    blocked_edge_ids: Optional[set] = None,
 ) -> dict:
     """Per stop-pair routing (segment registry) with a larger retry bbox:
     rail networks can leave the immediate stop corridor, so a first pass
@@ -361,7 +403,7 @@ async def compute_pattern_segments(
             ways_detailed = await get_local_ways(bbox, mode, graph_v=osm_snapshot_v)
         except Exception:
             ways_detailed = []
-        if not ways_detailed:
+        if not ways_detailed and osm_snapshot_v is None:
             # Bootstrap/refresh fallback: public Overpass as importer only.
             try:
                 ways_detailed = await _fetch_ways_detailed(bbox, mode)
@@ -371,15 +413,17 @@ async def compute_pattern_segments(
             continue
         # External traffic data never blocks canonical routing. Only explicit
         # operator-approved Perix restrictions may block graph edges.
-        blocked_way_ids: set = set()
-        blocked_eids: set = set()
+        # These IDs were explicitly verified for this route/pattern upstream.
+        # Never infer closure geometry from a textual ServiceAlert.
+        blocked_ways = set(blocked_way_ids or ())
+        blocked_eids = set(blocked_edge_ids or ())
         loop = asyncio.get_event_loop()
         res = await loop.run_in_executor(
             None,
             _route_stops_segments_sync,
             pts,
             ways_detailed,
-            blocked_way_ids,
+            blocked_ways,
             mode,
             blocked_eids,
             shape_hint,

@@ -1,0 +1,3577 @@
+{
+  "name": "Magdeburg transit 2026-10-22",
+  "source": "GTFS",
+  "region_id": "magdeburg",
+  "network_id": "de-magdeburg-mvb",
+  "service_date": "2026-10-22",
+  "timezone": "Europe/Berlin",
+  "country": "DE",
+  "routes": [
+    {
+      "route_number": "54",
+      "mode": "bus",
+      "stops": [
+        {
+          "stop_id": "305971",
+          "name": "Braunlager Stra\u00dfe",
+          "lat": 52.107445,
+          "lng": 11.593444,
+          "parent_station": "466392",
+          "location_type": "0",
+          "platform_code": null
+        },
+        {
+          "stop_id": "337753",
+          "name": "Magdeburg, A\u00dfmannstra\u00dfe",
+          "lat": 52.102608,
+          "lng": 11.584113,
+          "parent_station": "93404",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "588599",
+          "name": "Magdeburg, Goethepark",
+          "lat": 52.100605,
+          "lng": 11.57991,
+          "parent_station": "212957",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "323750",
+          "name": "Am Teich",
+          "lat": 52.09821,
+          "lng": 11.575101,
+          "parent_station": "172565",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "221352",
+          "name": "Adolf-Jentzen-Stra\u00dfe",
+          "lat": 52.092896,
+          "lng": 11.57116,
+          "parent_station": "62692",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "427455",
+          "name": "Eichplatz",
+          "lat": 52.089745,
+          "lng": 11.573006,
+          "parent_station": "143424",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "509326",
+          "name": "Wanzleber Chaussee",
+          "lat": 52.08851,
+          "lng": 11.568208,
+          "parent_station": "526707",
+          "location_type": "0",
+          "platform_code": "3"
+        },
+        {
+          "stop_id": "341261",
+          "name": "Osterweddinger Stra\u00dfe",
+          "lat": 52.085403,
+          "lng": 11.572904,
+          "parent_station": "648241",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "670726",
+          "name": "Sch\u00e4ferbreite",
+          "lat": 52.084206,
+          "lng": 11.577898,
+          "parent_station": "284299",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "685633",
+          "name": "Schreberstra\u00dfe",
+          "lat": 52.083508,
+          "lng": 11.583519,
+          "parent_station": "417783",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "111186",
+          "name": "Magdeburg B\u00f6rdepark Ost, alle Richtungen",
+          "lat": 52.083607,
+          "lng": 11.602304,
+          "parent_station": "154021",
+          "location_type": "0",
+          "platform_code": "3"
+        },
+        {
+          "stop_id": "635386",
+          "name": "B\u00f6rdepark West",
+          "lat": 52.083523,
+          "lng": 11.597105,
+          "parent_station": "82896",
+          "location_type": "0",
+          "platform_code": "3"
+        },
+        {
+          "stop_id": "672375",
+          "name": "B\u00f6rdepark West",
+          "lat": 52.083515,
+          "lng": 11.597105,
+          "parent_station": "82896",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "434567",
+          "name": "B\u00f6rdepark Ost",
+          "lat": 52.083412,
+          "lng": 11.602205,
+          "parent_station": "154021",
+          "location_type": "0",
+          "platform_code": "4"
+        },
+        {
+          "stop_id": "406721",
+          "name": "Schreberstra\u00dfe",
+          "lat": 52.083405,
+          "lng": 11.583309,
+          "parent_station": "417783",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "501830",
+          "name": "Sch\u00e4ferbreite",
+          "lat": 52.084106,
+          "lng": 11.578403,
+          "parent_station": "284299",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "313619",
+          "name": "Osterweddinger Stra\u00dfe",
+          "lat": 52.08581,
+          "lng": 11.571512,
+          "parent_station": "648241",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "543147",
+          "name": "Wanzleber Chaussee",
+          "lat": 52.088604,
+          "lng": 11.568404,
+          "parent_station": "526707",
+          "location_type": "0",
+          "platform_code": "4"
+        },
+        {
+          "stop_id": "55052",
+          "name": "Eichplatz",
+          "lat": 52.08968,
+          "lng": 11.573044,
+          "parent_station": "143424",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "582875",
+          "name": "Adolf-Jentzen-Stra\u00dfe",
+          "lat": 52.093075,
+          "lng": 11.571402,
+          "parent_station": "62692",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "340429",
+          "name": "Am Teich",
+          "lat": 52.098606,
+          "lng": 11.575999,
+          "parent_station": "172565",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "76838",
+          "name": "Magdeburg, Goethepark",
+          "lat": 52.100613,
+          "lng": 11.580012,
+          "parent_station": "212957",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "468545",
+          "name": "Magdeburg, A\u00dfmannstra\u00dfe",
+          "lat": 52.102207,
+          "lng": 11.583418,
+          "parent_station": "93404",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "55723",
+          "name": "Magdeburg, Braunlager Str.",
+          "lat": 52.10725,
+          "lng": 11.593754,
+          "parent_station": "466392",
+          "location_type": "0",
+          "platform_code": "E"
+        },
+        {
+          "stop_id": "245302",
+          "name": "Birnengarten",
+          "lat": 52.088882,
+          "lng": 11.561195,
+          "parent_station": "529022",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "15919",
+          "name": "Auf den H\u00f6hen",
+          "lat": 52.091606,
+          "lng": 11.561016,
+          "parent_station": "191792",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "671224",
+          "name": "Sonnenanger",
+          "lat": 52.094215,
+          "lng": 11.560918,
+          "parent_station": "254062",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "419956",
+          "name": "H\u00e4ngelsbreite",
+          "lat": 52.09412,
+          "lng": 11.565612,
+          "parent_station": "38534",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "335127",
+          "name": "Reinhard-Mannesmann-Weg",
+          "lat": 52.0819,
+          "lng": 11.582609,
+          "parent_station": "328279",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "209989",
+          "name": "Werner-von-Siemens-Ring",
+          "lat": 52.07891,
+          "lng": 11.577899,
+          "parent_station": "313319",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "151522",
+          "name": "Reinhard-Mannesmann-Weg",
+          "lat": 52.082413,
+          "lng": 11.58261,
+          "parent_station": "328279",
+          "location_type": "0",
+          "platform_code": "2"
+        },
+        {
+          "stop_id": "203097",
+          "name": "H\u00e4ngelsbreite",
+          "lat": 52.093967,
+          "lng": 11.566143,
+          "parent_station": "38534",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "429104",
+          "name": "Sonnenanger",
+          "lat": 52.094307,
+          "lng": 11.560806,
+          "parent_station": "254062",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "632197",
+          "name": "Auf den H\u00f6hen",
+          "lat": 52.091606,
+          "lng": 11.560914,
+          "parent_station": "191792",
+          "location_type": "0",
+          "platform_code": "1"
+        },
+        {
+          "stop_id": "109658",
+          "name": "Birnengarten",
+          "lat": 52.088905,
+          "lng": 11.561111,
+          "parent_station": "529022",
+          "location_type": "0",
+          "platform_code": "1"
+        }
+      ],
+      "trips": [
+        {
+          "trip_id": "247125",
+          "headsign": "Magdeburg, Braunlager Str.",
+          "start": "04:09",
+          "end": "04:33",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "2394",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "672375",
+              "arrival_time": "04:09",
+              "departure_time": "04:09"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "434567",
+              "arrival_time": "04:11",
+              "departure_time": "04:11"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "406721",
+              "arrival_time": "04:15",
+              "departure_time": "04:15"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "501830",
+              "arrival_time": "04:16",
+              "departure_time": "04:16"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "313619",
+              "arrival_time": "04:17",
+              "departure_time": "04:17"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "543147",
+              "arrival_time": "04:18",
+              "departure_time": "04:18"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "55052",
+              "arrival_time": "04:20",
+              "departure_time": "04:20"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "203097",
+              "arrival_time": "04:22",
+              "departure_time": "04:22"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "429104",
+              "arrival_time": "04:23",
+              "departure_time": "04:23"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "632197",
+              "arrival_time": "04:24",
+              "departure_time": "04:24"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "109658",
+              "arrival_time": "04:25",
+              "departure_time": "04:25"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "543147",
+              "arrival_time": "04:27",
+              "departure_time": "04:27"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "582875",
+              "arrival_time": "04:28",
+              "departure_time": "04:28"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "340429",
+              "arrival_time": "04:29",
+              "departure_time": "04:29"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "76838",
+              "arrival_time": "04:30",
+              "departure_time": "04:30"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "468545",
+              "arrival_time": "04:31",
+              "departure_time": "04:31"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "55723",
+              "arrival_time": "04:33",
+              "departure_time": "04:33"
+            }
+          ],
+          "stop_ids": [
+            "672375",
+            "434567",
+            "406721",
+            "501830",
+            "313619",
+            "543147",
+            "55052",
+            "203097",
+            "429104",
+            "632197",
+            "109658",
+            "543147",
+            "582875",
+            "340429",
+            "76838",
+            "468545",
+            "55723"
+          ],
+          "stop_times": {
+            "672375": "04:09",
+            "434567": "04:11",
+            "406721": "04:15",
+            "501830": "04:16",
+            "313619": "04:17",
+            "543147": "04:18",
+            "55052": "04:20",
+            "203097": "04:22",
+            "429104": "04:23",
+            "632197": "04:24",
+            "109658": "04:25",
+            "582875": "04:28",
+            "340429": "04:29",
+            "76838": "04:30",
+            "468545": "04:31",
+            "55723": "04:33"
+          },
+          "stop_times_arrival": {
+            "672375": "04:09",
+            "434567": "04:11",
+            "406721": "04:15",
+            "501830": "04:16",
+            "313619": "04:17",
+            "543147": "04:18",
+            "55052": "04:20",
+            "203097": "04:22",
+            "429104": "04:23",
+            "632197": "04:24",
+            "109658": "04:25",
+            "582875": "04:28",
+            "340429": "04:29",
+            "76838": "04:30",
+            "468545": "04:31",
+            "55723": "04:33"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "223826",
+          "headsign": "Magdeburg, Braunlager Str.",
+          "start": "04:29",
+          "end": "04:53",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "1932",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "672375",
+              "arrival_time": "04:29",
+              "departure_time": "04:29"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "434567",
+              "arrival_time": "04:31",
+              "departure_time": "04:31"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "406721",
+              "arrival_time": "04:35",
+              "departure_time": "04:35"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "501830",
+              "arrival_time": "04:36",
+              "departure_time": "04:36"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "313619",
+              "arrival_time": "04:37",
+              "departure_time": "04:37"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "543147",
+              "arrival_time": "04:38",
+              "departure_time": "04:38"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "55052",
+              "arrival_time": "04:40",
+              "departure_time": "04:40"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "203097",
+              "arrival_time": "04:42",
+              "departure_time": "04:42"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "429104",
+              "arrival_time": "04:43",
+              "departure_time": "04:43"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "632197",
+              "arrival_time": "04:44",
+              "departure_time": "04:44"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "109658",
+              "arrival_time": "04:45",
+              "departure_time": "04:45"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "543147",
+              "arrival_time": "04:47",
+              "departure_time": "04:47"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "582875",
+              "arrival_time": "04:48",
+              "departure_time": "04:48"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "340429",
+              "arrival_time": "04:49",
+              "departure_time": "04:49"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "76838",
+              "arrival_time": "04:50",
+              "departure_time": "04:50"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "468545",
+              "arrival_time": "04:51",
+              "departure_time": "04:51"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "55723",
+              "arrival_time": "04:53",
+              "departure_time": "04:53"
+            }
+          ],
+          "stop_ids": [
+            "672375",
+            "434567",
+            "406721",
+            "501830",
+            "313619",
+            "543147",
+            "55052",
+            "203097",
+            "429104",
+            "632197",
+            "109658",
+            "543147",
+            "582875",
+            "340429",
+            "76838",
+            "468545",
+            "55723"
+          ],
+          "stop_times": {
+            "672375": "04:29",
+            "434567": "04:31",
+            "406721": "04:35",
+            "501830": "04:36",
+            "313619": "04:37",
+            "543147": "04:38",
+            "55052": "04:40",
+            "203097": "04:42",
+            "429104": "04:43",
+            "632197": "04:44",
+            "109658": "04:45",
+            "582875": "04:48",
+            "340429": "04:49",
+            "76838": "04:50",
+            "468545": "04:51",
+            "55723": "04:53"
+          },
+          "stop_times_arrival": {
+            "672375": "04:29",
+            "434567": "04:31",
+            "406721": "04:35",
+            "501830": "04:36",
+            "313619": "04:37",
+            "543147": "04:38",
+            "55052": "04:40",
+            "203097": "04:42",
+            "429104": "04:43",
+            "632197": "04:44",
+            "109658": "04:45",
+            "582875": "04:48",
+            "340429": "04:49",
+            "76838": "04:50",
+            "468545": "04:51",
+            "55723": "04:53"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "517621",
+          "headsign": "Magdeburg, Braunlager Str.",
+          "start": "05:44",
+          "end": "06:13",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "1911",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "672375",
+              "arrival_time": "05:44",
+              "departure_time": "05:44"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "434567",
+              "arrival_time": "05:47",
+              "departure_time": "05:47"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "406721",
+              "arrival_time": "05:51",
+              "departure_time": "05:51"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "335127",
+              "arrival_time": "05:52",
+              "departure_time": "05:52"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "209989",
+              "arrival_time": "05:53",
+              "departure_time": "05:53"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "151522",
+              "arrival_time": "05:54",
+              "departure_time": "05:54"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "501830",
+              "arrival_time": "05:55",
+              "departure_time": "05:55"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "313619",
+              "arrival_time": "05:56",
+              "departure_time": "05:56"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "543147",
+              "arrival_time": "05:57",
+              "departure_time": "05:57"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "55052",
+              "arrival_time": "05:59",
+              "departure_time": "05:59"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "203097",
+              "arrival_time": "06:01",
+              "departure_time": "06:01"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "429104",
+              "arrival_time": "06:02",
+              "departure_time": "06:02"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "632197",
+              "arrival_time": "06:03",
+              "departure_time": "06:03"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "109658",
+              "arrival_time": "06:04",
+              "departure_time": "06:04"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "543147",
+              "arrival_time": "06:06",
+              "departure_time": "06:06"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "582875",
+              "arrival_time": "06:07",
+              "departure_time": "06:07"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "340429",
+              "arrival_time": "06:09",
+              "departure_time": "06:09"
+            },
+            {
+              "stop_sequence": 17,
+              "stop_id": "76838",
+              "arrival_time": "06:10",
+              "departure_time": "06:10"
+            },
+            {
+              "stop_sequence": 18,
+              "stop_id": "468545",
+              "arrival_time": "06:11",
+              "departure_time": "06:11"
+            },
+            {
+              "stop_sequence": 19,
+              "stop_id": "55723",
+              "arrival_time": "06:13",
+              "departure_time": "06:13"
+            }
+          ],
+          "stop_ids": [
+            "672375",
+            "434567",
+            "406721",
+            "335127",
+            "209989",
+            "151522",
+            "501830",
+            "313619",
+            "543147",
+            "55052",
+            "203097",
+            "429104",
+            "632197",
+            "109658",
+            "543147",
+            "582875",
+            "340429",
+            "76838",
+            "468545",
+            "55723"
+          ],
+          "stop_times": {
+            "672375": "05:44",
+            "434567": "05:47",
+            "406721": "05:51",
+            "335127": "05:52",
+            "209989": "05:53",
+            "151522": "05:54",
+            "501830": "05:55",
+            "313619": "05:56",
+            "543147": "05:57",
+            "55052": "05:59",
+            "203097": "06:01",
+            "429104": "06:02",
+            "632197": "06:03",
+            "109658": "06:04",
+            "582875": "06:07",
+            "340429": "06:09",
+            "76838": "06:10",
+            "468545": "06:11",
+            "55723": "06:13"
+          },
+          "stop_times_arrival": {
+            "672375": "05:44",
+            "434567": "05:47",
+            "406721": "05:51",
+            "335127": "05:52",
+            "209989": "05:53",
+            "151522": "05:54",
+            "501830": "05:55",
+            "313619": "05:56",
+            "543147": "05:57",
+            "55052": "05:59",
+            "203097": "06:01",
+            "429104": "06:02",
+            "632197": "06:03",
+            "109658": "06:04",
+            "582875": "06:07",
+            "340429": "06:09",
+            "76838": "06:10",
+            "468545": "06:11",
+            "55723": "06:13"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "1253979",
+          "headsign": "B\u00f6rdepark West",
+          "start": "20:32",
+          "end": "20:56",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "1911",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "305971",
+              "arrival_time": "20:32",
+              "departure_time": "20:32"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "337753",
+              "arrival_time": "20:33",
+              "departure_time": "20:33"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "588599",
+              "arrival_time": "20:34",
+              "departure_time": "20:34"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "323750",
+              "arrival_time": "20:35",
+              "departure_time": "20:35"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "221352",
+              "arrival_time": "20:36",
+              "departure_time": "20:36"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "509326",
+              "arrival_time": "20:37",
+              "departure_time": "20:37"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "245302",
+              "arrival_time": "20:39",
+              "departure_time": "20:39"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "15919",
+              "arrival_time": "20:40",
+              "departure_time": "20:40"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "671224",
+              "arrival_time": "20:41",
+              "departure_time": "20:41"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "419956",
+              "arrival_time": "20:42",
+              "departure_time": "20:42"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "427455",
+              "arrival_time": "20:45",
+              "departure_time": "20:45"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "509326",
+              "arrival_time": "20:47",
+              "departure_time": "20:47"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "341261",
+              "arrival_time": "20:48",
+              "departure_time": "20:48"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "670726",
+              "arrival_time": "20:49",
+              "departure_time": "20:49"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "685633",
+              "arrival_time": "20:50",
+              "departure_time": "20:50"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "111186",
+              "arrival_time": "20:54",
+              "departure_time": "20:54"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "635386",
+              "arrival_time": "20:56",
+              "departure_time": "20:56"
+            }
+          ],
+          "stop_ids": [
+            "305971",
+            "337753",
+            "588599",
+            "323750",
+            "221352",
+            "509326",
+            "245302",
+            "15919",
+            "671224",
+            "419956",
+            "427455",
+            "509326",
+            "341261",
+            "670726",
+            "685633",
+            "111186",
+            "635386"
+          ],
+          "stop_times": {
+            "305971": "20:32",
+            "337753": "20:33",
+            "588599": "20:34",
+            "323750": "20:35",
+            "221352": "20:36",
+            "509326": "20:37",
+            "245302": "20:39",
+            "15919": "20:40",
+            "671224": "20:41",
+            "419956": "20:42",
+            "427455": "20:45",
+            "341261": "20:48",
+            "670726": "20:49",
+            "685633": "20:50",
+            "111186": "20:54",
+            "635386": "20:56"
+          },
+          "stop_times_arrival": {
+            "305971": "20:32",
+            "337753": "20:33",
+            "588599": "20:34",
+            "323750": "20:35",
+            "221352": "20:36",
+            "509326": "20:37",
+            "245302": "20:39",
+            "15919": "20:40",
+            "671224": "20:41",
+            "419956": "20:42",
+            "427455": "20:45",
+            "341261": "20:48",
+            "670726": "20:49",
+            "685633": "20:50",
+            "111186": "20:54",
+            "635386": "20:56"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "1500040",
+          "headsign": "B\u00f6rdepark West",
+          "start": "20:47",
+          "end": "21:11",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "1807",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "305971",
+              "arrival_time": "20:47",
+              "departure_time": "20:47"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "337753",
+              "arrival_time": "20:48",
+              "departure_time": "20:48"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "588599",
+              "arrival_time": "20:49",
+              "departure_time": "20:49"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "323750",
+              "arrival_time": "20:50",
+              "departure_time": "20:50"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "221352",
+              "arrival_time": "20:51",
+              "departure_time": "20:51"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "509326",
+              "arrival_time": "20:52",
+              "departure_time": "20:52"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "245302",
+              "arrival_time": "20:54",
+              "departure_time": "20:54"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "15919",
+              "arrival_time": "20:55",
+              "departure_time": "20:55"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "671224",
+              "arrival_time": "20:56",
+              "departure_time": "20:56"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "419956",
+              "arrival_time": "20:57",
+              "departure_time": "20:57"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "427455",
+              "arrival_time": "21:00",
+              "departure_time": "21:00"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "509326",
+              "arrival_time": "21:02",
+              "departure_time": "21:02"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "341261",
+              "arrival_time": "21:03",
+              "departure_time": "21:03"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "670726",
+              "arrival_time": "21:04",
+              "departure_time": "21:04"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "685633",
+              "arrival_time": "21:05",
+              "departure_time": "21:05"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "111186",
+              "arrival_time": "21:09",
+              "departure_time": "21:09"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "635386",
+              "arrival_time": "21:11",
+              "departure_time": "21:11"
+            }
+          ],
+          "stop_ids": [
+            "305971",
+            "337753",
+            "588599",
+            "323750",
+            "221352",
+            "509326",
+            "245302",
+            "15919",
+            "671224",
+            "419956",
+            "427455",
+            "509326",
+            "341261",
+            "670726",
+            "685633",
+            "111186",
+            "635386"
+          ],
+          "stop_times": {
+            "305971": "20:47",
+            "337753": "20:48",
+            "588599": "20:49",
+            "323750": "20:50",
+            "221352": "20:51",
+            "509326": "20:52",
+            "245302": "20:54",
+            "15919": "20:55",
+            "671224": "20:56",
+            "419956": "20:57",
+            "427455": "21:00",
+            "341261": "21:03",
+            "670726": "21:04",
+            "685633": "21:05",
+            "111186": "21:09",
+            "635386": "21:11"
+          },
+          "stop_times_arrival": {
+            "305971": "20:47",
+            "337753": "20:48",
+            "588599": "20:49",
+            "323750": "20:50",
+            "221352": "20:51",
+            "509326": "20:52",
+            "245302": "20:54",
+            "15919": "20:55",
+            "671224": "20:56",
+            "419956": "20:57",
+            "427455": "21:00",
+            "341261": "21:03",
+            "670726": "21:04",
+            "685633": "21:05",
+            "111186": "21:09",
+            "635386": "21:11"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "740370",
+          "headsign": "Magdeburg, Braunlager Str.",
+          "start": "21:04",
+          "end": "21:28",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "1911",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "672375",
+              "arrival_time": "21:04",
+              "departure_time": "21:04"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "434567",
+              "arrival_time": "21:06",
+              "departure_time": "21:06"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "406721",
+              "arrival_time": "21:10",
+              "departure_time": "21:10"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "501830",
+              "arrival_time": "21:11",
+              "departure_time": "21:11"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "313619",
+              "arrival_time": "21:12",
+              "departure_time": "21:12"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "543147",
+              "arrival_time": "21:13",
+              "departure_time": "21:13"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "55052",
+              "arrival_time": "21:15",
+              "departure_time": "21:15"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "203097",
+              "arrival_time": "21:17",
+              "departure_time": "21:17"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "429104",
+              "arrival_time": "21:18",
+              "departure_time": "21:18"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "632197",
+              "arrival_time": "21:19",
+              "departure_time": "21:19"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "109658",
+              "arrival_time": "21:20",
+              "departure_time": "21:20"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "543147",
+              "arrival_time": "21:22",
+              "departure_time": "21:22"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "582875",
+              "arrival_time": "21:23",
+              "departure_time": "21:23"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "340429",
+              "arrival_time": "21:24",
+              "departure_time": "21:24"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "76838",
+              "arrival_time": "21:25",
+              "departure_time": "21:25"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "468545",
+              "arrival_time": "21:26",
+              "departure_time": "21:26"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "55723",
+              "arrival_time": "21:28",
+              "departure_time": "21:28"
+            }
+          ],
+          "stop_ids": [
+            "672375",
+            "434567",
+            "406721",
+            "501830",
+            "313619",
+            "543147",
+            "55052",
+            "203097",
+            "429104",
+            "632197",
+            "109658",
+            "543147",
+            "582875",
+            "340429",
+            "76838",
+            "468545",
+            "55723"
+          ],
+          "stop_times": {
+            "672375": "21:04",
+            "434567": "21:06",
+            "406721": "21:10",
+            "501830": "21:11",
+            "313619": "21:12",
+            "543147": "21:13",
+            "55052": "21:15",
+            "203097": "21:17",
+            "429104": "21:18",
+            "632197": "21:19",
+            "109658": "21:20",
+            "582875": "21:23",
+            "340429": "21:24",
+            "76838": "21:25",
+            "468545": "21:26",
+            "55723": "21:28"
+          },
+          "stop_times_arrival": {
+            "672375": "21:04",
+            "434567": "21:06",
+            "406721": "21:10",
+            "501830": "21:11",
+            "313619": "21:12",
+            "543147": "21:13",
+            "55052": "21:15",
+            "203097": "21:17",
+            "429104": "21:18",
+            "632197": "21:19",
+            "109658": "21:20",
+            "582875": "21:23",
+            "340429": "21:24",
+            "76838": "21:25",
+            "468545": "21:26",
+            "55723": "21:28"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "777000",
+          "headsign": "B\u00f6rdepark West",
+          "start": "21:07",
+          "end": "21:31",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "1911",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "305971",
+              "arrival_time": "21:07",
+              "departure_time": "21:07"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "337753",
+              "arrival_time": "21:08",
+              "departure_time": "21:08"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "588599",
+              "arrival_time": "21:09",
+              "departure_time": "21:09"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "323750",
+              "arrival_time": "21:10",
+              "departure_time": "21:10"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "221352",
+              "arrival_time": "21:11",
+              "departure_time": "21:11"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "509326",
+              "arrival_time": "21:12",
+              "departure_time": "21:12"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "245302",
+              "arrival_time": "21:14",
+              "departure_time": "21:14"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "15919",
+              "arrival_time": "21:15",
+              "departure_time": "21:15"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "671224",
+              "arrival_time": "21:16",
+              "departure_time": "21:16"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "419956",
+              "arrival_time": "21:17",
+              "departure_time": "21:17"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "427455",
+              "arrival_time": "21:20",
+              "departure_time": "21:20"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "509326",
+              "arrival_time": "21:22",
+              "departure_time": "21:22"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "341261",
+              "arrival_time": "21:23",
+              "departure_time": "21:23"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "670726",
+              "arrival_time": "21:24",
+              "departure_time": "21:24"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "685633",
+              "arrival_time": "21:25",
+              "departure_time": "21:25"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "111186",
+              "arrival_time": "21:29",
+              "departure_time": "21:29"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "635386",
+              "arrival_time": "21:31",
+              "departure_time": "21:31"
+            }
+          ],
+          "stop_ids": [
+            "305971",
+            "337753",
+            "588599",
+            "323750",
+            "221352",
+            "509326",
+            "245302",
+            "15919",
+            "671224",
+            "419956",
+            "427455",
+            "509326",
+            "341261",
+            "670726",
+            "685633",
+            "111186",
+            "635386"
+          ],
+          "stop_times": {
+            "305971": "21:07",
+            "337753": "21:08",
+            "588599": "21:09",
+            "323750": "21:10",
+            "221352": "21:11",
+            "509326": "21:12",
+            "245302": "21:14",
+            "15919": "21:15",
+            "671224": "21:16",
+            "419956": "21:17",
+            "427455": "21:20",
+            "341261": "21:23",
+            "670726": "21:24",
+            "685633": "21:25",
+            "111186": "21:29",
+            "635386": "21:31"
+          },
+          "stop_times_arrival": {
+            "305971": "21:07",
+            "337753": "21:08",
+            "588599": "21:09",
+            "323750": "21:10",
+            "221352": "21:11",
+            "509326": "21:12",
+            "245302": "21:14",
+            "15919": "21:15",
+            "671224": "21:16",
+            "419956": "21:17",
+            "427455": "21:20",
+            "341261": "21:23",
+            "670726": "21:24",
+            "685633": "21:25",
+            "111186": "21:29",
+            "635386": "21:31"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "610124",
+          "headsign": "Magdeburg, Braunlager Str.",
+          "start": "21:24",
+          "end": "21:48",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "2266",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "672375",
+              "arrival_time": "21:24",
+              "departure_time": "21:24"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "434567",
+              "arrival_time": "21:26",
+              "departure_time": "21:26"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "406721",
+              "arrival_time": "21:30",
+              "departure_time": "21:30"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "501830",
+              "arrival_time": "21:31",
+              "departure_time": "21:31"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "313619",
+              "arrival_time": "21:32",
+              "departure_time": "21:32"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "543147",
+              "arrival_time": "21:33",
+              "departure_time": "21:33"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "55052",
+              "arrival_time": "21:35",
+              "departure_time": "21:35"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "203097",
+              "arrival_time": "21:37",
+              "departure_time": "21:37"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "429104",
+              "arrival_time": "21:38",
+              "departure_time": "21:38"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "632197",
+              "arrival_time": "21:39",
+              "departure_time": "21:39"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "109658",
+              "arrival_time": "21:40",
+              "departure_time": "21:40"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "543147",
+              "arrival_time": "21:42",
+              "departure_time": "21:42"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "582875",
+              "arrival_time": "21:43",
+              "departure_time": "21:43"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "340429",
+              "arrival_time": "21:44",
+              "departure_time": "21:44"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "76838",
+              "arrival_time": "21:45",
+              "departure_time": "21:45"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "468545",
+              "arrival_time": "21:46",
+              "departure_time": "21:46"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "55723",
+              "arrival_time": "21:48",
+              "departure_time": "21:48"
+            }
+          ],
+          "stop_ids": [
+            "672375",
+            "434567",
+            "406721",
+            "501830",
+            "313619",
+            "543147",
+            "55052",
+            "203097",
+            "429104",
+            "632197",
+            "109658",
+            "543147",
+            "582875",
+            "340429",
+            "76838",
+            "468545",
+            "55723"
+          ],
+          "stop_times": {
+            "672375": "21:24",
+            "434567": "21:26",
+            "406721": "21:30",
+            "501830": "21:31",
+            "313619": "21:32",
+            "543147": "21:33",
+            "55052": "21:35",
+            "203097": "21:37",
+            "429104": "21:38",
+            "632197": "21:39",
+            "109658": "21:40",
+            "582875": "21:43",
+            "340429": "21:44",
+            "76838": "21:45",
+            "468545": "21:46",
+            "55723": "21:48"
+          },
+          "stop_times_arrival": {
+            "672375": "21:24",
+            "434567": "21:26",
+            "406721": "21:30",
+            "501830": "21:31",
+            "313619": "21:32",
+            "543147": "21:33",
+            "55052": "21:35",
+            "203097": "21:37",
+            "429104": "21:38",
+            "632197": "21:39",
+            "109658": "21:40",
+            "582875": "21:43",
+            "340429": "21:44",
+            "76838": "21:45",
+            "468545": "21:46",
+            "55723": "21:48"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "487655",
+          "headsign": "B\u00f6rdepark West",
+          "start": "21:27",
+          "end": "21:51",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "2266",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "305971",
+              "arrival_time": "21:27",
+              "departure_time": "21:27"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "337753",
+              "arrival_time": "21:28",
+              "departure_time": "21:28"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "588599",
+              "arrival_time": "21:29",
+              "departure_time": "21:29"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "323750",
+              "arrival_time": "21:30",
+              "departure_time": "21:30"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "221352",
+              "arrival_time": "21:31",
+              "departure_time": "21:31"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "509326",
+              "arrival_time": "21:32",
+              "departure_time": "21:32"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "245302",
+              "arrival_time": "21:34",
+              "departure_time": "21:34"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "15919",
+              "arrival_time": "21:35",
+              "departure_time": "21:35"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "671224",
+              "arrival_time": "21:36",
+              "departure_time": "21:36"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "419956",
+              "arrival_time": "21:37",
+              "departure_time": "21:37"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "427455",
+              "arrival_time": "21:40",
+              "departure_time": "21:40"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "509326",
+              "arrival_time": "21:42",
+              "departure_time": "21:42"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "341261",
+              "arrival_time": "21:43",
+              "departure_time": "21:43"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "670726",
+              "arrival_time": "21:44",
+              "departure_time": "21:44"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "685633",
+              "arrival_time": "21:45",
+              "departure_time": "21:45"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "111186",
+              "arrival_time": "21:49",
+              "departure_time": "21:49"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "635386",
+              "arrival_time": "21:51",
+              "departure_time": "21:51"
+            }
+          ],
+          "stop_ids": [
+            "305971",
+            "337753",
+            "588599",
+            "323750",
+            "221352",
+            "509326",
+            "245302",
+            "15919",
+            "671224",
+            "419956",
+            "427455",
+            "509326",
+            "341261",
+            "670726",
+            "685633",
+            "111186",
+            "635386"
+          ],
+          "stop_times": {
+            "305971": "21:27",
+            "337753": "21:28",
+            "588599": "21:29",
+            "323750": "21:30",
+            "221352": "21:31",
+            "509326": "21:32",
+            "245302": "21:34",
+            "15919": "21:35",
+            "671224": "21:36",
+            "419956": "21:37",
+            "427455": "21:40",
+            "341261": "21:43",
+            "670726": "21:44",
+            "685633": "21:45",
+            "111186": "21:49",
+            "635386": "21:51"
+          },
+          "stop_times_arrival": {
+            "305971": "21:27",
+            "337753": "21:28",
+            "588599": "21:29",
+            "323750": "21:30",
+            "221352": "21:31",
+            "509326": "21:32",
+            "245302": "21:34",
+            "15919": "21:35",
+            "671224": "21:36",
+            "419956": "21:37",
+            "427455": "21:40",
+            "341261": "21:43",
+            "670726": "21:44",
+            "685633": "21:45",
+            "111186": "21:49",
+            "635386": "21:51"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "1408406",
+          "headsign": "Magdeburg, Braunlager Str.",
+          "start": "21:44",
+          "end": "22:08",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "1911",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "672375",
+              "arrival_time": "21:44",
+              "departure_time": "21:44"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "434567",
+              "arrival_time": "21:46",
+              "departure_time": "21:46"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "406721",
+              "arrival_time": "21:50",
+              "departure_time": "21:50"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "501830",
+              "arrival_time": "21:51",
+              "departure_time": "21:51"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "313619",
+              "arrival_time": "21:52",
+              "departure_time": "21:52"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "543147",
+              "arrival_time": "21:53",
+              "departure_time": "21:53"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "55052",
+              "arrival_time": "21:55",
+              "departure_time": "21:55"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "203097",
+              "arrival_time": "21:57",
+              "departure_time": "21:57"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "429104",
+              "arrival_time": "21:58",
+              "departure_time": "21:58"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "632197",
+              "arrival_time": "21:59",
+              "departure_time": "21:59"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "109658",
+              "arrival_time": "22:00",
+              "departure_time": "22:00"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "543147",
+              "arrival_time": "22:02",
+              "departure_time": "22:02"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "582875",
+              "arrival_time": "22:03",
+              "departure_time": "22:03"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "340429",
+              "arrival_time": "22:04",
+              "departure_time": "22:04"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "76838",
+              "arrival_time": "22:05",
+              "departure_time": "22:05"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "468545",
+              "arrival_time": "22:06",
+              "departure_time": "22:06"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "55723",
+              "arrival_time": "22:08",
+              "departure_time": "22:08"
+            }
+          ],
+          "stop_ids": [
+            "672375",
+            "434567",
+            "406721",
+            "501830",
+            "313619",
+            "543147",
+            "55052",
+            "203097",
+            "429104",
+            "632197",
+            "109658",
+            "543147",
+            "582875",
+            "340429",
+            "76838",
+            "468545",
+            "55723"
+          ],
+          "stop_times": {
+            "672375": "21:44",
+            "434567": "21:46",
+            "406721": "21:50",
+            "501830": "21:51",
+            "313619": "21:52",
+            "543147": "21:53",
+            "55052": "21:55",
+            "203097": "21:57",
+            "429104": "21:58",
+            "632197": "21:59",
+            "109658": "22:00",
+            "582875": "22:03",
+            "340429": "22:04",
+            "76838": "22:05",
+            "468545": "22:06",
+            "55723": "22:08"
+          },
+          "stop_times_arrival": {
+            "672375": "21:44",
+            "434567": "21:46",
+            "406721": "21:50",
+            "501830": "21:51",
+            "313619": "21:52",
+            "543147": "21:53",
+            "55052": "21:55",
+            "203097": "21:57",
+            "429104": "21:58",
+            "632197": "21:59",
+            "109658": "22:00",
+            "582875": "22:03",
+            "340429": "22:04",
+            "76838": "22:05",
+            "468545": "22:06",
+            "55723": "22:08"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "1296843",
+          "headsign": "B\u00f6rdepark West",
+          "start": "21:47",
+          "end": "22:11",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "1911",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "305971",
+              "arrival_time": "21:47",
+              "departure_time": "21:47"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "337753",
+              "arrival_time": "21:48",
+              "departure_time": "21:48"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "588599",
+              "arrival_time": "21:49",
+              "departure_time": "21:49"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "323750",
+              "arrival_time": "21:50",
+              "departure_time": "21:50"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "221352",
+              "arrival_time": "21:51",
+              "departure_time": "21:51"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "509326",
+              "arrival_time": "21:52",
+              "departure_time": "21:52"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "245302",
+              "arrival_time": "21:54",
+              "departure_time": "21:54"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "15919",
+              "arrival_time": "21:55",
+              "departure_time": "21:55"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "671224",
+              "arrival_time": "21:56",
+              "departure_time": "21:56"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "419956",
+              "arrival_time": "21:57",
+              "departure_time": "21:57"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "427455",
+              "arrival_time": "22:00",
+              "departure_time": "22:00"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "509326",
+              "arrival_time": "22:02",
+              "departure_time": "22:02"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "341261",
+              "arrival_time": "22:03",
+              "departure_time": "22:03"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "670726",
+              "arrival_time": "22:04",
+              "departure_time": "22:04"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "685633",
+              "arrival_time": "22:05",
+              "departure_time": "22:05"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "111186",
+              "arrival_time": "22:09",
+              "departure_time": "22:09"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "635386",
+              "arrival_time": "22:11",
+              "departure_time": "22:11"
+            }
+          ],
+          "stop_ids": [
+            "305971",
+            "337753",
+            "588599",
+            "323750",
+            "221352",
+            "509326",
+            "245302",
+            "15919",
+            "671224",
+            "419956",
+            "427455",
+            "509326",
+            "341261",
+            "670726",
+            "685633",
+            "111186",
+            "635386"
+          ],
+          "stop_times": {
+            "305971": "21:47",
+            "337753": "21:48",
+            "588599": "21:49",
+            "323750": "21:50",
+            "221352": "21:51",
+            "509326": "21:52",
+            "245302": "21:54",
+            "15919": "21:55",
+            "671224": "21:56",
+            "419956": "21:57",
+            "427455": "22:00",
+            "341261": "22:03",
+            "670726": "22:04",
+            "685633": "22:05",
+            "111186": "22:09",
+            "635386": "22:11"
+          },
+          "stop_times_arrival": {
+            "305971": "21:47",
+            "337753": "21:48",
+            "588599": "21:49",
+            "323750": "21:50",
+            "221352": "21:51",
+            "509326": "21:52",
+            "245302": "21:54",
+            "15919": "21:55",
+            "671224": "21:56",
+            "419956": "21:57",
+            "427455": "22:00",
+            "341261": "22:03",
+            "670726": "22:04",
+            "685633": "22:05",
+            "111186": "22:09",
+            "635386": "22:11"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "1363521",
+          "headsign": "Magdeburg, Braunlager Str.",
+          "start": "22:04",
+          "end": "22:28",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "2266",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "672375",
+              "arrival_time": "22:04",
+              "departure_time": "22:04"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "434567",
+              "arrival_time": "22:06",
+              "departure_time": "22:06"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "406721",
+              "arrival_time": "22:10",
+              "departure_time": "22:10"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "501830",
+              "arrival_time": "22:11",
+              "departure_time": "22:11"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "313619",
+              "arrival_time": "22:12",
+              "departure_time": "22:12"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "543147",
+              "arrival_time": "22:13",
+              "departure_time": "22:13"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "55052",
+              "arrival_time": "22:15",
+              "departure_time": "22:15"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "203097",
+              "arrival_time": "22:17",
+              "departure_time": "22:17"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "429104",
+              "arrival_time": "22:18",
+              "departure_time": "22:18"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "632197",
+              "arrival_time": "22:19",
+              "departure_time": "22:19"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "109658",
+              "arrival_time": "22:20",
+              "departure_time": "22:20"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "543147",
+              "arrival_time": "22:22",
+              "departure_time": "22:22"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "582875",
+              "arrival_time": "22:23",
+              "departure_time": "22:23"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "340429",
+              "arrival_time": "22:24",
+              "departure_time": "22:24"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "76838",
+              "arrival_time": "22:25",
+              "departure_time": "22:25"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "468545",
+              "arrival_time": "22:26",
+              "departure_time": "22:26"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "55723",
+              "arrival_time": "22:28",
+              "departure_time": "22:28"
+            }
+          ],
+          "stop_ids": [
+            "672375",
+            "434567",
+            "406721",
+            "501830",
+            "313619",
+            "543147",
+            "55052",
+            "203097",
+            "429104",
+            "632197",
+            "109658",
+            "543147",
+            "582875",
+            "340429",
+            "76838",
+            "468545",
+            "55723"
+          ],
+          "stop_times": {
+            "672375": "22:04",
+            "434567": "22:06",
+            "406721": "22:10",
+            "501830": "22:11",
+            "313619": "22:12",
+            "543147": "22:13",
+            "55052": "22:15",
+            "203097": "22:17",
+            "429104": "22:18",
+            "632197": "22:19",
+            "109658": "22:20",
+            "582875": "22:23",
+            "340429": "22:24",
+            "76838": "22:25",
+            "468545": "22:26",
+            "55723": "22:28"
+          },
+          "stop_times_arrival": {
+            "672375": "22:04",
+            "434567": "22:06",
+            "406721": "22:10",
+            "501830": "22:11",
+            "313619": "22:12",
+            "543147": "22:13",
+            "55052": "22:15",
+            "203097": "22:17",
+            "429104": "22:18",
+            "632197": "22:19",
+            "109658": "22:20",
+            "582875": "22:23",
+            "340429": "22:24",
+            "76838": "22:25",
+            "468545": "22:26",
+            "55723": "22:28"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "1855624",
+          "headsign": "B\u00f6rdepark West",
+          "start": "22:07",
+          "end": "22:31",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "2266",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "305971",
+              "arrival_time": "22:07",
+              "departure_time": "22:07"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "337753",
+              "arrival_time": "22:08",
+              "departure_time": "22:08"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "588599",
+              "arrival_time": "22:09",
+              "departure_time": "22:09"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "323750",
+              "arrival_time": "22:10",
+              "departure_time": "22:10"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "221352",
+              "arrival_time": "22:11",
+              "departure_time": "22:11"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "509326",
+              "arrival_time": "22:12",
+              "departure_time": "22:12"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "245302",
+              "arrival_time": "22:14",
+              "departure_time": "22:14"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "15919",
+              "arrival_time": "22:15",
+              "departure_time": "22:15"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "671224",
+              "arrival_time": "22:16",
+              "departure_time": "22:16"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "419956",
+              "arrival_time": "22:17",
+              "departure_time": "22:17"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "427455",
+              "arrival_time": "22:20",
+              "departure_time": "22:20"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "509326",
+              "arrival_time": "22:22",
+              "departure_time": "22:22"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "341261",
+              "arrival_time": "22:23",
+              "departure_time": "22:23"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "670726",
+              "arrival_time": "22:24",
+              "departure_time": "22:24"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "685633",
+              "arrival_time": "22:25",
+              "departure_time": "22:25"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "111186",
+              "arrival_time": "22:29",
+              "departure_time": "22:29"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "635386",
+              "arrival_time": "22:31",
+              "departure_time": "22:31"
+            }
+          ],
+          "stop_ids": [
+            "305971",
+            "337753",
+            "588599",
+            "323750",
+            "221352",
+            "509326",
+            "245302",
+            "15919",
+            "671224",
+            "419956",
+            "427455",
+            "509326",
+            "341261",
+            "670726",
+            "685633",
+            "111186",
+            "635386"
+          ],
+          "stop_times": {
+            "305971": "22:07",
+            "337753": "22:08",
+            "588599": "22:09",
+            "323750": "22:10",
+            "221352": "22:11",
+            "509326": "22:12",
+            "245302": "22:14",
+            "15919": "22:15",
+            "671224": "22:16",
+            "419956": "22:17",
+            "427455": "22:20",
+            "341261": "22:23",
+            "670726": "22:24",
+            "685633": "22:25",
+            "111186": "22:29",
+            "635386": "22:31"
+          },
+          "stop_times_arrival": {
+            "305971": "22:07",
+            "337753": "22:08",
+            "588599": "22:09",
+            "323750": "22:10",
+            "221352": "22:11",
+            "509326": "22:12",
+            "245302": "22:14",
+            "15919": "22:15",
+            "671224": "22:16",
+            "419956": "22:17",
+            "427455": "22:20",
+            "341261": "22:23",
+            "670726": "22:24",
+            "685633": "22:25",
+            "111186": "22:29",
+            "635386": "22:31"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "937711",
+          "headsign": "Magdeburg, Braunlager Str.",
+          "start": "22:24",
+          "end": "22:48",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "527",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "672375",
+              "arrival_time": "22:24",
+              "departure_time": "22:24"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "434567",
+              "arrival_time": "22:26",
+              "departure_time": "22:26"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "406721",
+              "arrival_time": "22:30",
+              "departure_time": "22:30"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "501830",
+              "arrival_time": "22:31",
+              "departure_time": "22:31"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "313619",
+              "arrival_time": "22:32",
+              "departure_time": "22:32"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "543147",
+              "arrival_time": "22:33",
+              "departure_time": "22:33"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "55052",
+              "arrival_time": "22:35",
+              "departure_time": "22:35"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "203097",
+              "arrival_time": "22:37",
+              "departure_time": "22:37"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "429104",
+              "arrival_time": "22:38",
+              "departure_time": "22:38"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "632197",
+              "arrival_time": "22:39",
+              "departure_time": "22:39"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "109658",
+              "arrival_time": "22:40",
+              "departure_time": "22:40"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "543147",
+              "arrival_time": "22:42",
+              "departure_time": "22:42"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "582875",
+              "arrival_time": "22:43",
+              "departure_time": "22:43"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "340429",
+              "arrival_time": "22:44",
+              "departure_time": "22:44"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "76838",
+              "arrival_time": "22:45",
+              "departure_time": "22:45"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "468545",
+              "arrival_time": "22:46",
+              "departure_time": "22:46"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "55723",
+              "arrival_time": "22:48",
+              "departure_time": "22:48"
+            }
+          ],
+          "stop_ids": [
+            "672375",
+            "434567",
+            "406721",
+            "501830",
+            "313619",
+            "543147",
+            "55052",
+            "203097",
+            "429104",
+            "632197",
+            "109658",
+            "543147",
+            "582875",
+            "340429",
+            "76838",
+            "468545",
+            "55723"
+          ],
+          "stop_times": {
+            "672375": "22:24",
+            "434567": "22:26",
+            "406721": "22:30",
+            "501830": "22:31",
+            "313619": "22:32",
+            "543147": "22:33",
+            "55052": "22:35",
+            "203097": "22:37",
+            "429104": "22:38",
+            "632197": "22:39",
+            "109658": "22:40",
+            "582875": "22:43",
+            "340429": "22:44",
+            "76838": "22:45",
+            "468545": "22:46",
+            "55723": "22:48"
+          },
+          "stop_times_arrival": {
+            "672375": "22:24",
+            "434567": "22:26",
+            "406721": "22:30",
+            "501830": "22:31",
+            "313619": "22:32",
+            "543147": "22:33",
+            "55052": "22:35",
+            "203097": "22:37",
+            "429104": "22:38",
+            "632197": "22:39",
+            "109658": "22:40",
+            "582875": "22:43",
+            "340429": "22:44",
+            "76838": "22:45",
+            "468545": "22:46",
+            "55723": "22:48"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "1457831",
+          "headsign": "B\u00f6rdepark West",
+          "start": "22:27",
+          "end": "22:51",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "1911",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "305971",
+              "arrival_time": "22:27",
+              "departure_time": "22:27"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "337753",
+              "arrival_time": "22:28",
+              "departure_time": "22:28"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "588599",
+              "arrival_time": "22:29",
+              "departure_time": "22:29"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "323750",
+              "arrival_time": "22:30",
+              "departure_time": "22:30"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "221352",
+              "arrival_time": "22:31",
+              "departure_time": "22:31"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "509326",
+              "arrival_time": "22:32",
+              "departure_time": "22:32"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "245302",
+              "arrival_time": "22:34",
+              "departure_time": "22:34"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "15919",
+              "arrival_time": "22:35",
+              "departure_time": "22:35"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "671224",
+              "arrival_time": "22:36",
+              "departure_time": "22:36"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "419956",
+              "arrival_time": "22:37",
+              "departure_time": "22:37"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "427455",
+              "arrival_time": "22:40",
+              "departure_time": "22:40"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "509326",
+              "arrival_time": "22:42",
+              "departure_time": "22:42"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "341261",
+              "arrival_time": "22:43",
+              "departure_time": "22:43"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "670726",
+              "arrival_time": "22:44",
+              "departure_time": "22:44"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "685633",
+              "arrival_time": "22:45",
+              "departure_time": "22:45"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "111186",
+              "arrival_time": "22:49",
+              "departure_time": "22:49"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "635386",
+              "arrival_time": "22:51",
+              "departure_time": "22:51"
+            }
+          ],
+          "stop_ids": [
+            "305971",
+            "337753",
+            "588599",
+            "323750",
+            "221352",
+            "509326",
+            "245302",
+            "15919",
+            "671224",
+            "419956",
+            "427455",
+            "509326",
+            "341261",
+            "670726",
+            "685633",
+            "111186",
+            "635386"
+          ],
+          "stop_times": {
+            "305971": "22:27",
+            "337753": "22:28",
+            "588599": "22:29",
+            "323750": "22:30",
+            "221352": "22:31",
+            "509326": "22:32",
+            "245302": "22:34",
+            "15919": "22:35",
+            "671224": "22:36",
+            "419956": "22:37",
+            "427455": "22:40",
+            "341261": "22:43",
+            "670726": "22:44",
+            "685633": "22:45",
+            "111186": "22:49",
+            "635386": "22:51"
+          },
+          "stop_times_arrival": {
+            "305971": "22:27",
+            "337753": "22:28",
+            "588599": "22:29",
+            "323750": "22:30",
+            "221352": "22:31",
+            "509326": "22:32",
+            "245302": "22:34",
+            "15919": "22:35",
+            "671224": "22:36",
+            "419956": "22:37",
+            "427455": "22:40",
+            "341261": "22:43",
+            "670726": "22:44",
+            "685633": "22:45",
+            "111186": "22:49",
+            "635386": "22:51"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "76506",
+          "headsign": "Magdeburg, Braunlager Str.",
+          "start": "22:44",
+          "end": "23:08",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "2266",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "672375",
+              "arrival_time": "22:44",
+              "departure_time": "22:44"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "434567",
+              "arrival_time": "22:46",
+              "departure_time": "22:46"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "406721",
+              "arrival_time": "22:50",
+              "departure_time": "22:50"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "501830",
+              "arrival_time": "22:51",
+              "departure_time": "22:51"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "313619",
+              "arrival_time": "22:52",
+              "departure_time": "22:52"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "543147",
+              "arrival_time": "22:53",
+              "departure_time": "22:53"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "55052",
+              "arrival_time": "22:55",
+              "departure_time": "22:55"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "203097",
+              "arrival_time": "22:57",
+              "departure_time": "22:57"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "429104",
+              "arrival_time": "22:58",
+              "departure_time": "22:58"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "632197",
+              "arrival_time": "22:59",
+              "departure_time": "22:59"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "109658",
+              "arrival_time": "23:00",
+              "departure_time": "23:00"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "543147",
+              "arrival_time": "23:02",
+              "departure_time": "23:02"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "582875",
+              "arrival_time": "23:03",
+              "departure_time": "23:03"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "340429",
+              "arrival_time": "23:04",
+              "departure_time": "23:04"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "76838",
+              "arrival_time": "23:05",
+              "departure_time": "23:05"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "468545",
+              "arrival_time": "23:06",
+              "departure_time": "23:06"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "55723",
+              "arrival_time": "23:08",
+              "departure_time": "23:08"
+            }
+          ],
+          "stop_ids": [
+            "672375",
+            "434567",
+            "406721",
+            "501830",
+            "313619",
+            "543147",
+            "55052",
+            "203097",
+            "429104",
+            "632197",
+            "109658",
+            "543147",
+            "582875",
+            "340429",
+            "76838",
+            "468545",
+            "55723"
+          ],
+          "stop_times": {
+            "672375": "22:44",
+            "434567": "22:46",
+            "406721": "22:50",
+            "501830": "22:51",
+            "313619": "22:52",
+            "543147": "22:53",
+            "55052": "22:55",
+            "203097": "22:57",
+            "429104": "22:58",
+            "632197": "22:59",
+            "109658": "23:00",
+            "582875": "23:03",
+            "340429": "23:04",
+            "76838": "23:05",
+            "468545": "23:06",
+            "55723": "23:08"
+          },
+          "stop_times_arrival": {
+            "672375": "22:44",
+            "434567": "22:46",
+            "406721": "22:50",
+            "501830": "22:51",
+            "313619": "22:52",
+            "543147": "22:53",
+            "55052": "22:55",
+            "203097": "22:57",
+            "429104": "22:58",
+            "632197": "22:59",
+            "109658": "23:00",
+            "582875": "23:03",
+            "340429": "23:04",
+            "76838": "23:05",
+            "468545": "23:06",
+            "55723": "23:08"
+          },
+          "shape_id": null
+        },
+        {
+          "trip_id": "1061364",
+          "headsign": "B\u00f6rdepark West",
+          "start": "22:47",
+          "end": "23:11",
+          "block_id": null,
+          "gtfs_route_id": "20039",
+          "service_id": "2266",
+          "direction_id": null,
+          "stop_sequences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "stop_times_sequence": [
+            {
+              "stop_sequence": 0,
+              "stop_id": "305971",
+              "arrival_time": "22:47",
+              "departure_time": "22:47"
+            },
+            {
+              "stop_sequence": 1,
+              "stop_id": "337753",
+              "arrival_time": "22:48",
+              "departure_time": "22:48"
+            },
+            {
+              "stop_sequence": 2,
+              "stop_id": "588599",
+              "arrival_time": "22:49",
+              "departure_time": "22:49"
+            },
+            {
+              "stop_sequence": 3,
+              "stop_id": "323750",
+              "arrival_time": "22:50",
+              "departure_time": "22:50"
+            },
+            {
+              "stop_sequence": 4,
+              "stop_id": "221352",
+              "arrival_time": "22:51",
+              "departure_time": "22:51"
+            },
+            {
+              "stop_sequence": 5,
+              "stop_id": "509326",
+              "arrival_time": "22:52",
+              "departure_time": "22:52"
+            },
+            {
+              "stop_sequence": 6,
+              "stop_id": "245302",
+              "arrival_time": "22:54",
+              "departure_time": "22:54"
+            },
+            {
+              "stop_sequence": 7,
+              "stop_id": "15919",
+              "arrival_time": "22:55",
+              "departure_time": "22:55"
+            },
+            {
+              "stop_sequence": 8,
+              "stop_id": "671224",
+              "arrival_time": "22:56",
+              "departure_time": "22:56"
+            },
+            {
+              "stop_sequence": 9,
+              "stop_id": "419956",
+              "arrival_time": "22:57",
+              "departure_time": "22:57"
+            },
+            {
+              "stop_sequence": 10,
+              "stop_id": "427455",
+              "arrival_time": "23:00",
+              "departure_time": "23:00"
+            },
+            {
+              "stop_sequence": 11,
+              "stop_id": "509326",
+              "arrival_time": "23:02",
+              "departure_time": "23:02"
+            },
+            {
+              "stop_sequence": 12,
+              "stop_id": "341261",
+              "arrival_time": "23:03",
+              "departure_time": "23:03"
+            },
+            {
+              "stop_sequence": 13,
+              "stop_id": "670726",
+              "arrival_time": "23:04",
+              "departure_time": "23:04"
+            },
+            {
+              "stop_sequence": 14,
+              "stop_id": "685633",
+              "arrival_time": "23:05",
+              "departure_time": "23:05"
+            },
+            {
+              "stop_sequence": 15,
+              "stop_id": "111186",
+              "arrival_time": "23:09",
+              "departure_time": "23:09"
+            },
+            {
+              "stop_sequence": 16,
+              "stop_id": "635386",
+              "arrival_time": "23:11",
+              "departure_time": "23:11"
+            }
+          ],
+          "stop_ids": [
+            "305971",
+            "337753",
+            "588599",
+            "323750",
+            "221352",
+            "509326",
+            "245302",
+            "15919",
+            "671224",
+            "419956",
+            "427455",
+            "509326",
+            "341261",
+            "670726",
+            "685633",
+            "111186",
+            "635386"
+          ],
+          "stop_times": {
+            "305971": "22:47",
+            "337753": "22:48",
+            "588599": "22:49",
+            "323750": "22:50",
+            "221352": "22:51",
+            "509326": "22:52",
+            "245302": "22:54",
+            "15919": "22:55",
+            "671224": "22:56",
+            "419956": "22:57",
+            "427455": "23:00",
+            "341261": "23:03",
+            "670726": "23:04",
+            "685633": "23:05",
+            "111186": "23:09",
+            "635386": "23:11"
+          },
+          "stop_times_arrival": {
+            "305971": "22:47",
+            "337753": "22:48",
+            "588599": "22:49",
+            "323750": "22:50",
+            "221352": "22:51",
+            "509326": "22:52",
+            "245302": "22:54",
+            "15919": "22:55",
+            "671224": "22:56",
+            "419956": "22:57",
+            "427455": "23:00",
+            "341261": "23:03",
+            "670726": "23:04",
+            "685633": "23:05",
+            "111186": "23:09",
+            "635386": "23:11"
+          },
+          "shape_id": null
+        }
+      ]
+    }
+  ]
+}

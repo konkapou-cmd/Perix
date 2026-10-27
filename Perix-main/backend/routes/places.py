@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 
 import httpx
-from routes.dependencies import get_current_user, UserPublic
+from routes.dependencies import get_current_user, get_current_user_optional, UserPublic
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/places", tags=["Places"])
@@ -21,6 +21,7 @@ HEADERS = {
 # requests so bursts of keystrokes don't get rate-limited (429/403).
 _nominatim_lock = asyncio.Lock()
 _last_nominatim_request = 0.0
+_autocomplete_cache: dict = {}
 
 
 def _extract_public_label(address: dict) -> Optional[str]:
@@ -33,17 +34,28 @@ def _extract_public_label(address: dict) -> Optional[str]:
 
 @router.get("/autocomplete")
 async def places_autocomplete(
-    input: str = Query(..., min_length=2),
-    near_lat: Optional[float] = Query(None),
-    near_lng: Optional[float] = Query(None),
+    input: str = Query(..., min_length=2, max_length=200),
+    near_lat: Optional[float] = Query(None, ge=-90, le=90),
+    near_lng: Optional[float] = Query(None, ge=-180, le=180),
     lang: str = Query("en"),
-    current_user: UserPublic = Depends(get_current_user),
+    current_user: Optional[UserPublic] = Depends(get_current_user_optional),
 ):
     global _last_nominatim_request
     accept_lang = lang if lang in ("en", "de", "el") else "en"
+    text = input.strip()
+    if len(text) < 2:
+        return {"predictions": []}
+    key = (text.casefold(), accept_lang, round(near_lat, 2) if near_lat is not None else None,
+           round(near_lng, 2) if near_lng is not None else None)
+    def cached():
+        entry = _autocomplete_cache.get(key)
+        return entry[1] if entry and 0 <= time.monotonic() - entry[0] < 120 else None
+    hit = cached()
+    if hit is not None:
+        return hit
     try:
         params: dict = {
-            "q": input,
+            "q": text,
             "format": "jsonv2",
             "limit": 10,
             "addressdetails": 1,
@@ -58,6 +70,9 @@ async def places_autocomplete(
             params["viewbox"] = f"{near_lng - vb_lng_delta},{near_lat + vb_lat_delta},{near_lng + vb_lng_delta},{near_lat - vb_lat_delta}"
 
         async with _nominatim_lock:
+            hit = cached()
+            if hit is not None:
+                return hit
             now = time.monotonic()
             wait = 1.1 - (now - _last_nominatim_request)
             if wait > 0:
@@ -103,7 +118,11 @@ async def places_autocomplete(
                 "lng": float(r["lon"]) if r.get("lon") else None,
                 "public_location_label": _extract_public_label(address),
             })
-        return {"predictions": predictions}
+        output = {"predictions": predictions}
+        if len(_autocomplete_cache) >= 256:
+            _autocomplete_cache.pop(next(iter(_autocomplete_cache)))
+        _autocomplete_cache[key] = (time.monotonic(), output)
+        return output
     except Exception as e:
         logger.warning(f"Places autocomplete failed: {e}")
         return {"predictions": []}

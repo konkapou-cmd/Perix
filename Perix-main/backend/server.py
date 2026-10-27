@@ -158,7 +158,10 @@ from routes.account_deletion import (
 
 @app.get("/account-deletion", include_in_schema=False)
 async def account_deletion_page():
-    return HTMLResponse(deletion_request_page_html())@app.get("/account-deletion/confirm", include_in_schema=False)
+    return HTMLResponse(deletion_request_page_html())
+
+
+@app.get("/account-deletion/confirm", include_in_schema=False)
 async def account_deletion_confirm_page(token: str = ""):
     user = await resolve_deletion_token(token.strip())
     if user is None:
@@ -305,6 +308,12 @@ if WEB_DIST.exists():
         if (WEB_DIST / "test-player.html").exists():
             return FileResponse(WEB_DIST / "test-player.html", headers={"Cache-Control": "no-store"})
         return JSONResponse({"detail": "test page not built"}, status_code=404)
+
+    @app.get("/google-mobility-map.html", include_in_schema=False)
+    async def web_google_mobility_map():
+        if (WEB_DIST / "google-mobility-map.html").exists():
+            return FileResponse(WEB_DIST / "google-mobility-map.html", headers={"Cache-Control": "no-store"})
+        return JSONResponse({"detail": "mobility map not built"}, status_code=404)
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def web_spa_fallback(full_path: str):

@@ -10,7 +10,7 @@ touch V1 internals.
 import hashlib
 import math
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Optional
 from zoneinfo import ZoneInfo
 
@@ -22,7 +22,7 @@ NETWORK_TIMEZONE = _ACTIVE_REGION.timezone
 NETWORK_COUNTRY = _ACTIVE_REGION.country
 SERVICE_DAY_START_HOUR = _ACTIVE_REGION.service_day_start_hour
 
-_DOMAIN_CACHE: dict = {"key": None, "data": None}
+_DOMAIN_CACHE: dict = {}
 
 
 def _haversine_km(lat1, lng1, lat2, lng2):
@@ -35,14 +35,8 @@ def _haversine_km(lat1, lng1, lat2, lng2):
 
 
 def _hhmm_to_sec(value) -> Optional[int]:
-    try:
-        h, m = str(value).split(":")
-        h = int(h)
-        if h < SERVICE_DAY_START_HOUR:
-            h += 24
-        return h * 3600 + int(m) * 60
-    except Exception:
-        return None
+    from mobility.realtime_trip_identity import _time_seconds
+    return _time_seconds(value)
 
 
 def _pattern_key(trip: dict) -> str:
@@ -58,6 +52,8 @@ def _pattern_id(route_number: str, key: str) -> str:
 
 
 def _service_date(network: dict) -> str:
+    if network.get("service_date"):
+        return str(network["service_date"])
     name = str(network.get("name") or "")
     m = re.search(r"(\d{4}-\d{2}-\d{2})", name)
     if m:
@@ -66,8 +62,6 @@ def _service_date(network: dict) -> str:
     if imported:
         try:
             dt = datetime.fromisoformat(imported).astimezone(ZoneInfo(NETWORK_TIMEZONE))
-            if dt.hour < SERVICE_DAY_START_HOUR:
-                dt = dt - timedelta(days=1)
             return dt.date().isoformat()
         except Exception:
             pass
@@ -343,10 +337,17 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
     version_id = str(network_doc.get("version_id") or "")
     import json as _json
 
-    cache_key = f"{version_id}:{len(overrides or [])}:{_json.dumps(overrides or [], sort_keys=True)[:200]}"
-    if _DOMAIN_CACHE.get("key") == cache_key and _DOMAIN_CACHE.get("data") is not None:
-        return _DOMAIN_CACHE["data"]
     service_date = _service_date(network_doc)
+    cache_key = (
+        str(network_doc.get("region_id") or get_active_region().region_id),
+        str(network_doc.get("network_id") or network_id), network_id,
+        version_id, service_date,
+        str(network_doc.get("name") or ""), str(network_doc.get("timezone") or NETWORK_TIMEZONE),
+        str(network_doc.get("country") or NETWORK_COUNTRY),
+        _json.dumps(overrides or [], sort_keys=True),
+    )
+    if cache_key in _DOMAIN_CACHE:
+        return _DOMAIN_CACHE[cache_key]
 
     routes = []
     patterns = []
@@ -394,7 +395,7 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
             trip_templates.append(
                 {
                     "trip_id": str(trip.get("trip_id") or ""),
-                    "trip_instance_id": f"{network_id}:{service_date}:{trip.get('trip_id')}",
+                    "trip_instance_id": f"{network_id}:{version_id}:{service_date}:{trip.get('trip_id')}",
                     "route_id": route_id,
                     "route_number": rn,
                     "mode": mode,
@@ -431,6 +432,7 @@ def build_domain(network_doc: dict, network_id: str = NETWORK_ID, overrides: Opt
         "stops": _apply_stop_overrides(_physical_stops(network_doc), overrides),
         "trip_templates": trip_templates,
     }
-    _DOMAIN_CACHE["key"] = cache_key
-    _DOMAIN_CACHE["data"] = data
+    if len(_DOMAIN_CACHE) >= 8:
+        _DOMAIN_CACHE.pop(next(iter(_DOMAIN_CACHE)))
+    _DOMAIN_CACHE[cache_key] = data
     return data

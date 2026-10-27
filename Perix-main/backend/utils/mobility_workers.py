@@ -12,6 +12,7 @@ Env:
 """
 import asyncio
 import hashlib
+import json
 import logging
 import os
 from typing import Optional
@@ -33,7 +34,7 @@ AUTO_ACTIVATE = os.getenv("MOBILITY_SYNC_AUTO_ACTIVATE", "true").lower() != "fal
 STATIC_INTERVAL_HOURS = float(os.getenv("MOBILITY_STATIC_INTERVAL_HOURS", "6"))
 REALTIME_INTERVAL_SECONDS = float(_ACTIVE_REGION.realtime_interval_seconds)
 # v8 adds region/network namespacing to static, realtime and derived data.
-STATIC_SCHEMA_V = "8"
+STATIC_SCHEMA_V = "12"
 
 
 def _log(msg: str) -> None:
@@ -157,16 +158,42 @@ async def _realtime_worker():
         3: "UNSCHEDULED",
     }
 
-    trip_ids: set = set()
-    last_refresh = 0.0
+    from mobility.realtime_trip_identity import build_trip_index, match_trip_update
+    from mobility.realtime_order import activation_epoch, validate_candidate, InvalidRealtimeClock, monotonic_update_pipeline
+    from pymongo.errors import BulkWriteError
+    from routes.mobility import _get_active_network
     _log(f"realtime started ({REALTIME_URL}, every {REALTIME_INTERVAL_SECONDS}s)")
 
     while True:
         try:
-            now = asyncio.get_event_loop().time()
-            if not trip_ids or now - last_refresh > 120:
-                trip_ids = await _active_trip_ids()
-                last_refresh = now
+            # Re-read the active version every cycle (not just every 120s).
+            # An atomic schedule swap must never match GTFS-RT to old trips.
+            active_network = await _get_active_network()
+            from routes.mobility import networks_for_journey_window
+            from mobility.realtime_trip_identity import _service_date
+            from mobility.schedule_revision import audit_schedule
+            from mobility.generations import atomic_generations_enabled
+            dated_indexes = {}
+            for network in await networks_for_journey_window(active_network):
+                day = _service_date(network)
+                report = network.get("generation_report") or {}
+                ready = network.get("generation_state") == "READY" or (
+                    network.get("generation_state") == "ACTIVE_READY"
+                    and int(report.get("expected") or 0) > 0
+                    and report.get("ready") == report.get("expected")
+                    and not report.get("blocking_missing"))
+                # Each retained version must independently pass the existing
+                # structural audit and readiness gate. Never relabel a feed.
+                if (not network.get("activated_at") or not network.get("version_id")
+                        or (atomic_generations_enabled() and not ready)
+                        or not audit_schedule({**network, "service_date": day})["ready_to_import"]):
+                    continue
+                if day in dated_indexes:
+                    raise RuntimeError("Ambiguous dated realtime network")
+                dated_indexes[day] = (network, build_trip_index(network))
+            from mobility.alert_scope import build_alert_scope
+            alert_scope = build_alert_scope(active_network or {})
+            trip_ids = {tid for _, index in dated_indexes.values() for tid in index}
 
             async with httpx.AsyncClient(timeout=60) as client:
                 resp = await client.get(REALTIME_URL)
@@ -175,16 +202,19 @@ async def _realtime_worker():
 
             feed = gtfs_realtime_pb2.FeedMessage()
             feed.ParseFromString(raw)
+            # Feed generation time helps distinguish a newly fetched old feed.
+            feed_timestamp = int(feed.header.timestamp) if feed.header.HasField("timestamp") else None
             total_tu = sum(1 for e in feed.entity if e.HasField("trip_update"))
             total_alerts = sum(1 for e in feed.entity if e.HasField("alert"))
             docs = []
+            rejected: dict[str, int] = {}
             from routes.mobility import _berlin_now
 
             now_iso = _berlin_now().isoformat()
 
             for entity in feed.entity:
                 if entity.HasField("alert"):
-                    await _store_alert(entity.alert, now_iso)
+                    await _store_alert(entity.alert, now_iso, alert_scope)
                 if not entity.HasField("trip_update"):
                     continue
 
@@ -192,71 +222,63 @@ async def _realtime_worker():
                 if not tu.trip.trip_id:
                     continue
 
-                trip_id = tu.trip.trip_id
-                if trip_id not in trip_ids:
-                    continue
-
+                trip_id = str(tu.trip.trip_id)
                 trip_rel = trip_rel_names.get(int(tu.trip.schedule_relationship), "SCHEDULED")
-                stop_delays = {}
-                stop_predictions = {}
-                stop_relationships = {}
-
-                trip_delay = None
+                descriptor = {
+                    "trip_id": trip_id,
+                    "route_id": str(tu.trip.route_id or ""),
+                    "start_date": str(tu.trip.start_date or ""),
+                    "start_time": str(tu.trip.start_time or ""),
+                    "direction_id": next((int(v) for field, v in tu.trip.ListFields() if field.name == "direction_id"), None),
+                    "schedule_relationship": trip_rel,
+                }
+                stop_refs = [
+                    {
+                        "stop_id": str(stu.stop_id or ""),
+                        "stop_sequence": int(stu.stop_sequence) if stu.HasField("stop_sequence") else None,
+                    }
+                    for stu in tu.stop_time_update
+                ]
+                # An explicit descriptor date dispatches to exactly one
+                # independently audited index. Missing-date inference remains
+                # the strict matcher's job, limited to the active network.
+                from datetime import datetime
+                if not descriptor["start_date"] and sum(trip_id in index for _, index in dated_indexes.values()) > 1:
+                    rejected["AMBIGUOUS_SERVICE_DATE"] = rejected.get("AMBIGUOUS_SERVICE_DATE", 0) + 1
+                    continue
                 try:
-                    if tu.HasField("delay"):
-                        trip_delay = int(tu.delay)
-                except Exception:
-                    pass
-
-                first_stop_delay = None
-
-                for stu in tu.stop_time_update:
-                    sid = str(stu.stop_id or "")
-                    if not sid:
-                        continue
-
-                    stop_relationships[sid] = stop_rel_names.get(
-                        int(stu.schedule_relationship),
-                        "SCHEDULED",
-                    )
-
-                    arrival_delay = None
-                    departure_delay = None
-                    if stu.HasField("arrival") and stu.arrival.HasField("delay"):
-                        arrival_delay = int(stu.arrival.delay)
-                    if stu.HasField("departure") and stu.departure.HasField("delay"):
-                        departure_delay = int(stu.departure.delay)
-
-                    d = arrival_delay if arrival_delay is not None else departure_delay
-                    if d is not None:
-                        stop_delays[sid] = d
-                        if first_stop_delay is None:
-                            first_stop_delay = d
-
-                    prediction = {}
-                    if arrival_delay is not None:
-                        prediction["arrival_delay_seconds"] = arrival_delay
-                    if departure_delay is not None:
-                        prediction["departure_delay_seconds"] = departure_delay
-                    if stu.HasField("arrival") and stu.arrival.HasField("time") and stu.arrival.time:
-                        prediction["arrival_epoch"] = int(stu.arrival.time)
-                    if stu.HasField("departure") and stu.departure.HasField("time") and stu.departure.time:
-                        prediction["departure_epoch"] = int(stu.departure.time)
-                    if prediction:
-                        stop_predictions[sid] = prediction
-
-                if trip_delay is None:
-                    trip_delay = first_stop_delay if first_stop_delay is not None else 0
+                    descriptor_day = datetime.strptime(descriptor["start_date"], "%Y%m%d").date().isoformat() if descriptor["start_date"] else _service_date(active_network or {})
+                except ValueError:
+                    descriptor_day = None
+                selected = dated_indexes.get(descriptor_day)
+                if selected is None:
+                    rejected["UNKNOWN_SERVICE_DATE"] = rejected.get("UNKNOWN_SERVICE_DATE", 0) + 1
+                    continue
+                matched_network, trip_index = selected
+                matched, match_reason = match_trip_update(
+                    descriptor, stop_refs, trip_index,
+                    feed_timestamp=feed_timestamp,
+                    timezone_name=_ACTIVE_REGION.timezone,
+                    service_day_start_hour=_ACTIVE_REGION.service_day_start_hour,
+                    activated_at=matched_network.get("activated_at"),
+                )
+                if matched is None:
+                    rejected[match_reason] = rejected.get(match_reason, 0) + 1
+                    continue
+                from mobility.timing_evidence import extract_trip_timing
+                timing = extract_trip_timing(tu, matched, stop_rel_names)
 
                 docs.append(
                     {
                         "region_id": _ACTIVE_REGION.region_id,
                         "network_id": _ACTIVE_REGION.network_id,
                         "trip_id": trip_id,
-                        "delay_seconds": int(trip_delay),
-                        "stop_delays": stop_delays,
-                        "stop_predictions": stop_predictions,
-                        "stop_relationships": stop_relationships,
+                        "network_version_id": matched["network_version_id"],
+                        "service_date": matched["service_date"],
+                        "gtfs_route_id": matched["gtfs_route_id"],
+                        **timing,
+                        "feed_timestamp": feed_timestamp,
+                        "network_activation_epoch": activation_epoch(matched_network.get("activated_at")),
                         "trip_schedule_relationship": trip_rel,
                     }
                 )
@@ -264,9 +286,16 @@ async def _realtime_worker():
             canceled = 0
             skipped = 0
 
+            from mobility.realtime_index import journey_upsert_filter
             ops = []
-            for doc in docs:
+            retry_ops = []
+            clock_rejected = 0
+            stored = 0
+            # Duplicate TripUpdates within a feed must never race each other.
+            unique_docs = {tuple(journey_upsert_filter(doc).values()): doc for doc in reversed(docs)}
+            for doc in reversed(list(unique_docs.values())):
                 doc["updated_at"] = now_iso
+                doc["received_at"] = now_iso
                 doc["source"] = "GTFS_RT"
                 if doc.get("trip_schedule_relationship") in ("CANCELED", "DELETED"):
                     canceled += 1
@@ -275,27 +304,50 @@ async def _realtime_worker():
                     for rel in (doc.get("stop_relationships") or {}).values()
                     if rel == "SKIPPED"
                 )
+                try:
+                    validate_candidate(doc)
+                except InvalidRealtimeClock:
+                    clock_rejected += 1
+                    continue
+                key = journey_upsert_filter(doc)
+                update = monotonic_update_pipeline(doc)
+                retry_ops.append(UpdateOne(key, update, upsert=False))
                 ops.append(
-                    UpdateOne(
-                        {
-                            "region_id": _ACTIVE_REGION.region_id,
-                            "network_id": _ACTIVE_REGION.network_id,
-                            "trip_id": doc["trip_id"],
-                        },
-                        {"$set": doc},
-                        upsert=True,
-                    )
+                    UpdateOne(key, update, upsert=True)
                 )
             if ops:
-                await db.mobility_realtime.bulk_write(ops, ordered=False)
+                try:
+                    result = await db.mobility_trip_realtime_journeys.bulk_write(ops, ordered=False)
+                    stored = int(result.modified_count or 0) + int(result.upserted_count or 0)
+                except BulkWriteError as exc:
+                    # Concurrent upsert of a previously absent trip may race
+                    # the unique index. Retry duplicate-key items as updates
+                    # with NO upsert, preserving the same atomic rank check.
+                    details = exc.details or {}
+                    errors = details.get("writeErrors") or []
+                    if not errors or any(int(e.get("code", -1)) != 11000 for e in errors):
+                        raise
+                    indices = sorted({int(e["index"]) for e in errors})
+                    if any(i < 0 or i >= len(retry_ops) for i in indices):
+                        raise
+                    retry = await db.mobility_trip_realtime_journeys.bulk_write(
+                        [retry_ops[i] for i in indices], ordered=False
+                    )
+                    if int(retry.matched_count or 0) != len(indices):
+                        raise RuntimeError("Concurrent-upsert retry could not find the winning trip row")
+                    stored = (int(details.get("nModified") or 0) +
+                              int(details.get("nUpserted") or 0) +
+                              int(retry.modified_count or 0))
 
             if docs or total_tu:
                 _log(
                     "realtime: "
                     f"feed trip_updates={total_tu} "
                     f"network_trips={len(trip_ids)} "
-                    f"matched={len(docs)} stored={len(docs)} "
-                    f"canceled={canceled} skipped_stops={skipped}"
+                    f"matched={len(docs)} stored={stored} clock_rejected={clock_rejected} "
+                    f"canceled={canceled} skipped_stops={skipped} "
+                    f"identity_rejected={sum(rejected.values())} "
+                    f"reject_reasons={dict(sorted(rejected.items()))}"
                 )
 
         except Exception as e:
@@ -303,7 +355,7 @@ async def _realtime_worker():
 
         await asyncio.sleep(REALTIME_INTERVAL_SECONDS)
 
-async def _store_alert(alert, now_iso: str) -> None:
+async def _store_alert(alert, now_iso: str, scope) -> None:
     """Store a GTFS-RT ServiceAlert (Störung/Umleitung/Sperrung/Halt entfällt)
     so the restrictions layer can derive mode-aware closures."""
     effect_names = {
@@ -357,12 +409,22 @@ async def _store_alert(alert, now_iso: str) -> None:
             p["end"] = int(ap.end)
         if p:
             periods.append(p)
+    from mobility.alert_scope import scope_alert
+    verified = scope_alert(entities, scope)
+    if not verified['accepted']:
+        return  # Never assign a national ServiceAlert to Magdeburg by download source.
+    entities = verified['entities']  # Do not persist out-of-region trip selectors.
     header = alert.header_text.translation[0].text if alert.header_text.translation else ""
     desc = alert.description_text.translation[0].text if alert.description_text.translation else ""
     doc = {
         "region_id": _ACTIVE_REGION.region_id,
         "network_id": _ACTIVE_REGION.network_id,
-        "alert_hash": hashlib.sha256((header + desc).encode("utf-8")).hexdigest(),
+        # Same title/description can target different lines, stops or periods.
+        "alert_hash": hashlib.sha256(json.dumps({
+            "header": header, "description": desc,
+            "effect": int(alert.effect), "cause": int(alert.cause),
+            "entities": entities, "periods": periods,
+        }, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest(),
         "effect": effect_names.get(int(alert.effect), "UNKNOWN_EFFECT"),
         "cause": cause_names.get(int(alert.cause), "UNKNOWN_CAUSE"),
         "header_text": header,
@@ -371,6 +433,10 @@ async def _store_alert(alert, now_iso: str) -> None:
         "active_periods": periods,
         "updated_at": now_iso,
         "source": "GTFS_RT_ALERT",
+        "scope_verified": True,
+        "network_version_id": scope.version_id,
+        "scope_method": verified['reason'],
+        "source_selector_count": verified['total'],
     }
     existing = await db.mobility_service_alerts.find_one(
         {
@@ -386,6 +452,64 @@ async def _store_alert(alert, now_iso: str) -> None:
         await db.mobility_service_alerts.insert_one(doc)
 
 
+def _has_occurrence_timing(network: Optional[dict]) -> bool:
+    from mobility.stop_occurrences import stop_occurrence_times
+
+    trips = [t for r in (network or {}).get("routes", []) for t in r.get("trips", [])]
+    try:
+        return bool(trips) and all(stop_occurrence_times(t) is not None for t in trips)
+    except ValueError:
+        return False
+
+
+def _daily_recovery_control():
+    from mobility.daily_recovery import DailyRecovery
+    return DailyRecovery(db.mobility_daily_recovery, region_id=_ACTIVE_REGION.region_id,
+        network_id=_ACTIVE_REGION.network_id, timezone_name=_ACTIVE_REGION.timezone)
+
+async def _managed_daily_candidate(candidate_id, service_date, source_sha256):
+    from mobility.daily_recovery import enabled
+    if not enabled():
+        return None
+    from mobility.generations import atomic_generations_enabled, prepare_network_version
+    from mobility.osm_store import active_version
+    from routes.mobility import _get_active_network, _activate_network_version
+    if not AUTO_ACTIVATE or not atomic_generations_enabled():
+        return {'state': 'AUTOMATIC_ATOMIC_ACTIVATION_DISABLED'}
+    control = _daily_recovery_control()
+    row = await control.register(service_date=service_date, source_sha256=source_sha256, candidate_id=candidate_id)
+    if not row.get('candidate_id'):
+        return row
+    _event, lock, _queue = _precompute_primitives()
+    async with lock:
+        candidate = await db.bus_network_versions.find_one({'version_id': row['candidate_id'],
+            'region_id': _ACTIVE_REGION.region_id, 'network_id': _ACTIVE_REGION.network_id}, {'_id': 0})
+        if not candidate or candidate.get('service_date') != service_date:
+            return {'state': 'CANDIDATE_DATE_OR_SCOPE_MISMATCH'}
+        active = await _get_active_network()
+        if (active or {}).get('version_id') == row['candidate_id']:
+            if active.get('generation_state') not in ('READY', 'ACTIVE_READY'):
+                return {'state': 'ACTIVE_NETWORK_NOT_READY'}
+            return await control.confirm_active(row['candidate_id'], service_date)
+        result = await control.attempt(graph_v=await active_version(_ACTIVE_REGION.region_id),
+            source_version_id=str((active or {}).get('version_id') or '') or None,
+            prepare=prepare_network_version, activate=_activate_network_version)
+    alarm = result.get('alarm') or {}
+    _log(f"daily recovery: state={result.get('state')} candidate={row['candidate_id']} alarm={alarm.get('code')}")
+    return result
+
+async def _recover_daily_candidate():
+    from mobility.daily_recovery import enabled, civil_date
+    if not enabled() or not AUTO_ACTIVATE:
+        return
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    row = await _daily_recovery_control().status()
+    today = civil_date(datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)), _ACTIVE_REGION.timezone)
+    if row.get('service_date') == today and row.get('candidate_id') and row.get('state') != 'ACTIVATED':
+        await _managed_daily_candidate(row['candidate_id'], today, row['source_sha256'])
+
+
 async def _static_worker():
     if _ACTIVE_REGION.static_transit_type != "GTFS":
         _log(
@@ -399,6 +523,7 @@ async def _static_worker():
     _log(f"static started ({STATIC_GTFS_URL}, every {STATIC_INTERVAL_HOURS}h)")
 
     while True:
+        today = None
         try:
             # Stream to disk (the nationwide feed is ~270MB - never hold it in RAM)
             tmp_path = "/tmp/perix_gtfs.zip"
@@ -423,12 +548,15 @@ async def _static_worker():
             # stale or schema-outdated trips.
             from datetime import datetime
             from zoneinfo import ZoneInfo
+            from mobility.service_clock import _static_service_date
+            from mobility.realtime_trip_identity import _service_date
 
-            today = datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)).date().isoformat()
+            local_now = datetime.now(ZoneInfo(_ACTIVE_REGION.timezone))
+            today = _static_service_date(local_now, _ACTIVE_REGION.timezone)
             from routes.mobility import _get_active_network
 
             active = await _get_active_network()
-            active_fresh = bool(active) and today in str(active.get("name") or "")
+            active_fresh = bool(active) and _service_date(active) == today
             has_trip_stops = False
             for r in (active or {}).get("routes", []):
                 for t in r.get("trips", []):
@@ -451,6 +579,7 @@ async def _static_worker():
                 and active_fresh
                 and has_trip_stops
                 and has_stop_meta
+                and _has_occurrence_timing(active)
             ):
                 _log("static: feed unchanged")
             else:
@@ -459,6 +588,7 @@ async def _static_worker():
                 _log("static: parsing feed...")
                 payload = parse_gtfs_zip_path(
                     tmp_path,
+                    service_date=today,
                     agency_regex=_ACTIVE_REGION.agency_regex,
                     timezone=_ACTIVE_REGION.timezone,
                 )
@@ -466,6 +596,51 @@ async def _static_worker():
                 trips = sum(len(r.get("trips", [])) for r in routes)
                 lines = len(routes)
                 _log(f"static: converted: {lines} lines, {trips} trips")
+                # An official GTFS schedule update is NOT inferred from text
+                # ServiceAlerts. A date/route/stop-specific operator-reviewed
+                # contract may assert exactly which variants must exist.
+                from mobility.schedule_revision import choose_contract, audit_schedule
+
+                raw_contract = str(os.getenv("MOBILITY_REVISION_CONTRACT_JSON") or "").strip()
+                manifest = choose_contract(
+                    json.loads(raw_contract) if raw_contract else None,
+                    region_id=_ACTIVE_REGION.region_id,
+                    network_id=_ACTIVE_REGION.network_id,
+                    service_date=str(payload.get("service_date") or ""),
+                )
+                from routes.mobility import _get_active_network
+                prior = await _get_active_network()
+                revision_report = audit_schedule(
+                    payload, contract=manifest,
+                    service_day_start_hour=_ACTIVE_REGION.service_day_start_hour,
+                    previous=prior,
+                    source_sha256=sha,
+                )
+                revision_report.update({
+                    "source_sha256": sha,
+                    "audited_at": datetime.now(ZoneInfo("UTC")).isoformat(),
+                })
+                audit_key = {
+                    "region_id": _ACTIVE_REGION.region_id,
+                    "network_id": _ACTIVE_REGION.network_id,
+                    "service_date": str(payload.get("service_date")),
+                    "source_sha256": sha,
+                }
+                await db.mobility_schedule_audits.replace_one(
+                    audit_key, {**audit_key, **revision_report}, upsert=True,
+                )
+                _log(
+                    "static revision: "
+                    f"service_date={revision_report['service_date']} "
+                    f"contract={revision_report['contract_applied']} "
+                    f"blocking={revision_report['blocking_error_count']} "
+                    f"warnings={revision_report['warning_count']}"
+                )
+                if not revision_report["ready_to_import"]:
+                    raise RuntimeError(
+                        "schedule revision audit rejected candidate; "
+                        "see operator /mobility/v2/diagnostic/schedule-revision"
+                    )
                 if trips < MIN_TRIPS or lines < MIN_LINES:
                     _log(f"static: health check failed ({lines}<{MIN_LINES} or {trips}<{MIN_TRIPS}) - skipping")
                     raise RuntimeError("health check failed")
@@ -473,8 +648,12 @@ async def _static_worker():
                 from routes.mobility import _create_network_version, _get_active_network
 
                 await _merge_shapes(payload, await _get_active_network())
-                result = await _create_network_version(routes, payload.get("name") or "GTFS auto")
+                from mobility.daily_recovery import enabled as recovery_enabled
+                reusable = await _daily_recovery_control().candidate_for(today, sha) if recovery_enabled() else None
+                result = ({'version_id': reusable, 'diff': {'reused_pending_candidate': True}} if reusable else
+                    await _create_network_version(routes, payload.get("name") or "GTFS auto", service_date=payload["service_date"]))
                 _log(f"static: imported version {result['version_id']} diff={result['diff']}")
+                activation_succeeded = not AUTO_ACTIVATE
                 if AUTO_ACTIVATE:
                     from mobility.generations import (
                         atomic_generations_enabled,
@@ -482,7 +661,10 @@ async def _static_worker():
                     )
                     from routes.mobility import _activate_network_version
 
-                    if atomic_generations_enabled():
+                    managed = await _managed_daily_candidate(str(result['version_id']), today, sha)
+                    if managed is not None:
+                        activation_succeeded = managed.get('state') == 'ACTIVATED'
+                    elif atomic_generations_enabled():
                         _event, lock, _queue = _precompute_primitives()
                         async with lock:
                             preparation = await prepare_network_version(
@@ -490,10 +672,13 @@ async def _static_worker():
                                 source_version_id=str((active or {}).get("version_id") or "") or None,
                             )
                         if preparation.get("state") == "READY":
+                            if _static_service_date(datetime.now(ZoneInfo(_ACTIVE_REGION.timezone)), _ACTIVE_REGION.timezone) != today:
+                                raise RuntimeError("civil date changed during preparation; retry without activating stale day")
                             await _activate_network_version(
                                 str(result["version_id"]),
                                 require_ready=True,
                             )
+                            activation_succeeded = True
                             _log(
                                 "static: warm-activated "
                                 f"{result['version_id']} "
@@ -509,12 +694,15 @@ async def _static_worker():
                                 f"blocking={preparation.get('blocking_missing')}"
                             )
                     else:
-                        await _activate_network_version(
-                            str(result["version_id"]),
-                            require_ready=False,
-                            force=True,
-                        )
-                        request_precompute(None, reason="NETWORK_ACTIVATED_LEGACY_MODE")
+                        raise RuntimeError('Atomic readiness is required for automatic daily activation')
+                # Do not mark a feed as fully synced when the version
+                # exists but its atomic generations were not activated.
+                # Otherwise a retry can be lost until the hash changes.
+                if not activation_succeeded:
+                    raise RuntimeError(
+                        "schedule candidate built but not activated; "
+                        "feed hash intentionally left unsynced for retry"
+                    )
                 await db.mobility_sync_state.replace_one(
                     {"key": sync_key},
                     {
@@ -528,7 +716,18 @@ async def _static_worker():
                 )
         except Exception as e:
             _log(f"static: cycle error: {type(e).__name__}: {e}")
-        await asyncio.sleep(STATIC_INTERVAL_HOURS * 3600)
+        # Refresh promptly at civil midnight, independent of UI grouping, even
+        # when the normal feed interval is six hours.
+        from mobility.schedule_revision import seconds_until_next_service_day
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        local_now = datetime.now(ZoneInfo(_ACTIVE_REGION.timezone))
+        rollover_wait = seconds_until_next_service_day(
+            local_now, 0,
+        )
+        if today and _static_service_date(local_now, _ACTIVE_REGION.timezone) != today:
+            rollover_wait = 5.0
+        await asyncio.sleep(max(5.0, min(STATIC_INTERVAL_HOURS * 3600, rollover_wait)))
 
 
 _PRECOMPUTE_EVENT: Optional[asyncio.Event] = None
@@ -703,3 +902,8 @@ async def _precompute_road_geometries():
                 f"{type(exc).__name__}: {exc}"
             )
             # Never spin: periodic retry remains available in 20m.
+        try:
+            # No nested acquisition of the active-generation refresh lock.
+            await _recover_daily_candidate()
+        except Exception as exc:
+            _log(f'daily recovery: coordinator error {type(exc).__name__}')

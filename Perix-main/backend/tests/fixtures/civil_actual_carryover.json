@@ -1,0 +1,5131 @@
+{
+  "gtfs_sha256": "df1f77d9103dc84bbb8daad92505a3e8ca82050a64cd023218ca478599c81ce2",
+  "days": {
+    "2026-10-22": [
+      {
+        "trip_id_sha256": "2e0531cac525cd989d2a1890f1f86318e504580c846e5c049a673becc027460a",
+        "route_number": "N1",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "081584d93934ed78c0ec38cf4937f62a06620494ed6ace8a98b16cdd710c0d78",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "1d639ccd2f2d141024e5f6b6e3062511cc08498d20b4003bb150211615aa3a26",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "2db665c7cccc298ae1c8cf8fd9898f420edbd59b1b96497742b38894dd43de2b",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "b180f001d24f7e3860a4ceb35ce98819691da079ab73a4330be10f4e2c648f9c",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "8ebc32e8f3649e91266b11fcc4867c1a42f4bcd33d9439f5fe383334712c0973",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "e02c10ef5c5889070de9067fe8cf1a5d8a6ed350bfc34a012b4efa94f4adc07d",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "e4c73a83b0dc8711f1a2db2ec6f4347d04ba4ab0f244c91f0fb4b0de5b3fc985",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2d90e05a7d1ef6f9ad4b954a828e3ad99a05ed2e3d4146e11017b9f60ac361b9",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "8d46dd5d598c5c66b11b33e5382585cfa66db49f817c5bf51702a00a51c781fa",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "63ec0cf0e6ec755b8307affa3b2072da02e4543ab4c2dbcfa8f269aec3fb9c58",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "a0927ad83367e97ed1610550b79dd493a08ba8d99d5b5e0c88d6ec5dc8d15622",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "52476e83badc2e17109c1f0028804c49dfc202091f75515e42378d902d972aec",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "af80d159bba267382d6b15722da88039b3dae4512590f2851cbbc4d1b67d5218",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "65a78a0fcd5f3b28fecee3d4f7b246964a4e256f8d12f2aec1a8056465754bda",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "d4a223efbfae1ad43b72031f6679ce065dee88c1b28c62db0c0a8171e164dfdb",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "dc005e234205b6449ef23afa5498e13c724d28ad3dd91818207c6e03ec117a99",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "1713e3164de0f5866caa8a8fa78a677c32dd4ebd9139b2d809fb78489f86bbdf",
+            "arrival": 86820,
+            "departure": 86820
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "88f0b6d4ab4f9fcbef41092a2adb6d15aa1edeb07e3b308fe319de0c90f01972",
+        "route_number": "N1",
+        "occurrences": [
+          {
+            "stop_id_sha256": "cf50cc2a22f87f152258a18f7cf60b9c0ecbc7dea4d131850bd802d02623626b",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "4dc41e9f7e297603f581c0cec1bfc8355779c38851978255f7d0e24eb7d2b3d8",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "4cb87e11d8b27a1b96f3886e34c85dd0d6b28ddc635f4317304e9270cb20c55e",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "26c3057676d337c15369bbab8092dda065d949d4d2afc6b801977718c8def2c9",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "7b782bfdc8bdb58a42266616761f12075e4a906704c74f99d3a4235d88cce74d",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "1fa0b7fc3256c93af062c129d68d2d80a56d57a9bfe23ddc3775fd6e1e374068",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "2a00d2ae0ad6e50114d3d05d062c6c3de14671907677e4e0f2153740de4574fe",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "8a7e193252e505de1e95cca2be9e904eabdaf2ddd66ce759cb77f9470a4079e0",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "8ebc32e8f3649e91266b11fcc4867c1a42f4bcd33d9439f5fe383334712c0973",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "e02c10ef5c5889070de9067fe8cf1a5d8a6ed350bfc34a012b4efa94f4adc07d",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "e4c73a83b0dc8711f1a2db2ec6f4347d04ba4ab0f244c91f0fb4b0de5b3fc985",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "2d90e05a7d1ef6f9ad4b954a828e3ad99a05ed2e3d4146e11017b9f60ac361b9",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "8d46dd5d598c5c66b11b33e5382585cfa66db49f817c5bf51702a00a51c781fa",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "de3fe489a16eeb51f5e8db16a88475120947f9bb6bcdaf7ce6cbb2226652ad27",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "2fcf4271360c7b9f00d2b296188aaa86ad161303660037bb713afca4124d798d",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "623cb8369c97409a1e084001f6bd5fb22cb3ebbc9f06a2b764497c0e0099688b",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "fd136763f51764a7b2901271490ae5a834b3b469cde19c8385fef4a046dbc425",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "e7e00e522ee1253dd9af6ad19511e348d0233de943fcca10cf5fadc34e461f07",
+            "arrival": 87120,
+            "departure": 87120
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "3cdb32c431ef4e5319e190e5279164562e54ae52b682ed377fafb4bba04079a0",
+        "route_number": "N2",
+        "occurrences": [
+          {
+            "stop_id_sha256": "e7e00e522ee1253dd9af6ad19511e348d0233de943fcca10cf5fadc34e461f07",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "3c735fe2fa370409fc890552cd4d330f9043d49e9b64a1f68cf15ccfc43b2bd8",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "14a42157a627f499d6d19c047d162641ac02fd2b0f07d41a3a129531ce162a79",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "b35bd0a76f13bf00c7f5d943bb42cad38394be92a0f214ad3ddaf7d6f2d39e5c",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "7c1ac43084d5208011d8d77352de6fb320c641ae62df02981777a0eac4f9ff88",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "4609aba91292faf2e2a4fb5ad0d980b7d355e551d96db2763541e8315b47aa88",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "56b946435788e7c6f9b7802eb17f513f1eedecddfbc2b5e5eca5fc7db5f5f340",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "c9db1b3fda4d4616ea0d853b545b419455acc7c56d14dc1e5abc4405d5d66e06",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "03ec7267b4c1b66b7a85724ef39483d9893747d6f970be2b21e910d8fe5fe91b",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "54dfabf5a805357482e3a6a65ab6a6d1da93a34ebac29db5ebafbd5326b95181",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "56141519a22c5b193f99a0dabe9dba3e94ce876dd80da471eeb7ef8e1dec1fd5",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "e401908a496878ca210da70e0e80eb1bf64c2506ab71b78ced106e1d6e040b59",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "bcfdefb17dac6766caa75fe4f00ddd347c320aa341cbd9e3c0bfb1a477d103ae",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "2956abec58e7bbd10cf969f7d55d67d2823de96d548b740b59e62f68ebf15122",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "6c38517b5d24fe8e633bd3c86f7160224f889ef3f85c59d79399105a7d21f24b",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "c798cadfec0f440c440ddf13df90fe3174b26ebfba9b5b3c515d5c677f94b0ce",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "a1ecb777576b77edf54072a63de7bea148d21024cab0c4d0cedafc6ffe4a352b",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "da85302b9dba5c2a764b9fd61e73b66e9ae3cb56fe0bf41a85ce87c131f5792f",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "8f649145f7e999b14ee87ea83a30e36a9c36028fa3db0cd3d5cdc43d23c9c9d5",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "c04911cc7b6ad20a7d87a2d55662412fa90ffc2a4c733b7a64f792978fc02eb4",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "62d8ae3680e713e74bd847789dcabb329ebff37a7883bf961927bf56657c1ada",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "198ee65886431ed32af92d079b4a7b14c43ee8a8e8e7d6569bf68b3e0c84a6f3",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "5f51da8005151a9d7879891b0215386d73dcfab42c02c1e69aec05f4435ebb2c",
+            "arrival": 87060,
+            "departure": 87060
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "8521212c16ccf80108986343450c83644784379392a8d56f440416ee157aae26",
+        "route_number": "N2",
+        "occurrences": [
+          {
+            "stop_id_sha256": "d5a5b182cd30db1d5d8c611de8d1764a8929186986b69eed8ae6760ebc48c0f6",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "e0e986459d91e12c712aa58aef7108cf5dd20147071f539625fe1983b8c0f1c8",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "a8ea73001fb9dd7dce426c3ceecffca3415bc75e720e1518d5f0fcd6396443fd",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "9262d18ba75a0642d69f05584797055d8f46b9b5fd40e157c04269ae1f4de9f8",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "57eed793352c37b3e796ff8d6b59ae1885ef3a502678b3d9af4a1b292420c36f",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "8fbea166097652de7c6853700db0da86f2dce1dc359eb985d839387e971dfcb5",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "8aa656b2279cb9a32f352e415154dd7e4b2812d5f9773d7d1c5976dec513d9ed",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "0931e1ee5245d77c7b42ead44bf0a8d5fd80c097c3b307884d4bbbe117da6b1b",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "41ca87f70ee7b30460c4aa3b5e7fde0df8dba82e757a16268dc5a58f65186719",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "adb1d53f6345b1d1ccf7ed437835bb3f86fca07f2452a2d450f0a708aa5d4321",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "b1dd61da9826ddda7e4a0ba5a3915d565386c556bf6fb2f2ea1e1363564c7414",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "4b9d808adef3052e2d714591ce14403949616348140699c83324c13762b0f6cb",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "410263a6e7ea3cb079589201d3c4cd6960c13e43beca63c6a223e03e4732bebb",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "194e88d81e5684655b31fd532839bcbf3df8c3da1d0e554c76ac08b31bf437a3",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "e9f5107e27f9245451b585a44a80c09b47995fb576e0e9c5e4e18fde03bf4971",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "fdf3c3c03bbcd197daa2eb206f1c6d185b577a226b40cdd5a3a18e2570de5cd2",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "3405df1ae3a1521c517f66bf88cbf941e1097b1f9883f89af0308ff3992a6a28",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "7598ccebb537170b232884a757e610653ab32f48a214cb426d63ecde71bd15dc",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "3340f7a38d2892db14b87def00845094cc946a87528c83e31f56248b6f34d3d9",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "f3d484cd7932c2f99915620ea0278a68f0cd8e8785a3d88ef8f99b96f5c44341",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "de4751c317d5aa862f47e6c07c2dc645a139b0e40807171ea5bb34ca038d5397",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "cd16cb6ee929d95ddbd1ef434ca0d57b40d34df68bc9212d487e199962cad844",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "12d6b7273877f85d889f5021129cc8397149af43c4446c39029430af17d0aed7",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "db9fdcabc86623b70170fab12b03319afccae89fbf1de005252f4027251c9565",
+        "route_number": "N3",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "3c735fe2fa370409fc890552cd4d330f9043d49e9b64a1f68cf15ccfc43b2bd8",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "14a42157a627f499d6d19c047d162641ac02fd2b0f07d41a3a129531ce162a79",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "b35bd0a76f13bf00c7f5d943bb42cad38394be92a0f214ad3ddaf7d6f2d39e5c",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "001691fa79e420185a0d1759402249fc18c8731d6a8dcf258fad63c1566957cf",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "307a91b6bdfb7ea4bd39a855202592508c7e3d3b4350c86d723cd9af3f01c9b5",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "ed2ae9bd37bfd5c9ef07328676b648b8ba7c574120dcad1e7fa97367d942cb9f",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "521c3cbb9a6a4aac2b96c6ba0f48ef09125b56e8c7fdcca1e95e4ba9ab2981b2",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "d59e67338e7363bc9acf688fe94392586df051d970e7ee46b3430dff73906750",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "da411969646f4294da9a1ff9ca56198a083e779d7148b19e6694ef896ab7c2d6",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "ad0df50f8441b85553e934305090ced892ca2fdb013bbcdd8b119c34541a42b9",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "a8a3df42ac8594234d5e805aede112d614737d4b3b71ae6c2f8f638028523cd7",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "a53f8b8c41a903671a661fe169920ebebc20e8b6f837d2d720243f4e59c9cb6d",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "abb4d8f1405f184f68982ddcf85c9e9300ae5a856fd824045e2c97b3fa9c3a51",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "40cf58625c6e39b769d82e42f9f82338b253423ac22488ace9916125df037293",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "61b0bd981f15fd360ed69367b73514e9567bf12e319f2ae85fea853a48841925",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "9c9e492fd8550e4adff99b4c6cfae8d3f1fd8b7e51bb0fd4b6e2f880a05a5f98",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "4ba4999d569c411c4ed8eae5c24125d01b5b197044cb6c7bd657513b629693c6",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "995ac48bce62f43cc7508acf83bb9ad4674559e0cc41a7fc9acf75734206df5f",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "dd4743b1ca4230703b585647ec0caebd8c6d6cf98f22ead2be404da689f69ce2",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "6892d9027acf098bde0e354875738b9507326d10cadab2e45f10d498e6ed5e27",
+            "arrival": 87180,
+            "departure": 87180
+          },
+          {
+            "stop_id_sha256": "1f1be6eb48f6c78ae4b14d2d9b24f6be82d3515074c23c7dd9668001bccaab9e",
+            "arrival": 87240,
+            "departure": 87240
+          },
+          {
+            "stop_id_sha256": "103529bcc6f3701a27f612d7c5a387eacfb8f7c5d354282e123fa12072856c0d",
+            "arrival": 87300,
+            "departure": 87300
+          },
+          {
+            "stop_id_sha256": "ba7e6e5e69e578710a560aca04154e760d6e1d203b31323b36e2236ed761a4ed",
+            "arrival": 87360,
+            "departure": 87360
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "943d6e180f93982eaf78291495ececf6426b87bc895abe76053ddf7914a20fda",
+        "route_number": "N3",
+        "occurrences": [
+          {
+            "stop_id_sha256": "31789aaceb9937377efea88fa810cb48c0a0cb1d2c99c2bd55dbf7c3f0963e26",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "a755d2ee76e52da7da256b37647b108ce87c41193e9f3da193ac7354af6cfddf",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "a6956d31b6fab95be6b123e994dc22d196e7b2d14ac51fdb0e4633ad2ac173cd",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2545a02d836fe85023efc654e841b0e03458a50d8308345ea6360ab2eaecb9cf",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "506fec3880e0539668e4f2b6f3eef0d607a5ecea7034220e25953c84bce687dc",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "e8ae5d16e816d424d0c1730363a7003a60b54412f0581f1a618b7dae182d9994",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "409131b9b69000bbea6be1361a44c6f020eaf461b212ced680073bcc36ff4f9b",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "74fcc426f3b9fe834ec6f98288d7985b528f1cec2a873c7bb6dddc835cb24975",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "d07dcf9c4a3c11a7cb3e30c89a2cfd95f63974dfb6d775b41afa4a9f98127e35",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "97b16cc0f57aa2ada6e1ee2a15191963aa9b4b3032ebe3a4c1b984d78988c208",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "efe4ba20f09d31321064dd0e174f083e65613bd017a90cdbb593db3239747376",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "af79f0dbe788f07247b61b656c053095131310eb19a2f363b6d2f7e2dd9f78a2",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "455158d1a57cc31f1f598d77e85d041981cd6c03773eacd68e1f519c293adeb6",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "f3d484cd7932c2f99915620ea0278a68f0cd8e8785a3d88ef8f99b96f5c44341",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "de4751c317d5aa862f47e6c07c2dc645a139b0e40807171ea5bb34ca038d5397",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "cd16cb6ee929d95ddbd1ef434ca0d57b40d34df68bc9212d487e199962cad844",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "12d6b7273877f85d889f5021129cc8397149af43c4446c39029430af17d0aed7",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "7fec3421b049ee7f493baf0a836766581620bbcb2630e592a6b8bb30f0a54439",
+        "route_number": "N4",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "509c6386b0dd850f07de83f9e160007a20708b7c647c1108e5e8ea498f817df3",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "b7d94e1728250774725b47318a79f14970f50644040c4925ad2bfb289e46dc58",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "5f42e20ea929316a989aeddd8e5d2ddadf5a6fd6fcaa378ee1be69b00d4cd05a",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "48aa659faf974cd26bc91dbe07e835141fd8b4285f2a9ee79f3deadeb3a57774",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "8fac48f7f0dd12c40b35f818c19d72a4ffead84d9bba60173b0e80daa458210b",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "d8729bf8876e5ecebaffd210f5f38201a936d139c5efd1e2c6690db5ce72a02c",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "70ea553fc0d5fe17de7369a796e2bf0e9f27b0551d21476f16140206b37b2070",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "2fd78807a11612c9fadb991cc8db7ad7f2bf391c88e5a6173859f84bd4a08169",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "0a1c65b687928662273285cb3d03bc27de4529969030bad90d1619d8e23285d7",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "1f5d209842da03262124fb640b31cd8650f8a50e2ff12b9a516a367e386d92a7",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "16ded16eb6ee1145151c756dc19858cc2ab267674654174bff3416258deb94ea",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "da5c67bd687afdb66f00f323325b926a67efa557753e7892a9ef22a729b97cc2",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "409131b9b69000bbea6be1361a44c6f020eaf461b212ced680073bcc36ff4f9b",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "bb8875d77d999491a040ee6b2c4b1665e206bc3b5895586c5b4333117e5c05b3",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "5c488f0c7d1096f920db2818f7c6edb89cc1b665c0f01c199067b352a2bd6edf",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "fe4dc8d1d78be4df710f7c633f365a046736d6da27d09adc6858bb7d97e9527c",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "6c6d713a4034bd0fe81fc1a9eddfa78bbf63de1a114ba0f2840f348566fdb98a",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "51041b1a11909ff11dce51ea0cd71dad66961e13da1f1d084a04da4088577ddc",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "f85487b2753634dab1a1c9ee3da0ab6eff3d69ebef16f5465ff1edaf4b4cac90",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "ad0f23751c8b75f066bcb4be8c649f38907e298ecc1e8ff2b7add16a8032120d",
+            "arrival": 87120,
+            "departure": 87120
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "592f1baf377f29d4a1572b198252849bd00faa39c7bd3bec800ad1afd8a26d93",
+        "route_number": "N4",
+        "occurrences": [
+          {
+            "stop_id_sha256": "ad0f23751c8b75f066bcb4be8c649f38907e298ecc1e8ff2b7add16a8032120d",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "a3357c727fddca001de6a8ab0def90e618ea5f9f1ae725d1fcb3698fd8613077",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "4278310762df6905b5c7222327df0000112e6a0ae6a3c6dfe1c5e50a1a9addfc",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "a01809aac25f1373dda165bd8e6a267b51b905a5a41f06534c1cedd28a1d99cd",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "ea1aa6e5ab843eca230b530514879032b9bc18efa8528480902c9848b63aadff",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "ad0df50f8441b85553e934305090ced892ca2fdb013bbcdd8b119c34541a42b9",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "a53f8b8c41a903671a661fe169920ebebc20e8b6f837d2d720243f4e59c9cb6d",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "3b17f0d97ca761f7e1777f42dcb0cb34a6d5784b8db1ded8e15c4b91e0307f68",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "45934b1dabbc43c22c46a71d919b86eaa2b7e96e00eb9c3b59d74b14b371fc36",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "c6b9bc47dd0a9e6defbb59fb62bfea20c9abc83dedead37a2ed68ee8650e76e9",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "f4183402db95a3289c95d7e4e602fe2d5152dee95aa1fa31de5aca327a791acb",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "9e2b13a36a77441c33801cb859a79ef1b58dfbc4e4d04c0468256eb12919d546",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "af79f0dbe788f07247b61b656c053095131310eb19a2f363b6d2f7e2dd9f78a2",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "455158d1a57cc31f1f598d77e85d041981cd6c03773eacd68e1f519c293adeb6",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "2709fe91e9dffdd20b15e83ec067308af9fa660efc602e62aec019b90ccf0a7a",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "3aa1f4e6f20184b12ca2f0d98f33740e0302560d0a37a1455a90fc829eb22e44",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "6c56fc1f33aea9812d0c28d5b971fd023a84f6ea832f96449ac098a721546fd3",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "2df5e8786f3dc0e63d3ad953db5843fe5d5bd696729987092025a702a774a7b1",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "ff16f3e57ddbaef16712d38ee76e9e1ce67925dc4cae42be817bcdde3042b66a",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "7ea6210eb4d4683c5533c94fd7afebcd221abb70212c36d1aac89e01a3037e23",
+        "route_number": "N5",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "509c6386b0dd850f07de83f9e160007a20708b7c647c1108e5e8ea498f817df3",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "b7d94e1728250774725b47318a79f14970f50644040c4925ad2bfb289e46dc58",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "5f42e20ea929316a989aeddd8e5d2ddadf5a6fd6fcaa378ee1be69b00d4cd05a",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "48aa659faf974cd26bc91dbe07e835141fd8b4285f2a9ee79f3deadeb3a57774",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "001691fa79e420185a0d1759402249fc18c8731d6a8dcf258fad63c1566957cf",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "307a91b6bdfb7ea4bd39a855202592508c7e3d3b4350c86d723cd9af3f01c9b5",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "a2a824c01636bb85400e233d4e3827f4d51fa0bad3dbe75d090046aa28f52b54",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "f48707c46b6dd2703831a760544363de3e266d84e4c3eec35bb4a939ac8fbc37",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "c5c37bf9961f07c6337aee862fbefa53a88b10db74956f7ea91bc9a0b2ccbf11",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "209b81aeb1c72ee1d7043b1d7dc76b3d0f0f896d9984f4ca15a3ca38c6b1959c",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "4fbf8c085a86afbbd1ae972434a3db879214cbc637d533b21bf8bd3cf85df911",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "0a3923a9b93d1f212814a125a8351f74c5584a28b8716d8cc6771e74fbc961f1",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "91504813a0fab01b3ec18851f05c21255c128d0548e402d82c562780f2fec7e6",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "ca119a86f35679366c38afb736b05a1260b5f58072cc33b1c0ea231ad6a79cb4",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "dbf8014c3b4d40124b76728b85986320fc5a4f0abde1c1921ddfb6f141102ddd",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "365f191de6d26eb99f1a3b2b27439d573376c5c727c7565c15e6fb13e512c20c",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "61cc05765127599c556a6187f30f55a17e244243f78ddbbfd37888713db4bb1e",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "cfa3ef71be13e6c743eceadaae0f0551ced3bc7ac456e26e79c42b13437b3ffe",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "f0d8e2250a150a9e1963dc34ec4e9e99d8db0382163f466f7761250cdf6a5bd6",
+            "arrival": 86880,
+            "departure": 86880
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "81c12864a2e4c5428f37ac1372c32c6b58b7805ff4b7ec03ce806aa521a8d2f9",
+        "route_number": "N5",
+        "occurrences": [
+          {
+            "stop_id_sha256": "c76f7004f9f8486b23a92a4facae7e4f22d084a686ef0154c2711712734702d8",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "0b20c44e537bb21656a59398c425ca4639a60cedb7bc5e2fd9319c0e10ca56fa",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "10cae2ba14c242addbfc3357c519ea151c45efe3255270cc7eb79bc6de8c6253",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "875cbe724cbbc457ff5b3ad9d23aa92bd6488b2fb7e7444d2ab335d3c1a7a6f5",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "1ca3aa1ffce03987b745745b3e852c1e283019f03e5137cca691cea8f279abbb",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "437f9ae70fb32c5a815f38fb1138900b6e7948886e76b81c0c0a15e89d75d2b5",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "fa3c95410a7553af04d7ce873c0e7512d8c6a3c265fc5a4542311d43ea6443ce",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "1d8d939da1de55ab9d1ee69355f964515537a94f9e5de2ff45e368535cf26934",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "21acb6149fc36f23fb7eedd53490fd826244cc9b23c5d45189aa8895af63727b",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "226223d02657856f385fb9c2ef4dd5394fd055d4b0bc665ed5d18f62b6a9d914",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "b250bd0b52687e5e2f4622489562df248a691b6990be5265c4b3124e018d366b",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "8d4e80bfca0f18146b552d9e5bc3e7f28c0de59b22bbc9d9cc3ca464e7879b61",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "efe4ba20f09d31321064dd0e174f083e65613bd017a90cdbb593db3239747376",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "af79f0dbe788f07247b61b656c053095131310eb19a2f363b6d2f7e2dd9f78a2",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "455158d1a57cc31f1f598d77e85d041981cd6c03773eacd68e1f519c293adeb6",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "2709fe91e9dffdd20b15e83ec067308af9fa660efc602e62aec019b90ccf0a7a",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "3aa1f4e6f20184b12ca2f0d98f33740e0302560d0a37a1455a90fc829eb22e44",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "6c56fc1f33aea9812d0c28d5b971fd023a84f6ea832f96449ac098a721546fd3",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "2df5e8786f3dc0e63d3ad953db5843fe5d5bd696729987092025a702a774a7b1",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "ff16f3e57ddbaef16712d38ee76e9e1ce67925dc4cae42be817bcdde3042b66a",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "62192daebf1f70b2c6c1fc80625f750ed04e6874f834455bb9507d1b44da06a4",
+        "route_number": "N6",
+        "occurrences": [
+          {
+            "stop_id_sha256": "e7e00e522ee1253dd9af6ad19511e348d0233de943fcca10cf5fadc34e461f07",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "ce53b49b5ff9ed107182dbc4ac2177c21ba6871c7c4552d51094b18aaf5f3a73",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "29ad30059e61e4a1f1e5c3066eb6fa84321952a97c34a6d69d6d3ce3f136c313",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "0f0bda234d0719b070e0242939bd5ab533f77615346a04053863380f49305a2f",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "70b4b78ac50e50d0de2148fe287bb055d67c546868a0025fe1337b5ac598c89b",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "c82e51c703faae0449e8199581e07cca290f313d8618976b9713da8bbb33fc80",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "e798b304cade09fd0d01e27621459320dc07f4bba41a6ba5afbb2955b551d69c",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "d8bff8179eba8212bb81da4ffe17504a04078610456e7b1bb0b2e15be38e7486",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "eddb0abf68a9b7135ffed0e7a2777a95b3ca9216c5f9f78dac86aaf3df0dd673",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "1ddcfb84a553a88026a8c00736d93a20ffe295d93ca3e2b5ddb26507df3f6461",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "1c1324f4d694c574e3cafe84ca5817018c306ffc0034e1ee19fcda970bb57de3",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "8e2631b865ea3e4ff23cc0931517d46b6a0feea23c1f8c309fc4c2e2ab46400f",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "d0fcaaa15b9c9d5595899f27cc92ba15ea4f97fb12166e9a5821815c998c0a7a",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "4855cb9408aca32703610e0b9bbddf26d5d997553dc1b492ee7a8c93e58b86be",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "8282c07f43d5779e279f0bfee68975ad3fe8529a9ac503ee5aa4394df43caa2c",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "7f79019ce0f5817d1728deb395f9c40ee3a846cdae3e832d6cad7c5d852d49cc",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "73c3012c41324e67827e5d080eeba1ba424cab13fde1dfcf4c3593613c4071f6",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "67f3716821ed152b84e982bf251353e2cf17bb6a141551e0bb414e5954109eab",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "8d92c77197ed6d8fa6ac0ada16abb487bf170fc88bbb41879d7ac8b8aa619a90",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "f34d58bdf8910b2ad3ee32e0d0b655db395e5a846a58db0bcc1569cb91877ffc",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "6e41b8851c29e68eaa3773096f475109226f8f6953fb6452025ee541157ec021",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "08967a2050f505078766193cc147fbea6e7410d7d99b065ebf3daceb57172030",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "c813d897c7096cdc335bc2bd6ee54b869160e87470fff1848cb4053b90df25ac",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "c98e9c46659d8d1b54610a82231d3ae46975bd9013722bff5807bdba7e1b9f75",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "5f1d94e1f37e1051bc34359b0dbb78b7fb8d9ad0b42b0ba2b3faa6bf934eb533",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "f5999374050ca65104d5a40cf0d30785d6bf5253a1c50425fc75e6e0441d8d42",
+            "arrival": 87120,
+            "departure": 87120
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "d45ead3738238fb25f8217e842f70f1fee550a74a8356052dcad4aa6a41719ba",
+        "route_number": "N6",
+        "occurrences": [
+          {
+            "stop_id_sha256": "360dcc8221959caa199e5184d1acf0a9b0142074bd6bcef86cb7e051b8443300",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "3fc5992ccaab162dd43287238da4a316c06f3cfa7775f47ed2f3a9f0c8a05f42",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "34769e6ed0748ebe00492f9dbc194c8895064a90a957fbe7ed2c438582b418a1",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "b71fcabe3c23b03ca4760f7ee796216195b9f9b4d4dedcf34d769684a60cfe83",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "1dae42cda5c3def17b081efdee93ff2d4eb60e61d637a67e8219fc3a0824f03d",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "d9a1fd095a7fbb2467d977d42b2e83f7b1ae0fc3eaeda3cc7882743781820548",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "add932cda27adf8d47634dc986b2ae42eccc6462656b1d6001686038f3f8b930",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "6bbac5f8fb99926f5c3daf23b6b2a1ca3bfc076f6d91d359f285bd3c2a018c70",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "8a3eb07c1e8193bea8cde79e2cafec372c03bae0c30de6b8b2c22ea6d6ec3b99",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "4807d8e16b9f339c9e81be97821d40d15f8858773f9250b37ba27e4189bfbcd6",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "d68d0b6bc11a5243f440157b57b766929fd2f29c17471b60dbfbf3ee245a2806",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "9a1096b44bfa41d86e9ff9270876ee4f5e9a65b6c1db474d8852425434c4ff4d",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "4c5d8fdd3ed42ed815c5f6bafe27324c99f91b0db42e0e6e4163b9f83e2f15ab",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "81d84ed60c613add0f08165798cab8bea91199fdd58f2a200201dbaca1e46aed",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "bd739f14d2b4bd729a33efa7792398e2f76f3d0bd9ad699201f07dd5ec20d2de",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "40f1baa4af276f61b8a4c4c8992666e76a8e003e42b40fb623478d147e23aef8",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "2b7c99aad74b7cd5d176c9e8ea7861f8c57bd98aebec6ed95b1fcda75b1004d1",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "1ba5430de65125e188a08a761decf7fd4382497b9c4c1962193f7274199e8dc2",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "4ee4bc5740c398fe7538d25a258b26a2b75d01c20ad0d81ba6b922b1b03f8ef0",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "4dc8046937ee22df3cec61ff737e5cb8d18a72677c5cf2d4539a927e569ed4fc",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "4f218561daed9a9df9aa544c146a1dd20bd13b3256bbc20e9fdc874f77b003c3",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "a7ae2d5ce8beb2aaf4191c0881ff5333536a13d8ae58ed3e3797a6b2d6676f86",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "8a9a9e02b7e758e719918219b8059916e63d8604f6e73855a27083d7e6a0c99f",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "4ffba8fe4d10d17a0e1b1a9bfaab2c1a72197c91ae5f9035ebf9e6ff501963f2",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "fe0889b877bdb8ae93e1f8187e6b439def623757ed7aa37624d67b1ca1b44617",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "474ad96eafe9d6b7464b2610e307199c699110d53746ad9447bd81a936c4097e",
+        "route_number": "N7",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "11600f67cbe35480be7e31ce6b5d0f96bca4677f75d6bb0adeb196e96988baa2",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "ee47ae4aa23c9f6a1bc9ee128b5a58dcb1c4570754aa8dee7b6dff4cb3f32e52",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "7bdcca24737a7b9efc159ad5eea0624f0a3907a22f93b565ee1f9300230d981c",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "112a0573535619f16696d087003cf3e5846559d7680494aa33e15fd2e1ecd230",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "3d017459fb8a8e4e8a00f5ea9f342f194cfd44bad65bc833002f3b4bce96631e",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "22e57b1ab6f84e161665ddf036a4b66fe809aaa9184ee956ccbcfe48cbc3b2a6",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "30d771075a14e4e953f0e32a1dcc3c70cd48eef422843acf2d9adf419d9f51f7",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "9d041605121ae42a2ebd9a769600088140260d379fbf587a7cdae48e3bdfc22d",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "d945b512b41d041e6d220519516005b997fd8b8c909315b93fd50aa7b5b3a392",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "b87cc298eb76dda82beac4ef4fd2e31ded4385e77226ba2e8bd5a960966f5c54",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "dc914f09e5703741c18337332170663a5b5d1565a9503fcf0998ca9ac08b81d9",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "fc4089190d63e9559257262c87fd0d976516fbd34be3f6f7459c9d787b85e9c1",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "23af6c703226b55fbaaf106c354bf203f0f2d67a98bd2aa08e401d351ee637ec",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "c2f786b5b51887094fa861ac74009b2f00bd92b5671babfa397c635630098042",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "3af5f9bd67dfe3e00b5e2832140e372fec394a87e410682be36b3c75781a0ed1",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "6e72a775e95d637241ce463b30ac21e815283a381ecbc2f3c62e93de34602174",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "269be8e4883cb5063416478690b34e63d4409f910b93d0c9ef616a05218b8ee5",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "e8fe921014aac8fdcc7de814b59f0f34d855796b311fef5ed8113c006b23e176",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "f8f3cb99349843afad0cca9f9d68dfc42869c81944e02c1bab951ecc1d897707",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "9c27fa6562ba3864f1d92c1ea74a41828e6c753eb35d8676235df14d1c082479",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "beba555d5588fa30fc7a0cc63f1d151182c315a9e76ba2dd274606b706f0fc3c",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "b2f25566911c12a293a950e97e2354256b2625e5685dc71902ad65196c080681",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "1c7d35b0b601fba40fbbb865d8b22005e7e9149d631e3c3fdd9224e7e56214d4",
+            "arrival": 87180,
+            "departure": 87180
+          },
+          {
+            "stop_id_sha256": "2d20dc50b1f189dfcf55caf99f745b8dc2285e6a3f6bd3db094810b9a18cb5c7",
+            "arrival": 87240,
+            "departure": 87240
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "71442a8ee291127a7d3e89106663352c16aa380778a8da4714692ef79fef2ff9",
+        "route_number": "N7",
+        "occurrences": [
+          {
+            "stop_id_sha256": "1d9843541312daf9262cdd258d49ea90c13a44549ed630e7099622af43260a99",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "cf99bcba9b0b18ae6ee02c1f0e4d7ab61bbb02681eddcf8b734e8ec80cb05d22",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "67199c31f39bd57b11afa49560ae4c82c595a2cf4449c42674116b36ac0e999c",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "34807eccea08abdcfab7562d2c7f6bea8d40ba8c620668f19a67187e15d335fe",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "b47ec7984591a0b965927e995c48b4be0c045e245c38d0f311bbda321dc5d280",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "43242b8ab5c2de85e18a11f20de8ee69303142e2df0b1334cf34a60888d33576",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2706ff0aea002708692009542d96e8468365a45aadce3d0fb366e9d531ceef3a",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "7047df3580a37ffde3eb8800e691c7d1db8e7a55dbe389520aee7fe40110a3ba",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "e6d8622330a1f28d14682eb9d0674020a46c2ed2bf9f46f5ec784ddd4df3537c",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "0bcf55318ce91216eb145aaaa447739b1d4f3a6265c5e2d2c9b2a87213c1b416",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "a250bc4fbbc58b4106329c5c9c7ea34b902f4dcb77eb822ac7ddf630b1f47430",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "3154dd6c3171dd7c37a6144cdcc07fb1bdf06fa25e71ac5e119a7ee79c0f7b39",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "503c3d14d39ba36cd6629bbf20582823249091fa5f8b9a3f1d49abf4a6f71017",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "c56d07046e9ba2c6b9cb3d8ea23377fee00282fce795469019872dcd99772ab1",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "30d771075a14e4e953f0e32a1dcc3c70cd48eef422843acf2d9adf419d9f51f7",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "c89ac04a18e9746e1aa466382e3ffe82ff8e62fac3a33ec094c1592c08c7289d",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "4754c166f75e48283cfdbae7dcd9fdcd9b5bd543c7670e3231002ba808967a26",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "a792deb4a7217a5d45b8d991a4b3610c15ef211997ab5eac99bc18605f1c34e6",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "c4c9657f2395f95fb90aedbc32dfdda3a24e0985df775cd63b271939896ddaeb",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "95f3cfd2f58fc8836b3653769161ccc25d77b2db852d93210428a394fc5bbdc5",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "e7e00e522ee1253dd9af6ad19511e348d0233de943fcca10cf5fadc34e461f07",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "d65a434028363053061c94664f41310beb93b2fb23fb80ff5fef702a7f54d758",
+        "route_number": "N8",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "4ec00b9df6bd4f08f943633e132a1af3717a5a2cf487595d8e3f806b428b9d7d",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "0ee59f7ae6676ce61ae1918e93caf762e0d9ef4a806fadc97e6148ab6f919708",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "0f0bda234d0719b070e0242939bd5ab533f77615346a04053863380f49305a2f",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "9c2b8c5129f88fd991b0d9cd54c878313078fa45c260d4ea5c622db531d98f26",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "0fc502af4ba98e9bf75ccc4f8f5afc4f60e884beae67d6ed7f128f2fbbb3b3b7",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "ac4b64fc13efed0c3e7018700dde34e757542189d1edc17c5627894e282f3de1",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "7e0d2b7cdbd4bb3743068ebcdc6a7ed541107dc9d731be57f63e5adafd8176df",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "5cf20c3ec914787b4d24752fa7ec4cc996adda25e7e9bf695a38029586f99f4f",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2ab4e55c7fdf332c78e4f36966a981f452ffb6758026085a4ad9df565a1df82d",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "09c0d8a913aaf03157eaf4302e0339a1fd81e1800e974e2c6310af9c638fa443",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "cfe41bb72eaa649d4787ef1be021e343ad6b4fdd4cc1ac1280637dd78b3d57ed",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "cc03642e1a1744b798328e8fa154a69457bf73605b2adb32bd7f60ddb17893c0",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "05101d71f2665df79a813ec4b372bc4117d2e90ec0cf3c1e719cdce34b87afa2",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "bf0797eb5048d419367b97b65adc576210f960a45d3513031fd0e5a77329745a",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "f5a08bf287403b229346206e827a8335e1155c077e29ebfe43653927ca0569aa",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "c28613c9dd1b0d292516d2e013cc23bab5fb46104f6d146450b4426bdb21e244",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "a6a1d481a3ecdad45f22cd031a981ef549d9fb7070c5749522fd8676154531b5",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "f57944fec9269a002a50a10d470abc2c31e932cf8e52cf04f0912464968dcb4f",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "ea06820f50bdfacf0d8b87d5b746f4bf62639ffdc9a589e22c157564c4746aee",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "4f4f80099eb2e36e12a51ee8163a6bdee27b0142f2ef73ee13212e911ffea7a5",
+            "arrival": 86880,
+            "departure": 86880
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "7a66f6f74ec45414e6e93bd17abf4e16f40116a73d4c39738168f1436449b72d",
+        "route_number": "N8",
+        "occurrences": [
+          {
+            "stop_id_sha256": "4f4f80099eb2e36e12a51ee8163a6bdee27b0142f2ef73ee13212e911ffea7a5",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "8ea8215d6844cbfec9486aedaedd06d940111b2b02f138e9f3f48c2e16162041",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "d9f4027eedd6a65c3b6b7e0d5344bbd6f3bc02f94541473fd5213061e79c2f06",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "783786accdbd6ad6945d7a4922715e8c5b0f1f377493336e1bcd1b42d618e455",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "31ec140760795a32e495916da4cac885d7bc6270efe6927b8643ccb327bf0593",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "852e71dd89b491fd49301c582b9d570e15e258edfd4c8745b8e69b60836d26b9",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "fca9cb814f67e4386916a28283b91ef82560ede4b020ae75a22bf788d09f72c8",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "654b1fa846815fe0c688ba52aed44ebd3abc19fe96700ecd9ff67cb08e04d0e6",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "a1e0cc57116de13f0f233ec08e24e0dfe7125128d0d231a2c11cb67d951987cc",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "6cd73abb40ebece650c1add5b22798d888b31e6137fd94bd78198c512fff2597",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "5f27e042b9aac1e9d894f2767e986b36f0461f3319ccf8c8ecfd57a4d4bb9b4d",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "852a5f170f25016fdf78c4be7c562fdaf9d273150c2c4b78fe0897e6ca1017f5",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "c18b0e7bad6bd35aa697e0c94789789e885e33e1ca0915fd35d74b8a5cc48e26",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "ef2dd3a856447c76c45e0a17b8bcc0be3318dccb17d81d3b228b238a4cdff259",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "c0d5e4dcee137c8bb9b268be0cfcd32c2efcf9461374449f0809a28d0f097cc0",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "983997a2a705ffde42c37ca29dc0dc53cdb4dc1404dfeae0c9c78ec6f649b6d0",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "781429bd787824ae6f262ff469cbeaab7b0e8b6602a326ef4c32b5c3edeafe9d",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "8a9a9e02b7e758e719918219b8059916e63d8604f6e73855a27083d7e6a0c99f",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "4ffba8fe4d10d17a0e1b1a9bfaab2c1a72197c91ae5f9035ebf9e6ff501963f2",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "fe0889b877bdb8ae93e1f8187e6b439def623757ed7aa37624d67b1ca1b44617",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "31eb1d3fd9061c10d027e15025daac87a297e81516713a8c60a95096c11376c0",
+        "route_number": "N9",
+        "occurrences": [
+          {
+            "stop_id_sha256": "8cb599c8f28d44f3cb6313488022763b45b8f482e496deb545ca508babe2389e",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "2b7c99aad74b7cd5d176c9e8ea7861f8c57bd98aebec6ed95b1fcda75b1004d1",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "6dd9f488a4f1c7ee17ae0376334275c14c418a6cb8f50b29e65d8f7a0e3a1ede",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "1ad4a57a9ff910a0ac90cd493e87ab33fcc014119b4c16de4be09eff65915f06",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "2c177c89bf6f859bb04145c5e06d538bf5d7796ce41cca77958e8818315b1d94",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "2c9134f74ace039b527b80b597526860952cac72f1fcccd04a79c6713affb03e",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "2dbdceab858c86b8e948fc11f00e1de91465d322c836a7779747638f8dbc66ae",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "305c306de2c3d6b6be241a946969720d71a5e76f7cb9f08cc269f612c0899138",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "a757d0eee3a3ae03a0d573a02f336f70c4dcbf90ec398dec481425b70d457acb",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "9be5ae50fc852d052d612c0eef68a2b5fb2c0924e1a2c477cb41c83229f70bc2",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "4a680f3bbfbc032ae3486e4101e99ca71de3bc0706c05ccacc6c886e41c75184",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "85be00089416ad90ebcd1ff11ddba82064c9d3baa2787408daa1fbc39d7f429c",
+            "arrival": 86940,
+            "departure": 86940
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "b611a4bc983c80682ab1b991247a31684f31ea76fa248e7b998b348eb480eb16",
+        "route_number": "1",
+        "occurrences": [
+          {
+            "stop_id_sha256": "f70f5f83f2d77c128ab8c54646f4d1fea774632b80ed03219329d968be6bdcb4",
+            "arrival": 84780,
+            "departure": 84780
+          },
+          {
+            "stop_id_sha256": "2a9ed6284e7a45fbd52db734f9408ea2f37a834585187ad6c85b04de6bd02ec3",
+            "arrival": 84900,
+            "departure": 84900
+          },
+          {
+            "stop_id_sha256": "8d46dd5d598c5c66b11b33e5382585cfa66db49f817c5bf51702a00a51c781fa",
+            "arrival": 84960,
+            "departure": 84960
+          },
+          {
+            "stop_id_sha256": "de3fe489a16eeb51f5e8db16a88475120947f9bb6bcdaf7ce6cbb2226652ad27",
+            "arrival": 85020,
+            "departure": 85020
+          },
+          {
+            "stop_id_sha256": "2fcf4271360c7b9f00d2b296188aaa86ad161303660037bb713afca4124d798d",
+            "arrival": 85080,
+            "departure": 85080
+          },
+          {
+            "stop_id_sha256": "731663185e06ed841dd98db1dd630e338bcea36c55efde72647e7536e95759f7",
+            "arrival": 85200,
+            "departure": 85200
+          },
+          {
+            "stop_id_sha256": "6ae3a49e460d7b0320c10cea4805b738b43ae6825035c587874fbf490e5b6058",
+            "arrival": 85320,
+            "departure": 85320
+          },
+          {
+            "stop_id_sha256": "298acb9ea1a18c9fe0b7028c429d57f850fbd08c80031d89da4bd2a0061ef5f1",
+            "arrival": 85380,
+            "departure": 85380
+          },
+          {
+            "stop_id_sha256": "7348e4f5589d62e90c6fa9d5cdc630a3c4038c43e33c1c002923912846d7817f",
+            "arrival": 85440,
+            "departure": 85440
+          },
+          {
+            "stop_id_sha256": "f361f9bcba86e2739cd253a5702b5bedd13b5ac3c0e94bac394ac078749e224a",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "3b457d4ed0bc7fbff4236ff9d967b0b39fd9d483c4f53567d24627c68c8c69f3",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "9c2b8c5129f88fd991b0d9cd54c878313078fa45c260d4ea5c622db531d98f26",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "8909917245e584cbc5ea1a17e13e1bd863a036008506dd0203e4ff190367fc3e",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "2fbdb588a1c862a34d49ddab10c4b109b06261b631ae60db5a633e12347b36f4",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "e865e6ca672e3b2fd85c9586aaebbb31c17ec8d82d615f7421ff1149f94d7f7b",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "e3d51fe5ff32bbfdb22d450636deda42006ccb3084fc24a62a2fb8a9c03b4ca8",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "2ab4e55c7fdf332c78e4f36966a981f452ffb6758026085a4ad9df565a1df82d",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "763f4f89106708a20297881a4eee24dab5043648913697dd9059c66b57aa4b93",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2393e3b681416ee7fd8d21565e2559a748355d890fc324c95a69733897960298",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "3ee70ad5ba752ae1554188f7043ad06957a81fea9aa5278f0d762892966185f6",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "05101d71f2665df79a813ec4b372bc4117d2e90ec0cf3c1e719cdce34b87afa2",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "bf0797eb5048d419367b97b65adc576210f960a45d3513031fd0e5a77329745a",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "702a834a494e3a4cfe8877cf8c6a453138a056359ed5e546b54e173daa0244d0",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "a162d06c18ad9d47599abe24c7f23715166a94d2956c45d4609b529abc66a3a1",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "ead3865fc8cb95e90f3c544fff5ba1fb16bcbdfb2e9f474d6554524eaa9bea0b",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "5b2401cfa5539953f08a2c1a59896a239c9273a5d9566424f98a5195d19beb4d",
+            "arrival": 86640,
+            "departure": 86640
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "c846fa22e20899985009af4813e21ecb3d18013ce35eb569ac2cb06072283fbf",
+        "route_number": "5",
+        "occurrences": [
+          {
+            "stop_id_sha256": "7dfca4be5858c0a14c3e33acfc800bec840f190bfb4c66fc40951a5ae088cd51",
+            "arrival": 84120,
+            "departure": 84120
+          },
+          {
+            "stop_id_sha256": "c9fde147987d50df5432b472405c1bff61e268d1a68b312f93a80696634239f0",
+            "arrival": 84180,
+            "departure": 84180
+          },
+          {
+            "stop_id_sha256": "eddee55c43850498677456bb5971a05693201bef9ef72585d4061033a5638983",
+            "arrival": 84240,
+            "departure": 84240
+          },
+          {
+            "stop_id_sha256": "40ba84e47f5d374082af570644961cc7d94c48eec606de0e4e07030d8b77cc55",
+            "arrival": 84300,
+            "departure": 84300
+          },
+          {
+            "stop_id_sha256": "1d88050cf7138778beef7b889954206e44d86eada352fe30196550ce761c022e",
+            "arrival": 84360,
+            "departure": 84360
+          },
+          {
+            "stop_id_sha256": "740032df9e2751cf3f2fe2acba900f89d5937b5fffb02c7eacf7fe53f2f04675",
+            "arrival": 84420,
+            "departure": 84420
+          },
+          {
+            "stop_id_sha256": "04a3f8e2566e0ef5b107ba23af7821fb9e59f9db37c6a25317c76b51a48ab934",
+            "arrival": 84480,
+            "departure": 84480
+          },
+          {
+            "stop_id_sha256": "e5d61a5820c81ba1d6a84ad844053752d78a6a46643a588dc3e4822367270768",
+            "arrival": 84540,
+            "departure": 84540
+          },
+          {
+            "stop_id_sha256": "e532c6baf13fc5196e3b75f0b915e7f14122851e103de7c956adcee339cc63d7",
+            "arrival": 84660,
+            "departure": 84660
+          },
+          {
+            "stop_id_sha256": "f392decb8744427a4c874e9c45c33d3eba27231b4b380c3ea2a2c46335775df0",
+            "arrival": 84720,
+            "departure": 84720
+          },
+          {
+            "stop_id_sha256": "4841177e6dde1499c4bf6f67e7cf3f59aa1aafacc44067cb311e3554c2d6617f",
+            "arrival": 84780,
+            "departure": 84780
+          },
+          {
+            "stop_id_sha256": "eaf249d65337524c7f936e7772af86dc2c1d725c193aee51640d325338a7cde5",
+            "arrival": 84840,
+            "departure": 84840
+          },
+          {
+            "stop_id_sha256": "97934027358a99c0cd3488dac001ab0e440dd8b81a88962d24f63f5a8c84db8c",
+            "arrival": 84900,
+            "departure": 84900
+          },
+          {
+            "stop_id_sha256": "c7aec019d6bfc341373df5840495101581e6c4081d79428f1ba183777eacbb14",
+            "arrival": 85020,
+            "departure": 85020
+          },
+          {
+            "stop_id_sha256": "0661fe48f0ba4f7510d02b298230e656ccef0c65d4217a2290c74e14a9dd7660",
+            "arrival": 85140,
+            "departure": 85140
+          },
+          {
+            "stop_id_sha256": "ceac26a40debf2198f63ce454ebbdba11f4f06330afac917ca3304fb76b83800",
+            "arrival": 85260,
+            "departure": 85260
+          },
+          {
+            "stop_id_sha256": "7ac8c21a35b98b0ca0426f485db787cfed1894ce817afcc8b26429795e8dacc5",
+            "arrival": 85320,
+            "departure": 85320
+          },
+          {
+            "stop_id_sha256": "6db87039e702a10d077b428444d58d894a8efe55beffe13d911034f01ce5bb2b",
+            "arrival": 85380,
+            "departure": 85380
+          },
+          {
+            "stop_id_sha256": "b6deb66f221aeb67c010580c421b9c032a4485173de2ef63ac0d38e6a921eabc",
+            "arrival": 85440,
+            "departure": 85440
+          },
+          {
+            "stop_id_sha256": "c9db1b3fda4d4616ea0d853b545b419455acc7c56d14dc1e5abc4405d5d66e06",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "f9c017db20c3161d8f9561c69d149de2fb376866571167be3a9428df517263e4",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "75241e6ad6081faaf9757e4ac6c8a90d691ddf9e72c48132f2a9531451961a68",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "36ef41214aea44e9c8cd0f26c99a10010d6d08888c1a8aae5641d8fdacf63ee9",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "e401908a496878ca210da70e0e80eb1bf64c2506ab71b78ced106e1d6e040b59",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "bcfdefb17dac6766caa75fe4f00ddd347c320aa341cbd9e3c0bfb1a477d103ae",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "2956abec58e7bbd10cf969f7d55d67d2823de96d548b740b59e62f68ebf15122",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "6c38517b5d24fe8e633bd3c86f7160224f889ef3f85c59d79399105a7d21f24b",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "f2b6fe386d3dbb52a871af3e02a6f9dc067e8af8c06f86883482ea0acb0f4a56",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "a1ecb777576b77edf54072a63de7bea148d21024cab0c4d0cedafc6ffe4a352b",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "da85302b9dba5c2a764b9fd61e73b66e9ae3cb56fe0bf41a85ce87c131f5792f",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "8f649145f7e999b14ee87ea83a30e36a9c36028fa3db0cd3d5cdc43d23c9c9d5",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "c04911cc7b6ad20a7d87a2d55662412fa90ffc2a4c733b7a64f792978fc02eb4",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "62d8ae3680e713e74bd847789dcabb329ebff37a7883bf961927bf56657c1ada",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "198ee65886431ed32af92d079b4a7b14c43ee8a8e8e7d6569bf68b3e0c84a6f3",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "5f51da8005151a9d7879891b0215386d73dcfab42c02c1e69aec05f4435ebb2c",
+            "arrival": 86520,
+            "departure": 86520
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "247905497a50ccbe95ff5ba4d8f737c571d0a635bf43d937ee4451601e3b3152",
+        "route_number": "5",
+        "occurrences": [
+          {
+            "stop_id_sha256": "7dfca4be5858c0a14c3e33acfc800bec840f190bfb4c66fc40951a5ae088cd51",
+            "arrival": 85320,
+            "departure": 85320
+          },
+          {
+            "stop_id_sha256": "c9fde147987d50df5432b472405c1bff61e268d1a68b312f93a80696634239f0",
+            "arrival": 85380,
+            "departure": 85380
+          },
+          {
+            "stop_id_sha256": "eddee55c43850498677456bb5971a05693201bef9ef72585d4061033a5638983",
+            "arrival": 85440,
+            "departure": 85440
+          },
+          {
+            "stop_id_sha256": "40ba84e47f5d374082af570644961cc7d94c48eec606de0e4e07030d8b77cc55",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "1d88050cf7138778beef7b889954206e44d86eada352fe30196550ce761c022e",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "740032df9e2751cf3f2fe2acba900f89d5937b5fffb02c7eacf7fe53f2f04675",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "04a3f8e2566e0ef5b107ba23af7821fb9e59f9db37c6a25317c76b51a48ab934",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "e5d61a5820c81ba1d6a84ad844053752d78a6a46643a588dc3e4822367270768",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "e532c6baf13fc5196e3b75f0b915e7f14122851e103de7c956adcee339cc63d7",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "f392decb8744427a4c874e9c45c33d3eba27231b4b380c3ea2a2c46335775df0",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "4841177e6dde1499c4bf6f67e7cf3f59aa1aafacc44067cb311e3554c2d6617f",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "eaf249d65337524c7f936e7772af86dc2c1d725c193aee51640d325338a7cde5",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "97934027358a99c0cd3488dac001ab0e440dd8b81a88962d24f63f5a8c84db8c",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "c7aec019d6bfc341373df5840495101581e6c4081d79428f1ba183777eacbb14",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "0661fe48f0ba4f7510d02b298230e656ccef0c65d4217a2290c74e14a9dd7660",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "ceac26a40debf2198f63ce454ebbdba11f4f06330afac917ca3304fb76b83800",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "7ac8c21a35b98b0ca0426f485db787cfed1894ce817afcc8b26429795e8dacc5",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "6db87039e702a10d077b428444d58d894a8efe55beffe13d911034f01ce5bb2b",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "b6deb66f221aeb67c010580c421b9c032a4485173de2ef63ac0d38e6a921eabc",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "c9db1b3fda4d4616ea0d853b545b419455acc7c56d14dc1e5abc4405d5d66e06",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "f9c017db20c3161d8f9561c69d149de2fb376866571167be3a9428df517263e4",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "75241e6ad6081faaf9757e4ac6c8a90d691ddf9e72c48132f2a9531451961a68",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "36ef41214aea44e9c8cd0f26c99a10010d6d08888c1a8aae5641d8fdacf63ee9",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "e401908a496878ca210da70e0e80eb1bf64c2506ab71b78ced106e1d6e040b59",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "bcfdefb17dac6766caa75fe4f00ddd347c320aa341cbd9e3c0bfb1a477d103ae",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "2956abec58e7bbd10cf969f7d55d67d2823de96d548b740b59e62f68ebf15122",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "6c38517b5d24fe8e633bd3c86f7160224f889ef3f85c59d79399105a7d21f24b",
+            "arrival": 87180,
+            "departure": 87180
+          },
+          {
+            "stop_id_sha256": "f2b6fe386d3dbb52a871af3e02a6f9dc067e8af8c06f86883482ea0acb0f4a56",
+            "arrival": 87240,
+            "departure": 87240
+          },
+          {
+            "stop_id_sha256": "a1ecb777576b77edf54072a63de7bea148d21024cab0c4d0cedafc6ffe4a352b",
+            "arrival": 87300,
+            "departure": 87300
+          },
+          {
+            "stop_id_sha256": "da85302b9dba5c2a764b9fd61e73b66e9ae3cb56fe0bf41a85ce87c131f5792f",
+            "arrival": 87420,
+            "departure": 87420
+          },
+          {
+            "stop_id_sha256": "8f649145f7e999b14ee87ea83a30e36a9c36028fa3db0cd3d5cdc43d23c9c9d5",
+            "arrival": 87480,
+            "departure": 87480
+          },
+          {
+            "stop_id_sha256": "c04911cc7b6ad20a7d87a2d55662412fa90ffc2a4c733b7a64f792978fc02eb4",
+            "arrival": 87540,
+            "departure": 87540
+          },
+          {
+            "stop_id_sha256": "62d8ae3680e713e74bd847789dcabb329ebff37a7883bf961927bf56657c1ada",
+            "arrival": 87600,
+            "departure": 87600
+          },
+          {
+            "stop_id_sha256": "198ee65886431ed32af92d079b4a7b14c43ee8a8e8e7d6569bf68b3e0c84a6f3",
+            "arrival": 87660,
+            "departure": 87660
+          },
+          {
+            "stop_id_sha256": "5f51da8005151a9d7879891b0215386d73dcfab42c02c1e69aec05f4435ebb2c",
+            "arrival": 87720,
+            "departure": 87720
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "f7b92f5de978ad55bc410b94168e880a930d4699006ad0d7412dc22dcad90659",
+        "route_number": "9",
+        "occurrences": [
+          {
+            "stop_id_sha256": "d6065cd669aa0a3df56cec97e403f6f17872eeffbe5db88996a5ea3618d95b0e",
+            "arrival": 84600,
+            "departure": 84600
+          },
+          {
+            "stop_id_sha256": "537aad16dd80e2a28f01a0f0ea4405545f995cfc8a811834bbc6ae3103fe4d26",
+            "arrival": 84720,
+            "departure": 84720
+          },
+          {
+            "stop_id_sha256": "0a9c56def1d1bf5d0a606fac9f716d74235a6888acffb47881c1028b93423fc7",
+            "arrival": 84780,
+            "departure": 84780
+          },
+          {
+            "stop_id_sha256": "9725f078e19cfb6e0ac0a4b1e45b3660c4bb4f511b3e3b2568978535b9622fb4",
+            "arrival": 84840,
+            "departure": 84840
+          },
+          {
+            "stop_id_sha256": "ea12fd37e6fd86ccff68da024eb0ee6aef259058db2a3d89bc362b556270a172",
+            "arrival": 84900,
+            "departure": 84900
+          },
+          {
+            "stop_id_sha256": "f2ec1ecabd3d8bf283951f997ad11b1d82fa22854aa2139ef71833c981135975",
+            "arrival": 84960,
+            "departure": 84960
+          },
+          {
+            "stop_id_sha256": "ec781dc3bca30d8c2c96ce46ac356887ad495fe3d14e86a87f6fb5c3d03b6c29",
+            "arrival": 85020,
+            "departure": 85020
+          },
+          {
+            "stop_id_sha256": "5b4d4d81392586e723b28715f3c6f12f616dcb4443e3c981a1348c51d3801e76",
+            "arrival": 85080,
+            "departure": 85080
+          },
+          {
+            "stop_id_sha256": "420b9e9858cc83638c464da3c9db47c221ac3795b59a6e09a717351e4fadbadd",
+            "arrival": 85140,
+            "departure": 85140
+          },
+          {
+            "stop_id_sha256": "14eb58b1e2448edd8b5b32c466e010e96a7bc8844a4d2b154143c159c3245476",
+            "arrival": 85200,
+            "departure": 85200
+          },
+          {
+            "stop_id_sha256": "03a4769b9fd56df3b2e203d773dbb9eac35cbc31d591a6514b8b21abb4372f2c",
+            "arrival": 85260,
+            "departure": 85260
+          },
+          {
+            "stop_id_sha256": "4785a51a95f062ed21d85a41f5c2467c2c88107067383d5c340925024f8ce6f8",
+            "arrival": 85320,
+            "departure": 85320
+          },
+          {
+            "stop_id_sha256": "52993f23c5952a8b95daa171e5e14651ae4f757a40b813faa091ca625b547d32",
+            "arrival": 85380,
+            "departure": 85380
+          },
+          {
+            "stop_id_sha256": "924987111022d3b1c63cb1a1f92e09b91344f8fc493c0d5be4c1985cee4269fa",
+            "arrival": 85440,
+            "departure": 85440
+          },
+          {
+            "stop_id_sha256": "6db87039e702a10d077b428444d58d894a8efe55beffe13d911034f01ce5bb2b",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "b6deb66f221aeb67c010580c421b9c032a4485173de2ef63ac0d38e6a921eabc",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "c9db1b3fda4d4616ea0d853b545b419455acc7c56d14dc1e5abc4405d5d66e06",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "f9c017db20c3161d8f9561c69d149de2fb376866571167be3a9428df517263e4",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "75241e6ad6081faaf9757e4ac6c8a90d691ddf9e72c48132f2a9531451961a68",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "36ef41214aea44e9c8cd0f26c99a10010d6d08888c1a8aae5641d8fdacf63ee9",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "e401908a496878ca210da70e0e80eb1bf64c2506ab71b78ced106e1d6e040b59",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "bcfdefb17dac6766caa75fe4f00ddd347c320aa341cbd9e3c0bfb1a477d103ae",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "2956abec58e7bbd10cf969f7d55d67d2823de96d548b740b59e62f68ebf15122",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "6c38517b5d24fe8e633bd3c86f7160224f889ef3f85c59d79399105a7d21f24b",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "f2b6fe386d3dbb52a871af3e02a6f9dc067e8af8c06f86883482ea0acb0f4a56",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "a1ecb777576b77edf54072a63de7bea148d21024cab0c4d0cedafc6ffe4a352b",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "da85302b9dba5c2a764b9fd61e73b66e9ae3cb56fe0bf41a85ce87c131f5792f",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "8f649145f7e999b14ee87ea83a30e36a9c36028fa3db0cd3d5cdc43d23c9c9d5",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "c04911cc7b6ad20a7d87a2d55662412fa90ffc2a4c733b7a64f792978fc02eb4",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "62d8ae3680e713e74bd847789dcabb329ebff37a7883bf961927bf56657c1ada",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "198ee65886431ed32af92d079b4a7b14c43ee8a8e8e7d6569bf68b3e0c84a6f3",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "5f51da8005151a9d7879891b0215386d73dcfab42c02c1e69aec05f4435ebb2c",
+            "arrival": 86640,
+            "departure": 86640
+          }
+        ]
+      }
+    ],
+    "2026-10-23": [
+      {
+        "trip_id_sha256": "2e0531cac525cd989d2a1890f1f86318e504580c846e5c049a673becc027460a",
+        "route_number": "N1",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "081584d93934ed78c0ec38cf4937f62a06620494ed6ace8a98b16cdd710c0d78",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "1d639ccd2f2d141024e5f6b6e3062511cc08498d20b4003bb150211615aa3a26",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "2db665c7cccc298ae1c8cf8fd9898f420edbd59b1b96497742b38894dd43de2b",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "b180f001d24f7e3860a4ceb35ce98819691da079ab73a4330be10f4e2c648f9c",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "8ebc32e8f3649e91266b11fcc4867c1a42f4bcd33d9439f5fe383334712c0973",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "e02c10ef5c5889070de9067fe8cf1a5d8a6ed350bfc34a012b4efa94f4adc07d",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "e4c73a83b0dc8711f1a2db2ec6f4347d04ba4ab0f244c91f0fb4b0de5b3fc985",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2d90e05a7d1ef6f9ad4b954a828e3ad99a05ed2e3d4146e11017b9f60ac361b9",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "8d46dd5d598c5c66b11b33e5382585cfa66db49f817c5bf51702a00a51c781fa",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "63ec0cf0e6ec755b8307affa3b2072da02e4543ab4c2dbcfa8f269aec3fb9c58",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "a0927ad83367e97ed1610550b79dd493a08ba8d99d5b5e0c88d6ec5dc8d15622",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "52476e83badc2e17109c1f0028804c49dfc202091f75515e42378d902d972aec",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "af80d159bba267382d6b15722da88039b3dae4512590f2851cbbc4d1b67d5218",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "65a78a0fcd5f3b28fecee3d4f7b246964a4e256f8d12f2aec1a8056465754bda",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "d4a223efbfae1ad43b72031f6679ce065dee88c1b28c62db0c0a8171e164dfdb",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "dc005e234205b6449ef23afa5498e13c724d28ad3dd91818207c6e03ec117a99",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "1713e3164de0f5866caa8a8fa78a677c32dd4ebd9139b2d809fb78489f86bbdf",
+            "arrival": 86820,
+            "departure": 86820
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "88f0b6d4ab4f9fcbef41092a2adb6d15aa1edeb07e3b308fe319de0c90f01972",
+        "route_number": "N1",
+        "occurrences": [
+          {
+            "stop_id_sha256": "cf50cc2a22f87f152258a18f7cf60b9c0ecbc7dea4d131850bd802d02623626b",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "4dc41e9f7e297603f581c0cec1bfc8355779c38851978255f7d0e24eb7d2b3d8",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "4cb87e11d8b27a1b96f3886e34c85dd0d6b28ddc635f4317304e9270cb20c55e",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "26c3057676d337c15369bbab8092dda065d949d4d2afc6b801977718c8def2c9",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "7b782bfdc8bdb58a42266616761f12075e4a906704c74f99d3a4235d88cce74d",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "1fa0b7fc3256c93af062c129d68d2d80a56d57a9bfe23ddc3775fd6e1e374068",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "2a00d2ae0ad6e50114d3d05d062c6c3de14671907677e4e0f2153740de4574fe",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "8a7e193252e505de1e95cca2be9e904eabdaf2ddd66ce759cb77f9470a4079e0",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "8ebc32e8f3649e91266b11fcc4867c1a42f4bcd33d9439f5fe383334712c0973",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "e02c10ef5c5889070de9067fe8cf1a5d8a6ed350bfc34a012b4efa94f4adc07d",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "e4c73a83b0dc8711f1a2db2ec6f4347d04ba4ab0f244c91f0fb4b0de5b3fc985",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "2d90e05a7d1ef6f9ad4b954a828e3ad99a05ed2e3d4146e11017b9f60ac361b9",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "8d46dd5d598c5c66b11b33e5382585cfa66db49f817c5bf51702a00a51c781fa",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "de3fe489a16eeb51f5e8db16a88475120947f9bb6bcdaf7ce6cbb2226652ad27",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "2fcf4271360c7b9f00d2b296188aaa86ad161303660037bb713afca4124d798d",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "623cb8369c97409a1e084001f6bd5fb22cb3ebbc9f06a2b764497c0e0099688b",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "fd136763f51764a7b2901271490ae5a834b3b469cde19c8385fef4a046dbc425",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "e7e00e522ee1253dd9af6ad19511e348d0233de943fcca10cf5fadc34e461f07",
+            "arrival": 87120,
+            "departure": 87120
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "3cdb32c431ef4e5319e190e5279164562e54ae52b682ed377fafb4bba04079a0",
+        "route_number": "N2",
+        "occurrences": [
+          {
+            "stop_id_sha256": "e7e00e522ee1253dd9af6ad19511e348d0233de943fcca10cf5fadc34e461f07",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "3c735fe2fa370409fc890552cd4d330f9043d49e9b64a1f68cf15ccfc43b2bd8",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "14a42157a627f499d6d19c047d162641ac02fd2b0f07d41a3a129531ce162a79",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "b35bd0a76f13bf00c7f5d943bb42cad38394be92a0f214ad3ddaf7d6f2d39e5c",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "7c1ac43084d5208011d8d77352de6fb320c641ae62df02981777a0eac4f9ff88",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "4609aba91292faf2e2a4fb5ad0d980b7d355e551d96db2763541e8315b47aa88",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "56b946435788e7c6f9b7802eb17f513f1eedecddfbc2b5e5eca5fc7db5f5f340",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "c9db1b3fda4d4616ea0d853b545b419455acc7c56d14dc1e5abc4405d5d66e06",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "03ec7267b4c1b66b7a85724ef39483d9893747d6f970be2b21e910d8fe5fe91b",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "54dfabf5a805357482e3a6a65ab6a6d1da93a34ebac29db5ebafbd5326b95181",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "56141519a22c5b193f99a0dabe9dba3e94ce876dd80da471eeb7ef8e1dec1fd5",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "e401908a496878ca210da70e0e80eb1bf64c2506ab71b78ced106e1d6e040b59",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "bcfdefb17dac6766caa75fe4f00ddd347c320aa341cbd9e3c0bfb1a477d103ae",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "2956abec58e7bbd10cf969f7d55d67d2823de96d548b740b59e62f68ebf15122",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "6c38517b5d24fe8e633bd3c86f7160224f889ef3f85c59d79399105a7d21f24b",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "c798cadfec0f440c440ddf13df90fe3174b26ebfba9b5b3c515d5c677f94b0ce",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "a1ecb777576b77edf54072a63de7bea148d21024cab0c4d0cedafc6ffe4a352b",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "da85302b9dba5c2a764b9fd61e73b66e9ae3cb56fe0bf41a85ce87c131f5792f",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "8f649145f7e999b14ee87ea83a30e36a9c36028fa3db0cd3d5cdc43d23c9c9d5",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "c04911cc7b6ad20a7d87a2d55662412fa90ffc2a4c733b7a64f792978fc02eb4",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "62d8ae3680e713e74bd847789dcabb329ebff37a7883bf961927bf56657c1ada",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "198ee65886431ed32af92d079b4a7b14c43ee8a8e8e7d6569bf68b3e0c84a6f3",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "5f51da8005151a9d7879891b0215386d73dcfab42c02c1e69aec05f4435ebb2c",
+            "arrival": 87060,
+            "departure": 87060
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "8521212c16ccf80108986343450c83644784379392a8d56f440416ee157aae26",
+        "route_number": "N2",
+        "occurrences": [
+          {
+            "stop_id_sha256": "d5a5b182cd30db1d5d8c611de8d1764a8929186986b69eed8ae6760ebc48c0f6",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "e0e986459d91e12c712aa58aef7108cf5dd20147071f539625fe1983b8c0f1c8",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "a8ea73001fb9dd7dce426c3ceecffca3415bc75e720e1518d5f0fcd6396443fd",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "9262d18ba75a0642d69f05584797055d8f46b9b5fd40e157c04269ae1f4de9f8",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "57eed793352c37b3e796ff8d6b59ae1885ef3a502678b3d9af4a1b292420c36f",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "8fbea166097652de7c6853700db0da86f2dce1dc359eb985d839387e971dfcb5",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "8aa656b2279cb9a32f352e415154dd7e4b2812d5f9773d7d1c5976dec513d9ed",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "0931e1ee5245d77c7b42ead44bf0a8d5fd80c097c3b307884d4bbbe117da6b1b",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "41ca87f70ee7b30460c4aa3b5e7fde0df8dba82e757a16268dc5a58f65186719",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "adb1d53f6345b1d1ccf7ed437835bb3f86fca07f2452a2d450f0a708aa5d4321",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "b1dd61da9826ddda7e4a0ba5a3915d565386c556bf6fb2f2ea1e1363564c7414",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "4b9d808adef3052e2d714591ce14403949616348140699c83324c13762b0f6cb",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "410263a6e7ea3cb079589201d3c4cd6960c13e43beca63c6a223e03e4732bebb",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "194e88d81e5684655b31fd532839bcbf3df8c3da1d0e554c76ac08b31bf437a3",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "e9f5107e27f9245451b585a44a80c09b47995fb576e0e9c5e4e18fde03bf4971",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "fdf3c3c03bbcd197daa2eb206f1c6d185b577a226b40cdd5a3a18e2570de5cd2",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "3405df1ae3a1521c517f66bf88cbf941e1097b1f9883f89af0308ff3992a6a28",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "7598ccebb537170b232884a757e610653ab32f48a214cb426d63ecde71bd15dc",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "3340f7a38d2892db14b87def00845094cc946a87528c83e31f56248b6f34d3d9",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "f3d484cd7932c2f99915620ea0278a68f0cd8e8785a3d88ef8f99b96f5c44341",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "de4751c317d5aa862f47e6c07c2dc645a139b0e40807171ea5bb34ca038d5397",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "cd16cb6ee929d95ddbd1ef434ca0d57b40d34df68bc9212d487e199962cad844",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "12d6b7273877f85d889f5021129cc8397149af43c4446c39029430af17d0aed7",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "db9fdcabc86623b70170fab12b03319afccae89fbf1de005252f4027251c9565",
+        "route_number": "N3",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "3c735fe2fa370409fc890552cd4d330f9043d49e9b64a1f68cf15ccfc43b2bd8",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "14a42157a627f499d6d19c047d162641ac02fd2b0f07d41a3a129531ce162a79",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "b35bd0a76f13bf00c7f5d943bb42cad38394be92a0f214ad3ddaf7d6f2d39e5c",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "001691fa79e420185a0d1759402249fc18c8731d6a8dcf258fad63c1566957cf",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "307a91b6bdfb7ea4bd39a855202592508c7e3d3b4350c86d723cd9af3f01c9b5",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "ed2ae9bd37bfd5c9ef07328676b648b8ba7c574120dcad1e7fa97367d942cb9f",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "521c3cbb9a6a4aac2b96c6ba0f48ef09125b56e8c7fdcca1e95e4ba9ab2981b2",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "d59e67338e7363bc9acf688fe94392586df051d970e7ee46b3430dff73906750",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "da411969646f4294da9a1ff9ca56198a083e779d7148b19e6694ef896ab7c2d6",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "ad0df50f8441b85553e934305090ced892ca2fdb013bbcdd8b119c34541a42b9",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "a8a3df42ac8594234d5e805aede112d614737d4b3b71ae6c2f8f638028523cd7",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "a53f8b8c41a903671a661fe169920ebebc20e8b6f837d2d720243f4e59c9cb6d",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "abb4d8f1405f184f68982ddcf85c9e9300ae5a856fd824045e2c97b3fa9c3a51",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "40cf58625c6e39b769d82e42f9f82338b253423ac22488ace9916125df037293",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "61b0bd981f15fd360ed69367b73514e9567bf12e319f2ae85fea853a48841925",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "9c9e492fd8550e4adff99b4c6cfae8d3f1fd8b7e51bb0fd4b6e2f880a05a5f98",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "4ba4999d569c411c4ed8eae5c24125d01b5b197044cb6c7bd657513b629693c6",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "995ac48bce62f43cc7508acf83bb9ad4674559e0cc41a7fc9acf75734206df5f",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "dd4743b1ca4230703b585647ec0caebd8c6d6cf98f22ead2be404da689f69ce2",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "6892d9027acf098bde0e354875738b9507326d10cadab2e45f10d498e6ed5e27",
+            "arrival": 87180,
+            "departure": 87180
+          },
+          {
+            "stop_id_sha256": "1f1be6eb48f6c78ae4b14d2d9b24f6be82d3515074c23c7dd9668001bccaab9e",
+            "arrival": 87240,
+            "departure": 87240
+          },
+          {
+            "stop_id_sha256": "103529bcc6f3701a27f612d7c5a387eacfb8f7c5d354282e123fa12072856c0d",
+            "arrival": 87300,
+            "departure": 87300
+          },
+          {
+            "stop_id_sha256": "ba7e6e5e69e578710a560aca04154e760d6e1d203b31323b36e2236ed761a4ed",
+            "arrival": 87360,
+            "departure": 87360
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "943d6e180f93982eaf78291495ececf6426b87bc895abe76053ddf7914a20fda",
+        "route_number": "N3",
+        "occurrences": [
+          {
+            "stop_id_sha256": "31789aaceb9937377efea88fa810cb48c0a0cb1d2c99c2bd55dbf7c3f0963e26",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "a755d2ee76e52da7da256b37647b108ce87c41193e9f3da193ac7354af6cfddf",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "a6956d31b6fab95be6b123e994dc22d196e7b2d14ac51fdb0e4633ad2ac173cd",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2545a02d836fe85023efc654e841b0e03458a50d8308345ea6360ab2eaecb9cf",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "506fec3880e0539668e4f2b6f3eef0d607a5ecea7034220e25953c84bce687dc",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "e8ae5d16e816d424d0c1730363a7003a60b54412f0581f1a618b7dae182d9994",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "409131b9b69000bbea6be1361a44c6f020eaf461b212ced680073bcc36ff4f9b",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "74fcc426f3b9fe834ec6f98288d7985b528f1cec2a873c7bb6dddc835cb24975",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "d07dcf9c4a3c11a7cb3e30c89a2cfd95f63974dfb6d775b41afa4a9f98127e35",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "97b16cc0f57aa2ada6e1ee2a15191963aa9b4b3032ebe3a4c1b984d78988c208",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "efe4ba20f09d31321064dd0e174f083e65613bd017a90cdbb593db3239747376",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "af79f0dbe788f07247b61b656c053095131310eb19a2f363b6d2f7e2dd9f78a2",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "455158d1a57cc31f1f598d77e85d041981cd6c03773eacd68e1f519c293adeb6",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "f3d484cd7932c2f99915620ea0278a68f0cd8e8785a3d88ef8f99b96f5c44341",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "de4751c317d5aa862f47e6c07c2dc645a139b0e40807171ea5bb34ca038d5397",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "cd16cb6ee929d95ddbd1ef434ca0d57b40d34df68bc9212d487e199962cad844",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "12d6b7273877f85d889f5021129cc8397149af43c4446c39029430af17d0aed7",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "7fec3421b049ee7f493baf0a836766581620bbcb2630e592a6b8bb30f0a54439",
+        "route_number": "N4",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "509c6386b0dd850f07de83f9e160007a20708b7c647c1108e5e8ea498f817df3",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "b7d94e1728250774725b47318a79f14970f50644040c4925ad2bfb289e46dc58",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "5f42e20ea929316a989aeddd8e5d2ddadf5a6fd6fcaa378ee1be69b00d4cd05a",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "48aa659faf974cd26bc91dbe07e835141fd8b4285f2a9ee79f3deadeb3a57774",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "8fac48f7f0dd12c40b35f818c19d72a4ffead84d9bba60173b0e80daa458210b",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "d8729bf8876e5ecebaffd210f5f38201a936d139c5efd1e2c6690db5ce72a02c",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "70ea553fc0d5fe17de7369a796e2bf0e9f27b0551d21476f16140206b37b2070",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "2fd78807a11612c9fadb991cc8db7ad7f2bf391c88e5a6173859f84bd4a08169",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "0a1c65b687928662273285cb3d03bc27de4529969030bad90d1619d8e23285d7",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "1f5d209842da03262124fb640b31cd8650f8a50e2ff12b9a516a367e386d92a7",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "16ded16eb6ee1145151c756dc19858cc2ab267674654174bff3416258deb94ea",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "da5c67bd687afdb66f00f323325b926a67efa557753e7892a9ef22a729b97cc2",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "409131b9b69000bbea6be1361a44c6f020eaf461b212ced680073bcc36ff4f9b",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "bb8875d77d999491a040ee6b2c4b1665e206bc3b5895586c5b4333117e5c05b3",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "5c488f0c7d1096f920db2818f7c6edb89cc1b665c0f01c199067b352a2bd6edf",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "fe4dc8d1d78be4df710f7c633f365a046736d6da27d09adc6858bb7d97e9527c",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "6c6d713a4034bd0fe81fc1a9eddfa78bbf63de1a114ba0f2840f348566fdb98a",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "51041b1a11909ff11dce51ea0cd71dad66961e13da1f1d084a04da4088577ddc",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "f85487b2753634dab1a1c9ee3da0ab6eff3d69ebef16f5465ff1edaf4b4cac90",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "ad0f23751c8b75f066bcb4be8c649f38907e298ecc1e8ff2b7add16a8032120d",
+            "arrival": 87120,
+            "departure": 87120
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "592f1baf377f29d4a1572b198252849bd00faa39c7bd3bec800ad1afd8a26d93",
+        "route_number": "N4",
+        "occurrences": [
+          {
+            "stop_id_sha256": "ad0f23751c8b75f066bcb4be8c649f38907e298ecc1e8ff2b7add16a8032120d",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "a3357c727fddca001de6a8ab0def90e618ea5f9f1ae725d1fcb3698fd8613077",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "4278310762df6905b5c7222327df0000112e6a0ae6a3c6dfe1c5e50a1a9addfc",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "a01809aac25f1373dda165bd8e6a267b51b905a5a41f06534c1cedd28a1d99cd",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "ea1aa6e5ab843eca230b530514879032b9bc18efa8528480902c9848b63aadff",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "ad0df50f8441b85553e934305090ced892ca2fdb013bbcdd8b119c34541a42b9",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "a53f8b8c41a903671a661fe169920ebebc20e8b6f837d2d720243f4e59c9cb6d",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "3b17f0d97ca761f7e1777f42dcb0cb34a6d5784b8db1ded8e15c4b91e0307f68",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "45934b1dabbc43c22c46a71d919b86eaa2b7e96e00eb9c3b59d74b14b371fc36",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "c6b9bc47dd0a9e6defbb59fb62bfea20c9abc83dedead37a2ed68ee8650e76e9",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "f4183402db95a3289c95d7e4e602fe2d5152dee95aa1fa31de5aca327a791acb",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "9e2b13a36a77441c33801cb859a79ef1b58dfbc4e4d04c0468256eb12919d546",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "af79f0dbe788f07247b61b656c053095131310eb19a2f363b6d2f7e2dd9f78a2",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "455158d1a57cc31f1f598d77e85d041981cd6c03773eacd68e1f519c293adeb6",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "2709fe91e9dffdd20b15e83ec067308af9fa660efc602e62aec019b90ccf0a7a",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "3aa1f4e6f20184b12ca2f0d98f33740e0302560d0a37a1455a90fc829eb22e44",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "6c56fc1f33aea9812d0c28d5b971fd023a84f6ea832f96449ac098a721546fd3",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "2df5e8786f3dc0e63d3ad953db5843fe5d5bd696729987092025a702a774a7b1",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "ff16f3e57ddbaef16712d38ee76e9e1ce67925dc4cae42be817bcdde3042b66a",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "7ea6210eb4d4683c5533c94fd7afebcd221abb70212c36d1aac89e01a3037e23",
+        "route_number": "N5",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "509c6386b0dd850f07de83f9e160007a20708b7c647c1108e5e8ea498f817df3",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "b7d94e1728250774725b47318a79f14970f50644040c4925ad2bfb289e46dc58",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "5f42e20ea929316a989aeddd8e5d2ddadf5a6fd6fcaa378ee1be69b00d4cd05a",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "48aa659faf974cd26bc91dbe07e835141fd8b4285f2a9ee79f3deadeb3a57774",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "001691fa79e420185a0d1759402249fc18c8731d6a8dcf258fad63c1566957cf",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "307a91b6bdfb7ea4bd39a855202592508c7e3d3b4350c86d723cd9af3f01c9b5",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "a2a824c01636bb85400e233d4e3827f4d51fa0bad3dbe75d090046aa28f52b54",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "f48707c46b6dd2703831a760544363de3e266d84e4c3eec35bb4a939ac8fbc37",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "c5c37bf9961f07c6337aee862fbefa53a88b10db74956f7ea91bc9a0b2ccbf11",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "209b81aeb1c72ee1d7043b1d7dc76b3d0f0f896d9984f4ca15a3ca38c6b1959c",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "4fbf8c085a86afbbd1ae972434a3db879214cbc637d533b21bf8bd3cf85df911",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "0a3923a9b93d1f212814a125a8351f74c5584a28b8716d8cc6771e74fbc961f1",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "91504813a0fab01b3ec18851f05c21255c128d0548e402d82c562780f2fec7e6",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "ca119a86f35679366c38afb736b05a1260b5f58072cc33b1c0ea231ad6a79cb4",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "dbf8014c3b4d40124b76728b85986320fc5a4f0abde1c1921ddfb6f141102ddd",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "365f191de6d26eb99f1a3b2b27439d573376c5c727c7565c15e6fb13e512c20c",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "61cc05765127599c556a6187f30f55a17e244243f78ddbbfd37888713db4bb1e",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "cfa3ef71be13e6c743eceadaae0f0551ced3bc7ac456e26e79c42b13437b3ffe",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "f0d8e2250a150a9e1963dc34ec4e9e99d8db0382163f466f7761250cdf6a5bd6",
+            "arrival": 86880,
+            "departure": 86880
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "81c12864a2e4c5428f37ac1372c32c6b58b7805ff4b7ec03ce806aa521a8d2f9",
+        "route_number": "N5",
+        "occurrences": [
+          {
+            "stop_id_sha256": "c76f7004f9f8486b23a92a4facae7e4f22d084a686ef0154c2711712734702d8",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "0b20c44e537bb21656a59398c425ca4639a60cedb7bc5e2fd9319c0e10ca56fa",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "10cae2ba14c242addbfc3357c519ea151c45efe3255270cc7eb79bc6de8c6253",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "875cbe724cbbc457ff5b3ad9d23aa92bd6488b2fb7e7444d2ab335d3c1a7a6f5",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "1ca3aa1ffce03987b745745b3e852c1e283019f03e5137cca691cea8f279abbb",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "437f9ae70fb32c5a815f38fb1138900b6e7948886e76b81c0c0a15e89d75d2b5",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "fa3c95410a7553af04d7ce873c0e7512d8c6a3c265fc5a4542311d43ea6443ce",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "1d8d939da1de55ab9d1ee69355f964515537a94f9e5de2ff45e368535cf26934",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "21acb6149fc36f23fb7eedd53490fd826244cc9b23c5d45189aa8895af63727b",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "226223d02657856f385fb9c2ef4dd5394fd055d4b0bc665ed5d18f62b6a9d914",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "b250bd0b52687e5e2f4622489562df248a691b6990be5265c4b3124e018d366b",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "8d4e80bfca0f18146b552d9e5bc3e7f28c0de59b22bbc9d9cc3ca464e7879b61",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "efe4ba20f09d31321064dd0e174f083e65613bd017a90cdbb593db3239747376",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "af79f0dbe788f07247b61b656c053095131310eb19a2f363b6d2f7e2dd9f78a2",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "455158d1a57cc31f1f598d77e85d041981cd6c03773eacd68e1f519c293adeb6",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "2709fe91e9dffdd20b15e83ec067308af9fa660efc602e62aec019b90ccf0a7a",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "3aa1f4e6f20184b12ca2f0d98f33740e0302560d0a37a1455a90fc829eb22e44",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "6c56fc1f33aea9812d0c28d5b971fd023a84f6ea832f96449ac098a721546fd3",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "2df5e8786f3dc0e63d3ad953db5843fe5d5bd696729987092025a702a774a7b1",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "ff16f3e57ddbaef16712d38ee76e9e1ce67925dc4cae42be817bcdde3042b66a",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "62192daebf1f70b2c6c1fc80625f750ed04e6874f834455bb9507d1b44da06a4",
+        "route_number": "N6",
+        "occurrences": [
+          {
+            "stop_id_sha256": "e7e00e522ee1253dd9af6ad19511e348d0233de943fcca10cf5fadc34e461f07",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "ce53b49b5ff9ed107182dbc4ac2177c21ba6871c7c4552d51094b18aaf5f3a73",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "29ad30059e61e4a1f1e5c3066eb6fa84321952a97c34a6d69d6d3ce3f136c313",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "0f0bda234d0719b070e0242939bd5ab533f77615346a04053863380f49305a2f",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "70b4b78ac50e50d0de2148fe287bb055d67c546868a0025fe1337b5ac598c89b",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "c82e51c703faae0449e8199581e07cca290f313d8618976b9713da8bbb33fc80",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "e798b304cade09fd0d01e27621459320dc07f4bba41a6ba5afbb2955b551d69c",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "d8bff8179eba8212bb81da4ffe17504a04078610456e7b1bb0b2e15be38e7486",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "eddb0abf68a9b7135ffed0e7a2777a95b3ca9216c5f9f78dac86aaf3df0dd673",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "1ddcfb84a553a88026a8c00736d93a20ffe295d93ca3e2b5ddb26507df3f6461",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "1c1324f4d694c574e3cafe84ca5817018c306ffc0034e1ee19fcda970bb57de3",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "8e2631b865ea3e4ff23cc0931517d46b6a0feea23c1f8c309fc4c2e2ab46400f",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "d0fcaaa15b9c9d5595899f27cc92ba15ea4f97fb12166e9a5821815c998c0a7a",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "4855cb9408aca32703610e0b9bbddf26d5d997553dc1b492ee7a8c93e58b86be",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "8282c07f43d5779e279f0bfee68975ad3fe8529a9ac503ee5aa4394df43caa2c",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "7f79019ce0f5817d1728deb395f9c40ee3a846cdae3e832d6cad7c5d852d49cc",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "73c3012c41324e67827e5d080eeba1ba424cab13fde1dfcf4c3593613c4071f6",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "67f3716821ed152b84e982bf251353e2cf17bb6a141551e0bb414e5954109eab",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "8d92c77197ed6d8fa6ac0ada16abb487bf170fc88bbb41879d7ac8b8aa619a90",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "f34d58bdf8910b2ad3ee32e0d0b655db395e5a846a58db0bcc1569cb91877ffc",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "6e41b8851c29e68eaa3773096f475109226f8f6953fb6452025ee541157ec021",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "08967a2050f505078766193cc147fbea6e7410d7d99b065ebf3daceb57172030",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "c813d897c7096cdc335bc2bd6ee54b869160e87470fff1848cb4053b90df25ac",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "c98e9c46659d8d1b54610a82231d3ae46975bd9013722bff5807bdba7e1b9f75",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "5f1d94e1f37e1051bc34359b0dbb78b7fb8d9ad0b42b0ba2b3faa6bf934eb533",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "f5999374050ca65104d5a40cf0d30785d6bf5253a1c50425fc75e6e0441d8d42",
+            "arrival": 87120,
+            "departure": 87120
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "d45ead3738238fb25f8217e842f70f1fee550a74a8356052dcad4aa6a41719ba",
+        "route_number": "N6",
+        "occurrences": [
+          {
+            "stop_id_sha256": "360dcc8221959caa199e5184d1acf0a9b0142074bd6bcef86cb7e051b8443300",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "3fc5992ccaab162dd43287238da4a316c06f3cfa7775f47ed2f3a9f0c8a05f42",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "34769e6ed0748ebe00492f9dbc194c8895064a90a957fbe7ed2c438582b418a1",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "b71fcabe3c23b03ca4760f7ee796216195b9f9b4d4dedcf34d769684a60cfe83",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "1dae42cda5c3def17b081efdee93ff2d4eb60e61d637a67e8219fc3a0824f03d",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "d9a1fd095a7fbb2467d977d42b2e83f7b1ae0fc3eaeda3cc7882743781820548",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "add932cda27adf8d47634dc986b2ae42eccc6462656b1d6001686038f3f8b930",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "6bbac5f8fb99926f5c3daf23b6b2a1ca3bfc076f6d91d359f285bd3c2a018c70",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "8a3eb07c1e8193bea8cde79e2cafec372c03bae0c30de6b8b2c22ea6d6ec3b99",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "4807d8e16b9f339c9e81be97821d40d15f8858773f9250b37ba27e4189bfbcd6",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "d68d0b6bc11a5243f440157b57b766929fd2f29c17471b60dbfbf3ee245a2806",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "9a1096b44bfa41d86e9ff9270876ee4f5e9a65b6c1db474d8852425434c4ff4d",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "4c5d8fdd3ed42ed815c5f6bafe27324c99f91b0db42e0e6e4163b9f83e2f15ab",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "81d84ed60c613add0f08165798cab8bea91199fdd58f2a200201dbaca1e46aed",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "bd739f14d2b4bd729a33efa7792398e2f76f3d0bd9ad699201f07dd5ec20d2de",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "40f1baa4af276f61b8a4c4c8992666e76a8e003e42b40fb623478d147e23aef8",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "2b7c99aad74b7cd5d176c9e8ea7861f8c57bd98aebec6ed95b1fcda75b1004d1",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "1ba5430de65125e188a08a761decf7fd4382497b9c4c1962193f7274199e8dc2",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "4ee4bc5740c398fe7538d25a258b26a2b75d01c20ad0d81ba6b922b1b03f8ef0",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "4dc8046937ee22df3cec61ff737e5cb8d18a72677c5cf2d4539a927e569ed4fc",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "4f218561daed9a9df9aa544c146a1dd20bd13b3256bbc20e9fdc874f77b003c3",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "a7ae2d5ce8beb2aaf4191c0881ff5333536a13d8ae58ed3e3797a6b2d6676f86",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "8a9a9e02b7e758e719918219b8059916e63d8604f6e73855a27083d7e6a0c99f",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "4ffba8fe4d10d17a0e1b1a9bfaab2c1a72197c91ae5f9035ebf9e6ff501963f2",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "fe0889b877bdb8ae93e1f8187e6b439def623757ed7aa37624d67b1ca1b44617",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "474ad96eafe9d6b7464b2610e307199c699110d53746ad9447bd81a936c4097e",
+        "route_number": "N7",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "11600f67cbe35480be7e31ce6b5d0f96bca4677f75d6bb0adeb196e96988baa2",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "ee47ae4aa23c9f6a1bc9ee128b5a58dcb1c4570754aa8dee7b6dff4cb3f32e52",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "7bdcca24737a7b9efc159ad5eea0624f0a3907a22f93b565ee1f9300230d981c",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "112a0573535619f16696d087003cf3e5846559d7680494aa33e15fd2e1ecd230",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "3d017459fb8a8e4e8a00f5ea9f342f194cfd44bad65bc833002f3b4bce96631e",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "22e57b1ab6f84e161665ddf036a4b66fe809aaa9184ee956ccbcfe48cbc3b2a6",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "30d771075a14e4e953f0e32a1dcc3c70cd48eef422843acf2d9adf419d9f51f7",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "9d041605121ae42a2ebd9a769600088140260d379fbf587a7cdae48e3bdfc22d",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "d945b512b41d041e6d220519516005b997fd8b8c909315b93fd50aa7b5b3a392",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "b87cc298eb76dda82beac4ef4fd2e31ded4385e77226ba2e8bd5a960966f5c54",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "dc914f09e5703741c18337332170663a5b5d1565a9503fcf0998ca9ac08b81d9",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "fc4089190d63e9559257262c87fd0d976516fbd34be3f6f7459c9d787b85e9c1",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "23af6c703226b55fbaaf106c354bf203f0f2d67a98bd2aa08e401d351ee637ec",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "c2f786b5b51887094fa861ac74009b2f00bd92b5671babfa397c635630098042",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "3af5f9bd67dfe3e00b5e2832140e372fec394a87e410682be36b3c75781a0ed1",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "6e72a775e95d637241ce463b30ac21e815283a381ecbc2f3c62e93de34602174",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "269be8e4883cb5063416478690b34e63d4409f910b93d0c9ef616a05218b8ee5",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "e8fe921014aac8fdcc7de814b59f0f34d855796b311fef5ed8113c006b23e176",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "f8f3cb99349843afad0cca9f9d68dfc42869c81944e02c1bab951ecc1d897707",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "9c27fa6562ba3864f1d92c1ea74a41828e6c753eb35d8676235df14d1c082479",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "beba555d5588fa30fc7a0cc63f1d151182c315a9e76ba2dd274606b706f0fc3c",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "b2f25566911c12a293a950e97e2354256b2625e5685dc71902ad65196c080681",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "1c7d35b0b601fba40fbbb865d8b22005e7e9149d631e3c3fdd9224e7e56214d4",
+            "arrival": 87180,
+            "departure": 87180
+          },
+          {
+            "stop_id_sha256": "2d20dc50b1f189dfcf55caf99f745b8dc2285e6a3f6bd3db094810b9a18cb5c7",
+            "arrival": 87240,
+            "departure": 87240
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "71442a8ee291127a7d3e89106663352c16aa380778a8da4714692ef79fef2ff9",
+        "route_number": "N7",
+        "occurrences": [
+          {
+            "stop_id_sha256": "1d9843541312daf9262cdd258d49ea90c13a44549ed630e7099622af43260a99",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "cf99bcba9b0b18ae6ee02c1f0e4d7ab61bbb02681eddcf8b734e8ec80cb05d22",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "67199c31f39bd57b11afa49560ae4c82c595a2cf4449c42674116b36ac0e999c",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "34807eccea08abdcfab7562d2c7f6bea8d40ba8c620668f19a67187e15d335fe",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "b47ec7984591a0b965927e995c48b4be0c045e245c38d0f311bbda321dc5d280",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "43242b8ab5c2de85e18a11f20de8ee69303142e2df0b1334cf34a60888d33576",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2706ff0aea002708692009542d96e8468365a45aadce3d0fb366e9d531ceef3a",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "7047df3580a37ffde3eb8800e691c7d1db8e7a55dbe389520aee7fe40110a3ba",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "e6d8622330a1f28d14682eb9d0674020a46c2ed2bf9f46f5ec784ddd4df3537c",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "0bcf55318ce91216eb145aaaa447739b1d4f3a6265c5e2d2c9b2a87213c1b416",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "a250bc4fbbc58b4106329c5c9c7ea34b902f4dcb77eb822ac7ddf630b1f47430",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "3154dd6c3171dd7c37a6144cdcc07fb1bdf06fa25e71ac5e119a7ee79c0f7b39",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "503c3d14d39ba36cd6629bbf20582823249091fa5f8b9a3f1d49abf4a6f71017",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "c56d07046e9ba2c6b9cb3d8ea23377fee00282fce795469019872dcd99772ab1",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "30d771075a14e4e953f0e32a1dcc3c70cd48eef422843acf2d9adf419d9f51f7",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "c89ac04a18e9746e1aa466382e3ffe82ff8e62fac3a33ec094c1592c08c7289d",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "4754c166f75e48283cfdbae7dcd9fdcd9b5bd543c7670e3231002ba808967a26",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "a792deb4a7217a5d45b8d991a4b3610c15ef211997ab5eac99bc18605f1c34e6",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "c4c9657f2395f95fb90aedbc32dfdda3a24e0985df775cd63b271939896ddaeb",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "95f3cfd2f58fc8836b3653769161ccc25d77b2db852d93210428a394fc5bbdc5",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "e7e00e522ee1253dd9af6ad19511e348d0233de943fcca10cf5fadc34e461f07",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "d65a434028363053061c94664f41310beb93b2fb23fb80ff5fef702a7f54d758",
+        "route_number": "N8",
+        "occurrences": [
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "4ec00b9df6bd4f08f943633e132a1af3717a5a2cf487595d8e3f806b428b9d7d",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "0ee59f7ae6676ce61ae1918e93caf762e0d9ef4a806fadc97e6148ab6f919708",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "0f0bda234d0719b070e0242939bd5ab533f77615346a04053863380f49305a2f",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "9c2b8c5129f88fd991b0d9cd54c878313078fa45c260d4ea5c622db531d98f26",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "0fc502af4ba98e9bf75ccc4f8f5afc4f60e884beae67d6ed7f128f2fbbb3b3b7",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "ac4b64fc13efed0c3e7018700dde34e757542189d1edc17c5627894e282f3de1",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "7e0d2b7cdbd4bb3743068ebcdc6a7ed541107dc9d731be57f63e5adafd8176df",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "5cf20c3ec914787b4d24752fa7ec4cc996adda25e7e9bf695a38029586f99f4f",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2ab4e55c7fdf332c78e4f36966a981f452ffb6758026085a4ad9df565a1df82d",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "09c0d8a913aaf03157eaf4302e0339a1fd81e1800e974e2c6310af9c638fa443",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "cfe41bb72eaa649d4787ef1be021e343ad6b4fdd4cc1ac1280637dd78b3d57ed",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "cc03642e1a1744b798328e8fa154a69457bf73605b2adb32bd7f60ddb17893c0",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "05101d71f2665df79a813ec4b372bc4117d2e90ec0cf3c1e719cdce34b87afa2",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "bf0797eb5048d419367b97b65adc576210f960a45d3513031fd0e5a77329745a",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "f5a08bf287403b229346206e827a8335e1155c077e29ebfe43653927ca0569aa",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "c28613c9dd1b0d292516d2e013cc23bab5fb46104f6d146450b4426bdb21e244",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "a6a1d481a3ecdad45f22cd031a981ef549d9fb7070c5749522fd8676154531b5",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "f57944fec9269a002a50a10d470abc2c31e932cf8e52cf04f0912464968dcb4f",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "ea06820f50bdfacf0d8b87d5b746f4bf62639ffdc9a589e22c157564c4746aee",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "4f4f80099eb2e36e12a51ee8163a6bdee27b0142f2ef73ee13212e911ffea7a5",
+            "arrival": 86880,
+            "departure": 86880
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "7a66f6f74ec45414e6e93bd17abf4e16f40116a73d4c39738168f1436449b72d",
+        "route_number": "N8",
+        "occurrences": [
+          {
+            "stop_id_sha256": "4f4f80099eb2e36e12a51ee8163a6bdee27b0142f2ef73ee13212e911ffea7a5",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "8ea8215d6844cbfec9486aedaedd06d940111b2b02f138e9f3f48c2e16162041",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "d9f4027eedd6a65c3b6b7e0d5344bbd6f3bc02f94541473fd5213061e79c2f06",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "783786accdbd6ad6945d7a4922715e8c5b0f1f377493336e1bcd1b42d618e455",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "31ec140760795a32e495916da4cac885d7bc6270efe6927b8643ccb327bf0593",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "852e71dd89b491fd49301c582b9d570e15e258edfd4c8745b8e69b60836d26b9",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "fca9cb814f67e4386916a28283b91ef82560ede4b020ae75a22bf788d09f72c8",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "654b1fa846815fe0c688ba52aed44ebd3abc19fe96700ecd9ff67cb08e04d0e6",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "a1e0cc57116de13f0f233ec08e24e0dfe7125128d0d231a2c11cb67d951987cc",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "6cd73abb40ebece650c1add5b22798d888b31e6137fd94bd78198c512fff2597",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "5f27e042b9aac1e9d894f2767e986b36f0461f3319ccf8c8ecfd57a4d4bb9b4d",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "852a5f170f25016fdf78c4be7c562fdaf9d273150c2c4b78fe0897e6ca1017f5",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "c18b0e7bad6bd35aa697e0c94789789e885e33e1ca0915fd35d74b8a5cc48e26",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "ef2dd3a856447c76c45e0a17b8bcc0be3318dccb17d81d3b228b238a4cdff259",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "c0d5e4dcee137c8bb9b268be0cfcd32c2efcf9461374449f0809a28d0f097cc0",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "983997a2a705ffde42c37ca29dc0dc53cdb4dc1404dfeae0c9c78ec6f649b6d0",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "781429bd787824ae6f262ff469cbeaab7b0e8b6602a326ef4c32b5c3edeafe9d",
+            "arrival": 86940,
+            "departure": 86940
+          },
+          {
+            "stop_id_sha256": "8a9a9e02b7e758e719918219b8059916e63d8604f6e73855a27083d7e6a0c99f",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "4ffba8fe4d10d17a0e1b1a9bfaab2c1a72197c91ae5f9035ebf9e6ff501963f2",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "fe0889b877bdb8ae93e1f8187e6b439def623757ed7aa37624d67b1ca1b44617",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "2ec51e7fcca58f62fd365a9787444a6cf1ad8ecbe69dabfefaefafc014a318b9",
+            "arrival": 87180,
+            "departure": 87180
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "31eb1d3fd9061c10d027e15025daac87a297e81516713a8c60a95096c11376c0",
+        "route_number": "N9",
+        "occurrences": [
+          {
+            "stop_id_sha256": "8cb599c8f28d44f3cb6313488022763b45b8f482e496deb545ca508babe2389e",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "2b7c99aad74b7cd5d176c9e8ea7861f8c57bd98aebec6ed95b1fcda75b1004d1",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "6dd9f488a4f1c7ee17ae0376334275c14c418a6cb8f50b29e65d8f7a0e3a1ede",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "1ad4a57a9ff910a0ac90cd493e87ab33fcc014119b4c16de4be09eff65915f06",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "2c177c89bf6f859bb04145c5e06d538bf5d7796ce41cca77958e8818315b1d94",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "2c9134f74ace039b527b80b597526860952cac72f1fcccd04a79c6713affb03e",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "2dbdceab858c86b8e948fc11f00e1de91465d322c836a7779747638f8dbc66ae",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "305c306de2c3d6b6be241a946969720d71a5e76f7cb9f08cc269f612c0899138",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "a757d0eee3a3ae03a0d573a02f336f70c4dcbf90ec398dec481425b70d457acb",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "9be5ae50fc852d052d612c0eef68a2b5fb2c0924e1a2c477cb41c83229f70bc2",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "4a680f3bbfbc032ae3486e4101e99ca71de3bc0706c05ccacc6c886e41c75184",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "85be00089416ad90ebcd1ff11ddba82064c9d3baa2787408daa1fbc39d7f429c",
+            "arrival": 86940,
+            "departure": 86940
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "b611a4bc983c80682ab1b991247a31684f31ea76fa248e7b998b348eb480eb16",
+        "route_number": "1",
+        "occurrences": [
+          {
+            "stop_id_sha256": "f70f5f83f2d77c128ab8c54646f4d1fea774632b80ed03219329d968be6bdcb4",
+            "arrival": 84780,
+            "departure": 84780
+          },
+          {
+            "stop_id_sha256": "2a9ed6284e7a45fbd52db734f9408ea2f37a834585187ad6c85b04de6bd02ec3",
+            "arrival": 84900,
+            "departure": 84900
+          },
+          {
+            "stop_id_sha256": "8d46dd5d598c5c66b11b33e5382585cfa66db49f817c5bf51702a00a51c781fa",
+            "arrival": 84960,
+            "departure": 84960
+          },
+          {
+            "stop_id_sha256": "de3fe489a16eeb51f5e8db16a88475120947f9bb6bcdaf7ce6cbb2226652ad27",
+            "arrival": 85020,
+            "departure": 85020
+          },
+          {
+            "stop_id_sha256": "2fcf4271360c7b9f00d2b296188aaa86ad161303660037bb713afca4124d798d",
+            "arrival": 85080,
+            "departure": 85080
+          },
+          {
+            "stop_id_sha256": "731663185e06ed841dd98db1dd630e338bcea36c55efde72647e7536e95759f7",
+            "arrival": 85200,
+            "departure": 85200
+          },
+          {
+            "stop_id_sha256": "6ae3a49e460d7b0320c10cea4805b738b43ae6825035c587874fbf490e5b6058",
+            "arrival": 85320,
+            "departure": 85320
+          },
+          {
+            "stop_id_sha256": "298acb9ea1a18c9fe0b7028c429d57f850fbd08c80031d89da4bd2a0061ef5f1",
+            "arrival": 85380,
+            "departure": 85380
+          },
+          {
+            "stop_id_sha256": "7348e4f5589d62e90c6fa9d5cdc630a3c4038c43e33c1c002923912846d7817f",
+            "arrival": 85440,
+            "departure": 85440
+          },
+          {
+            "stop_id_sha256": "f361f9bcba86e2739cd253a5702b5bedd13b5ac3c0e94bac394ac078749e224a",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "3b457d4ed0bc7fbff4236ff9d967b0b39fd9d483c4f53567d24627c68c8c69f3",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "9c2b8c5129f88fd991b0d9cd54c878313078fa45c260d4ea5c622db531d98f26",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "8909917245e584cbc5ea1a17e13e1bd863a036008506dd0203e4ff190367fc3e",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "2fbdb588a1c862a34d49ddab10c4b109b06261b631ae60db5a633e12347b36f4",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "e865e6ca672e3b2fd85c9586aaebbb31c17ec8d82d615f7421ff1149f94d7f7b",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "e3d51fe5ff32bbfdb22d450636deda42006ccb3084fc24a62a2fb8a9c03b4ca8",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "2ab4e55c7fdf332c78e4f36966a981f452ffb6758026085a4ad9df565a1df82d",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "763f4f89106708a20297881a4eee24dab5043648913697dd9059c66b57aa4b93",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "2393e3b681416ee7fd8d21565e2559a748355d890fc324c95a69733897960298",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "3ee70ad5ba752ae1554188f7043ad06957a81fea9aa5278f0d762892966185f6",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "05101d71f2665df79a813ec4b372bc4117d2e90ec0cf3c1e719cdce34b87afa2",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "bf0797eb5048d419367b97b65adc576210f960a45d3513031fd0e5a77329745a",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "702a834a494e3a4cfe8877cf8c6a453138a056359ed5e546b54e173daa0244d0",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "a162d06c18ad9d47599abe24c7f23715166a94d2956c45d4609b529abc66a3a1",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "ead3865fc8cb95e90f3c544fff5ba1fb16bcbdfb2e9f474d6554524eaa9bea0b",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "5b2401cfa5539953f08a2c1a59896a239c9273a5d9566424f98a5195d19beb4d",
+            "arrival": 86640,
+            "departure": 86640
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "c846fa22e20899985009af4813e21ecb3d18013ce35eb569ac2cb06072283fbf",
+        "route_number": "5",
+        "occurrences": [
+          {
+            "stop_id_sha256": "7dfca4be5858c0a14c3e33acfc800bec840f190bfb4c66fc40951a5ae088cd51",
+            "arrival": 84120,
+            "departure": 84120
+          },
+          {
+            "stop_id_sha256": "c9fde147987d50df5432b472405c1bff61e268d1a68b312f93a80696634239f0",
+            "arrival": 84180,
+            "departure": 84180
+          },
+          {
+            "stop_id_sha256": "eddee55c43850498677456bb5971a05693201bef9ef72585d4061033a5638983",
+            "arrival": 84240,
+            "departure": 84240
+          },
+          {
+            "stop_id_sha256": "40ba84e47f5d374082af570644961cc7d94c48eec606de0e4e07030d8b77cc55",
+            "arrival": 84300,
+            "departure": 84300
+          },
+          {
+            "stop_id_sha256": "1d88050cf7138778beef7b889954206e44d86eada352fe30196550ce761c022e",
+            "arrival": 84360,
+            "departure": 84360
+          },
+          {
+            "stop_id_sha256": "740032df9e2751cf3f2fe2acba900f89d5937b5fffb02c7eacf7fe53f2f04675",
+            "arrival": 84420,
+            "departure": 84420
+          },
+          {
+            "stop_id_sha256": "04a3f8e2566e0ef5b107ba23af7821fb9e59f9db37c6a25317c76b51a48ab934",
+            "arrival": 84480,
+            "departure": 84480
+          },
+          {
+            "stop_id_sha256": "e5d61a5820c81ba1d6a84ad844053752d78a6a46643a588dc3e4822367270768",
+            "arrival": 84540,
+            "departure": 84540
+          },
+          {
+            "stop_id_sha256": "e532c6baf13fc5196e3b75f0b915e7f14122851e103de7c956adcee339cc63d7",
+            "arrival": 84660,
+            "departure": 84660
+          },
+          {
+            "stop_id_sha256": "f392decb8744427a4c874e9c45c33d3eba27231b4b380c3ea2a2c46335775df0",
+            "arrival": 84720,
+            "departure": 84720
+          },
+          {
+            "stop_id_sha256": "4841177e6dde1499c4bf6f67e7cf3f59aa1aafacc44067cb311e3554c2d6617f",
+            "arrival": 84780,
+            "departure": 84780
+          },
+          {
+            "stop_id_sha256": "eaf249d65337524c7f936e7772af86dc2c1d725c193aee51640d325338a7cde5",
+            "arrival": 84840,
+            "departure": 84840
+          },
+          {
+            "stop_id_sha256": "97934027358a99c0cd3488dac001ab0e440dd8b81a88962d24f63f5a8c84db8c",
+            "arrival": 84900,
+            "departure": 84900
+          },
+          {
+            "stop_id_sha256": "c7aec019d6bfc341373df5840495101581e6c4081d79428f1ba183777eacbb14",
+            "arrival": 85020,
+            "departure": 85020
+          },
+          {
+            "stop_id_sha256": "0661fe48f0ba4f7510d02b298230e656ccef0c65d4217a2290c74e14a9dd7660",
+            "arrival": 85140,
+            "departure": 85140
+          },
+          {
+            "stop_id_sha256": "ceac26a40debf2198f63ce454ebbdba11f4f06330afac917ca3304fb76b83800",
+            "arrival": 85260,
+            "departure": 85260
+          },
+          {
+            "stop_id_sha256": "7ac8c21a35b98b0ca0426f485db787cfed1894ce817afcc8b26429795e8dacc5",
+            "arrival": 85320,
+            "departure": 85320
+          },
+          {
+            "stop_id_sha256": "6db87039e702a10d077b428444d58d894a8efe55beffe13d911034f01ce5bb2b",
+            "arrival": 85380,
+            "departure": 85380
+          },
+          {
+            "stop_id_sha256": "b6deb66f221aeb67c010580c421b9c032a4485173de2ef63ac0d38e6a921eabc",
+            "arrival": 85440,
+            "departure": 85440
+          },
+          {
+            "stop_id_sha256": "c9db1b3fda4d4616ea0d853b545b419455acc7c56d14dc1e5abc4405d5d66e06",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "f9c017db20c3161d8f9561c69d149de2fb376866571167be3a9428df517263e4",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "75241e6ad6081faaf9757e4ac6c8a90d691ddf9e72c48132f2a9531451961a68",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "36ef41214aea44e9c8cd0f26c99a10010d6d08888c1a8aae5641d8fdacf63ee9",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "e401908a496878ca210da70e0e80eb1bf64c2506ab71b78ced106e1d6e040b59",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "bcfdefb17dac6766caa75fe4f00ddd347c320aa341cbd9e3c0bfb1a477d103ae",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "2956abec58e7bbd10cf969f7d55d67d2823de96d548b740b59e62f68ebf15122",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "6c38517b5d24fe8e633bd3c86f7160224f889ef3f85c59d79399105a7d21f24b",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "f2b6fe386d3dbb52a871af3e02a6f9dc067e8af8c06f86883482ea0acb0f4a56",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "a1ecb777576b77edf54072a63de7bea148d21024cab0c4d0cedafc6ffe4a352b",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "da85302b9dba5c2a764b9fd61e73b66e9ae3cb56fe0bf41a85ce87c131f5792f",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "8f649145f7e999b14ee87ea83a30e36a9c36028fa3db0cd3d5cdc43d23c9c9d5",
+            "arrival": 86280,
+            "departure": 86280
+          },
+          {
+            "stop_id_sha256": "c04911cc7b6ad20a7d87a2d55662412fa90ffc2a4c733b7a64f792978fc02eb4",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "62d8ae3680e713e74bd847789dcabb329ebff37a7883bf961927bf56657c1ada",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "198ee65886431ed32af92d079b4a7b14c43ee8a8e8e7d6569bf68b3e0c84a6f3",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "5f51da8005151a9d7879891b0215386d73dcfab42c02c1e69aec05f4435ebb2c",
+            "arrival": 86520,
+            "departure": 86520
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "247905497a50ccbe95ff5ba4d8f737c571d0a635bf43d937ee4451601e3b3152",
+        "route_number": "5",
+        "occurrences": [
+          {
+            "stop_id_sha256": "7dfca4be5858c0a14c3e33acfc800bec840f190bfb4c66fc40951a5ae088cd51",
+            "arrival": 85320,
+            "departure": 85320
+          },
+          {
+            "stop_id_sha256": "c9fde147987d50df5432b472405c1bff61e268d1a68b312f93a80696634239f0",
+            "arrival": 85380,
+            "departure": 85380
+          },
+          {
+            "stop_id_sha256": "eddee55c43850498677456bb5971a05693201bef9ef72585d4061033a5638983",
+            "arrival": 85440,
+            "departure": 85440
+          },
+          {
+            "stop_id_sha256": "40ba84e47f5d374082af570644961cc7d94c48eec606de0e4e07030d8b77cc55",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "1d88050cf7138778beef7b889954206e44d86eada352fe30196550ce761c022e",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "740032df9e2751cf3f2fe2acba900f89d5937b5fffb02c7eacf7fe53f2f04675",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "04a3f8e2566e0ef5b107ba23af7821fb9e59f9db37c6a25317c76b51a48ab934",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "e5d61a5820c81ba1d6a84ad844053752d78a6a46643a588dc3e4822367270768",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "e532c6baf13fc5196e3b75f0b915e7f14122851e103de7c956adcee339cc63d7",
+            "arrival": 85860,
+            "departure": 85860
+          },
+          {
+            "stop_id_sha256": "f392decb8744427a4c874e9c45c33d3eba27231b4b380c3ea2a2c46335775df0",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "4841177e6dde1499c4bf6f67e7cf3f59aa1aafacc44067cb311e3554c2d6617f",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "eaf249d65337524c7f936e7772af86dc2c1d725c193aee51640d325338a7cde5",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "97934027358a99c0cd3488dac001ab0e440dd8b81a88962d24f63f5a8c84db8c",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "c7aec019d6bfc341373df5840495101581e6c4081d79428f1ba183777eacbb14",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "0661fe48f0ba4f7510d02b298230e656ccef0c65d4217a2290c74e14a9dd7660",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "ceac26a40debf2198f63ce454ebbdba11f4f06330afac917ca3304fb76b83800",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "7ac8c21a35b98b0ca0426f485db787cfed1894ce817afcc8b26429795e8dacc5",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "6db87039e702a10d077b428444d58d894a8efe55beffe13d911034f01ce5bb2b",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "b6deb66f221aeb67c010580c421b9c032a4485173de2ef63ac0d38e6a921eabc",
+            "arrival": 86640,
+            "departure": 86640
+          },
+          {
+            "stop_id_sha256": "c9db1b3fda4d4616ea0d853b545b419455acc7c56d14dc1e5abc4405d5d66e06",
+            "arrival": 86700,
+            "departure": 86700
+          },
+          {
+            "stop_id_sha256": "f9c017db20c3161d8f9561c69d149de2fb376866571167be3a9428df517263e4",
+            "arrival": 86760,
+            "departure": 86760
+          },
+          {
+            "stop_id_sha256": "75241e6ad6081faaf9757e4ac6c8a90d691ddf9e72c48132f2a9531451961a68",
+            "arrival": 86820,
+            "departure": 86820
+          },
+          {
+            "stop_id_sha256": "36ef41214aea44e9c8cd0f26c99a10010d6d08888c1a8aae5641d8fdacf63ee9",
+            "arrival": 86880,
+            "departure": 86880
+          },
+          {
+            "stop_id_sha256": "e401908a496878ca210da70e0e80eb1bf64c2506ab71b78ced106e1d6e040b59",
+            "arrival": 87000,
+            "departure": 87000
+          },
+          {
+            "stop_id_sha256": "bcfdefb17dac6766caa75fe4f00ddd347c320aa341cbd9e3c0bfb1a477d103ae",
+            "arrival": 87060,
+            "departure": 87060
+          },
+          {
+            "stop_id_sha256": "2956abec58e7bbd10cf969f7d55d67d2823de96d548b740b59e62f68ebf15122",
+            "arrival": 87120,
+            "departure": 87120
+          },
+          {
+            "stop_id_sha256": "6c38517b5d24fe8e633bd3c86f7160224f889ef3f85c59d79399105a7d21f24b",
+            "arrival": 87180,
+            "departure": 87180
+          },
+          {
+            "stop_id_sha256": "f2b6fe386d3dbb52a871af3e02a6f9dc067e8af8c06f86883482ea0acb0f4a56",
+            "arrival": 87240,
+            "departure": 87240
+          },
+          {
+            "stop_id_sha256": "a1ecb777576b77edf54072a63de7bea148d21024cab0c4d0cedafc6ffe4a352b",
+            "arrival": 87300,
+            "departure": 87300
+          },
+          {
+            "stop_id_sha256": "da85302b9dba5c2a764b9fd61e73b66e9ae3cb56fe0bf41a85ce87c131f5792f",
+            "arrival": 87420,
+            "departure": 87420
+          },
+          {
+            "stop_id_sha256": "8f649145f7e999b14ee87ea83a30e36a9c36028fa3db0cd3d5cdc43d23c9c9d5",
+            "arrival": 87480,
+            "departure": 87480
+          },
+          {
+            "stop_id_sha256": "c04911cc7b6ad20a7d87a2d55662412fa90ffc2a4c733b7a64f792978fc02eb4",
+            "arrival": 87540,
+            "departure": 87540
+          },
+          {
+            "stop_id_sha256": "62d8ae3680e713e74bd847789dcabb329ebff37a7883bf961927bf56657c1ada",
+            "arrival": 87600,
+            "departure": 87600
+          },
+          {
+            "stop_id_sha256": "198ee65886431ed32af92d079b4a7b14c43ee8a8e8e7d6569bf68b3e0c84a6f3",
+            "arrival": 87660,
+            "departure": 87660
+          },
+          {
+            "stop_id_sha256": "5f51da8005151a9d7879891b0215386d73dcfab42c02c1e69aec05f4435ebb2c",
+            "arrival": 87720,
+            "departure": 87720
+          }
+        ]
+      },
+      {
+        "trip_id_sha256": "f7b92f5de978ad55bc410b94168e880a930d4699006ad0d7412dc22dcad90659",
+        "route_number": "9",
+        "occurrences": [
+          {
+            "stop_id_sha256": "d6065cd669aa0a3df56cec97e403f6f17872eeffbe5db88996a5ea3618d95b0e",
+            "arrival": 84600,
+            "departure": 84600
+          },
+          {
+            "stop_id_sha256": "537aad16dd80e2a28f01a0f0ea4405545f995cfc8a811834bbc6ae3103fe4d26",
+            "arrival": 84720,
+            "departure": 84720
+          },
+          {
+            "stop_id_sha256": "0a9c56def1d1bf5d0a606fac9f716d74235a6888acffb47881c1028b93423fc7",
+            "arrival": 84780,
+            "departure": 84780
+          },
+          {
+            "stop_id_sha256": "9725f078e19cfb6e0ac0a4b1e45b3660c4bb4f511b3e3b2568978535b9622fb4",
+            "arrival": 84840,
+            "departure": 84840
+          },
+          {
+            "stop_id_sha256": "ea12fd37e6fd86ccff68da024eb0ee6aef259058db2a3d89bc362b556270a172",
+            "arrival": 84900,
+            "departure": 84900
+          },
+          {
+            "stop_id_sha256": "f2ec1ecabd3d8bf283951f997ad11b1d82fa22854aa2139ef71833c981135975",
+            "arrival": 84960,
+            "departure": 84960
+          },
+          {
+            "stop_id_sha256": "ec781dc3bca30d8c2c96ce46ac356887ad495fe3d14e86a87f6fb5c3d03b6c29",
+            "arrival": 85020,
+            "departure": 85020
+          },
+          {
+            "stop_id_sha256": "5b4d4d81392586e723b28715f3c6f12f616dcb4443e3c981a1348c51d3801e76",
+            "arrival": 85080,
+            "departure": 85080
+          },
+          {
+            "stop_id_sha256": "420b9e9858cc83638c464da3c9db47c221ac3795b59a6e09a717351e4fadbadd",
+            "arrival": 85140,
+            "departure": 85140
+          },
+          {
+            "stop_id_sha256": "14eb58b1e2448edd8b5b32c466e010e96a7bc8844a4d2b154143c159c3245476",
+            "arrival": 85200,
+            "departure": 85200
+          },
+          {
+            "stop_id_sha256": "03a4769b9fd56df3b2e203d773dbb9eac35cbc31d591a6514b8b21abb4372f2c",
+            "arrival": 85260,
+            "departure": 85260
+          },
+          {
+            "stop_id_sha256": "4785a51a95f062ed21d85a41f5c2467c2c88107067383d5c340925024f8ce6f8",
+            "arrival": 85320,
+            "departure": 85320
+          },
+          {
+            "stop_id_sha256": "52993f23c5952a8b95daa171e5e14651ae4f757a40b813faa091ca625b547d32",
+            "arrival": 85380,
+            "departure": 85380
+          },
+          {
+            "stop_id_sha256": "924987111022d3b1c63cb1a1f92e09b91344f8fc493c0d5be4c1985cee4269fa",
+            "arrival": 85440,
+            "departure": 85440
+          },
+          {
+            "stop_id_sha256": "6db87039e702a10d077b428444d58d894a8efe55beffe13d911034f01ce5bb2b",
+            "arrival": 85500,
+            "departure": 85500
+          },
+          {
+            "stop_id_sha256": "b6deb66f221aeb67c010580c421b9c032a4485173de2ef63ac0d38e6a921eabc",
+            "arrival": 85560,
+            "departure": 85560
+          },
+          {
+            "stop_id_sha256": "c9db1b3fda4d4616ea0d853b545b419455acc7c56d14dc1e5abc4405d5d66e06",
+            "arrival": 85620,
+            "departure": 85620
+          },
+          {
+            "stop_id_sha256": "f9c017db20c3161d8f9561c69d149de2fb376866571167be3a9428df517263e4",
+            "arrival": 85680,
+            "departure": 85680
+          },
+          {
+            "stop_id_sha256": "75241e6ad6081faaf9757e4ac6c8a90d691ddf9e72c48132f2a9531451961a68",
+            "arrival": 85740,
+            "departure": 85740
+          },
+          {
+            "stop_id_sha256": "36ef41214aea44e9c8cd0f26c99a10010d6d08888c1a8aae5641d8fdacf63ee9",
+            "arrival": 85800,
+            "departure": 85800
+          },
+          {
+            "stop_id_sha256": "e401908a496878ca210da70e0e80eb1bf64c2506ab71b78ced106e1d6e040b59",
+            "arrival": 85920,
+            "departure": 85920
+          },
+          {
+            "stop_id_sha256": "bcfdefb17dac6766caa75fe4f00ddd347c320aa341cbd9e3c0bfb1a477d103ae",
+            "arrival": 85980,
+            "departure": 85980
+          },
+          {
+            "stop_id_sha256": "2956abec58e7bbd10cf969f7d55d67d2823de96d548b740b59e62f68ebf15122",
+            "arrival": 86040,
+            "departure": 86040
+          },
+          {
+            "stop_id_sha256": "6c38517b5d24fe8e633bd3c86f7160224f889ef3f85c59d79399105a7d21f24b",
+            "arrival": 86100,
+            "departure": 86100
+          },
+          {
+            "stop_id_sha256": "f2b6fe386d3dbb52a871af3e02a6f9dc067e8af8c06f86883482ea0acb0f4a56",
+            "arrival": 86160,
+            "departure": 86160
+          },
+          {
+            "stop_id_sha256": "a1ecb777576b77edf54072a63de7bea148d21024cab0c4d0cedafc6ffe4a352b",
+            "arrival": 86220,
+            "departure": 86220
+          },
+          {
+            "stop_id_sha256": "da85302b9dba5c2a764b9fd61e73b66e9ae3cb56fe0bf41a85ce87c131f5792f",
+            "arrival": 86340,
+            "departure": 86340
+          },
+          {
+            "stop_id_sha256": "8f649145f7e999b14ee87ea83a30e36a9c36028fa3db0cd3d5cdc43d23c9c9d5",
+            "arrival": 86400,
+            "departure": 86400
+          },
+          {
+            "stop_id_sha256": "c04911cc7b6ad20a7d87a2d55662412fa90ffc2a4c733b7a64f792978fc02eb4",
+            "arrival": 86460,
+            "departure": 86460
+          },
+          {
+            "stop_id_sha256": "62d8ae3680e713e74bd847789dcabb329ebff37a7883bf961927bf56657c1ada",
+            "arrival": 86520,
+            "departure": 86520
+          },
+          {
+            "stop_id_sha256": "198ee65886431ed32af92d079b4a7b14c43ee8a8e8e7d6569bf68b3e0c84a6f3",
+            "arrival": 86580,
+            "departure": 86580
+          },
+          {
+            "stop_id_sha256": "5f51da8005151a9d7879891b0215386d73dcfab42c02c1e69aec05f4435ebb2c",
+            "arrival": 86640,
+            "departure": 86640
+          }
+        ]
+      }
+    ]
+  }
+}

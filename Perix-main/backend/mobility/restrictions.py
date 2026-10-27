@@ -6,6 +6,8 @@ Straße works close the street for cars/buses while trams keep running:
 rail reconstruction so closed edges never participate in routing for the
 blocked mode. Imported data stays untouched.
 """
+import hashlib
+import json
 from datetime import datetime
 from typing import List
 from zoneinfo import ZoneInfo
@@ -57,6 +59,60 @@ def restriction_blocks_mode(r: dict, mode: str) -> bool:
     return False
 
 
+def restriction_edges_for_pattern(
+    restrictions: List[dict], *, mode: str, route_number: str, direction: str
+) -> tuple[set[int], set[str]]:
+    """Apply only verified, active OSM edge/way closures to this pattern.
+
+    GTFS-RT text alerts are NOT geometry: a closure requires verified graph ids.
+    The route/direction filters matter; a detour on route 9 must not reroute 10.
+    """
+    ways: set[int] = set()
+    edges: set[str] = set()
+    for restriction in restrictions:
+        if not restriction.get("verified") or not _active(restriction):
+            continue
+        if not restriction_blocks_mode(restriction, mode):
+            continue
+        routes = {str(x) for x in (restriction.get("route_numbers") or [])}
+        if routes and str(route_number) not in routes:
+            continue
+        restricted_direction = str(restriction.get("direction") or "both")
+        if restricted_direction not in ("both", "") and restricted_direction != str(direction):
+            continue
+        for value in restriction.get("blocked_way_ids") or []:
+            try:
+                ways.add(int(value))
+            except (ValueError, TypeError):
+                continue
+        for value in restriction.get("blocked_edge_ids") or []:
+            bits = str(value).split(":")
+            if len(bits) != 3:
+                continue
+            try:
+                [int(x) for x in bits]
+            except ValueError:
+                continue
+            edges.add(str(value))
+    return ways, edges
+
+
+def restriction_signature(
+    restrictions: List[dict], *, mode: str, route_number: str, direction: str
+) -> str:
+    """A stable value for detecting activation AND expiration of detours."""
+    ways, edges = restriction_edges_for_pattern(
+        restrictions, mode=mode, route_number=route_number, direction=direction
+    )
+    if not ways and not edges:
+        return ""  # Compatible with existing generations before this change.
+    payload = json.dumps(
+        {"ways": sorted(ways), "edges": sorted(edges)},
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:24]
+
+
 async def blocked_way_ids_for(mode: str, restrictions: List[dict]) -> set:
     """OSM way ids closed for this mode - ONLY from map-matched (verified)
     restrictions. Proximity guessing is gone: a parallel street must never
@@ -94,64 +150,33 @@ async def blocked_edge_ids_for(mode: str, restrictions: List[dict]) -> set:
 
 
 async def invalidate_geometries(restriction: dict) -> None:
-    """Rebuild ONLY the patterns affected by this restriction - and never
-    delete the old geometry first (last-known-good): a line keeps its
-    previous canonical shape until the new one is validated and written.
+    """Queue all matching patterns; retain last-known-good until validated.
 
-    Tram patterns are not touched by road closures (allowed_modes tram),
-    and the geometry revision is bumped so cached trip paths expire."""
-    import asyncio
-
-    from mobility import geometry_cache
-
-    geometry_cache.bump_revision()
-
-    blocked_modes = [str(m) for m in (restriction.get("blocked_modes") or [])]
-    affected_modes = {m for m in blocked_modes} if blocked_modes else {"bus"}
-    affected_modes.discard("tram")
-
-    geom = restriction.get("geometry") or []
-    lats = [p[0] for p in geom if isinstance(p, (list, tuple)) and len(p) >= 2]
-    lngs = [p[1] for p in geom if isinstance(p, (list, tuple)) and len(p) >= 2]
-    margin = 0.01
+    No stop-distance heuristic: a closure can be midway between stops.
+    This handles rail closures too, but never reroutes an allowed mode.
+    """
+    if not restriction.get("verified"):
+        return
+    if not (restriction.get("blocked_way_ids") or restriction.get("blocked_edge_ids")):
+        return
 
     from routes.mobility import _get_active_network
+    from mobility.domain import NETWORK_ID, build_domain
+    from utils.mobility_workers import request_precompute
 
     network = await _get_active_network()
     if not network:
         return
-    route_numbers = {str(x) for x in (restriction.get("route_numbers") or [])}
-    try:
-        from mobility.domain import NETWORK_ID, build_domain
-
-        domain = build_domain(network, NETWORK_ID)
-        stop_by_id = {}
-        for stop in domain.get("stops", []):
-            for p in stop.get("platforms", []):
-                stop_by_id[str(p.get("platform_id"))] = p
-        affected = set()
-        for pat in domain.get("patterns", []):
-            if route_numbers and str(pat.get("route_number")) not in route_numbers:
-                continue
-            if str(pat.get("mode") or "bus") not in affected_modes:
-                continue
-            hit = False
-            for sid in (pat.get("stop_ids") or []):
-                p = stop_by_id.get(str(sid))
-                if (
-                    p
-                    and p.get("latitude") is not None
-                    and lats
-                    and min(lats) - margin <= p["latitude"] <= max(lats) + margin
-                    and min(lngs) - margin <= p["longitude"] <= max(lngs) + margin
-                ):
-                    hit = True
-                    break
-            if hit:
-                affected.add(str(pat.get("pattern_id")))
-    except Exception:
-        affected = set()
+    domain = build_domain(network, NETWORK_ID)
+    routes = {str(x) for x in (restriction.get("route_numbers") or [])}
+    restricted_direction = str(restriction.get("direction") or "both")
+    affected = {
+        str(pattern.get("pattern_id"))
+        for pattern in domain.get("patterns", [])
+        if restriction_blocks_mode(restriction, str(pattern.get("mode") or "bus"))
+        and (not routes or str(pattern.get("route_number")) in routes)
+        and (restricted_direction in ("both", "") or
+             restricted_direction == str(pattern.get("direction") or ""))
+    }
     if affected:
-        from utils.mobility_workers import request_precompute
-
         request_precompute(affected, reason="RESTRICTION_CHANGED")

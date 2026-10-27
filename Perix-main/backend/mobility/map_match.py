@@ -87,7 +87,7 @@ def _geometry_points(route: dict) -> List[list]:
     return []
 
 
-def assign_trip(route: dict, vehicle: dict, lat: float, lng: float, now_sec: int, delays: dict) -> Optional[dict]:
+def assign_trip(route: dict, vehicle: dict, lat: float, lng: float, now_sec: int, delays: dict, *, network: Optional[dict] = None) -> Optional[dict]:
     """Assign the GPS vehicle to a trip: the trip must be active now
     (delay-adjusted window), roughly match the declared direction, and the
     GPS position must sit near that trip's CANONICAL pattern geometry."""
@@ -109,7 +109,7 @@ def assign_trip(route: dict, vehicle: dict, lat: float, lng: float, now_sec: int
             from mobility.geometry_cache import get_cached
 
             pat_id = _dom_pattern_id(str(route.get("route_number")), _dom_pattern_key(trip))
-            cached = get_cached(pat_id)
+            cached = get_cached(pat_id, str(network.get("version_id") or "")) if network else get_cached(pat_id)
             if cached and len(cached) >= 2:
                 pts = [[float(p[0]), float(p[1])] for p in cached]
         except Exception:

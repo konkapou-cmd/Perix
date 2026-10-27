@@ -1,0 +1,17 @@
+[
+  {
+    "notice_id": "mvb-halberstaedter-bridge-2026-10-08",
+    "region_id": "magdeburg",
+    "network_id": "de-magdeburg-mvb",
+    "route_numbers": ["13", "N3", "N5"],
+    "modes": ["tram", "bus"],
+    "valid_from": "2026-10-17",
+    "valid_until": null,
+    "review_through": "2026-10-25",
+    "obsolete_stop_names": ["Jordanstraße"],
+    "source_kind": "OPERATOR_PUBLIC_NOTICE",
+    "source_url": "https://www.mvbnet.de/brueckensperrung-in-der-halberstaedter-strasse-linien-13-n3-und-n5-fahren-veraendert/",
+    "reviewed_at": "2026-10-24T16:12:00Z",
+    "message": "MVB: Umleitung über Hertzstraße, Raiffeisenstraße und Am Fuchsberg; Jordanstraße entfällt. Seit 17.10. nicht im Fahrplan enthalten. Fahrzeit etwa fünf Minuten länger. Kartenposition ist keine bestätigte Fahrzeugortung."
+  }
+]
