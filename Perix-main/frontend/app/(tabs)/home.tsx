@@ -104,10 +104,11 @@ import { entityRoutes, pushEntityRoute, getRentalNavigationId, showInvalidEntity
 import { LocationSearchOverlay } from "../../components/home/LocationSearchOverlay";
 import { PostCard } from "../../components/home/PostCard";
 import { LayoutSettingsModal } from "../../components/home/LayoutSettingsModal";
+import PerixLogo from "../../components/brand/PerixLogo";
 
 function HomeSkeleton() {
   return (
-    <ScrollView contentContainerStyle={{ padding: SPACING.std, paddingBottom: 40 }} style={{ backgroundColor: COLORS.backgroundPage }}>
+    <ScrollView contentContainerStyle={{ padding: SPACING.std, paddingBottom: 40 }} style={{ backgroundColor: COLORS.background }}>
       <SkeletonBox width="100%" height={200} borderRadius={8} style={{ marginBottom: SPACING.section }} />
       {[0, 1, 2].map((i) => (
         <View key={i} style={{ marginBottom: SPACING.std }}>
@@ -805,7 +806,7 @@ export default function HomeScreen() {
 
   if (feedLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.backgroundPage }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }} edges={["top"]}>
         <HomeSkeleton />
       </SafeAreaView>
     );
@@ -816,8 +817,7 @@ export default function HomeScreen() {
       {!(isDesktop && Platform.OS === "web") && (
       <View style={styles.stickyHeader}>
         <View style={styles.brandWrap}>
-          <Animated.Text style={[styles.stickyHeaderBrand, { opacity: brandOpacity }]}>Perıx</Animated.Text>
-          <Ionicons name="sunny" size={8} color="#FFC93C" style={styles.brandSun} />
+          <Animated.View style={{ opacity: brandOpacity }}><PerixLogo size="compact" /></Animated.View>
         </View>
         <View style={styles.stickyHeaderMiddle}>
           <Pressable style={styles.locationSearchPill} onPress={() => setShowLocationSearch(true)}>
@@ -1069,7 +1069,8 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.events")}
             icon="calendar"
-            color="#59ABE3"
+            color={COLORS.pinEvent}
+            activeFilterTextColor={COLORS.textPrimary}
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "events" } } as any}
             filters={{
               options: [
@@ -1136,7 +1137,8 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("tabs.activities")}
             icon="people"
-            color="#59ABE3"
+            color={COLORS.pinActivity}
+            activeFilterTextColor={COLORS.textPrimary}
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "activities" } } as any}
             filters={{
               options: [
@@ -1202,7 +1204,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.businesses")}
             icon="business"
-            color="#59ABE3"
+            color={COLORS.pinBusiness}
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "businesses" } } as any}
             isCollapsed={collapsedSections.has("businesses")}
             onToggleCollapse={() => setSectionCollapsed("businesses", !collapsedSections.has("businesses"))}
@@ -1239,7 +1241,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.hotels", "Local Hotels")}
             icon="bed"
-            color="#59ABE3"
+            color={COLORS.pinHotel}
             seeAllRoute={{ pathname: "/(tabs)/locator" as any, params: { tab: "hotels" } } as any}
             emptyMessage={t("home.noHotels", "No hotels nearby")}
             isCollapsed={collapsedSections.has("hotels")}
@@ -1277,7 +1279,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("modules.services") || "Services"}
             icon="briefcase"
-            color="#59ABE3"
+            color={COLORS.pinService}
             seeAllRoute="/services"
             emptyMessage={t("services.noServices") || "No services nearby"}
             isCollapsed={collapsedSections.has("services")}
@@ -1313,7 +1315,7 @@ export default function HomeScreen() {
             <CarouselSection
               title={t("rentals.professionalRentals", "Professional Rentals")}
               icon="business"
-              color="#59ABE3"
+              color={COLORS.pinRental}
               seeAllRoute="/rentals"
               emptyMessage={t("rentals.noRentals") || "No rentals nearby"}
             isCollapsed={collapsedSections.has("rentals")}
@@ -1344,7 +1346,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("home.jobs") || "Jobs"}
             icon="briefcase"
-            color="#59ABE3"
+            color={COLORS.pinJob}
             seeAllRoute="/(tabs)/jobs"
             emptyMessage={t("jobs.noJobs") || "No jobs nearby"}
             isCollapsed={collapsedSections.has("jobs")}
@@ -1377,7 +1379,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("marketplace.productsInArea", "Produkte in der Nähe")}
             icon="pricetag"
-            color="#59ABE3"
+            color={COLORS.pinProduct}
             seeAllRoute="/marketplace/items"
             emptyMessage={t("marketplace.noProductsNearby", "Keine Produkte in der Nähe")}
             isCollapsed={collapsedSections.has("marketplace")}
@@ -1414,7 +1416,7 @@ export default function HomeScreen() {
           <CarouselSection
             title={t("marketplace.homesInArea", "Unterkünfte in der Nähe")}
             icon="home"
-            color="#59ABE3"
+            color={COLORS.pinHome}
             seeAllRoute="/marketplace/homes"
             emptyMessage={t("marketplace.noHomesNearby", "Keine Unterkünfte in der Nähe")}
             isCollapsed={collapsedSections.has("homes-nearby")}
@@ -1781,7 +1783,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 24, fontWeight: "700", color: COLORS.textPrimary },
   headerSubtitle: { marginTop: 6, color: COLORS.textMuted },
   card: { backgroundColor: COLORS.background, marginHorizontal: 0, marginBottom: 10, paddingTop: 12, paddingHorizontal: SPACING.small, paddingBottom: 8 },
-  cardTitle: { fontSize: Platform.OS === "web" ? 18 : 16, fontWeight: "600", color: "#1F4788", marginBottom: 8 },
+  cardTitle: { fontSize: FONT_SIZES.h4, fontWeight: FONT_WEIGHTS.semibold, color: "#1F4788", marginBottom: 8 },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   sectionHeaderRight: { flexDirection: "row", alignItems: "center", gap: 8 },
   seeAllButton: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
@@ -1791,8 +1793,8 @@ const styles = StyleSheet.create({
   contentCardFallback: { width: "100%", height: "100%", backgroundColor: COLORS.surfaceMuted, alignItems: "center", justifyContent: "center" },
   contentCardFallbackIcon: { fontSize: 32, color: COLORS.textDisabled },
   contentCardText: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 8 },
-  contentCardTitle: { fontSize: Platform.OS === "web" ? 15 : 13, fontWeight: "600", color: COLORS.textPrimary },
-  contentCardSub: { fontSize: Platform.OS === "web" ? 13 : 11, color: COLORS.textDisabled, marginTop: 1 },
+  contentCardTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: FONT_WEIGHTS.semibold, color: COLORS.textPrimary },
+  contentCardSub: { fontSize: FONT_SIZES.small, color: COLORS.textMuted, marginTop: 1 },
   savedBadge: { position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center", zIndex: 10 },
   goingBadge: { position: "absolute", top: 6, left: 6, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 8, backgroundColor: COLORS.success, zIndex: 5 },
   goingText: { fontSize: Platform.OS === "web" ? 10 : 8, fontWeight: "600", color: COLORS.background },
@@ -1862,7 +1864,7 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     flexShrink: 1,
   },
-  locationSearchPillText: { fontSize: 12.5, color: "#264348" },
+  locationSearchPillText: { fontSize: FONT_SIZES.caption, color: "#264348" },
   homeNavLink: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
   homeNavLinkText: { fontSize: 14, fontWeight: "700", color: "#264348" },
   stickyHeaderRight: { flexDirection: "row", gap: 10, marginLeft: 10, alignItems: "center" },

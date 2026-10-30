@@ -33,7 +33,11 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const DETAIL_MAX_HEIGHT = SCREEN_HEIGHT * 0.65;
 const DETAIL_WIDTH = SCREEN_WIDTH - SPACING.page * 2;
 
-export default function PostDetail() {
+export default function PostRoute() {
+  return <GuestEntityRoute kind="post"><PostDetail /></GuestEntityRoute>;
+}
+
+function PostDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sessionToken, user, activeIdentity } = useAuth();
   const router = useRouter();
@@ -413,3 +417,4 @@ postImage: {
     fontWeight: "500",
   },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

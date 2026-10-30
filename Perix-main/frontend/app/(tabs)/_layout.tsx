@@ -1,7 +1,7 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs, useSegments } from "expo-router";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { ActivityIndicator, View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { useBadge } from "../../context/BadgeContext";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -64,7 +64,8 @@ export default function TabsLayout() {
   const { isDesktop } = useResponsiveLayout();
   const showTopNavbar = isDesktop && Platform.OS === "web";
   const insets = useSafeAreaInsets();
-  const { activeIdentity, sessionToken } = useAuth();
+  const { activeIdentity, sessionToken, user, loading } = useAuth();
+  const segments = useSegments() as string[];
   const { openCreateSheet, openBizActions } = useCreateFlow();
   const router = useRouter();
   const isBusiness = activeIdentity?.type === "business";
@@ -76,6 +77,10 @@ export default function TabsLayout() {
     }
     action();
   };
+
+  // Do not mount the member Home (and its effects) while a guest redirects.
+  if (segments[1] === "home" && loading) return <ActivityIndicator />;
+  if (segments[1] === "home" && !user) return <Redirect href="/login" />;
 
   return (
     <View style={styles.container}>

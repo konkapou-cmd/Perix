@@ -29,7 +29,11 @@ import { normalizeId } from "../../lib/navigation/entityRoutes";
 
 const ACCENT = "#7C4DFF";
 
-export default function ArtistDetailPage() {
+export default function ArtistRoute() {
+  return <GuestEntityRoute kind="artist"><ArtistDetailPage /></GuestEntityRoute>;
+}
+
+function ArtistDetailPage() {
   const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
   const id = normalizeId(rawId);
@@ -278,3 +282,4 @@ const styles = StyleSheet.create({
   eventTitle: { fontSize: FONT_SIZES.bodySmall, fontWeight: "600", color: COLORS.textPrimary },
   eventMeta: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

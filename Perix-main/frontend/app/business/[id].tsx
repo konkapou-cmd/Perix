@@ -46,7 +46,11 @@ import { getBusinessSellerListings, Listing } from "../../lib/api/listings";
 import ServiceBookingModal from "../../components/business/ServiceBookingModal";
 import UploadProgressSheet from "../../components/UploadProgressSheet";
 
-export default function BusinessDetailScreen() {
+export default function BusinessRoute() {
+  return <GuestEntityRoute kind="business"><BusinessDetailScreen /></GuestEntityRoute>;
+}
+
+function BusinessDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sessionToken, user, activeIdentity } = useAuth();
@@ -613,3 +617,4 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { backgroundColor: "#9ca3af" },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

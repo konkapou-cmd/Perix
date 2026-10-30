@@ -112,7 +112,9 @@ export default function GlobalWebChrome({ children }: { children: React.ReactNod
 
   // The global desktop navbar (brand + Home/Explore links + actions) is
   // shown on ALL pages including home, so every screen shares one top bar.
-  const showTopNavbar = isDesktop && Platform.OS === "web" && segments[0] !== "(auth)";
+  const routeSegments = segments as string[];
+  const isCityGateway = routeSegments.length === 0 || routeSegments[0] === "index" || routeSegments[0] === "app" || routeSegments[0] === "public-services";
+  const showTopNavbar = isDesktop && Platform.OS === "web" && !!sessionToken && segments[0] !== "(auth)" && !isCityGateway;
 
   const createFlowValue = useMemo(
     () => ({
@@ -127,6 +129,7 @@ export default function GlobalWebChrome({ children }: { children: React.ReactNod
       <View style={{ flex: 1 }}>
         {showTopNavbar && (
           <TopNavbar
+            brandLogo={routeSegments[0] === "(tabs)" && routeSegments[1] === "home"}
             onCreatePress={() => {
               if (!sessionToken) {
                 router.push("/login" as any);

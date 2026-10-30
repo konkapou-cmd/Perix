@@ -18,8 +18,9 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useBadge } from "../context/BadgeContext";
 import { COLORS } from "../lib/designTokens";
+import PerixLogo from "./brand/PerixLogo";
 
-export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => void }) {
+export default function TopNavbar({ onCreatePress, brandLogo = false }: { onCreatePress?: () => void; brandLogo?: boolean }) {
   const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
@@ -47,10 +48,10 @@ export default function TopNavbar({ onCreatePress }: { onCreatePress?: () => voi
           onPress={() => router.navigate("/(tabs)/home" as any)}
           data-testid="navbar-logo"
         >
-          <View style={styles.brandWrap}>
+          {brandLogo ? <PerixLogo /> : <View style={styles.brandWrap}>
             <Text style={styles.logoText}>Perıx</Text>
             <Ionicons name="sunny" size={9} color="#FFC93C" style={styles.brandSun} />
-          </View>
+          </View>}
         </Pressable>
 
         {/* Center: Navigation Links */}
