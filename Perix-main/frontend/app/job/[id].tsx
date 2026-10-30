@@ -35,7 +35,11 @@ import { normalizeId } from "../../lib/navigation/entityRoutes";
 
 const JOBS_ACCENT = "#264348";
 
-export default function JobDetailPage() {
+export default function JobRoute() {
+  return <GuestEntityRoute kind="job"><JobDetailPage /></GuestEntityRoute>;
+}
+
+function JobDetailPage() {
   const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
   const id = normalizeId(rawId);
@@ -496,3 +500,4 @@ const styles = StyleSheet.create({
   submitApplyText: { color: "#fff", fontSize: FONT_SIZES.body, fontWeight: "600" },
   disabledButton: { opacity: 0.5 },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

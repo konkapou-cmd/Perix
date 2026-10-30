@@ -26,7 +26,11 @@ import { getUserSellerListings, Listing } from "../../lib/api/listings";
 import { UserProfilePremium } from "../../components/profile/UserProfilePremium";
 import { confirmAction } from "../../lib/confirm";
 
-export default function UserProfileScreen() {
+export default function UserRoute() {
+  return <GuestEntityRoute kind="user"><UserProfileScreen /></GuestEntityRoute>;
+}
+
+function UserProfileScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -471,3 +475,4 @@ const styles = StyleSheet.create({
   reportSubmitButtonDisabled: { backgroundColor: "#fca5a5" },
   reportSubmitButtonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

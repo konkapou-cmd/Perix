@@ -1,0 +1,66 @@
+{
+  "rights": "Public domain; free commercial/non-commercial use",
+  "rights_url": "https://flagpedia.net/download",
+  "files": [
+    {
+      "file": "gb.png",
+      "source": "https://flagcdn.com/w80/gb.png",
+      "sha256": "94f29281d0b2b67b035dd279a4b43b18b8be9e889f5287af2b2c5e3723e0c810",
+      "collected_at": "2026-10-27T12:02:08.869784+00:00"
+    },
+    {
+      "file": "de.png",
+      "source": "https://flagcdn.com/w80/de.png",
+      "sha256": "5eb33c86a8f1cd43cbbd990aee89e4ce4fabf7efdece1529be66fb1becf29fc9",
+      "collected_at": "2026-10-27T12:02:08.867264+00:00"
+    },
+    {
+      "file": "gr.png",
+      "source": "https://flagcdn.com/w80/gr.png",
+      "sha256": "fd3a391dd9885d56b1fccf99870954dc68ff61184bd38fd4240b44fc562f69f4",
+      "collected_at": "2026-10-27T12:02:08.866902+00:00"
+    },
+    {
+      "file": "es.png",
+      "source": "https://flagcdn.com/w80/es.png",
+      "sha256": "cfd46911c2d8a218317ecfa94d776ca3784def0212332b2c230d0a7cfeb6be41",
+      "collected_at": "2026-10-27T12:02:08.867264+00:00"
+    },
+    {
+      "file": "al.png",
+      "source": "https://flagcdn.com/w80/al.png",
+      "sha256": "d3bc5980296f0635d91f8afc6d91ff0e4f8434c88a6c59039743dd60529df6ac",
+      "collected_at": "2026-10-27T12:02:09.086315+00:00"
+    },
+    {
+      "file": "fr.png",
+      "source": "https://flagcdn.com/w80/fr.png",
+      "sha256": "2a539c1a42f160aab68730f4caaa322bd6fbccf42145015bb7544961671a9cbd",
+      "collected_at": "2026-10-27T12:02:09.092979+00:00"
+    },
+    {
+      "file": "it.png",
+      "source": "https://flagcdn.com/w80/it.png",
+      "sha256": "655b1b31b9a3d3b6f659863e6ffebedaf8810e5e97f12fea687e9ede6d298c3d",
+      "collected_at": "2026-10-27T12:02:09.095246+00:00"
+    },
+    {
+      "file": "rs.png",
+      "source": "https://flagcdn.com/w80/rs.png",
+      "sha256": "5a2996144f6c1415c6e680f36d21f6b7fae66091fc50840cc1b848da15a31d16",
+      "collected_at": "2026-10-27T12:02:09.136799+00:00"
+    },
+    {
+      "file": "pl.png",
+      "source": "https://flagcdn.com/w80/pl.png",
+      "sha256": "bc81e9a8f5f9482d3b266a434f5f28441b8df90b29c6f7e8d08d120d8dfb97d0",
+      "collected_at": "2026-10-27T12:02:09.310604+00:00"
+    },
+    {
+      "file": "ru.png",
+      "source": "https://flagcdn.com/w80/ru.png",
+      "sha256": "fe1a82a5145e5fba6982bb14cb20663b888a5feabada2235d036825fa4cbcac8",
+      "collected_at": "2026-10-27T12:02:09.320689+00:00"
+    }
+  ]
+}

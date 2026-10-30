@@ -161,6 +161,12 @@ LogBox.ignoreLogs([
   'Require cycle:',
 ]);
 
+function CityAwareBanners() {
+  const segments = useSegments() as string[];
+  const gateway = segments.length === 0 || ["index", "app", "public-services"].includes(segments[0]);
+  return gateway ? null : <><InstallBanner /><UpdateBanner /></>;
+}
+
 function AuthGuard() {
   const { user, loading } = useAuth();
   const segments = useSegments();
@@ -181,11 +187,16 @@ function AuthGuard() {
     const isTopLevelPublic = segs.length > 0 && publicTopLevel.includes(segs[0]);
     const isPublicTab =
       segs[0] === "(tabs)" &&
-      (segs.length < 2 || segs[1] === "home" || segs[1] === "locator");
-    const allowed = inAuthGroup || isTopLevelPublic || isPublicTab || segs.length === 0;
+      segs[1] === "locator";
+    const isPublicServiceRead = segs[0] === "public-services" &&
+      (segs.length === 1 || (segs.length === 2 && (segs[1] === "index" || segs[1] === "[id]")));
+    const isGateway = segs.length === 0 || (segs.length === 1 && (segs[0] === "index" || segs[0] === "app"));
+    const isPublicEntity = segs.length === 2 && segs[1] === "[id]" &&
+      ["business", "event", "activity", "artist", "user", "job", "service", "rental", "listing", "post"].includes(segs[0]);
+    const allowed = inAuthGroup || isTopLevelPublic || isPublicTab || isPublicServiceRead || isGateway || isPublicEntity;
     if (!allowed) {
       router.replace("/login");
-    }  }, [user, loading]);
+    }  }, [user, loading, segments]);
 
   return null;
 }
@@ -415,8 +426,7 @@ export default function RootLayout() {
                       <GlobalWebChrome>
                         <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
                       </GlobalWebChrome>
-                      <InstallBanner />
-                      <UpdateBanner />
+                      <CityAwareBanners />
                     </UploadProvider>
                   </NotificationProvider>
                 </SocketProvider>

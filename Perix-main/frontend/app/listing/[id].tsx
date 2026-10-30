@@ -21,7 +21,11 @@ import { normalizeId } from "../../lib/navigation/entityRoutes";
 import { formatPrice } from "../../lib/serviceFormat";
 import { LEASE_DURATION_LABELS } from "../../lib/fieldRegistry";
 
-export default function ListingDetailScreen() {
+export default function ListingRoute() {
+  return <GuestEntityRoute kind="listing"><ListingDetailScreen /></GuestEntityRoute>;
+}
+
+function ListingDetailScreen() {
   const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
   const id = normalizeId(rawId);
@@ -532,3 +536,4 @@ const styles = StyleSheet.create({
     color: "#264348",
   },
 });
+import GuestEntityRoute from "../../components/city/GuestEntityRoute";

@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { LANGUAGES, setStoredLanguage } from "../../i18n";
 import { COLORS } from "../../lib/designTokens";
+import PerixLogo from "../../components/brand/PerixLogo";
 
 export default function LoginScreen() {
   const { t, i18n } = useTranslation();
@@ -87,10 +88,7 @@ export default function LoginScreen() {
             </Pressable>
 
             <View style={styles.logoCard}>
-              <View style={styles.brandWrap}>
-                <Text style={styles.brandTitle}>Perıx</Text>
-                <Ionicons name="sunny" size={14} color="#FFC93C" style={styles.brandSun} />
-              </View>
+              <PerixLogo size="login" />
               <Text style={styles.subtitle}>{t("brand.subtitle")}</Text>
             </View>
 
